@@ -1,0 +1,6 @@
+#ifndef _XQC_CONN_H_INCLUDED_
+#define _XQC_CONN_H_INCLUDED_
+
+#define XQC_TRANSPORT_VERSION "1.0"
+
+#endif /* _XQC_CONN_H_INCLUDED_ */
