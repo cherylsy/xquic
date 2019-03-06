@@ -15,5 +15,27 @@ include_directories(
     "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-# add the executable
+set(
+    TRANSPORT_SOURCES
+
+    transport/xqc_conn.c
+)
+
+set(
+    COMMON_SOURCES
+
+    common/xqc_mem.c
+)
+
+add_library(
+    xquic
+
+    SHARED
+    
+    ${TRANSPORT_SOURCES}
+    ${COMMON_SOURCES}
+)
+
 add_executable(test_server test_server.c)
+
+target_link_libraries(test_server xquic)
