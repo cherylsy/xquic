@@ -3,8 +3,7 @@
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
-#include "transport/xqc_transport.h"
-#include "common/xqc_mem.h"
+#include "xqc_transport.h"
 
 typedef struct {
 
