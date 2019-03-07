@@ -1,10 +1,15 @@
 #ifndef _XQC_CONN_H_INCLUDED_
 #define _XQC_CONN_H_INCLUDED_
 
+#include "xqc_engine.h"
+#include "xqc_transport.h"
+#include "xqc_stream.h"
+#include "../common/xqc_memory_pool.h"
+#include "../common/xqc_hash.h"
+
 #define XQC_TRANSPORT_VERSION "1.0"
 
-#include "xqc_transport.h"
-#include "../common/xqc_memory_pool.h"
+#define XQC_ENCYPT_MAX_LEVEL  4
 
 typedef struct {
 
@@ -29,17 +34,28 @@ typedef enum {
 }xqc_conn_state_t;
 
 typedef struct {
-    xqc_conn_callbacks_t conn_callbacks;
-    xqc_cid_t dcid;
-    xqc_cid_t scid;
+
+}xqc_trans_param_t;
+
+struct xqc_connection_s{
+    xqc_conn_callbacks_t    conn_callbacks;
+    xqc_engine_t            *engine;
+
+    xqc_cid_t               dcid;
+    xqc_cid_t               scid;
    
-    xqc_conn_state_t conn_state;
-    xqc_memory_pool_t *pool;
+    xqc_conn_state_t        conn_state;
+    xqc_memory_pool_t       *pool;
+
+    xqc_hash_t              *all_streams;
+    xqc_stream_t            *crypto_stream[XQC_ENCYPT_MAX_LEVEL];
+
+    xqc_trans_param_t       *trans_param;
 
     /* recovery state ctx */
 
     /* congestion control ctx */
     /* flag */
-}xqc_connection_t;
+};
 
 #endif /* _XQC_CONN_H_INCLUDED_ */
