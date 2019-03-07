@@ -3,6 +3,8 @@ project (xquic)
 
 set (xquic_VERSION_MAJOR 0)
 set (xquic_VERSION_MINOR 1)
+
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=c11")
  
 configure_file (
     xqc_cmake_config.h.in
@@ -30,12 +32,15 @@ set(
 add_library(
     xquic
 
-    SHARED
+    STATIC
     
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
 )
 
 add_executable(test_server test_server.c)
+
+include_directories( /usr/local/include )
+link_directories( /usr/local/lib )
 
 target_link_libraries(test_server xquic)
