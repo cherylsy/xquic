@@ -74,15 +74,34 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                socklen_t peer_addrlen,
                                uint64_t recv_time);
 
+/**
+ * Create new stream in quic connection.
+ * @param user_data  user_data for this stream
+ */
+xqc_stream_t *xqc_create_stream (xqc_connection_t *c,
+                                 void *user_data);
 
+/**
+ * Close stream.
+ */
+int xqc_close_stream (xqc_connection_t *c, 
+                      xqc_stream_t *stream);
+
+/**
+ * Recv data in stream.
+ */
 ssize_t xqc_stream_recv (xqc_connection_t *c,
                          xqc_stream_t *stream,
-                         void *recv_buf,
+                         unsigned char *recv_buf,
                          size_t recv_buf_size);
 
+/**
+ * Send data in stream.
+ * @param fin  0 or 1,  1 - final data block send in this stream.
+ */
 ssize_t xqc_stream_send (xqc_connection_t *c,
                          xqc_stream_t *stream,
-                         void *send_data,
+                         unsigned char *send_data,
                          size_t send_data_size,
                          uint8_t fin);
 
