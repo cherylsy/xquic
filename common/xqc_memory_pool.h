@@ -1,13 +1,12 @@
-#pragma once
+#ifndef _XQC_MEMORY_POOL_H_INCLUDED_
+#define _XQC_MEMORY_POOL_H_INCLUDED_
 
 #include <string.h>
 
 #include "xqc_malloc.h"
 
-#define XQC_MAX_MALLOC_FROM_POOL (4096)
-
 /*
- * 接口列表，使用方只需要关注这4个接口
+ * 接口列表，使用方只需要关注这几个接口
  *
  * xqc_memory_pool_t *xqc_create_pool(size_t size)
  *
@@ -49,28 +48,30 @@ typedef struct xqc_memory_pool_s
     size_t max;
 } xqc_memory_pool_t;
 
+#define XQC_MAX_MALLOC_FROM_POOL (4096)
+
 /*
  * 创建池，size是block大小
  * */
 static inline xqc_memory_pool_t *xqc_create_pool(size_t size)
 {
-    if (size < sizeof(xqc_memory_pool_t)) {
+    if (size <= sizeof(xqc_memory_pool_t)) {
         return NULL;
     }
 
-    xqc_memory_pool_t* pool = xqc_malloc(size);
-    if (pool == NULL) {
-       return NULL;
+    char* m = xqc_malloc(size);
+    if (m == NULL) {
+        return NULL;
     }
 
-    pool->block.last = (char*)pool + sizeof(xqc_memory_pool_t);
-    pool->block.end = (char*)pool + size;
+    xqc_memory_pool_t* pool = (xqc_memory_pool_t*)m;
+    pool->block.last = m + sizeof(xqc_memory_pool_t);
+    pool->block.end = m + size;
     pool->block.failed = 0;
     pool->block.next = NULL;
 
     pool->current = &pool->block;
     pool->large = NULL;
-
     pool->max = size - sizeof(xqc_memory_pool_t);
     if (pool->max > XQC_MAX_MALLOC_FROM_POOL) {
         pool->max = XQC_MAX_MALLOC_FROM_POOL;
@@ -87,14 +88,8 @@ static inline void xqc_destroy_pool(xqc_memory_pool_t* pool)
     xqc_memory_block_t* block = pool->block.next;
     while (block) {
         xqc_memory_block_t *p = block;
-
-        if (block->next != NULL) {
-            block = block->next;
-            xqc_free(p);
-        } else {
-            xqc_free(p);
-            break;
-        }
+        block = block->next;
+        xqc_free(p);
     }
 
     xqc_memory_large_t *large = pool->large;
@@ -118,7 +113,6 @@ static inline void* xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
     }
 
     p->size = size;
-
     p->next = pool->large;
     pool->large = p;
 
@@ -146,7 +140,7 @@ static inline void* xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
     m = xqc_align_ptr(m, XQC_ALIGNMENT);
 
     b->last = m + size;
-    b->end = (char*)b + psize;
+    b->end = m + psize;
     b->failed = 0;
     b->next = NULL;
 
@@ -222,4 +216,6 @@ static inline void* xqc_pcalloc(xqc_memory_pool_t *pool, size_t size)
     }
     return NULL;
 }
+
+#endif /*_XQC_MEMORY_POOL_H_INCLUDED_*/
 
