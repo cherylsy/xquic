@@ -2,6 +2,7 @@
 
 #include "xqc_memory_pool.h"
 #include "xqc_id_hash.h"
+#include "xqc_str_hash.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);

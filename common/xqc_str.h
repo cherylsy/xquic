@@ -5,7 +5,7 @@ typedef struct xqc_str_s
 {
     unsigned char* data;
     size_t len;
-};
+} xqc_str_t;
 
 #define xqc_string(str)     { sizeof(str) - 1, (unsigned char *) str }
 #define xqc_null_string     { 0, NULL }
