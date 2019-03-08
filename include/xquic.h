@@ -25,17 +25,32 @@ typedef enum {
     XQC_ENGINE_CLIENT
 }xqc_engine_type_t;
 
-/**
- * callback type define
- */
+
+typedef ssize_t (*xqc_recv_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_send_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
+
+typedef int (*xqc_stream_notify_pt)(void *user_data, uint64_t stream_id);
+typedef int (*xqc_handshake_finished_pt)(void *user_data);
 
 typedef struct xqc_congestion_control_callback_s {
 
 }xqc_cong_ctrl_callback_t;
 
 typedef struct xqc_engine_callback_s {
+    /* for congestion control */
     xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 
+    /* for socket read & write */
+    xqc_recv_pt                 read_socket;
+    xqc_send_pt                 write_socket;
+
+    /* for stream notify */
+    xqc_stream_notify_pt        stream_read_notify;
+    xqc_stream_notify_pt        stream_write_notify;
+    xqc_stream_notify_pt        stream_close;
+
+    /* for handshake done */
+    xqc_handshake_finished_pt   handshake_finished;
 }xqc_engine_callback_t;
 
 typedef struct xqc_packet_s {
