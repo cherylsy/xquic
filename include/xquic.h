@@ -83,6 +83,7 @@ xqc_stream_t *xqc_create_stream (xqc_connection_t *c,
 
 /**
  * Close stream.
+ * @retval XQC_OK or XQC_ERROR
  */
 int xqc_close_stream (xqc_connection_t *c, 
                       xqc_stream_t *stream);
