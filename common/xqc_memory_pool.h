@@ -1,11 +1,12 @@
-#pragma once
+#ifndef _XQC_MEMORY_POOL_H_INCLUDED_
+#define _XQC_MEMORY_POOL_H_INCLUDED_
 
 #include <string.h>
 
 #include "xqc_malloc.h"
 
 /*
- * 接口列表，使用方只需要关注这4个接口
+ * 接口列表，使用方只需要关注这几个接口
  *
  * xqc_memory_pool_t *xqc_create_pool(size_t size)
  *
@@ -215,4 +216,6 @@ static inline void* xqc_pcalloc(xqc_memory_pool_t *pool, size_t size)
     }
     return NULL;
 }
+
+#endif /*_XQC_MEMORY_POOL_H_INCLUDED_*/
 
