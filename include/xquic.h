@@ -25,9 +25,18 @@ typedef enum {
     XQC_ENGINE_CLIENT
 }xqc_engine_type_t;
 
-typedef struct xqc_engine_api {
+/**
+ * callback type define
+ */
 
-}xqc_engine_api_t;
+typedef struct xqc_congestion_control_callback_s {
+
+}xqc_cong_ctrl_callback_t;
+
+typedef struct xqc_engine_callback_s {
+    xqc_cong_ctrl_callback_t    cong_ctrl_callback;
+
+}xqc_engine_callback_t;
 
 typedef struct xqc_packet_s {
     unsigned char *buf;
@@ -53,13 +62,14 @@ void xqc_engine_init_config (xqc_engine_t *engine,
 /**
  * Set xquic engine API.
  */
-void xqc_engine_set_api (xqc_engine_t *engine,
-                         xqc_engine_api_t *engine_api);
+void xqc_engine_set_callback (xqc_engine_t *engine,
+                              xqc_engine_callback_t *engine_callback);
 
 
 xqc_connection_t *xqc_engine_connect (xqc_engine_t *engine, 
-                                const struct sockaddr *peer_addr,
-                                socklen_t peer_addrlen);
+                                      const struct sockaddr *peer_addr,
+                                      socklen_t peer_addrlen,
+                                      void *user_data);
 
 /**
  * Pass received UDP packet payload into xquic engine.
