@@ -52,6 +52,8 @@ struct xqc_connection_s{
 
     xqc_trans_param_t       *trans_param;
 
+    void                    *user_data;  /* user_data for application layer */
+
     /* recovery state ctx */
 
     /* congestion control ctx */
