@@ -7,7 +7,10 @@
  * Public API for using libxquic
  */
 
-typedef struct xqc_engine xqc_engine_t;
+#include <sys/socket.h>
+#include <../transport/xqc_transport.h>
+
+typedef struct xqc_engine_s xqc_engine_t;
 
 /**
  * @struct xqc_config_t
@@ -26,6 +29,12 @@ typedef struct xqc_engine_api {
 
 }xqc_engine_api_t;
 
+typedef struct xqc_packet_s {
+    unsigned char *buf;
+    size_t         size;
+    
+    uint64_t       recv_time;  /* millisecond */
+}xqc_packet_t;
 
 /**
  * Create new xquic engine.
@@ -48,11 +57,34 @@ void xqc_engine_set_api (xqc_engine_t *engine,
                          xqc_engine_api_t *engine_api);
 
 
-xqc_conn_t *xqc_engine_connect (xqc_engine_t *engine, 
+xqc_connection_t *xqc_engine_connect (xqc_engine_t *engine, 
                                 const struct sockaddr *peer_addr,
                                 socklen_t peer_addrlen);
 
+/**
+ * Pass received UDP packet payload into xquic engine.
+ * @param recv_time   UDP packet recieved time in millisecond
+ */
+int xqc_engine_packet_process (xqc_engine_t *engine,
+                               const unsigned char *packet_in_buf,
+                               size_t packet_in_size,
+                               const struct sockaddr *local_addr,
+                               socklen_t local_addrlen,
+                               const struct sockaddr *peer_addr,
+                               socklen_t peer_addrlen,
+                               uint64_t recv_time);
 
+
+ssize_t xqc_stream_recv (xqc_connection_t *c,
+                         xqc_stream_t *stream,
+                         void *recv_buf,
+                         size_t recv_buf_size);
+
+ssize_t xqc_stream_send (xqc_connection_t *c,
+                         xqc_stream_t *stream,
+                         void *send_data,
+                         size_t send_data_size,
+                         uint8_t fin);
 
 
 #endif /* _XQUIC_H_INCLUDED_ */
