@@ -1,14 +1,16 @@
 #ifndef _XQC_STR_HASH_INCLUDED_
 #define _XQC_STR_HASH_INCLUDED_
 
-#endif /*_XQC_STR_HASH_INCLUDED_*/
+#include <stdint.h>
+
+#include "xqc_str.h"
 
 /*
  * 哈希表元素
  * */
 typedef struct xqc_str_hash_element_s
 {
-    unsigned long hash; /*hash，用于对桶数取模*/
+    uint64_t hash; /*hash，用于对桶数取模*/
     xqc_str_t str; /*字符串，仅仅比较hash还不够，还需要比较字符串*/
     void *value; /*关联的元素数据*/
 } xqc_str_hash_element_t;
@@ -67,9 +69,9 @@ static inline void xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
 /*
  * 查找
  * */
-static inline void* xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, unsigned long hash, xqc_str_t str)
+static inline void* xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 {
-    unsigned long index = hash % hash_tab->count;
+    uint64_t index = hash % hash_tab->count;
     xqc_str_hash_node_t* node = hash_tab->list[index];
     while (node) {
         if (node->element.hash == hash && xqc_str_equal(str, node->element.str)) {
@@ -85,7 +87,7 @@ static inline void* xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, unsigned l
  * */
 static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_element_t e)
 {
-    unsigned long index = e.hash % hash_tab->count;
+    uint64_t index = e.hash % hash_tab->count;
     xqc_allocator_t* a = &hash_tab->allocator;
     xqc_str_hash_node_t* node = a->malloc(a->opaque, sizeof(xqc_str_hash_node_t));
     if (node == NULL) {
@@ -102,9 +104,9 @@ static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_
 /*
  * 删除元素
  * */
-static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, unsigned long hash, xqc_str_t str)
+static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 {
-    unsigned long index = hash % hash_tab->count;
+    uint64_t index = hash % hash_tab->count;
     xqc_str_hash_node_t** pp = &hash_tab->list[index];
     xqc_str_hash_node_t* node = hash_tab->list[index];
     while (node) {
@@ -120,3 +122,4 @@ static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, unsigned l
     return XQC_ERROR;
 }
 
+#endif /*_XQC_STR_HASH_INCLUDED_*/
