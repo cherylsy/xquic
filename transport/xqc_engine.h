@@ -5,6 +5,7 @@
 #include "xqc_transport.h"
 
 struct xqc_engine_s {
+    xqc_config_t    *config;
     xqc_hash_t      *conns_hash;
 
 };
