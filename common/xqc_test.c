@@ -3,9 +3,11 @@
 #include "xqc_memory_pool.h"
 #include "xqc_id_hash.h"
 #include "xqc_str_hash.h"
+#include "xqc_log.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
+int test_log(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -13,10 +15,14 @@ int main(int argc, char* argv[])
     test_memory_pool(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_hash(argc, argv);
 #endif
 
+#if 1
+    test_log(argc, argv);
+
+#endif
 
     return 0;
 }
@@ -73,3 +79,13 @@ int test_hash(int argc, char* argv[])
     xqc_id_hash_release(&hash_tab);
     return 0;
 }
+
+int test_log(int argc, char* argv[])
+{
+    xqc_log_t *log = xqc_log_init();
+    xqc_log_debug(log, "helloworld\n");
+    xqc_log_debug(log, "arg=%d, name=%s\n", 10, "jiangyou");
+    xqc_log_release(log);
+    return 0;
+}
+
