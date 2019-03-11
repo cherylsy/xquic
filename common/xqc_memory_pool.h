@@ -2,6 +2,7 @@
 #define _XQC_MEMORY_POOL_H_INCLUDED_
 
 #include <string.h>
+#include <stdint.h>
 
 #include "xqc_malloc.h"
 

@@ -83,8 +83,8 @@ int test_hash(int argc, char* argv[])
 int test_log(int argc, char* argv[])
 {
     xqc_log_t *log = xqc_log_init();
-    //xqc_log_debug(log, "helloworld");
-    xqc_log_debug(log, "arg=%d, name=%s", 10, "jiangyou");
+    xqc_log_debug(log, "helloworld\n");
+    xqc_log_debug(log, "arg=%d, name=%s\n", 10, "jiangyou");
     xqc_log_release(log);
     return 0;
 }

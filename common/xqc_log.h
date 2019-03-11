@@ -53,25 +53,36 @@ static inline void xqc_log_release(xqc_log_t* log)
     log = NULL;
 }
 
-static inline void xqc_log_core(enum xqc_log_level_t level, xqc_log_t *log, const char* fmt, ...)
+static inline void xqc_snprintf(char* buf, size_t n, const char* fmt, va_list args)
 {
-    /*char buf[2048] = {};
-
-    va_list args;
-    va_start(args, fmt);
-    snprintf(buf, sizeof(buf), fmt, args);
-    va_end(args);*/
-
-    printf("[%s] %s\n", xqc_log_leveL_str(level), __VA_ARGS__);
+    /*
+     * TODO
+     * */
 }
 
-#define xqc_log_error(log, fmt, ...) xqc_log_core(XQC_LOG_ERROR, log, fmt, __VA_ARGS__)
+#define xqc_log_error(log, ...) \
+    do {\
+        printf("[error] "); \
+        printf(__VA_ARGS__); \
+    } while (0)
 
-#define xqc_log_warn(log, fmt, ...) xqc_log_core(XQC_LOG_WARN, log, fmt, __VA_ARGS__)
+#define xqc_log_warn(log, ...) \
+    do {\
+        printf("[warn] "); \
+        printf(__VA_ARGS__); \
+    } while (0)
 
-#define xqc_log_info(log, fmt, ...) xqc_log_core(XQC_LOG_INFO, log, fmt, __VA_ARGS__)
+#define xqc_log_info(log, ...) \
+    do {\
+        printf("[info] "); \
+        printf(__VA_ARGS__); \
+    } while (0)
 
-#define xqc_log_debug(log, fmt, ...) xqc_log_core(XQC_LOG_DEBUG, log, fmt, __VA_ARGS__)
+#define xqc_log_debug(log, ...) \
+    do {\
+        printf("[debug] "); \
+        printf(__VA_ARGS__); \
+    } while (0)
 
 #endif /*_XQC_H_LOG_INCLUDED_*/
 
