@@ -111,13 +111,13 @@ xqc_stream_t *xqc_create_stream (xqc_connection_t *c,
  * @retval XQC_OK or XQC_ERROR
  */
 int xqc_close_stream (xqc_connection_t *c, 
-                      xqc_stream_t *stream);
+                            uint64_t stream_id);
 
 /**
  * Recv data in stream.
  */
 ssize_t xqc_stream_recv (xqc_connection_t *c,
-                         xqc_stream_t *stream,
+                         uint64_t stream_id,
                          unsigned char *recv_buf,
                          size_t recv_buf_size);
 
@@ -126,7 +126,7 @@ ssize_t xqc_stream_recv (xqc_connection_t *c,
  * @param fin  0 or 1,  1 - final data block send in this stream.
  */
 ssize_t xqc_stream_send (xqc_connection_t *c,
-                         xqc_stream_t *stream,
+                         uint64_t stream_id,
                          unsigned char *send_data,
                          size_t send_data_size,
                          uint8_t fin);
