@@ -4,10 +4,12 @@
 #include "xqc_id_hash.h"
 #include "xqc_str_hash.h"
 #include "xqc_log.h"
+#include "xqc_list.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
 int test_log(int argc, char* argv[]);
+int test_list(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -19,9 +21,12 @@ int main(int argc, char* argv[])
     test_hash(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_log(argc, argv);
+#endif
 
+#if 1
+    test_list(argc, argv);
 #endif
 
     return 0;
@@ -86,6 +91,56 @@ int test_log(int argc, char* argv[])
     xqc_log_debug(log, "helloworld\n");
     xqc_log_debug(log, "arg=%d, name=%s\n", 10, "jiangyou");
     xqc_log_release(log);
+    return 0;
+}
+
+struct person
+{
+    int age;
+    char name[20];
+    xqc_list_head_t list;
+};
+
+int test_list(int argc, char* argv[])
+{
+    struct person *pperson;
+    struct person person_head;
+    xqc_list_head_t *pos, *next;
+    int i;
+
+    // 初始化双链表的表头
+    xqc_init_list_head(&person_head.list);
+
+    // 添加节点
+    for (i=0; i<5; i++)
+    {
+        pperson = (struct person*)malloc(sizeof(struct person));
+        pperson->age = (i+1)*10;
+        sprintf(pperson->name, "%d", i+1);
+        // 将节点链接到链表的末尾
+        // 如果想把节点链接到链表的表头后面，则使用 list_add
+        xqc_list_add_tail(&(pperson->list), &(person_head.list));
+    }
+
+    // 遍历链表
+    printf("==== 1st iterator d-link ====\n");
+    xqc_list_for_each(pos, &person_head.list)
+    {
+        pperson = xqc_list_entry(pos, struct person, list);
+        printf("name:%-2s, age:%d\n", pperson->name, pperson->age);
+    }
+
+    // 删除节点age为20的节点
+    printf("==== delete node(age:20) ====\n");
+    xqc_list_for_each_safe(pos, next, &person_head.list)
+    {
+        pperson = xqc_list_entry(pos, struct person, list);
+        if(pperson->age == 20)
+        {
+            xqc_list_del_init(pos);
+            free(pperson);
+        }
+    }
     return 0;
 }
 
