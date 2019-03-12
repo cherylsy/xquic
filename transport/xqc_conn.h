@@ -56,27 +56,27 @@ typedef enum {
 }xqc_ip_version_t;
 
 typedef struct {
-    xqc_ip_version_t ip_version;
-    unsigned char ip_address[8];
-    uint16_t port;
-    xqc_cid_t connection_id;
-    unsigned char stateless_reset_token[16];
+    xqc_ip_version_t    ip_version;
+    unsigned char       ip_address[8];
+    uint16_t            port;
+    xqc_cid_t           connection_id;
+    unsigned char       stateless_reset_token[16];
 }xqc_preferred_address_t;
 
 typedef struct {
-    xqc_cid_t   original_connection_id;
-    xqc_msec_t  idle_timeout;
-    xqc_buf_t   stateless_reset_token;
-    size_t      max_packet_size;
-    size_t      initial_max_data;
-    uint64_t    initial_max_stream_data_bidi_local;
-    uint64_t    initial_max_stream_data_bidi_remote;
-    uint64_t    initial_max_stream_data_uni;
-    uint64_t    initial_max_streams_bidi;
-    uint64_t    initial_max_streams_uni;
-    uint64_t    ack_delay_exponent;
-    xqc_msec_t  max_ack_delay;
-    xqc_flag_t  disable_migration;
+    xqc_cid_t               original_connection_id;
+    xqc_msec_t              idle_timeout;
+    xqc_buf_t               stateless_reset_token;
+    size_t                  max_packet_size;
+    size_t                  initial_max_data;
+    uint64_t                initial_max_stream_data_bidi_local;
+    uint64_t                initial_max_stream_data_bidi_remote;
+    uint64_t                initial_max_stream_data_uni;
+    uint64_t                initial_max_streams_bidi;
+    uint64_t                initial_max_streams_uni;
+    uint64_t                ack_delay_exponent;
+    xqc_msec_t              max_ack_delay;
+    xqc_flag_t              disable_migration;
     xqc_preferred_address_t preferred_addr;
 }xqc_trans_param_t;
 
