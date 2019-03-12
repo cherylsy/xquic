@@ -21,11 +21,11 @@ int main(int argc, char* argv[])
     test_hash(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_log(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_list(argc, argv);
 #endif
 
@@ -91,6 +91,7 @@ int test_log(int argc, char* argv[])
     xqc_log_debug(log, "helloworld\n");
     xqc_log_debug(log, "arg=%d, name=%s\n", 10, "jiangyou");
     xqc_log_release(log);
+    xqc_log(log, XQC_LOG_DEBUG, "hello, %s\n", "alibaba");
     return 0;
 }
 
