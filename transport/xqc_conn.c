@@ -35,7 +35,7 @@ xqc_create_connection(xqc_engine_t *engine,
         goto fail;
     }
     
-    if(xqc_id_hash_init(&(xc->streams_hash),
+    if(xqc_id_hash_init(xc->streams_hash,
                      xqc_default_allocator,
                      engine->config->streams_hash_bucket_size) == XQC_ERROR) 
     {
@@ -55,7 +55,7 @@ fail:
 xqc_connection_t * 
 xqc_client_create_connection(xqc_engine_t *engine, 
                                 xqc_cid_t dcid, xqc_cid_t scid,
-                                xqc_conn_callbacks_t callbacks,
+                                xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
                                 void *user_data)
 {

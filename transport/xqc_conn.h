@@ -87,6 +87,10 @@ typedef struct {
     xqc_preferred_address_t preferred_addr;
 }xqc_trans_param_t;
 
+struct xqc_conn_settings_s {
+
+};
+
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
     xqc_conn_settings_t     conn_settings;

@@ -33,10 +33,6 @@ typedef struct xqc_config_s {
     size_t  streams_hash_bucket_size;
 }xqc_config_t;
 
-struct xqc_conn_settings_s{ 
-
-
-};
 
 
 typedef struct xqc_engine_callback_s {
@@ -121,7 +117,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 
 xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine, 
                                 xqc_cid_t dcid, xqc_cid_t scid,
-                                xqc_conn_callbacks_t callbacks,
+                                xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
                                 void *user_data);
 
