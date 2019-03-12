@@ -60,6 +60,12 @@ static inline void xqc_snprintf(char* buf, size_t n, const char* fmt, va_list ar
      * */
 }
 
+#define xqc_log(log, level, ...) \
+    do { \
+        printf("[%s] ", xqc_log_leveL_str(level)); \
+        printf(__VA_ARGS__); \
+    } while (0)
+
 #define xqc_log_error(log, ...) \
     do {\
         printf("[error] "); \
