@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <math.h>
 #include "xqc_cmake_config.h"
-#include "transport/xqc_conn.h"
+#include "../include/xquic.h"
 
 int main (int argc, char *argv[])
 {
-    printf("Usage: %s XQUIC:%d.%d Transport:%s\n", argv[0], xquic_VERSION_MAJOR, xquic_VERSION_MINOR, XQC_TRANSPORT_VERSION);
+    printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
     return 0;
 }

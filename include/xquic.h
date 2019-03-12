@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include <../transport/xqc_transport.h>
 
+#define XQC_QUIC_VERSION 1
+
 typedef struct xqc_engine_s xqc_engine_t;
 
 /**

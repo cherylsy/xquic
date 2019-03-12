@@ -38,7 +38,7 @@ add_library(
     ${COMMON_SOURCES}
 )
 
-add_executable(test_server test_server.c)
+add_executable(test_server tests/test_server.c)
 
 include_directories( /usr/local/include )
 link_directories( /usr/local/lib )
