@@ -20,7 +20,14 @@ typedef struct xqc_engine_s xqc_engine_t;
  */
 typedef struct xqc_config_s {
 
+    size_t  conn_pool_size;
+    size_t  streams_hash_bucket_size;
 }xqc_config_t;
+
+typedef struct xqc_conn_settings_s {
+
+
+}xqc_conn_settings_t;
 
 typedef enum {
     XQC_ENGINE_SERVER,
@@ -100,6 +107,12 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                const struct sockaddr *peer_addr,
                                socklen_t peer_addrlen,
                                uint64_t recv_time);
+
+xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine, 
+                                xqc_cid_t dcid, xqc_cid_t scid,
+                                xqc_conn_callbacks_t callbacks,
+                                xqc_conn_settings_t *settings,
+                                void *user_data);
 
 /**
  * Create new stream in quic connection.

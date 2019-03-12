@@ -19,17 +19,24 @@ typedef struct {
 
 typedef enum {
     /* server */
-    XQC_CONN_SERVER_STATE_INIT,
-    XQC_CONN_SERVER_STATE_INITIAL_RECVD,
-    XQC_CONN_SERVER_STATE_INITIAL_SENT,
-    XQC_CONN_SERVER_STATE_HANDSHAKE_SENT,
-    XQC_CONN_SERVER_STATE_HANDSHAKE_RECVD,
+    XQC_CONN_STATE_SERVER_INIT,
+    XQC_CONN_STATE_SERVER_INITIAL_RECVD,
+    XQC_CONN_STATE_SERVER_INITIAL_SENT,
+    XQC_CONN_STATE_SERVER_HANDSHAKE_SENT,
+    XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD,
+    /* client */
+    XQC_CONN_STATE_CLIENT_INIT,
     /* client & server */
     XQC_CONN_STATE_ESTABED,
     XQC_CONN_STATE_CLOSING,
     XQC_CONN_STATE_DRAINING,
     XQC_CONN_STATE_CLOSED
 }xqc_conn_state_t;
+
+typedef enum {
+    XQC_CONN_TYPE_SERVER,
+    XQC_CONN_TYPE_CLIENT,
+}xqc_conn_type_t;
 
 typedef enum {
     XQC_TRANS_PARAM_ORININAL_CONNECTION_ID = 0,
@@ -82,7 +89,10 @@ typedef struct {
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
-    xqc_engine_t            *engine;
+    xqc_conn_settings_t     conn_settings;
+    xqc_engine_t           *engine;
+
+    uint32_t                version;
 
     xqc_cid_t               dcid;
     xqc_cid_t               scid;
@@ -91,21 +101,30 @@ struct xqc_connection_s{
     xqc_buf_t               token;
    
     xqc_conn_state_t        conn_state;
-    xqc_memory_pool_t       *pool;
+    xqc_memory_pool_t      *pool;
 
-    xqc_hash_t              *all_streams;
-    xqc_stream_t            *crypto_stream[XQC_ENCYPT_MAX_LEVEL];
+    xqc_id_hash_table_t    *streams_hash;
+    xqc_stream_t           *crypto_stream[XQC_ENCYPT_MAX_LEVEL];
+    uint64_t                cur_stream_id_bidi_local;
+    uint64_t                cur_stream_id_uni_local;
 
     xqc_trans_param_t       trans_param;
 
-    void                    *user_data;  /* user_data for application layer */
+    void                   *user_data;  /* user_data for application layer */
     
-    xqc_log_t               *log;
+    xqc_log_t              *log;
 
     /* recovery state ctx */
 
     /* congestion control ctx */
     /* flag */
 };
+
+xqc_connection_t * xqc_create_connection(xqc_engine_t *engine, 
+                                xqc_cid_t dcid, xqc_cid_t scid,
+                                xqc_conn_callbacks_t callbacks,
+                                xqc_conn_settings_t *settings,
+                                void *user_data, 
+                                xqc_conn_type_t type);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

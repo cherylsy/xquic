@@ -8,7 +8,9 @@
 struct xqc_engine_s {
     xqc_engine_callback_t   eng_callback;
     xqc_config_t            *config;
-    xqc_hash_t              *conns_hash;
+    xqc_id_hash_table_t     *conns_hash;
+
+    xqc_conn_settings_t     *settings;
 };
 
 #endif
