@@ -1,18 +1,18 @@
 
 #include "../include/xquic.h"
-#include "xqc_transport.h"
+#include "xqc_conn.h"
 
-
-xqc_connection_t * 
-xqc_create_connection(xqc_engine_t *engine, 
+xqc_connection_t *
+xqc_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t dcid, xqc_cid_t scid,
                                 xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
-                                void *user_data, 
+                                void *user_data,
                                 xqc_conn_type_t type)
 {
     xqc_connection_t *xc = NULL;
     xqc_memory_pool_t *pool = xqc_create_pool(engine->config->conn_pool_size);
+
     if (pool == NULL) {
         return NULL;
     }
@@ -34,10 +34,13 @@ xqc_create_connection(xqc_engine_t *engine,
     if (xc->streams_hash == NULL) {
         goto fail;
     }
-
-    xqc_id_hash_init(&(xc->streams_hash), 
+    
+    if(xqc_id_hash_init(&(xc->streams_hash),
                      xqc_default_allocator,
-                     engine->config->streams_hash_bucket_size);
+                     engine->config->streams_hash_bucket_size) == XQC_ERROR) 
+    {
+        goto fail;
+    }
 
     return xc;
 

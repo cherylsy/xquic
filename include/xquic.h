@@ -8,11 +8,20 @@
  */
 
 #include <sys/socket.h>
-#include <../transport/xqc_transport.h>
+#include "../transport/xqc_transport.h"
+#include "../transport/xqc_conn.h"
 
 #define XQC_QUIC_VERSION 1
 
-typedef struct xqc_engine_s xqc_engine_t;
+typedef ssize_t (*xqc_recv_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_send_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
+
+typedef int (*xqc_stream_notify_pt)(void *user_data, uint64_t stream_id);
+typedef int (*xqc_handshake_finished_pt)(void *user_data);
+
+typedef struct xqc_congestion_control_callback_s {
+
+}xqc_cong_ctrl_callback_t;
 
 /**
  * @struct xqc_config_t
@@ -24,26 +33,11 @@ typedef struct xqc_config_s {
     size_t  streams_hash_bucket_size;
 }xqc_config_t;
 
-typedef struct xqc_conn_settings_s {
+struct xqc_conn_settings_s{ 
 
 
-}xqc_conn_settings_t;
+};
 
-typedef enum {
-    XQC_ENGINE_SERVER,
-    XQC_ENGINE_CLIENT
-}xqc_engine_type_t;
-
-
-typedef ssize_t (*xqc_recv_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
-typedef ssize_t (*xqc_send_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
-
-typedef int (*xqc_stream_notify_pt)(void *user_data, uint64_t stream_id);
-typedef int (*xqc_handshake_finished_pt)(void *user_data);
-
-typedef struct xqc_congestion_control_callback_s {
-
-}xqc_cong_ctrl_callback_t;
 
 typedef struct xqc_engine_callback_s {
     /* for congestion control */
@@ -61,6 +55,23 @@ typedef struct xqc_engine_callback_s {
     /* for handshake done */
     xqc_handshake_finished_pt   handshake_finished;
 }xqc_engine_callback_t;
+
+typedef struct xqc_engine_s {
+
+    xqc_engine_callback_t   eng_callback;
+    xqc_config_t            *config;
+    xqc_id_hash_table_t     *conns_hash;
+
+    xqc_conn_settings_t     *settings;
+}xqc_engine_t;
+
+
+typedef enum {
+    XQC_ENGINE_SERVER,
+    XQC_ENGINE_CLIENT
+}xqc_engine_type_t;
+
+
 
 typedef struct xqc_packet_s {
     unsigned char *buf;

@@ -1,9 +1,9 @@
 #ifndef _XQC_CONN_H_INCLUDED_
 #define _XQC_CONN_H_INCLUDED_
 
-#include "xqc_engine.h"
 #include "xqc_transport.h"
 #include "xqc_stream.h"
+#include "../include/xquic.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
@@ -122,7 +122,7 @@ struct xqc_connection_s{
 
 xqc_connection_t * xqc_create_connection(xqc_engine_t *engine, 
                                 xqc_cid_t dcid, xqc_cid_t scid,
-                                xqc_conn_callbacks_t callbacks,
+                                xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
                                 void *user_data, 
                                 xqc_conn_type_t type);
