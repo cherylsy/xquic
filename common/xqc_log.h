@@ -2,6 +2,7 @@
 #define _XQC_H_LOG_INCLUDED_
 
 #include <stdarg.h>
+#include <stdio.h>
 
 #include "xqc_malloc.h"
 

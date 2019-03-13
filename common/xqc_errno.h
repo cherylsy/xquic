@@ -3,6 +3,7 @@
 #define _XQC_ERRNO_H_INCLUDED_
 
 
+#include <errno.h>
 #include <../include/xquic.h>
 
 
