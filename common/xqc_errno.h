@@ -47,11 +47,7 @@ typedef int               xqc_err_t;
 #define XQC_ELOOP         ELOOP
 #define XQC_EBADF         EBADF
 
-#if (__hpux__)
-#define XQC_EAGAIN        EWOULDBLOCK
-#else
 #define XQC_EAGAIN        EAGAIN
-#endif
 
 
 #define xqc_errno                  errno
