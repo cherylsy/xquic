@@ -24,7 +24,8 @@ int main()
         return (int)CU_get_error();
     }     
 
-    if (!CU_add_test(pSuite, "xqc_get_random", test_xqc_random)) {
+    if (!CU_add_test(pSuite, "xqc_get_random", test_xqc_random)
+        /* ADD TESTS HERE */) {
         CU_cleanup_registry();
         return (int)CU_get_error();
     }
