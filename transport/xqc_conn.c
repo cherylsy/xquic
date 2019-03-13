@@ -25,6 +25,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->pool = pool;
     xc->dcid = dcid;
     xc->scid = scid;
+    xc->engine = engine;
     xc->conn_callbacks = *callbacks;
     xc->conn_settings = *settings;
     xc->user_data = user_data;
