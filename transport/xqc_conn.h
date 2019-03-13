@@ -3,6 +3,7 @@
 
 #include "xqc_transport.h"
 #include "xqc_stream.h"
+#include "xqc_cid.h"
 #include "../include/xquic.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
@@ -12,10 +13,6 @@
 typedef struct {
 
 }xqc_conn_callbacks_t;
-
-typedef struct {
-    uint64_t cid;
-}xqc_cid_t;
 
 typedef enum {
     /* server */
