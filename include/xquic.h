@@ -13,6 +13,7 @@
 #include "../transport/xqc_cid.h"
 #include "../common/xqc_errno.h"
 #include "../common/xqc_str.h"
+#include "../common/xqc_random.h"
 
 #define XQC_QUIC_VERSION 1
 
