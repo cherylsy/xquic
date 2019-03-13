@@ -4,6 +4,8 @@ project (xquic)
 set (xquic_VERSION_MAJOR 0)
 set (xquic_VERSION_MINOR 1)
 
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=c11")
  
 configure_file (
@@ -27,6 +29,7 @@ set(
     COMMON_SOURCES
 
     common/xqc_mem.c
+    common/xqc_random.c
 )
 
 add_library(
@@ -38,9 +41,20 @@ add_library(
     ${COMMON_SOURCES}
 )
 
+##### for unit test #########
+find_package(CUnit 2.1)
+enable_testing()
+set(HAVE_CUNIT ${CUNIT_FOUND})
+if(HAVE_CUNIT)
+  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
+endif()
+
+add_subdirectory(tests)
+
 add_executable(test_server tests/test_server.c)
 
 include_directories( /usr/local/include )
 link_directories( /usr/local/lib )
 
 target_link_libraries(test_server xquic)
+

@@ -13,6 +13,7 @@
 #include "../transport/xqc_cid.h"
 #include "../common/xqc_errno.h"
 #include "../common/xqc_str.h"
+#include "../common/xqc_random.h"
 
 #define XQC_QUIC_VERSION 1
 
@@ -64,12 +65,7 @@ typedef struct xqc_engine_s {
     xqc_conn_settings_t    *settings;
 
     xqc_log_t              *log;
-
-    /* for random */
-    xqc_int_t               rand_fd;           /* init_value: -1 */
-    off_t                   rand_buf_offset;   /* used offset */
-    size_t                  rand_buf_size;     /* total buffer size */
-    xqc_str_t               rand_buf;          /* buffer for random bytes*/
+    xqc_random_generator_t  rand_generator;
 }xqc_engine_t;
 
 
@@ -91,7 +87,9 @@ typedef struct xqc_packet_s {
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
-xqc_engine_t *xqc_engine_new (xqc_engine_type_t engine_type);
+xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type);
+
+void xqc_engine_destroy(xqc_engine_t *engine);
 
 /**
  * Init engine config.
