@@ -12,6 +12,7 @@
 #include "../transport/xqc_conn.h"
 #include "../transport/xqc_cid.h"
 #include "../common/xqc_errno.h"
+#include "../common/xqc_str.h"
 
 #define XQC_QUIC_VERSION 1
 
