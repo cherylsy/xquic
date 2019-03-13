@@ -13,10 +13,6 @@ typedef struct {
 
 }xqc_conn_callbacks_t;
 
-typedef struct {
-    uint64_t cid;
-}xqc_cid_t;
-
 typedef enum {
     /* server */
     XQC_CONN_STATE_SERVER_INIT,

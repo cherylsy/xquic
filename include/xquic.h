@@ -10,6 +10,8 @@
 #include <sys/socket.h>
 #include "../transport/xqc_transport.h"
 #include "../transport/xqc_conn.h"
+#include "../transport/xqc_cid.h"
+#include "../common/xqc_errno.h"
 
 #define XQC_QUIC_VERSION 1
 
@@ -55,10 +57,18 @@ typedef struct xqc_engine_callback_s {
 typedef struct xqc_engine_s {
 
     xqc_engine_callback_t   eng_callback;
-    xqc_config_t            *config;
-    xqc_id_hash_table_t     *conns_hash;
+    xqc_config_t           *config;
+    xqc_id_hash_table_t    *conns_hash;
 
-    xqc_conn_settings_t     *settings;
+    xqc_conn_settings_t    *settings;
+
+    xqc_log_t              *log;
+
+    /* for random */
+    xqc_int_t               rand_fd;           /* init_value: -1 */
+    off_t                   rand_buf_offset;   /* used offset */
+    size_t                  rand_buf_size;     /* total buffer size */
+    xqc_str_t               rand_buf;          /* buffer for random bytes*/
 }xqc_engine_t;
 
 
