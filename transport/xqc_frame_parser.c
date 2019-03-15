@@ -1,17 +1,18 @@
 
+#include <string.h>
 #include "xqc_frame_parser.h"
 #include "../common/xqc_variable_len_int.h"
 
-#define CHECK_STREAM_SPACE(need, pstart, pend) do {                 \
+#define XQC_CHECK_STREAM_SPACE(need, pstart, pend) do {                 \
     if ((intptr_t) (need) > ((pend) - (pstart))) {                  \
         return -((int) (need));                                     \
     }                                                               \
 } while (0)
 
-static int
-gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
-                 xqc_stream_id_t stream_id, uint64_t offset, int fin_only, size_t size,
-                 gsf_read_f gsf_read, void *stream)
+int
+xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
+                     xqc_stream_id_t stream_id, size_t offset, int fin_only,
+                     const unsigned char *payload, size_t size, size_t *written_size)
 {
     /* 0b00001XXX
      *  0x4     OFF
@@ -40,20 +41,20 @@ gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
     /* 0b00001XXX point to second byte */
     unsigned char *p = dst_buf + 1;
 
-    stream_id_bits = vint_get_2bit(stream_id);
-    stream_id_len = vint_len(stream_id_bits);
+    stream_id_bits = xqc_vint_get_2bit(stream_id);
+    stream_id_len = xqc_vint_len(stream_id_bits);
     if (offset) {
-        offset_bits = vint_get_2bit(offset);
-        offset_len = vint_len(offset_bits);
-    } else
+        offset_bits = xqc_vint_get_2bit(offset);
+        offset_len = xqc_vint_len(offset_bits);
+    } else {
         offset_len = 0;
+    }
 
     /* fin_only means there is no stream data */
-    int fin = 0;
+    int fin = fin_only;
 
     if (!fin_only) {
         unsigned n_avail;
-        size_t nr;
 
         n_avail = dst_buf_len - (p + stream_id_len + offset_len - dst_buf);
 
@@ -61,48 +62,50 @@ gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
          * length.
          */
         if (size < n_avail) {
-            length_bits = vint_get_2bit(size);
-            length_len = vint_len(length_bits);
+            length_bits = xqc_vint_get_2bit(size);
+            length_len = xqc_vint_len(length_bits);
             n_avail -= length_len;
-            if (size > n_avail)
+            if (size > n_avail) {
                 size = n_avail;
+            }
+            fin = 1;
         } else {
             length_len = 0;
             size = n_avail;
         }
 
-        CHECK_STREAM_SPACE(1 + offset_len + stream_id_len + length_len +
+        XQC_CHECK_STREAM_SPACE(1 + offset_len + stream_id_len + length_len +
                            +1 /* We need to write at least 1 byte */, dst_buf, dst_buf + dst_buf_len);
 
-        vint_write(p, stream_id, stream_id_bits, stream_id_len);
+        xqc_vint_write(p, stream_id, stream_id_bits, stream_id_len);
         p += stream_id_len;
 
-        if (offset_len)
-            vint_write(p, offset, offset_bits, offset_len);
+        if (offset_len) {
+            xqc_vint_write(p, offset, offset_bits, offset_len);
+        }
         p += offset_len;
 
-        /*
-         * read size byte to p+length_len
-         */
-        nr = gsf_read(stream, p + length_len, size, &fin);
-        assert(nr != 0);
-        assert(nr <= size);
+        memcpy(p + length_len, payload, size);
+        *written_size = size;
 
-        if (length_len)
-            vint_write(p, nr, length_bits, length_len);
+        if (length_len) {
+            xqc_vint_write(p, size, length_bits, length_len);
+        }
 
-        p += length_len + nr;
+        p += length_len + size;
     } else {
         /* check if there is enough space to put Length */
         length_len = 1 + stream_id_len + offset_len < dst_buf_len;
-        CHECK_STREAM_SPACE(1 + stream_id_len + offset_len + length_len, dst_buf, dst_buf + dst_buf_len);
-        vint_write(p, stream_id, stream_id_bits, stream_id_len);
+        XQC_CHECK_STREAM_SPACE(1 + stream_id_len + offset_len + length_len, dst_buf, dst_buf + dst_buf_len);
+        xqc_vint_write(p, stream_id, stream_id_bits, stream_id_len);
         p += stream_id_len;
-        if (offset_len)
-            vint_write(p, offset, offset_bits, offset_len);
+        if (offset_len) {
+            xqc_vint_write(p, offset, offset_bits, offset_len);
+        }
         p += offset_len;
-        if (length_len)
+        if (length_len) {
             *p++ = 0;
+        }
     }
 
     dst_buf[0] = 0x08

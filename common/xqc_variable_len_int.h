@@ -2,6 +2,8 @@
 #ifndef _XQC_VARIABLE_LEN_INT_H_INCLUDED_
 #define _XQC_VARIABLE_LEN_INT_H_INCLUDED_
 
+#include <stdint.h>
+
 #if defined(__FreeBSD__) || defined(__DragonFly__) || defined(__NetBSD__)
 #include <sys/endian.h>
 #define bswap_16 bswap16
@@ -21,7 +23,7 @@
 #include <byteswap.h>
 #endif
 
-#define VINT_MASK ((1 << 6) - 1)
+#define XQC_VINT_MASK ((1 << 6) - 1)
 
 /*
           +------+--------+-------------+-----------------------+
@@ -38,31 +40,37 @@
  */
 
 /* return 2Bit 00, 01, 10 or 11 (0, 1, 2, or 3) */
-#define vint_get_2bit(val) (    \
+#define xqc_vint_get_2bit(val) (    \
     (val >= (1 << 6)) + (val >= (1 << 14)) + (val >= (1 << 30)))
 
 /* return Usable Bits according to 2Bit.
- * parameter _2bit can be 0, 1, 2, 3
+ * parameter two_bit can be 0, 1, 2, 3
  */
-#define vint_usable_bits(_2bit) ((1 << (3 + (bits))) - 2)
+#define xqc_vint_usable_bits(two_bit) ((1 << (3 + (two_bit))) - 2)
 
 /* get Length by 2Bit */
-#define vint_len(_2bit) (1<<_2bit)
+#define xqc_vint_len(two_bit) (1<<two_bit)
 
 /* write val to dst buf with len bytes  */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
-#define vint_write(dst, val, _2bits, len) do {                              \
-    uint64_t buf_ = (val) | (uint64_t) (_2bits) << vint_usable_bits(_2bits);\
+#define xqc_vint_write(dst, val, two_bit, len) do {                              \
+    uint64_t buf_ = (val) | (uint64_t) (two_bit) << xqc_vint_usable_bits(two_bit);\
     buf_ = bswap_64(buf_);                                                  \
     memcpy(dst, (unsigned char *) &buf_ + 8 - (len), (len));                \
 } while (0)
 #else
-#define vint_write(dst, val, _2bits, len) do {                                \
-    uint64_t buf_ = (val) | (uint64_t) (_2bits) << vint_usable_bits(_2bits);\
+#define xqc_vint_write(dst, val, two_bit, len) do {                                \
+    uint64_t buf_ = (val) | (uint64_t) (two_bit) << xqc_vint_usable_bits(two_bit);\
     memcpy(dst, (unsigned char *) &buf_ + 8 - (len), (len));                \
 } while (0)
 #endif
 
+
+/**
+* @return number of bytes read from p (1, 2, 4, or 8)
+* @param p pointer of variable length integer
+* @param valp output the value of variable length integer
+*/
 int xqc_vint_read (const unsigned char *p, const unsigned char *end, uint64_t *valp);
 
 #endif /* _XQC_VARIABLE_LEN_INT_H_INCLUDED_ */
