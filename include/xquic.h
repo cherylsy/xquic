@@ -11,6 +11,7 @@
 #include "../transport/xqc_transport.h"
 #include "../transport/xqc_conn.h"
 #include "../transport/xqc_cid.h"
+#include "../transport/xqc_client.h"
 #include "../common/xqc_errno.h"
 #include "../common/xqc_str.h"
 #include "../common/xqc_random.h"
@@ -129,6 +130,9 @@ xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
                                 void *user_data);
+
+int xqc_connect(xqc_client_connection_t *client_conn, 
+                    xqc_engine_t *engine, void *user_data);
 
 /**
  * Create new stream in quic connection.
