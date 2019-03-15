@@ -1,6 +1,7 @@
 
 #include "../include/xquic.h"
 #include "xqc_transport.h"
+#include "xqc_cid.h"
 
 
 int 
