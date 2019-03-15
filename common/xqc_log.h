@@ -2,6 +2,7 @@
 #define _XQC_H_LOG_INCLUDED_
 
 #include <stdarg.h>
+#include <stdio.h>
 
 #include "xqc_malloc.h"
 
@@ -59,6 +60,12 @@ static inline void xqc_snprintf(char* buf, size_t n, const char* fmt, va_list ar
      * TODO
      * */
 }
+
+#define xqc_log(log, level, ...) \
+    do { \
+        printf("[%s] ", xqc_log_leveL_str(level)); \
+        printf(__VA_ARGS__); \
+    } while (0)
 
 #define xqc_log_error(log, ...) \
     do {\

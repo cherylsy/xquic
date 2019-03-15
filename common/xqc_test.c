@@ -5,11 +5,13 @@
 #include "xqc_str_hash.h"
 #include "xqc_log.h"
 #include "xqc_list.h"
+#include "xqc_array.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
 int test_log(int argc, char* argv[]);
 int test_list(int argc, char* argv[]);
+int test_array(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -25,8 +27,12 @@ int main(int argc, char* argv[])
     test_log(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_list(argc, argv);
+#endif
+
+#if 1
+    test_array(argc, argv);
 #endif
 
     return 0;
@@ -91,6 +97,29 @@ int test_log(int argc, char* argv[])
     xqc_log_debug(log, "helloworld\n");
     xqc_log_debug(log, "arg=%d, name=%s\n", 10, "jiangyou");
     xqc_log_release(log);
+    xqc_log(log, XQC_LOG_DEBUG, "hello, %s\n", "alibaba");
+    return 0;
+}
+
+int test_array(int argc, char* argv[])
+{
+    xqc_array_t *a = xqc_array_create(xqc_default_allocator, 4, sizeof(int));
+    int* p = xqc_array_push_n(a, 4);
+    p[0] = 0; p[1] = 1; p[2] = 2; p[3] = 3;
+
+    p = xqc_array_push_n(a, 2);
+    p[0] = 4; p[1] = 5;
+
+    p = xqc_array_push_n(a, 1);
+    p[0] = 6;
+
+    p = (int*)a->elts;
+    for (unsigned i = 0; i < a->size; ++i) {
+        printf("%d\n", p[i]);
+    }
+
+    xqc_array_destroy(a);
+
     return 0;
 }
 
