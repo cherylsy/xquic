@@ -53,6 +53,17 @@ fail:
 }
 
 
+void
+xqc_destroy_connection(xqc_connection_t *xc)
+{
+    /* free streams hash */
+    xqc_id_hash_release(xc->streams_hash);
+
+    /* free pool */
+    xqc_destroy_pool(xc->pool);
+}
+
+
 xqc_connection_t * 
 xqc_client_create_connection(xqc_engine_t *engine, 
                                 xqc_cid_t dcid, xqc_cid_t scid,

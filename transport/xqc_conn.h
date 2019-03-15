@@ -128,4 +128,6 @@ xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
                                 void *user_data, 
                                 xqc_conn_type_t type);
 
+void xqc_destroy_connection(xqc_connection_t *xc);
+
 #endif /* _XQC_CONN_H_INCLUDED_ */

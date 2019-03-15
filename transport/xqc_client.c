@@ -4,7 +4,8 @@
 
 
 int 
-xqc_connect(xqc_client_connection_t *client_conn, xqc_engine_t *engine, void *user_data) 
+xqc_connect(xqc_client_connection_t *client_conn, 
+                xqc_engine_t *engine, void *user_data) 
 {
     int ret = XQC_ERROR;
     xqc_cid_t dcid;

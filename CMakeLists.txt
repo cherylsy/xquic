@@ -23,6 +23,7 @@ set(
     TRANSPORT_SOURCES
 
     transport/xqc_conn.c
+    transport/xqc_client.c
 )
 
 set(

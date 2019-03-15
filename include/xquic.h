@@ -130,6 +130,9 @@ xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_conn_settings_t *settings,
                                 void *user_data);
 
+int xqc_connect(xqc_client_connection_t *client_conn, 
+                    xqc_engine_t *engine, void *user_data);
+
 /**
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
