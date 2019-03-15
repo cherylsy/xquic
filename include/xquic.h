@@ -11,6 +11,7 @@
 #include "../transport/xqc_transport.h"
 #include "../transport/xqc_conn.h"
 #include "../transport/xqc_cid.h"
+#include "../transport/xqc_client.h"
 #include "../common/xqc_errno.h"
 #include "../common/xqc_str.h"
 #include "../common/xqc_random.h"

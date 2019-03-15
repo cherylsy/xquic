@@ -24,6 +24,7 @@ set(
 
     transport/xqc_conn.c
     transport/xqc_client.c
+    transport/xqc_cid.c
 )
 
 set(
