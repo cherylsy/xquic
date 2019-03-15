@@ -8,6 +8,7 @@ void xqc_test_conn_create()
     xqc_engine_t engine;
     xqc_client_connection_t client_conn;
     xqc_memzero(&client_conn, sizeof(xqc_client_connection_t));
+    xqc_random_generator_init(&engine.rand_generator, &engine.log);
     
     xqc_int_t rc = xqc_connect(&client_conn, &engine, NULL);
     CU_ASSERT(rc, XQC_OK);
