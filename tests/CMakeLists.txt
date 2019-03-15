@@ -9,6 +9,7 @@ if(HAVE_CUNIT)
   set(test_SOURCES
     main.c
     xqc_random_test.c
+    xqc_timer_test.c
   )
 
   add_executable(run_tests

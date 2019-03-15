@@ -4,6 +4,7 @@
 #include <CUnit/CUnit.h>
 
 #include "xqc_random_test.h"
+#include "xqc_timer_test.h"
 
 static int xqc_init_suite(void) { return 0; }
 static int xqc_clean_suite(void) { return 0; }
@@ -25,6 +26,13 @@ int main()
     }     
 
     if (!CU_add_test(pSuite, "xqc_get_random", test_xqc_random)
+        /* ADD TESTS HERE */) {
+        CU_cleanup_registry();
+        return (int)CU_get_error();
+    }
+
+    /*定时器测试用例会卡30秒钟，知悉*/
+    if (!CU_add_test(pSuite, "xqc_test_timer", test_xqc_timer)
         /* ADD TESTS HERE */) {
         CU_cleanup_registry();
         return (int)CU_get_error();
