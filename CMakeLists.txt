@@ -7,7 +7,7 @@ set (xquic_VERSION_MINOR 1)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=c11")
- 
+
 configure_file (
     xqc_cmake_config.h.in
     xqc_cmake_config.h
@@ -29,6 +29,9 @@ set(
     transport/xqc_frame_parser.c
     transport/xqc_stream.c
     transport/xqc_packet_out.c
+    transport/xqc_send_ctl.c
+    transport/xqc_packet.c
+    transport/xqc_frame.c
 )
 
 set(
@@ -43,7 +46,7 @@ add_library(
     xquic
 
     STATIC
-    
+
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
 )

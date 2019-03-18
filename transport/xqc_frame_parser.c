@@ -11,7 +11,7 @@
 
 int
 xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
-                     xqc_stream_id_t stream_id, size_t offset, int fin_only,
+                     xqc_stream_id_t stream_id, size_t offset, int fin,
                      const unsigned char *payload, size_t size, size_t *written_size)
 {
     /* 0b00001XXX
@@ -51,7 +51,7 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
     }
 
     /* fin_only means there is no stream data */
-    int fin = fin_only;
+    int fin_only = (fin && !size);
 
     if (!fin_only) {
         unsigned n_avail;
@@ -68,10 +68,10 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
             if (size > n_avail) {
                 size = n_avail;
             }
-            fin = 1;
         } else {
             length_len = 0;
             size = n_avail;
+            fin = 0;
         }
 
         XQC_CHECK_STREAM_SPACE(1 + offset_len + stream_id_len + length_len +
