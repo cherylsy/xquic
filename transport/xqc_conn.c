@@ -1,6 +1,7 @@
 
 #include "../include/xquic.h"
 #include "xqc_conn.h"
+#include "xqc_send_ctl.h"
 
 xqc_connection_t *
 xqc_create_connection(xqc_engine_t *engine,
@@ -22,7 +23,7 @@ xqc_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
-    xc->pool = pool;
+    xc->conn_pool = pool;
     xc->dcid = dcid;
     xc->scid = scid;
     xc->engine = engine;
@@ -31,7 +32,13 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->user_data = user_data;
     xc->version = XQC_QUIC_VERSION;
 
-    xc->streams_hash = xqc_pcalloc(xc->pool, sizeof(xqc_id_hash_table_t));
+    xc->conn_send_ctl = xqc_send_ctl_create(xc);
+    if (xc->conn_send_ctl == NULL) {
+        goto fail;
+    }
+
+
+    xc->streams_hash = xqc_pcalloc(xc->conn_pool, sizeof(xqc_id_hash_table_t));
     if (xc->streams_hash == NULL) {
         goto fail;
     }
@@ -60,7 +67,7 @@ xqc_destroy_connection(xqc_connection_t *xc)
     xqc_id_hash_release(xc->streams_hash);
 
     /* free pool */
-    xqc_destroy_pool(xc->pool);
+    xqc_destroy_pool(xc->conn_pool);
 }
 
 

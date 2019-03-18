@@ -4,6 +4,7 @@
 #include "xqc_frame_parser.h"
 #include "xqc_transport.h"
 #include "xqc_packet_out.h"
+#include "xqc_send_ctl.h"
 
 ssize_t
 xqc_stream_send (xqc_connection_t *c,
@@ -15,10 +16,14 @@ xqc_stream_send (xqc_connection_t *c,
     size_t send_data_offset = 0;
     size_t send_data_written = 0;
     unsigned int n_written = 0;
+    xqc_packet_out_t *packet_out;
 
     while (send_data_offset < send_data_size) {
         //TODO find or create a packet to write
-        xqc_packet_out_t *packet_out;
+        packet_out = xqc_send_ctl_get_packet_out(c->conn_send_ctl, PNS_01RTT);
+        if (packet_out == NULL) {
+            return -1;
+        }
 
 
         //TODO calc packet_number_bits and packet_number
@@ -36,7 +41,7 @@ xqc_stream_send (xqc_connection_t *c,
 
         n_written = xqc_gen_stream_frame(packet_out->po_buf + packet_out->po_used_size,
                                          packet_out->po_buf_size - packet_out->po_used_size,
-                                         stream_id, send_data_offset, 0,
+                                         stream_id, send_data_offset, fin,
                                          send_data + send_data_offset,
                                          send_data_size - send_data_offset,
                                          &send_data_written);
