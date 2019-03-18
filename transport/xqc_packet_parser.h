@@ -2,7 +2,7 @@
 #ifndef _XQC_PACKET_PARSER_H_INCLUDED_
 #define _XQC_PACKET_PARSER_H_INCLUDED_
 
-#include "../common/xqc_types.h"
+#include "../include/xquic_typedef.h"
 
 
 int xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,

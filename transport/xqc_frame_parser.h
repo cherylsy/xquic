@@ -2,7 +2,7 @@
 #ifndef _XQC_FRAME_PARSER_H_INCLUDED_
 #define _XQC_FRAME_PARSER_H_INCLUDED_
 
-#include "../common/xqc_types.h"
+#include "../include/xquic_typedef.h"
 
 /**
  * generate stream frame

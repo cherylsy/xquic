@@ -2,11 +2,8 @@
 #ifndef _XQC_CID_H_INCLUDED_
 #define _XQC_CID_H_INCLUDED_
 
-#include "xqc_transport.h"
-
-typedef struct {
-    uint64_t cid;
-}xqc_cid_t;
+#include "../include/xquic_typedef.h"
+#include "../common/xqc_common.h"
 
 
 xqc_int_t xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid);

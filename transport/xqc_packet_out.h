@@ -2,7 +2,7 @@
 #ifndef _XQC_PACKET_OUT_H_INCLUDED_
 #define _XQC_PACKET_OUT_H_INCLUDED_
 
-#include "../common/xqc_types.h"
+#include "../include/xquic_typedef.h"
 
 typedef struct xqc_packet_out_s
 {

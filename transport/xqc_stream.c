@@ -1,12 +1,13 @@
+#include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "xqc_packet_parser.h"
 #include "xqc_frame_parser.h"
-#include "../common/xqc_types.h"
+#include "xqc_transport.h"
 #include "xqc_packet_out.h"
 
 ssize_t
 xqc_stream_send (xqc_connection_t *c,
-                 xqc_stream_t *stream,
+                 uint64_t stream_id,
                  unsigned char *send_data,
                  size_t send_data_size,
                  uint8_t fin)
@@ -35,7 +36,7 @@ xqc_stream_send (xqc_connection_t *c,
 
         n_written = xqc_gen_stream_frame(packet_out->po_buf + packet_out->po_used_size,
                                          packet_out->po_buf_size - packet_out->po_used_size,
-                                         stream->stream_id, send_data_offset, 0,
+                                         stream_id, send_data_offset, 0,
                                          send_data + send_data_offset,
                                          send_data_size - send_data_offset,
                                          &send_data_written);
