@@ -10,7 +10,7 @@
 
 #define XQC_ENCYPT_MAX_LEVEL  4
 
-typedef struct {
+typedef struct xqc_conn_callbacks_s{
 
 }xqc_conn_callbacks_t;
 

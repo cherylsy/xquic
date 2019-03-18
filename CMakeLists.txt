@@ -25,6 +25,10 @@ set(
     transport/xqc_conn.c
     transport/xqc_client.c
     transport/xqc_cid.c
+    transport/xqc_packet_parser.c
+    transport/xqc_frame_parser.c
+    transport/xqc_stream.c
+    transport/xqc_packet_out.c
 )
 
 set(
@@ -32,6 +36,7 @@ set(
 
     common/xqc_mem.c
     common/xqc_random.c
+    common/xqc_variable_len_int.c
 )
 
 add_library(
@@ -59,4 +64,3 @@ include_directories( /usr/local/include )
 link_directories( /usr/local/lib )
 
 target_link_libraries(test_server xquic)
-
