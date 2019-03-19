@@ -3,6 +3,6 @@
 
 #include "../common/xqc_priority_q.h"
 
-void test_xqc_pq();
+void xqc_test_pq();
 
 #endif
