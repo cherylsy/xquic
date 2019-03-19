@@ -6,6 +6,7 @@
 #include "xqc_random_test.h"
 #include "xqc_timer_test.h"
 #include "xqc_conn_test.h"
+#include "xqc_engine_test.h"
 
 static int xqc_init_suite(void) { return 0; }
 static int xqc_clean_suite(void) { return 0; }
@@ -27,9 +28,9 @@ int main()
     }     
 
     if (!CU_add_test(pSuite, "xqc_get_random", test_xqc_random)
-        || !CU_add_test(pSuite, "xqc_test_conn_create", xqc_test_conn_create)
+        || !CU_add_test(pSuite, "xqc_test_engine", xqc_test_engine_create)
+        //|| !CU_add_test(pSuite, "xqc_test_conn_create", xqc_test_conn_create)
         || !CU_add_test(pSuite, "xqc_test_timer", test_xqc_timer)
-        || !CU_add_test(pSuite, "xqc_test_engine", test_xqc_engine_create)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();
