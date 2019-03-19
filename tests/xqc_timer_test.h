@@ -3,6 +3,6 @@
 
 #include "../common/xqc_timer.h"
 
-void test_xqc_timer();
+void xqc_test_timer();
 
 #endif

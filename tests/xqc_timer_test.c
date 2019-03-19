@@ -7,7 +7,7 @@ static void xqc_timer_cb(unsigned long data)
     //printf("timer callback data:%lu now:%lu\n", data, xqc_gettimeofday());
 }
 
-void test_xqc_timer()
+void xqc_test_timer()
 {
     xqc_timer_manager_t manager;
     xqc_timer_manager_init(&manager);
