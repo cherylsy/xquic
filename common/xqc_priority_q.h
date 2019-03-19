@@ -7,7 +7,7 @@
 
 /*
  * 基于二叉堆实现的优先级队列
- * 支持自动扩容
+ * 支持自动扩容，元素大小至少sizeof(xqc_pq_key_t) 8字节
  * 接口：
  * 初始化：xqc_pq_init(), xqc_pq_init_default(capacity=xqc_pq_default_capacity)
  * 压入：xqc_pq_push()
@@ -90,6 +90,7 @@ static inline xqc_pq_element_t* xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
         }
         memcpy(buf, pq->elements, pq->capacity * pq->element_size);
         pq->a.free(pq->a.opaque, pq->elements);
+        pq->elements = buf;
         pq->capacity = capacity;
     }
 
