@@ -5,12 +5,13 @@
 #include "xqc_stream.h"
 #include "xqc_cid.h"
 #include "../include/xquic.h"
+#include "../include/xquic_typedef.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
 #define XQC_ENCYPT_MAX_LEVEL  4
 
-typedef struct {
+typedef struct xqc_conn_callbacks_s{
 
 }xqc_conn_callbacks_t;
 
@@ -102,7 +103,7 @@ struct xqc_connection_s{
     xqc_buf_t               token;
    
     xqc_conn_state_t        conn_state;
-    xqc_memory_pool_t      *pool;
+    xqc_memory_pool_t      *conn_pool;
 
     xqc_id_hash_table_t    *streams_hash;
     xqc_stream_t           *crypto_stream[XQC_ENCYPT_MAX_LEVEL];
@@ -118,6 +119,7 @@ struct xqc_connection_s{
     /* recovery state ctx */
 
     /* congestion control ctx */
+    xqc_send_ctl_t         *conn_send_ctl;
     /* flag */
 };
 
