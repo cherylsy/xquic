@@ -7,6 +7,7 @@
 #include "xqc_list.h"
 #include "xqc_array.h"
 #include "xqc_priority_q.h"
+#include "xqc_queue.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
@@ -14,6 +15,7 @@ int test_log(int argc, char* argv[]);
 int test_list(int argc, char* argv[]);
 int test_array(int argc, char* argv[]);
 int test_pq(int argc, char* argv[]);
+int test_queue(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -37,10 +39,13 @@ int main(int argc, char* argv[])
     test_array(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_pq(argc, argv);
 #endif
 
+#if 0
+    test_queue(argc, argv);
+#endif
     return 0;
 }
 
@@ -145,7 +150,7 @@ int test_pq(int argc, char* argv[])
 
     while (!xqc_pq_empty(&pq)) {
         xqc_pq_element_t* e = xqc_pq_top(&pq);
-        printf("element key:%u\n", e->key);
+        printf("element key:%lu\n", e->key);
         xqc_pq_pop(&pq);
     }
 
@@ -154,17 +159,42 @@ int test_pq(int argc, char* argv[])
     return 0;
 }
 
-struct person
+typedef struct person_s
 {
     int age;
     char name[20];
+    xqc_queue_t queue;
     xqc_list_head_t list;
-};
+} person_t;
+
+int test_queue(int argc, char* argv[])
+{
+    xqc_queue_t q;
+    xqc_queue_init(&q);
+    person_t p1 = { 1, "a1", xqc_queue_initialize(p1.queue) };
+    person_t p2 = { 2, "z2", xqc_queue_initialize(p2.queue) };
+    person_t p3 = { 3, "s3", xqc_queue_initialize(p3.queue) };
+    person_t p4 = { 4, "f4", xqc_queue_initialize(p4.queue) };
+
+    xqc_queue_insert_head(&q, &p1.queue);
+    xqc_queue_insert_tail(&q, &p2.queue);
+    xqc_queue_insert_head(&q, &p3.queue);
+    xqc_queue_insert_tail(&q, &p4.queue);
+
+    xqc_queue_t* pos;
+    xqc_queue_foreach(pos, &q)
+    {
+        person_t* p = xqc_queue_data(pos, person_t, queue);
+        printf("age=%d, name=%s\n", p->age, p->name);
+    }
+
+    return 0;
+}
 
 int test_list(int argc, char* argv[])
 {
-    struct person *pperson;
-    struct person person_head;
+    person_t *pperson;
+    person_t person_head;
     xqc_list_head_t *pos, *next;
     int i;
 
@@ -174,7 +204,7 @@ int test_list(int argc, char* argv[])
     // 添加节点
     for (i=0; i<5; i++)
     {
-        pperson = (struct person*)malloc(sizeof(struct person));
+        pperson = (person_t*)malloc(sizeof(person_t));
         pperson->age = (i+1)*10;
         sprintf(pperson->name, "%d", i+1);
         // 将节点链接到链表的末尾
@@ -186,7 +216,7 @@ int test_list(int argc, char* argv[])
     printf("==== 1st iterator d-link ====\n");
     xqc_list_for_each(pos, &person_head.list)
     {
-        pperson = xqc_list_entry(pos, struct person, list);
+        pperson = xqc_list_entry(pos, person_t, list);
         printf("name:%-2s, age:%d\n", pperson->name, pperson->age);
     }
 
@@ -194,7 +224,7 @@ int test_list(int argc, char* argv[])
     printf("==== delete node(age:20) ====\n");
     xqc_list_for_each_safe(pos, next, &person_head.list)
     {
-        pperson = xqc_list_entry(pos, struct person, list);
+        pperson = xqc_list_entry(pos, person_t, list);
         if(pperson->age == 20)
         {
             xqc_list_del_init(pos);
