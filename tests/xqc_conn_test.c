@@ -13,10 +13,6 @@ void xqc_test_conn_create()
     CU_ASSERT(engine != NULL);
     
     xqc_memzero(&client_conn, sizeof(xqc_client_connection_t));
-
-    xqc_random_generator_init(&(engine->rand_generator), engine->log);
-    engine->config->conn_pool_size = 4096;
-    engine->config->streams_hash_bucket_size = 127;
     
     int rc = xqc_connect(&client_conn, engine, NULL);
     CU_ASSERT(rc == XQC_OK);

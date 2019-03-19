@@ -21,8 +21,9 @@ typedef struct xqc_random_generator_s{
 }xqc_random_generator_t;
 
 xqc_int_t xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len);
-xqc_int_t xqc_random_generator_init(xqc_random_generator_t *rand_gen,
-                                         xqc_log_t *log);
+xqc_random_generator_t *xqc_random_generator_create(xqc_log_t *log);
+void xqc_random_generator_destroy(xqc_random_generator_t *rand_gen);
+
 
 #endif /* _XQC_RANDOM_H_INCLUDED_ */
 
