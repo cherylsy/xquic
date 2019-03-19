@@ -132,7 +132,11 @@ int test_array(int argc, char* argv[])
 int test_pq(int argc, char* argv[])
 {
     xqc_pq_t pq;
-    xqc_pq_init(&pq, sizeof(unsigned int), 10, xqc_default_allocator);
+    if (xqc_pq_init(&pq, sizeof(unsigned long), 4, xqc_default_allocator)) {
+        printf("xqc_pq_init failed\n");
+        return -1;
+    }
+
     xqc_pq_push(&pq, 4);
     xqc_pq_push(&pq, 5);
     xqc_pq_push(&pq, 1);
@@ -144,6 +148,8 @@ int test_pq(int argc, char* argv[])
         printf("element key:%u\n", e->key);
         xqc_pq_pop(&pq);
     }
+
+    xqc_pq_destroy(&pq);
 
     return 0;
 }
