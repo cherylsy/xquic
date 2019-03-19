@@ -5,6 +5,7 @@
 
 #include "xqc_random_test.h"
 #include "xqc_timer_test.h"
+#include "xqc_pq_test.h"
 #include "xqc_conn_test.h"
 #include "xqc_engine_test.h"
 
@@ -31,6 +32,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_engine", xqc_test_engine_create)
         //|| !CU_add_test(pSuite, "xqc_test_conn_create", xqc_test_conn_create)
         || !CU_add_test(pSuite, "xqc_test_timer", test_xqc_timer)
+        || !CU_add_test(pSuite, "xqc_test_pq", test_xqc_pq)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

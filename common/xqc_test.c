@@ -6,12 +6,14 @@
 #include "xqc_log.h"
 #include "xqc_list.h"
 #include "xqc_array.h"
+#include "xqc_priority_q.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
 int test_log(int argc, char* argv[]);
 int test_list(int argc, char* argv[]);
 int test_array(int argc, char* argv[]);
+int test_pq(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -31,8 +33,12 @@ int main(int argc, char* argv[])
     test_list(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_array(argc, argv);
+#endif
+
+#if 1
+    test_pq(argc, argv);
 #endif
 
     return 0;
@@ -119,6 +125,25 @@ int test_array(int argc, char* argv[])
     }
 
     xqc_array_destroy(a);
+
+    return 0;
+}
+
+int test_pq(int argc, char* argv[])
+{
+    xqc_pq_t pq;
+    xqc_pq_init(&pq, sizeof(unsigned int), 10, xqc_default_allocator);
+    xqc_pq_push(&pq, 4);
+    xqc_pq_push(&pq, 5);
+    xqc_pq_push(&pq, 1);
+    xqc_pq_push(&pq, 3);
+    xqc_pq_push(&pq, 2);
+
+    while (!xqc_pq_empty(&pq)) {
+        xqc_pq_element_t* e = xqc_pq_top(&pq);
+        printf("element key:%u\n", e->key);
+        xqc_pq_pop(&pq);
+    }
 
     return 0;
 }
