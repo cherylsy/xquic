@@ -12,6 +12,7 @@ if(HAVE_CUNIT)
     xqc_timer_test.c
     xqc_pq_test.c
     xqc_conn_test.c
+    xqc_engine_test.c
   )
 
   add_executable(run_tests

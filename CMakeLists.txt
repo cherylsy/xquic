@@ -22,6 +22,7 @@ include_directories(
 set(
     TRANSPORT_SOURCES
 
+    transport/xqc_engine.c
     transport/xqc_conn.c
     transport/xqc_client.c
     transport/xqc_cid.c

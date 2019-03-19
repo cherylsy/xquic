@@ -2,6 +2,8 @@
 #include <CUnit/CUnit.h>
 #include "../include/xquic.h"
 #include "../transport/xqc_conn.h"
+#include "../transport/xqc_client.h"
+#include "../include/xquic_typedef.h"
 
 void xqc_test_conn_create()
 {

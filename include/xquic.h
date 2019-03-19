@@ -34,6 +34,11 @@ typedef struct xqc_config_s {
 }xqc_config_t;
 
 
+typedef enum {
+    XQC_ENGINE_SERVER,
+    XQC_ENGINE_CLIENT
+}xqc_engine_type_t;
+
 
 typedef struct xqc_engine_callback_s {
     /* for congestion control */
@@ -53,6 +58,7 @@ typedef struct xqc_engine_callback_s {
 }xqc_engine_callback_t;
 
 typedef struct xqc_engine_s {
+    xqc_engine_type_t       eng_type;
 
     xqc_engine_callback_t   eng_callback;
     xqc_config_t           *config;
@@ -64,11 +70,6 @@ typedef struct xqc_engine_s {
     xqc_random_generator_t  rand_generator;
 }xqc_engine_t;
 
-
-typedef enum {
-    XQC_ENGINE_SERVER,
-    XQC_ENGINE_CLIENT
-}xqc_engine_type_t;
 
 
 
