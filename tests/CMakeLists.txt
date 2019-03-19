@@ -11,6 +11,7 @@ if(HAVE_CUNIT)
     xqc_random_test.c
     xqc_timer_test.c
     xqc_conn_test.c
+    xqc_engine_test.c
   )
 
   add_executable(run_tests

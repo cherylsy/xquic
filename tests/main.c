@@ -29,6 +29,7 @@ int main()
     if (!CU_add_test(pSuite, "xqc_get_random", test_xqc_random)
         || !CU_add_test(pSuite, "xqc_test_conn_create", xqc_test_conn_create)
         || !CU_add_test(pSuite, "xqc_test_timer", test_xqc_timer)
+        || !CU_add_test(pSuite, "xqc_test_engine", test_xqc_engine_create)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();
