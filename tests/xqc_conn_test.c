@@ -7,21 +7,22 @@
 
 void xqc_test_conn_create()
 {
-    xqc_engine_t engine;
     xqc_client_connection_t client_conn;
-    xqc_config_t config;
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT);
 
+    CU_ASSERT(engine != NULL);
+    
     xqc_memzero(&client_conn, sizeof(xqc_client_connection_t));
 
-    xqc_random_generator_init(&engine.rand_generator, engine.log);
-    engine.config = &config;
-    engine.config->conn_pool_size = 4096;
-    engine.config->streams_hash_bucket_size = 127;
+    xqc_random_generator_init(engine->rand_generator, engine->log);
+    engine->config->conn_pool_size = 4096;
+    engine->config->streams_hash_bucket_size = 127;
     
-    xqc_int_t rc = xqc_connect(&client_conn, &engine, NULL);
+    xqc_int_t rc = xqc_connect(&client_conn, engine, NULL);
     CU_ASSERT(rc == XQC_OK);
     CU_ASSERT_NOT_EQUAL(client_conn.xc, NULL);
 
     xqc_destroy_connection(client_conn.xc);
+    xqc_engine_destroy(engine);
 }
 

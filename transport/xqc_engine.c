@@ -17,12 +17,13 @@ xqc_engine_create(xqc_engine_type_t engine_type)
     if (engine == NULL) {
         return NULL;
     }
-
     xqc_memzero(engine, sizeof(xqc_engine_t));
+
     engine->config = xqc_malloc(sizeof(xqc_config_t));
     if (engine->config == NULL) {
         goto fail;
     }
+    xqc_memzero(engine->config, sizeof(xqc_config_t));
 
     engine->log = xqc_log_init();
     if (engine->log == NULL) {
