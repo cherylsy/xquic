@@ -28,11 +28,11 @@ int main()
         return (int)CU_get_error();
     }     
 
-    if (!CU_add_test(pSuite, "xqc_get_random", test_xqc_random)
-        || !CU_add_test(pSuite, "xqc_test_engine", xqc_test_engine_create)
+    if (!CU_add_test(pSuite, "xqc_test_get_random", xqc_test_get_random)
+        || !CU_add_test(pSuite, "xqc_test_engine_create", xqc_test_engine_create)
         || !CU_add_test(pSuite, "xqc_test_conn_create", xqc_test_conn_create)
-        || !CU_add_test(pSuite, "xqc_test_timer", test_xqc_timer)
-        || !CU_add_test(pSuite, "xqc_test_pq", test_xqc_pq)
+        || !CU_add_test(pSuite, "xqc_test_timer", xqc_test_timer)
+        || !CU_add_test(pSuite, "xqc_test_pq", xqc_test_pq)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

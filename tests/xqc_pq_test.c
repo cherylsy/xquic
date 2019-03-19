@@ -2,7 +2,7 @@
 
 #include "xqc_pq_test.h"
 
-void test_xqc_pq()
+void xqc_test_pq()
 {
     xqc_pq_t pq;
     int i = xqc_pq_init(&pq, sizeof(xqc_pq_key_t), 4, xqc_default_allocator);
