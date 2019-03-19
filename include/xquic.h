@@ -53,6 +53,7 @@ typedef struct xqc_engine_callback_s {
 }xqc_engine_callback_t;
 
 typedef struct xqc_engine_s {
+    xqc_engine_type_t      *eng_type;
 
     xqc_engine_callback_t   eng_callback;
     xqc_config_t           *config;
