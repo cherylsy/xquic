@@ -6,12 +6,13 @@
 void xqc_test_get_random()
 {
     u_char buf[1024];
-    xqc_random_generator_t rand_gen;
+    xqc_random_generator_t *rand_gen = NULL;
     xqc_log_t log;
     
-    xqc_random_generator_init(&rand_gen, &log);
+    rand_gen = xqc_random_generator_create(&log);
+    CU_ASSERT(rand_gen != NULL);
 
-    int ret = xqc_get_random(&rand_gen, buf, 1024);
+    int ret = xqc_get_random(rand_gen, buf, 1024);
 
     CU_ASSERT(ret == XQC_OK);
 }

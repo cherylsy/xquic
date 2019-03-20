@@ -67,7 +67,7 @@ typedef struct xqc_engine_s {
     xqc_conn_settings_t    *settings;
 
     xqc_log_t              *log;
-    xqc_random_generator_t  rand_generator;
+    xqc_random_generator_t *rand_generator;
 }xqc_engine_t;
 
 
@@ -89,12 +89,12 @@ xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type);
 void xqc_engine_destroy(xqc_engine_t *engine);
 
 /**
- * Init engine config.
+ * Create engine config.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
-void xqc_engine_init_config (xqc_engine_t *engine,
-                             xqc_config_t *engine_config, 
-                             xqc_engine_type_t engine_type);
+xqc_config_t *xqc_engine_config_create(xqc_engine_type_t engine_type);
+void xqc_engine_config_destoy(xqc_config_t *config);
+
 
 /**
  * Set xquic engine API.
