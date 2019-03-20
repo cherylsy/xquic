@@ -4,6 +4,6 @@
 #include "../common/xqc_queue.h"
 #include "../common/xqc_hash.h"
 
-void test_xqc_common();
+void xqc_test_common();
 
 #endif

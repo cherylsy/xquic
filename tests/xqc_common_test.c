@@ -9,7 +9,7 @@ typedef struct person_s
     xqc_queue_t queue;
 } person_t;
 
-void test_xqc_common()
+void xqc_test_common()
 {
     /*test queue*/
     xqc_queue_t q;
@@ -45,10 +45,5 @@ void test_xqc_common()
     unsigned char final[16] = {};
     xqc_md5_final(final, &ctx);
 
-    for (int i = 0; i < 16; ++i) {
-        printf("%c\n", final[i]);
-    }
-
     uint32_t hash_value = ngx_murmur_hash2(buf, 11);
-    printf("hash value:%u\n", hash_value);
 }

@@ -6,7 +6,6 @@
 #include "xqc_random_test.h"
 #include "xqc_timer_test.h"
 #include "xqc_pq_test.h"
-#include "xqc_common_test.h"
 #include "xqc_conn_test.h"
 #include "xqc_engine_test.h"
 #include "xqc_common_test.h"
