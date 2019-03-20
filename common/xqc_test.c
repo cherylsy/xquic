@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     test_pq(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_queue(argc, argv);
 #endif
     return 0;
@@ -182,6 +182,15 @@ int test_queue(int argc, char* argv[])
     xqc_queue_insert_tail(&q, &p4.queue);
 
     xqc_queue_t* pos;
+    xqc_queue_foreach(pos, &q)
+    {
+        person_t* p = xqc_queue_data(pos, person_t, queue);
+        printf("age=%d, name=%s\n", p->age, p->name);
+    }
+
+    printf("=================\n");
+
+    xqc_queue_remove(&p3.queue);
     xqc_queue_foreach(pos, &q)
     {
         person_t* p = xqc_queue_data(pos, person_t, queue);
