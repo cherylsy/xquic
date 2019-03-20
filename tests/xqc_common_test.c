@@ -11,6 +11,7 @@ typedef struct person_s
 
 void test_xqc_common()
 {
+    /*test queue*/
     xqc_queue_t q;
     xqc_queue_init(&q);
     person_t p1 = { 1, "a1", xqc_queue_initialize(p1.queue) };
@@ -34,4 +35,20 @@ void test_xqc_common()
         CU_ASSERT(p->age == a[i]);
         ++i;
     }
+
+    /*test hash functions*/
+    xqc_md5_t ctx;
+    xqc_md5_init(&ctx);
+    unsigned char buf[] = "hello,world";
+    xqc_md5_update(&ctx, buf, 11);
+
+    unsigned char final[16] = {};
+    xqc_md5_final(final, &ctx);
+
+    for (int i = 0; i < 16; ++i) {
+        printf("%c\n", final[i]);
+    }
+
+    uint32_t hash_value = ngx_murmur_hash2(buf, 11);
+    printf("hash value:%u\n", hash_value);
 }

@@ -11,19 +11,32 @@
 
 #define XQC_RANDOM_BUFFER_SIZE 4096
 
-xqc_int_t 
-xqc_random_generator_init(xqc_random_generator_t *rand_gen, xqc_log_t *log)
+xqc_random_generator_t * 
+xqc_random_generator_create(xqc_log_t *log)
 {
+    xqc_random_generator_t *rand_gen = xqc_malloc(sizeof(xqc_random_generator_t));
+    if (rand_gen == NULL) {
+        return NULL;
+    }
+    
     xqc_memzero(rand_gen, sizeof(xqc_random_generator_t));
     rand_gen->rand_buf.data = xqc_malloc(XQC_RANDOM_BUFFER_SIZE);
     if (rand_gen->rand_buf.data == NULL) {
-        return XQC_ERROR;
+        xqc_free(rand_gen);
+        return NULL;
     }
     rand_gen->rand_buf_size = XQC_RANDOM_BUFFER_SIZE;
     rand_gen->rand_fd = -1;
     rand_gen->log = log;
 
-    return XQC_OK;
+    return rand_gen;
+}
+
+void 
+xqc_random_generator_destroy(xqc_random_generator_t *rand_gen)
+{
+    xqc_free(rand_gen->rand_buf.data);
+    xqc_free(rand_gen);
 }
 
 xqc_int_t
