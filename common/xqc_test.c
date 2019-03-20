@@ -8,14 +8,16 @@
 #include "xqc_array.h"
 #include "xqc_priority_q.h"
 #include "xqc_queue.h"
+#include "xqc_hash.h"
 
 int test_memory_pool(int argc, char* argv[]);
-int test_hash(int argc, char* argv[]);
+int test_hash_table(int argc, char* argv[]);
 int test_log(int argc, char* argv[]);
 int test_list(int argc, char* argv[]);
 int test_array(int argc, char* argv[]);
 int test_pq(int argc, char* argv[]);
 int test_queue(int argc, char* argv[]);
+int test_hash(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -24,7 +26,7 @@ int main(int argc, char* argv[])
 #endif
 
 #if 0
-    test_hash(argc, argv);
+    test_hash_table(argc, argv);
 #endif
 
 #if 0
@@ -46,6 +48,10 @@ int main(int argc, char* argv[])
 #if 0
     test_queue(argc, argv);
 #endif
+
+#if 1
+    test_hash(argc, argv);
+#endif
     return 0;
 }
 
@@ -60,7 +66,7 @@ int test_memory_pool(int argc, char* argv[])
     return 0;
 }
 
-int test_hash(int argc, char* argv[])
+int test_hash_table(int argc, char* argv[])
 {
     xqc_id_hash_table_t hash_tab;
     xqc_id_hash_init(&hash_tab, xqc_default_allocator, 100);
@@ -187,6 +193,26 @@ int test_queue(int argc, char* argv[])
         person_t* p = xqc_queue_data(pos, person_t, queue);
         printf("age=%d, name=%s\n", p->age, p->name);
     }
+
+    return 0;
+}
+
+int test_hash(int argc, char* argv[])
+{
+    xqc_md5_t ctx;
+    xqc_md5_init(&ctx);
+    unsigned char buf[] = "hello,world";
+    xqc_md5_update(&ctx, buf, 11);
+
+    unsigned char final[16] = {};
+    xqc_md5_final(final, &ctx);
+
+    for (int i = 0; i < 16; ++i) {
+        printf("%c\n", final[i]);
+    }
+
+    uint32_t hash_value = ngx_murmur_hash2(buf, 11);
+    printf("hash value:%u\n", hash_value);
 
     return 0;
 }
