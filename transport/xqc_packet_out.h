@@ -9,17 +9,16 @@
 
 typedef struct xqc_packet_out_s
 {
-    TAILQ_ENTRY(lsquic_packet_out)
+    xqc_packet_t            po_pkt;
+    TAILQ_ENTRY(xqc_packet_out_s)
                             po_next;
     unsigned char           *po_buf;
     unsigned int            po_buf_size;
     unsigned int            po_used_size;
-    xqc_packet_number_t     po_pktno;
-    enum xqc_pkt_num_space
-                            po_pns;
+
 } xqc_packet_out_t;
 
 xqc_packet_out_t *
-xqc_alloc_packet_out (xqc_memory_pool_t *pool);
+xqc_create_packet_out (xqc_memory_pool_t *pool, xqc_send_ctl_t *ctl, enum xqc_pkt_num_space pns);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

@@ -37,16 +37,16 @@ xqc_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
+    TAILQ_INIT(&xc->conn_write_streams);
 
     xc->streams_hash = xqc_pcalloc(xc->conn_pool, sizeof(xqc_id_hash_table_t));
     if (xc->streams_hash == NULL) {
         goto fail;
     }
-    
-    if(xqc_id_hash_init(xc->streams_hash,
-                     xqc_default_allocator,
-                     engine->config->streams_hash_bucket_size) == XQC_ERROR) 
-    {
+
+    if (xqc_id_hash_init(xc->streams_hash,
+                         xqc_default_allocator,
+                         engine->config->streams_hash_bucket_size) == XQC_ERROR) {
         goto fail;
     }
 

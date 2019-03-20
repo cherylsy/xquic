@@ -72,14 +72,6 @@ typedef struct xqc_engine_s {
 
 
 
-
-typedef struct xqc_packet_s {
-    unsigned char *buf;
-    size_t         size;
-    
-    uint64_t       recv_time;  /* millisecond */
-}xqc_packet_t;
-
 /**
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
@@ -157,7 +149,7 @@ ssize_t xqc_stream_recv (xqc_connection_t *c,
  * @param fin  0 or 1,  1 - final data block send in this stream.
  */
 ssize_t xqc_stream_send (xqc_connection_t *c,
-                         uint64_t stream_id,
+                         xqc_stream_t *stream,
                          unsigned char *send_data,
                          size_t send_data_size,
                          uint8_t fin);

@@ -1,17 +1,13 @@
 
 #include <string.h>
+#include <sys/types.h>
 #include "xqc_frame_parser.h"
 #include "../common/xqc_variable_len_int.h"
 
-#define XQC_CHECK_STREAM_SPACE(need, pstart, pend) do {                 \
-    if ((intptr_t) (need) > ((pend) - (pstart))) {                  \
-        return -((int) (need));                                     \
-    }                                                               \
-} while (0)
 
 int
 xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
-                     xqc_stream_id_t stream_id, size_t offset, int fin,
+                     xqc_stream_id_t stream_id, size_t offset, uint8_t fin,
                      const unsigned char *payload, size_t size, size_t *written_size)
 {
     /* 0b00001XXX
@@ -34,6 +30,7 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
 
+    *written_size = 0;
     /*  variable length integer's most significant 2 bits */
     unsigned stream_id_bits, offset_bits, length_bits;
     /* variable length integer's size(byte) */
@@ -51,10 +48,10 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
     }
 
     /* fin_only means there is no stream data */
-    int fin_only = (fin && !size);
+    uint8_t fin_only = (fin && !size);
 
     if (!fin_only) {
-        unsigned n_avail;
+        ssize_t n_avail;
 
         n_avail = dst_buf_len - (p + stream_id_len + offset_len - dst_buf);
 
@@ -74,8 +71,9 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
             fin = 0;
         }
 
-        XQC_CHECK_STREAM_SPACE(1 + offset_len + stream_id_len + length_len +
-                           +1 /* We need to write at least 1 byte */, dst_buf, dst_buf + dst_buf_len);
+        if (n_avail <= 0 || size > n_avail) {
+            return -1;
+        }
 
         xqc_vint_write(p, stream_id, stream_id_bits, stream_id_len);
         p += stream_id_len;
@@ -95,8 +93,10 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
         p += length_len + size;
     } else {
         /* check if there is enough space to put Length */
-        length_len = 1 + stream_id_len + offset_len < dst_buf_len;
-        XQC_CHECK_STREAM_SPACE(1 + stream_id_len + offset_len + length_len, dst_buf, dst_buf + dst_buf_len);
+        length_len = 1 + stream_id_len + offset_len < dst_buf_len ? 1 : 0;
+        if (1 + stream_id_len + offset_len + length_len > dst_buf_len) {
+            return -1;
+        }
         xqc_vint_write(p, stream_id, stream_id_bits, stream_id_len);
         p += stream_id_len;
         if (offset_len) {
