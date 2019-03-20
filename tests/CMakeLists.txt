@@ -13,6 +13,7 @@ if(HAVE_CUNIT)
     xqc_pq_test.c
     xqc_conn_test.c
     xqc_engine_test.c
+    xqc_common_test.c
   )
 
   add_executable(run_tests
