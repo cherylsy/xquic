@@ -8,6 +8,7 @@
 #include "xqc_pq_test.h"
 #include "xqc_conn_test.h"
 #include "xqc_engine_test.h"
+#include "xqc_common_test.h"
 
 static int xqc_init_suite(void) { return 0; }
 static int xqc_clean_suite(void) { return 0; }
@@ -33,6 +34,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_conn_create", xqc_test_conn_create)
         || !CU_add_test(pSuite, "xqc_test_timer", xqc_test_timer)
         || !CU_add_test(pSuite, "xqc_test_pq", xqc_test_pq)
+        || !CU_add_test(pSuite, "xqc_test_common", xqc_test_common)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

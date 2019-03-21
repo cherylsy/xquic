@@ -7,6 +7,8 @@
 
 /*
  * 基于二叉堆实现的优先级队列
+ * key代表优先权，默认是按从大到小出队，对应xqc_pq_default_cmp；如果要按从小到大出队，传递xqc_pq_revert_cmp
+ * 可以通过传入xqc_pq_compare_ptr去改变规则
  * 支持自动扩容，元素大小至少sizeof(xqc_pq_key_t) 8字节
  * 接口：
  * 初始化：xqc_pq_init(), xqc_pq_init_default(capacity=xqc_pq_default_capacity)
@@ -24,6 +26,29 @@ typedef struct xqc_priority_queue_element_s
     char data[0];
 } xqc_pq_element_t;
 
+/*
+ * element比较函数
+ * */
+typedef int (*xqc_pq_compare_ptr)(xqc_pq_key_t a, xqc_pq_key_t b);
+
+/*
+ * element默认比较函数 a的优先级小于b的优先级
+ * 从大到小出队
+ * */
+static inline int xqc_pq_default_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
+{
+    return (a < b) ? 1 : 0;
+}
+
+/*
+ * element反向比较函数 b < a
+ * 从小到大出队
+ * */
+static inline int xqc_pq_revert_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
+{
+    return (b < a) ? 1 : 0;
+}
+
 typedef struct xqc_priority_queue_s
 {
     char* elements;         /*元素列表*/
@@ -31,13 +56,14 @@ typedef struct xqc_priority_queue_s
     size_t count;           /*元素数量*/
     size_t capacity;        /*容量*/
     xqc_allocator_t a;      /*内存配置器*/
+    xqc_pq_compare_ptr cmp; /*比较器*/
 } xqc_pq_t;
 
 #define xqc_pq_element(pq, index) ((xqc_pq_element_t*)&(pq)->elements[(index) * (pq)->element_size])
 #define xqc_pq_element_copy(pq, dst, src) memcpy(xqc_pq_element((pq), (dst)), xqc_pq_element((pq), (src)), (pq)->element_size)
 #define xqc_pq_default_capacity 16
 
-static inline int xqc_pq_init(xqc_pq_t *pq, size_t element_size, size_t capacity, xqc_allocator_t a)
+static inline int xqc_pq_init(xqc_pq_t *pq, size_t element_size, size_t capacity, xqc_allocator_t a, xqc_pq_compare_ptr cmp)
 {
     if (element_size < sizeof(xqc_pq_element_t) || capacity == 0) {
         return -1;
@@ -52,13 +78,14 @@ static inline int xqc_pq_init(xqc_pq_t *pq, size_t element_size, size_t capacity
    pq->count = 0;
    pq->capacity = capacity;
    pq->a = a;
+   pq->cmp = cmp;
 
    return 0;
 }
 
-static inline int xqc_pq_init_default(xqc_pq_t *pq, size_t element_size, xqc_allocator_t a)
+static inline int xqc_pq_init_default(xqc_pq_t *pq, size_t element_size, xqc_allocator_t a, xqc_pq_compare_ptr cmp)
 {
-    return xqc_pq_init(pq, element_size, xqc_pq_default_capacity, a);
+    return xqc_pq_init(pq, element_size, xqc_pq_default_capacity, a, cmp);
 }
 
 static inline void xqc_pq_destroy(xqc_pq_t *pq)
@@ -100,7 +127,7 @@ static inline xqc_pq_element_t* xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
     size_t i = pq->count++;
     while (i != 0) {
         int j = (i - 1) / 2; /*父节点*/
-        if (xqc_pq_element(pq, j)->key >= xqc_pq_element(pq, i)->key)
+        if (!pq->cmp(xqc_pq_element(pq, j)->key, xqc_pq_element(pq, i)->key))
             break;
 
         /*swap*/
@@ -136,11 +163,11 @@ static inline void xqc_pq_pop(xqc_pq_t *pq)
 
     int i = 0, j = 2 * i + 1;
     while (j <= pq->count - 1) {
-        if (j < pq->count - 1 && xqc_pq_element(pq, j)->key < xqc_pq_element(pq, j+1)->key) {
+        if (j < pq->count - 1 && pq->cmp(xqc_pq_element(pq, j)->key, xqc_pq_element(pq, j+1)->key)) {
             ++j;
         }
 
-        if (xqc_pq_element(pq, i) >= xqc_pq_element(pq, j)) {
+        if (!pq->cmp(xqc_pq_element(pq, i)->key, xqc_pq_element(pq, j)->key)) {
             break;
         }
 
