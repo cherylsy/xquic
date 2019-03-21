@@ -156,7 +156,7 @@ int test_pq(int argc, char* argv[])
 
     while (!xqc_pq_empty(&pq)) {
         xqc_pq_element_t* e = xqc_pq_top(&pq);
-        printf("element key:%lu\n", e->key);
+        printf("element key:%llu\n", e->key);
         xqc_pq_pop(&pq);
     }
 
@@ -193,7 +193,7 @@ int test_pq(int argc, char* argv[])
 
     while (!xqc_pq_empty(&pq2)) {
         xqc_pq_item_t* e = (xqc_pq_item_t*)xqc_pq_top(&pq2);
-        printf("element key:%lu value:%d\n", e->key, *(int*)e->ptr);
+        printf("element key:%llu value:%d\n", e->key, *(int*)e->ptr);
         xqc_pq_pop(&pq2);
     }
 

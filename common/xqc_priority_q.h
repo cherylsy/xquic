@@ -2,6 +2,7 @@
 #define _NGX_H_PRIORITY_Q_INCLUDED_
 
 #include <string.h>
+#include <stdint.h>
 
 #include "xqc_malloc.h"
 
@@ -18,7 +19,7 @@
  * 判空：xqc_pq_empty()
  * */
 
-typedef unsigned long xqc_pq_key_t;
+typedef uint64_t xqc_pq_key_t;
 
 typedef struct xqc_priority_queue_element_s
 {
