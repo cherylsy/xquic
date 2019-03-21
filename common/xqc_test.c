@@ -170,13 +170,15 @@ int test_pq(int argc, char* argv[])
     } xqc_pq_item_t;
 
     xqc_pq_t pq2;
+    /* 从大到小出队 */
     //if (xqc_pq_init(&pq2, sizeof(xqc_pq_item_t), 4, xqc_default_allocator, xqc_pq_default_cmp)) {
+    /* 从小到大出队 */
     if (xqc_pq_init(&pq2, sizeof(xqc_pq_item_t), 4, xqc_default_allocator, xqc_pq_revert_cmp)) {
         printf("xqc_pq_init failed\n");
         return -1;
     }
 
-    int m = 300, n = 100, x = 400, y = 200;
+    int m = 300, n = 100, x = 400, y = 200, z = 500;
 
     xqc_pq_item_t* i1 = (xqc_pq_item_t*)xqc_pq_push(&pq2, 3);
     i1->ptr = &m;
@@ -186,6 +188,8 @@ int test_pq(int argc, char* argv[])
     i3->ptr = &x;
     xqc_pq_item_t* i4 = (xqc_pq_item_t*)xqc_pq_push(&pq2, 2);
     i4->ptr = &y;
+    xqc_pq_item_t* i5 = (xqc_pq_item_t*)xqc_pq_push(&pq2, 5);
+    i5->ptr = &z;
 
     while (!xqc_pq_empty(&pq2)) {
         xqc_pq_item_t* e = (xqc_pq_item_t*)xqc_pq_top(&pq2);

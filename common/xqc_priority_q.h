@@ -56,7 +56,7 @@ typedef struct xqc_priority_queue_s
     size_t count;           /*元素数量*/
     size_t capacity;        /*容量*/
     xqc_allocator_t a;      /*内存配置器*/
-    xqc_pq_compare_ptr cmp;
+    xqc_pq_compare_ptr cmp; /*比较器*/
 } xqc_pq_t;
 
 #define xqc_pq_element(pq, index) ((xqc_pq_element_t*)&(pq)->elements[(index) * (pq)->element_size])
