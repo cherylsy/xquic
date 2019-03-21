@@ -41,15 +41,15 @@ int main(int argc, char* argv[])
     test_array(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_pq(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_queue(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_hash(argc, argv);
 #endif
     return 0;
@@ -143,7 +143,7 @@ int test_array(int argc, char* argv[])
 int test_pq(int argc, char* argv[])
 {
     xqc_pq_t pq;
-    if (xqc_pq_init(&pq, sizeof(unsigned long), 4, xqc_default_allocator)) {
+    if (xqc_pq_init(&pq, sizeof(unsigned long), 4, xqc_default_allocator, xqc_pq_default_cmp)) {
         printf("xqc_pq_init failed\n");
         return -1;
     }
@@ -162,6 +162,38 @@ int test_pq(int argc, char* argv[])
 
     xqc_pq_destroy(&pq);
 
+    //-------------
+    typedef struct xqc_pq_item_s
+    {
+        xqc_pq_key_t key;
+        void* ptr;
+    } xqc_pq_item_t;
+
+    xqc_pq_t pq2;
+    //if (xqc_pq_init(&pq2, sizeof(xqc_pq_item_t), 4, xqc_default_allocator, xqc_pq_default_cmp)) {
+    if (xqc_pq_init(&pq2, sizeof(xqc_pq_item_t), 4, xqc_default_allocator, xqc_pq_revert_cmp)) {
+        printf("xqc_pq_init failed\n");
+        return -1;
+    }
+
+    int m = 300, n = 100, x = 400, y = 200;
+
+    xqc_pq_item_t* i1 = (xqc_pq_item_t*)xqc_pq_push(&pq2, 3);
+    i1->ptr = &m;
+    xqc_pq_item_t* i2 = (xqc_pq_item_t*)xqc_pq_push(&pq2, 1);
+    i2->ptr = &n;
+    xqc_pq_item_t* i3 = (xqc_pq_item_t*)xqc_pq_push(&pq2, 4);
+    i3->ptr = &x;
+    xqc_pq_item_t* i4 = (xqc_pq_item_t*)xqc_pq_push(&pq2, 2);
+    i4->ptr = &y;
+
+    while (!xqc_pq_empty(&pq2)) {
+        xqc_pq_item_t* e = (xqc_pq_item_t*)xqc_pq_top(&pq2);
+        printf("element key:%lu value:%d\n", e->key, *(int*)e->ptr);
+        xqc_pq_pop(&pq2);
+    }
+
+    xqc_pq_destroy(&pq2);
     return 0;
 }
 
