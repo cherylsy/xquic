@@ -1,6 +1,12 @@
 #ifndef _XQC_QUEUE_H_INCLUED_
 #define _XQC_QUEUE_H_INCLUED_
 
+#include <stddef.h>
+
+/*
+ * 用双向链表实现的队列
+ * */
+
 typedef struct xqc_queue_s
 {
     struct xqc_queue_s *prev;
@@ -88,7 +94,7 @@ typedef struct xqc_queue_s
  * 队列数据
  * */
 #define xqc_queue_data(q, type, member)\
-    ((type*) ((char*)(q) - offsetof(type, member)))
+    ((type*)((char*)(q) - offsetof(type, member)))
 
 /*
  * 遍历
