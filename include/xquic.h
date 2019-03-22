@@ -9,7 +9,6 @@
 
 #include <sys/socket.h>
 #include "xquic_typedef.h"
-#include "../common/xqc_random.h"
 
 #define XQC_QUIC_VERSION 1
 
@@ -31,6 +30,8 @@ typedef struct xqc_config_s {
 
     size_t  conn_pool_size;
     size_t  streams_hash_bucket_size;
+    size_t  conns_hash_bucket_size;
+    size_t  conns_pq_capacity;
 }xqc_config_t;
 
 
@@ -62,7 +63,8 @@ typedef struct xqc_engine_s {
 
     xqc_engine_callback_t   eng_callback;
     xqc_config_t           *config;
-    xqc_id_hash_table_t    *conns_hash;
+    xqc_str_hash_table_t   *conns_hash;
+    xqc_pq_t               *conns_pq;
 
     xqc_conn_settings_t    *settings;
 
@@ -99,6 +101,11 @@ xqc_connection_t *xqc_engine_connect (xqc_engine_t *engine,
                                       const struct sockaddr *peer_addr,
                                       socklen_t peer_addrlen,
                                       void *user_data);
+
+/**
+ * Process all connections
+ */
+int xqc_engine_main_logic (xqc_engine_t *engine);
 
 /**
  * Pass received UDP packet payload into xquic engine.

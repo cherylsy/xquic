@@ -7,6 +7,7 @@
 #include "xqc_cid.h"
 #include "../include/xquic.h"
 #include "../include/xquic_typedef.h"
+#include "../common/xqc_log.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 

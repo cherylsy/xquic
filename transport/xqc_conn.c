@@ -64,10 +64,16 @@ void
 xqc_destroy_connection(xqc_connection_t *xc)
 {
     /* free streams hash */
-    xqc_id_hash_release(xc->streams_hash);
+    if (xc->streams_hash) {
+        xqc_id_hash_release(xc->streams_hash);
+        xc->streams_hash = NULL;
+    }
 
     /* free pool */
-    xqc_destroy_pool(xc->conn_pool);
+    if (xc->conn_pool) {
+        xqc_destroy_pool(xc->conn_pool);
+        xc->conn_pool = NULL;
+    }
 }
 
 
