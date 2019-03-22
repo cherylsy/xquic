@@ -1,6 +1,7 @@
 #include <CUnit/CUnit.h>
 
 #include "xqc_common_test.h"
+#include "../common/xqc_object_manager.h"
 
 typedef struct person_s
 {
@@ -8,6 +9,53 @@ typedef struct person_s
     char name[20];
     xqc_queue_t queue;
 } person_t;
+
+typedef struct xqc_item_s
+{
+    xqc_object_id_t object_id;
+    xqc_list_head_t list;
+    int data;
+} xqc_item_t;
+
+static inline void test_object_manager_cb(xqc_object_t *o)
+{
+    /*xqc_item_t* item = (xqc_item_t*)o;
+    printf("id:%u, data:%d\n", item->object_id, item->data);*/
+}
+
+int test_object_manager()
+{
+    xqc_object_manager_t *manager = xqc_object_manager_create(sizeof(xqc_item_t), 4, xqc_default_allocator);
+    if (manager == NULL) {
+        return 1;
+    }
+
+    xqc_item_t *item1 = (xqc_item_t*)xqc_object_manager_alloc(manager); 
+    if (item1) {
+        item1->data = 1;
+    }
+
+    xqc_item_t *item2 = (xqc_item_t*)xqc_object_manager_alloc(manager);
+    if (item2) {
+        item2->data = 2;
+        xqc_object_manager_free(manager, item2->object_id);
+    }
+
+    xqc_item_t *item3 = (xqc_item_t*)xqc_object_manager_alloc(manager);
+    if (item3) {
+        item3->data = 3;
+    }
+
+    xqc_object_manager_foreach(manager, test_object_manager_cb);
+
+    CU_ASSERT(xqc_object_manager_used_count(manager) == 2);
+    CU_ASSERT(xqc_object_manager_free_count(manager) == 2);
+
+    xqc_object_manager_destroy(manager);
+
+    return 0;
+}
+
 
 void xqc_test_common()
 {
@@ -46,4 +94,6 @@ void xqc_test_common()
     xqc_md5_final(final, &ctx);
 
     uint32_t hash_value = ngx_murmur_hash2(buf, 11);
+    
+    test_object_manager();
 }
