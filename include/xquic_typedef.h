@@ -13,6 +13,9 @@ typedef struct xqc_conn_callbacks_s xqc_conn_callbacks_t;
 typedef struct xqc_random_generator_s xqc_random_generator_t;
 typedef struct xqc_client_connection_s xqc_client_connection_t;
 typedef struct xqc_id_hash_table_s xqc_id_hash_table_t;
+typedef struct xqc_str_hash_table_s xqc_str_hash_table_t;
+typedef struct xqc_priority_queue_s xqc_pq_t;
+typedef struct xqc_log_s xqc_log_t;
 typedef struct xqc_send_ctl_s xqc_send_ctl_t;
 
 typedef uint64_t xqc_packet_number_t;

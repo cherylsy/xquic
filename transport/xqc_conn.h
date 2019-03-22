@@ -1,11 +1,13 @@
 #ifndef _XQC_CONN_H_INCLUDED_
 #define _XQC_CONN_H_INCLUDED_
 
+#include <sys/queue.h>
 #include "xqc_transport.h"
 #include "xqc_stream.h"
 #include "xqc_cid.h"
 #include "../include/xquic.h"
 #include "../include/xquic_typedef.h"
+#include "../common/xqc_log.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
@@ -89,6 +91,9 @@ struct xqc_conn_settings_s {
 
 };
 
+TAILQ_HEAD(xqc_stream_tailq, xqc_stream_t);
+typedef struct xqc_stream_tailq xqc_stream_tailq_t;
+
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
     xqc_conn_settings_t     conn_settings;
@@ -106,6 +111,8 @@ struct xqc_connection_s{
     xqc_memory_pool_t      *conn_pool;
 
     xqc_id_hash_table_t    *streams_hash;
+    xqc_stream_tailq_t      conn_write_streams,
+                            conn_read_streams;
     xqc_stream_t           *crypto_stream[XQC_ENCYPT_MAX_LEVEL];
     uint64_t                cur_stream_id_bidi_local;
     uint64_t                cur_stream_id_uni_local;

@@ -5,7 +5,7 @@
 void xqc_test_pq()
 {
     xqc_pq_t pq;
-    int i = xqc_pq_init(&pq, sizeof(xqc_pq_key_t), 4, xqc_default_allocator);
+    int i = xqc_pq_init(&pq, sizeof(xqc_pq_key_t), 4, xqc_default_allocator, xqc_pq_default_cmp);
     CU_ASSERT(i == 0);
 
     xqc_pq_push(&pq, 4);

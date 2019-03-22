@@ -10,7 +10,7 @@
  * @return size of stream frame
  */
 int xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
-                         xqc_stream_id_t stream_id, size_t offset, int fin,
+                         xqc_stream_id_t stream_id, size_t offset, uint8_t fin,
                          const unsigned char *payload, size_t size, size_t *written_size);
 
 

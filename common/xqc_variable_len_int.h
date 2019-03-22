@@ -49,7 +49,9 @@
 #define xqc_vint_usable_bits(two_bit) ((1 << (3 + (two_bit))) - 2)
 
 /* get Length by 2Bit */
-#define xqc_vint_len(two_bit) (1<<two_bit)
+#define xqc_vint_len(two_bit) (1 << two_bit)
+
+#define xqc_vint_len_by_val(val) (1 << (xqc_vint_get_2bit(val)))
 
 /* write val to dst buf with len bytes  */
 #if __BYTE_ORDER == __LITTLE_ENDIAN
