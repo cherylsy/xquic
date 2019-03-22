@@ -4,6 +4,7 @@
 #include "../transport/xqc_conn.h"
 #include "../transport/xqc_client.h"
 #include "../include/xquic_typedef.h"
+#include "../common/xqc_str.h"
 
 void xqc_test_conn_create()
 {
