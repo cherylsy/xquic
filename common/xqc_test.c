@@ -9,6 +9,7 @@
 #include "xqc_priority_q.h"
 #include "xqc_queue.h"
 #include "xqc_hash.h"
+#include "xqc_object_manager.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash_table(int argc, char* argv[]);
@@ -18,6 +19,7 @@ int test_array(int argc, char* argv[]);
 int test_pq(int argc, char* argv[]);
 int test_queue(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
+int test_object_manager(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -41,7 +43,7 @@ int main(int argc, char* argv[])
     test_array(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_pq(argc, argv);
 #endif
 
@@ -51,6 +53,10 @@ int main(int argc, char* argv[])
 
 #if 0
     test_hash(argc, argv);
+#endif
+
+#if 1
+    test_object_manager(argc, argv);
 #endif
     return 0;
 }
@@ -258,6 +264,53 @@ int test_hash(int argc, char* argv[])
 
     uint32_t hash_value = ngx_murmur_hash2(buf, 11);
     printf("hash value:%u\n", hash_value);
+
+    return 0;
+}
+
+typedef struct xqc_item_s
+{
+    xqc_object_id_t object_id;
+    xqc_list_head_t list;
+    int data;
+} xqc_item_t;
+
+static inline void test_object_manager_cb(xqc_object_t *o)
+{
+    xqc_item_t* item = (xqc_item_t*)o;
+    printf("id:%u, data:%d\n", item->object_id, item->data);
+}
+
+int test_object_manager(int argc, char* argv[])
+{
+    xqc_object_manager_t *manager = xqc_object_manager_create(sizeof(xqc_item_t), 4, xqc_default_allocator);
+    if (manager == NULL) {
+        return 1;
+    }
+
+    xqc_item_t *item1 = (xqc_item_t*)xqc_object_manager_alloc(manager); 
+    if (item1) {
+        item1->data = 1;
+    }
+
+    xqc_item_t *item2 = (xqc_item_t*)xqc_object_manager_alloc(manager);
+    if (item2) {
+        item2->data = 2;
+        xqc_object_manager_free(manager, item2->object_id);
+    }
+
+    xqc_item_t *item3 = (xqc_item_t*)xqc_object_manager_alloc(manager);
+    if (item3) {
+        item3->data = 3;
+    }
+
+    xqc_object_manager_foreach(manager, test_object_manager_cb);
+
+    printf("object manager used count:%d, free count:%d\n", 
+            (int)xqc_object_manager_used_count(manager), 
+            (int)xqc_object_manager_free_count(manager));
+
+    xqc_object_manager_destroy(manager);
 
     return 0;
 }
