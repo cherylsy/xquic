@@ -139,4 +139,6 @@ xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
 
 void xqc_destroy_connection(xqc_connection_t *xc);
 
+void xqc_conn_send_packets (xqc_connection_t *conn);
+
 #endif /* _XQC_CONN_H_INCLUDED_ */

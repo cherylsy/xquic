@@ -34,6 +34,8 @@ xqc_create_stream (xqc_connection_t *conn,
     stream->stream_id_type = XQC_CLI_BID;
     stream->stream_id = xqc_gen_stream_id(conn, stream->stream_id_type);
     stream->stream_conn = conn;
+    stream->stream_if = &conn->engine->eng_callback;
+    stream->user_data = user_data;
 
     xqc_id_hash_element_t e = {stream_id, stream};
     if (xqc_id_hash_add(conn->streams_hash, e)) {
@@ -99,3 +101,20 @@ xqc_stream_send (xqc_connection_t *c,
     return stream->stream_send_offset;
 }
 
+void
+xqc_process_write_streams (xqc_connection_t *conn)
+{
+    xqc_stream_t *stream;
+    TAILQ_FOREACH(stream, &conn->conn_write_streams, next_write_stream) {
+        stream->stream_if->stream_write_notify(stream->user_data, stream->stream_id);
+    }
+}
+
+void
+xqc_process_read_streams (xqc_connection_t *conn)
+{
+    xqc_stream_t *stream;
+    TAILQ_FOREACH(stream, &conn->conn_read_streams, next_read_stream) {
+        stream->stream_if->stream_read_notify(stream->user_data, stream->stream_id);
+    }
+}

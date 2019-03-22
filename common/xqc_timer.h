@@ -65,12 +65,12 @@ typedef struct xqc_timer_manager_s
     xqc_list_head_t vec2[XQC_VEC2_SIZE];    /*松散定时器链表数组*/
 } xqc_timer_manager_t;
 
-static inline unsigned long xqc_gettimeofday()
+static inline uint64_t xqc_gettimeofday()
 {
     /*获取毫秒单位时间*/
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    unsigned long ul = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    uint64_t ul = tv.tv_sec * 1000 + tv.tv_usec / 1000;
     return  ul;
 }
 

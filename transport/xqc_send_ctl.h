@@ -19,4 +19,7 @@ xqc_send_ctl_create (xqc_connection_t *conn);
 xqc_packet_out_t *
 xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_num_space pns);
 
+int
+xqc_send_ctl_can_send (xqc_connection_t *conn);
+
 #endif //_XQC_SEND_CTL_H_INCLUDED_
