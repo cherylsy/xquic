@@ -39,3 +39,9 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_nu
     return packet_out;
 }
 
+int
+xqc_send_ctl_can_send (xqc_connection_t *conn)
+{
+    //TODO: check if can send
+    return 1;
+}

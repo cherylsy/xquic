@@ -4,6 +4,7 @@
 
 #include "xqc_conn.h"
 #include "../include/xquic_typedef.h"
+#include "../include/xquic.h"
 
 typedef enum {
     XQC_CLI_BID = 0,
@@ -20,7 +21,15 @@ struct xqc_stream_s {
     TAILQ_ENTRY(xqc_stream_s)
                             next_write_stream,
                             next_read_stream;
+    void                    *user_data;
+    xqc_engine_callback_t   *stream_if;
 };
+
+void
+xqc_process_write_streams (xqc_connection_t *conn);
+
+void
+xqc_process_read_streams (xqc_connection_t *conn);
 
 #endif /* _XQC_STREAM_H_INCLUDED_ */
 
