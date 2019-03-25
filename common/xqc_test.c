@@ -10,6 +10,7 @@
 #include "xqc_queue.h"
 #include "xqc_hash.h"
 #include "xqc_object_manager.h"
+#include "xqc_rbtree.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash_table(int argc, char* argv[]);
@@ -20,6 +21,7 @@ int test_pq(int argc, char* argv[]);
 int test_queue(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
 int test_object_manager(int argc, char* argv[]);
+int test_rbtree(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -55,8 +57,12 @@ int main(int argc, char* argv[])
     test_hash(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_object_manager(argc, argv);
+#endif
+
+#if 1
+    test_rbtree(argc, argv);
 #endif
     return 0;
 }
@@ -358,3 +364,18 @@ int test_list(int argc, char* argv[])
     return 0;
 }
 
+int test_rbtree(int argc, char* argv[])
+{
+    xqc_rbtree_t *rbtree = xqc_rbtree_create(xqc_default_allocator);
+
+    xqc_rbtree_insert(rbtree, 3, "zhangsan", 8);
+    xqc_rbtree_insert(rbtree, 4, "lisi", 4);
+    xqc_rbtree_insert(rbtree, 5, "wangwu", 6);
+    xqc_rbtree_insert(rbtree, 6, "chenliu", 7);
+    xqc_rbtree_insert(rbtree, 2, "zuoer", 5);
+
+    xqc_rbtree_foreach(rbtree);
+
+    xqc_rbtree_destroy(rbtree);
+    return 0;
+}
