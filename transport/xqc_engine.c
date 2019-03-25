@@ -1,11 +1,15 @@
 
 #include "xqc_engine.h"
 #include "xqc_transport.h"
+#include <sys/queue.h>
 #include "../include/xquic.h"
 #include "../common/xqc_str.h"
 #include "../common/xqc_random.h"
 #include "../common/xqc_priority_q.h"
 #include "../common/xqc_str_hash.h"
+#include "../common/xqc_timer.h"
+#include "xqc_conn.h"
+#include "xqc_send_ctl.h"
 
 
 xqc_config_t *
@@ -194,10 +198,34 @@ xqc_engine_init_config (xqc_engine_t *engine,
 }
 
 
+void
+xqc_engine_process_conn (xqc_connection_t *conn)
+{
+    xqc_process_read_streams(conn);
+    if (xqc_send_ctl_can_send(conn)) {
+        xqc_process_write_streams(conn);
+    }
+}
+
+
 /**
  * Process all connections
  */
-int xqc_engine_main_logic (xqc_engine_t *engine)
+int
+xqc_engine_main_logic (xqc_engine_t *engine)
 {
+    uint64_t now = xqc_gettimeofday();
+    xqc_connection_t *conn;
 
+    while (!xqc_pq_empty(engine->conns_pq)) {
+        xqc_conns_pq_elem_t *el = (xqc_conns_pq_elem_t*)xqc_pq_top(engine->conns_pq);
+        conn = el->conn;
+        xqc_pq_pop(engine->conns_pq);
+
+        xqc_engine_process_conn(conn);
+
+        xqc_conn_send_packets(conn);
+
+    }
+    return 0;
 }

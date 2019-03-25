@@ -99,4 +99,13 @@ xqc_client_create_connection(xqc_engine_t *engine,
     return xc;
 }
 
-
+void
+xqc_conn_send_packets (xqc_connection_t *conn)
+{
+    xqc_packet_out_t *packet_out;
+    TAILQ_FOREACH(packet_out, &conn->conn_send_ctl->ctl_packets, po_next) {
+        if (xqc_send_ctl_can_send(conn)) {
+            conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
+        }
+    }
+}
