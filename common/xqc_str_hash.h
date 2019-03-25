@@ -42,6 +42,7 @@ static inline int xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocat
 {
     hash_tab->allocator = allocator;
     hash_tab->list = allocator.malloc(allocator.opaque, sizeof(xqc_str_hash_node_t*) * bucket_num);
+    xqc_memzero(hash_tab->list, sizeof(xqc_str_hash_node_t*) * bucket_num);
     if (hash_tab->list == NULL) {
         return XQC_ERROR;
     }
