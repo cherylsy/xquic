@@ -38,7 +38,6 @@ set(
 set(
     COMMON_SOURCES
 
-    common/xqc_mem.c
     common/xqc_random.c
     common/xqc_variable_len_int.c
 )

@@ -59,7 +59,7 @@ int test_object_manager()
 
 static inline void rbtree_cb(xqc_rbtree_node_t* node)
 {
-    printf("key=%lu\n", (unsigned long)node->key);
+    //printf("key=%lu\n", (unsigned long)node->key);
 }
 
 int test_rbtree()
@@ -89,12 +89,12 @@ int test_rbtree()
 
     xqc_rbtree_node_t* p = xqc_rbtree_find(&rbtree, 6);
     if (p) {
-        printf("found 6\n");
+        //printf("found 6\n");
     }
 
     p = xqc_rbtree_find(&rbtree, 16);
     if (!p) {
-        printf("not found 16\n");
+        //printf("not found 16\n");
     }
 
     xqc_rbtree_delete(&rbtree, 7);
