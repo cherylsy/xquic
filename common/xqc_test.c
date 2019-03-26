@@ -364,18 +364,48 @@ int test_list(int argc, char* argv[])
     return 0;
 }
 
+static inline void rbtree_cb(xqc_rbtree_node_t* node)
+{
+    printf("key=%lu\n", (unsigned long)node->key);
+}
+
 int test_rbtree(int argc, char* argv[])
 {
-    xqc_rbtree_t *rbtree = xqc_rbtree_create(xqc_default_allocator);
+    xqc_rbtree_t rbtree;
+    xqc_rbtree_init(&rbtree);
 
-    xqc_rbtree_insert(rbtree, 3, "zhangsan", 8);
-    xqc_rbtree_insert(rbtree, 4, "lisi", 4);
-    xqc_rbtree_insert(rbtree, 5, "wangwu", 6);
-    xqc_rbtree_insert(rbtree, 6, "chenliu", 7);
-    xqc_rbtree_insert(rbtree, 2, "zuoer", 5);
+    xqc_rbtree_node_t list[] = 
+    {
+        { 0, 0, 0, 5, xqc_rbtree_black },
+        { 0, 0, 0, 1, xqc_rbtree_black },
+        { 0, 0, 0, 4, xqc_rbtree_black },
+        { 0, 0, 0, 7, xqc_rbtree_black },
+        { 0, 0, 0, 8, xqc_rbtree_black },
+        { 0, 0, 0, 9, xqc_rbtree_black },
+        { 0, 0, 0, 2, xqc_rbtree_black },
+        { 0, 0, 0, 0, xqc_rbtree_black },
+        { 0, 0, 0, 3, xqc_rbtree_black },
+        { 0, 0, 0, 6, xqc_rbtree_black },
+    };
 
-    xqc_rbtree_foreach(rbtree);
+    for (size_t i = 0; i < sizeof(list)/sizeof(*list); ++i) {
+        xqc_rbtree_insert(&rbtree, &list[i]);
+    }
 
-    xqc_rbtree_destroy(rbtree);
+    xqc_rbtree_node_t* p = xqc_rbtree_find(&rbtree, 6);
+    if (p) {
+        printf("found 6\n");
+    }
+
+    p = xqc_rbtree_find(&rbtree, 16);
+    if (!p) {
+        printf("not found 16\n");
+    }
+
+    for (int i = 1; i < argc; ++i) {
+        xqc_rbtree_delete(&rbtree, atoi(argv[i]));
+    }
+
+    xqc_rbtree_foreach(&rbtree, rbtree_cb);
     return 0;
 }
