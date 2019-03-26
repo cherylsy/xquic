@@ -85,6 +85,7 @@ static inline int xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator
     if (hash_tab->list == NULL) {
         return XQC_ERROR;
     }
+    memset(hash_tab->list, 0, sizeof(xqc_id_hash_node_t*) * bucket_num);
     hash_tab->count = bucket_num;
     return XQC_OK;
 }

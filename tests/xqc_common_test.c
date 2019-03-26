@@ -2,6 +2,7 @@
 
 #include "xqc_common_test.h"
 #include "../common/xqc_object_manager.h"
+#include "../common/xqc_rbtree.h"
 
 typedef struct person_s
 {
@@ -56,6 +57,54 @@ int test_object_manager()
     return 0;
 }
 
+static inline void rbtree_cb(xqc_rbtree_node_t* node)
+{
+    //printf("key=%lu\n", (unsigned long)node->key);
+}
+
+int test_rbtree()
+{
+    xqc_rbtree_t rbtree;
+    xqc_rbtree_init(&rbtree);
+
+    xqc_rbtree_node_t list[] = 
+    {
+        { 0, 0, 0, 5, xqc_rbtree_black },
+        { 0, 0, 0, 1, xqc_rbtree_black },
+        { 0, 0, 0, 4, xqc_rbtree_black },
+        { 0, 0, 0, 7, xqc_rbtree_black },
+        { 0, 0, 0, 8, xqc_rbtree_black },
+        { 0, 0, 0, 9, xqc_rbtree_black },
+        { 0, 0, 0, 2, xqc_rbtree_black },
+        { 0, 0, 0, 0, xqc_rbtree_black },
+        { 0, 0, 0, 3, xqc_rbtree_black },
+        { 0, 0, 0, 6, xqc_rbtree_black },
+    };
+
+    for (size_t i = 0; i < sizeof(list)/sizeof(*list); ++i) {
+        xqc_rbtree_insert(&rbtree, &list[i]);
+    }
+
+    xqc_rbtree_insert(&rbtree, &list[1]);
+
+    xqc_rbtree_node_t* p = xqc_rbtree_find(&rbtree, 6);
+    if (p) {
+        //printf("found 6\n");
+    }
+
+    p = xqc_rbtree_find(&rbtree, 16);
+    if (!p) {
+        //printf("not found 16\n");
+    }
+
+    xqc_rbtree_delete(&rbtree, 7);
+    xqc_rbtree_delete(&rbtree, 1);
+    xqc_rbtree_delete(&rbtree, 9);
+
+    CU_ASSERT(xqc_rbtree_count(&rbtree) == 7);
+
+    xqc_rbtree_foreach(&rbtree, rbtree_cb);
+}
 
 void xqc_test_common()
 {
@@ -96,4 +145,6 @@ void xqc_test_common()
     uint32_t hash_value = ngx_murmur_hash2(buf, 11);
     
     test_object_manager();
+
+    test_rbtree();
 }
