@@ -5,7 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-
+#include <time.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -86,12 +87,34 @@ xqc_log_release(xqc_log_t* log)
     log = NULL;
 }
 
+static inline void
+xqc_log_time(char* buf)
+{
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+
+    struct tm tm;
+    localtime_r(&tv.tv_sec, &tm);
+    tm.tm_mon++;
+    tm.tm_year += 1900;
+
+    sprintf(buf, "%4d/%02d/%02d %02d:%02d:%02d",
+                tm.tm_year, tm.tm_mon,
+                tm.tm_mday, tm.tm_hour,
+                tm.tm_min, tm.tm_sec);
+}
+
 static void inline
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
 {
     unsigned char buf[2048];
     unsigned char *p = buf;
     unsigned char *last = buf + sizeof(buf);
+
+    /*时间*/
+    char time[64];
+    xqc_log_time(time);
+    p = xqc_sprintf(p, last, "[%s] ", time);
 
     /*日志等级*/
     p = xqc_sprintf(p, last, "[%s] ", xqc_log_leveL_str(level));
