@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     test_hash_table(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_log(argc, argv);
 #endif
 
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     test_object_manager(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_rbtree(argc, argv);
 #endif
     return 0;
@@ -101,7 +101,7 @@ int test_hash_table(int argc, char* argv[])
 
     void* p2 = xqc_id_hash_find(&hash_tab, 4);
     if (p2) {
-        printf("found hash 4: %s\n", p2);
+        printf("found hash 4: %s\n", (char*)p2);
     } else {
         printf("not found hash 4\n");
     }
@@ -122,11 +122,11 @@ int test_hash_table(int argc, char* argv[])
 
 int test_log(int argc, char* argv[])
 {
-    xqc_log_t *log = xqc_log_init();
-    xqc_log_debug(log, "helloworld\n");
-    xqc_log_debug(log, "arg=%d, name=%s\n", 10, "jiangyou");
+    xqc_log_t *log = xqc_log_init(XQC_LOG_DEBUG, ".", "log");
+    xqc_log_implement(log, XQC_LOG_DEBUG, "hello, %s\n", "world");
+    xqc_log_debug(log, "alibaba %s\n", "taobao");
+    xqc_log_debug(log, "1 min = %d secs\n", 60);
     xqc_log_release(log);
-    xqc_log(log, XQC_LOG_DEBUG, "hello, %s\n", "alibaba");
     return 0;
 }
 
@@ -168,7 +168,7 @@ int test_pq(int argc, char* argv[])
 
     while (!xqc_pq_empty(&pq)) {
         xqc_pq_element_t* e = xqc_pq_top(&pq);
-        printf("element key:%llu\n", e->key);
+        printf("element key:%lu\n", (unsigned long)e->key);
         xqc_pq_pop(&pq);
     }
 
@@ -205,7 +205,7 @@ int test_pq(int argc, char* argv[])
 
     while (!xqc_pq_empty(&pq2)) {
         xqc_pq_item_t* e = (xqc_pq_item_t*)xqc_pq_top(&pq2);
-        printf("element key:%llu value:%d\n", e->key, *(int*)e->ptr);
+        printf("element key:%lu value:%d\n", (unsigned long)e->key, *(int*)e->ptr);
         xqc_pq_pop(&pq2);
     }
 
