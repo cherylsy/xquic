@@ -33,7 +33,7 @@ int main(int argc, char* argv[])
     test_hash_table(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_log(argc, argv);
 #endif
 
@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     test_object_manager(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_rbtree(argc, argv);
 #endif
     return 0;

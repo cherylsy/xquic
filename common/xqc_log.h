@@ -4,12 +4,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "xqc_config.h"
 #include "xqc_malloc.h"
 
 /*
@@ -21,7 +23,6 @@
 
 enum xqc_log_level_t
 {
-    XQC_LOG_STDERR,
     XQC_LOG_FATAL,
     XQC_LOG_ERROR,
     XQC_LOG_WARN,
@@ -32,7 +33,9 @@ enum xqc_log_level_t
 static inline const char* 
 xqc_log_leveL_str(enum xqc_log_level_t level)
 {
-    if (level == XQC_LOG_ERROR) {
+    if (level == XQC_LOG_FATAL) {
+        return "fatal";
+    } else if (level == XQC_LOG_ERROR) {
         return "error";
     } else if (level == XQC_LOG_WARN) {
         return "warn";
@@ -65,8 +68,9 @@ xqc_log_init(const char* path, const char* file)
     }
     p = strcpy(p, file);
 
-    log->file_handle = open(name, (O_WRONLY | O_APPEND | O_CREAT | O_BINARY), 0644);
+    log->file_handle = open(name, (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (log->file_handle == -1) {
+        printf("open file failed\n");
         xqc_free(log);
         return NULL;
     }
@@ -82,26 +86,6 @@ xqc_log_release(xqc_log_t* log)
     log = NULL;
 }
 
-static inline unsigned char* 
-xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list args)
-{
-    /*
-     * TODO
-     * */
-}
-
-static inline unsigned char* 
-xqc_sprintf(unsigned char* buf, unsigned char* last, const char* fmt, ...)
-{
-    unsigned char *p;
-    va_list args;
-
-    va_start(args, fmt);
-    p = xqc_vsprintf(buf, last, fmt, args);
-    va_end(args);
-
-    return p;
-}
 
 static inline void
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
@@ -129,28 +113,39 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
         } \
     } while (0)
 
+#define xqc_log_fatal(log, ...) \
+    do {\
+        if ((log)->log_level >= XQC_LOG_FATAL) { \
+            xqc_log_implement(log, XQC_LOG_FATAL, __VA_ARGS__); \
+        } \
+    } while (0)
+
 #define xqc_log_error(log, ...) \
     do {\
-        printf("[error] "); \
-        printf(__VA_ARGS__); \
+        if ((log)->log_level >= XQC_LOG_ERROR) { \
+            xqc_log_implement(log, XQC_LOG_ERROR, __VA_ARGS__); \
+        } \
     } while (0)
 
 #define xqc_log_warn(log, ...) \
     do {\
-        printf("[warn] "); \
-        printf(__VA_ARGS__); \
+        if ((log)->log_level >= XQC_LOG_WARN) { \
+            xqc_log_implement(log, XQC_LOG_WARN, __VA_ARGS__); \
+        } \
     } while (0)
 
 #define xqc_log_info(log, ...) \
     do {\
-        printf("[info] "); \
-        printf(__VA_ARGS__); \
+        if ((log)->log_level >= XQC_LOG_INFO) { \
+            xqc_log_implement(log, XQC_LOG_INFO, __VA_ARGS__); \
+        } \
     } while (0)
 
 #define xqc_log_debug(log, ...) \
     do {\
-        printf("[debug] "); \
-        printf(__VA_ARGS__); \
+        if ((log)->log_level >= XQC_LOG_DEBUG) { \
+            xqc_log_implement(log, XQC_LOG_DEBUG, __VA_ARGS__); \
+        } \
     } while (0)
 
 #endif /*_XQC_H_LOG_INCLUDED_*/
