@@ -4,8 +4,8 @@
 #define xqc_min(a, b) ((a) < (b) ? (a) : (b))
 #define xqc_max(a, b) ((a) > (b) ? (a) : (b))
 
-#define LF     (u_char) '\n'
-#define CR     (u_char) '\r'
+#define LF     (unsigned char) '\n'
+#define CR     (unsigned char) '\r'
 #define CRLF   "\r\n"
 
 #define XQC_PTR_SIZE 8

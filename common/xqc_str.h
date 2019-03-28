@@ -1,6 +1,7 @@
 #ifndef _XQC_STR_H_INCLUDED_
 #define _XQC_STR_H_INCLUDED_
 
+#include <string.h>
 #include <stdint.h>
 #include <stdarg.h>
 #include <time.h>
@@ -27,21 +28,21 @@ typedef struct xqc_str_s
 #define xqc_memset(buf, c, n)     (void) memset(buf, c, n)
 
 #define xqc_memcpy(dst, src, n)   (void) memcpy(dst, src, n)
-#define xqc_cpymem(dst, src, n)   (((u_char *) memcpy(dst, src, n)) + (n))
+#define xqc_cpymem(dst, src, n)   (((unsigned char *) memcpy(dst, src, n)) + (n))
 
 
-static inline u_char *
-xqc_sprintf_num(u_char *buf, u_char *last, uint64_t ui64, u_char zero, uintptr_t hexadecimal, uintptr_t width)
+static inline unsigned char *
+xqc_sprintf_num(unsigned char *buf, unsigned char *last, uint64_t ui64, unsigned char zero, uintptr_t hexadecimal, uintptr_t width)
 {
-    u_char         *p, temp[XQC_INT64_LEN + 1];
+    unsigned char         *p, temp[XQC_INT64_LEN + 1];
                        /*
                         * we need temp[NGX_INT64_LEN] only,
                         * but icc issues the warning
                         */
     size_t          len;
     uint32_t        ui32;
-    static u_char   hex[] = "0123456789abcdef";
-    static u_char   HEX[] = "0123456789ABCDEF";
+    static unsigned char   hex[] = "0123456789abcdef";
+    static unsigned char   HEX[] = "0123456789ABCDEF";
 
     p = temp + XQC_INT64_LEN;
 
@@ -50,11 +51,11 @@ xqc_sprintf_num(u_char *buf, u_char *last, uint64_t ui64, u_char zero, uintptr_t
             ui32 = (uint32_t) ui64;
 
             do {
-                *--p = (u_char) (ui32 % 10 + '0');
+                *--p = (unsigned char) (ui32 % 10 + '0');
             } while (ui32 /= 10);
         } else {
             do {
-                *--p = (u_char) (ui64 % 10 + '0');
+                *--p = (unsigned char) (ui64 % 10 + '0');
             } while (ui64 /= 10);
         }
 
@@ -93,7 +94,7 @@ xqc_sprintf_num(u_char *buf, u_char *last, uint64_t ui64, u_char zero, uintptr_t
 static inline unsigned char* 
 xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list args)
 {
-    u_char *p, zero;
+    unsigned char *p, zero;
     int d;
     double f;
     size_t len, slen;
@@ -108,7 +109,7 @@ xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list a
             i64 = 0;
             ui64 = 0;
 
-            zero = (u_char) ((*++fmt == '0') ? '0' : ' ');
+            zero = (unsigned char) ((*++fmt == '0') ? '0' : ' ');
             width = 0;
             sign = 1;
             hex = 0;
@@ -174,7 +175,7 @@ xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list a
                 continue;
 
             case 's':
-                p = va_arg(args, u_char *);
+                p = va_arg(args, unsigned char *);
                 if (slen == (size_t) -1) {
                     while (*p && buf < last) {
                         *buf++ = *p++;
@@ -306,7 +307,7 @@ xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list a
 
             case 'c':
                 d = va_arg(args, int);
-                *buf++ = (u_char) (d & 0xff);
+                *buf++ = (unsigned char) (d & 0xff);
                 fmt++;
                 continue;
 

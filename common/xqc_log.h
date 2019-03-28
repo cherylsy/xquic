@@ -1,11 +1,11 @@
 #ifndef _XQC_H_LOG_INCLUDED_
 #define _XQC_H_LOG_INCLUDED_
 
+#include <time.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -14,6 +14,7 @@
 
 #include "xqc_config.h"
 #include "xqc_malloc.h"
+#include "xqc_str.h"
 
 /*
  * 目前只是标准输出
@@ -104,7 +105,7 @@ xqc_log_time(char* buf)
                 tm.tm_min, tm.tm_sec);
 }
 
-static void inline
+static inline void
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
 {
     unsigned char buf[2048];

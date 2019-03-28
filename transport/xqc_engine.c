@@ -123,7 +123,7 @@ xqc_engine_create(xqc_engine_type_t engine_type)
         goto fail;
     }
     
-    engine->log = xqc_log_init();
+    engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "log");
     if (engine->log == NULL) {
         goto fail;
     }
