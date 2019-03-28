@@ -60,24 +60,20 @@ typedef struct xqc_object_manager_s
  * */
 static inline xqc_object_manager_t *xqc_object_manager_create(size_t object_size, size_t capacity, xqc_allocator_t a)
 {
-    xqc_object_manager_t *manager = a.malloc(a.opaque, sizeof(*manager));
+    size_t size = sizeof(xqc_object_manager_t) + (object_size * capacity);
+    xqc_object_manager_t *manager = a.malloc(a.opaque, size);
     if (manager == NULL) {
         return NULL;
     }
 
-    char* object_pool = a.malloc(a.opaque, object_size * capacity);
-    if (object_pool == NULL) {
-        return NULL;
-    }
-
-    manager->object_pool = object_pool;
+    manager->object_pool = (char*)(manager + 1);
     manager->capacity = capacity;
     manager->object_size = object_size;
 
     /*刚开始所有对象都置于freelist*/
     xqc_init_list_head(&manager->free_list);
     for (size_t i = 0; i < capacity; ++i) {
-        xqc_object_t* o = (xqc_object_t*)(object_pool + i * object_size);
+        xqc_object_t* o = (xqc_object_t*)(manager->object_pool + i * object_size);
         o->object_id = i; /*设置ObjectID，且不再变化*/
         xqc_list_add_tail(&o->list, &manager->free_list);
     }
@@ -87,7 +83,6 @@ static inline xqc_object_manager_t *xqc_object_manager_create(size_t object_size
 
     manager->used_count = 0;
     manager->a = a;
-
     return manager;
 }
 
@@ -97,10 +92,6 @@ static inline xqc_object_manager_t *xqc_object_manager_create(size_t object_size
 static inline void xqc_object_manager_destroy(xqc_object_manager_t* manager)
 {
     xqc_allocator_t *a = &manager->a;
-
-    a->free(a->opaque, manager->object_pool);
-    manager->object_pool = NULL;
-
     a->free(a->opaque, manager);
 }
 

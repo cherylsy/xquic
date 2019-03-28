@@ -3,6 +3,12 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include "xqc_malloc.h"
 
@@ -15,13 +21,16 @@
 
 enum xqc_log_level_t
 {
+    XQC_LOG_STDERR,
+    XQC_LOG_FATAL,
     XQC_LOG_ERROR,
     XQC_LOG_WARN,
     XQC_LOG_INFO,
     XQC_LOG_DEBUG,
 };
 
-static inline const char* xqc_log_leveL_str(enum xqc_log_level_t level)
+static inline const char* 
+xqc_log_leveL_str(enum xqc_log_level_t level)
 {
     if (level == XQC_LOG_ERROR) {
         return "error";
@@ -38,33 +47,86 @@ static inline const char* xqc_log_leveL_str(enum xqc_log_level_t level)
 
 typedef struct xqc_log_s
 {
-    int file_handle;
+    unsigned log_level; /*日志级别*/
+    int file_handle; /*文件句柄*/
 } xqc_log_t;
 
-static inline xqc_log_t *xqc_log_init()
+static inline xqc_log_t *
+xqc_log_init(const char* path, const char* file)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
-    log->file_handle = 0;
+    log->log_level = XQC_LOG_INFO;
+    
+    size_t len1 = strlen(path), len2 = strlen(file);
+    char name[len1 + len2 + 2];
+    char* p = strcpy(name, path);
+    if (*(p - 1) != '/') {
+        *p++ = '/';
+    }
+    p = strcpy(p, file);
+
+    log->file_handle = open(name, (O_WRONLY | O_APPEND | O_CREAT | O_BINARY), 0644);
+    if (log->file_handle == -1) {
+        xqc_free(log);
+        return NULL;
+    }
+
     return log;
 }
 
-static inline void xqc_log_release(xqc_log_t* log)
+static inline void 
+xqc_log_release(xqc_log_t* log)
 {
+    close(log->file_handle);
     xqc_free(log);
     log = NULL;
 }
 
-static inline void xqc_snprintf(char* buf, size_t n, const char* fmt, va_list args)
+static inline unsigned char* 
+xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list args)
 {
     /*
      * TODO
      * */
 }
 
+static inline unsigned char* 
+xqc_sprintf(unsigned char* buf, unsigned char* last, const char* fmt, ...)
+{
+    unsigned char *p;
+    va_list args;
+
+    va_start(args, fmt);
+    p = xqc_vsprintf(buf, last, fmt, args);
+    va_end(args);
+
+    return p;
+}
+
+static inline void
+xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
+{
+    va_list args;
+    unsigned char buf[2048];
+    unsigned char *p = buf;
+    unsigned char *last = buf + sizeof(buf);
+
+    /*日志等级*/
+    p = xqc_sprintf(p, last, "[%s]", xqc_log_leveL_str(level));
+
+    /*日志内容*/
+    va_start(args, fmt);
+    xqc_vsprintf(p, last, fmt, args);
+    va_end(args);
+
+    write(log->file_handle, buf, p - buf);
+}
+
 #define xqc_log(log, level, ...) \
     do { \
-        printf("[%s] ", xqc_log_leveL_str(level)); \
-        printf(__VA_ARGS__); \
+        if ((log)->log_level >= level) { \
+            xqc_log_implement(log, level, __VA_ARGS__); \
+        } \
     } while (0)
 
 #define xqc_log_error(log, ...) \
