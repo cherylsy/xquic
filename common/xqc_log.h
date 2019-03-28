@@ -55,18 +55,18 @@ typedef struct xqc_log_s
 } xqc_log_t;
 
 static inline xqc_log_t *
-xqc_log_init(const char* path, const char* file)
+xqc_log_init(enum xqc_log_level_t level, const char* path, const char* file)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
-    log->log_level = XQC_LOG_INFO;
+    log->log_level = level;
     
     size_t len1 = strlen(path), len2 = strlen(file);
     char name[len1 + len2 + 2];
-    char* p = strcpy(name, path);
+    char* p = strcpy(name, path) + len1;
     if (*(p - 1) != '/') {
         *p++ = '/';
     }
-    p = strcpy(p, file);
+    strcpy(p, file);
 
     log->file_handle = open(name, (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (log->file_handle == -1) {
@@ -86,21 +86,20 @@ xqc_log_release(xqc_log_t* log)
     log = NULL;
 }
 
-
-static inline void
+static void inline
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
 {
-    va_list args;
     unsigned char buf[2048];
     unsigned char *p = buf;
     unsigned char *last = buf + sizeof(buf);
 
     /*日志等级*/
-    p = xqc_sprintf(p, last, "[%s]", xqc_log_leveL_str(level));
+    p = xqc_sprintf(p, last, "[%s] ", xqc_log_leveL_str(level));
 
     /*日志内容*/
+    va_list args;
     va_start(args, fmt);
-    xqc_vsprintf(p, last, fmt, args);
+    p = xqc_vsprintf(p, last, fmt, args);
     va_end(args);
 
     write(log->file_handle, buf, p - buf);

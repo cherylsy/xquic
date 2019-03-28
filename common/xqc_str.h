@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <time.h>
+#include <sys/resource.h>
+#include <stddef.h>
+#include <sys/types.h>
 
 #include "xqc_config.h"
 
@@ -352,11 +355,9 @@ xqc_sprintf(unsigned char* buf, unsigned char* last, const char* fmt, ...)
 {
     unsigned char *p;
     va_list args;
-
     va_start(args, fmt);
     p = xqc_vsprintf(buf, last, fmt, args);
     va_end(args);
-
     return p;
 }
 
