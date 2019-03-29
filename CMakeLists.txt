@@ -30,6 +30,7 @@ set(
     transport/xqc_frame_parser.c
     transport/xqc_stream.c
     transport/xqc_packet_out.c
+    transport/xqc_packet_in.c
     transport/xqc_send_ctl.c
     transport/xqc_packet.c
     transport/xqc_frame.c
@@ -62,8 +63,10 @@ endif()
 add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
+#add_executable(test_client tests/test_client.c)
 
 include_directories( /usr/local/include )
 link_directories( /usr/local/lib )
 
 target_link_libraries(test_server xquic)
+#target_link_libraries(test_client xquic -levent)

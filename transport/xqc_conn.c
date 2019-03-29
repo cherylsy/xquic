@@ -1,7 +1,68 @@
 
 #include "../include/xquic.h"
+#include "../common/xqc_common.h"
+#include "../common/xqc_malloc.h"
+#include "../common/xqc_str_hash.h"
 #include "xqc_conn.h"
 #include "xqc_send_ctl.h"
+#include "../common/xqc_priority_q.h"
+#include "xqc_engine.h"
+
+int
+xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
+{
+    xqc_conns_pq_elem_t *elem = (xqc_conns_pq_elem_t*)xqc_pq_push(pq, time_ms);
+    if (!elem) {
+        return -1;
+    }
+    elem->conn = conn;
+    return 0;
+}
+
+void
+xqc_conns_pq_pop (xqc_pq_t *pq)
+{
+    xqc_pq_pop(pq);
+}
+
+xqc_conns_pq_elem_t *
+xqc_conns_pq_top (xqc_pq_t *pq)
+{
+    return  (xqc_conns_pq_elem_t*)xqc_pq_top(pq);
+}
+
+
+static inline int
+xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
+{
+    xqc_cid_t scid = conn->scid;
+    xqc_str_hash_element_t c = {
+            .str    = {
+                        .data = scid.cid_buf,
+                        .len = scid.cid_len
+                    },
+            .hash   = (uint64_t)scid.cid_buf,
+            .value  = conn
+    };
+    if (xqc_str_hash_add(conns_hash, c)) {
+        return -1;
+    }
+    return 0;
+}
+
+static inline int
+xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
+{
+    xqc_cid_t scid = conn->scid;
+    xqc_str_t str = {
+        .data   = scid.cid_buf,
+        .len    = scid.cid_len,
+    };
+    if (xqc_str_hash_delete(conns_hash, (uint64_t)scid.cid_buf, str)) {
+        return -1;
+    }
+    return 0;
+}
 
 xqc_connection_t *
 xqc_create_connection(xqc_engine_t *engine,
@@ -38,17 +99,35 @@ xqc_create_connection(xqc_engine_t *engine,
     }
 
     TAILQ_INIT(&xc->conn_write_streams);
+    TAILQ_INIT(&xc->conn_read_streams);
+    TAILQ_INIT(&xc->packet_in_tailq);
 
+    /* create streams_hash */
     xc->streams_hash = xqc_pcalloc(xc->conn_pool, sizeof(xqc_id_hash_table_t));
     if (xc->streams_hash == NULL) {
         goto fail;
     }
-
     if (xqc_id_hash_init(xc->streams_hash,
                          xqc_default_allocator,
                          engine->config->streams_hash_bucket_size) == XQC_ERROR) {
         goto fail;
     }
+
+    /* Insert into engine's conns_hash */
+    if (xqc_insert_conns_hash(engine->conns_hash, xc)) {
+        goto fail;
+    }
+
+    if (xqc_conns_pq_push(engine->conns_pq, xc, 0)) {
+        goto fail;
+    }
+
+    /* Do callback */
+    if (xc->conn_callbacks.conn_create_notify(user_data, xc)) {
+        goto fail;
+    }
+
+
 
     return xc;
 
@@ -74,6 +153,9 @@ xqc_destroy_connection(xqc_connection_t *xc)
         xqc_destroy_pool(xc->conn_pool);
         xc->conn_pool = NULL;
     }
+
+    /* Remove from engine's conns_hash */
+    xqc_remove_conns_hash(xc->engine->conns_hash, xc);
 }
 
 
@@ -108,4 +190,5 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
         }
     }
+    //TODO: del packet_out
 }

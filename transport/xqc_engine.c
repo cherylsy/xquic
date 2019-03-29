@@ -10,7 +10,10 @@
 #include "../common/xqc_timer.h"
 #include "xqc_conn.h"
 #include "xqc_send_ctl.h"
-
+#include "xqc_stream.h"
+#include "xqc_packet_parser.h"
+#include "xqc_frame_parser.h"
+#include "xqc_packet_in.h"
 
 xqc_config_t *
 xqc_engine_config_create(xqc_engine_type_t engine_type)
@@ -197,6 +200,12 @@ xqc_engine_init_config (xqc_engine_t *engine,
     *(engine->config) = *engine_config;
 }
 
+void
+xqc_engine_set_callback (xqc_engine_t *engine,
+                              xqc_engine_callback_t engine_callback)
+{
+    engine->eng_callback = engine_callback;
+}
 
 void
 xqc_engine_process_conn (xqc_connection_t *conn)
@@ -218,14 +227,42 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     xqc_connection_t *conn;
 
     while (!xqc_pq_empty(engine->conns_pq)) {
-        xqc_conns_pq_elem_t *el = (xqc_conns_pq_elem_t*)xqc_pq_top(engine->conns_pq);
+        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
         conn = el->conn;
-        xqc_pq_pop(engine->conns_pq);
+        xqc_conns_pq_pop(engine->conns_pq);
 
         xqc_engine_process_conn(conn);
 
         xqc_conn_send_packets(conn);
 
     }
+    return 0;
+}
+
+int xqc_engine_packet_process (xqc_engine_t *engine,
+                               xqc_connection_t *conn,
+                               const unsigned char *packet_in_buf,
+                               size_t packet_in_size,
+                               const struct sockaddr *local_addr,
+                               socklen_t local_addrlen,
+                               const struct sockaddr *peer_addr,
+                               socklen_t peer_addrlen,
+                               uint64_t recv_time)
+{
+    xqc_packet_in_t *packet_in = xqc_create_packet_in(conn->conn_pool,
+                                                      &conn->packet_in_tailq,
+                                                      packet_in_buf, packet_in_size, recv_time); //TODO: when to del
+    if (!packet_in) {
+        return -1;
+    }
+
+    if (xqc_parse_packet_header(packet_in) < 0) {
+        return -1;
+    }
+
+    if (xqc_parse_frames(packet_in, conn) < 0) {
+        return -1;
+    }
+
     return 0;
 }

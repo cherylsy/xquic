@@ -3,6 +3,7 @@
 #include <sys/types.h>
 #include "xqc_frame_parser.h"
 #include "../common/xqc_variable_len_int.h"
+#include "xqc_stream.h"
 
 
 int
@@ -113,4 +114,73 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
                  | (!!length_len << 1)
                  | (!!fin << 0);
     return p - dst_buf;
+}
+
+int
+xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+{
+    xqc_stream_frame_t *frame;
+    xqc_stream_t *stream;
+    xqc_stream_id_t stream_id;
+
+    uint64_t offset;
+    uint64_t length;
+    unsigned vlen;
+
+    const unsigned char *p = packet_in->pi_buf + packet_in->processed_offset;
+    const unsigned char *end = packet_in->pi_buf + packet_in->pi_buf_size;
+
+    const unsigned char first_byte = *p++;
+
+    p += xqc_vint_read(p, end, &stream_id);
+
+    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
+
+    frame = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_frame_t));
+    frame->stream_id = stream_id;
+
+    if (first_byte & 0x04) {
+        vlen = xqc_vint_read(p, end, &offset);
+        if (vlen < 0) {
+            return -1;
+        }
+        p += vlen;
+        frame->data_offset = offset;
+    } else {
+        frame->data_offset = 0;
+    }
+
+    if (first_byte & 0x02) {
+        vlen = xqc_vint_read(p, end, &length);
+        if (vlen < 0) {
+            return -1;
+        }
+        p += vlen;
+        frame->data_length = length;
+    } else {
+        frame->data_length = end - p;
+    }
+
+    if (first_byte & 0x01) {
+        frame->fin = 1;
+    }
+    else {
+        frame->fin = 0;
+    }
+
+    //TODO: insert xqc_stream_frame_t into stream->stream_data_in.frames_tailq in order of offset
+
+    packet_in->processed_offset += (p - packet_in->pi_buf + frame->data_length);
+    return 0;
+}
+
+int
+xqc_parse_frames(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+{
+    while (packet_in->processed_offset < packet_in->pi_buf_size) {
+        if(xqc_parse_stream_frame(packet_in, conn) != 0) {
+            return -1;
+        }
+    }
+    return 0;
 }
