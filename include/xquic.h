@@ -15,12 +15,25 @@
 typedef ssize_t (*xqc_recv_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
 typedef ssize_t (*xqc_send_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
 
-typedef int (*xqc_stream_notify_pt)(void *user_data, uint64_t stream_id);
+typedef int (*xqc_conn_notify_pt)(void *user_data, xqc_connection_t *conn);
+
+typedef int (*xqc_stream_notify_pt)(void *user_data, xqc_stream_t *stream);
 typedef int (*xqc_handshake_finished_pt)(void *user_data);
+
+typedef struct xqc_conn_callbacks_s {
+    xqc_conn_notify_pt          conn_create_notify;
+    xqc_conn_notify_pt          conn_close_notify;
+} xqc_conn_callbacks_t;
+
+typedef struct xqc_stream_callbacks_s {
+    xqc_stream_notify_pt        stream_read_notify;
+    xqc_stream_notify_pt        stream_write_notify;
+    xqc_stream_notify_pt        stream_close;
+} xqc_stream_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
 
-}xqc_cong_ctrl_callback_t;
+} xqc_cong_ctrl_callback_t;
 
 /**
  * @struct xqc_config_t
@@ -49,10 +62,11 @@ typedef struct xqc_engine_callback_s {
     xqc_recv_pt                 read_socket;
     xqc_send_pt                 write_socket;
 
+    /* for connection notify */
+    xqc_conn_callbacks_t        conn_callbacks;
+
     /* for stream notify */
-    xqc_stream_notify_pt        stream_read_notify;
-    xqc_stream_notify_pt        stream_write_notify;
-    xqc_stream_notify_pt        stream_close;
+    xqc_stream_callbacks_t      stream_callbacks;
 
     /* for handshake done */
     xqc_handshake_finished_pt   handshake_finished;
@@ -94,7 +108,7 @@ void xqc_engine_config_destoy(xqc_config_t *config);
  * Set xquic engine API.
  */
 void xqc_engine_set_callback (xqc_engine_t *engine,
-                              xqc_engine_callback_t *engine_callback);
+                              xqc_engine_callback_t engine_callback);
 
 
 xqc_connection_t *xqc_engine_connect (xqc_engine_t *engine, 
@@ -112,6 +126,7 @@ int xqc_engine_main_logic (xqc_engine_t *engine);
  * @param recv_time   UDP packet recieved time in millisecond
  */
 int xqc_engine_packet_process (xqc_engine_t *engine,
+                               xqc_connection_t *conn,
                                const unsigned char *packet_in_buf,
                                size_t packet_in_size,
                                const struct sockaddr *local_addr,
@@ -126,8 +141,7 @@ xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_conn_settings_t *settings,
                                 void *user_data);
 
-int xqc_connect(xqc_client_connection_t *client_conn, 
-                    xqc_engine_t *engine, void *user_data);
+xqc_connection_t * xqc_connect(xqc_engine_t *engine, void *user_data);
 
 /**
  * Create new stream in quic connection.
@@ -146,8 +160,7 @@ int xqc_close_stream (xqc_connection_t *c,
 /**
  * Recv data in stream.
  */
-ssize_t xqc_stream_recv (xqc_connection_t *c,
-                         uint64_t stream_id,
+ssize_t xqc_stream_recv (xqc_stream_t *stream,
                          unsigned char *recv_buf,
                          size_t recv_buf_size);
 
@@ -155,8 +168,7 @@ ssize_t xqc_stream_recv (xqc_connection_t *c,
  * Send data in stream.
  * @param fin  0 or 1,  1 - final data block send in this stream.
  */
-ssize_t xqc_stream_send (xqc_connection_t *c,
-                         xqc_stream_t *stream,
+ssize_t xqc_stream_send (xqc_stream_t *stream,
                          unsigned char *send_data,
                          size_t send_data_size,
                          uint8_t fin);

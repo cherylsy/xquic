@@ -8,14 +8,13 @@
 #include "../include/xquic.h"
 #include "../include/xquic_typedef.h"
 #include "../common/xqc_log.h"
+#include "xqc_engine.h"
+#include "xqc_packet_in.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
 #define XQC_ENCYPT_MAX_LEVEL  4
 
-typedef struct xqc_conn_callbacks_s{
-
-}xqc_conn_callbacks_t;
 
 typedef enum {
     /* server */
@@ -91,8 +90,9 @@ struct xqc_conn_settings_s {
 
 };
 
-TAILQ_HEAD(xqc_stream_tailq, xqc_stream_t);
+TAILQ_HEAD(xqc_stream_tailq, xqc_stream_s);
 typedef struct xqc_stream_tailq xqc_stream_tailq_t;
+
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
@@ -120,7 +120,9 @@ struct xqc_connection_s{
     xqc_trans_param_t       trans_param;
 
     void                   *user_data;  /* user_data for application layer */
-    
+
+    xqc_packet_in_tailq_t   packet_in_tailq;
+
     xqc_log_t              *log;
 
     /* recovery state ctx */
@@ -129,6 +131,12 @@ struct xqc_connection_s{
     xqc_send_ctl_t         *conn_send_ctl;
     /* flag */
 };
+
+int xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms);
+
+void xqc_conns_pq_pop (xqc_pq_t *pq);
+
+xqc_conns_pq_elem_t *xqc_conns_pq_top (xqc_pq_t *pq);
 
 xqc_connection_t * xqc_create_connection(xqc_engine_t *engine, 
                                 xqc_cid_t dcid, xqc_cid_t scid,

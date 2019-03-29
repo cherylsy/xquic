@@ -6,6 +6,7 @@
 #include "xqc_packet_out.h"
 #include "xqc_send_ctl.h"
 #include "xqc_frame.h"
+#include "../include/xquic_typedef.h"
 
 static xqc_stream_id_t
 xqc_gen_stream_id (xqc_connection_t *conn, xqc_stream_id_type_t type)
@@ -21,6 +22,51 @@ xqc_gen_stream_id (xqc_connection_t *conn, xqc_stream_id_type_t type)
     return sid;
 }
 
+void
+xqc_stream_ready_to_write (xqc_stream_t *stream)
+{
+    if (stream->stream_flag & XQC_SF_READY_TO_WRITE) {
+        return;
+    }
+    TAILQ_INSERT_TAIL(&stream->stream_conn->conn_write_streams, stream, next_write_stream);
+    stream->stream_flag |= XQC_SF_READY_TO_WRITE;
+}
+
+void
+xqc_stream_shutdown_write (xqc_stream_t *stream)
+{
+    if (stream->stream_flag & XQC_SF_READY_TO_WRITE) {
+        TAILQ_REMOVE(&stream->stream_conn->conn_write_streams, stream, next_write_stream);
+        stream->stream_flag &= ~XQC_SF_READY_TO_WRITE;
+    }
+}
+
+void
+xqc_stream_ready_to_read (xqc_stream_t *stream)
+{
+    if (stream->stream_flag & XQC_SF_READY_TO_READ) {
+        return;
+    }
+    TAILQ_INSERT_TAIL(&stream->stream_conn->conn_read_streams, stream, next_read_stream);
+    stream->stream_flag |= XQC_SF_READY_TO_READ;
+}
+
+void
+xqc_stream_shutdown_read (xqc_stream_t *stream)
+{
+    if (stream->stream_flag & XQC_SF_READY_TO_READ) {
+        TAILQ_REMOVE(&stream->stream_conn->conn_read_streams, stream, next_read_stream);
+        stream->stream_flag &= ~XQC_SF_READY_TO_READ;
+    }
+}
+
+xqc_stream_t *
+xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash)
+{
+    xqc_stream_t *stream = xqc_id_hash_find(streams_hash, stream_id);
+    return stream;
+}
+
 xqc_stream_t *
 xqc_create_stream (xqc_connection_t *conn,
                   void *user_data)
@@ -34,7 +80,7 @@ xqc_create_stream (xqc_connection_t *conn,
     stream->stream_id_type = XQC_CLI_BID;
     stream->stream_id = xqc_gen_stream_id(conn, stream->stream_id_type);
     stream->stream_conn = conn;
-    stream->stream_if = &conn->engine->eng_callback;
+    stream->stream_if = &conn->engine->eng_callback.stream_callbacks;
     stream->user_data = user_data;
 
     xqc_id_hash_element_t e = {stream_id, stream};
@@ -42,14 +88,16 @@ xqc_create_stream (xqc_connection_t *conn,
         return NULL;
     }
 
-    TAILQ_INSERT_TAIL(&conn->conn_write_streams, stream, next_write_stream);
+    TAILQ_INIT(&stream->stream_data_in.frames_tailq);
+
+    xqc_stream_ready_to_write(stream);
+
     return stream;
 }
 
 
 ssize_t
-xqc_stream_send (xqc_connection_t *c,
-                 xqc_stream_t *stream,
+xqc_stream_send (xqc_stream_t *stream,
                  unsigned char *send_data,
                  size_t send_data_size,
                  uint8_t fin)
@@ -57,6 +105,7 @@ xqc_stream_send (xqc_connection_t *c,
     size_t send_data_written = 0;
     size_t offset = 0; //本次send_data中的已写offset
     int n_written = 0;
+    xqc_connection_t *c = stream->stream_conn;
     xqc_packet_out_t *packet_out;
     uint8_t fin_only = fin && !send_data_size;
 
@@ -98,6 +147,7 @@ xqc_stream_send (xqc_connection_t *c,
         packet_out->po_used_size += n_written;
         fin_only = 0;
     }
+
     return stream->stream_send_offset;
 }
 
@@ -106,7 +156,7 @@ xqc_process_write_streams (xqc_connection_t *conn)
 {
     xqc_stream_t *stream;
     TAILQ_FOREACH(stream, &conn->conn_write_streams, next_write_stream) {
-        stream->stream_if->stream_write_notify(stream->user_data, stream->stream_id);
+        stream->stream_if->stream_write_notify(stream->user_data, stream);
     }
 }
 
@@ -115,6 +165,6 @@ xqc_process_read_streams (xqc_connection_t *conn)
 {
     xqc_stream_t *stream;
     TAILQ_FOREACH(stream, &conn->conn_read_streams, next_read_stream) {
-        stream->stream_if->stream_read_notify(stream->user_data, stream->stream_id);
+        stream->stream_if->stream_read_notify(stream->user_data, stream);
     }
 }
