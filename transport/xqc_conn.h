@@ -38,6 +38,11 @@ typedef enum {
 }xqc_conn_type_t;
 
 typedef enum {
+    XQC_CONN_FLAG_NONE = 0x0,
+    XQC_CONN_FLAG_HANDSHAKE_COMPLETED = 0x01
+}xqc_conn_flag_t;
+
+typedef enum {
     XQC_TRANS_PARAM_ORININAL_CONNECTION_ID = 0,
     XQC_TRANS_PARAM_IDLE_TIMEOUT = 1,
     XQC_TRANS_PARAM_STATELESS_RESET_TOKEN = 2,
@@ -118,6 +123,8 @@ struct xqc_connection_s{
     uint64_t                cur_stream_id_uni_local;
 
     xqc_trans_param_t       trans_param;
+    xqc_conn_flag_t         conn_flag;
+    xqc_conn_type_t         conn_type;
 
     void                   *user_data;  /* user_data for application layer */
 
@@ -139,7 +146,7 @@ void xqc_conns_pq_pop (xqc_pq_t *pq);
 xqc_conns_pq_elem_t *xqc_conns_pq_top (xqc_pq_t *pq);
 
 xqc_connection_t * xqc_create_connection(xqc_engine_t *engine, 
-                                xqc_cid_t dcid, xqc_cid_t scid,
+                                xqc_cid_t *dcid, xqc_cid_t *scid,
                                 xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
                                 void *user_data, 
@@ -148,5 +155,11 @@ xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
 void xqc_destroy_connection(xqc_connection_t *xc);
 
 void xqc_conn_send_packets (xqc_connection_t *conn);
+
+
+xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
+
+
+xqc_connection_t * xqc_conn_lookup_with_dcid(xqc_engine_t *engine, xqc_cid_t *dcid);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

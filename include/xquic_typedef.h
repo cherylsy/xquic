@@ -17,9 +17,18 @@ typedef struct xqc_str_hash_table_s xqc_str_hash_table_t;
 typedef struct xqc_priority_queue_s xqc_pq_t;
 typedef struct xqc_log_s xqc_log_t;
 typedef struct xqc_send_ctl_s xqc_send_ctl_t;
+typedef struct xqc_packet_s xqc_packet_t;
+typedef struct xqc_packet_in_s xqc_packet_in_t;
+typedef struct xqc_conn_callbacks_s xqc_conn_callbacks_t;
+
+typedef uint64_t xqc_msec_t;
 
 typedef uint64_t xqc_packet_number_t;
 typedef uint64_t xqc_stream_id_t;
+
+typedef intptr_t        xqc_int_t;
+typedef uintptr_t       xqc_uint_t;
+typedef intptr_t        xqc_flag_t;
 
 #define XQC_MAX_CID_LEN 18
 typedef struct xqc_cid_s
@@ -27,5 +36,6 @@ typedef struct xqc_cid_s
     uint8_t    cid_len;
     uint8_t    cid_buf[XQC_MAX_CID_LEN];
 } xqc_cid_t;
+
 
 #endif /*_XQUIC_TYPEDEF_H_INCLUDED_*/

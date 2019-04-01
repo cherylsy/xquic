@@ -7,6 +7,7 @@
 #include "xqc_send_ctl.h"
 #include "../common/xqc_priority_q.h"
 #include "xqc_engine.h"
+#include "xqc_cid.h"
 
 int
 xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
@@ -66,7 +67,7 @@ xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 
 xqc_connection_t *
 xqc_create_connection(xqc_engine_t *engine,
-                                xqc_cid_t dcid, xqc_cid_t scid,
+                                xqc_cid_t *dcid, xqc_cid_t *scid,
                                 xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
                                 void *user_data,
@@ -85,13 +86,15 @@ xqc_create_connection(xqc_engine_t *engine,
     }
 
     xc->conn_pool = pool;
-    xc->dcid = dcid;
-    xc->scid = scid;
+    xqc_cid_copy(&(xc->dcid), dcid);
+    xqc_cid_copy(&(xc->scid), scid);
     xc->engine = engine;
     xc->conn_callbacks = *callbacks;
     xc->conn_settings = *settings;
     xc->user_data = user_data;
     xc->version = XQC_QUIC_VERSION;
+    xc->conn_type = type;
+    xc->conn_flag = XQC_CONN_FLAG_NONE;
 
     xc->conn_send_ctl = xqc_send_ctl_create(xc);
     if (xc->conn_send_ctl == NULL) {
@@ -166,7 +169,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_conn_settings_t *settings,
                                 void *user_data)
 {
-    xqc_connection_t *xc = xqc_create_connection(engine, dcid, scid, 
+    xqc_connection_t *xc = xqc_create_connection(engine, &dcid, &scid, 
                                         callbacks, settings, user_data, 
                                         XQC_CONN_TYPE_CLIENT);
 
@@ -192,3 +195,18 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     }
     //TODO: del packet_out
 }
+
+
+xqc_connection_t *
+xqc_conn_lookup_with_dcid(xqc_engine_t *engine, xqc_cid_t *dcid)
+{
+    return NULL;
+}
+
+
+xqc_int_t
+xqc_conn_check_handshake_completed(xqc_connection_t *conn)
+{
+    return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) != 0);
+}
+

@@ -20,10 +20,10 @@ typedef int (*xqc_conn_notify_pt)(void *user_data, xqc_connection_t *conn);
 typedef int (*xqc_stream_notify_pt)(void *user_data, xqc_stream_t *stream);
 typedef int (*xqc_handshake_finished_pt)(void *user_data);
 
-typedef struct xqc_conn_callbacks_s {
+struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
     xqc_conn_notify_pt          conn_close_notify;
-} xqc_conn_callbacks_t;
+};
 
 typedef struct xqc_stream_callbacks_s {
     xqc_stream_notify_pt        stream_read_notify;
@@ -125,15 +125,14 @@ int xqc_engine_main_logic (xqc_engine_t *engine);
  * Pass received UDP packet payload into xquic engine.
  * @param recv_time   UDP packet recieved time in millisecond
  */
-int xqc_engine_packet_process (xqc_engine_t *engine,
-                               xqc_connection_t *conn,
+xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,
                                size_t packet_in_size,
                                const struct sockaddr *local_addr,
                                socklen_t local_addrlen,
                                const struct sockaddr *peer_addr,
                                socklen_t peer_addrlen,
-                               uint64_t recv_time);
+                               xqc_msec_t recv_time);
 
 xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine, 
                                 xqc_cid_t dcid, xqc_cid_t scid,

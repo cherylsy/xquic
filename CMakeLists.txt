@@ -41,6 +41,7 @@ set(
 
     common/xqc_random.c
     common/xqc_variable_len_int.c
+    common/xqc_str.c
 )
 
 add_library(
