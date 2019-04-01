@@ -127,8 +127,8 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
     uint64_t length;
     unsigned vlen;
 
-    const unsigned char *p = packet_in->pi_buf + packet_in->processed_offset;
-    const unsigned char *end = packet_in->pi_buf + packet_in->pi_buf_size;
+    const unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
 
     const unsigned char first_byte = *p++;
 
@@ -170,14 +170,14 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 
     //TODO: insert xqc_stream_frame_t into stream->stream_data_in.frames_tailq in order of offset
 
-    packet_in->processed_offset += (p - packet_in->pi_buf + frame->data_length);
+    packet_in->pos += (p - packet_in->buf + frame->data_length);
     return 0;
 }
 
 int
 xqc_parse_frames(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
-    while (packet_in->processed_offset < packet_in->pi_buf_size) {
+    while (packet_in->pos < packet_in->last) {
         if(xqc_parse_stream_frame(packet_in, conn) != 0) {
             return -1;
         }

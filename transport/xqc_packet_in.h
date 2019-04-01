@@ -9,7 +9,7 @@
 TAILQ_HEAD(xqc_packet_in_tailq, xqc_packet_in_s);
 typedef struct xqc_packet_in_tailq xqc_packet_in_tailq_t;
 
-typedef struct xqc_packet_in_s
+struct xqc_packet_in_s
 {
     xqc_packet_t            pi_pkt;
     TAILQ_ENTRY(xqc_packet_in_s)
@@ -20,7 +20,7 @@ typedef struct xqc_packet_in_s
     unsigned char          *pos;
     unsigned char          *last;
     xqc_msec_t              pkt_recv_time;  /* millisecond */
-} xqc_packet_in_t;
+};
 
 
 xqc_packet_in_t *

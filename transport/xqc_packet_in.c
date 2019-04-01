@@ -19,8 +19,8 @@ xqc_create_packet_in (xqc_memory_pool_t *pool, xqc_packet_in_tailq_t *tailq,
 
     packet_in->buf = packet_in_buf;
     packet_in->buf_size = packet_in_size;
-    packet_in->pos = packet_in_buf;
-    packet_in->last = packet_in_buf + packet_in_size;
+    packet_in->pos = (unsigned char *)packet_in_buf;
+    packet_in->last = (unsigned char *)packet_in_buf + packet_in_size;
     packet_in->pkt_recv_time = recv_time;
 
     return packet_in;

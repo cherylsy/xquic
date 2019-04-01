@@ -20,10 +20,10 @@ typedef int (*xqc_conn_notify_pt)(void *user_data, xqc_connection_t *conn);
 typedef int (*xqc_stream_notify_pt)(void *user_data, xqc_stream_t *stream);
 typedef int (*xqc_handshake_finished_pt)(void *user_data);
 
-typedef struct xqc_conn_callbacks_s {
+struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
     xqc_conn_notify_pt          conn_close_notify;
-} xqc_conn_callbacks_t;
+};
 
 typedef struct xqc_stream_callbacks_s {
     xqc_stream_notify_pt        stream_read_notify;

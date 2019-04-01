@@ -8,6 +8,7 @@
 #include "xqc_str.h"
 #include "xqc_log.h"
 #include "xqc_common.h"
+#include "../include/xquic_typedef.h"
 
 
 typedef struct xqc_random_generator_s{

@@ -14,6 +14,9 @@
 #include "xqc_packet_parser.h"
 #include "xqc_frame_parser.h"
 #include "xqc_packet_in.h"
+#include "xqc_packet.h"
+#include "xqc_cid.h"
+
 
 xqc_config_t *
 xqc_engine_config_create(xqc_engine_type_t engine_type)
@@ -258,7 +261,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     xqc_cid_t dcid, scid;
     xqc_cid_init_zero(&dcid);
 
-    if (xqc_packet_parse_cid(&dcid, &scid, packet_in_buf, packet_in_size) != XQC_OK) {
+    if (xqc_packet_parse_cid(&dcid, &scid, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to parse cid");
         return XQC_ERROR;
     }
@@ -270,7 +273,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                      XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
 
         conn = xqc_create_connection(engine, &dcid, &scid, 
-                                     engine->eng_callback.conn_callbacks, 
+                                     &(engine->eng_callback.conn_callbacks), 
                                      engine->settings, NULL, 
                                      conn_type);
 

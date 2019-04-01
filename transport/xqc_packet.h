@@ -21,11 +21,18 @@ typedef enum xqc_pkt_type
     PTYPE_VER,
 } xqc_pkt_type_t;
 
-typedef struct xqc_packet_s {
+struct xqc_packet_s {
     xqc_packet_number_t     pkt_num;
     xqc_pkt_num_space_t     pkt_pns;
     xqc_pkt_type_t          pkt_type;
     xqc_cid_t               pkt_dcid;
-}xqc_packet_t;
+};
+
+
+xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
+                             unsigned char *buf, size_t size);
+
+xqc_int_t xqc_conn_process_packets(xqc_connection_t *c,
+                          xqc_packet_in_t *packet_in);
 
 #endif //_XQC_PACKET_H_INCLUDED_

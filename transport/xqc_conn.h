@@ -157,10 +157,9 @@ void xqc_destroy_connection(xqc_connection_t *xc);
 void xqc_conn_send_packets (xqc_connection_t *conn);
 
 
-inline xqc_int_t 
-xqc_conn_check_handshake_completed(xqc_connection_t *conn)
-{
-    return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) != 0);
-}
+xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
+
+
+xqc_connection_t * xqc_conn_lookup_with_dcid(xqc_engine_t *engine, xqc_cid_t *dcid);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

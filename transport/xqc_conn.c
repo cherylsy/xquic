@@ -7,6 +7,7 @@
 #include "xqc_send_ctl.h"
 #include "../common/xqc_priority_q.h"
 #include "xqc_engine.h"
+#include "xqc_cid.h"
 
 int
 xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
@@ -200,5 +201,12 @@ xqc_connection_t *
 xqc_conn_lookup_with_dcid(xqc_engine_t *engine, xqc_cid_t *dcid)
 {
     return NULL;
+}
+
+
+xqc_int_t
+xqc_conn_check_handshake_completed(xqc_connection_t *conn)
+{
+    return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) != 0);
 }
 
