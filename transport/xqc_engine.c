@@ -239,30 +239,66 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     return 0;
 }
 
-int xqc_engine_packet_process (xqc_engine_t *engine,
-                               xqc_connection_t *conn,
+
+/**
+ * Pass received UDP packet payload into xquic engine.
+ * @param recv_time   UDP packet recieved time in millisecond
+ */
+xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,
                                size_t packet_in_size,
                                const struct sockaddr *local_addr,
                                socklen_t local_addrlen,
                                const struct sockaddr *peer_addr,
                                socklen_t peer_addrlen,
-                               uint64_t recv_time)
+                               xqc_msec_t recv_time)
 {
+    /* find connection with cid*/
+    xqc_connection_t *conn = NULL;
+    xqc_cid_t dcid, scid;
+    xqc_cid_init_zero(&dcid);
+
+    if (xqc_packet_parse_cid(&dcid, &scid, packet_in_buf, packet_in_size) != XQC_OK) {
+        xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to parse cid");
+        return XQC_ERROR;
+    }
+
+    conn = xqc_conn_lookup_with_dcid(engine, &dcid);
+    
+    if (conn == NULL) {
+        xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ? 
+                                     XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
+
+        conn = xqc_create_connection(engine, &dcid, &scid, 
+                                     engine->eng_callback.conn_callbacks, 
+                                     engine->settings, NULL, 
+                                     conn_type);
+
+        if (conn == NULL) {
+            xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create connection");
+            return XQC_ERROR;
+        }
+    }
+
+    /* create packet in */
     xqc_packet_in_t *packet_in = xqc_create_packet_in(conn->conn_pool,
                                                       &conn->packet_in_tailq,
-                                                      packet_in_buf, packet_in_size, recv_time); //TODO: when to del
+                                                      packet_in_buf, packet_in_size, 
+                                                      recv_time); //TODO: when to del
     if (!packet_in) {
-        return -1;
+        xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create packet in");
+        return XQC_ERROR;
     }
 
-    if (xqc_parse_packet_header(packet_in) < 0) {
-        return -1;
+    /* process packets */    
+    if (xqc_conn_process_packets(conn, packet_in) != XQC_OK) {
+        return XQC_ERROR;
     }
 
-    if (xqc_parse_frames(packet_in, conn) < 0) {
-        return -1;
+    /* main logic */
+    if (xqc_engine_main_logic(engine) != XQC_OK) {
+        return XQC_ERROR;
     }
 
-    return 0;
+    return XQC_OK;
 }
