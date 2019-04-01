@@ -14,6 +14,7 @@
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 #define XQC_TEST_LONG_HEADER_PACKET_B "\xC0\x00\x00\x00\x01\x55\xAB\x3f\x12\x0a\xcd\xef\x00\x89\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 
+#define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
 void xqc_test_packet_parse_cid(unsigned char *buf, size_t size)
 {
@@ -38,6 +39,12 @@ void xqc_test_packet_parse_cid(unsigned char *buf, size_t size)
     xqc_log(engine->log, XQC_LOG_WARN, "parse cid|%*s|%*s|",
                                        ((size_t)dcid.cid_len * 2), dcid_buf,
                                        ((size_t)scid.cid_len * 2), scid_buf);
+
+    CU_ASSERT(((size_t)dcid.cid_len * 2) == (sizeof(XQC_TEST_CHECK_CID)-1));
+    CU_ASSERT(((size_t)scid.cid_len * 2) == (sizeof(XQC_TEST_CHECK_CID)-1));
+
+    CU_ASSERT(memcmp((unsigned char *)XQC_TEST_CHECK_CID, dcid_buf, ((size_t)dcid.cid_len * 2)) == 0);
+    CU_ASSERT(memcmp((unsigned char *)XQC_TEST_CHECK_CID, scid_buf, ((size_t)scid.cid_len * 2)) == 0);
 
     xqc_engine_destroy(engine);
 }
