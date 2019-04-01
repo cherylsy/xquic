@@ -30,12 +30,14 @@ void xqc_test_short_header_packet_parse_cid()
                         sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1);
     CU_ASSERT(rc == XQC_OK);
 
+    xqc_log(engine->log, XQC_LOG_WARN, "parse cid length|%z|%z|", dcid.cid_len, scid.cid_len);
+
     xqc_hex_dump(dcid_buf, dcid.cid_buf, dcid.cid_len);
     xqc_hex_dump(scid_buf, scid.cid_buf, scid.cid_len);
 
-    xqc_log(engine->log, XQC_LOG_WARN, "parse cid|%z|%*s|%z|%*s|",
-                                       dcid.cid_len, dcid.cid_len*2, dcid_buf,
-                                       scid.cid_len, scid.cid_len*2, scid_buf);
+    xqc_log(engine->log, XQC_LOG_WARN, "parse cid|%*s|%*s|",
+                                       ((size_t)dcid.cid_len*2), dcid_buf,
+                                       ((size_t)scid.cid_len*2), scid_buf);
 
     xqc_engine_destroy(engine);
 }
