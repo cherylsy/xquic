@@ -27,3 +27,9 @@ void xqc_cid_init_zero(xqc_cid_t *cid)
     xqc_memzero(cid->cid_buf, XQC_MAX_CID_LEN);
 }
 
+void xqc_cid_set(xqc_cid_t *cid, unsigned char *data, size_t len)
+{
+    cid->cid_len = len;
+    xqc_memcpy(cid->cid_buf, data, len);
+}
+

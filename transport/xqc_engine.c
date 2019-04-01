@@ -260,6 +260,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     xqc_connection_t *conn = NULL;
     xqc_cid_t dcid, scid;
     xqc_cid_init_zero(&dcid);
+    xqc_cid_init_zero(&scid);
 
     if (xqc_packet_parse_cid(&dcid, &scid, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to parse cid");

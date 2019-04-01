@@ -10,6 +10,7 @@
 #include "xqc_engine_test.h"
 #include "xqc_common_test.h"
 #include "xqc_vint_test.h"
+#include "xqc_packet_test.h"
 
 static int xqc_init_suite(void) { return 0; }
 static int xqc_clean_suite(void) { return 0; }
@@ -37,6 +38,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_pq", xqc_test_pq)
         || !CU_add_test(pSuite, "xqc_test_common", xqc_test_common)
         || !CU_add_test(pSuite, "xqc_test_vint", xqc_test_vint)
+        || !CU_add_test(pSuite, "xqc_test_short_header_parse_cid", xqc_test_short_header_packet_parse_cid)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

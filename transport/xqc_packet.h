@@ -29,10 +29,20 @@ struct xqc_packet_s {
 };
 
 
+#define XQC_PACKET_IS_LONG_HEADER(buf) ((buf[0] & 0x80) != 0)
+#define XQC_PACKET_IS_SHORT_HEADER(buf) ((buf[0] & 0x80) == 0)
+
+#define XQC_PACKET_LONG_HEADER_GET_DCIL(buf) ((buf[0] & 0xF0) >> 4)
+#define XQC_PACKET_LONG_HEADER_GET_SCIL(buf) ((buf[0] & 0x0F))
+
+#define XQC_PACKET_VERSION_LENGTH 4
+#define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH + 1)
+
 xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
                              unsigned char *buf, size_t size);
 
 xqc_int_t xqc_conn_process_packets(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in);
+
 
 #endif //_XQC_PACKET_H_INCLUDED_

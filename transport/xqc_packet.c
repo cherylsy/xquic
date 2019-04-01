@@ -4,11 +4,59 @@
 #include "xqc_conn.h"
 
 
+
 xqc_int_t
 xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
                              unsigned char *buf, size_t size)
 {
-    
+    unsigned char *pos = NULL;
+
+    if (size <= 0) {
+        return XQC_ERROR;
+    }
+
+    /* short header */
+    if (XQC_PACKET_IS_SHORT_HEADER(buf)) {
+
+        /* TODO: fix me, variable length */
+        if (size < 1 + XQC_DEFAULT_CID_LEN) {
+            return XQC_ERROR;
+        }
+
+        xqc_cid_set(dcid, buf + 1, XQC_DEFAULT_CID_LEN);
+        
+        return XQC_OK;
+    }
+
+    /* long header */
+    if (size < XQC_PACKET_LONG_HEADER_PREFIX_LENGTH) {
+        return XQC_ERROR;
+    }
+
+    pos = buf + 1 + XQC_PACKET_VERSION_LENGTH;
+    dcid->cid_len = XQC_PACKET_LONG_HEADER_GET_DCIL(pos);
+    scid->cid_len = XQC_PACKET_LONG_HEADER_GET_SCIL(pos);
+    pos += 1;
+
+    if (dcid->cid_len) {
+        dcid->cid_len += 3;
+    }
+
+    if (scid->cid_len) {
+        scid->cid_len += 3;
+    }
+
+    if (size < XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
+               + dcid->cid_len + scid->cid_len) 
+    {
+        return XQC_ERROR;    
+    }
+
+    xqc_memcpy(dcid->cid_buf, pos, dcid->cid_len);
+    pos += dcid->cid_len;
+
+    xqc_memcpy(scid->cid_buf, pos, scid->cid_len);
+    pos += scid->cid_len;  
 
     return XQC_OK;
 }
