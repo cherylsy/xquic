@@ -30,6 +30,8 @@ typedef struct xqc_str_s
 #define xqc_memcpy(dst, src, n)   (void) memcpy(dst, src, n)
 #define xqc_cpymem(dst, src, n)   (((unsigned char *) memcpy(dst, src, n)) + (n))
 
+unsigned char *xqc_hex_dump(unsigned char *dst, unsigned char *src, size_t len);
+
 
 static inline unsigned char *
 xqc_sprintf_num(unsigned char *buf, unsigned char *last, uint64_t ui64, unsigned char zero, uintptr_t hexadecimal, uintptr_t width)
