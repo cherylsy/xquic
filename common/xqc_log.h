@@ -126,6 +126,9 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
     p = xqc_vsprintf(p, last, fmt, args);
     va_end(args);
 
+    /*换行*/
+    *p++ = '\n';
+
     write(log->file_handle, buf, p - buf);
 }
 
