@@ -151,8 +151,8 @@ xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t
     }
 
     node->element.cid_len = cid_len;
-    memset(node->element.cid_buf, 0, sizeof(node->element.cid_buf));
     memcpy(node->element.cid_buf, cid_buf, cid_len);
+    memset(node->element.cid_buf + cid_len, 0, sizeof(node->element.cid_buf) - cid_len); /*此行可有可无*/
     node->element.value = value;
     node->next = hash_tab->list[index];
     hash_tab->list[index] = node;
