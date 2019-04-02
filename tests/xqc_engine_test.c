@@ -35,7 +35,7 @@ void xqc_test_engine_create()
 
 int xqc_test_conn_create_notify(void *user_data, xqc_connection_t *conn)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "create quic connection");
+    xqc_log(conn->log, XQC_LOG_DEBUG, "create quic connection|%p|", conn);
     return XQC_OK;
 }
 

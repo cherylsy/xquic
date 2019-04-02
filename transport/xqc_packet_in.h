@@ -23,6 +23,9 @@ struct xqc_packet_in_s
 };
 
 
+#define XQC_PACKET_IN_LEFT_SIZE(packet_in) (((packet_in)->pos < (packet_in)->last)?((packet_in)->last - (packet_in)->pos):0)
+
+
 xqc_packet_in_t *
 xqc_create_packet_in(xqc_memory_pool_t *pool, xqc_packet_in_tailq_t *tailq,
                      const unsigned char *packet_in_buf,
