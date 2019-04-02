@@ -2,6 +2,7 @@
 
 #include "xqc_memory_pool.h"
 #include "xqc_id_hash.h"
+#include "xqc_cid_hash.h"
 #include "xqc_str_hash.h"
 #include "xqc_log.h"
 #include "xqc_list.h"
@@ -29,11 +30,11 @@ int main(int argc, char* argv[])
     test_memory_pool(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_hash_table(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_log(argc, argv);
 #endif
 
@@ -80,6 +81,36 @@ int test_memory_pool(int argc, char* argv[])
 
 int test_hash_table(int argc, char* argv[])
 {
+#if 1
+    xqc_cid_hash_table_t hash_tab;
+    xqc_cid_hash_init(&hash_tab, xqc_default_allocator, 100);
+
+    unsigned char *cid1 = "12345"; char* p1 = "hello";
+    xqc_cid_hash_add(&hash_tab, cid1, 5, p1);
+
+    unsigned char *cid2 = "87654321"; char* p2 = "world";
+    xqc_cid_hash_add(&hash_tab, cid2, 8, p2);
+
+    unsigned char *cid3 = "1122"; char* p3 = "wang";
+    xqc_cid_hash_add(&hash_tab, cid3, 4, p3);
+
+    char* p = xqc_cid_hash_find(&hash_tab, cid2, 8);
+    if (p) {
+        printf("found %s\n", p);
+    } else {
+        printf("not found\n");
+    }
+
+    xqc_cid_hash_delete(&hash_tab, cid2, 8);
+    printf("after deleted\n");
+
+    p = xqc_cid_hash_find(&hash_tab, cid2, 8);
+    if (p) {
+        printf("found %s\n", p);
+    } else {
+        printf("not found\n");
+    }
+#else
     xqc_id_hash_table_t hash_tab;
     xqc_id_hash_init(&hash_tab, xqc_default_allocator, 100);
 
@@ -117,6 +148,7 @@ int test_hash_table(int argc, char* argv[])
     }
 
     xqc_id_hash_release(&hash_tab);
+#endif
     return 0;
 }
 
