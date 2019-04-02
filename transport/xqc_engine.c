@@ -314,7 +314,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
             return XQC_ERROR;
         }
     
-        if (xqc_engine_conns_hash_insert(engine, conn) != XQC_ERROR) {
+        if (xqc_engine_conns_hash_insert(engine, conn) != XQC_OK) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to insert conns hash");
             return XQC_ERROR;
         }
