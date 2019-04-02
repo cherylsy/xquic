@@ -81,7 +81,7 @@ xqc_int_t
 xqc_packet_parse_short_header(xqc_connection_t *c,
                        xqc_packet_in_t *packet_in)
 {
-    unsigned char pos = packet_in->pos;
+    unsigned char *pos = packet_in->pos;
     xqc_packet_t *packet = &packet_in->pi_pkt;
     xqc_uint_t i;
 
@@ -110,7 +110,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     pos += XQC_DEFAULT_CID_LEN;
     if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->dcid) != XQC_OK) {
         /* log & ignore */
-        xqc_log(c->log, XQC_LOG_WARN, "parse short header: invalid destination cid")
+        xqc_log(c->log, XQC_LOG_WARN, "parse short header: invalid destination cid");
         return XQC_ERROR;
     }
     
@@ -132,7 +132,7 @@ xqc_int_t
 xqc_packet_parse(xqc_connection_t *c,
                        xqc_packet_in_t *packet_in)
 {
-    unsigned char pos = packet_in->pos;
+    unsigned char *pos = packet_in->pos;
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) == 0) {
         return XQC_ERROR;
@@ -143,7 +143,7 @@ xqc_packet_parse(xqc_connection_t *c,
     }
 
     /* normal case, ignore */
-    xqc_log(c->log, XQC_LOG_DEBUG, "recvd long header packet after handshake finishd.")
+    xqc_log(c->log, XQC_LOG_DEBUG, "recvd long header packet after handshake finishd.");
 
     return XQC_OK;
 }
@@ -226,8 +226,8 @@ xqc_conn_process_packets(xqc_connection_t *c,
         /* err in parse packet, don't cause dead loop */
         if (ret < 0 || last_pos == packet_in->pos) {
             xqc_log(c->log, XQC_LOG_WARN, "process packets err|%z|%p|%p|%z|", 
-                                          res, (void *)packet_in->pos,
-                                          (void *)packet_in->buf, packet_in->buf_size);
+                                          ret, packet_in->pos,
+                                          packet_in->buf, packet_in->buf_size);
             return XQC_ERROR;
         }
     }
