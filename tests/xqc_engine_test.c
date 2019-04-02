@@ -66,6 +66,20 @@ void xqc_test_engine_packet_process()
                          peer_addr, peer_addrlen, recv_time);
     CU_ASSERT(rc == XQC_OK);
 
+    /* get connection */
+    xqc_cid_t dcid, scid;
+    xqc_cid_init_zero(&dcid);
+    xqc_cid_init_zero(&scid);
+
+    rc = xqc_packet_parse_cid(&dcid, &scid, XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1);
+    CU_ASSERT(rc == XQC_OK);
+
+    xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, &dcid);
+    CU_ASSERT(conn != NULL);
+
+    /* set handshake completed */
+    conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
+
     recv_time = xqc_gettimeofday();
     rc = xqc_engine_packet_process(engine, 
                          XQC_TEST_SHORT_HEADER_PACKET_A, sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1, 
