@@ -29,6 +29,20 @@ void xqc_test_engine_create()
 
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
+
+int xqc_test_conn_create_notify(void *user_data, xqc_connection_t *conn)
+{
+    xqc_log(conn->log, XQC_LOG_DEBUG, "create quic connection|%p|", conn);
+    return XQC_OK;
+}
+
+int xqc_test_conn_close_notify(void *user_data, xqc_connection_t *conn)
+{
+    xqc_log(conn->log, XQC_LOG_DEBUG, "close quic connection|%p|", conn);
+    return XQC_OK;
+}
+
+
 void xqc_test_engine_packet_process()
 {
     const struct sockaddr * local_addr = NULL;
@@ -38,6 +52,8 @@ void xqc_test_engine_packet_process()
 
     xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER);
     CU_ASSERT(engine != NULL);
+    engine->eng_callback.conn_callbacks.conn_create_notify = xqc_test_conn_create_notify;
+    engine->eng_callback.conn_callbacks.conn_close_notify = xqc_test_conn_close_notify;    
 
     xqc_msec_t recv_time = xqc_gettimeofday();
 
