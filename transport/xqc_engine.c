@@ -8,6 +8,7 @@
 #include "../common/xqc_priority_q.h"
 #include "../common/xqc_str_hash.h"
 #include "../common/xqc_timer.h"
+#include "../common/xqc_hash.h"
 #include "xqc_conn.h"
 #include "xqc_send_ctl.h"
 #include "xqc_stream.h"
