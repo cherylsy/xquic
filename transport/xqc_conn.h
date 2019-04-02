@@ -17,8 +17,8 @@
 
 
 typedef enum {
+    XQC_CONN_STATE_INIT,
     /* server */
-    XQC_CONN_STATE_SERVER_INIT,
     XQC_CONN_STATE_SERVER_INITIAL_RECVD,
     XQC_CONN_STATE_SERVER_INITIAL_SENT,
     XQC_CONN_STATE_SERVER_HANDSHAKE_SENT,
@@ -159,7 +159,5 @@ void xqc_conn_send_packets (xqc_connection_t *conn);
 
 xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 
-
-xqc_connection_t * xqc_conn_lookup_with_dcid(xqc_engine_t *engine, xqc_cid_t *dcid);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */
