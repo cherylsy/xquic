@@ -89,6 +89,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xqc_cid_copy(&(xc->dcid), dcid);
     xqc_cid_copy(&(xc->scid), scid);
     xc->engine = engine;
+    xc->log = engine->log;
     xc->conn_callbacks = *callbacks;
     xc->conn_settings = *settings;
     xc->user_data = user_data;

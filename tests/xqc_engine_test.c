@@ -8,6 +8,9 @@
 #include "../transport/xqc_cid.h"
 #include "../include/xquic_typedef.h"
 #include "../common/xqc_str.h"
+#include "../common/xqc_timer.h"
+#include "../transport/xqc_conn.h"
+
 
 
 void xqc_test_engine_create()
@@ -32,7 +35,7 @@ void xqc_test_engine_create()
 
 int xqc_test_conn_create_notify(void *user_data, xqc_connection_t *conn)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "create quic connection|%p|", conn);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "create quic connection");
     return XQC_OK;
 }
 
