@@ -66,7 +66,7 @@ xqc_engine_conns_hash_create(xqc_config_t *config)
 
 fail:
     xqc_str_hash_release(hash_table);
-    free(hash_table);
+    xqc_free(hash_table);
     return NULL;
 }
 
@@ -74,7 +74,7 @@ void
 xqc_engine_conns_hash_destroy(xqc_str_hash_table_t *hash_table)
 {
     xqc_str_hash_release(hash_table);
-    free(hash_table);
+    xqc_free(hash_table);
 }
 
 xqc_pq_t *
@@ -96,15 +96,45 @@ xqc_engine_conns_pq_create(xqc_config_t *config)
 
 fail:
     xqc_pq_destroy(q);
-    free(q);
+    xqc_free(q);
     return NULL;
 }
+
+
+xqc_int_t
+xqc_engine_conns_hash_insert(xqc_engine_t *engine, xqc_connection_t *c)
+{
+    xqc_str_hash_element_t element;
+    element.hash = xqc_hash_string(c->dcid.cid_buf, c->dcid.cid_len);
+    element.str.data = c->dcid.cid_buf;
+    element.str.len = c->dcid.cid_len;
+    element.value = c;
+
+    return xqc_str_hash_add(engine->conns_hash, element);
+}
+
+
+xqc_connection_t *
+xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *dcid)
+{
+    if (dcid == NULL || dcid->cid_len == 0 || dcid->cid_buf == NULL) {
+        return NULL;
+    }
+
+    uint64_t hash = xqc_hash_string(dcid->cid_buf, dcid->cid_len);
+    xqc_str_t str;
+    str.data = dcid->cid_buf;
+    str.len = dcid->cid_len;
+
+    return xqc_str_hash_find(engine->conns_hash, hash, str);
+}
+
 
 void
 xqc_engine_conns_pq_destroy(xqc_pq_t *q)
 {
     xqc_pq_destroy(q);
-    free(q);
+    xqc_free(q);
 }
 
 /**
@@ -267,7 +297,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return XQC_ERROR;
     }
 
-    conn = xqc_conn_lookup_with_dcid(engine, &dcid);
+    conn = xqc_engine_conns_hash_find(engine, &dcid);
     
     if (conn == NULL) {
         xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ? 
@@ -299,10 +329,11 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return XQC_ERROR;
     }
 
+#if 0
     /* main logic */
     if (xqc_engine_main_logic(engine) != XQC_OK) {
         return XQC_ERROR;
     }
-
+#endif
     return XQC_OK;
 }

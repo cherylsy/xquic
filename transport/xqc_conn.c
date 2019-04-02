@@ -197,13 +197,6 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 }
 
 
-xqc_connection_t *
-xqc_conn_lookup_with_dcid(xqc_engine_t *engine, xqc_cid_t *dcid)
-{
-    return NULL;
-}
-
-
 xqc_int_t
 xqc_conn_check_handshake_completed(xqc_connection_t *conn)
 {
