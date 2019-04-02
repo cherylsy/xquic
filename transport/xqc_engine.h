@@ -12,5 +12,7 @@ typedef struct xqc_conns_pq_elem_s
     xqc_connection_t    *conn;
 }xqc_conns_pq_elem_t;
 
+xqc_connection_t * xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *dcid);
+
 #endif
 

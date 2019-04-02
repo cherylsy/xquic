@@ -121,8 +121,10 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
         pos++;
     }
 
+    
     /* protected payload */
 
+    packet_in->pos = pos;
 
     return XQC_OK;
 }
