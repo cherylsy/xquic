@@ -27,14 +27,23 @@ typedef enum xqc_pkt_type
     XQC_PTYPE_HSK   = 2,
     XQC_PTYPE_RETRY = 3,
     XQC_PTYPE_SHORT_HEADER,
-    XQC_PTYPE_VER,
+    XQC_PTYPE_VERSION_NEGOTIATION,
 } xqc_pkt_type_t;
+
+
+#define XQC_PACKET_TYPE_INIT       0
+#define XQC_PACKET_TYPE_0RTT       1
+#define XQC_PACKET_TYPE_HANDSHAKE  2
+#define XQC_PACKET_TYPE_RETRY      3
+
+#define XQC_PACKET_0RTT_MAX_COUNT  100
 
 struct xqc_packet_s {
     xqc_packet_number_t     pkt_num;
     xqc_pkt_num_space_t     pkt_pns;
     xqc_pkt_type_t          pkt_type;
     xqc_cid_t               pkt_dcid;
+    xqc_cid_t               pkt_scid;
 };
 
 
@@ -46,6 +55,12 @@ struct xqc_packet_s {
 
 #define XQC_PACKET_VERSION_LENGTH 4
 #define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH + 1)
+#define XQC_PACKET_INITIAL_MIN_LENGTH   1200
+
+
+#define xqc_parse_uint16(p) ((p)[0] << 8 | (p)[1])
+#define xqc_parse_uint32(p) ((p)[0] << 24 | (p)[1] << 16 | (p)[2] << 8 | (p)[3])
+
 
 xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
                              unsigned char *buf, size_t size);

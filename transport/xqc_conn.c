@@ -98,6 +98,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->conn_type = type;
     xc->conn_flag = XQC_CONN_FLAG_NONE;
     xc->conn_state = XQC_CONN_STATE_INIT;
+    xc->zero_rtt_count = 0;
 
     xc->conn_send_ctl = xqc_send_ctl_create(xc);
     if (xc->conn_send_ctl == NULL) {
