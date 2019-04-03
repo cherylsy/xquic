@@ -115,7 +115,7 @@ struct xqc_connection_s{
     xqc_cid_t               scid;
     xqc_cid_t               ocid; /* original connection id */
     
-    xqc_buf_t               token;
+    xqc_str_t               token;
    
     xqc_conn_state_t        conn_state;
     xqc_memory_pool_t      *conn_pool;

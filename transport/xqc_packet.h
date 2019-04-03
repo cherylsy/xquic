@@ -27,7 +27,7 @@ typedef enum xqc_pkt_type
     XQC_PTYPE_HSK   = 2,
     XQC_PTYPE_RETRY = 3,
     XQC_PTYPE_SHORT_HEADER,
-    XQC_PTYPE_VER,
+    XQC_PTYPE_VERSION_NEGOTIATION,
 } xqc_pkt_type_t;
 
 
@@ -54,6 +54,7 @@ struct xqc_packet_s {
 
 #define XQC_PACKET_VERSION_LENGTH 4
 #define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH + 1)
+#define XQC_PACKET_INITIAL_MIN_LENGTH   1200
 
 
 #define xqc_parse_uint16(p) ((p)[0] << 8 | (p)[1])
