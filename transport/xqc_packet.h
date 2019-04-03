@@ -6,19 +6,28 @@
 
 typedef enum xqc_pkt_num_space
 {
-    PNS_INIT,
-    PNS_HSK,
-    PNS_01RTT,
+    XQC_PNS_INIT,
+    XQC_PNS_HSK,
+    XQC_PNS_01RTT,
 } xqc_pkt_num_space_t;
+
+typedef enum xqc_encrypt_level
+{
+    XQC_ENC_LEV_INIT = 0,
+    XQC_ENC_LEV_0RTT = 1,
+    XQC_ENC_LEV_HSK = 2,
+    XQC_ENC_LEV_1RTT = 3,
+    XQC_ENC_MAX_LEVEL = 4,
+} xqc_encrypt_level_t;
 
 typedef enum xqc_pkt_type
 {
-    PTYPE_INIT  = 0,
-    PTYPE_0RTT  = 1,
-    PTYPE_HSK   = 2,
-    PTYPE_RETRY = 3,
-    PTYPE_SHORT_HEADER,
-    PTYPE_VER,
+    XQC_PTYPE_INIT  = 0,
+    XQC_PTYPE_0RTT  = 1,
+    XQC_PTYPE_HSK   = 2,
+    XQC_PTYPE_RETRY = 3,
+    XQC_PTYPE_SHORT_HEADER,
+    XQC_PTYPE_VER,
 } xqc_pkt_type_t;
 
 struct xqc_packet_s {

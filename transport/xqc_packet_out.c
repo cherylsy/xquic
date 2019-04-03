@@ -14,7 +14,7 @@ xqc_create_packet_out (xqc_memory_pool_t *pool, xqc_send_ctl_t *ctl, enum xqc_pk
         return NULL;
     }
 
-    packet_out->po_buf = xqc_pnalloc(pool, XQC_PACKET_OUT_SIZE);
+    packet_out->po_buf = xqc_pnalloc(pool, XQC_PACKET_OUT_SIZE);//TODO: change to malloc
     if (!packet_out->po_buf) {
         return NULL;
     }

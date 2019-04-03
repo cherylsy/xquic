@@ -11,3 +11,12 @@ xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t
             xqc_vint_len_by_val(length);
 
 }
+
+unsigned int
+xqc_crypto_frame_header_size (uint64_t offset, size_t length)
+{
+    return 1 +
+           xqc_vint_len_by_val(offset) +
+           xqc_vint_len_by_val(length);
+
+}

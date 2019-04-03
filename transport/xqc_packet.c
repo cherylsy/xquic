@@ -74,7 +74,7 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                     Protected Payload (*)                   ...
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                     Short Header Packet Format
+                   Short Header Packet Format
 */
 
 xqc_int_t
@@ -181,6 +181,7 @@ xqc_int_t
 xqc_conn_client_do_handshake(xqc_connection_t *c,
                                         xqc_packet_in_t *packet_in)
 {
+
     return XQC_OK;
 }
 
@@ -226,7 +227,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
         ret = xqc_conn_process_single_packet(c, packet_in);
 
         /* err in parse packet, don't cause dead loop */
-        if (ret < 0 || last_pos == packet_in->pos) {
+        if (ret != XQC_OK || last_pos == packet_in->pos) {
             xqc_log(c->log, XQC_LOG_WARN, "process packets err|%z|%p|%p|%z|", 
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);

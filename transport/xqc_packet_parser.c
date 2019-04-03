@@ -1,21 +1,8 @@
 #include <string.h>
 #include "xqc_packet_parser.h"
 #include "xqc_cid.h"
+#include "../common/xqc_variable_len_int.h"
 
-/*
-0                   1                   2                   3
-0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+
-|0|1|S|R|R|K|P P|
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                Destination Connection ID (0..144)           ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                     Packet Number (8/16/24/32)              ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                     Protected Payload (*)                   ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                  Short Header Packet Format
-*/
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
 
@@ -47,6 +34,21 @@ xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
                       unsigned char *dcid, unsigned int dcid_len,
                       unsigned char packet_number_bits, xqc_packet_number_t packet_number)
 {
+    /*
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+    +-+-+-+-+-+-+-+-+
+    |0|1|S|R|R|K|P P|
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                Destination Connection ID (0..144)           ...
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                     Packet Number (8/16/24/32)              ...
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+    |                     Protected Payload (*)                   ...
+    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                      Short Header Packet Format
+    */
+
     unsigned char spin_bit = 0x01;
     unsigned char reserved_bits = 0x00;
     unsigned char key_phase_bit = 0x00;
@@ -69,6 +71,71 @@ xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
 
 
     return need;
+}
+
+int
+xqc_gen_long_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
+                            unsigned char *dcid, unsigned char dcid_len,
+                            unsigned char *scid, unsigned char scid_len,
+                            unsigned char *token, unsigned char token_len,
+                            unsigned char *payload, unsigned char payload_len,
+                            unsigned ver, xqc_pkt_type_t type,
+                            xqc_packet_number_t packet_number, unsigned char pktno_bits)
+{
+    unsigned int need = 1 + 4 + 1 + dcid_len + scid_len +
+            xqc_vint_len_by_val(token_len) + token_len +
+            xqc_vint_len_by_val(xqc_packet_number_bits2len(pktno_bits) + payload_len) +
+            xqc_packet_number_bits2len(pktno_bits) +
+            payload_len;
+
+    unsigned char *begin = dst_buf;
+    unsigned char bits;
+    unsigned int vlen;
+
+    if (need > dst_buf_size) {
+        return -1;
+    }
+
+    if (dcid_len < 3 || scid_len < 3) {
+        return -1;
+    }
+
+    unsigned char first_byte = 0xC0;
+    first_byte |= type << 4;
+    first_byte |= pktno_bits;
+    *dst_buf++ = first_byte;
+
+    memcpy(dst_buf, &ver, sizeof(ver));
+    dst_buf += sizeof(ver);
+
+    *dst_buf = (dcid_len - 3) << 4;
+    *dst_buf |= scid_len - 3;
+    dst_buf++;
+
+    memcpy(dst_buf, dcid, dcid_len);
+    dst_buf += dcid_len;
+    memcpy(dst_buf, scid, scid_len);
+    dst_buf += scid_len;
+
+    if (type == XQC_PTYPE_INIT) {
+        bits = xqc_vint_get_2bit(token_len);
+        vlen = xqc_vint_len(bits);
+        xqc_vint_write(dst_buf, token_len, bits, vlen);
+        dst_buf += vlen;
+        memcpy(dst_buf, token, token_len);
+        dst_buf += token_len;
+    }
+
+    unsigned length = xqc_packet_number_bits2len(pktno_bits) + payload_len;
+    bits = xqc_vint_get_2bit(length);
+    vlen = xqc_vint_len(bits);
+    xqc_vint_write(dst_buf, length, bits, vlen);
+    dst_buf += vlen;
+
+    memcpy(dst_buf, payload, payload_len);
+    dst_buf += payload_len;
+    return dst_buf - begin;
+
 }
 
 int
@@ -101,8 +168,8 @@ xqc_parse_short_packet_header (xqc_packet_in_t *packet_in)
     memcpy(packet_in->pi_pkt.pkt_dcid.cid_buf, packet_in->buf + 1, cid_len);
     packet_in->pi_pkt.pkt_dcid.cid_len = cid_len;
 
-    packet_in->pi_pkt.pkt_type = PTYPE_SHORT_HEADER;
-    packet_in->pi_pkt.pkt_pns = PNS_01RTT;
+    packet_in->pi_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
+    packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
     //pi_pkt.pkt_num //TODO: need decrypted
 
     //packet_in->pi_header_size = header_size;

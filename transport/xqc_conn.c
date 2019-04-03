@@ -8,6 +8,7 @@
 #include "../common/xqc_priority_q.h"
 #include "xqc_engine.h"
 #include "xqc_cid.h"
+#include "xqc_stream.h"
 
 int
 xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
@@ -126,6 +127,7 @@ xqc_create_connection(xqc_engine_t *engine,
     if (xqc_conns_pq_push(engine->conns_pq, xc, 0)) {
         goto fail;
     }
+    xc->conn_flag |= XQC_CONN_FALG_TICKING;
 
     /* Do callback */
     if (xc->conn_callbacks.conn_create_notify(user_data, xc)) {
@@ -147,6 +149,9 @@ fail:
 void
 xqc_destroy_connection(xqc_connection_t *xc)
 {
+    if (!xc) {
+        return;
+    }
     /* free streams hash */
     if (xc->streams_hash) {
         xqc_id_hash_release(xc->streams_hash);
@@ -160,7 +165,10 @@ xqc_destroy_connection(xqc_connection_t *xc)
     }
 
     /* Remove from engine's conns_hash */
-    xqc_remove_conns_hash(xc->engine->conns_hash, xc);
+    if (xc->engine->conns_hash) {
+        xqc_remove_conns_hash(xc->engine->conns_hash, xc);
+        xc->engine->conns_hash = NULL;
+    }
 }
 
 
@@ -183,7 +191,15 @@ xqc_client_create_connection(xqc_engine_t *engine,
     xc->cur_stream_id_bidi_local = 0;
     xc->cur_stream_id_uni_local = 2;
 
+    xc->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(xc, user_data);
+    if (!xc->crypto_stream[XQC_ENC_LEV_INIT]) {
+        goto fail;
+    }
     return xc;
+
+fail:
+    xqc_destroy_connection(xc);
+    return NULL;
 }
 
 void

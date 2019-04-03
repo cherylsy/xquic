@@ -58,6 +58,12 @@ void
 xqc_process_read_streams (xqc_connection_t *conn);
 
 void
+xqc_process_crypto_write_streams (xqc_connection_t *conn);
+
+void
+xqc_process_crypto_read_streams (xqc_connection_t *conn);
+
+void
 xqc_stream_ready_to_write (xqc_stream_t *stream);
 
 void
@@ -71,6 +77,10 @@ xqc_stream_shutdown_read (xqc_stream_t *stream);
 
 xqc_stream_t *
 xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash);
+
+xqc_stream_t *
+xqc_create_crypto_stream (xqc_connection_t *conn,
+                          void *user_data);
 
 #endif /* _XQC_STREAM_H_INCLUDED_ */
 
