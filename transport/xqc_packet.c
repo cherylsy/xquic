@@ -290,15 +290,59 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 }
 
 
+/*
++-+-+-+-+-+-+-+-+
+|1|1| 2 |R R|P P|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                         Version (32)                          |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|DCIL(4)|SCIL(4)|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|               Destination Connection ID (0/32..144)         ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                 Source Connection ID (0/32..144)            ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                           Length (i)                        ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                    Packet Number (8/16/24/32)               ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                          Payload (*)                        ...
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                Figure 13: Handshake Protected Packet
+*/
 xqc_int_t
 xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
     xqc_packet_t *packet = &packet_in->pi_pkt;
+    ssize_t size = 0;
+    uint64_t payload_len = 0;
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|handshake|");
-
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_HSK;
+
+
+    xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
+
+    pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH 
+           + packet->pkt_dcid.cid_len + packet->pkt_scid.cid_len;
+    packet_in->pos = pos;
+    
+    /* Length(i) */
+    size = xqc_vint_read(pos, packet_in->last, &payload_len);
+    if (size < 0 
+        || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len + packet_number_len) 
+    {
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_handshake|payload length err|");
+        return XQC_ERROR;
+    }
+
+    /* packet number */
+    xqc_packet_parse_packet_number(pos, packet_number_len, &packet->pkt_num);
+    pos += packet_number_len;
+
+    /* decrypt payload */
 
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_handshake|success|packe_num=%ui|", packet->pkt_num);
@@ -315,7 +359,6 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_packet_t *packet = &packet_in->pi_pkt;
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|retry|");
-
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_RETRY;
 
 
@@ -334,7 +377,6 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
     xqc_packet_t *packet = &packet_in->pi_pkt;
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|version negotiation|");
-
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_VERSION_NEGOTIATION;
     
 
