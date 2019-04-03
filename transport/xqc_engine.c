@@ -180,6 +180,11 @@ xqc_engine_create(xqc_engine_type_t engine_type)
         goto fail;
     }
 
+    engine->conns_wakeup_pq = xqc_engine_conns_pq_create(engine->config);
+    if (engine->conns_wakeup_pq == NULL) {
+        goto fail;
+    }
+
     return engine;
 
 fail:
@@ -218,6 +223,10 @@ xqc_engine_destroy(xqc_engine_t *engine)
         xqc_engine_conns_pq_destroy(engine->conns_pq);
         engine->conns_pq = NULL;
     }
+    if (engine->conns_wakeup_pq) {
+        xqc_engine_conns_pq_destroy(engine->conns_wakeup_pq);
+        engine->conns_wakeup_pq = NULL;
+    }
     xqc_free(engine);
 }
 
@@ -244,9 +253,15 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 void
 xqc_engine_process_conn (xqc_connection_t *conn)
 {
-    xqc_process_read_streams(conn);
-    if (xqc_send_ctl_can_send(conn)) {
-        xqc_process_write_streams(conn);
+    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+        xqc_process_read_streams(conn);
+        if (xqc_send_ctl_can_send(conn)) {
+            xqc_process_write_streams(conn);
+        }
+    }
+    else {
+        xqc_process_crypto_read_streams(conn);
+        xqc_process_crypto_write_streams(conn);
     }
 }
 
@@ -264,6 +279,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
         conn = el->conn;
         xqc_conns_pq_pop(engine->conns_pq);
+        conn->conn_flag &= ~XQC_CONN_FALG_TICKING;
 
         xqc_engine_process_conn(conn);
 
@@ -313,7 +329,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create connection");
             return XQC_ERROR;
         }
-    
+
         if (xqc_engine_conns_hash_insert(engine, conn) != XQC_ERROR) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to insert conns hash");
             return XQC_ERROR;
