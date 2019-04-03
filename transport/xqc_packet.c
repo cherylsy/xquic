@@ -2,7 +2,7 @@
 #include "../include/xquic.h"
 #include "xqc_packet.h"
 #include "xqc_conn.h"
-
+#include "../common/xqc_variable_len_int.h"
 
 
 xqc_int_t
@@ -69,7 +69,7 @@ xqc_packet_parse_packet_number(unsigned char *pos,
 {
     *packet_num = 0;
     for (int i = 0; i < packet_number_len; i++) {
-        *packet_num = ((packet_num) << 8) + (*pos);
+        *packet_num = ((*packet_num) << 8) + (*pos);
         pos++;
     }
 }
