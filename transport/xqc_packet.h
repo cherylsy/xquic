@@ -36,6 +36,7 @@ typedef enum xqc_pkt_type
 #define XQC_PACKET_TYPE_HANDSHAKE  2
 #define XQC_PACKET_TYPE_RETRY      3
 
+#define XQC_PACKET_0RTT_MAX_COUNT  100
 
 struct xqc_packet_s {
     xqc_packet_number_t     pkt_num;
