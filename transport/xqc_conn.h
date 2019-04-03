@@ -13,7 +13,6 @@
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
-#define XQC_ENCYPT_MAX_LEVEL  4
 
 
 typedef enum {
@@ -25,6 +24,10 @@ typedef enum {
     XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD,
     /* client */
     XQC_CONN_STATE_CLIENT_INIT,
+    XQC_CONN_STATE_CLIENT_INITIAL_SENT,
+    XQC_CONN_STATE_CLIENT_INITIAL_RECVD,
+    XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD,
+    XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT,
     /* client & server */
     XQC_CONN_STATE_ESTABED,
     XQC_CONN_STATE_CLOSING,
@@ -39,7 +42,8 @@ typedef enum {
 
 typedef enum {
     XQC_CONN_FLAG_NONE = 0x0,
-    XQC_CONN_FLAG_HANDSHAKE_COMPLETED = 0x01
+    XQC_CONN_FLAG_HANDSHAKE_COMPLETED = 0x01,
+    XQC_CONN_FALG_TICKING  = 0x02,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -95,6 +99,7 @@ struct xqc_conn_settings_s {
 
 };
 
+
 TAILQ_HEAD(xqc_stream_tailq, xqc_stream_s);
 typedef struct xqc_stream_tailq xqc_stream_tailq_t;
 
@@ -118,7 +123,7 @@ struct xqc_connection_s{
     xqc_id_hash_table_t    *streams_hash;
     xqc_stream_tailq_t      conn_write_streams,
                             conn_read_streams;
-    xqc_stream_t           *crypto_stream[XQC_ENCYPT_MAX_LEVEL];
+    xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
     uint64_t                cur_stream_id_bidi_local;
     uint64_t                cur_stream_id_uni_local;
 
@@ -137,6 +142,9 @@ struct xqc_connection_s{
     /* congestion control ctx */
     xqc_send_ctl_t         *conn_send_ctl;
     /* flag */
+
+    uint64_t                last_ticked_time;
+
 };
 
 int xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms);

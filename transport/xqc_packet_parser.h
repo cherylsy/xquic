@@ -9,6 +9,14 @@ int xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
                              unsigned char *dcid, unsigned int dcid_len,
                              unsigned char packet_number_bits, xqc_packet_number_t packet_number);
 
+int xqc_gen_long_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
+                            unsigned char *dcid, unsigned char dcid_len,
+                            unsigned char *scid, unsigned char scid_len,
+                            unsigned char *token, unsigned char token_len,
+                            unsigned char *payload, unsigned char payload_len,
+                            unsigned ver, xqc_pkt_type_t type,
+                            xqc_packet_number_t packet_number, unsigned char pktno_bits);
+
 int xqc_parse_packet_header (xqc_packet_in_t *packet_in);
 
 int xqc_parse_short_packet_header (xqc_packet_in_t *packet_in);

@@ -41,4 +41,7 @@ typedef struct xqc_stream_frame_s {
 unsigned int
 xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t length);
 
+unsigned int
+xqc_crypto_frame_header_size (uint64_t offset, size_t length);
+
 #endif /* _XQC_FRAME_H_INCLUDED_ */
