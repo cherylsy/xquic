@@ -185,9 +185,9 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
 
-    /*pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
+    pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
            + packet->pkt_dcid.cid_len + packet->pkt_scid.cid_len;
-    packet_in->pos = pos;*/
+    packet_in->pos = pos;
 
     /* Token Length(i) & Token */
     size = xqc_vint_read(pos, packet_in->last, &token_len);
@@ -470,7 +470,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         return XQC_ERROR;
     }
 
-    packet_in->pos = pos;
+    //packet_in->pos = pos;
     /* long header common part finished */
 
     switch (type)
