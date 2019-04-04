@@ -149,8 +149,10 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
         vlen = xqc_vint_len(bits);
         xqc_vint_write(dst_buf, token_len, bits, vlen);
         dst_buf += vlen;
-        memcpy(dst_buf, token, token_len);
-        dst_buf += token_len;
+        if (token > 0) {
+            memcpy(dst_buf, token, token_len);
+            dst_buf += token_len;
+        }
     }
 
     packet_out->plength = dst_buf;
