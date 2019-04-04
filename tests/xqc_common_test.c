@@ -3,6 +3,7 @@
 #include "xqc_common_test.h"
 #include "../common/xqc_object_manager.h"
 #include "../common/xqc_rbtree.h"
+#include "../common/xqc_fifo.h"
 
 typedef struct person_s
 {
@@ -147,4 +148,30 @@ void xqc_test_common()
     test_object_manager();
 
     test_rbtree();
+
+    /*test fifo*/
+    xqc_fifo_t fifo;
+    xqc_fifo_init(&fifo, xqc_default_allocator, sizeof(int), 4);
+
+    xqc_fifo_push_int(&fifo, 3);
+    xqc_fifo_push_int(&fifo, 1);
+    xqc_fifo_push_int(&fifo, 2);
+    xqc_fifo_push_int(&fifo, 4);
+
+    xqc_fifo_pop(&fifo);
+    xqc_fifo_pop(&fifo);
+    xqc_fifo_push_int(&fifo, 9);
+    xqc_fifo_push_int(&fifo, 7);
+    xqc_fifo_pop(&fifo);
+    xqc_fifo_push_int(&fifo, 5);
+
+    CU_ASSERT(xqc_fifo_length(&fifo) == 4);
+
+    while (xqc_fifo_empty(&fifo) != XQC_TRUE) {
+        int i = xqc_fifo_top_int(&fifo);
+        //printf("%d, length:%d\n", i, xqc_fifo_length(&fifo));
+        xqc_fifo_pop(&fifo);
+    }
+
+    xqc_fifo_release(&fifo);
 }

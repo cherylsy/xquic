@@ -12,6 +12,7 @@
 #include "xqc_hash.h"
 #include "xqc_object_manager.h"
 #include "xqc_rbtree.h"
+#include "xqc_fifo.h"
 
 int test_memory_pool(int argc, char* argv[]);
 int test_hash_table(int argc, char* argv[]);
@@ -23,6 +24,7 @@ int test_queue(int argc, char* argv[]);
 int test_hash(int argc, char* argv[]);
 int test_object_manager(int argc, char* argv[]);
 int test_rbtree(int argc, char* argv[]);
+int test_fifo(int argc, char* argv[]);
 
 int main(int argc, char* argv[])
 {
@@ -30,8 +32,12 @@ int main(int argc, char* argv[])
     test_memory_pool(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_hash_table(argc, argv);
+#endif
+
+#if 1
+    test_fifo(argc, argv);
 #endif
 
 #if 0
@@ -76,6 +82,33 @@ int test_memory_pool(int argc, char* argv[])
     void *p3 = xqc_pcalloc(pool, 30);
     printf("%p %p %p\n", p1, p2, p3);
     xqc_destroy_pool(pool);
+    return 0;
+}
+
+int test_fifo(int argc, char* argv[])
+{
+    xqc_fifo_t fifo;
+    xqc_fifo_init(&fifo, xqc_default_allocator, sizeof(int), 4);
+
+    xqc_fifo_push_int(&fifo, 3);
+    xqc_fifo_push_int(&fifo, 1);
+    xqc_fifo_push_int(&fifo, 2);
+    xqc_fifo_push_int(&fifo, 4);
+
+    xqc_fifo_pop(&fifo);
+    xqc_fifo_pop(&fifo);
+    xqc_fifo_push_int(&fifo, 9);
+    xqc_fifo_push_int(&fifo, 7);
+    xqc_fifo_pop(&fifo);
+    xqc_fifo_push_int(&fifo, 5);
+
+    while (xqc_fifo_empty(&fifo) != XQC_TRUE) {
+        int i = xqc_fifo_top_int(&fifo);
+        printf("%d, length:%d\n", i, xqc_fifo_length(&fifo));
+        xqc_fifo_pop(&fifo);
+    }
+
+    xqc_fifo_release(&fifo);
     return 0;
 }
 
