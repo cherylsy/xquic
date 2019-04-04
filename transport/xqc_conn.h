@@ -13,7 +13,12 @@
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
-
+/* 调试时候用，会删掉 */
+#ifdef DEBUG_PRINT
+#define XQC_DEBUG_PRINT printf("%s:%d (%s)\n", __FILE__, __LINE__, __FUNCTION__);
+#else
+#define XQC_DEBUG_PRINT
+#endif
 
 typedef enum {
     XQC_CONN_STATE_INIT,
@@ -145,6 +150,7 @@ struct xqc_connection_s{
     /* flag */
 
     uint64_t                last_ticked_time;
+    uint64_t                next_tick_time;
 
 };
 

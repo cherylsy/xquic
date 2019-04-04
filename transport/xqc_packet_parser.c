@@ -2,6 +2,7 @@
 #include "xqc_packet_parser.h"
 #include "xqc_cid.h"
 #include "../common/xqc_variable_len_int.h"
+#include "xqc_packet_out.h"
 
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
@@ -73,20 +74,46 @@ xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
     return need;
 }
 
+unsigned
+xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
+                             xqc_packet_number_t packet_number, unsigned char pktno_bits, xqc_pkt_type_t type)
+{
+    return 1 //first byte
+           + 4 //version
+           + 1 //DCIL(4)|SCIL(4)
+           + dcid_len
+           + scid_len
+           + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val(token_len) + token_len : 0)
+           + 2 //Length (i)
+           + xqc_packet_number_bits2len(pktno_bits);
+
+
+}
+
+void
+xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
+{
+    if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER) {
+        return;
+    }
+
+    unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->plength - 2;
+
+    xqc_vint_write(packet_out->plength, length, 0x01, 2);
+}
+
 int
-xqc_gen_long_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
+xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned char *dcid, unsigned char dcid_len,
                             unsigned char *scid, unsigned char scid_len,
                             unsigned char *token, unsigned char token_len,
-                            unsigned char *payload, unsigned char payload_len,
                             unsigned ver, xqc_pkt_type_t type,
                             xqc_packet_number_t packet_number, unsigned char pktno_bits)
 {
-    unsigned int need = 1 + 4 + 1 + dcid_len + scid_len +
-            xqc_vint_len_by_val(token_len) + token_len +
-            xqc_vint_len_by_val(xqc_packet_number_bits2len(pktno_bits) + payload_len) +
-            xqc_packet_number_bits2len(pktno_bits) +
-            payload_len;
+    unsigned char *dst_buf = packet_out->po_buf;
+    size_t dst_buf_size = packet_out->po_buf_size - packet_out->po_used_size;
+
+    unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, packet_number, pktno_bits, type);
 
     unsigned char *begin = dst_buf;
     unsigned char bits;
@@ -126,14 +153,12 @@ xqc_gen_long_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
         dst_buf += token_len;
     }
 
-    unsigned length = xqc_packet_number_bits2len(pktno_bits) + payload_len;
-    bits = xqc_vint_get_2bit(length);
-    vlen = xqc_vint_len(bits);
-    xqc_vint_write(dst_buf, length, bits, vlen);
-    dst_buf += vlen;
+    packet_out->plength = dst_buf;
+    dst_buf += 2; //Length update when write frame
 
-    memcpy(dst_buf, payload, payload_len);
-    dst_buf += payload_len;
+    dst_buf += xqc_write_packet_number(dst_buf, packet_number, pktno_bits);
+
+
     return dst_buf - begin;
 
 }
