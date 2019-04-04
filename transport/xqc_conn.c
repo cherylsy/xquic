@@ -9,6 +9,7 @@
 #include "xqc_engine.h"
 #include "xqc_cid.h"
 #include "xqc_stream.h"
+#include "../common/xqc_hash.h"
 
 int
 xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
@@ -37,13 +38,16 @@ xqc_conns_pq_top (xqc_pq_t *pq)
 static inline int
 xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 {
-    xqc_cid_t scid = conn->scid;
+    xqc_cid_t *dcid = &conn->dcid;
+
+    uint64_t hash = xqc_hash_string(dcid->cid_buf, dcid->cid_len);
+
     xqc_str_hash_element_t c = {
             .str    = {
-                        .data = scid.cid_buf,
-                        .len = scid.cid_len
+                        .data = dcid->cid_buf,
+                        .len = dcid->cid_len
                     },
-            .hash   = (uint64_t)scid.cid_buf,
+            .hash   = hash,
             .value  = conn
     };
     if (xqc_str_hash_add(conns_hash, c)) {
@@ -55,12 +59,13 @@ xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 static inline int
 xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 {
-    xqc_cid_t scid = conn->scid;
+    xqc_cid_t *dcid = &conn->dcid;
+    uint64_t hash = xqc_hash_string(dcid->cid_buf, dcid->cid_len);
     xqc_str_t str = {
-        .data   = scid.cid_buf,
-        .len    = scid.cid_len,
+        .data   = dcid->cid_buf,
+        .len    = dcid->cid_len,
     };
-    if (xqc_str_hash_delete(conns_hash, (uint64_t)scid.cid_buf, str)) {
+    if (xqc_str_hash_delete(conns_hash, hash, str)) {
         return -1;
     }
     return 0;
@@ -206,10 +211,12 @@ fail:
 void
 xqc_conn_send_packets (xqc_connection_t *conn)
 {
+    XQC_DEBUG_PRINT
     xqc_packet_out_t *packet_out;
     TAILQ_FOREACH(packet_out, &conn->conn_send_ctl->ctl_packets, po_next) {
-        if (xqc_send_ctl_can_send(conn)) {
+        if (xqc_send_ctl_can_send(conn) && !XQC_PKTOUT_SENT(packet_out)) {
             conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
+            XQC_PKTOUT_SET_SENT(packet_out);
         }
     }
     //TODO: del packet_out

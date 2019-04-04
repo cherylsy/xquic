@@ -208,7 +208,7 @@ xqc_gen_crypto_frame(unsigned char *dst_buf, size_t dst_buf_len, size_t offset,
     length_bits = xqc_vint_get_2bit(payload_size);
     length_vlen = xqc_vint_len(length_bits);
 
-    if (1 + offset_vlen + length_vlen + 1 < dst_buf_len) {
+    if (1 + offset_vlen + length_vlen + 1 > dst_buf_len) {
         return -1;
     }
 
@@ -224,6 +224,7 @@ xqc_gen_crypto_frame(unsigned char *dst_buf, size_t dst_buf_len, size_t offset,
     dst_buf += length_vlen;
 
     memcpy(dst_buf, payload, *written_size);
+    dst_buf += *written_size;
 
     return dst_buf - begin;
 }

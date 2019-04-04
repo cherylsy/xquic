@@ -23,6 +23,9 @@ typedef struct client_ctx_s {
     xqc_stream_t *stream;
 } client_ctx_t;
 
+client_ctx_t ctx;
+struct event_base *eb;
+
 int xqc_client_conn_notify(void *user_data, xqc_connection_t *conn) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
@@ -33,7 +36,7 @@ int xqc_client_conn_notify(void *user_data, xqc_connection_t *conn) {
 int xqc_client_write_notify(void *user_data, xqc_stream_t *stream) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[2000] = {0};
+    char buff[1000] = {0};
     xqc_stream_send(stream, buff, sizeof(buff), 1);
 
     return 0;
@@ -69,8 +72,8 @@ recv_handler(int fd, short what, void *arg)
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) arg;
     //printf("conn %x\n", ctx->conn);
-    int idx = 0;
-    for (; idx < send_buff_idx; idx++) {
+    int idx = send_buff_idx - 1;
+    //for (; idx < send_buff_idx; idx++) {
         printf("=> recv size %d\n", send_buff_len[idx]);
         for (int i = 0; i < send_buff_len[idx]; i++) {
             printf("0x%02hhx ", send_buff[idx][i]);
@@ -82,7 +85,7 @@ recv_handler(int fd, short what, void *arg)
                                       ctx->peer_addr, ctx->peer_addrlen, 0)) {
             printf("xqc_engine_packet_process error\n");
         }
-    }
+    //}
 
     //交还给xquic engine
     int rc = xqc_engine_main_logic(ctx->engine);
@@ -90,6 +93,12 @@ recv_handler(int fd, short what, void *arg)
         printf("xqc_engine_main_logic error %d\n", rc);
         return ;
     }
+
+    struct event *ev_tmo = event_new(eb, -1, 0, recv_handler, ctx);
+    struct timeval t;
+    t.tv_sec = 1;
+    t.tv_usec = 0;
+    event_add(ev_tmo, &t);
 }
 
 static void
@@ -100,12 +109,9 @@ timer_handler(int fd, short what, void *arg) {
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
-
     int rc;
-    client_ctx_t ctx;
-    memset(&ctx, 0, sizeof(ctx));
 
-    struct event_base *eb = event_base_new();
+    memset(&ctx, 0, sizeof(ctx));
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT);
 
@@ -121,6 +127,7 @@ int main(int argc, char *argv[]) {
     };
     xqc_engine_set_callback(ctx.engine, callback);
 
+    eb = event_base_new();
 
     ctx.conn = xqc_connect(ctx.engine, &ctx);
     if (!ctx.conn) {
