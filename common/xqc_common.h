@@ -7,6 +7,9 @@
 #define XQC_OK 0
 #define XQC_ERROR -1
 
+#define XQC_TRUE 1
+#define XQC_FALSE 0
+
 #ifndef XQC_MAX_CID_LEN
 # define XQC_MAX_CID_LEN 18
 #endif
