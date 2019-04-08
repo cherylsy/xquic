@@ -64,10 +64,10 @@ endif()
 add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
-#add_executable(test_client tests/test_client.c)
+add_executable(test_client tests/test_client.c)
 
 include_directories( /usr/local/include )
 link_directories( /usr/local/lib )
 
-target_link_libraries(test_server xquic)
-#target_link_libraries(test_client xquic -levent)
+target_link_libraries(test_server xquic -levent)
+target_link_libraries(test_client xquic -levent)

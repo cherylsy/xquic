@@ -356,6 +356,6 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     if (xqc_engine_main_logic(engine) != XQC_OK) {
         return XQC_ERROR;
     }
-#endif
+#endif 
     return XQC_OK;
 }
