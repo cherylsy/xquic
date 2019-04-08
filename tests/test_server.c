@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <errno.h>
-#include "xqc_cmake_config.h"
-#include "../include/xquic.h"
-#include <event2/event.h>
 #include <memory.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <event2/event.h>
+#include "xqc_cmake_config.h"
+#include "../include/xquic_typedef.h"
+#include "../include/xquic.h"
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -14,8 +18,7 @@
 char send_buff[max_pkt_num][1500];
 size_t send_buff_len[max_pkt_num];
 int send_buff_idx = 0;
-unsignd char recv_buf[1500];
-
+unsigned char recv_buf[1500];
 
 typedef struct xqc_server_ctx_s {
     int fd;
@@ -27,6 +30,7 @@ typedef struct xqc_server_ctx_s {
     socklen_t peer_addrlen;
     uint64_t send_offset;
     xqc_stream_t *stream;
+    struct event *event;    
 } xqc_server_ctx_t;
 
 xqc_server_ctx_t ctx;
@@ -50,7 +54,7 @@ int xqc_server_write_notify(void *user_data, xqc_stream_t *stream) {
 
 int xqc_server_read_notify(void *user_data, xqc_stream_t *stream) {
     DEBUG;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     char buff[100] = {0};
 
 
@@ -84,14 +88,15 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
 {
     DEBUG
     size_t recv_size = 0;
-
-    xqc_msec_t recv_time = xqc_gettimeofday();
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t recv_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
     if (xqc_engine_packet_process(ctx->engine, recv_buf, recv_size, 
                             ctx->local_addr, ctx->local_addrlen, 
-                            ctx->peer_addr, ctx->peer_addrlen, recv_time) != XQC_OK)
+                            ctx->peer_addr, ctx->peer_addrlen, (xqc_msec_t)recv_time) != 0)
     {
-        xqc_log(ctx->engine->log, XQC_LOG_DEBUG, "|xqc_server_read_handler|packet process err|");
+        printf("xqc_server_read_handler: packet process err");
     }
 }
 
@@ -99,8 +104,17 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
 static void
 xqc_server_event_callback(int fd, short what, void *arg)
 {
-    DEBUG;
+    //DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
+    struct timeval t;
+    t.tv_sec = 1;
+    t.tv_usec = 0;
+
+    if (what & EV_TIMEOUT) {
+        printf("event callback: timeout\n", what);
+        event_add(ctx->event, &t);
+        return;
+    }
 
     if (what & EV_WRITE) {
         xqc_server_write_handler(ctx);
@@ -111,11 +125,7 @@ xqc_server_event_callback(int fd, short what, void *arg)
         exit(1);
     }
 
-    struct event *ev_tmo = event_new(eb, -1, 0, recv_handler, ctx);
-    struct timeval t;
-    t.tv_sec = 1;
-    t.tv_usec = 0;
-    event_add(ev_tmo, &t);
+    event_add(ctx->event, &t);
 }
 
 
@@ -198,6 +208,8 @@ int main(int argc, char *argv[]) {
     }
 
     struct event *ev_tmo = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
+    ctx.event = ev_tmo;
+
     struct timeval t;
     t.tv_sec = 1;
     t.tv_usec = 0;
