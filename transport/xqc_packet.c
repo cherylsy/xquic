@@ -183,6 +183,17 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         return XQC_ERROR;
     }
 
+    /* check available states */
+    if (c->conn_state != XQC_CONN_STATE_SERVER_INIT
+        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT) 
+    {
+        /* drop packet */
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|invalid state|%i|",
+                                      c->conn_state);
+        return XQC_ERROR;        
+    }
+
+    /* parse packet */
     xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
 
     pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
@@ -222,6 +233,18 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|", packet->pkt_num);
     packet_in->pos = pos;
+
+    /* finish parse & update conn state */
+    if (c->conn_state == XQC_CONN_STATE_SERVER_INIT) {
+        c->conn_state = XQC_CONN_STATE_SERVER_INITIAL_RECVD;
+    }
+
+    if (c->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) {
+        c->conn_state = XQC_CONN_STATE_CLIENT_INITIAL_RECVD;
+    }
+
+    /* insert Initial & Handshake into packet send queue */
+
     
     return XQC_OK;
 }
@@ -470,7 +493,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         return XQC_ERROR;
     }
 
-    //packet_in->pos = pos;
+    /* don't update packet_in->pos = pos here, need prefix inside*/
     /* long header common part finished */
 
     switch (type)

@@ -102,7 +102,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->version = XQC_QUIC_VERSION;
     xc->conn_type = type;
     xc->conn_flag = XQC_CONN_FLAG_NONE;
-    xc->conn_state = XQC_CONN_STATE_INIT;
+    xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;
     xc->zero_rtt_count = 0;
 
     xc->conn_send_ctl = xqc_send_ctl_create(xc);
@@ -193,7 +193,6 @@ xqc_client_create_connection(xqc_engine_t *engine,
         return NULL;
     }
                     
-    xc->conn_state = XQC_CONN_STATE_CLIENT_INIT;
     xc->cur_stream_id_bidi_local = 0;
     xc->cur_stream_id_uni_local = 2;
 
