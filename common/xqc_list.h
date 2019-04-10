@@ -97,6 +97,9 @@ static inline int xqc_list_empty(const xqc_list_head_t *head)
 #define xqc_list_for_each(pos, head) \
     for (pos = (head)->next; pos != (head); pos = pos->next)
 
+#define xqc_list_for_each_reverse(pos, head) \
+    for (pos = (head)->prev; pos != (head); pos = pos->prev)
+
 #define xqc_list_for_each_safe(pos, n, head) \
     for (pos = (head)->next, n = pos->next; \
         pos != (head); \
