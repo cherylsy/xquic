@@ -100,6 +100,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->conn_settings = *settings;
     xc->user_data = user_data;
     xc->version = XQC_QUIC_VERSION;
+    xc->discard_vn_flag = 0;
     xc->conn_type = type;
     xc->conn_flag = XQC_CONN_FLAG_NONE;
     xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;

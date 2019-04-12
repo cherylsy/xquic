@@ -136,6 +136,10 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 
     packet_in->pos = pos;
 
+    if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
+        c->discard_vn_flag = 1;
+    }
+
     return XQC_OK;
 }
 
@@ -394,7 +398,30 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 }
 
 
-/* TODO: add parse */
+/*
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+
+   |1|  Unused (7) |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          Version (32)                         |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |DCIL(4)|SCIL(4)|
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |               Destination Connection ID (0/32..144)         ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                 Source Connection ID (0/32..144)            ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Supported Version 1 (32)                 ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                   [Supported Version 2 (32)]                ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                  ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                   [Supported Version N (32)]                ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                  Figure 11: Version Negotiation Packet
+*/
 xqc_int_t
 xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
@@ -403,7 +430,89 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|version negotiation|");
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_VERSION_NEGOTIATION;
+
+    /*让packet_in->pos指向Supported Version列表*/
+    pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH + packet->pkt_dcid.cid_len + packet->pkt_scid.cid_len;
+    packet_in->pos = pos;
+
+    /*至少需要一个support version*/
+    if (XQC_PACKET_IN_LEFT_SIZE(packet_in) < XQC_PACKET_VERSION_LENGTH) {
+        xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|version negotiation size too small|%z|", XQC_PACKET_IN_LEFT_SIZE(packet_in));
+        return XQC_ERROR;
+    }
+
+    /*检查dcid & scid已经在外层函数完成*/
+
+    /*check available states*/
+    if (c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT) {
+        /* drop packet */
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|invalid state|%i|", (int)c->conn_state);
+        return XQC_ERROR;
+    }
+
+    /*check conn type*/
+    if (c->conn_type != XQC_CONN_TYPE_CLIENT) {
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|invalid conn_type|%i|", (int)c->conn_type);
+        return XQC_ERROR;
+    }
+
+    /*check discard vn flag*/
+    if (c->discard_vn_flag != 0) {
+        packet_in->pos = packet_in->last;
+        return XQC_OK;
+    }
     
+    /*get Supported Version list*/
+    uint32_t supported_version_list[256];
+    uint32_t supported_version_count = 0;
+
+    while (XQC_PACKET_IN_LEFT_SIZE(packet_in) >= XQC_PACKET_VERSION_LENGTH) {
+        uint32_t version = *(uint32_t*)packet_in->pos;
+        if (version) {
+            if (xqc_uint32_list_find(supported_version_list, supported_version_count, version) == -1) {
+                if (supported_version_count < sizeof(supported_version_list) / sizeof(*supported_version_list)) {
+                    supported_version_list[supported_version_count++] = version;
+                }
+            } else { /*重复版本号*/
+                xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|dup version|%i|", version);
+            }
+        }
+
+        packet_in->pos += XQC_PACKET_VERSION_LENGTH;
+    }
+
+    /*客户端当前使用版本跟support version list中的版本一样，忽略该VN包*/
+    if (xqc_uint32_list_find(supported_version_list, supported_version_count, c->version) != -1) {
+        packet_in->pos = packet_in->last;
+        return XQC_OK;
+    }
+
+    /*如果客户端不支持任何supported version list的版本，则abort连接尝试*/
+    uint32_t *config_version_list = c->engine->config->support_version_list;
+    uint32_t config_version_count = c->engine->config->support_version_count;
+
+    uint32_t version_chosen = 0;
+
+    for (uint32_t i = 0; i < supported_version_count; ++i) {
+        if (xqc_uint32_list_find(config_version_list, config_version_count, supported_version_list[i]) != -1) {
+            version_chosen = supported_version_list[i];
+            break;
+        }
+    }
+
+    if (version_chosen == 0) {
+        /*TODO:zuo*/
+        /*abort the connection attempt*/
+        return XQC_ERROR;
+    }
+
+    /*设置客户端版本*/
+    c->version = version_chosen;
+
+    /*用新的版本号重新连接服务器*/
+
+    /*设置discard vn flag*/
+    c->discard_vn_flag = 1;
 
     return XQC_OK;
 }
@@ -452,11 +561,6 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     xqc_uint_t version = xqc_parse_uint32(pos);
     pos += XQC_PACKET_VERSION_LENGTH;
 
-    /* version negotiation */
-    if (version == 0) {
-        return xqc_packet_parse_version_negotiation(c, packet_in);
-    }
-
     /* get dcid & scid */
     xqc_cid_t *dcid = &packet->pkt_dcid;
     xqc_cid_t *scid = &packet->pkt_scid;
@@ -493,6 +597,11 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         return XQC_ERROR;
     }
 
+    /* version negotiation */
+    if (version == 0) {
+        return xqc_packet_parse_version_negotiation(c, packet_in);
+    }
+
     /* don't update packet_in->pos = pos here, need prefix inside*/
     /* long header common part finished */
 
@@ -514,6 +623,10 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|invalid packet type|%ui|", type);
         ret = XQC_ERROR;
         break;
+    }
+
+    if (ret == XQC_OK && c->conn_type == XQC_CONN_TYPE_CLIENT) {
+        c->discard_vn_flag = 1;
     }
 
     return ret;
