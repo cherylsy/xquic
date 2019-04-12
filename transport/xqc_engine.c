@@ -263,6 +263,10 @@ xqc_engine_process_conn (xqc_connection_t *conn)
         xqc_process_crypto_read_streams(conn);
         xqc_process_crypto_write_streams(conn);
     }
+
+    if (xqc_should_generate_ack(conn)) {
+        xqc_write_ack_to_packets(conn);
+    }
 }
 
 
@@ -279,7 +283,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
         conn = el->conn;
         xqc_conns_pq_pop(engine->conns_pq);
-        conn->conn_flag &= ~XQC_CONN_FALG_TICKING;
+        conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
 
         xqc_engine_process_conn(conn);
 
@@ -351,7 +355,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return XQC_ERROR;
     }
 
-#if 0
+#if 1
     /* main logic */
     if (xqc_engine_main_logic(engine) != XQC_OK) {
         return XQC_ERROR;

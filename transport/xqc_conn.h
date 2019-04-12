@@ -45,10 +45,18 @@ typedef enum {
     XQC_CONN_TYPE_CLIENT,
 }xqc_conn_type_t;
 
+#define XQC_CONN_FLAG_SHOULD_ACK (XQC_CONN_FLAG_SHOULD_ACK_INIT   \
+                                    |XQC_CONN_FLAG_SHOULD_ACK_HSK    \
+                                    |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
+
 typedef enum {
-    XQC_CONN_FLAG_NONE = 0x0,
-    XQC_CONN_FLAG_HANDSHAKE_COMPLETED = 0x01,
-    XQC_CONN_FALG_TICKING  = 0x02,
+    XQC_CONN_FLAG_NONE                  = 1 << 0,
+    XQC_CONN_FLAG_HANDSHAKE_COMPLETED   = 1 << 1,
+    XQC_CONN_FLAG_TICKING               = 1 << 2,
+    XQC_CONN_FLAG_SHOULD_ACK_INIT       = 1 << 3,
+    XQC_CONN_FLAG_SHOULD_ACK_HSK        = 1 << (3 + XQC_PNS_HSK),
+    XQC_CONN_FLAG_SHOULD_ACK_01RTT      = 1 << (3 + XQC_PNS_01RTT),
+    XQC_CONN_FLAG_ACK_HAS_GAP           = 1 << 6,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -140,6 +148,8 @@ struct xqc_connection_s{
     void                   *user_data;  /* user_data for application layer */
 
     xqc_packet_in_tailq_t   packet_in_tailq;
+    xqc_recv_record_t       recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
+    unsigned                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 
     xqc_log_t              *log;
 
