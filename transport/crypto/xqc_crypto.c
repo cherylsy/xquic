@@ -1,4 +1,10 @@
+#include <openssl/ssl.h>
+#include <openssl/kdf.h>
 #include "xqc_crypto.h"
+#include "xqc_tls_public.h"
+#include "transport/xqc_conn.h"
+#include "common/xqc_config.h"
+#include "xqc_tls_cb.h"
 
 /*xqc_negotiated_prf stores the negotiated PRF(pseudo random function) by TLS into ctx.
  *@param
@@ -72,11 +78,11 @@ static size_t xqc_aead_tag_length(const xqc_tls_context_t *ctx) {
 
 size_t xqc_aead_max_overhead(const xqc_tls_context_t *ctx) { return xqc_aead_tag_length(ctx); }
 
-int hkdf_extract(uint8_t *dest, size_t destlen, const uint8_t *secret,
+int xqc_hkdf_extract(uint8_t *dest, size_t destlen, const uint8_t *secret,
         size_t secretlen, const uint8_t *salt, size_t saltlen,
         const xqc_tls_context_t *ctx) {
-    EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
-    if (pctx == nullptr) {
+    EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+    if (pctx == NULL) {
         return -1;
     }
 
@@ -114,9 +120,9 @@ err:
 
 int xqc_hkdf_expand(uint8_t *dest, size_t destlen, const uint8_t *secret,
                 size_t secretlen, const uint8_t *info, size_t infolen,
-                const xqc_context_t *ctx) {
-  EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, nullptr);
-  if (pctx == nullptr) {
+                const xqc_tls_context_t *ctx) {
+  EVP_PKEY_CTX * pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
+  if (pctx == NULL) {
     return -1;
   }
 
@@ -160,24 +166,24 @@ int xqc_hkdf_expand_label(uint8_t *dest, size_t destlen, const uint8_t *secret,
         size_t secretlen, const uint8_t *label, size_t labellen,
         const xqc_tls_context_t *ctx) {
 
-       unsigned char  info[256];
-       static constexpr const uint8_t LABEL[] = "tls13 ";
+    unsigned char  info[256];
+    static const uint8_t LABEL[] = "tls13 ";
 
-       unsigned char * p = info;
-     *p++ = destlen / 256;
-     *p++ = destlen % 256;
-     *p++ = strlen(LABEL) + labellen;
-     p = xqc_cpymem(p, LABEL, strlen(LABEL));
-     p = xqc_cpymem(p, label, labellen);
-     *p++ = 0;
+    unsigned char * p = info;
+    *p++ = destlen / 256;
+    *p++ = destlen % 256;
+    *p++ = strlen(LABEL) + labellen;
+    p = xqc_cpymem(p, LABEL, strlen(LABEL));
+    p = xqc_cpymem(p, label, labellen);
+    *p++ = 0;
 
-     return xqc_hkdf_expand(dest, destlen, secret, secretlen, info, p - info, ctx); // p-info 存疑,need finish
+    return xqc_hkdf_expand(dest, destlen, secret, secretlen, info, p - info, ctx); // p-info 存疑,need finish
 
 }
 
 void xqc_prf_sha256(xqc_tls_context_t *ctx) { ctx->prf = EVP_sha256(); }//指定sha256散列算法
 
-void xqc_aead_aes_128_gcm(xqc_tls_context *ctx) {
+void xqc_aead_aes_128_gcm(xqc_tls_context_t *ctx) {
     ctx->aead = EVP_aes_128_gcm();
     ctx->hp = EVP_aes_128_ctr();
 }
@@ -195,27 +201,27 @@ int xqc_derive_initial_secret(uint8_t *dest, size_t destlen,
         size_t saltlen){
     xqc_tls_context_t ctx;
     xqc_prf_sha256(&ctx);
-    return hkdf_extract(dest, destlen, cid->data, cid->datalen, salt,
+    return xqc_hkdf_extract(dest, destlen, cid->cid_buf, cid->cid_len, salt,
             saltlen, &ctx);
 
 }
 
 int xqc_derive_client_initial_secret(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen) {
-    static constexpr uint8_t LABEL[] = "client in";
+    static   uint8_t LABEL[] = "client in";
     xqc_tls_context_t ctx;
     xqc_prf_sha256(&ctx);
     return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL,
-            str_size(LABEL), &ctx);
+            strlen(LABEL), &ctx);
 }
 
 int xqc_derive_server_initial_secret(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen) {
-    static constexpr uint8_t LABEL[] = "server in";
+    static   uint8_t LABEL[] = "server in";
     xqc_tls_context_t ctx;
     xqc_prf_sha256(&ctx);
     return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL,
-            str_size(LABEL), &ctx);
+            strlen(LABEL), &ctx);
 }
 
 
@@ -223,7 +229,7 @@ size_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx) {
     int rv;
-    static constexpr uint8_t LABEL[] = "quic key";
+    static   uint8_t LABEL[] = "quic key";
 
     size_t keylen = xqc_aead_key_length(ctx);
     if (keylen > destlen) {
@@ -231,7 +237,7 @@ size_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
     }
 
     rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL,
-            str_size(LABEL), ctx);
+            strlen(LABEL), ctx);
     if (rv != 0) {
         return -1;
     }
@@ -245,15 +251,15 @@ size_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx) {
     int rv;
-    static constexpr uint8_t LABEL[] = "quic iv";
+    static   uint8_t LABEL[] = "quic iv";
 
-    size_t ivlen = max(static_cast<size_t>(8), xqc_aead_nonce_length(ctx));
+    size_t ivlen = xqc_max(8, xqc_aead_nonce_length(ctx));
     if (ivlen > destlen) {
         return -1;
     }
 
     rv = xqc_hkdf_expand_label(dest, ivlen, secret, secretlen, LABEL,
-            str_size(LABEL), ctx);
+            strlen(LABEL), ctx);
     if (rv != 0) {
         return -1;
     }
@@ -264,9 +270,9 @@ size_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
 
 size_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
-        const context *ctx) {
+        const xqc_tls_context_t *ctx) {
     int rv;
-    static constexpr uint8_t LABEL[] = "quic hp";
+    static   uint8_t LABEL[] = "quic hp";
 
     size_t keylen = xqc_aead_key_length(ctx);
     if (keylen > destlen) {
@@ -274,7 +280,7 @@ size_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
     }
 
     rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL,
-            str_size(LABEL), ctx);
+            strlen(LABEL), ctx);
 
     if (rv != 0) {
         return -1;
@@ -288,21 +294,21 @@ size_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
 ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen) {
-    static constexpr uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
+    static   uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
 
     EVP_CIPHER_CTX  * actx = EVP_CIPHER_CTX_new();
-    if (actx == nullptr) {
+    if (actx == NULL) {
         return -1;
     }
 
-    if (EVP_EncryptInit_ex(actx, ctx.hp, nullptr, key, sample) != 1) {
+    if (EVP_EncryptInit_ex(actx, ctx->hp, NULL, key, sample) != 1) {
         goto err;
     }
 
     size_t outlen = 0;
     int len;
 
-    if (EVP_EncryptUpdate(actx, dest, &len, PLAINTEXT, str_size(PLAINTEXT)) !=
+    if (EVP_EncryptUpdate(actx, dest, &len, PLAINTEXT, sizeof(PLAINTEXT) - 1) !=
             1) {
         goto err;
     }
@@ -345,11 +351,10 @@ static ssize_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
 
     sample_offset = pkt_num_offset + 4;
 
-    nwrite =  xqc_hp_mask(mask, sizeof(mask), ctx, key, keylen, pkt + sample_offset, XQC_HP_SAMPLELEN)
-
-        if (nwrite < XQC_HP_MASKLEN) {
-            return XQC_ERR_CALLBACK_FAILURE;
-        }
+    nwrite =  xqc_hp_mask(mask, sizeof(mask), ctx, hpkey, hpkey_len, pkt + sample_offset, XQC_HP_SAMPLELEN);
+    if (nwrite < XQC_HP_MASKLEN) {
+        return XQC_ERR_CALLBACK_FAILURE;
+    }
 
     if (hd->flags & XQC_PKT_FLAG_LONG_FORM) {
         dest[0] = (uint8_t)(dest[0] ^ (mask[0] & 0x0f));
@@ -383,31 +388,31 @@ size_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
     }
 
     ciphertextlen -= taglen;
-    uint8_t * tag = ciphertext + ciphertextlen;
+    uint8_t * tag = (uint8_t *)(ciphertext + ciphertextlen);
 
     EVP_CIPHER_CTX * actx = EVP_CIPHER_CTX_new();
-    if (actx == nullptr) {
+    if (actx == NULL) {
         return -1;
     }
 
 
-    if (EVP_DecryptInit_ex(actx, ctx->aead, nullptr, nullptr, nullptr) != 1) {
+    if (EVP_DecryptInit_ex(actx, ctx->aead, NULL, NULL, NULL) != 1) {
         goto err;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, nullptr) !=
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) !=
             1) {
         goto err;
     }
 
-    if (EVP_DecryptInit_ex(actx, nullptr, nullptr, key, nonce) != 1) {
+    if (EVP_DecryptInit_ex(actx, NULL, NULL, key, nonce) != 1) {
         goto err;
     }
 
     size_t outlen;
     int len;
 
-    if (EVP_DecryptUpdate(actx, nullptr, &len, ad, adlen) != 1) {
+    if (EVP_DecryptUpdate(actx, NULL, &len, ad, adlen) != 1) {
         goto err;
     }
 
@@ -418,7 +423,7 @@ size_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
     outlen = len;
 
     if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_TAG, taglen,
-                const_cast<uint8_t *>(tag)) != 1) {
+                (uint8_t *)(tag)) != 1) {
         goto err;
     }
 
@@ -449,28 +454,28 @@ size_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
     }
 
     EVP_CIPHER_CTX * actx = EVP_CIPHER_CTX_new();
-    if (actx == nullptr) {
+    if (actx == NULL) {
         return -1;
     }
 
 
-    if (EVP_EncryptInit_ex(actx, ctx.aead, nullptr, nullptr, nullptr) != 1) {
+    if (EVP_EncryptInit_ex(actx, ctx->aead, NULL, NULL, NULL) != 1) {
         goto err;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, nullptr) !=
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) !=
             1) {
         goto err;
     }
 
-    if (EVP_EncryptInit_ex(actx, nullptr, nullptr, key, nonce) != 1) {
+    if (EVP_EncryptInit_ex(actx, NULL, NULL, key, nonce) != 1) {
         goto err;
     }
 
     size_t outlen = 0;
     int len;
 
-    if (EVP_EncryptUpdate(actx, nullptr, &len, ad, adlen) != 1) {
+    if (EVP_EncryptUpdate(actx, NULL, &len, ad, adlen) != 1) {
         goto err;
     }
 
@@ -488,8 +493,7 @@ size_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
 
     assert(outlen + taglen <= destlen);
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) !=
-            1) {
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != 1) {
         goto err;
     }
 
@@ -497,9 +501,10 @@ size_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
 
     EVP_CIPHER_CTX_free(actx);
     return outlen;
+
 err:
     EVP_CIPHER_CTX_free(actx);
-    return -1
+    return -1;
 }
 
 
@@ -517,7 +522,7 @@ void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
 
 
 
-int xqc_vec_assign(xqc_vec_t * vec, uint8_t * data, size_t data_len){
+int xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len){
     vec->base = malloc(data_len);
     if(vec->base == NULL){
         return -1;
@@ -528,11 +533,11 @@ int xqc_vec_assign(xqc_vec_t * vec, uint8_t * data, size_t data_len){
 }
 
 
-int xqc_conn_install_initial_tx_keys(xqc_connection_t *conn, const uint8_t *key,
-                                        size_t keylen, const uint8_t *iv,
-                                        size_t ivlen, const uint8_t *pn,
+int xqc_conn_install_initial_tx_keys(xqc_connection_t *conn,  uint8_t *key,
+                                        size_t keylen,  uint8_t *iv,
+                                        size_t ivlen,  uint8_t *pn,
                                         size_t pnlen){
-    xqc_pktns_t * pktns = & conn->tls_rev.intial_pktns;
+    xqc_pktns_t * pktns = & conn->tlsref.initial_pktns;
     int rv;
 
     if(pktns->tx_hp.base != NULL && pktns->tx_hp.len > 0){
@@ -563,11 +568,11 @@ int xqc_conn_install_initial_tx_keys(xqc_connection_t *conn, const uint8_t *key,
 }
 
 
-int xqc_conn_install_initial_rx_keys(xqc_connection_t *conn, const uint8_t *key,
-                                        size_t keylen, const uint8_t *iv,
-                                        size_t ivlen, const uint8_t *pn,
+int xqc_conn_install_initial_rx_keys(xqc_connection_t *conn,  uint8_t *key,
+                                        size_t keylen, uint8_t *iv,
+                                        size_t ivlen, uint8_t *pn,
                                         size_t pnlen){
-    xqc_pktns_t * pktns = & conn->tls_rev.intial_pktns;
+    xqc_pktns_t * pktns = & conn->tlsref.initial_pktns;
     int rv;
 
     if(pktns->rx_hp.base != NULL && pktns->rx_hp.len > 0){

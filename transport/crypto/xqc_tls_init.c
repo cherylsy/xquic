@@ -1,4 +1,11 @@
+#include <openssl/ssl.h>
+#include <openssl/err.h>
 #include "xqc_tls_init.h"
+#include "xqc_tls_cb.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
+#include "transport/xqc_conn.h"
+#include "include/xquic_typedef.h"
 
 /*
  * initial ssl config
@@ -23,7 +30,7 @@ int xqc_tlsref_init(xqc_tlsref_t * tlsref){
 
 //need finish session save
 SSL_CTX *xqc_create_client_ssl_ctx(xqc_ssl_config_t *xs_config) {
-    SSL_CTX ssl_ctx = SSL_CTX_new(TLS_method());
+    SSL_CTX * ssl_ctx = SSL_CTX_new(TLS_method());
 
     SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_3_VERSION); //todo: get from config file if needed
     SSL_CTX_set_max_proto_version(ssl_ctx, TLS1_3_VERSION);
@@ -172,7 +179,7 @@ int xqc_bio_destroy(BIO *b) {//do nothing
 }
 
 BIO_METHOD *xqc_create_bio_method() { //just create bio for openssl
-    static BIO_METHOD * meth = BIO_meth_new(BIO_TYPE_FD, "bio");
+    BIO_METHOD * meth = BIO_meth_new(BIO_TYPE_FD, "bio");
     BIO_meth_set_write(meth, xqc_bio_write);
     BIO_meth_set_read(meth, xqc_bio_read);
     BIO_meth_set_puts(meth, xqc_bio_puts);
@@ -185,7 +192,7 @@ BIO_METHOD *xqc_create_bio_method() { //just create bio for openssl
 
 SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn){
 
-    SSL *ssl_ = SSL_new(engine->ssl_ctx);
+    SSL *ssl_ = SSL_new((SSL_CTX *)engine->ssl_ctx);
     if(ssl_ == NULL){
         return NULL;
     }
@@ -196,7 +203,7 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn){
     SSL_set_accept_state(ssl_);
     SSL_set_msg_callback(ssl_, xqc_msg_cb);
     SSL_set_msg_callback_arg(ssl_, conn);
-    SSL_set_key_callback(ssl_, xqc_key_cb, conn);
+    SSL_set_key_callback(ssl_, xqc_tls_key_cb, conn);
 
     return ssl_;
 }
@@ -207,7 +214,7 @@ int xqc_set_alpn_proto(SSL * ssl){
     size_t alpnlen;
 
     alpn = (const uint8_t *)(XQC_ALPN_D17);
-    alpnlen = str_size(XQC_ALPN_D17);
+    alpnlen = strlen(XQC_ALPN_D17);
     if (alpn) {
         SSL_set_alpn_protos(ssl, alpn, alpnlen);
     }
@@ -222,7 +229,7 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
 
     xqc_set_alpn_proto(ssl_);
 
-    if(xqc_numeric_host(hostnmae) ){
+    if(xqc_numeric_host(hostname) ){
         SSL_set_tlsext_host_name(ssl_, "localhost");  //SNI need finish
     }else{
         SSL_set_tlsext_host_name(ssl_, hostname);
@@ -281,7 +288,7 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
     }
     //need log
 
-    if(xqc_conn_install_initial_tx_keys(conn_, key, keylen, iv, ivlen, hp, hplen) < 0){
+    if(xqc_conn_install_initial_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
         printf("install initial key error\n");
         return -1;
     }
@@ -312,7 +319,7 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
         return -1;
     }
 
-    xqc_conn_install_initial_rx_keys(conn_, key, keylen, iv, ivlen, hp, hplen);
+    xqc_conn_install_initial_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen);
 
     return 0;
 }

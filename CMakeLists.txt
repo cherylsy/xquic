@@ -34,6 +34,10 @@ set(
     transport/xqc_send_ctl.c
     transport/xqc_packet.c
     transport/xqc_frame.c
+    
+    transport/crypto/xqc_tls_init.c
+    transport/crypto/xqc_crypto.c
+    transport/crypto/xqc_tls_cb.c
 )
 
 set(
@@ -67,7 +71,8 @@ add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
 
 include_directories( /usr/local/include )
-include_directories(/usr/local/ali-openssl/include/ )
+#include_directories(/usr/local/ali-openssl/include/ )
+include_directories(/home/dreamwind.ll/git/openssl/include/ )
 include_directories(./transport/crypto/)
 link_directories( /usr/local/lib )
 

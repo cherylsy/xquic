@@ -4,6 +4,10 @@
 #include <openssl/ssl.h>
 #include "xqc_tls_public.h"
 
+#ifndef nullptr
+#define nullptr NULL
+#endif
+
 #define INITIAL_SECRET_MAX_LEN  32
 
 
