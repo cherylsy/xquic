@@ -2,6 +2,7 @@
 #include "../include/xquic.h"
 #include "xqc_packet.h"
 #include "xqc_conn.h"
+#include "../common/xqc_algorithm.h"
 #include "../common/xqc_variable_len_int.h"
 
 
