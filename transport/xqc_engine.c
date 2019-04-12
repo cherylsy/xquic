@@ -42,6 +42,9 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
         config->conns_pq_capacity = 8;
     }
 
+    config->support_version_count = 1;
+    config->support_version_list[0] = XQC_QUIC_VERSION;
+
     return config;
 }
 
@@ -355,7 +358,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return XQC_ERROR;
     }
 
-#if 1
+#if 0
     /* main logic */
     if (xqc_engine_main_logic(engine) != XQC_OK) {
         return XQC_ERROR;

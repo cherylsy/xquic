@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     test_hash_table(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_fifo(argc, argv);
 #endif
 
@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     test_log(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_list(argc, argv);
 #endif
 
@@ -104,7 +104,7 @@ int test_fifo(int argc, char* argv[])
 
     while (xqc_fifo_empty(&fifo) != XQC_TRUE) {
         int i = xqc_fifo_top_int(&fifo);
-        printf("%d, length:%d\n", i, xqc_fifo_length(&fifo));
+        printf("%d, length:%d\n", i, (int)xqc_fifo_length(&fifo));
         xqc_fifo_pop(&fifo);
     }
 
@@ -407,12 +407,20 @@ int test_list(int argc, char* argv[])
         xqc_list_add_tail(&(pperson->list), &(person_head.list));
     }
 
-    // 遍历链表
+    // 正向遍历链表
     printf("==== 1st iterator d-link ====\n");
     xqc_list_for_each(pos, &person_head.list)
     {
         pperson = xqc_list_entry(pos, person_t, list);
-        printf("name:%-2s, age:%d\n", pperson->name, pperson->age);
+        printf("name:%s, age:%d\n", pperson->name, pperson->age);
+    }
+
+    // 反向遍历链表
+    printf("==== 2st iterator d-link ====\n");
+    xqc_list_for_each_reverse(pos, &person_head.list)
+    {
+        pperson = xqc_list_entry(pos, person_t, list);
+        printf("name:%s, age:%d\n", pperson->name, pperson->age);
     }
 
     // 删除节点age为20的节点
@@ -420,6 +428,7 @@ int test_list(int argc, char* argv[])
     xqc_list_for_each_safe(pos, next, &person_head.list)
     {
         pperson = xqc_list_entry(pos, person_t, list);
+        printf("name:%s, age:%d\n", pperson->name, pperson->age);
         if(pperson->age == 20)
         {
             xqc_list_del_init(pos);
