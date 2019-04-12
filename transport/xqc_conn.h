@@ -2,6 +2,8 @@
 #define _XQC_CONN_H_INCLUDED_
 
 #include <sys/queue.h>
+#include <openssl/ssl.h>
+#include "xqc_tls_public.h"
 #include "xqc_transport.h"
 #include "xqc_stream.h"
 #include "xqc_cid.h"
@@ -119,10 +121,10 @@ struct xqc_connection_s{
     xqc_cid_t               dcid;
     xqc_cid_t               scid;
     xqc_cid_t               ocid; /* original connection id */
-    
+
     xqc_str_t               token;
     xqc_uint_t              zero_rtt_count;
-    
+
     xqc_conn_state_t        conn_state;
     xqc_memory_pool_t      *conn_pool;
 
@@ -152,6 +154,9 @@ struct xqc_connection_s{
     uint64_t                last_ticked_time;
     uint64_t                next_tick_time;
 
+
+    SSL                     *xc_ssl;   /*ssl for connection*/
+    xqc_tlsref_t            tlsref;   //all tls reference
 };
 
 int xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms);
@@ -160,11 +165,11 @@ void xqc_conns_pq_pop (xqc_pq_t *pq);
 
 xqc_conns_pq_elem_t *xqc_conns_pq_top (xqc_pq_t *pq);
 
-xqc_connection_t * xqc_create_connection(xqc_engine_t *engine, 
+xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t *dcid, xqc_cid_t *scid,
                                 xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
-                                void *user_data, 
+                                void *user_data,
                                 xqc_conn_type_t type);
 
 void xqc_destroy_connection(xqc_connection_t *xc);

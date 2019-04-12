@@ -4,7 +4,7 @@
 
 
 #include <errno.h>
-#include <../include/xquic.h>
+#include <include/xquic.h>
 
 
 typedef int               xqc_err_t;
