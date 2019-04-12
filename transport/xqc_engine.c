@@ -42,6 +42,9 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
         config->conns_pq_capacity = 8;
     }
 
+    config->support_version_count = 1;
+    config->support_version_list[0] = XQC_QUIC_VERSION;
+
     return config;
 }
 

@@ -11,6 +11,7 @@
 #include "xquic_typedef.h"
 
 #define XQC_QUIC_VERSION 1
+#define XQC_SUPPORT_VERSION_MAX 64
 
 typedef ssize_t (*xqc_recv_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
 typedef ssize_t (*xqc_send_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
@@ -35,6 +36,7 @@ typedef struct xqc_congestion_control_callback_s {
 
 } xqc_cong_ctrl_callback_t;
 
+
 /**
  * @struct xqc_config_t
  * QUIC config parameters
@@ -45,6 +47,8 @@ typedef struct xqc_config_s {
     size_t  streams_hash_bucket_size;
     size_t  conns_hash_bucket_size;
     size_t  conns_pq_capacity;
+    uint32_t  support_version_list[XQC_SUPPORT_VERSION_MAX]; /*支持的版本列表*/
+    uint32_t  support_version_count; /*版本列表数量*/
 }xqc_config_t;
 
 
