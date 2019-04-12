@@ -30,12 +30,12 @@ xqc_stream_ready_to_write (xqc_stream_t *stream)
         stream->stream_flag |= XQC_SF_READY_TO_WRITE;
     }
 
-    if (!(stream->stream_conn->conn_flag & XQC_CONN_FALG_TICKING)) {
+    if (!(stream->stream_conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (xqc_conns_pq_push(stream->stream_conn->engine->conns_pq,
                           stream->stream_conn, stream->stream_conn->last_ticked_time) != 0) {
             return;
         }
-        stream->stream_conn->conn_flag |= XQC_CONN_FALG_TICKING;
+        stream->stream_conn->conn_flag |= XQC_CONN_FLAG_TICKING;
     }
 }
 
@@ -56,12 +56,12 @@ xqc_stream_ready_to_read (xqc_stream_t *stream)
         stream->stream_flag |= XQC_SF_READY_TO_READ;
     }
 
-    if (!(stream->stream_conn->conn_flag & XQC_CONN_FALG_TICKING)) {
+    if (!(stream->stream_conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (xqc_conns_pq_push(stream->stream_conn->engine->conns_pq,
                               stream->stream_conn, stream->stream_conn->last_ticked_time) != 0) {
             return;
         }
-        stream->stream_conn->conn_flag |= XQC_CONN_FALG_TICKING;
+        stream->stream_conn->conn_flag |= XQC_CONN_FLAG_TICKING;
     }
 
 }
@@ -118,8 +118,8 @@ int xqc_crypto_stream_on_read (void *user_data, xqc_stream_t *stream)
 int xqc_crypto_stream_on_write (void *user_data, xqc_stream_t *stream)
 {
     XQC_DEBUG_PRINT
-    char send_data[1200] = {0};
-    unsigned send_data_size = 1200;//TODO: 假数据
+    char send_data[100] = {0};
+    unsigned send_data_size = 100;//TODO: 假数据
 
     xqc_pkt_num_space_t pns;
     xqc_pkt_type_t pkt_type;

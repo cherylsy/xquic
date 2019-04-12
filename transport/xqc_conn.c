@@ -10,6 +10,7 @@
 #include "xqc_cid.h"
 #include "xqc_stream.h"
 #include "../common/xqc_hash.h"
+#include "xqc_frame_parser.h"
 
 int
 xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
@@ -134,7 +135,12 @@ xqc_create_connection(xqc_engine_t *engine,
     if (xqc_conns_pq_push(engine->conns_pq, xc, 0)) {
         goto fail;
     }
-    xc->conn_flag |= XQC_CONN_FALG_TICKING;
+
+    for (xqc_pkt_num_space_t i = 0; i < XQC_PNS_N; i++) {
+        xqc_init_list_head(&xc->recv_record[i].list_head);
+    }
+
+    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     /* Do callback */
     if (xc->conn_callbacks.conn_create_notify(user_data, xc)) {
@@ -215,6 +221,9 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_packet_out_t *packet_out;
     TAILQ_FOREACH(packet_out, &conn->conn_send_ctl->ctl_packets, po_next) {
         if (xqc_send_ctl_can_send(conn) && !XQC_PKTOUT_SENT(packet_out)) {
+            if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT) {
+                xqc_gen_padding_frame(packet_out);
+            }
             conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
             XQC_PKTOUT_SET_SENT(packet_out);
         }

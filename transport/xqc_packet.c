@@ -5,6 +5,22 @@
 #include "../common/xqc_algorithm.h"
 #include "../common/xqc_variable_len_int.h"
 
+xqc_encrypt_level_t
+xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type)
+{
+    switch (pkt_type) {
+        case XQC_PTYPE_INIT:
+            return XQC_ENC_LEV_INIT;
+        case XQC_PTYPE_0RTT:
+            return XQC_ENC_LEV_0RTT;
+        case XQC_PTYPE_HSK:
+            return XQC_ENC_LEV_HSK;
+        case XQC_PTYPE_SHORT_HEADER:
+            return XQC_ENC_LEV_1RTT;
+        default:
+            return XQC_ENC_LEV_INIT;
+    }
+}
 
 xqc_int_t
 xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
@@ -190,12 +206,12 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     /* check available states */
     if (c->conn_state != XQC_CONN_STATE_SERVER_INIT
-        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT) 
+        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT)
     {
         /* drop packet */
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|invalid state|%i|",
                                       c->conn_state);
-        return XQC_ERROR;        
+        return XQC_ERROR;
     }
 
     /* parse packet */
@@ -250,7 +266,13 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     /* insert Initial & Handshake into packet send queue */
 
-    
+    xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet->pkt_type);
+    xqc_stream_t *stream = c->crypto_stream[encrypt_level];
+    if (stream) {
+        xqc_stream_ready_to_read(stream);
+    } else {
+        xqc_create_crypto_stream(c, NULL);
+    }
     return XQC_OK;
 }
 
@@ -373,10 +395,19 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     pos += packet_number_len;
 
     /* decrypt payload */
+    pos += payload_len - packet_number_len;
 
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_handshake|success|packe_num=%ui|", packet->pkt_num);
     packet_in->pos = pos;
+
+    xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet->pkt_type);
+    xqc_stream_t *stream = c->crypto_stream[encrypt_level];
+    if (stream) {
+        xqc_stream_ready_to_read(stream);
+    } else {
+        xqc_create_crypto_stream(c, NULL);
+    }
 
     return XQC_OK;
 }
@@ -462,7 +493,7 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
         packet_in->pos = packet_in->last;
         return XQC_OK;
     }
-    
+
     /*get Supported Version list*/
     uint32_t supported_version_list[256];
     uint32_t supported_version_count = 0;
@@ -681,6 +712,8 @@ xqc_conn_process_packets(xqc_connection_t *c,
 {
     xqc_int_t ret = XQC_ERROR;
     unsigned char *last_pos = NULL;
+    xqc_pkt_range_status range_status;
+    int out_of_order = 0;
 
     while (packet_in->pos < packet_in->last) {
 
@@ -696,9 +729,176 @@ xqc_conn_process_packets(xqc_connection_t *c,
                                           packet_in->buf, packet_in->buf_size);
             return XQC_ERROR;
         }
+
+        //TODO: 放在包解析前，判断是否是重复的包XQC_PKTRANGE_DUP，如果接收过则不需要重复解包
+        range_status = xqc_recv_record_add(&c->recv_record[packet_in->pi_pkt.pkt_pns], packet_in->pi_pkt.pkt_num,
+                            packet_in->pkt_recv_time);
+        if (range_status == XQC_PKTRANGE_OK) {
+            ++c->ack_eliciting_pkt[packet_in->pi_pkt.pkt_pns]; //TODO: ack padding不加计数
+            if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(c->recv_record)) {
+                out_of_order = 1;
+            }
+            xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order);
+        }
     }
 
     return XQC_OK;
 }
 
+
+static int
+xqc_pktno_range_can_merge (xqc_pktno_range_node_t *node, xqc_packet_number_t packet_number)
+{
+    if (node->pktno_range.low - 1 == packet_number) {
+        --node->pktno_range.low;
+        return 1;
+    }
+    if (node->pktno_range.high + 1 == packet_number) {
+        ++node->pktno_range.high;
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * insert into range list when receive a new packet
+ */
+xqc_pkt_range_status
+xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number, xqc_msec_t recv_time)
+{
+    xqc_list_head_t *pos, *prev;
+    xqc_pktno_range_node_t *pnode, *prev_node;
+    xqc_pktno_range_t range;
+    pnode = prev_node = NULL;
+    pos = prev = NULL;
+
+    xqc_pktno_range_node_t *first = xqc_list_entry(&recv_record->list_head, xqc_pktno_range_node_t, list);
+    if (first && packet_number > first->pktno_range.high) {
+        recv_record->largest_pkt_recv_time = recv_time;
+    }
+
+    xqc_list_for_each(pos, &recv_record->list_head) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+        if (packet_number <= pnode->pktno_range.high) {
+            if (packet_number >= pnode->pktno_range.low) {
+                return XQC_PKTRANGE_DUP;
+            }
+        } else {
+            break;
+        }
+        prev = pos;
+    }
+
+    if (pos) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+    }
+    if (prev) {
+        prev_node = xqc_list_entry(prev, xqc_pktno_range_node_t, list);
+    }
+
+    if ((prev && xqc_pktno_range_can_merge(prev_node, packet_number)) ||
+        (pnode && xqc_pktno_range_can_merge(pnode, packet_number))) {
+        if (prev_node && pnode && (prev_node->pktno_range.low - 1 == pnode->pktno_range.high)) {
+            prev_node->pktno_range.low = pnode->pktno_range.low;
+            xqc_list_del_init(pos);
+            free(pnode);
+        }
+    } else {
+        xqc_pktno_range_node_t *new_node = malloc(sizeof(*new_node));
+        if (!new_node)
+            return XQC_PKTRANGE_ERR;
+        new_node->pktno_range.low = new_node->pktno_range.high = packet_number;
+        if (pos) {
+            //insert before pos
+            xqc_list_add_tail(&(new_node->list), pos);
+        } else {
+            //insert tail of the list
+            xqc_list_add_tail(&(new_node->list), &recv_record->list_head);
+        }
+    }
+
+    return XQC_PKTRANGE_OK;
+}
+
+/**
+ * del packet number range < del_from
+ */
+void
+xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from)
+{
+    if (del_from < recv_record->rr_del_from) {
+        return;
+    }
+
+    xqc_list_head_t *pos, *next;
+    xqc_pktno_range_node_t *pnode;
+    xqc_pktno_range_t *range;
+
+    recv_record->rr_del_from = del_from;
+
+    xqc_list_for_each_safe(pos, next, &recv_record->list_head) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+        range = &pnode->pktno_range;
+
+        if (range->low < del_from) {
+            if (range->high < del_from) {
+                xqc_list_del_init(pos);
+                free(pnode);
+            } else {
+                range->low = del_from;
+            }
+        }
+    }
+}
+
+xqc_packet_number_t
+xqc_recv_record_largest(xqc_recv_record_t *recv_record)
+{
+    xqc_pktno_range_node_t *pnode = xqc_list_entry(&recv_record->list_head.next, xqc_pktno_range_node_t, list);
+    if (pnode) {
+        return pnode->pktno_range.high;
+    } else {
+        return 0;
+    }
+}
+
+void
+xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of_order)
+{
+    /* Generating Acknowledgements
+
+   QUIC SHOULD delay sending acknowledgements in response to packets,
+   but MUST NOT excessively delay acknowledgements of ack-eliciting
+   packets.  Specifically, implementations MUST attempt to enforce a
+   maximum ack delay to avoid causing the peer spurious timeouts.  The
+   maximum ack delay is communicated in the "max_ack_delay" transport
+   parameter and the default value is 25ms.
+
+   An acknowledgement SHOULD be sent immediately upon receipt of a
+   second ack-eliciting packet.  QUIC recovery algorithms do not assume
+   the peer sends an ACK immediately when receiving a second ack-
+   eliciting packet.
+
+   In order to accelerate loss recovery and reduce timeouts, the
+   receiver SHOULD send an immediate ACK after it receives an out-of-
+   order packet.  It could send immediate ACKs for in-order packets for
+   a period of time that SHOULD NOT exceed 1/8 RTT unless more out-of-
+   order packets arrive.  If every packet arrives out-of- order, then an
+   immediate ACK SHOULD be sent for every received packet.
+
+   Similarly, packets marked with the ECN Congestion Experienced (CE)
+   codepoint in the IP header SHOULD be acknowledged immediately, to
+   reduce the peer's response time to congestion events.
+
+   As an optimization, a receiver MAY process multiple packets before
+   sending any ACK frames in response.  In this case the receiver can
+   determine whether an immediate or delayed acknowledgement should be
+   generated after processing incoming packets.
+    */
+    if (conn->ack_eliciting_pkt[pns] >= 2 || out_of_order) {
+        //conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns; //TODO: coredump
+    } else if (conn->ack_eliciting_pkt[pns] > 0) {
+        //TODO: 添加定时器
+    }
+}
 
