@@ -137,6 +137,7 @@ xqc_create_connection(xqc_engine_t *engine,
     }
 
     for (xqc_pkt_num_space_t i = 0; i < XQC_PNS_N; i++) {
+        memset(&xc->recv_record[i], 0, sizeof(xqc_recv_record_t));
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
