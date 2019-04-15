@@ -45,6 +45,11 @@ int xqc_test_conn_close_notify(void *user_data, xqc_connection_t *conn)
     return XQC_OK;
 }
 
+ssize_t xqc_client_send(xqc_connection_t *c, unsigned char *buf, size_t size)
+{
+    return 0;
+}
+
 
 void xqc_test_engine_packet_process()
 {
@@ -57,6 +62,7 @@ void xqc_test_engine_packet_process()
     CU_ASSERT(engine != NULL);
     engine->eng_callback.conn_callbacks.conn_create_notify = xqc_test_conn_create_notify;
     engine->eng_callback.conn_callbacks.conn_close_notify = xqc_test_conn_close_notify;    
+    engine->eng_callback.write_socket = xqc_client_send;
 
     xqc_msec_t recv_time = xqc_gettimeofday();
 

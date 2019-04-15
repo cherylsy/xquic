@@ -736,11 +736,13 @@ xqc_conn_process_packets(xqc_connection_t *c,
                             packet_in->pkt_recv_time);
         if (range_status == XQC_PKTRANGE_OK) {
             ++c->ack_eliciting_pkt[packet_in->pi_pkt.pkt_pns]; //TODO: ack padding不加计数
-            if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(c->recv_record)) {
+            if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns])) {
                 out_of_order = 1;
             }
             xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order);
         }
+        xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|",
+                range_status, packet_in->pi_pkt.pkt_num, xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]));
     }
 
     return XQC_OK;
@@ -805,7 +807,7 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
             xqc_free(pnode);
         }
     } else {
-        xqc_pktno_range_node_t *new_node = malloc(sizeof(*new_node));
+        xqc_pktno_range_node_t *new_node = xqc_calloc(1, sizeof(*new_node));
         if (!new_node)
             return XQC_PKTRANGE_ERR;
         new_node->pktno_range.low = new_node->pktno_range.high = packet_number;
@@ -855,7 +857,7 @@ xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_fro
 xqc_packet_number_t
 xqc_recv_record_largest(xqc_recv_record_t *recv_record)
 {
-    xqc_pktno_range_node_t *pnode = xqc_list_entry(&recv_record->list_head.next, xqc_pktno_range_node_t, list);
+    xqc_pktno_range_node_t *pnode = xqc_list_entry(recv_record->list_head.next, xqc_pktno_range_node_t, list);
     if (pnode) {
         return pnode->pktno_range.high;
     } else {
@@ -896,8 +898,11 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
    determine whether an immediate or delayed acknowledgement should be
    generated after processing incoming packets.
     */
+
     if (conn->ack_eliciting_pkt[pns] >= 2 || out_of_order) {
-        conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns; //TODO: coredump
+        conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack|out_of_order=%d|ack_eliciting_pkt=%d|",
+                out_of_order, conn->ack_eliciting_pkt[pns]);
     } else if (conn->ack_eliciting_pkt[pns] > 0) {
         //TODO: 添加定时器
     }
