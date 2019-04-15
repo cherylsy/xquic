@@ -160,7 +160,7 @@ int xqc_crypto_stream_on_write (void *user_data, xqc_stream_t *stream)
                                                     c->dcid.cid_buf, c->dcid.cid_len,
                                                     c->scid.cid_buf, c->scid.cid_len,
                                                     NULL, 0,
-                                                    XQC_QUIC_VERSION, pkt_type,
+                                                    c->version, pkt_type,
                                                     packet_out->po_pkt.pkt_num, packet_number_bits);
             if (n_written < 0) {
                 return -1;
