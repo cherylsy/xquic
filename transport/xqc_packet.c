@@ -1,6 +1,7 @@
 
 #include "../include/xquic.h"
 #include "xqc_packet.h"
+#include "xqc_packet_out.h"
 #include "xqc_conn.h"
 #include "../common/xqc_algorithm.h"
 #include "../common/xqc_variable_len_int.h"
@@ -408,7 +409,7 @@ xqc_packet_send_version_negotiation(xqc_connection_t *c)
     if (packet_out == NULL) {
         return XQC_ERROR;
     }
-    assert(packet_out->po_buf_size >= 1 + 4 + 1 + c->scid.cid_len + c->dcid.cid_len + 4);
+    //assert(packet_out->po_buf_size >= 1 + 4 + 1 + c->scid.cid_len + c->dcid.cid_len + 4);
 
     unsigned char* p = packet_out->po_buf;
     /*first byte*/
@@ -464,7 +465,7 @@ xqc_packet_version_check(xqc_connection_t *c, uint32_t version)
     xqc_engine_t* engine = c->engine;
     if (engine->eng_type == XQC_ENGINE_SERVER) {
         uint32_t *list = engine->config->support_version_list;
-        uint32_t count = ngine->config->support_version_count;
+        uint32_t count = engine->config->support_version_count;
         if (xqc_uint32_list_find(list, count, version) == -1) {
             xqc_packet_send_version_negotiation(c); /*发送version negotiation*/
             return XQC_ERROR;
