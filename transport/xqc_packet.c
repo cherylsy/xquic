@@ -206,7 +206,8 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     /* check available states */
     if (c->conn_state != XQC_CONN_STATE_SERVER_INIT
-        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT)
+        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT
+        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_RECVD)
     {
         /* drop packet */
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|invalid state|%i|",
@@ -801,7 +802,7 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
         if (prev_node && pnode && (prev_node->pktno_range.low - 1 == pnode->pktno_range.high)) {
             prev_node->pktno_range.low = pnode->pktno_range.low;
             xqc_list_del_init(pos);
-            free(pnode);
+            xqc_free(pnode);
         }
     } else {
         xqc_pktno_range_node_t *new_node = malloc(sizeof(*new_node));
@@ -843,7 +844,7 @@ xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_fro
         if (range->low < del_from) {
             if (range->high < del_from) {
                 xqc_list_del_init(pos);
-                free(pnode);
+                xqc_free(pnode);
             } else {
                 range->low = del_from;
             }
@@ -896,7 +897,7 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
    generated after processing incoming packets.
     */
     if (conn->ack_eliciting_pkt[pns] >= 2 || out_of_order) {
-        //conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns; //TODO: coredump
+        conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns; //TODO: coredump
     } else if (conn->ack_eliciting_pkt[pns] > 0) {
         //TODO: 添加定时器
     }
