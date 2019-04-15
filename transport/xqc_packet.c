@@ -1,6 +1,7 @@
 
 #include "../include/xquic.h"
 #include "xqc_packet.h"
+#include "xqc_packet_out.h"
 #include "xqc_conn.h"
 #include "../common/xqc_algorithm.h"
 #include "../common/xqc_variable_len_int.h"
@@ -429,6 +430,94 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     return XQC_OK;
 }
 
+/*
+ * 发送版本协商协议
+ * */
+static inline xqc_int_t
+xqc_packet_send_version_negotiation(xqc_connection_t *c)
+{
+    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_pool, c->conn_send_ctl, 0);
+    if (packet_out == NULL) {
+        return XQC_ERROR;
+    }
+    //assert(packet_out->po_buf_size >= 1 + 4 + 1 + c->scid.cid_len + c->dcid.cid_len + 4);
+
+    unsigned char* p = packet_out->po_buf;
+    /*first byte*/
+    *p++ = (1 << 7);
+
+    /*version*/
+    *(uint32_t*)p = 0;
+    p += sizeof(uint32_t);
+    
+    /*DCIL(4)|SCIL(4)*/
+    *p = (c->scid.cid_len - 3) << 4;
+    *p |= c->dcid.cid_len - 3;
+    ++p;
+
+    /*dcid*/
+    memcpy(p, c->scid.cid_buf, c->scid.cid_len);
+    p += c->scid.cid_len;
+
+    /*scid*/
+    memcpy(p, c->dcid.cid_buf, c->dcid.cid_len);
+    p += c->dcid.cid_len;
+
+    /*supported version list*/
+    uint32_t* version_list = c->engine->config->support_version_list;
+    uint32_t version_count = c->engine->config->support_version_count;
+
+    unsigned char* end = packet_out->po_buf + packet_out->po_buf_size;
+
+    for (size_t i = 0; i < version_count; ++i) {
+        if (p + sizeof(uint32_t) <= end) {
+            *(uint32_t*)p = version_list[i];
+            p += sizeof(uint32_t);
+        } else {
+            break;
+        }
+    }
+
+    /*填充0*/
+    memset(p, 0, end - p);
+
+    /*设置used size*/
+    packet_out->po_used_size = packet_out->po_buf_size;
+
+    /*push to conns queue*/
+    if (!(c->conn_flag & XQC_CONN_FALG_TICKING)) {
+        if (0 == xqc_conns_pq_push(c->engine->conns_pq, c, c->last_ticked_time)) {
+            c->conn_flag |= XQC_CONN_FALG_TICKING;
+        }
+    }
+
+    return XQC_OK;
+}
+
+/*
+ * 版本检查
+ * */
+static inline xqc_int_t
+xqc_packet_version_check(xqc_connection_t *c, uint32_t version)
+{
+    xqc_engine_t* engine = c->engine;
+    if (engine->eng_type == XQC_ENGINE_SERVER) {
+        uint32_t *list = engine->config->support_version_list;
+        uint32_t count = engine->config->support_version_count;
+        if (xqc_uint32_list_find(list, count, version) == -1) {
+            xqc_packet_send_version_negotiation(c); /*发送version negotiation*/
+            return XQC_ERROR;
+        }
+
+        /*版本号不匹配*/
+        if (c->version != version) {
+            return XQC_ERROR;
+        }
+    }
+
+    return XQC_OK;
+}
+
 
 /*
     0                   1                   2                   3
@@ -541,7 +630,12 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
     /*设置客户端版本*/
     c->version = version_chosen;
 
-    /*用新的版本号重新连接服务器*/
+    /*TODO:zuo 用新的版本号重新连接服务器*/
+    xqc_stream_t *stream = c->crypto_stream[XQC_ENC_LEV_INIT];
+    if (stream == NULL) {
+        return XQC_ERROR;
+    }
+    xqc_stream_ready_to_write(stream);
 
     /*设置discard vn flag*/
     c->discard_vn_flag = 1;
@@ -590,7 +684,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     pos++;
 
     /* TODO: version check */
-    xqc_uint_t version = xqc_parse_uint32(pos);
+    uint32_t version = xqc_parse_uint32(pos);
     pos += XQC_PACKET_VERSION_LENGTH;
 
     /* get dcid & scid */
@@ -626,6 +720,10 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     {
         /* log & ignore packet */
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|invalid dcid or scid|");
+        return XQC_ERROR;
+    }
+
+    if (xqc_packet_version_check(c, version) != XQC_OK) {
         return XQC_ERROR;
     }
 
