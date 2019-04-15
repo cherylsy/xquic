@@ -51,7 +51,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     xqc_msec_t now = xqc_gettimeofday();
 
 
-    size = xqc_gen_ack_frame(packet_out->po_buf, packet_out->po_buf_size - packet_out->po_used_size,
+    size = xqc_gen_ack_frame(packet_out->po_buf + packet_out->po_used_size, packet_out->po_buf_size - packet_out->po_used_size,
                       now, conn->recv_record, &has_gap, &largest_ack);
     if (size < 0) {
         return XQC_ERROR;
@@ -74,6 +74,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 int
 xqc_write_ack_to_packets(xqc_connection_t *conn)
 {
+    XQC_DEBUG_PRINT
     xqc_pkt_num_space_t pns;
     xqc_packet_out_t *packet_out;
     //TODO calc packet_number_bits
@@ -113,7 +114,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
             if (rc < 0) {
                 return XQC_ERROR;
             }
-            packet_out->po_buf_size += rc;
+            packet_out->po_used_size += rc;
 
             rc = xqc_write_ack_to_one_packet(conn, packet_out, pns);
             if (rc != XQC_OK) {

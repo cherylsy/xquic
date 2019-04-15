@@ -322,9 +322,10 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     }
 
     conn = xqc_engine_conns_hash_find(engine, &dcid);
-    
-    if (conn == NULL) {
-        xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ? 
+
+    /* client need user_data, do not auto create */
+    if (conn == NULL && engine->eng_type != XQC_ENGINE_CLIENT) {
+        xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ?
                                      XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
 
         conn = xqc_create_connection(engine, &dcid, &scid, 
@@ -336,11 +337,15 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create connection");
             return XQC_ERROR;
         }
-    
+
         if (xqc_engine_conns_hash_insert(engine, conn) != XQC_OK) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to insert conns hash");
             return XQC_ERROR;
         }
+    }
+    if (conn == NULL) {
+        xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection");
+        return XQC_ERROR;
     }
 
     /* create packet in */
