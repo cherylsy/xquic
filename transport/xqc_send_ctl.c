@@ -18,6 +18,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
     }
+
+    xqc_send_ctl_timer_init(send_ctl);
     return send_ctl;
 }
 
@@ -69,6 +71,13 @@ xqc_send_ctl_remove_send(xqc_list_head_t *pos)
 {
     xqc_list_del_init(pos);
 }
+
+void
+xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head)
+{
+    xqc_list_add_tail(pos, head);
+}
+
 
 int
 xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
@@ -131,3 +140,43 @@ xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t
     }
     return XQC_OK;
 }
+
+/* timer callbacks */
+void xqc_send_ctl_ack_expired(xqc_send_ctl_timer_type type, void *ctx)
+{
+    xqc_connection_t *conn = ((xqc_send_ctl_t*)ctx)->ctl_conn;
+    xqc_pkt_num_space_t pns = type - XQC_TIMER_ACK_INIT;
+    conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
+}
+
+/* timer callbacks end */
+
+
+void
+xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
+{
+    memset(ctl->ctl_timer, 0, XQC_TIMER_N * sizeof(xqc_send_ctl_timer_t));
+    xqc_send_ctl_timer_t *timer;
+    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
+        timer = &ctl->ctl_timer[type];
+        if (type == XQC_TIMER_ACK_INIT || type == XQC_TIMER_ACK_HSK || type == XQC_TIMER_ACK_01RTT) {
+            timer->ctl_timer_callback = xqc_send_ctl_ack_expired;
+            timer->ctl_ctx = ctl;
+        }
+    }
+}
+
+void
+xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
+{
+    xqc_send_ctl_timer_t *timer;
+    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
+        timer = &ctl->ctl_timer[type];
+        if (timer->ctl_timer_is_set && timer->ctl_expire_time < now) {
+            timer->ctl_timer_callback(type, timer->ctl_ctx);
+            timer->ctl_timer_is_set = 0;
+        }
+    }
+}
+
+

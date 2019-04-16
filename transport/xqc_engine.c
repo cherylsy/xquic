@@ -254,8 +254,10 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 }
 
 void
-xqc_engine_process_conn (xqc_connection_t *conn)
+xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 {
+    xqc_send_ctl_timer_expire(conn->conn_send_ctl, now);
+
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
         xqc_process_read_streams(conn);
         if (xqc_send_ctl_can_send(conn)) {
@@ -279,7 +281,7 @@ xqc_engine_process_conn (xqc_connection_t *conn)
 int
 xqc_engine_main_logic (xqc_engine_t *engine)
 {
-    uint64_t now = xqc_gettimeofday();
+    xqc_msec_t now = xqc_gettimeofday();
     xqc_connection_t *conn;
 
     while (!xqc_pq_empty(engine->conns_pq)) {
@@ -288,7 +290,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_conns_pq_pop(engine->conns_pq);
         conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
 
-        xqc_engine_process_conn(conn);
+        xqc_engine_process_conn(conn, now);
 
         xqc_conn_send_packets(conn);
 

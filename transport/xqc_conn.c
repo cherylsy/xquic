@@ -12,6 +12,13 @@
 #include "../common/xqc_hash.h"
 #include "xqc_frame_parser.h"
 
+void xqc_conns_init_trans_param(xqc_connection_t *conn)
+{
+    xqc_trans_param_t *param = &conn->trans_param;
+    param->max_ack_delay = 25;
+    param->ack_delay_exponent = 3;
+}
+
 int
 xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
 {
@@ -106,6 +113,8 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->conn_flag = XQC_CONN_FLAG_NONE;
     xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;
     xc->zero_rtt_count = 0;
+
+    xqc_conns_init_trans_param(xc);
 
     xc->conn_send_ctl = xqc_send_ctl_create(xc);
     if (xc->conn_send_ctl == NULL) {
@@ -220,16 +229,20 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
     xqc_packet_out_t *packet_out;
-    xqc_list_head_t *pos;
-    xqc_list_for_each(pos, &conn->conn_send_ctl->ctl_packets) {
+    xqc_list_head_t *pos, *next;
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (xqc_send_ctl_can_send(conn) && !XQC_PKTOUT_SENT(packet_out)) {
+        if (xqc_send_ctl_can_send(conn)) {
             if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT) {
                 xqc_gen_padding_frame(packet_out);
             }
             conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
-            XQC_PKTOUT_SET_SENT(packet_out);
 
+            /* move send list to unacked list */
+            xqc_send_ctl_remove_send(&packet_out->po_list);
+            xqc_send_ctl_insert_unacked(&packet_out->po_list,
+                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns]);
         }
     }
     //TODO: del packet_out

@@ -5,6 +5,7 @@
 #include "../include/xquic_typedef.h"
 #include "xqc_packet.h"
 #include "../common/xqc_memory_pool.h"
+#include "xqc_frame.h"
 
 
 struct xqc_packet_in_s
@@ -16,6 +17,7 @@ struct xqc_packet_in_s
     unsigned char          *pos;
     unsigned char          *last;
     xqc_msec_t              pkt_recv_time;  /* millisecond */
+    xqc_frame_type_bit_t    pi_frame_types;
 };
 
 

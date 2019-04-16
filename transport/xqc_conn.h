@@ -161,6 +161,8 @@ struct xqc_connection_s{
 
 };
 
+void xqc_conns_init_trans_param(xqc_connection_t *conn);
+
 int xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms);
 
 void xqc_conns_pq_pop (xqc_pq_t *pq);

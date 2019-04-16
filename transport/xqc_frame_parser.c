@@ -254,7 +254,7 @@ xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
 }
 
 int
-xqc_gen_ack_frame(unsigned char *dst_buf, size_t dst_buf_len, xqc_msec_t now,
+xqc_gen_ack_frame(unsigned char *dst_buf, size_t dst_buf_len, xqc_msec_t now, int ack_delay_exponent,
                       xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack)
 {
     xqc_packet_number_t lagest_recv;
@@ -276,7 +276,7 @@ xqc_gen_ack_frame(unsigned char *dst_buf, size_t dst_buf_len, xqc_msec_t now,
     }
 
     lagest_recv = first_range->pktno_range.high;
-    ack_delay = (now - recv_record->largest_pkt_recv_time) >> 3; //TODO: ack_delay_exponent;
+    ack_delay = (now - recv_record->largest_pkt_recv_time) >> ack_delay_exponent;
     first_ack_range = lagest_recv - first_range->pktno_range.low;
     prev_low = first_range->pktno_range.low;
 
