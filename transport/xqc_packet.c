@@ -5,6 +5,7 @@
 #include "xqc_conn.h"
 #include "../common/xqc_algorithm.h"
 #include "../common/xqc_variable_len_int.h"
+#include "xqc_send_ctl.h"
 
 xqc_encrypt_level_t
 xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type)
@@ -837,7 +838,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
             if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns])) {
                 out_of_order = 1;
             }
-            xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order);
+            xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order, packet_in->pkt_recv_time);
         }
         xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|",
                 range_status, packet_in->pi_pkt.pkt_num, xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]));
@@ -964,7 +965,7 @@ xqc_recv_record_largest(xqc_recv_record_t *recv_record)
 }
 
 void
-xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of_order)
+xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of_order, xqc_msec_t now)
 {
     /* Generating Acknowledgements
 
@@ -996,13 +997,17 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
    determine whether an immediate or delayed acknowledgement should be
    generated after processing incoming packets.
     */
+    if (conn->conn_flag & (XQC_CONN_FLAG_SHOULD_ACK_INIT << pns)) {
+        return;
+    }
 
     if (conn->ack_eliciting_pkt[pns] >= 2 || out_of_order) {
         conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack|out_of_order=%d|ack_eliciting_pkt=%d|",
                 out_of_order, conn->ack_eliciting_pkt[pns]);
     } else if (conn->ack_eliciting_pkt[pns] > 0) {
-        //TODO: 添加定时器
+        xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_ACK_INIT << pns,
+                               now + conn->trans_param.max_ack_delay);
     }
 }
 

@@ -7,12 +7,9 @@
 #include "xqc_packet.h"
 #include "../common/xqc_memory_pool.h"
 
-#define XQC_PKTOUT_SENT(pktout) (pktout->po_flag & XQC_PKTOUT_FLAG_SENT)
-#define XQC_PKTOUT_SET_SENT(pktout) (pktout->po_flag |= XQC_PKTOUT_FLAG_SENT)
 
 typedef enum {
-    XQC_PKTOUT_FLAG_SENT    = 1 << 0,
-    XQC_PKTOUT_FLAG_ACKED   = 1 << 1,
+RESERVE
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_packet_out_s

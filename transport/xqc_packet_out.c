@@ -52,7 +52,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 
 
     size = xqc_gen_ack_frame(packet_out->po_buf + packet_out->po_used_size, packet_out->po_buf_size - packet_out->po_used_size,
-                      now, conn->recv_record, &has_gap, &largest_ack);
+                      now, conn->trans_param.ack_delay_exponent, conn->recv_record, &has_gap, &largest_ack);
     if (size < 0) {
         return XQC_ERROR;
     }

@@ -105,6 +105,6 @@ xqc_pkt_range_status xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_pa
 
 xqc_packet_number_t xqc_recv_record_largest(xqc_recv_record_t *recv_record);
 
-void xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of_order);
+void xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of_order, xqc_msec_t now);
 
 #endif //_XQC_PACKET_H_INCLUDED_
