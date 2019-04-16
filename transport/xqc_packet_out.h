@@ -18,8 +18,6 @@ typedef enum {
 typedef struct xqc_packet_out_s
 {
     xqc_packet_t            po_pkt;
-    TAILQ_ENTRY(xqc_packet_out_s)
-                            po_next;
     xqc_list_head_t         po_list;
     unsigned char           *po_buf;
     unsigned int            po_buf_size;

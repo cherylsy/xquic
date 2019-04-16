@@ -113,10 +113,6 @@ struct xqc_conn_settings_s {
 };
 
 
-TAILQ_HEAD(xqc_stream_tailq, xqc_stream_s);
-typedef struct xqc_stream_tailq xqc_stream_tailq_t;
-
-
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
     xqc_conn_settings_t     conn_settings;
@@ -136,8 +132,8 @@ struct xqc_connection_s{
     xqc_memory_pool_t      *conn_pool;
 
     xqc_id_hash_table_t    *streams_hash;
-    xqc_stream_tailq_t      conn_write_streams,
-                            conn_read_streams;
+    xqc_list_head_t         conn_write_streams,
+                            conn_read_streams; /* xqc_stream_t */
     xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
     uint64_t                cur_stream_id_bidi_local;
     uint64_t                cur_stream_id_uni_local;
@@ -148,7 +144,7 @@ struct xqc_connection_s{
 
     void                   *user_data;  /* user_data for application layer */
 
-    xqc_packet_in_tailq_t   packet_in_tailq;
+    xqc_list_head_t         packet_in_tailq;  /* xqc_packet_in_t */
     xqc_recv_record_t       recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
     unsigned                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 

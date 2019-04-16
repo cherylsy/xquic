@@ -6,10 +6,9 @@
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 
-TAILQ_HEAD(xqc_packets_tailq, xqc_packet_out_t);
 
 typedef struct xqc_send_ctl_s {
-    struct xqc_packets_tailq    ctl_packets;
+    xqc_list_head_t             ctl_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
     xqc_connection_t            *ctl_conn;
     /* 已发送的最大packet number*/

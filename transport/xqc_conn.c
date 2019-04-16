@@ -112,9 +112,9 @@ xqc_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
-    TAILQ_INIT(&xc->conn_write_streams);
-    TAILQ_INIT(&xc->conn_read_streams);
-    TAILQ_INIT(&xc->packet_in_tailq);
+    xqc_init_list_head(&xc->conn_write_streams);
+    xqc_init_list_head(&xc->conn_read_streams);
+    xqc_init_list_head(&xc->packet_in_tailq);
 
     /* create streams_hash */
     xc->streams_hash = xqc_pcalloc(xc->conn_pool, sizeof(xqc_id_hash_table_t));
@@ -220,13 +220,16 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
     xqc_packet_out_t *packet_out;
-    TAILQ_FOREACH(packet_out, &conn->conn_send_ctl->ctl_packets, po_next) {
+    xqc_list_head_t *pos;
+    xqc_list_for_each(pos, &conn->conn_send_ctl->ctl_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (xqc_send_ctl_can_send(conn) && !XQC_PKTOUT_SENT(packet_out)) {
             if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT) {
                 xqc_gen_padding_frame(packet_out);
             }
             conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
             XQC_PKTOUT_SET_SENT(packet_out);
+
         }
     }
     //TODO: del packet_out
