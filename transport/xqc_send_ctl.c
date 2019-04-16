@@ -14,7 +14,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     }
 
     send_ctl->ctl_conn = conn;
-    TAILQ_INIT(&send_ctl->ctl_packets);
+    xqc_init_list_head(&send_ctl->ctl_packets);
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
     }
@@ -26,7 +26,10 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_nu
 {
     xqc_packet_out_t *packet_out;
 
-    TAILQ_FOREACH_REVERSE(packet_out, &ctl->ctl_packets, xqc_packets_tailq, po_next) {
+    xqc_list_head_t *pos;
+
+    xqc_list_for_each_reverse(pos, &ctl->ctl_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (packet_out->po_pkt.pkt_pns == pns &&
             packet_out->po_buf_size - packet_out->po_used_size >= need) {
             return packet_out;
@@ -50,7 +53,19 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
 }
 
 void
-xqc_remove_unacked(xqc_list_head_t *pos)
+xqc_send_ctl_remove_unacked(xqc_list_head_t *pos)
+{
+    xqc_list_del_init(pos);
+}
+
+void
+xqc_send_ctl_insert_unacked(xqc_list_head_t *pos, xqc_list_head_t *head)
+{
+    xqc_list_add_tail(pos, head);
+}
+
+void
+xqc_send_ctl_remove_send(xqc_list_head_t *pos)
 {
     xqc_list_del_init(pos);
 }
@@ -97,7 +112,7 @@ xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t
             }
 
             //remove from unacked list
-            xqc_remove_unacked(pos);
+            xqc_send_ctl_remove_unacked(pos);
 
             if (packet_out->po_pkt.pkt_num == lagest_ack) {
                 estimate_rtt = 1;

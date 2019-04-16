@@ -26,7 +26,7 @@ void
 xqc_stream_ready_to_write (xqc_stream_t *stream)
 {
     if (!(stream->stream_flag & XQC_SF_READY_TO_WRITE)) {
-        TAILQ_INSERT_TAIL(&stream->stream_conn->conn_write_streams, stream, next_write_stream);
+        xqc_list_add_tail(&stream->write_stream_list, &stream->stream_conn->conn_write_streams);
         stream->stream_flag |= XQC_SF_READY_TO_WRITE;
     }
 
@@ -43,7 +43,7 @@ void
 xqc_stream_shutdown_write (xqc_stream_t *stream)
 {
     if (stream->stream_flag & XQC_SF_READY_TO_WRITE) {
-        TAILQ_REMOVE(&stream->stream_conn->conn_write_streams, stream, next_write_stream);
+        xqc_list_del_init(&stream->write_stream_list);
         stream->stream_flag &= ~XQC_SF_READY_TO_WRITE;
     }
 }
@@ -52,7 +52,7 @@ void
 xqc_stream_ready_to_read (xqc_stream_t *stream)
 {
     if (!(stream->stream_flag & XQC_SF_READY_TO_READ)) {
-        TAILQ_INSERT_TAIL(&stream->stream_conn->conn_read_streams, stream, next_read_stream);
+        xqc_list_add_tail(&stream->read_stream_list, &stream->stream_conn->conn_read_streams);
         stream->stream_flag |= XQC_SF_READY_TO_READ;
     }
 
@@ -70,7 +70,7 @@ void
 xqc_stream_shutdown_read (xqc_stream_t *stream)
 {
     if (stream->stream_flag & XQC_SF_READY_TO_READ) {
-        TAILQ_REMOVE(&stream->stream_conn->conn_read_streams, stream, next_read_stream);
+        xqc_list_del_init(&stream->read_stream_list);
         stream->stream_flag &= ~XQC_SF_READY_TO_READ;
     }
 }
@@ -102,7 +102,7 @@ xqc_create_stream (xqc_connection_t *conn,
         return NULL;
     }
 
-    TAILQ_INIT(&stream->stream_data_in.frames_tailq);
+    xqc_init_list_head(&stream->stream_data_in.frames_tailq);
 
     xqc_stream_ready_to_write(stream);
 
@@ -297,7 +297,10 @@ xqc_process_write_streams (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
     xqc_stream_t *stream;
-    TAILQ_FOREACH(stream, &conn->conn_write_streams, next_write_stream) {
+    xqc_list_head_t *pos;
+
+    xqc_list_for_each(pos, &conn->conn_write_streams) {
+        stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
         stream->stream_if->stream_write_notify(stream->user_data, stream);
     }
 }
@@ -307,7 +310,10 @@ xqc_process_read_streams (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
     xqc_stream_t *stream;
-    TAILQ_FOREACH(stream, &conn->conn_read_streams, next_read_stream) {
+    xqc_list_head_t *pos;
+
+    xqc_list_for_each(pos, &conn->conn_read_streams) {
+        stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
         stream->stream_if->stream_read_notify(stream->user_data, stream);
     }
 }

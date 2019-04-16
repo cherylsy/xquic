@@ -6,6 +6,7 @@
 #include "../include/xquic_typedef.h"
 #include "../include/xquic.h"
 #include "xqc_frame.h"
+#include "../common/xqc_list.h"
 
 typedef enum {
     XQC_CLI_BID = 0,
@@ -21,14 +22,11 @@ typedef enum {
 } xqc_stream_flag_t;
 
 
-TAILQ_HEAD(xqc_stream_frame_tailq, xqc_stream_frame_t);
-typedef struct xqc_stream_frame_tailq xqc_stream_frame_tailq_t;
-
 
 /* Put all STREAM data here */
 typedef struct xqc_stream_data_in_s {
     /* A list of STREAM frame, order by offset */
-    xqc_stream_frame_tailq_t        frames_tailq;
+    xqc_list_head_t                 frames_tailq; /* xqc_stream_frame_t */
     unsigned                        frames_num;
     uint64_t                        stream_length;
     unsigned char                   fin_received;
@@ -41,9 +39,8 @@ struct xqc_stream_s {
     xqc_stream_id_t         stream_id;
     xqc_stream_id_type_t    stream_id_type;
     uint64_t                stream_send_offset;
-    TAILQ_ENTRY(xqc_stream_s)
-                            next_write_stream,
-                            next_read_stream;
+    xqc_list_head_t         write_stream_list,
+                            read_stream_list;
     void                    *user_data;
     xqc_stream_callbacks_t  *stream_if;
     xqc_stream_flag_t       stream_flag;
