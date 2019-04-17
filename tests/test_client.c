@@ -26,6 +26,15 @@ typedef struct client_ctx_s {
 client_ctx_t ctx;
 struct event_base *eb;
 
+static inline uint64_t now()
+{
+    /*获取毫秒单位时间*/
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t ul = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    return  ul;
+}
+
 int xqc_client_conn_notify(void *user_data, xqc_connection_t *conn) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
@@ -82,7 +91,7 @@ recv_handler(int fd, short what, void *arg)
 
         if (xqc_engine_packet_process(ctx->engine, send_buff[idx], send_buff_len[idx],
                                       ctx->local_addr, ctx->local_addrlen,
-                                      ctx->peer_addr, ctx->peer_addrlen, 0)) {
+                                      ctx->peer_addr, ctx->peer_addrlen, now())) {
             printf("xqc_engine_packet_process error\n");
         }
     //}
