@@ -51,6 +51,8 @@ typedef enum {
     XQC_FRAME_BIT_NUM               = 1 << XQC_FRAME_NUM,
 } xqc_frame_type_bit_t;
 
+#define XQC_IS_ACK_ELICITING(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING))
+
 /* Put one STREAM frame */
 typedef struct xqc_stream_frame_s {
     unsigned char   *data;

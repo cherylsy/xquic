@@ -6,6 +6,7 @@
 #include "../include/xquic_typedef.h"
 #include "xqc_packet.h"
 #include "../common/xqc_memory_pool.h"
+#include "xqc_frame.h"
 
 
 typedef enum {
@@ -24,6 +25,7 @@ typedef struct xqc_packet_out_s
     /* Largest Acknowledged in ACK frame, if there is no ACK frame, it should be 0 */
     xqc_packet_number_t     po_largest_ack;
     xqc_msec_t              po_sent_time;
+    xqc_frame_type_bit_t    po_frame_types;
 
 } xqc_packet_out_t;
 

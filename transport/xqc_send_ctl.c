@@ -127,7 +127,8 @@ xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t
             xqc_send_ctl_remove_unacked(pos);
 
             if (packet_out->po_pkt.pkt_num == lagest_ack &&
-                packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked) {
+                packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked &&
+                XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 update_rtt = 1;
             }
 
@@ -135,7 +136,7 @@ xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t
         }
     }
 
-    if (update_rtt) { //TODO: only update eliciting_packet
+    if (update_rtt) {
         xqc_send_ctl_update_rtt(ctl, ack_recv_time - ctl->ctl_largest_acked_sent_time, ack_info->ack_delay);
     }
 
