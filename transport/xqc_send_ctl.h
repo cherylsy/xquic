@@ -39,6 +39,10 @@ typedef struct xqc_send_ctl_s {
 
     xqc_send_ctl_timer_t        ctl_timer[XQC_TIMER_N];
 
+    xqc_msec_t                  ctl_srtt,
+                                ctl_rttvar,
+                                ctl_minrtt;
+
 } xqc_send_ctl_t;
 
 
@@ -80,6 +84,10 @@ static inline void
 xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 0;
+    ctl->ctl_timer[type].ctl_expire_time = 0;
 }
+
+void
+xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t latest_rtt, xqc_msec_t ack_delay);
 
 #endif //_XQC_SEND_CTL_H_INCLUDED_

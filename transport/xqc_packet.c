@@ -1002,7 +1002,10 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
     }
 
     if (conn->ack_eliciting_pkt[pns] >= 2 || out_of_order) {
+
         conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
+        xqc_send_ctl_timer_unset(conn->conn_send_ctl, XQC_TIMER_ACK_INIT << pns);
+
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack|out_of_order=%d|ack_eliciting_pkt=%d|",
                 out_of_order, conn->ack_eliciting_pkt[pns]);
     } else if (conn->ack_eliciting_pkt[pns] > 0) {

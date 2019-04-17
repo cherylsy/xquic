@@ -39,7 +39,6 @@ xqc_should_generate_ack(xqc_connection_t *conn)
     if (conn->conn_flag & XQC_CONN_FLAG_SHOULD_ACK) {
         return 1;
     }
-    //TODO: 收到乱序包直接回ack，超过max_ack_delay直接回ack
     return 0;
 }
 

@@ -3,6 +3,7 @@
 #include "xqc_packet.h"
 #include "xqc_packet_out.h"
 #include "xqc_frame.h"
+#include "xqc_conn.h"
 
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn)
@@ -14,6 +15,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     }
 
     send_ctl->ctl_conn = conn;
+    send_ctl->ctl_minrtt = 0xffffffff;
+
     xqc_init_list_head(&send_ctl->ctl_packets);
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
@@ -84,7 +87,7 @@ xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t
 {
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
-    unsigned char estimate_rtt = 0;
+    unsigned char update_rtt = 0;
     xqc_packet_number_t lagest_ack = ack_info->ranges[0].high;
     xqc_packet_number_t smallest_unack;
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
@@ -123,16 +126,17 @@ xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t
             //remove from unacked list
             xqc_send_ctl_remove_unacked(pos);
 
-            if (packet_out->po_pkt.pkt_num == lagest_ack) {
-                estimate_rtt = 1;
+            if (packet_out->po_pkt.pkt_num == lagest_ack &&
+                packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked) {
+                update_rtt = 1;
             }
 
             //TODO: free packet_out
         }
     }
 
-    if (estimate_rtt) {
-        //TODO: 估算RTT
+    if (update_rtt) { //TODO: only update eliciting_packet
+        xqc_send_ctl_update_rtt(ctl, ack_recv_time - ctl->ctl_largest_acked_sent_time, ack_info->ack_delay);
     }
 
     if (pns == XQC_PNS_01RTT) {
@@ -173,10 +177,48 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
     for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
         timer = &ctl->ctl_timer[type];
         if (timer->ctl_timer_is_set && timer->ctl_expire_time < now) {
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
+                    "|xqc_send_ctl_timer_expire|type=%d|", type);
             timer->ctl_timer_callback(type, timer->ctl_ctx);
-            timer->ctl_timer_is_set = 0;
+            xqc_send_ctl_timer_unset(ctl, type);
         }
     }
 }
 
+/**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.6
+ */
+void
+xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t latest_rtt, xqc_msec_t ack_delay)
+{
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
+            "|before update rtt|srtt=%ui, rttvar=%ui, minrtt=%ui, latest_rtt=%ui, ack_delay=%ui",
+            ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, latest_rtt, ack_delay);
+    // min_rtt ignores ack delay.
+    ctl->ctl_minrtt = latest_rtt < ctl->ctl_minrtt ? latest_rtt : ctl->ctl_minrtt;
+    // Limit ack_delay by max_ack_delay
+    ack_delay = ack_delay < ctl->ctl_conn->trans_param.max_ack_delay ?
+            ack_delay : ctl->ctl_conn->trans_param.max_ack_delay;
+    // Adjust for ack delay if it's plausible.
+    if (latest_rtt - ctl->ctl_minrtt > ack_delay) {
+        latest_rtt -= ack_delay;
+    }
+    // Based on {{RFC6298}}.
+    if (ctl->ctl_srtt == 0) {
+        ctl->ctl_srtt = latest_rtt;
+        ctl->ctl_rttvar = latest_rtt >> 1;
+    } else {
+        /*rttvar_sample = abs(smoothed_rtt - latest_rtt)
+         rttvar = 3/4 * rttvar + 1/4 * rttvar_sample
+         smoothed_rtt = 7/8 * smoothed_rtt + 1/8 * latest_rtt*/
+        ctl->ctl_rttvar -= ctl->ctl_rttvar >> 2;
+        ctl->ctl_rttvar += llabs(ctl->ctl_srtt - latest_rtt) >> 2;
+
+        ctl->ctl_srtt -= ctl->ctl_srtt >> 3;
+        ctl->ctl_srtt += latest_rtt >> 3;
+    }
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
+            "|after update rtt|srtt=%ui, rttvar=%ui, minrtt=%ui, latest_rtt=%ui, ack_delay=%ui",
+            ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, latest_rtt, ack_delay);
+}
 
