@@ -11,6 +11,7 @@
 #include "xqc_stream.h"
 #include "../common/xqc_hash.h"
 #include "xqc_frame_parser.h"
+#include "../common/xqc_timer.h"
 
 void xqc_conns_init_trans_param(xqc_connection_t *conn)
 {
@@ -238,6 +239,11 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                 xqc_gen_padding_frame(packet_out);
             }
             conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
+
+            packet_out->po_sent_time = xqc_gettimeofday();
+            if (packet_out->po_pkt.pkt_num > conn->conn_send_ctl->ctl_largest_sent) {
+                conn->conn_send_ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
+            }
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);

@@ -39,7 +39,6 @@ xqc_should_generate_ack(xqc_connection_t *conn)
     if (conn->conn_flag & XQC_CONN_FLAG_SHOULD_ACK) {
         return 1;
     }
-    //TODO: 收到乱序包直接回ack，超过max_ack_delay直接回ack
     return 0;
 }
 
@@ -59,6 +58,8 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 
     packet_out->po_used_size += size;
     packet_out->po_largest_ack = largest_ack;
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
 
     conn->ack_eliciting_pkt[pns] = 0;
     if (has_gap) {
