@@ -247,8 +247,9 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);
-            xqc_send_ctl_insert_unacked(&packet_out->po_list,
-                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns]);
+            xqc_send_ctl_insert_unacked(packet_out,
+                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                        conn->conn_send_ctl);
         }
     }
     //TODO: del packet_out

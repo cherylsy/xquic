@@ -6,6 +6,21 @@
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 
+
+#define XQC_kPacketThreshold 3
+#define XQC_kMaxDatagramSize 1200
+#define XQC_kMinimumWindow (2 * XQC_kMaxDatagramSize)
+/*The RECOMMENDED value is the minimum of 10 *
+kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
+#define XQC_kInitialWindow (10 * XQC_kMaxDatagramSize)
+#define XQC_kPersistentCongestionThreshold 2
+#define XQC_kLossReductionFactor (0.5f)
+/*Timer granularity.  This is a system-dependent value.
+However, implementations SHOULD use a value no smaller than 1ms.*/
+#define XQC_kGranularity 1
+#define XQC_kInitialRtt 100
+
+
 typedef enum {
     XQC_TIMER_ACK_INIT,
     XQC_TIMER_ACK_HSK = XQC_TIMER_ACK_INIT + XQC_PNS_HSK,
@@ -25,23 +40,35 @@ typedef struct {
 typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
+    xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
     xqc_connection_t            *ctl_conn;
-    /* 已发送的最大packet number*/
-    xqc_packet_number_t         ctl_largest_sent;
-    /* packet_out中被ACK的最大的packet number */
-    xqc_packet_number_t         ctl_largest_acked;
-    /* packet_out的发送时间 */
-    xqc_msec_t                  ctl_largest_acked_sent_time;
 
     /* 发送ACK且被ACK的packet_out中，Largest Acknowledged的最大值
      * 确保了ACK已被对端收到，因此发送方可以不再生成小于该值的ACK*/
     xqc_packet_number_t         ctl_largest_ack_both[XQC_PNS_N];
 
-    xqc_send_ctl_timer_t        ctl_timer[XQC_TIMER_N];
+    /* 已发送的最大packet number*/
+    xqc_packet_number_t         ctl_largest_sent;
 
+    /* packet_out中被ACK的最大的packet number */
+    xqc_packet_number_t         ctl_largest_acked[XQC_PNS_N];
+
+    /* packet_out的发送时间 */
+    xqc_msec_t                  ctl_largest_acked_sent_time[XQC_PNS_N];
+
+    xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
+
+    xqc_msec_t                  ctl_recovery_start_time;
     xqc_msec_t                  ctl_srtt,
                                 ctl_rttvar,
                                 ctl_minrtt;
+
+    xqc_send_ctl_timer_t        ctl_timer[XQC_TIMER_N];
+
+    unsigned                    ctl_bytes_in_flight;
+    unsigned                    ctl_congestion_window;
+    unsigned                    ctl_ssthresh;
+
 
 } xqc_send_ctl_t;
 
@@ -56,16 +83,22 @@ int
 xqc_send_ctl_can_send (xqc_connection_t *conn);
 
 void
-xqc_send_ctl_remove_unacked(xqc_list_head_t *pos);
+xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
 
 void
-xqc_send_ctl_insert_unacked(xqc_list_head_t *pos, xqc_list_head_t *head);
+xqc_send_ctl_insert_unacked(xqc_packet_out_t *packet_out, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_remove_send(xqc_list_head_t *pos);
 
 void
 xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head);
+
+void
+xqc_send_ctl_remove_lost(xqc_list_head_t *pos);
+
+void
+xqc_send_ctl_insert_lost(xqc_list_head_t *pos, xqc_list_head_t *head);
 
 void
 xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
@@ -87,7 +120,31 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
     ctl->ctl_timer[type].ctl_expire_time = 0;
 }
 
+int
+xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time);
+
 void
 xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t latest_rtt, xqc_msec_t ack_delay);
+
+void
+xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t latest_rtt, xqc_msec_t now);
+
+int
+xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost);
+
+int
+xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t congestion_period);
+
+void
+xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_msec_t sent_time);
+
+int
+xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_msec_t sent_time);
+
+int
+xqc_send_ctl_is_app_limited();
+
+void
+xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet);
 
 #endif //_XQC_SEND_CTL_H_INCLUDED_

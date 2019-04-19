@@ -10,7 +10,7 @@
 
 
 typedef enum {
-RESERVE
+    XQC_POF_IN_FLIGHT        = 1 << 0,
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_packet_out_s
