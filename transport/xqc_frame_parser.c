@@ -246,9 +246,9 @@ xqc_parse_frames(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 void
 xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
 {
-    if (packet_out->po_used_size < 1200) {
-        memset(packet_out->po_buf + packet_out->po_used_size, 0, 1200 - packet_out->po_used_size);
-        packet_out->po_used_size = 1200;
+    if (packet_out->po_used_size < XQC_PACKET_INITIAL_MIN_LENGTH) {
+        memset(packet_out->po_buf + packet_out->po_used_size, 0, XQC_PACKET_INITIAL_MIN_LENGTH - packet_out->po_used_size);
+        packet_out->po_used_size = XQC_PACKET_INITIAL_MIN_LENGTH;
         xqc_long_packet_update_length(packet_out);
     }
 }

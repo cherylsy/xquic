@@ -4,6 +4,8 @@
 #include "xqc_packet_out.h"
 #include "xqc_frame.h"
 #include "xqc_conn.h"
+#include "../common/xqc_timer.h"
+
 
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn)
@@ -15,9 +17,12 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     }
 
     send_ctl->ctl_conn = conn;
-    send_ctl->ctl_minrtt = 0xffffffff;
+    send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
+    send_ctl->ctl_congestion_window = XQC_kInitialWindow;
+    send_ctl->ctl_ssthresh = XQC_MAX_UINT32_VALUE;
 
     xqc_init_list_head(&send_ctl->ctl_packets);
+    xqc_init_list_head(&send_ctl->ctl_lost_packets);
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
     }
@@ -58,15 +63,31 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
 }
 
 void
-xqc_send_ctl_remove_unacked(xqc_list_head_t *pos)
+xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 {
-    xqc_list_del_init(pos);
+    xqc_list_del_init(&packet_out->po_list);
+
+    if (packet_out->po_flag & XQC_POF_IN_FLIGHT) {
+        if (ctl->ctl_bytes_in_flight < packet_out->po_used_size) {
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
+            ctl->ctl_bytes_in_flight = 0;
+            packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
+            return;
+        }
+        ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
+        packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
+    }
 }
 
 void
-xqc_send_ctl_insert_unacked(xqc_list_head_t *pos, xqc_list_head_t *head)
+xqc_send_ctl_insert_unacked(xqc_packet_out_t *packet_out, xqc_list_head_t *head, xqc_send_ctl_t *ctl)
 {
-    xqc_list_add_tail(pos, head);
+    xqc_list_add_tail(&packet_out->po_list, head);
+
+    if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types) && !(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
+        ctl->ctl_bytes_in_flight += packet_out->po_used_size;
+        packet_out->po_flag |= XQC_POF_IN_FLIGHT;
+    }
 }
 
 void
@@ -81,70 +102,18 @@ xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head)
     xqc_list_add_tail(pos, head);
 }
 
-
-int
-xqc_process_ack (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
+void
+xqc_send_ctl_remove_lost(xqc_list_head_t *pos)
 {
-    xqc_packet_out_t *packet_out;
-    xqc_list_head_t *pos, *next;
-    unsigned char update_rtt = 0;
-    xqc_packet_number_t lagest_ack = ack_info->ranges[0].high;
-    xqc_packet_number_t smallest_unack;
-    xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
-    xqc_pkt_num_space_t pns = ack_info->pns;
-
-    if (lagest_ack > ctl->ctl_largest_sent) {
-        return XQC_ERROR;
-    }
-
-    packet_out = xqc_list_entry(&ctl->ctl_unacked_packets[pns], xqc_packet_out_t, po_list);
-    if (packet_out == NULL) {
-        return XQC_OK;
-    }
-
-    smallest_unack = packet_out->po_pkt.pkt_num;
-
-    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
-        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (packet_out->po_pkt.pkt_num > lagest_ack) {
-            break;
-        }
-        while (packet_out->po_pkt.pkt_num > range->high && range != ack_info->ranges) {
-            --range;
-        }
-
-        if (packet_out->po_pkt.pkt_num >= range->low) {
-            if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_acked) {
-                ctl->ctl_largest_acked = packet_out->po_pkt.pkt_num;
-                ctl->ctl_largest_acked_sent_time = packet_out->po_sent_time;
-            }
-
-            if (packet_out->po_largest_ack > ctl->ctl_largest_ack_both[pns]) {
-                ctl->ctl_largest_ack_both[pns] = packet_out->po_largest_ack;
-            }
-
-            //remove from unacked list
-            xqc_send_ctl_remove_unacked(pos);
-
-            if (packet_out->po_pkt.pkt_num == lagest_ack &&
-                packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked &&
-                XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-                update_rtt = 1;
-            }
-
-            //TODO: free packet_out
-        }
-    }
-
-    if (update_rtt) {
-        xqc_send_ctl_update_rtt(ctl, ack_recv_time - ctl->ctl_largest_acked_sent_time, ack_info->ack_delay);
-    }
-
-    if (pns == XQC_PNS_01RTT) {
-        xqc_recv_record_del(&ctl->ctl_conn->recv_record[XQC_PNS_01RTT], ctl->ctl_largest_ack_both[XQC_PNS_01RTT] + 1);
-    }
-    return XQC_OK;
+    xqc_list_del_init(pos);
 }
+
+void
+xqc_send_ctl_insert_lost(xqc_list_head_t *pos, xqc_list_head_t *head)
+{
+    xqc_list_add_tail(pos, head);
+}
+
 
 /* timer callbacks */
 void xqc_send_ctl_ack_expired(xqc_send_ctl_timer_type type, void *ctx)
@@ -188,6 +157,79 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
 
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.6
+ * OnAckReceived
+ */
+int
+xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
+{
+    xqc_packet_out_t *packet_out;
+    xqc_list_head_t *pos, *next;
+    unsigned char update_rtt = 0;
+    xqc_packet_number_t lagest_ack = ack_info->ranges[0].high;
+    xqc_packet_number_t smallest_unack;
+    xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
+    xqc_pkt_num_space_t pns = ack_info->pns;
+
+    if (lagest_ack > ctl->ctl_largest_sent) {
+        return XQC_ERROR;
+    }
+
+    packet_out = xqc_list_entry(&ctl->ctl_unacked_packets[pns], xqc_packet_out_t, po_list);
+    if (packet_out == NULL) {
+        return XQC_OK;
+    }
+
+    smallest_unack = packet_out->po_pkt.pkt_num;
+
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_pkt.pkt_num > lagest_ack) {
+            break;
+        }
+        while (packet_out->po_pkt.pkt_num > range->high && range != ack_info->ranges) {
+            --range;
+        }
+
+        if (packet_out->po_pkt.pkt_num >= range->low) {
+            if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_acked[pns]) {
+                ctl->ctl_largest_acked[pns] = packet_out->po_pkt.pkt_num;
+                ctl->ctl_largest_acked_sent_time[pns] = packet_out->po_sent_time;
+            }
+
+            if (packet_out->po_largest_ack > ctl->ctl_largest_ack_both[pns]) {
+                ctl->ctl_largest_ack_both[pns] = packet_out->po_largest_ack;
+            }
+
+            xqc_send_ctl_on_packet_acked(ctl, packet_out);
+
+            //remove from unacked list
+            xqc_send_ctl_remove_unacked(packet_out, ctl);
+
+            if (packet_out->po_pkt.pkt_num == lagest_ack &&
+                packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked[pns] &&
+                XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+                update_rtt = 1;
+            }
+
+            //TODO: free packet_out
+        }
+    }
+
+    if (update_rtt) {
+        xqc_send_ctl_update_rtt(ctl, ack_recv_time - ctl->ctl_largest_acked_sent_time[pns], ack_info->ack_delay);
+    }
+
+    xqc_send_ctl_detect_lost(ctl, pns, ack_recv_time - ctl->ctl_largest_acked_sent_time[pns], ack_recv_time);
+
+    xqc_recv_record_del(&ctl->ctl_conn->recv_record[XQC_PNS_01RTT], ctl->ctl_largest_ack_both[XQC_PNS_01RTT] + 1);
+
+    return XQC_OK;
+}
+
+
+/**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.6
+ * UpdateRtt
  */
 void
 xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t latest_rtt, xqc_msec_t ack_delay)
@@ -195,15 +237,18 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t latest_rtt, xqc_msec_t a
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
             "|before update rtt|srtt=%ui, rttvar=%ui, minrtt=%ui, latest_rtt=%ui, ack_delay=%ui",
             ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, latest_rtt, ack_delay);
+
     // min_rtt ignores ack delay.
-    ctl->ctl_minrtt = latest_rtt < ctl->ctl_minrtt ? latest_rtt : ctl->ctl_minrtt;
+    ctl->ctl_minrtt = xqc_min(latest_rtt, ctl->ctl_minrtt);
     // Limit ack_delay by max_ack_delay
-    ack_delay = ack_delay < ctl->ctl_conn->trans_param.max_ack_delay ?
-            ack_delay : ctl->ctl_conn->trans_param.max_ack_delay;
+    ack_delay = xqc_min(ack_delay, ctl->ctl_conn->trans_param.max_ack_delay);
+
+
     // Adjust for ack delay if it's plausible.
     if (latest_rtt - ctl->ctl_minrtt > ack_delay) {
         latest_rtt -= ack_delay;
     }
+
     // Based on {{RFC6298}}.
     if (ctl->ctl_srtt == 0) {
         ctl->ctl_srtt = latest_rtt;
@@ -218,8 +263,185 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t latest_rtt, xqc_msec_t a
         ctl->ctl_srtt -= ctl->ctl_srtt >> 3;
         ctl->ctl_srtt += latest_rtt >> 3;
     }
+
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
             "|after update rtt|srtt=%ui, rttvar=%ui, minrtt=%ui, latest_rtt=%ui, ack_delay=%ui",
             ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, latest_rtt, ack_delay);
+}
+
+/**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.10
+ * DetectLostPackets
+ */
+void
+xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t latest_rtt, xqc_msec_t now)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_packet_out_t *po, *largest_lost = NULL;
+    int is_in_flight;
+
+    ctl->ctl_loss_time[pns] = 0;
+
+    /* loss_delay = 9/8 * max(latest_rtt, smoothed_rtt) */
+    xqc_msec_t loss_delay = xqc_max(latest_rtt, ctl->ctl_srtt);
+    loss_delay += loss_delay >> 3;
+
+    // Packets sent before this time are deemed lost.
+    xqc_msec_t lost_send_time = now - loss_delay;
+
+    // Packets with packet numbers before this are deemed lost.
+    xqc_packet_number_t  lost_pn = ctl->ctl_largest_acked[pns] - XQC_kPacketThreshold;
+
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
+        po = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (po->po_pkt.pkt_num > ctl->ctl_largest_acked[pns]) {
+            continue;
+        }
+
+        // Mark packet as lost, or set time when it should be marked.
+        if (po->po_sent_time <= lost_send_time || po->po_pkt.pkt_num <= lost_pn) {
+            is_in_flight = po->po_flag & XQC_POF_IN_FLIGHT;
+            xqc_send_ctl_remove_unacked(po, ctl);
+            if (is_in_flight) {
+                xqc_send_ctl_insert_lost(pos, &ctl->ctl_lost_packets);
+            }
+
+            if (largest_lost == NULL) {
+                largest_lost = po;
+            } else {
+                largest_lost = po->po_pkt.pkt_num > largest_lost->po_pkt.pkt_num ? po : largest_lost;
+            }
+        } else {
+            if (ctl->ctl_loss_time[pns] == 0) {
+                ctl->ctl_loss_time[pns] = po->po_sent_time + loss_delay;
+            } else {
+                ctl->ctl_loss_time[pns] = xqc_min(ctl->ctl_loss_time[pns], po->po_sent_time + loss_delay);
+            }
+        }
+    }
+    /**
+     * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B.8
+     * OnPacketsLost
+     */
+    if (largest_lost) {
+        // Start a new congestion epoch if the last lost packet
+        // is past the end of the previous recovery epoch.
+        xqc_send_ctl_congestion_event(ctl, largest_lost->po_sent_time);
+
+        // Collapse congestion window if persistent congestion
+        if (xqc_send_ctl_in_persistent_congestion(ctl, largest_lost)) {
+            ctl->ctl_congestion_window = XQC_kMinimumWindow;
+        }
+    }
+}
+
+/**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B.8
+ * InPersistentCongestion
+ */
+int
+xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost)
+{
+    xqc_msec_t pto = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) +
+          ctl->ctl_conn->trans_param.max_ack_delay;
+    xqc_msec_t congestion_period =
+            pto * ( (2 << (XQC_kPersistentCongestionThreshold - 1)) - 1); //trick 2 ^ kPersistentCongestionThreshold
+    // Determine if all packets in the window before the
+    // newest lost packet, including the edges, are marked
+    // lost
+    return xqc_send_ctl_is_window_lost(ctl, largest_lost, congestion_period);
+}
+
+/**
+ * https://tools.ietf.org/html/draft-ietf-quic-recovery-19#section-7.7
+ * IsWindowLost
+ */
+int
+xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t congestion_period)
+{
+    //TODO: 有疑问
+    xqc_list_head_t *pos;
+    xqc_packet_out_t *packet_out, *smallest_lost_in_period;
+    unsigned in_period_num = 0;
+
+    xqc_list_for_each(pos, &ctl->ctl_lost_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (smallest_lost_in_period == NULL) {
+            smallest_lost_in_period = packet_out;
+        } else if (packet_out->po_pkt.pkt_num < smallest_lost_in_period->po_pkt.pkt_num) {
+            smallest_lost_in_period = packet_out;
+        }
+
+        if (packet_out->po_sent_time < largest_lost->po_sent_time) {
+            ++in_period_num;
+        }
+    }
+
+    if (largest_lost->po_pkt.pkt_num - smallest_lost_in_period->po_pkt.pkt_num == in_period_num &&
+            largest_lost->po_sent_time - smallest_lost_in_period->po_sent_time >= congestion_period) {
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B.6
+ * CongestionEvent
+ */
+void
+xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_msec_t sent_time)
+{
+    // Start a new congestion event if the sent time is larger
+    // than the start time of the previous recovery epoch.
+    if (!xqc_send_ctl_in_recovery(ctl, sent_time)) {
+        ctl->ctl_recovery_start_time = xqc_gettimeofday();
+        ctl->ctl_congestion_window *= XQC_kLossReductionFactor;
+        ctl->ctl_congestion_window = xqc_max(ctl->ctl_congestion_window, XQC_kMinimumWindow);
+        ctl->ctl_ssthresh = ctl->ctl_congestion_window;
+    }
+}
+
+/**
+ * InRecovery
+ */
+int
+xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_msec_t sent_time)
+{
+    return sent_time <= ctl->ctl_recovery_start_time;
+}
+
+/**
+ * IsAppLimited
+ */
+int
+xqc_send_ctl_is_app_limited()
+{
+    return 0;
+}
+
+/**
+ * OnPacketAckedCC
+ */
+void
+xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet)
+{
+    if (xqc_send_ctl_in_recovery(ctl, acked_packet->po_sent_time)) {
+        // Do not increase congestion window in recovery period.
+        return;
+    }
+    if (xqc_send_ctl_is_app_limited()) {
+        // Do not increase congestion_window if application
+        // limited.
+        return;
+    }
+    if (ctl->ctl_congestion_window < ctl->ctl_ssthresh) {
+        // Slow start.
+        ctl->ctl_congestion_window += acked_packet->po_used_size;
+    }
+    else {
+        // Congestion avoidance.
+        ctl->ctl_congestion_window += XQC_kMaxDatagramSize * acked_packet->po_used_size / ctl->ctl_congestion_window;
+    }
+
 }
 
