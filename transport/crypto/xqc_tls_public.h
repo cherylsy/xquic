@@ -24,6 +24,10 @@
  */
 #define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
 
+#define XQC_TRUE 1
+#define XQC_FALSE 0
+
+#define XQC_UINT32_MAX  (0xffffffff)
 /**
  * @macro
  *
@@ -202,6 +206,7 @@ typedef struct {
 struct xqc_ssl_config {
     char       *private_key_file;
     char       *cert_file;
+    char       *session_path;
     const char *ciphers;
     const char *groups;
 };
@@ -253,6 +258,7 @@ typedef struct {
 
 struct xqc_tlsref{
     int server;
+    uint8_t resumption;
     unsigned int flags;
     uint64_t max_local_stream_id_bidi;
     uint64_t max_local_stream_id_uni;
@@ -270,6 +276,7 @@ struct xqc_tlsref{
     xqc_crypto_km_t        early_ckm;
     xqc_vec_t              early_hp;
 
+    xqc_ssl_config_t *     sc;
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
 

@@ -164,12 +164,11 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
             break;
         default:
             return SSL_TLSEXT_ERR_NOACK;
-
-            *out = (const uint8_t *)(alpn + 1);
-            *outlen = alpn[0];
-
-            return SSL_TLSEXT_ERR_OK;
     }
+    *out = (const uint8_t *)(alpn + 1);
+    *outlen = alpn[0];
+
+    return SSL_TLSEXT_ERR_OK;
 }
 
 
