@@ -10,6 +10,7 @@
 #include "../common/xqc_log.h"
 #include "xqc_engine.h"
 #include "xqc_packet_in.h"
+#include "xqc_packet_out.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
@@ -180,6 +181,11 @@ void xqc_destroy_connection(xqc_connection_t *xc);
 
 void xqc_conn_send_packets (xqc_connection_t *conn);
 
+void xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+
+void xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn);
+
+void xqc_conn_send_probe_packets(xqc_connection_t *conn);
 
 xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 

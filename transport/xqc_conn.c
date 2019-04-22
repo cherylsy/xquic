@@ -234,27 +234,91 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (xqc_send_ctl_can_send(conn)) {
+        if (xqc_send_ctl_can_send(conn)) { //TODO: 保证packet number大的，发送时间最新
             if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT) {
                 xqc_gen_padding_frame(packet_out);
             }
-            conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
 
-            packet_out->po_sent_time = xqc_gettimeofday();
-            if (packet_out->po_pkt.pkt_num > conn->conn_send_ctl->ctl_largest_sent) {
-                conn->conn_send_ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
-            }
+            xqc_conn_send_one_packet(conn, packet_out);
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);
             xqc_send_ctl_insert_unacked(packet_out,
                                         &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
                                         conn->conn_send_ctl);
+
         }
     }
     //TODO: del packet_out
 }
 
+void
+xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+{
+    conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
+    xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out);
+}
+
+void
+xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
+{
+    xqc_packet_out_t *packet_out;
+    xqc_list_head_t *pos, *next;
+    xqc_pkt_num_space_t pns;
+
+    for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
+        xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
+            packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+                //TODO: change packet number
+
+                xqc_conn_send_one_packet(conn, packet_out);
+            }
+        }
+    }
+}
+
+/**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#section-6.3.2
+ */
+void
+xqc_conn_send_probe_packets(xqc_connection_t *conn)
+{
+    unsigned cnt = 0, probe_num = 2;
+    xqc_pkt_num_space_t pns;
+    xqc_packet_out_t *packet_out;
+    xqc_list_head_t *pos, *next;
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (xqc_send_ctl_can_send(conn)) {
+            xqc_conn_send_one_packet(conn, packet_out);
+
+            /* move send list to unacked list */
+            xqc_send_ctl_remove_send(&packet_out->po_list);
+            xqc_send_ctl_insert_unacked(packet_out,
+                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                        conn->conn_send_ctl);
+            if (++cnt >= probe_num) {
+                return;
+            }
+        }
+    }
+
+    for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
+        xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
+            packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+                //TODO: change packet number
+
+                xqc_conn_send_one_packet(conn, packet_out);
+                if (++cnt >= probe_num) {
+                    return;
+                }
+            }
+        }
+    }
+}
 
 xqc_int_t
 xqc_conn_check_handshake_completed(xqc_connection_t *conn)
