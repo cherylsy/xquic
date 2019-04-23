@@ -24,9 +24,9 @@ typedef struct xqc_server_ctx_s {
     int fd;
     xqc_engine_t *engine;
     xqc_connection_t *conn;
-    struct sockaddr *local_addr;
+    struct sockaddr_in local_addr;
     socklen_t local_addrlen;
-    struct sockaddr *peer_addr;
+    struct sockaddr_in peer_addr;
     socklen_t peer_addrlen;
     uint64_t send_offset;
     xqc_stream_t *stream;
@@ -87,16 +87,44 @@ void
 xqc_server_read_handler(xqc_server_ctx_t *ctx)
 {
     DEBUG
+
     size_t recv_size = 0;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t recv_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
-    if (xqc_engine_packet_process(ctx->engine, recv_buf, recv_size, 
+    /* recv udp packet */
+    ssize_t  n;
+    struct iovec  iov[1];
+    struct msghdr msg;    
+    unsigned char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
+    unsigned char packet_buf[1500];
+
+    iov[0].iov_base = (void *) packet_buf;
+    iov[0].iov_len = sizeof(packet_buf);
+
+    msg.msg_name = &ctx.local_addr;
+    msg.msg_namelen = ctx.local_addrlen;
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
+
+    if (ctx.local_addr.sa_family == AF_INET) {
+        msg.msg_control = &msg_control;
+        msg.msg_controllen = sizeof(msg_control);
+    }
+
+    recv_size = recvmsg(ctx->fd, &msg, 0);
+
+    if (recv_size < 0) {
+        printf("xqc_server_read_handler: recvmsg = %z\n", recv_size);
+        return;
+    }
+
+    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             ctx->local_addr, ctx->local_addrlen, 
                             ctx->peer_addr, ctx->peer_addrlen, (xqc_msec_t)recv_time) != 0)
     {
-        printf("xqc_server_read_handler: packet process err");
+        printf("xqc_server_read_handler: packet process err\n");
     }
 }
 
@@ -132,7 +160,7 @@ xqc_server_event_callback(int fd, short what, void *arg)
 static int xqc_create_socket(const char *addr, unsigned int port)
 {
     int fd;
-    struct sockaddr_in saddr;
+    struct sockaddr_in *saddr = &ctx.local_addr;
     struct hostent *ent;
     int optval;
 
@@ -159,13 +187,14 @@ static int xqc_create_socket(const char *addr, unsigned int port)
         goto err;
     }
 
-    memset(&saddr, 0, sizeof(saddr));
+    memset(saddr, 0, sizeof(struct sockaddr_in));
+    ctx.local_addrlen = sizeof(struct sockaddr_in);
 
-    saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(port);
-    saddr.sin_addr = *((struct in_addr *)ent->h_addr);
+    saddr->sin_family = AF_INET;
+    saddr->sin_port = htons(port);
+    saddr->sin_addr = *((struct in_addr *)ent->h_addr);
 
-    if (bind(fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+    if (bind(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("bind socket failed, errno: %d\n", errno);
         goto err;
     }
