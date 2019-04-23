@@ -5,6 +5,7 @@
 #include "../transport/xqc_client.h"
 #include "../include/xquic_typedef.h"
 #include "../common/xqc_str.h"
+#include "../congestion_control/xqc_new_reno.h"
 
 int xqc_client_conn_notify(void *user_data, xqc_connection_t *conn)
 {
@@ -19,7 +20,8 @@ void xqc_test_conn_create()
     xqc_engine_callback_t callback = {
         .conn_callbacks = {
             .conn_create_notify = xqc_client_conn_notify,
-        }
+        },
+        .cong_ctrl_callback = xqc_reno_cb,
     };
     xqc_engine_set_callback(engine, callback);
 

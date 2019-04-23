@@ -8,13 +8,7 @@
 
 
 #define XQC_kPacketThreshold 3
-#define XQC_kMaxDatagramSize 1200
-#define XQC_kMinimumWindow (2 * XQC_kMaxDatagramSize)
-/*The RECOMMENDED value is the minimum of 10 *
-kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
-#define XQC_kInitialWindow (10 * XQC_kMaxDatagramSize)
 #define XQC_kPersistentCongestionThreshold 2
-#define XQC_kLossReductionFactor (0.5f)
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
 #define XQC_kGranularity 1
@@ -61,7 +55,6 @@ typedef struct xqc_send_ctl_s {
 
     xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
 
-    xqc_msec_t                  ctl_recovery_start_time;
     xqc_msec_t                  ctl_time_of_last_sent_crypto_packet;
     xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet;
     xqc_msec_t                  ctl_srtt,
@@ -76,9 +69,9 @@ typedef struct xqc_send_ctl_s {
 
     unsigned                    ctl_bytes_in_flight;
     unsigned                    ctl_crypto_bytes_in_flight;
-    unsigned                    ctl_congestion_window;
-    unsigned                    ctl_ssthresh;
 
+    xqc_cong_ctrl_callback_t    *ctl_cong_callback;
+    void                        *ctl_cong;
 
 } xqc_send_ctl_t;
 

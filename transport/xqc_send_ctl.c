@@ -5,6 +5,7 @@
 #include "xqc_frame.h"
 #include "xqc_conn.h"
 #include "../common/xqc_timer.h"
+#include "../congestion_control/xqc_new_reno.h"
 
 
 xqc_send_ctl_t *
@@ -18,8 +19,6 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     send_ctl->ctl_conn = conn;
     send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
-    send_ctl->ctl_congestion_window = XQC_kInitialWindow;
-    send_ctl->ctl_ssthresh = XQC_MAX_UINT32_VALUE;
 
     xqc_init_list_head(&send_ctl->ctl_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
@@ -28,6 +27,9 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     }
 
     xqc_send_ctl_timer_init(send_ctl);
+
+    send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
+    send_ctl->ctl_cong_callback->xqc_cong_ctl_init(&send_ctl->ctl_cong, conn);
     return send_ctl;
 }
 
@@ -58,8 +60,13 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_nu
 int
 xqc_send_ctl_can_send (xqc_connection_t *conn)
 {
-    //TODO: check if can send
-    return 1;
+    int can = 1;
+    unsigned congestion_window =
+            conn->conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(conn->conn_send_ctl->ctl_cong);
+    if (conn->conn_send_ctl->ctl_bytes_in_flight >= congestion_window) {
+        can = 0;
+    }
+    return can;
 }
 
 void
@@ -396,7 +403,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 
         // Collapse congestion window if persistent congestion
         if (xqc_send_ctl_in_persistent_congestion(ctl, largest_lost)) {
-            ctl->ctl_congestion_window = XQC_kMinimumWindow;
+            ctl->ctl_cong_callback->xqc_cong_ctl_reset_cwnd(ctl->ctl_cong);
         }
     }
 }
@@ -457,24 +464,10 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
 void
 xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_msec_t sent_time)
 {
-    // Start a new congestion event if the sent time is larger
-    // than the start time of the previous recovery epoch.
-    if (!xqc_send_ctl_in_recovery(ctl, sent_time)) {
-        ctl->ctl_recovery_start_time = xqc_gettimeofday();
-        ctl->ctl_congestion_window *= XQC_kLossReductionFactor;
-        ctl->ctl_congestion_window = xqc_max(ctl->ctl_congestion_window, XQC_kMinimumWindow);
-        ctl->ctl_ssthresh = ctl->ctl_congestion_window;
-    }
+
+    ctl->ctl_cong_callback->xqc_cong_ctl_on_lost(ctl->ctl_cong, sent_time);
 }
 
-/**
- * InRecovery
- */
-int
-xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_msec_t sent_time)
-{
-    return sent_time <= ctl->ctl_recovery_start_time;
-}
 
 /**
  * IsAppLimited
@@ -491,23 +484,13 @@ xqc_send_ctl_is_app_limited()
 void
 xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet)
 {
-    if (xqc_send_ctl_in_recovery(ctl, acked_packet->po_sent_time)) {
-        // Do not increase congestion window in recovery period.
-        return;
-    }
     if (xqc_send_ctl_is_app_limited()) {
         // Do not increase congestion_window if application
         // limited.
         return;
     }
-    if (ctl->ctl_congestion_window < ctl->ctl_ssthresh) {
-        // Slow start.
-        ctl->ctl_congestion_window += acked_packet->po_used_size;
-    }
-    else {
-        // Congestion avoidance.
-        ctl->ctl_congestion_window += XQC_kMaxDatagramSize * acked_packet->po_used_size / ctl->ctl_congestion_window;
-    }
+
+    ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet->po_sent_time, acked_packet->po_used_size);
 
 }
 
