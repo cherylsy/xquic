@@ -44,6 +44,12 @@ set(
     common/xqc_str.c
 )
 
+set(
+    CONGESTION_CONTROL_SOURCES
+
+    congestion_control/xqc_new_reno.c
+)
+
 add_library(
     xquic
 
@@ -51,6 +57,7 @@ add_library(
 
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
+    ${CONGESTION_CONTROL_SOURCES}
 )
 
 ##### for unit test #########

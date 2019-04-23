@@ -292,6 +292,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
         xqc_engine_process_conn(conn, now);
 
+        xqc_conn_retransmit_lost_packets(conn);
         xqc_conn_send_packets(conn);
 
     }
