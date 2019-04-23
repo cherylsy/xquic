@@ -83,6 +83,9 @@ xqc_server_write_handler(xqc_server_ctx_t *ctx)
 }
 
 
+
+#define XQC_PACKET_TMP_BUF_LEN 1500
+
 void 
 xqc_server_read_handler(xqc_server_ctx_t *ctx)
 {
@@ -98,17 +101,17 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     struct iovec  iov[1];
     struct msghdr msg;    
     unsigned char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
-    unsigned char packet_buf[1500];
+    unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
     iov[0].iov_base = (void *) packet_buf;
-    iov[0].iov_len = sizeof(packet_buf);
+    iov[0].iov_len = XQC_PACKET_TMP_BUF_LEN;
 
-    msg.msg_name = &ctx.local_addr;
-    msg.msg_namelen = ctx.local_addrlen;
+    msg.msg_name = &ctx->local_addr;
+    msg.msg_namelen = ctx->local_addrlen;
     msg.msg_iov = iov;
     msg.msg_iovlen = 1;
 
-    if (ctx.local_addr.sa_family == AF_INET) {
+    if (ctx->local_addr.sin_family == AF_INET) {
         msg.msg_control = &msg_control;
         msg.msg_controllen = sizeof(msg_control);
     }
@@ -121,8 +124,8 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     }
 
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
-                            ctx->local_addr, ctx->local_addrlen, 
-                            ctx->peer_addr, ctx->peer_addrlen, (xqc_msec_t)recv_time) != 0)
+                            (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen, 
+                            (struct sockaddr *)(&ctx->peer_addr), ctx->peer_addrlen, (xqc_msec_t)recv_time) != 0)
     {
         printf("xqc_server_read_handler: packet process err\n");
     }
