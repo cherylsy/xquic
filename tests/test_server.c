@@ -42,8 +42,6 @@ struct event_base *eb;
 
 int xqc_server_conn_notify(xqc_connection_t *conn, void *user_data) {
     DEBUG;
-    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
-    ctx->stream = xqc_create_stream(conn, user_data);
     return 0;
 }
 
