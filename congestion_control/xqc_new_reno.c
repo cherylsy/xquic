@@ -22,19 +22,20 @@ static inline uint64_t now()
     return  ul;
 }
 
-xqc_new_reno_t xqc_new_reno;
-
-static xqc_int_t
-xqc_reno_init (void **cong_ctl, xqc_connection_t *conn)
+size_t
+xqc_reno_size ()
 {
-    *cong_ctl = &xqc_new_reno;
+    return sizeof(xqc_new_reno_t);
+}
 
-    xqc_new_reno_t *reno = (xqc_new_reno_t*)(*cong_ctl);
+static void
+xqc_reno_init (void *cong_ctl)
+{
+    xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
 
     reno->reno_congestion_window = XQC_kInitialWindow;
     reno->reno_ssthresh = 0xffffffff;
 
-    return 0;
 }
 
 /**
@@ -97,6 +98,7 @@ xqc_reno_reset_cwnd (void *cong_ctl)
 }
 
 const xqc_cong_ctrl_callback_t xqc_reno_cb = {
+    .xqc_cong_ctl_size      = xqc_reno_size,
     .xqc_cong_ctl_init      = xqc_reno_init,
     .xqc_cong_ctl_on_lost   = xqc_reno_on_lost,
     .xqc_cong_ctl_on_ack    = xqc_reno_on_ack,

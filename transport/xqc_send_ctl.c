@@ -29,7 +29,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_init(send_ctl);
 
     send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
-    send_ctl->ctl_cong_callback->xqc_cong_ctl_init(&send_ctl->ctl_cong, conn);
+    send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
+    send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
     return send_ctl;
 }
 
