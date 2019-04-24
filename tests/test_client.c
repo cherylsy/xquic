@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "xqc_cmake_config.h"
 #include "../include/xquic.h"
+#include "../congestion_control/xqc_new_reno.h"
 #include <event2/event.h>
 #include <memory.h>
 #include <sys/socket.h>
@@ -319,6 +320,7 @@ int main(int argc, char *argv[]) {
             },
             .read_socket = xqc_client_read_socket,
             .write_socket = xqc_client_write_socket,
+            .cong_ctrl_callback = xqc_reno_cb,
     };
     xqc_engine_set_callback(ctx.engine, callback);
 

@@ -8,6 +8,7 @@
 #include "xqc_cmake_config.h"
 #include "../include/xquic_typedef.h"
 #include "../include/xquic.h"
+#include "../congestion_control/xqc_new_reno.h"
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -228,6 +229,7 @@ int main(int argc, char *argv[]) {
                     .stream_read_notify = xqc_server_read_notify,
             },
             .write_socket = xqc_server_send,
+            .cong_ctrl_callback = xqc_reno_cb,
     };
     xqc_engine_set_callback(ctx.engine, callback);
 

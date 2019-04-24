@@ -28,7 +28,7 @@ xqc_create_packet_out (xqc_memory_pool_t *pool, xqc_send_ctl_t *ctl, enum xqc_pk
     //TODO calc packet number
     packet_out->po_pkt.pkt_num = 0;
 
-    xqc_list_add_tail(&packet_out->po_list, &ctl->ctl_packets);
+    xqc_send_ctl_insert_send(&packet_out->po_list, &ctl->ctl_packets);
 
     return packet_out;
 }

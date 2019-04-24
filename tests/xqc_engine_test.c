@@ -10,7 +10,7 @@
 #include "../common/xqc_str.h"
 #include "../common/xqc_timer.h"
 #include "../transport/xqc_conn.h"
-
+#include "../congestion_control/xqc_new_reno.h"
 
 
 void xqc_test_engine_create()
@@ -63,6 +63,7 @@ void xqc_test_engine_packet_process()
     engine->eng_callback.conn_callbacks.conn_create_notify = xqc_test_conn_create_notify;
     engine->eng_callback.conn_callbacks.conn_close_notify = xqc_test_conn_close_notify;    
     engine->eng_callback.write_socket = xqc_client_send;
+    engine->eng_callback.cong_ctrl_callback = xqc_reno_cb;
 
     xqc_msec_t recv_time = xqc_gettimeofday();
 

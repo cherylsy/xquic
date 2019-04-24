@@ -8,27 +8,24 @@
 
 
 #define XQC_kPacketThreshold 3
-#define XQC_kMaxDatagramSize 1200
-#define XQC_kMinimumWindow (2 * XQC_kMaxDatagramSize)
-/*The RECOMMENDED value is the minimum of 10 *
-kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
-#define XQC_kInitialWindow (10 * XQC_kMaxDatagramSize)
 #define XQC_kPersistentCongestionThreshold 2
-#define XQC_kLossReductionFactor (0.5f)
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
 #define XQC_kGranularity 1
 #define XQC_kInitialRtt 100
 
+//2^n
+#define xqc_send_ctl_pow(n) (1 << n)
 
 typedef enum {
     XQC_TIMER_ACK_INIT,
     XQC_TIMER_ACK_HSK = XQC_TIMER_ACK_INIT + XQC_PNS_HSK,
     XQC_TIMER_ACK_01RTT = XQC_TIMER_ACK_INIT + XQC_PNS_01RTT,
+    XQC_TIMER_LOSS_DETECTION,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 
-typedef void (*xqc_send_ctl_timer_callback)(xqc_send_ctl_timer_type type, void *ctx);
+typedef void (*xqc_send_ctl_timer_callback)(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx);
 
 typedef struct {
     uint8_t                     ctl_timer_is_set;
@@ -58,17 +55,23 @@ typedef struct xqc_send_ctl_s {
 
     xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
 
-    xqc_msec_t                  ctl_recovery_start_time;
+    xqc_msec_t                  ctl_time_of_last_sent_crypto_packet;
+    xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet;
     xqc_msec_t                  ctl_srtt,
                                 ctl_rttvar,
-                                ctl_minrtt;
+                                ctl_minrtt,
+                                ctl_latest_rtt;
 
     xqc_send_ctl_timer_t        ctl_timer[XQC_TIMER_N];
 
-    unsigned                    ctl_bytes_in_flight;
-    unsigned                    ctl_congestion_window;
-    unsigned                    ctl_ssthresh;
+    unsigned                    ctl_pto_count;
+    unsigned                    ctl_crypto_count;
 
+    unsigned                    ctl_bytes_in_flight;
+    unsigned                    ctl_crypto_bytes_in_flight;
+
+    xqc_cong_ctrl_callback_t    *ctl_cong_callback;
+    void                        *ctl_cong;
 
 } xqc_send_ctl_t;
 
@@ -120,14 +123,17 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
     ctl->ctl_timer[type].ctl_expire_time = 0;
 }
 
+void
+xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+
 int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time);
 
 void
-xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t latest_rtt, xqc_msec_t ack_delay);
+xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t ack_delay);
 
 void
-xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t latest_rtt, xqc_msec_t now);
+xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t now);
 
 int
 xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost);
@@ -146,5 +152,11 @@ xqc_send_ctl_is_app_limited();
 
 void
 xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet);
+
+void
+xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl);
+
+xqc_msec_t
+xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret);
 
 #endif //_XQC_SEND_CTL_H_INCLUDED_

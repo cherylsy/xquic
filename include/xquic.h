@@ -36,7 +36,11 @@ typedef struct xqc_stream_callbacks_s {
 } xqc_stream_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
-
+    xqc_int_t (*xqc_cong_ctl_init) (void **cong_ctl, xqc_connection_t *conn);
+    void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
+    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes);
+    uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+    void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
 
 
