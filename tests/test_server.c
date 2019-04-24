@@ -64,7 +64,7 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-ssize_t xqc_server_send(xqc_connection_t *c, unsigned char *buf, size_t size) {
+ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
     DEBUG;
     if (send_buff_idx >= max_pkt_num) {
         printf("exceed max_pkt_num\n");

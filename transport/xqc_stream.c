@@ -109,13 +109,13 @@ xqc_create_stream (xqc_connection_t *conn,
     return stream;
 }
 
-int xqc_crypto_stream_on_read (void *user_data, xqc_stream_t *stream)
+int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 {
     XQC_DEBUG_PRINT
     return 0;
 }
 
-int xqc_crypto_stream_on_write (void *user_data, xqc_stream_t *stream)
+int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 {
     XQC_DEBUG_PRINT
     char send_data[100] = {0};
@@ -211,8 +211,8 @@ int xqc_crypto_stream_on_write (void *user_data, xqc_stream_t *stream)
     stream->stream_conn->conn_state = next_state;
 
     /* send packet */
-    xqc_engine_callback_t *eng_callback = stream->stream_conn.engine.eng_callback;
-    int ret = eng_callback->write_socket(stream->stream_conn.user_data,
+    xqc_engine_callback_t *eng_callback = &stream->stream_conn->engine->eng_callback;
+    int ret = eng_callback->write_socket(stream->stream_conn->user_data,
                                          packet_out->po_buf, 
                                          packet_out->po_buf_size);
     if (ret < 0) {

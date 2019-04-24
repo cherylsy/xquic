@@ -6,7 +6,7 @@
 #include "../include/xquic_typedef.h"
 #include "../common/xqc_str.h"
 
-int xqc_client_conn_notify(void *user_data, xqc_connection_t *conn)
+int xqc_client_conn_notify(xqc_connection_t *conn, void *user_data)
 {
     //printf("%s\n",__FUNCTION__);
     return 0;
