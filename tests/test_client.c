@@ -6,21 +6,37 @@
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
+#define TEST_CLIENT_ADDR "127.0.0.1"
+#define TEST_CLIENT_PORT 24443
+
+#define TEST_SERVER_ADDR "127.0.0.1"
+#define TEST_SERVER_PORT 8443
+
+
 #define max_pkt_num 10
-char send_buff[max_pkt_num][1500];
+#define XQC_PACKET_TMP_BUF_LEN 1500
+
+char send_buff[max_pkt_num][XQC_PACKET_TMP_BUF_LEN];
 size_t send_buff_len[max_pkt_num];
 int send_buff_idx = 0;
 
+typedef struct user_conn_s {
+    int                 fd;
+    xqc_connection_t   *conn;
+
+    struct sockaddr    *local_addr;
+    socklen_t           local_addrlen;
+    struct sockaddr    *peer_addr;
+    socklen_t           peer_addrlen;
+
+    xqc_stream_t       *stream;
+} user_conn_t;
+
 typedef struct client_ctx_s {
-    int fd;
-    xqc_engine_t *engine;
-    xqc_connection_t *conn;
-    struct sockaddr *local_addr;
-    socklen_t local_addrlen;
-    struct sockaddr *peer_addr;
-    socklen_t peer_addrlen;
-    uint64_t send_offset;
-    xqc_stream_t *stream;
+    xqc_engine_t  *engine;
+    client_conn_t *my_conn;
+
+    uint64_t       send_offset;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -35,14 +51,106 @@ static inline uint64_t now()
     return  ul;
 }
 
-int xqc_client_conn_notify(void *user_data, xqc_connection_t *conn) {
+
+static ssize_t test_read_socket(void *user, uint8_t *buf, ssize_t len)
+{
+    user_conn_t *conn = (user_conn_t *) user;
+    ssize_t res;
+    int fd = conn->fd;
+
+    do {
+        res = read(fd, buf, len);
+    } while ((res < 0) && (errno == EINTR));
+
+    return res;
+}
+
+
+static ssize_t test_write_socket(void *user, uint8_t *buf, ssize_t len)
+{
+    user_conn_t *conn = (user_conn_t *) user;
+    ssize_t res;
+    int fd = conn->fd;
+
+    do {
+        res = write(fd, buf, len);
+    } while ((res < 0) && (errno == EINTR));
+
+    return res;
+}
+
+static int xqc_create_socket(const char *addr, unsigned int port)
+{
+    int fd;
+    struct sockaddr_in saddr;
+    struct hostent *remote;
+
+    remote = gethostbyname(addr);
+    if (remote == NULL) {
+        printf("can not resolve host name: %s\n", addr);
+        return -1;
+    }
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (fd < 0) {
+        printf("create socket failed, errno: %d\n", errno);
+        return -1;
+    }
+
+    if (fcntl(fd, F_SETFL, O_NONBLOCK) == -1) {
+        printf("set socket nonblock failed, errno: %d\n", errno);
+        goto err;
+    }
+
+    memset(&saddr, 0, sizeof(saddr));
+
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(port);
+    saddr.sin_addr = *((struct in_addr *)remote->h_addr);
+
+    if (connect(fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+        printf("connect socket failed, errno: %d\n", errno);
+        goto err;
+    }
+
+    return fd;
+
+  err:
+    close(fd);
+    return -1;
+}
+
+
+int xqc_client_conn_notify(xqc_connection_t *conn, void *user_data) {
     DEBUG;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
-    ctx->stream = xqc_create_stream(conn, user_data);
+
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+    user_conn->stream = xqc_create_stream(conn, user_data);    
+
+    struct sockaddr_in saddr;
+    struct hostent *remote;
+
+    remote = gethostbyname(TEST_SERVER_ADDR);
+    if (remote == NULL) {
+        printf("xqc_client_conn_notify can not resolve host name: %s\n", addr);
+        return -1;
+    }
+
+    memset(&saddr, 0, sizeof(saddr));
+
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(TEST_SERVER_PORT);
+    saddr.sin_addr = *((struct in_addr *)remote->h_addr);
+
+    if (connect(user_conn->fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+        printf("xqc_client_conn_notify conn socket failed, errno: %d\n", errno);
+        goto err;
+    }
+
     return 0;
 }
 
-int xqc_client_write_notify(void *user_data, xqc_stream_t *stream) {
+int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[1000] = {0};
@@ -51,7 +159,7 @@ int xqc_client_write_notify(void *user_data, xqc_stream_t *stream) {
     return 0;
 }
 
-int xqc_client_read_notify(void *user_data, xqc_stream_t *stream) {
+int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[100] = {0};
@@ -110,10 +218,82 @@ recv_handler(int fd, short what, void *arg)
     event_add(ev_tmo, &t);
 }
 
-static void
-timer_handler(int fd, short what, void *arg) {
-    DEBUG;
+
+void 
+xqc_client_write_handler(xqc_server_ctx_t *ctx)
+{
+    DEBUG
 }
+
+
+void 
+xqc_client_read_handler(xqc_server_ctx_t *ctx)
+{
+    DEBUG
+
+    size_t recv_size = 0;
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t recv_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+
+    /* recv udp packet */
+    ssize_t  n;
+    struct iovec  iov[1];
+    struct msghdr msg;    
+    unsigned char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
+    unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
+
+    iov[0].iov_base = (void *) packet_buf;
+    iov[0].iov_len = XQC_PACKET_TMP_BUF_LEN;
+
+    msg.msg_name = &ctx->local_addr;
+    msg.msg_namelen = ctx->local_addrlen;
+    msg.msg_iov = iov;
+    msg.msg_iovlen = 1;
+
+    if (ctx->local_addr.sin_family == AF_INET) {
+        msg.msg_control = &msg_control;
+        msg.msg_controllen = sizeof(msg_control);
+    }
+
+    recv_size = recvmsg(ctx->fd, &msg, 0);
+
+    if (recv_size < 0) {
+        printf("xqc_server_read_handler: recvmsg = %z\n", recv_size);
+        return;
+    }
+
+    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
+                            (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen, 
+                            (struct sockaddr *)(&ctx->peer_addr), ctx->peer_addrlen, (xqc_msec_t)recv_time) != 0)
+    {
+        printf("xqc_server_read_handler: packet process err\n");
+    }
+}
+
+
+static void
+xqc_client_event_callback(int fd, short what, void *arg)
+{
+    //DEBUG;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
+
+    if (what & EV_TIMEOUT) {
+        printf("event callback: timeout\n", what);
+        event_add(ctx->event, &t);
+        return;
+    }
+
+    if (what & EV_WRITE) {
+        xqc_client_write_handler(ctx);
+    } else if (what & EV_READ) {
+        xqc_client_read_handler(ctx);
+    } else {
+        printf("event callback: what=%d\n", what);
+        exit(1);
+    }
+}
+
 
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
@@ -132,26 +312,32 @@ int main(int argc, char *argv[]) {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
             },
-            .write_socket = xqc_client_send,
+            .write_socket = test_write_socket,
+            .read_socket = test_read_socket,
     };
     xqc_engine_set_callback(ctx.engine, callback);
 
-    eb = event_base_new();
+    ctx.my_conn = xqc_malloc(sizeof(user_conn_t));
+    if (ctx.my_conn == NULL) {
+        printf("xqc_malloc error\n");
+        return 0;
+    }
 
-    ctx.conn = xqc_connect(ctx.engine, &ctx);
-    if (!ctx.conn) {
+    ctx.my_conn->fd = xqc_create_socket(TEST_CLIENT_ADDR, TEST_CLIENT_PORT);
+    if (ctx.my_conn->fd < 0) {
+        printf("xqc_create_socket error\n");
+        return 0;
+    }
+
+    ctx.my_conn->conn = xqc_connect(ctx.engine, ctx.my_conn);
+    if (ctx.my_conn == NULL) {
         printf("xqc_connect error\n");
         return 0;
     }
 
-    struct event *ev_tmo = event_new(eb, -1, 0, recv_handler, &ctx);
-    struct timeval t;
-    t.tv_sec = 1;
-    t.tv_usec = 0;
-    event_add(ev_tmo, &t);
-
-    //struct event *ev_read = event_new(eb, sport->fd, EV_READ|EV_PERSIST, read_handler, sport);
-    //event_add(ev_read, NULL);
+    eb = event_base_new();
+    struct event *ev_tmo = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
+    event_add(ev_tmo, NULL);
 
     rc = xqc_engine_main_logic(ctx.engine);
     if (rc) {

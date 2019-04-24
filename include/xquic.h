@@ -13,17 +13,20 @@
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
 
-typedef ssize_t (*xqc_recv_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
-typedef ssize_t (*xqc_send_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_recv_pt)(void *user, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
-typedef int (*xqc_conn_notify_pt)(void *user_data, xqc_connection_t *conn);
+typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
 
-typedef int (*xqc_stream_notify_pt)(void *user_data, xqc_stream_t *stream);
-typedef int (*xqc_handshake_finished_pt)(void *user_data);
+typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
+typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
     xqc_conn_notify_pt          conn_close_notify;
+
+    /* for handshake done */
+    xqc_handshake_finished_pt   conn_handshake_finished;
 };
 
 typedef struct xqc_stream_callbacks_s {
@@ -71,9 +74,6 @@ typedef struct xqc_engine_callback_s {
 
     /* for stream notify */
     xqc_stream_callbacks_t      stream_callbacks;
-
-    /* for handshake done */
-    xqc_handshake_finished_pt   handshake_finished;
 }xqc_engine_callback_t;
 
 typedef struct xqc_engine_s {

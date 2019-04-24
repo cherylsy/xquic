@@ -15,10 +15,13 @@
 #define TEST_PORT 8443
 
 #define max_pkt_num 10
-char send_buff[max_pkt_num][1500];
+#define XQC_PACKET_TMP_BUF_LEN 1500
+
+char send_buff[max_pkt_num][XQC_PACKET_TMP_BUF_LEN];
 size_t send_buff_len[max_pkt_num];
 int send_buff_idx = 0;
-unsigned char recv_buf[1500];
+unsigned char recv_buf[XQC_PACKET_TMP_BUF_LEN];
+
 
 typedef struct xqc_server_ctx_s {
     int fd;
@@ -36,14 +39,14 @@ typedef struct xqc_server_ctx_s {
 xqc_server_ctx_t ctx;
 struct event_base *eb;
 
-int xqc_server_conn_notify(void *user_data, xqc_connection_t *conn) {
+int xqc_server_conn_notify(xqc_connection_t *conn, void *user_data) {
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     ctx->stream = xqc_create_stream(conn, user_data);
     return 0;
 }
 
-int xqc_server_write_notify(void *user_data, xqc_stream_t *stream) {
+int xqc_server_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     char buff[1000] = {0};
@@ -52,7 +55,7 @@ int xqc_server_write_notify(void *user_data, xqc_stream_t *stream) {
     return 0;
 }
 
-int xqc_server_read_notify(void *user_data, xqc_stream_t *stream) {
+int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     char buff[100] = {0};
@@ -82,9 +85,6 @@ xqc_server_write_handler(xqc_server_ctx_t *ctx)
     DEBUG
 }
 
-
-
-#define XQC_PACKET_TMP_BUF_LEN 1500
 
 void 
 xqc_server_read_handler(xqc_server_ctx_t *ctx)
@@ -242,10 +242,10 @@ int main(int argc, char *argv[]) {
     struct event *ev_tmo = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
     ctx.event = ev_tmo;
 
-    struct timeval t;
-    t.tv_sec = 1;
-    t.tv_usec = 0;
-    event_add(ev_tmo, &t);
+    //struct timeval t;
+    //t.tv_sec = 1;
+    //t.tv_usec = 0;
+    event_add(ev_tmo, NULL);
 
     event_base_dispatch(eb);
 

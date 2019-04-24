@@ -209,6 +209,18 @@ int xqc_crypto_stream_on_write (void *user_data, xqc_stream_t *stream)
             return -1;
     }
     stream->stream_conn->conn_state = next_state;
+
+    /* send packet */
+    xqc_engine_callback_t *eng_callback = stream->stream_conn.engine.eng_callback;
+    int ret = eng_callback->write_socket(stream->stream_conn.user_data,
+                                         packet_out->po_buf, 
+                                         packet_out->po_buf_size);
+    if (ret < 0) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, 
+                        "|crypto_stream_on_write|write socket ret = %d|", ret);
+        return -1;
+    }
+
     return 0;
 }
 

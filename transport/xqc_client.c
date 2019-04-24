@@ -30,6 +30,13 @@ xqc_connect(xqc_engine_t *engine, void *user_data)
         goto fail;
     }
 
+    ret = xqc_crypto_stream_on_write(NULL, xc->crypto_stream[XQC_ENC_LEV_INIT]);
+    if (ret != XQC_OK) {
+        xqc_log(engine->log, XQC_LOG_WARN, 
+                        "|xqc_connect|xqc_crypto_stream_on_write error|");
+        goto fail;
+    }
+
     return xc;
 
 fail:
