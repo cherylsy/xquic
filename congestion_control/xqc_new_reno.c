@@ -35,7 +35,7 @@ xqc_reno_init (void *cong_ctl)
 
     reno->reno_congestion_window = XQC_kInitialWindow;
     reno->reno_ssthresh = 0xffffffff;
-
+    reno->reno_recovery_start_time = 0;
 }
 
 /**
