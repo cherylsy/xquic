@@ -154,7 +154,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     /* Do callback */
-    if (xc->conn_callbacks.conn_create_notify(user_data, xc)) {
+    if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
         goto fail;
     }
 
