@@ -263,11 +263,6 @@ xqc_client_event_callback(int fd, short what, void *arg)
     //DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) arg;
 
-    if (what & EV_TIMEOUT) {
-        printf("event callback: timeout\n", what);
-        return;
-    }
-
     if (what & EV_WRITE) {
         xqc_client_write_handler(ctx);
     } else if (what & EV_READ) {

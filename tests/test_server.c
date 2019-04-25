@@ -136,15 +136,6 @@ xqc_server_event_callback(int fd, short what, void *arg)
 {
     //DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
-    struct timeval t;
-    t.tv_sec = 1;
-    t.tv_usec = 0;
-
-    if (what & EV_TIMEOUT) {
-        printf("event callback: timeout\n", what);
-        event_add(ctx->event, &t);
-        return;
-    }
 
     if (what & EV_WRITE) {
         xqc_server_write_handler(ctx);
@@ -154,8 +145,6 @@ xqc_server_event_callback(int fd, short what, void *arg)
         printf("event callback: what=%d\n", what);
         exit(1);
     }
-
-    event_add(ctx->event, &t);
 }
 
 
@@ -242,9 +231,6 @@ int main(int argc, char *argv[]) {
     struct event *ev_tmo = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
     ctx.event = ev_tmo;
 
-    //struct timeval t;
-    //t.tv_sec = 1;
-    //t.tv_usec = 0;
     event_add(ev_tmo, NULL);
 
     event_base_dispatch(eb);
