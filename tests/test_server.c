@@ -159,7 +159,7 @@ xqc_server_event_callback(int fd, short what, void *arg)
 }
 
 
-static int xqc_create_socket(const char *addr, unsigned int port)
+static int xqc_server_create_socket(const char *addr, unsigned int port)
 {
     int fd;
     struct sockaddr_in *saddr = &ctx.local_addr;
@@ -233,7 +233,7 @@ int main(int argc, char *argv[]) {
 
     eb = event_base_new();
 
-    ctx.fd = xqc_create_socket(TEST_ADDR, TEST_PORT);
+    ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
     if (ctx.fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;

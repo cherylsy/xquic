@@ -13,8 +13,6 @@
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
-#define TEST_CLIENT_ADDR "127.0.0.1"
-#define TEST_CLIENT_PORT 24443
 
 #define TEST_SERVER_ADDR "127.0.0.1"
 #define TEST_SERVER_PORT 8443
@@ -86,7 +84,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
     return res;
 }
 
-static int xqc_create_socket(const char *addr, unsigned int port)
+static int xqc_client_create_socket(const char *addr, unsigned int port)
 {
     int fd;
     struct sockaddr_in saddr;
@@ -132,27 +130,7 @@ int xqc_client_conn_notify(xqc_connection_t *conn, void *user_data) {
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
-    user_conn->stream = xqc_create_stream(conn, user_data);    
-
-    struct sockaddr_in saddr;
-    struct hostent *remote;
-
-    remote = gethostbyname(TEST_SERVER_ADDR);
-    if (remote == NULL) {
-        printf("xqc_client_conn_notify can not resolve host name: %s\n", TEST_SERVER_ADDR);
-        return -1;
-    }
-
-    memset(&saddr, 0, sizeof(saddr));
-
-    saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(TEST_SERVER_PORT);
-    saddr.sin_addr = *((struct in_addr *)remote->h_addr);
-
-    if (connect(user_conn->fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
-        printf("xqc_client_conn_notify conn socket failed, errno: %d\n", errno);
-        return -1;
-    }
+    user_conn->stream = xqc_create_stream(conn, user_data);
 
     return 0;
 }
@@ -330,7 +308,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    ctx.my_conn->fd = xqc_create_socket(TEST_CLIENT_ADDR, TEST_CLIENT_PORT);
+    ctx.my_conn->fd = xqc_client_create_socket(TEST_SERVER_ADDR, TEST_SERVER_PORT);
     if (ctx.my_conn->fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;

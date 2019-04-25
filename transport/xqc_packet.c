@@ -726,6 +726,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     }
 
     if (xqc_packet_version_check(c, version) != XQC_OK) {
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|version check err|");
         return XQC_ERROR;
     }
 
