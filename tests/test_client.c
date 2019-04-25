@@ -315,7 +315,7 @@ int main(int argc, char *argv[]) {
     }
 
     ctx.my_conn->conn = xqc_connect(ctx.engine, ctx.my_conn);
-    if (ctx.my_conn == NULL) {
+    if (ctx.my_conn->conn == NULL) {
         printf("xqc_connect error\n");
         return 0;
     }

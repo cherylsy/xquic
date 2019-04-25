@@ -255,7 +255,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* decrypt payload */
     pos += payload_len - packet_number_len;
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|", packet->pkt_num);
+    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|payload=%ui|", packet->pkt_num, payload_len);
     packet_in->pos = pos;
 
     /* finish parse & update conn state */
