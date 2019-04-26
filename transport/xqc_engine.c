@@ -263,8 +263,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
         if (xqc_send_ctl_can_send(conn)) {
             xqc_process_write_streams(conn);
         }
-    }
-    else {
+    } else {
         xqc_process_crypto_read_streams(conn);
         xqc_process_crypto_write_streams(conn);
     }
