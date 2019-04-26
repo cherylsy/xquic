@@ -128,6 +128,35 @@ xqc_create_stream (xqc_connection_t *conn,
 int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 {
     XQC_DEBUG_PRINT
+    xqc_pkt_num_space_t pns;
+    xqc_pkt_type_t pkt_type;
+    xqc_conn_state_t cur_state = stream->stream_conn->conn_state;
+    xqc_conn_state_t next_state;
+    switch (cur_state) {
+        case XQC_CONN_STATE_CLIENT_INITIAL_SENT:
+            next_state = XQC_CONN_STATE_CLIENT_INITIAL_RECVD;
+            break;
+        case XQC_CONN_STATE_CLIENT_INITIAL_RECVD:
+            next_state = XQC_CONN_STATE_ESTABED;
+            break;
+        case XQC_CONN_STATE_SERVER_INIT:
+            next_state = XQC_CONN_STATE_SERVER_INITIAL_RECVD;
+            break;
+        case XQC_CONN_STATE_SERVER_HANDSHAKE_SENT:
+            next_state = XQC_CONN_STATE_ESTABED;
+            break;
+        default:
+            return -1;
+    }
+
+    if (next_state == XQC_CONN_STATE_CLIENT_INITIAL_RECVD &&
+        stream->stream_conn->crypto_stream[XQC_ENC_LEV_HSK] == NULL) {
+        stream->stream_conn->crypto_stream[XQC_ENC_LEV_HSK] = xqc_create_crypto_stream(stream->stream_conn, NULL);
+    }
+    stream->stream_conn->conn_state = next_state;
+
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "xqc_crypto_stream_on_read cur_state=%d, next_state=%d",
+            cur_state, next_state);
     return 0;
 }
 
@@ -226,6 +255,8 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
     }
     stream->stream_conn->conn_state = next_state;
 
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "xqc_crypto_stream_on_write cur_state=%d, next_state=%d",
+        cur_state, next_state);
     return 0;
 }
 
@@ -330,12 +361,16 @@ void
 xqc_process_write_streams (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
+    xqc_int_t ret;
     xqc_stream_t *stream;
     xqc_list_head_t *pos;
 
     xqc_list_for_each(pos, &conn->conn_write_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
-        stream->stream_if->stream_write_notify(stream, stream->user_data);
+        ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
+        if (ret < 0) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err|%d|", ret);
+        }
     }
 }
 
@@ -343,12 +378,16 @@ void
 xqc_process_read_streams (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
+    xqc_int_t ret;
     xqc_stream_t *stream;
     xqc_list_head_t *pos;
 
     xqc_list_for_each(pos, &conn->conn_read_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
-        stream->stream_if->stream_read_notify(stream, stream->user_data);
+        ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
+        if (ret < 0) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err|%d|", ret);
+        }
     }
 }
 
@@ -356,11 +395,15 @@ void
 xqc_process_crypto_write_streams (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
+    xqc_int_t ret;
     xqc_stream_t *stream;
     for (int i = XQC_ENC_LEV_INIT; i < XQC_ENC_MAX_LEVEL; i++) {
         stream = conn->crypto_stream[i];
         if (stream && (stream->stream_flag & XQC_SF_READY_TO_WRITE)) {
-            stream->stream_if->stream_write_notify(stream, stream->user_data);
+            ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
+            if (ret < 0) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify crypto err|%d|", ret);
+            }
         }
     }
 }
@@ -369,11 +412,15 @@ void
 xqc_process_crypto_read_streams (xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
+    xqc_int_t ret;
     xqc_stream_t *stream;
     for (int i = XQC_ENC_LEV_INIT; i < XQC_ENC_MAX_LEVEL; i++) {
         stream = conn->crypto_stream[i];
         if (stream && (stream->stream_flag & XQC_SF_READY_TO_READ)) {
-            stream->stream_if->stream_read_notify(stream, stream->user_data);
+            ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
+            if (ret < 0) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify crypto err|%d|", ret);
+            }
         }
     }
 }

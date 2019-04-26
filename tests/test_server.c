@@ -65,16 +65,15 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
 
 ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
     DEBUG;
-    if (send_buff_idx >= max_pkt_num) {
-        printf("exceed max_pkt_num\n");
-        return -1;
-    }
-    memset(send_buff[send_buff_idx], 0, sizeof(send_buff[send_buff_idx]));
-    memcpy(send_buff[send_buff_idx], buf, size);
-    send_buff_len[send_buff_idx] = size;
-    printf("=> send_buff_size %zu\n", send_buff_len[send_buff_idx]);
-    send_buff_idx++;
-    return size;
+    ssize_t res;
+    int fd = ctx.fd;
+    printf("xqc_server_send size %zd\n",size);
+    do {
+        res = sendto(fd, buf, size, 0, (struct sockaddr*)&ctx.peer_addr, ctx.peer_addrlen);
+        printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
+    } while ((res < 0) && (errno == EINTR));
+
+    return res;
 }
 
 
@@ -90,37 +89,21 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
 {
     DEBUG
 
-    size_t recv_size = 0;
+    ssize_t recv_size = 0;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t recv_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
 
-    /* recv udp packet */
-    ssize_t  n;
-    struct iovec  iov[1];
-    struct msghdr msg;    
-    unsigned char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
-    iov[0].iov_base = (void *) packet_buf;
-    iov[0].iov_len = XQC_PACKET_TMP_BUF_LEN;
-
-    msg.msg_name = &ctx->local_addr;
-    msg.msg_namelen = ctx->local_addrlen;
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-
-    if (ctx->local_addr.sin_family == AF_INET) {
-        msg.msg_control = &msg_control;
-        msg.msg_controllen = sizeof(msg_control);
-    }
-
-    recv_size = recvmsg(ctx->fd, &msg, 0);
-
+    ctx->peer_addrlen = sizeof(ctx->peer_addr);
+    recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr*)&ctx->peer_addr, &ctx->peer_addrlen);
     if (recv_size < 0) {
-        printf("xqc_server_read_handler: recvmsg = %z\n", recv_size);
+        printf("xqc_server_read_handler: recvmsg = %zd\n", recv_size);
         return;
     }
+
+    printf("xqc_server_read_handler recv_size=%zd\n",recv_size);
 
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen, 
@@ -183,7 +166,7 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
 
     saddr->sin_family = AF_INET;
     saddr->sin_port = htons(port);
-    saddr->sin_addr = *((struct in_addr *)ent->h_addr);
+    saddr->sin_addr.s_addr = htonl(INADDR_ANY);
 
     if (bind(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("bind socket failed, errno: %d\n", errno);

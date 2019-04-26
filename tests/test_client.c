@@ -76,9 +76,10 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
     user_conn_t *conn = (user_conn_t *) user;
     ssize_t res;
     int fd = conn->fd;
-
+    printf("xqc_client_write_socket size %zd\n",size);
     do {
         res = write(fd, buf, size);
+        printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
 
     return res;
@@ -216,7 +217,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
 {
     DEBUG
 
-    size_t recv_size = 0;
+    ssize_t recv_size = 0;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t recv_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -244,9 +245,11 @@ xqc_client_read_handler(client_ctx_t *ctx)
     recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
 
     if (recv_size < 0) {
-        printf("xqc_server_read_handler: recvmsg = %z\n", recv_size);
+        printf("xqc_server_read_handler: recvmsg = %zd\n", recv_size);
         return;
     }
+
+    printf("xqc_client_read_handler recv_size=%zd\n",recv_size);
 
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen, 

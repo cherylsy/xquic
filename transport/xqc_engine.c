@@ -162,8 +162,12 @@ xqc_engine_create(xqc_engine_type_t engine_type)
     if (engine->config == NULL) {
         goto fail;
     }
-    
-    engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "log");
+
+    if (engine_type == XQC_ENGINE_SERVER) {
+        engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "slog");
+    } else {
+        engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "clog");
+    }
     if (engine->log == NULL) {
         goto fail;
     }
