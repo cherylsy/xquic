@@ -82,10 +82,24 @@ xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_h
     return stream;
 }
 
+static void
+xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_param_t *trans_param)
+{
+    stream->stream_flow_ctl.fc_max_stream_data_bidi_local = trans_param->initial_max_stream_data_bidi_local;
+    stream->stream_flow_ctl.fc_max_stream_data_bidi_remote = trans_param->initial_max_stream_data_bidi_remote;
+    stream->stream_flow_ctl.fc_max_stream_data_uni = trans_param->initial_max_stream_data_uni;
+}
+
 xqc_stream_t *
 xqc_create_stream (xqc_connection_t *conn,
                   void *user_data)
 {
+    if (conn->cur_stream_id_bidi_local >= conn->conn_flow_ctl.fc_max_streams_bidi) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|exceed max_streams_bidi|%d|",
+                conn->conn_flow_ctl.fc_max_streams_bidi);//TODO: send STREAMS_BLOCKED Frame
+        return NULL;
+    }
+
     xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t));
     if (stream == NULL) {
         return NULL;
@@ -96,6 +110,8 @@ xqc_create_stream (xqc_connection_t *conn,
     stream->stream_conn = conn;
     stream->stream_if = &conn->engine->eng_callback.stream_callbacks;
     stream->user_data = user_data;
+
+    xqc_stream_set_flow_ctl(stream, &conn->trans_param);
 
     xqc_id_hash_element_t e = {stream->stream_id, stream};
     if (xqc_id_hash_add(conn->streams_hash, e)) {
@@ -250,6 +266,17 @@ xqc_stream_send (xqc_stream_t *stream,
     uint8_t fin_only = fin && !send_data_size;
 
     while (offset < send_data_size || fin_only) {
+        if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {
+            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data|%d|",
+                    stream->stream_conn->conn_flow_ctl.fc_max_data);//TODO: send DATA_BLOCKED Frame
+            break;
+        }
+        if (stream->stream_send_offset >= stream->stream_flow_ctl.fc_max_stream_data_bidi_remote) {
+            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_stream_data_bidi_remote|%d|",
+                    stream->stream_flow_ctl.fc_max_stream_data_bidi_remote);//TODO: send STREAMS_DATA_BLOCKED Frame
+            break;
+        }
+
         unsigned int header_size = xqc_stream_frame_header_size(stream->stream_id,
                                                                 stream->stream_send_offset,
                                                                 send_data_size - offset);
@@ -284,6 +311,7 @@ xqc_stream_send (xqc_stream_t *stream,
         }
         offset += send_data_written;
         stream->stream_send_offset += send_data_written;
+        stream->stream_conn->conn_flow_ctl.fc_data_sent += send_data_written;
         packet_out->po_used_size += n_written;
 
         packet_out->po_frame_types |= XQC_FRAME_BIT_STREAM;

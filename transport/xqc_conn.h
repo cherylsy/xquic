@@ -96,14 +96,14 @@ typedef struct {
     xqc_cid_t               original_connection_id;
     xqc_msec_t              idle_timeout;
     xqc_buf_t               stateless_reset_token;
-    size_t                  max_packet_size;
-    size_t                  initial_max_data;
+    uint32_t                max_packet_size;
+    uint64_t                initial_max_data;
     uint64_t                initial_max_stream_data_bidi_local;
     uint64_t                initial_max_stream_data_bidi_remote;
     uint64_t                initial_max_stream_data_uni;
-    uint64_t                initial_max_streams_bidi;
-    uint64_t                initial_max_streams_uni;
-    uint64_t                ack_delay_exponent;
+    uint32_t                initial_max_streams_bidi;
+    uint32_t                initial_max_streams_uni;
+    uint32_t                ack_delay_exponent;
     xqc_msec_t              max_ack_delay;
     xqc_flag_t              disable_migration;
     xqc_preferred_address_t preferred_addr;
@@ -113,6 +113,15 @@ struct xqc_conn_settings_s {
 
 };
 
+typedef struct {
+    /* flow control limit */
+    uint64_t                fc_max_data;
+    uint64_t                fc_data_sent;
+    uint64_t                fc_date_recved;
+
+    uint32_t                fc_max_streams_bidi;
+    uint32_t                fc_max_streams_uni;
+} xqc_conn_flow_ctl_t;
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
@@ -153,16 +162,17 @@ struct xqc_connection_s{
 
     /* recovery state ctx */
 
-    /* congestion control ctx */
     xqc_send_ctl_t         *conn_send_ctl;
-    /* flag */
 
-    uint64_t                last_ticked_time;
-    uint64_t                next_tick_time;
+    xqc_msec_t              last_ticked_time;
+    xqc_msec_t              next_tick_time;
 
+    xqc_conn_flow_ctl_t     conn_flow_ctl;
 };
 
-void xqc_conns_init_trans_param(xqc_connection_t *conn);
+void xqc_conn_init_trans_param(xqc_connection_t *conn);
+
+void xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
 int xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms);
 

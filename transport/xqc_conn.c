@@ -13,11 +13,29 @@
 #include "xqc_frame_parser.h"
 #include "../common/xqc_timer.h"
 
-void xqc_conns_init_trans_param(xqc_connection_t *conn)
+void xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
     xqc_trans_param_t *param = &conn->trans_param;
     param->max_ack_delay = 25;
     param->ack_delay_exponent = 3;
+    //TODO: 临时值
+    param->initial_max_data = 1*1024*1024;
+    param->initial_max_stream_data_bidi_local = 100*1024;
+    param->initial_max_stream_data_bidi_remote = 100*1024;
+    param->initial_max_stream_data_uni = 100*1024;
+    param->initial_max_streams_bidi = 3;
+    param->initial_max_streams_uni = 3;
+}
+
+void xqc_conn_init_flow_ctl(xqc_connection_t *conn)
+{
+    xqc_trans_param_t *param = &conn->trans_param;
+    xqc_conn_flow_ctl_t *flow_ctl = &conn->conn_flow_ctl;
+    flow_ctl->fc_max_data = param->initial_max_data;
+    flow_ctl->fc_max_streams_bidi = param->initial_max_streams_bidi;
+    flow_ctl->fc_max_streams_uni = param->initial_max_streams_uni;
+    flow_ctl->fc_data_sent = 0;
+    flow_ctl->fc_date_recved = 0;
 }
 
 int
@@ -100,6 +118,10 @@ xqc_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
+    xqc_conn_init_trans_param(xc);
+    xqc_conn_init_flow_ctl(xc);
+
+
     xc->conn_pool = pool;
     xqc_cid_copy(&(xc->dcid), dcid);
     xqc_cid_copy(&(xc->scid), scid);
@@ -114,8 +136,6 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->conn_flag = XQC_CONN_FLAG_NONE;
     xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;
     xc->zero_rtt_count = 0;
-
-    xqc_conns_init_trans_param(xc);
 
     xc->conn_send_ctl = xqc_send_ctl_create(xc);
     if (xc->conn_send_ctl == NULL) {
