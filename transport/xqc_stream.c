@@ -307,7 +307,7 @@ xqc_process_write_streams (xqc_connection_t *conn)
 
     xqc_list_for_each(pos, &conn->conn_write_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
-        stream->stream_if->stream_write_notify(stream->user_data, stream);
+        stream->stream_if->stream_write_notify(stream, stream->user_data);
     }
 }
 
@@ -320,7 +320,7 @@ xqc_process_read_streams (xqc_connection_t *conn)
 
     xqc_list_for_each(pos, &conn->conn_read_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
-        stream->stream_if->stream_read_notify(stream->user_data, stream);
+        stream->stream_if->stream_read_notify(stream, stream->user_data);
     }
 }
 
@@ -332,7 +332,7 @@ xqc_process_crypto_write_streams (xqc_connection_t *conn)
     for (int i = XQC_ENC_LEV_INIT; i < XQC_ENC_MAX_LEVEL; i++) {
         stream = conn->crypto_stream[i];
         if (stream && (stream->stream_flag & XQC_SF_READY_TO_WRITE)) {
-            stream->stream_if->stream_write_notify(stream->user_data, stream);
+            stream->stream_if->stream_write_notify(stream, stream->user_data);
         }
     }
 }
@@ -345,7 +345,7 @@ xqc_process_crypto_read_streams (xqc_connection_t *conn)
     for (int i = XQC_ENC_LEV_INIT; i < XQC_ENC_MAX_LEVEL; i++) {
         stream = conn->crypto_stream[i];
         if (stream && (stream->stream_flag & XQC_SF_READY_TO_READ)) {
-            stream->stream_if->stream_read_notify(stream->user_data, stream);
+            stream->stream_if->stream_read_notify(stream, stream->user_data);
         }
     }
 }
