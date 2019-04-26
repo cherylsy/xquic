@@ -21,7 +21,11 @@ typedef enum {
     XQC_SF_READY_TO_READ    = 1 << 1,
 } xqc_stream_flag_t;
 
-
+typedef struct {
+    uint64_t                fc_max_stream_data_bidi_local;
+    uint64_t                fc_max_stream_data_bidi_remote;
+    uint64_t                fc_max_stream_data_uni;
+} xqc_stream_flow_ctl_t;
 
 /* Put all STREAM data here */
 typedef struct xqc_stream_data_in_s {
@@ -46,6 +50,8 @@ struct xqc_stream_s {
     xqc_stream_flag_t       stream_flag;
 
     xqc_stream_data_in_t    stream_data_in;
+
+    xqc_stream_flow_ctl_t   stream_flow_ctl;
 };
 
 void
