@@ -200,7 +200,8 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_INIT;
 
-    if (XQC_PACKET_IN_LEFT_SIZE(packet_in) < XQC_PACKET_INITIAL_MIN_LENGTH) {
+    if (c->conn_state == XQC_CONN_STATE_SERVER_INIT &&
+        XQC_PACKET_IN_LEFT_SIZE(packet_in) < XQC_PACKET_INITIAL_MIN_LENGTH) {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|initial size too small|%z|",
                                       XQC_PACKET_IN_LEFT_SIZE(packet_in));
         return XQC_ERROR;
@@ -274,7 +275,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     if (stream) {
         xqc_stream_ready_to_read(stream);
     } else {
-        xqc_create_crypto_stream(c, NULL);
+        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, NULL);
     }
     return XQC_OK;
 }
@@ -409,7 +410,7 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     if (stream) {
         xqc_stream_ready_to_read(stream);
     } else {
-        xqc_create_crypto_stream(c, NULL);
+        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, NULL);
     }
 
     return XQC_OK;
