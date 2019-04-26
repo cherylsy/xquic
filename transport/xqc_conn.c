@@ -174,7 +174,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     /* Do callback */
-    if (xc->conn_callbacks.conn_create_notify(user_data, xc)) {
+    if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
         goto fail;
     }
 
@@ -275,7 +275,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 void
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    conn->engine->eng_callback.write_socket(conn, packet_out->po_buf, packet_out->po_used_size);
+    conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out);
 }
 
