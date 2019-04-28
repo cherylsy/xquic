@@ -138,11 +138,12 @@ int xqc_client_conn_notify(xqc_connection_t *conn, void *user_data) {
 
 int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
+    int ret;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[1000] = {0};
-    xqc_stream_send(stream, buff, sizeof(buff), 1);
+    ret = xqc_stream_send(stream, buff, sizeof(buff), 1);
 
-    return 0;
+    return ret;
 }
 
 int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {

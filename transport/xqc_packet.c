@@ -159,6 +159,9 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
         c->discard_vn_flag = 1;
     }
 
+    //TODO: process frames
+    packet_in->pos = packet_in->last; //TODO: update in process frames
+
     return XQC_OK;
 }
 
@@ -259,15 +262,6 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|payload=%ui|", packet->pkt_num, payload_len);
     packet_in->pos = pos;
 
-    /* finish parse & update conn state */
-    if (c->conn_state == XQC_CONN_STATE_SERVER_INIT) {
-        c->conn_state = XQC_CONN_STATE_SERVER_INITIAL_RECVD;
-    }
-
-    if (c->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) {
-        c->conn_state = XQC_CONN_STATE_CLIENT_INITIAL_RECVD;
-    }
-
     /* insert Initial & Handshake into packet send queue */
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet->pkt_type);
@@ -275,7 +269,17 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     if (stream) {
         xqc_stream_ready_to_read(stream);
     } else {
-        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, NULL);
+        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, encrypt_level, NULL);
+        if (c->crypto_stream[encrypt_level] == NULL) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_initial|xqc_create_crypto_stream err|");
+            return XQC_ERROR;
+        }
+        xqc_stream_ready_to_read(c->crypto_stream[encrypt_level]);
+    }
+
+    if (c->conn_type == XQC_CONN_TYPE_SERVER &&
+        encrypt_level == XQC_ENC_LEV_INIT && c->crypto_stream[XQC_ENC_LEV_HSK] == NULL) {
+        c->crypto_stream[XQC_ENC_LEV_HSK] = xqc_create_crypto_stream(c, XQC_ENC_LEV_HSK, NULL);
     }
     return XQC_OK;
 }
@@ -388,11 +392,12 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* Length(i) */
     size = xqc_vint_read(pos, packet_in->last, &payload_len);
     if (size < 0 
-        || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len + packet_number_len) 
+        || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len/* + packet_number_len*/)
     {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_handshake|payload length err|");
         return XQC_ERROR;
     }
+    pos += size;
 
     /* packet number */
     xqc_packet_parse_packet_number(pos, packet_number_len, &packet->pkt_num);
@@ -410,7 +415,12 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     if (stream) {
         xqc_stream_ready_to_read(stream);
     } else {
-        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, NULL);
+        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, encrypt_level, NULL);
+        if (c->crypto_stream[encrypt_level] == NULL) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_initial|xqc_create_crypto_stream err|");
+            return XQC_ERROR;
+        }
+        xqc_stream_ready_to_read(c->crypto_stream[encrypt_level]);
     }
 
     return XQC_OK;

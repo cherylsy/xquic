@@ -7,6 +7,7 @@
 #include "../include/xquic.h"
 #include "xqc_frame.h"
 #include "../common/xqc_list.h"
+#include "xqc_packet.h"
 
 typedef enum {
     XQC_CLI_BID = 0,
@@ -48,7 +49,7 @@ struct xqc_stream_s {
     void                    *user_data;
     xqc_stream_callbacks_t  *stream_if;
     xqc_stream_flag_t       stream_flag;
-
+    xqc_encrypt_level_t     stream_encrypt_level;
     xqc_stream_data_in_t    stream_data_in;
 
     xqc_stream_flow_ctl_t   stream_flow_ctl;
@@ -83,6 +84,7 @@ xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_h
 
 xqc_stream_t *
 xqc_create_crypto_stream (xqc_connection_t *conn,
+                          xqc_encrypt_level_t encrypt_level,
                           void *user_data);
 
 int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data);
