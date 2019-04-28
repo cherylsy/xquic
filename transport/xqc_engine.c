@@ -262,14 +262,14 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 {
     xqc_send_ctl_timer_expire(conn->conn_send_ctl, now);
 
+    xqc_process_crypto_read_streams(conn);
+    xqc_process_crypto_write_streams(conn);
+
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
         xqc_process_read_streams(conn);
         if (xqc_send_ctl_can_send(conn)) {
             xqc_process_write_streams(conn);
         }
-    } else {
-        xqc_process_crypto_read_streams(conn);
-        xqc_process_crypto_write_streams(conn);
     }
 
     if (xqc_should_generate_ack(conn)) {
