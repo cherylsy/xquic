@@ -26,7 +26,7 @@ xqc_create_packet_out (xqc_memory_pool_t *pool, xqc_send_ctl_t *ctl, enum xqc_pk
     packet_out->po_pkt.pkt_pns = pns;
 
     //TODO calc packet number
-    packet_out->po_pkt.pkt_num = 0;
+    packet_out->po_pkt.pkt_num = ctl->ctl_packet_number[pns]++;
 
     xqc_send_ctl_insert_send(&packet_out->po_list, &ctl->ctl_packets);
 
@@ -36,7 +36,9 @@ xqc_create_packet_out (xqc_memory_pool_t *pool, xqc_send_ctl_t *ctl, enum xqc_pk
 int
 xqc_should_generate_ack(xqc_connection_t *conn)
 {
+    //xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_should_generate_ack|flag=%d|", conn->conn_flag);
     if (conn->conn_flag & XQC_CONN_FLAG_SHOULD_ACK) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_should_generate_ack yes|flag=%d|", conn->conn_flag);
         return 1;
     }
     return 0;
@@ -121,6 +123,8 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
             if (rc != XQC_OK) {
                 return XQC_ERROR;
             }
+
+            xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_write_ack_to_packets pns=%d", pns);
 
         }
     }

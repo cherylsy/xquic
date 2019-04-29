@@ -260,6 +260,10 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 void
 xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 {
+    xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_engine_process_conn %p", conn);
+
+    int ret;
+
     xqc_send_ctl_timer_expire(conn->conn_send_ctl, now);
 
     xqc_process_crypto_read_streams(conn);
@@ -273,7 +277,10 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
 
     if (xqc_should_generate_ack(conn)) {
-        xqc_write_ack_to_packets(conn);
+        ret = xqc_write_ack_to_packets(conn);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets error");
+        }
     }
 }
 
@@ -364,9 +371,16 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return XQC_ERROR;
     }
 
+    xqc_log(engine->log, XQC_LOG_DEBUG, "==> xqc_engine_packet_process conn=%p, size=%ui", conn, packet_in_size);
+
     /* process packets */    
     if (xqc_conn_process_packets(conn, packet_in) != XQC_OK) {
         return XQC_ERROR;
+    }
+
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
+        xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time);
+        conn->conn_flag |= XQC_CONN_FLAG_TICKING;
     }
 
 #if 1
