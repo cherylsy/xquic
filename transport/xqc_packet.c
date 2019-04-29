@@ -117,6 +117,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 
 
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
+    packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) < 1 + XQC_DEFAULT_CID_LEN) {
         return XQC_ERROR;
@@ -202,6 +203,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|initial|");
 
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_INIT;
+    packet_in->pi_pkt.pkt_pns = XQC_PNS_INIT;
 
     if (c->conn_state == XQC_CONN_STATE_SERVER_INIT &&
         XQC_PACKET_IN_LEFT_SIZE(packet_in) < XQC_PACKET_INITIAL_MIN_LENGTH) {
@@ -316,6 +318,7 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|0-RTT|");
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_0RTT;
+    packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
 
     if ((++c->zero_rtt_count) > XQC_PACKET_0RTT_MAX_COUNT) {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_zero_rtt|too many 0-RTT packets|");
@@ -381,17 +384,17 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|handshake|");
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_HSK;
-
+    packet_in->pi_pkt.pkt_pns = XQC_PNS_HSK;
 
     xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
 
-    pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH 
+    pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
            + packet->pkt_dcid.cid_len + packet->pkt_scid.cid_len;
     packet_in->pos = pos;
-    
+
     /* Length(i) */
     size = xqc_vint_read(pos, packet_in->last, &payload_len);
-    if (size < 0 
+    if (size < 0
         || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len/* + packet_number_len*/)
     {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_handshake|payload length err|");
@@ -1009,7 +1012,11 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
    determine whether an immediate or delayed acknowledgement should be
    generated after processing incoming packets.
     */
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack?|out_of_order=%d|ack_eliciting_pkt=%d|pns=%d|flag=%d|",
+            out_of_order, conn->ack_eliciting_pkt[pns], pns, conn->conn_flag);
+
     if (conn->conn_flag & (XQC_CONN_FLAG_SHOULD_ACK_INIT << pns)) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack already yes|");
         return;
     }
 
@@ -1018,8 +1025,8 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
         conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
         xqc_send_ctl_timer_unset(conn->conn_send_ctl, XQC_TIMER_ACK_INIT << pns);
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack|out_of_order=%d|ack_eliciting_pkt=%d|",
-                out_of_order, conn->ack_eliciting_pkt[pns]);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack yes|out_of_order=%d|ack_eliciting_pkt=%d|pns=%d|flag=%d|",
+                out_of_order, conn->ack_eliciting_pkt[pns], pns, conn->conn_flag);
     } else if (conn->ack_eliciting_pkt[pns] > 0) {
         xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_ACK_INIT << pns,
                                now + conn->trans_param.max_ack_delay);

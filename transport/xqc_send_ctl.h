@@ -40,6 +40,8 @@ typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
     xqc_connection_t            *ctl_conn;
 
+    xqc_packet_number_t         ctl_packet_number[XQC_PNS_N];
+
     /* 发送ACK且被ACK的packet_out中，Largest Acknowledged的最大值
      * 确保了ACK已被对端收到，因此发送方可以不再生成小于该值的ACK*/
     xqc_packet_number_t         ctl_largest_ack_both[XQC_PNS_N];
