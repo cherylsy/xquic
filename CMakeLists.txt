@@ -38,6 +38,8 @@ set(
     transport/crypto/xqc_tls_init.c
     transport/crypto/xqc_crypto.c
     transport/crypto/xqc_tls_cb.c
+    transport/crypto/xqc_tls_0rtt.c
+    transport/crypto/xqc_tls_if.c
 )
 
 set(
@@ -56,6 +58,11 @@ add_library(
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
 )
+link_directories( ./libs/openssl) 
+link_libraries( /home/dreamwind.ll/work/git/xquic/libs/openssl/libssl.so.3)
+link_libraries( /home/dreamwind.ll/work/git/xquic/libs/openssl/libcrypto.so.3)
+#target_link_libraries(libs/openssl/libssl.so.3)
+#target_link_libraries( libs/openssl/libcrypto.so.3)
 
 ##### for unit test #########
 find_package(CUnit 2.1)
@@ -69,13 +76,20 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
+add_executable(tls_server tests/tls_server.c)
+add_executable(test        tests/main.c)
 
 include_directories( /usr/local/include )
 #include_directories(/usr/local/ali-openssl/include/ )
-include_directories(/home/dreamwind.ll/git/openssl/include/ )
+include_directories(libs/openssl/include/ )
 include_directories(./transport/crypto/)
 link_directories( /usr/local/lib )
-
+link_directories( ./libs/openssl) 
 
 target_link_libraries(test_server xquic -levent)
 target_link_libraries(test_client xquic -levent)
+target_link_libraries(tls_server xquic )
+target_link_libraries(test xquic -lssl )
+target_link_libraries(test xquic -lcrypto)
+
+
