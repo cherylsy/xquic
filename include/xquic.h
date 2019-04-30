@@ -12,18 +12,22 @@
 #include "xquic_typedef.h"
 #include "xqc_tls_public.h"
 #define XQC_QUIC_VERSION 1
+#define XQC_SUPPORT_VERSION_MAX 64
 
-typedef ssize_t (*xqc_recv_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
-typedef ssize_t (*xqc_send_pt)(xqc_connection_t *c, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_recv_pt)(void *user, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
-typedef int (*xqc_conn_notify_pt)(void *user_data, xqc_connection_t *conn);
+typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
 
-typedef int (*xqc_stream_notify_pt)(void *user_data, xqc_stream_t *stream);
-typedef int (*xqc_handshake_finished_pt)(void *user_data);
+typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
+typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
     xqc_conn_notify_pt          conn_close_notify;
+
+    /* for handshake done */
+    xqc_handshake_finished_pt   conn_handshake_finished;
 };
 
 typedef struct xqc_stream_callbacks_s {
@@ -33,8 +37,14 @@ typedef struct xqc_stream_callbacks_s {
 } xqc_stream_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
-
+    size_t (*xqc_cong_ctl_size) ();
+    void (*xqc_cong_ctl_init) (void *cong_ctl);
+    void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
+    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes);
+    uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+    void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
+
 
 /**
  * @struct xqc_config_t
@@ -46,6 +56,8 @@ typedef struct xqc_config_s {
     size_t  streams_hash_bucket_size;
     size_t  conns_hash_bucket_size;
     size_t  conns_pq_capacity;
+    uint32_t  support_version_list[XQC_SUPPORT_VERSION_MAX]; /*支持的版本列表*/
+    uint32_t  support_version_count; /*版本列表数量*/
 }xqc_config_t;
 
 
@@ -68,9 +80,6 @@ typedef struct xqc_engine_callback_s {
 
     /* for stream notify */
     xqc_stream_callbacks_t      stream_callbacks;
-
-    /* for handshake done */
-    xqc_handshake_finished_pt   handshake_finished;
 }xqc_engine_callback_t;
 
 typedef struct xqc_engine_s {

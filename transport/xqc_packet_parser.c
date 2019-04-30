@@ -3,7 +3,7 @@
 #include "xqc_cid.h"
 #include "../common/xqc_variable_len_int.h"
 #include "xqc_packet_out.h"
-
+#include <arpa/inet.h>
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
 
@@ -132,6 +132,7 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
     first_byte |= pktno_bits;
     *dst_buf++ = first_byte;
 
+    ver = htonl(ver);
     memcpy(dst_buf, &ver, sizeof(ver));
     dst_buf += sizeof(ver);
 
@@ -149,7 +150,7 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
         vlen = xqc_vint_len(bits);
         xqc_vint_write(dst_buf, token_len, bits, vlen);
         dst_buf += vlen;
-        if (token > 0) {
+        if (token_len > 0) {
             memcpy(dst_buf, token, token_len);
             dst_buf += token_len;
         }

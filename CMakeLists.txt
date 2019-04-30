@@ -6,7 +6,7 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT")
 
 configure_file (
     xqc_cmake_config.h.in
@@ -50,6 +50,12 @@ set(
     common/xqc_str.c
 )
 
+set(
+    CONGESTION_CONTROL_SOURCES
+
+    congestion_control/xqc_new_reno.c
+)
+
 add_library(
     xquic
 
@@ -57,6 +63,7 @@ add_library(
 
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
+    ${CONGESTION_CONTROL_SOURCES}
 )
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)

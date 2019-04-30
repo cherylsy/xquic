@@ -6,6 +6,8 @@
 #include "../include/xquic_typedef.h"
 #include "../include/xquic.h"
 #include "xqc_frame.h"
+#include "../common/xqc_list.h"
+#include "xqc_packet.h"
 
 typedef enum {
     XQC_CLI_BID = 0,
@@ -20,15 +22,16 @@ typedef enum {
     XQC_SF_READY_TO_READ    = 1 << 1,
 } xqc_stream_flag_t;
 
-
-TAILQ_HEAD(xqc_stream_frame_tailq, xqc_stream_frame_t);
-typedef struct xqc_stream_frame_tailq xqc_stream_frame_tailq_t;
-
+typedef struct {
+    uint64_t                fc_max_stream_data_bidi_local;
+    uint64_t                fc_max_stream_data_bidi_remote;
+    uint64_t                fc_max_stream_data_uni;
+} xqc_stream_flow_ctl_t;
 
 /* Put all STREAM data here */
 typedef struct xqc_stream_data_in_s {
     /* A list of STREAM frame, order by offset */
-    xqc_stream_frame_tailq_t        frames_tailq;
+    xqc_list_head_t                 frames_tailq; /* xqc_stream_frame_t */
     unsigned                        frames_num;
     uint64_t                        stream_length;
     unsigned char                   fin_received;
@@ -41,14 +44,15 @@ struct xqc_stream_s {
     xqc_stream_id_t         stream_id;
     xqc_stream_id_type_t    stream_id_type;
     uint64_t                stream_send_offset;
-    TAILQ_ENTRY(xqc_stream_s)
-                            next_write_stream,
-                            next_read_stream;
+    xqc_list_head_t         write_stream_list,
+                            read_stream_list;
     void                    *user_data;
     xqc_stream_callbacks_t  *stream_if;
     xqc_stream_flag_t       stream_flag;
-
+    xqc_encrypt_level_t     stream_encrypt_level;
     xqc_stream_data_in_t    stream_data_in;
+
+    xqc_stream_flow_ctl_t   stream_flow_ctl;
 };
 
 void
@@ -80,7 +84,10 @@ xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_h
 
 xqc_stream_t *
 xqc_create_crypto_stream (xqc_connection_t *conn,
+                          xqc_encrypt_level_t encrypt_level,
                           void *user_data);
+
+int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data);
 
 #endif /* _XQC_STREAM_H_INCLUDED_ */
 

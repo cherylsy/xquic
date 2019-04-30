@@ -42,6 +42,9 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
         config->conns_pq_capacity = 8;
     }
 
+    config->support_version_count = 1;
+    config->support_version_list[0] = XQC_QUIC_VERSION;
+
     return config;
 }
 
@@ -159,8 +162,12 @@ xqc_engine_create(xqc_engine_type_t engine_type)
     if (engine->config == NULL) {
         goto fail;
     }
-    
-    engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "log");
+
+    if (engine_type == XQC_ENGINE_SERVER) {
+        engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "slog");
+    } else {
+        engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "clog");
+    }
     if (engine->log == NULL) {
         goto fail;
     }
@@ -251,17 +258,29 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 }
 
 void
-xqc_engine_process_conn (xqc_connection_t *conn)
+xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 {
+    xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_engine_process_conn %p", conn);
+
+    int ret;
+
+    xqc_send_ctl_timer_expire(conn->conn_send_ctl, now);
+
+    xqc_process_crypto_read_streams(conn);
+    xqc_process_crypto_write_streams(conn);
+
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
         xqc_process_read_streams(conn);
         if (xqc_send_ctl_can_send(conn)) {
             xqc_process_write_streams(conn);
         }
     }
-    else {
-        xqc_process_crypto_read_streams(conn);
-        xqc_process_crypto_write_streams(conn);
+
+    if (xqc_should_generate_ack(conn)) {
+        ret = xqc_write_ack_to_packets(conn);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets error");
+        }
     }
 }
 
@@ -272,17 +291,18 @@ xqc_engine_process_conn (xqc_connection_t *conn)
 int
 xqc_engine_main_logic (xqc_engine_t *engine)
 {
-    uint64_t now = xqc_gettimeofday();
+    xqc_msec_t now = xqc_gettimeofday();
     xqc_connection_t *conn;
 
     while (!xqc_pq_empty(engine->conns_pq)) {
         xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
         conn = el->conn;
         xqc_conns_pq_pop(engine->conns_pq);
-        conn->conn_flag &= ~XQC_CONN_FALG_TICKING;
+        conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
 
-        xqc_engine_process_conn(conn);
+        xqc_engine_process_conn(conn, now);
 
+        xqc_conn_retransmit_lost_packets(conn);
         xqc_conn_send_packets(conn);
 
     }
@@ -315,9 +335,10 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     }
 
     conn = xqc_engine_conns_hash_find(engine, &dcid);
-    
-    if (conn == NULL) {
-        xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ? 
+
+    /* client need user_data, do not auto create */
+    if (conn == NULL && engine->eng_type != XQC_ENGINE_CLIENT) {
+        xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ?
                                      XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
 
         conn = xqc_create_connection(engine, &dcid, &scid, 
@@ -329,11 +350,15 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create connection");
             return XQC_ERROR;
         }
-    
+
         if (xqc_engine_conns_hash_insert(engine, conn) != XQC_OK) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to insert conns hash");
             return XQC_ERROR;
         }
+    }
+    if (conn == NULL) {
+        xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection");
+        return XQC_ERROR;
     }
 
     /* create packet in */
@@ -346,16 +371,23 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return XQC_ERROR;
     }
 
+    xqc_log(engine->log, XQC_LOG_DEBUG, "==> xqc_engine_packet_process conn=%p, size=%ui", conn, packet_in_size);
+
     /* process packets */    
     if (xqc_conn_process_packets(conn, packet_in) != XQC_OK) {
         return XQC_ERROR;
     }
 
-#if 0
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
+        xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time);
+        conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+    }
+
+#if 1
     /* main logic */
     if (xqc_engine_main_logic(engine) != XQC_OK) {
         return XQC_ERROR;
     }
-#endif 
+#endif
     return XQC_OK;
 }

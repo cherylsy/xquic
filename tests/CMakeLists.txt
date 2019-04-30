@@ -20,6 +20,8 @@ if(HAVE_CUNIT)
     xqc_packet_test.c
     xqc_tls_init_test.c
     xqc_tls_cb_test.c
+    xqc_recv_record_test.c
+    xqc_reno_test.c
   )
 
 

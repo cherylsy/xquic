@@ -5,6 +5,7 @@
 #include "../include/xquic_typedef.h"
 #include "xqc_frame.h"
 #include "xqc_packet_in.h"
+#include "xqc_packet_out.h"
 
 /**
  * generate stream frame
@@ -21,5 +22,10 @@ int xqc_gen_crypto_frame(unsigned char *dst_buf, size_t dst_buf_len, size_t offs
 int xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
 
 int xqc_parse_frames(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+
+void xqc_gen_padding_frame(xqc_packet_out_t *packet_out);
+
+int xqc_gen_ack_frame(unsigned char *dst_buf, size_t dst_buf_len, xqc_msec_t now, int ack_delay_exponent,
+                      xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack);
 
 #endif /*_XQC_FRAME_PARSER_H_INCLUDED_*/
