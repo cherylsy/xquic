@@ -7,6 +7,10 @@
 #include "xqc_crypto.h"
 #include "include/xquic_typedef.h"
 #include "common/xqc_str.h"
+#include "common/xqc_list.h"
+#include "transport/xqc_frame.h"
+#include "xqc_tls_if.h"
+#include <ctype.h>
 
 #ifdef WORDS_BIGENDIAN
 #  define bswap64(N) (N)
@@ -26,6 +30,10 @@
 
 #define XQC_TRUE 1
 #define XQC_FALSE 0
+
+
+#define XQC_SERVER 1
+#define XQC_CLIENT 0
 
 #define XQC_UINT32_MAX  (0xffffffff)
 /**
@@ -54,7 +62,7 @@ typedef enum {
   //XQC_CONN_FLAG_NONE = 0x00,
   /* XQC_CONN_FLAG_HANDSHAKE_COMPLETED is set if handshake
      completed. */
-  //XQC_CONN_FLAG_HANDSHAKE_COMPLETED = 0x01,
+  XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX = 0x01,
   /* XQC_CONN_FLAG_CONN_ID_NEGOTIATED is set if connection ID is
      negotiated.  This is only used for client. */
   XQC_CONN_FLAG_CONN_ID_NEGOTIATED = 0x02,
@@ -101,6 +109,11 @@ typedef enum {
 #define XQC_MAX_CLIENT_ID_UNI 0x3fffffffffffff11ULL
 
 
+#define XQC_256_K  (256*1024)
+#define XQC_1_M (1024*1024)
+
+#define XQC_CONN_TIMEOUT 30
+
 typedef enum {
     XQC_TRANSPORT_PARAM_ORIGINAL_CONNECTION_ID = 0x0000,
     XQC_TRANSPORT_PARAM_IDLE_TIMEOUT = 0x0001,
@@ -116,6 +129,7 @@ typedef enum {
     XQC_TRANSPORT_PARAM_MAX_ACK_DELAY = 0x000b,
     XQC_TRANSPORT_PARAM_DISABLE_MIGRATION = 0x000c,
     XQC_TRANSPORT_PARAM_PREFERRED_ADDRESS = 0x000d,
+    XQC_TRANSPORT_PARAM_NO_CRYPTO = 0x1000,
 } xqc_transport_param_id;
 
 
@@ -130,6 +144,7 @@ typedef enum {
     XQC_PKT_FLAG_LONG_FORM = 0x01,
     XQC_PKT_FLAG_KEY_PHASE = 0x04
 } xqc_pkt_flag;
+
 
 
 /*@struct address
@@ -175,6 +190,7 @@ typedef struct {
     uint8_t disable_migration;
     uint8_t original_connection_id_present;
     uint64_t max_ack_delay;
+    uint16_t no_crypto;
 } xqc_transport_params_t;
 
 typedef enum {
@@ -200,6 +216,7 @@ typedef struct {
     uint64_t ack_delay_exponent;
     uint8_t disable_migration;
     uint64_t max_ack_delay;
+    uint16_t no_crypto;
 } xqc_settings_t;
 
 
@@ -209,9 +226,64 @@ struct xqc_ssl_config {
     char       *session_path;
     const char *ciphers;
     const char *groups;
+    uint32_t   timeout;
 };
 typedef struct xqc_ssl_config xqc_ssl_config_t;
 
+
+
+typedef struct {
+    xqc_client_initial client_initial;
+    xqc_recv_client_initial recv_client_initial;
+    xqc_recv_crypto_data recv_crypto_data;
+    xqc_handshake_completed handshake_completed;
+    xqc_recv_version_negotiation recv_version_negotiation;
+    /**
+     * in_encrypt is a callback function which is invoked to encrypt
+     * Initial packets.
+     */
+    xqc_encrypt_t in_encrypt;
+    /**
+     * in_decrypt is a callback function which is invoked to decrypt
+     * Initial packets.
+     */
+    xqc_decrypt_t in_decrypt;
+    /**
+     * encrypt is a callback function which is invoked to encrypt
+     * packets other than Initial packets.
+     */
+    xqc_encrypt_t encrypt;
+    /**
+     * decrypt is a callback function which is invoked to decrypt
+     * packets other than Initial packets.
+     */
+    xqc_decrypt_t decrypt;
+    /**
+     * in_hp_mask is a callback function which is invoked to get mask to
+     * encrypt or decrypt Initial packet header.
+     */
+    xqc_hp_mask_t in_hp_mask;
+    /**
+     * hp_mask is a callback function which is invoked to get mask to
+     * encrypt or decrypt packet header other than Initial packets.
+     */
+    xqc_hp_mask_t hp_mask;
+
+    xqc_recv_stream_data recv_stream_data;
+    xqc_acked_crypto_offset acked_crypto_offset;
+    xqc_acked_stream_data_offset acked_stream_data_offset;
+    xqc_stream_open stream_open;
+    xqc_stream_close stream_close;
+    xqc_recv_stateless_reset recv_stateless_reset;
+    xqc_recv_retry recv_retry;
+    xqc_extend_max_streams extend_max_streams_bidi;
+    xqc_extend_max_streams extend_max_streams_uni;
+    xqc_rand rand;
+    xqc_get_new_connection_id get_new_connection_id;
+    xqc_remove_connection_id remove_connection_id;
+    xqc_update_key update_key;
+    xqc_path_validation path_validation;
+} xqc_tls_callbacks_t;
 
 /**
  * @struct
@@ -253,7 +325,80 @@ typedef struct {
     xqc_crypto_km_t  tx_ckm;
     xqc_vec_t  rx_hp;  //header protect key
     xqc_vec_t  tx_hp;
+
+    xqc_list_head_t  msg_cb_head;
 }xqc_pktns_t;
+
+//for temporary
+#define MAX_HS_BUFFER (2*1024)
+struct xqc_hs_buffer{
+    xqc_list_head_t list_head;
+    //uint16_t read_n;
+    uint16_t data_len;
+    char data[MAX_HS_BUFFER];
+};
+typedef struct xqc_hs_buffer xqc_hs_buffer_t;
+
+
+static inline xqc_hs_buffer_t * xqc_create_hs_buffer(){
+
+    xqc_hs_buffer_t * p_buf = malloc(sizeof(xqc_hs_buffer_t));
+    if(p_buf == NULL)return NULL;
+    xqc_init_list_head(&p_buf->list_head);
+    p_buf->data_len = 0;
+    return p_buf;
+}
+
+#if 0
+typedef enum {
+  XQC_FRAME_PADDING = 0x00,
+  XQC_FRAME_PING = 0x01,
+  XQC_FRAME_ACK = 0x02,
+  XQC_FRAME_ACK_ECN = 0x03,
+  XQC_FRAME_RESET_STREAM = 0x04,
+  XQC_FRAME_STOP_SENDING = 0x05,
+  XQC_FRAME_CRYPTO = 0x06,
+  XQC_FRAME_NEW_TOKEN = 0x07,
+  XQC_FRAME_STREAM = 0x08,
+  XQC_FRAME_MAX_DATA = 0x10,
+  XQC_FRAME_MAX_STREAM_DATA = 0x11,
+  XQC_FRAME_MAX_STREAMS_BIDI = 0x12,
+  XQC_FRAME_MAX_STREAMS_UNI = 0x13,
+  XQC_FRAME_DATA_BLOCKED = 0x14,
+  XQC_FRAME_STREAM_DATA_BLOCKED = 0x15,
+  XQC_FRAME_STREAMS_BLOCKED_BIDI = 0x16,
+  XQC_FRAME_STREAMS_BLOCKED_UNI = 0x17,
+  XQC_FRAME_NEW_CONNECTION_ID = 0x18,
+  XQC_FRAME_RETIRE_CONNECTION_ID = 0x19,
+  XQC_FRAME_PATH_CHALLENGE = 0x1a,
+  XQC_FRAME_PATH_RESPONSE = 0x1b,
+  XQC_FRAME_CONNECTION_CLOSE = 0x1c,
+  XQC_FRAME_CONNECTION_CLOSE_APP = 0x1d
+} xqc_frame_type;
+#endif
+
+#define MAX_PACKET_LEN 1500
+//just temporary, need rewrite with frame structure
+typedef struct {
+  xqc_list_head_t buffer_list;
+  uint8_t type;
+  /**
+   * flags of decoded STREAM frame.  This gets ignored when encoding
+   * STREAM frame.
+   */
+  //uint8_t flags;
+  //uint8_t fin;
+  //uint64_t stream_id;
+  //uint64_t offset;
+  /* datacnt is the number of elements that data contains.  Although
+     the length of data is 1 in this definition, the library may
+     allocate extra bytes to hold more elements. */
+  //size_t datacnt;
+  /* data is the array of xqc_vec_t which references data. */
+  uint16_t data_len;
+  char data[ MAX_PACKET_LEN];
+}xqc_data_buffer_t;
+
 
 
 struct xqc_tlsref{
@@ -276,7 +421,14 @@ struct xqc_tlsref{
     xqc_crypto_km_t        early_ckm;
     xqc_vec_t              early_hp;
 
+    //xqc_data_buffer_t      hello_data;
+    xqc_hs_buffer_t        hs_to_tls_buf;
+    xqc_hs_buffer_t        hs_msg_cb_buf;
+
     xqc_ssl_config_t *     sc;
+
+    xqc_tls_callbacks_t    callbacks;
+
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
 
@@ -504,6 +656,50 @@ static inline void xqc_vec_free(xqc_vec_t *vec) {
     free(vec->base);
     vec->base = NULL;
     vec->len = 0;
+}
+
+
+static inline void hex_print(char *p, size_t n)
+{
+    char HEX[]="0123456789ABCDEF";
+    unsigned int i,j,count;
+    j=0;
+    i=0;
+    count=0;
+    while(j < n)
+    {
+
+        count++;
+        printf("0x%d\t",count);
+        if(j+16<n){
+            for(i=0;i<16;i++)
+            {
+                printf("0x%c%c ",HEX[(p[j+i]&0xF0) >> 4],HEX[p[j+i]&0xF]);
+        //if(p[j+i]!='\0')sleep(15);
+            }
+            printf("\t");
+            for(i=0;i<16;i++)
+            {
+                printf("%c",isprint(p[j+i])?p[j+i]:'.');
+            }
+            printf("\n");
+            j = j+16;
+        }
+        else
+        {
+            for(i=0;i<n-j;i++)
+            {
+                printf("0x%c%c ",HEX[(p[j+i]&0xF0) >> 4],HEX[p[j+i]&0xF]);
+            }
+            printf("\t");
+            for(i=0;i<n-j;i++)
+            {
+                printf("%c",isprint(p[j+i])?p[j+i]:'.');
+            }
+            printf("\n");
+            break;
+        }
+    }
 }
 
 

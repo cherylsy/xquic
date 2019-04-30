@@ -7,6 +7,7 @@
 #include "transport/xqc_conn.h"
 #include "include/xquic_typedef.h"
 #include "xqc_tls_0rtt.h"
+#include "xqc_tls_if.h"
 
 /*
  * initial ssl config
@@ -17,6 +18,7 @@ int xqc_ssl_init_config(xqc_ssl_config_t *xsc, char *private_key_file, char *cer
     xsc->cert_file = cert_file;
     xsc->ciphers = "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256";
     xsc->groups = "P-256:X25519:P-384:P-521";
+    xsc->timeout = XQC_CONN_TIMEOUT;
     return 0;
 }
 
@@ -27,7 +29,136 @@ int xqc_tlsref_init(xqc_tlsref_t * tlsref){
     return 0;
 }
 
+// crypto flag 0 means crypto
+int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag ){
+    conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc) ;
+    if(conn->xc_ssl == NULL){
+        printf("create ssl error\n");
+        return -1;
+    }
 
+    xqc_ssl_config_t *config = conn->tlsref.sc;
+    xqc_tlsref_t * tlsref = & conn->tlsref;
+    xqc_tlsref_init(tlsref);
+
+    xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
+    xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
+    xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
+    xqc_settings_t * settings = & tlsref->local_settings ;
+
+    settings->max_stream_data_bidi_local = XQC_256_K;
+    settings->max_stream_data_bidi_remote = XQC_256_K;
+    settings->max_stream_data_uni = XQC_256_K;
+    settings->max_data = XQC_1_M;
+    settings->max_streams_bidi = 1;
+    settings->max_streams_uni = 1;
+    settings->idle_timeout = config->timeout;
+    settings->max_packet_size = XQC_MAX_PKT_SIZE;
+    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
+    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
+
+    if(no_crypto_flag == 1){
+        settings->no_crypto = 1;
+    }else{
+        settings->no_crypto = 0;
+    }
+
+    xqc_tls_callbacks_t * callbacks = & conn->tlsref.callbacks;
+    callbacks->client_initial = xqc_client_initial_cb;
+    callbacks->recv_client_initial = xqc_recv_client_initial_cb;
+    callbacks->recv_crypto_data = xqc_recv_crypto_data_cb;
+    callbacks->handshake_completed = xqc_handshake_completed_cb;
+    callbacks->recv_version_negotiation = NULL;
+    callbacks->in_encrypt = xqc_do_hs_encrypt;
+    callbacks->in_decrypt = xqc_do_hs_decrypt;
+    callbacks->encrypt = xqc_do_encrypt;
+    callbacks->decrypt = xqc_do_decrypt;
+    callbacks->in_hp_mask = do_in_hp_mask;
+    callbacks->hp_mask = do_hp_mask;
+    callbacks->recv_stream_data = NULL;
+    callbacks->acked_crypto_offset = NULL;
+    callbacks->acked_stream_data_offset = NULL;
+    callbacks->stream_open = NULL;
+    callbacks->stream_close = NULL;
+    callbacks->recv_stateless_reset = NULL;
+    callbacks->recv_retry = NULL;
+    callbacks->extend_max_streams_bidi = NULL;
+    callbacks->extend_max_streams_uni = NULL;
+    callbacks->rand = NULL;
+    callbacks->get_new_connection_id = NULL;
+    callbacks->remove_connection_id = NULL;
+    callbacks->update_key = NULL;   //need finish
+    callbacks->path_validation = NULL;
+
+    if(xqc_client_setup_initial_crypto_context(conn, dcid) < 0){
+        printf("error setup initial crypto key\n");
+        return -1;
+    }
+
+    return 0;
+}
+
+int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ssl_config_t *sc){
+    conn->xc_ssl = xqc_create_ssl(engine, conn, sc, XQC_SERVER);
+    if(conn->xc_ssl == NULL){
+        printf("create ssl error\n");
+        return -1;
+    }
+
+    xqc_ssl_config_t *config = conn->tlsref.sc;
+    xqc_tlsref_t * tlsref = & conn->tlsref;
+    xqc_tlsref_init(tlsref);
+
+    xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
+    xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
+    xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
+
+    xqc_settings_t *settings = & conn->tlsref.local_settings;
+    settings->max_stream_data_bidi_local = XQC_256_K;
+    settings->max_stream_data_bidi_remote = XQC_256_K;
+    settings->max_stream_data_uni = XQC_256_K;
+    settings->max_data = XQC_1_M;
+    settings->max_streams_bidi = 100;
+    settings->max_streams_uni = 0;
+    settings->idle_timeout = config->timeout;
+    settings->max_packet_size = XQC_MAX_PKT_SIZE;
+    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
+    settings->stateless_reset_token_present = 1;
+    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
+    settings->no_crypto = 1;
+
+
+
+    xqc_tls_callbacks_t * callbacks = & conn->tlsref.callbacks;
+    callbacks->client_initial = NULL;
+    callbacks->recv_client_initial = xqc_recv_client_initial_cb;
+    callbacks->recv_crypto_data = xqc_recv_crypto_data_cb;
+    callbacks->handshake_completed = xqc_handshake_completed_cb;
+    callbacks->recv_version_negotiation = NULL;
+    callbacks->in_encrypt = xqc_do_hs_encrypt;
+    callbacks->in_decrypt = xqc_do_hs_decrypt;
+    callbacks->encrypt = xqc_do_encrypt;
+    callbacks->decrypt = xqc_do_decrypt;
+    callbacks->in_hp_mask = do_in_hp_mask;
+    callbacks->hp_mask = do_hp_mask;
+    callbacks->recv_stream_data = NULL;
+    callbacks->acked_crypto_offset = NULL;
+    callbacks->acked_stream_data_offset = NULL;
+    callbacks->stream_open = NULL;
+    callbacks->stream_close = NULL;
+    callbacks->recv_stateless_reset = NULL;
+    callbacks->recv_retry = NULL;
+    callbacks->extend_max_streams_bidi = NULL;
+    callbacks->extend_max_streams_uni = NULL;
+    callbacks->rand = NULL;
+    callbacks->get_new_connection_id = NULL;
+    callbacks->remove_connection_id = NULL;
+    callbacks->update_key = NULL;   //need finish
+    callbacks->path_validation = NULL;
+
+
+    return 0;
+}
 
 //need finish session save
 SSL_CTX *xqc_create_client_ssl_ctx(xqc_ssl_config_t *xs_config) {
@@ -52,7 +183,7 @@ SSL_CTX *xqc_create_client_ssl_ctx(xqc_ssl_config_t *xs_config) {
     }
 
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_QUIC_HACK);
-    SSL_CTX_set_default_verify_paths(ssl_ctx);
+    //SSL_CTX_set_default_verify_paths(ssl_ctx);
 
     if (SSL_CTX_add_custom_ext(
                 ssl_ctx, XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS,
@@ -153,9 +284,36 @@ int xqc_bio_write(BIO *b, const char *buf, int len) { //never called
     return -1;
 }
 
-int xqc_bio_read(BIO *b, char *buf, int len) { //save chello data in chandshake_
+int xqc_bio_read(BIO *b, char *buf, int len) { //read server handshake data
     BIO_clear_retry_flags(b);
-    return len;
+
+    xqc_connection_t * conn = (xqc_connection_t *) BIO_get_data(b);
+    xqc_hs_buffer_t * p_buff = & conn->tlsref.hs_to_tls_buf;
+    //int n = xqc_min(p_buff->data_len, len);
+    if(p_buff->data_len > len){
+        printf("bio buf too small\n");
+        return 0;
+    }
+    memcpy(buf, p_buff->data, p_buff->data_len);
+    int ret_len = p_buff->data_len;
+    p_buff->data_len = 0;
+
+    if(ret_len == 0){
+        BIO_set_retry_read(b);
+        return -1;
+    }
+    return ret_len;
+}
+
+
+int xqc_client_bio_read(BIO *b, char *buf, int len) { //read server handshake data
+
+    return xqc_bio_read(b, buf, len);
+}
+
+int xqc_server_bio_read(BIO *b, char *buf, int len){ // read client handshake data
+    return xqc_bio_read(b, buf, len);
+
 }
 
 int xqc_bio_puts(BIO *b, const char *str) { return xqc_bio_write(b, str, strlen(str)); } //just for callback
@@ -196,7 +354,7 @@ BIO_METHOD *xqc_create_bio_method() { //just create bio for openssl
     return meth;
 }
 
-SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , xqc_ssl_config_t *sc){
+SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , xqc_ssl_config_t *sc, int flag){
 
     conn -> tlsref.sc = sc;
     SSL *ssl_ = SSL_new((SSL_CTX *)engine->ssl_ctx);
@@ -207,7 +365,11 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , xqc_ssl_co
     BIO_set_data(bio, conn);
     SSL_set_bio(ssl_, bio, bio);
     SSL_set_app_data(ssl_, conn);
-    SSL_set_accept_state(ssl_);
+    if(flag == XQC_CLIENT){
+        SSL_set_connect_state(ssl_);
+    }else{
+        SSL_set_accept_state(ssl_);
+    }
     SSL_set_msg_callback(ssl_, xqc_msg_cb);
     SSL_set_msg_callback_arg(ssl_, conn);
     SSL_set_key_callback(ssl_, xqc_tls_key_cb, conn);
@@ -231,7 +393,7 @@ int xqc_set_alpn_proto(SSL * ssl){
 
 SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char * hostname,  xqc_ssl_config_t * sc){
 
-    SSL *ssl_ = xqc_create_ssl(engine, conn, sc);
+    SSL *ssl_ = xqc_create_ssl(engine, conn, sc, XQC_CLIENT);
     // If remote host is numeric address, just send "localhost" as SNI
     // for now.
 
@@ -342,4 +504,6 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
 
     return 0;
 }
+
+
 

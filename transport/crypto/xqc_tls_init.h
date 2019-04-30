@@ -20,11 +20,13 @@ SSL_CTX *xqc_create_client_ssl_ctx(xqc_ssl_config_t *xs_config);
 SSL_CTX * xqc_create_server_ssl_ctx(xqc_ssl_config_t *xs_config);
 
 
-SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn, xqc_ssl_config_t *sc);
+SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn, xqc_ssl_config_t *sc, int flag);
 
 SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char * hostname, xqc_ssl_config_t * sc);
 
 int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *dcid );
 
+int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag );
+int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ssl_config_t *sc);
 
 #endif

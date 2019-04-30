@@ -11,11 +11,13 @@
  *@param
  *@return 0 mearns error, no zero means no error
  */
-int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg)
-{
+
+int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg){
     int rv;
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
+    printf("xqc_tls_key_cb: %d\n", name);
+    hex_print((char *)secret, secretlen);
     switch (name) {
         case SSL_KEY_CLIENT_EARLY_TRAFFIC:
         case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
@@ -108,17 +110,74 @@ int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secre
     }
 
     return 0;
+
+
 }
 
 
-int xqc_write_server_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len){
+int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg)
+{
+    int ret = xqc_do_tls_key_cb(ssl, name, secret, secretlen, arg);
+    if(ret == 0){
+        return 1;
+    }else{
+        return 0;
+    }
+}
 
+
+int xqc_cache_client_hello(xqc_connection_t *conn, const void * buf, size_t buf_len){
+
+}
+
+int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len){
+
+    return 0;
+}
+
+
+
+
+int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len){
+#if 0
+    if(conn->tlsref.server){
+        xqc_cache_server_handshake(conn, buf, buf_len);
+    }else{
+        xqc_cache_client_hello(conn, buf, buf_len);
+    }
+#endif
+    xqc_list_head_t  * phead = NULL;
+    xqc_pktns_t * pktns = NULL;
+
+
+    pktns = &conn->tlsref.hs_pktns;
+    if(pktns->tx_ckm.key.base != NULL && pktns->tx_ckm.key.len > 0){
+        phead = & pktns->msg_cb_head;
+    }else{
+
+        pktns = & conn->tlsref.initial_pktns;
+        if(pktns->tx_ckm.key.base != NULL && pktns->tx_ckm.key.len > 0){
+            phead = & pktns->msg_cb_head;
+        }else{
+            printf("error msg_cb_handshake \n");
+            return -1;
+        }
+    }
+    //p_data = &conn-> tlsref.hs_msg_cb_buf;
+    //p_data->type = XQC_FRAME_CRYPTO;
+    xqc_hs_buffer_t  * p_data = xqc_create_hs_buffer();
+    p_data->data_len = buf_len;
+    memcpy(p_data->data, buf, buf_len);
+
+    xqc_list_add_tail(& p_data->list_head, phead);
     return 0;//need finish
 }
 
 void xqc_msg_cb(int write_p, int version, int content_type, const void *buf,
         size_t len, SSL *ssl, void *arg) {
     int rv;
+    printf("xqc_msg_cb:content_type:%d, length:%d\n", content_type, len);
+    hex_print((char *)buf,len);
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
     if (!write_p) {
@@ -140,7 +199,7 @@ void xqc_msg_cb(int write_p, int version, int content_type, const void *buf,
             return;
     }
 
-    rv = xqc_write_server_handshake(conn, buf, len);
+    rv = xqc_msg_cb_handshake(conn, buf, len);
 
     assert(0 == rv);
 }
@@ -245,6 +304,7 @@ int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
         const xqc_transport_params_t *params) {
     size_t i;
 
+    return 0; //just for test
     if (params->v.ee.negotiated_version != conn->version) {
         return XQC_ERR_VERSION_NEGOTIATION;
     }
@@ -765,3 +825,8 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
     return 1;
 }
 
+//need finish
+int xqc_client_handshake_completed(xqc_connection_t * conn){
+
+    return 1;
+}

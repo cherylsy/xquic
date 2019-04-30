@@ -6,6 +6,8 @@
 #include "common/xqc_config.h"
 #include "xqc_tls_cb.h"
 
+#define XQC_FAKE_AEAD_OVERHEAD 16
+
 /*xqc_negotiated_prf stores the negotiated PRF(pseudo random function) by TLS into ctx.
  *@param
  *@return 0 if it succeeds, or -1.
@@ -289,9 +291,17 @@ size_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
     return keylen;
 }
 
+#define XQC_FAKE_HP_MASK "\x00\x00\x00\x00\x00"
 
+size_t xqc_no_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t *ctx,
+                const uint8_t *key, size_t keylen, const uint8_t *sample,
+                size_t samplelen) {
 
-ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
+  memcpy(dest, XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK) - 1);
+  return sizeof(XQC_FAKE_HP_MASK) - 1;
+}
+
+size_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen) {
     static   uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
@@ -331,7 +341,7 @@ err:
 }
 
 //need finish : conn_decrypt_hp only decrypt header protect , not do anything else
-static ssize_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
+static size_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
         uint8_t *dest, size_t destlen,
         const uint8_t *pkt, size_t pktlen,
         size_t pkt_num_offset, unsigned char * hpkey, int hpkey_len,
@@ -376,6 +386,14 @@ static ssize_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
     return p - dest;
 }
 
+
+size_t xqc_no_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+        size_t ciphertextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
+        size_t keylen, const uint8_t *nonce, size_t noncelen,
+        const uint8_t *ad, size_t adlen) {
+    memmove(dest, ciphertext, ciphertextlen - XQC_FAKE_AEAD_OVERHEAD);
+    return (size_t)ciphertextlen - XQC_FAKE_AEAD_OVERHEAD;
+}
 
 size_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         size_t ciphertextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
@@ -442,6 +460,14 @@ err:
     return -1;
 }
 
+
+size_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+        size_t plaintextlen, xqc_tls_context_t *ctx, const uint8_t *key,
+        size_t keylen, const uint8_t *nonce, size_t noncelen,
+        const uint8_t *ad, size_t adlen) {
+
+    return (size_t)plaintextlen + XQC_FAKE_AEAD_OVERHEAD;
+}
 
 size_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t plaintextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
