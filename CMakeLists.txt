@@ -59,8 +59,9 @@ add_library(
     ${COMMON_SOURCES}
 )
 link_directories( ./libs/openssl) 
-link_libraries( /home/dreamwind.ll/work/git/xquic/libs/openssl/libssl.so.3)
-link_libraries( /home/dreamwind.ll/work/git/xquic/libs/openssl/libcrypto.so.3)
+#link_libraries( /home/dreamwind.ll/work/git/xquic/libs/openssl/libssl.so.3)
+link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
 #target_link_libraries(libs/openssl/libssl.so.3)
 #target_link_libraries( libs/openssl/libcrypto.so.3)
 

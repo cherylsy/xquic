@@ -3,6 +3,7 @@ if(HAVE_CUNIT)
     "${CMAKE_SOURCE_DIR}/lib"
     "${CMAKE_SOURCE_DIR}/lib/includes"
     "${CMAKE_BINARY_DIR}/lib/includes"
+    "${CMAKE_SOURCE_DIR}/libs/openssl/include"
     ${CUNIT_INCLUDE_DIRS}
   )
 
@@ -48,7 +49,7 @@ if(HAVE_CUNIT)
   )
   add_test(run_tests run_tests)
   add_dependencies(check run_tests)
-  include_directories(/home/dreamwind.ll/work/git/xquic/libs/openssl/include/ )
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
   include_directories(../transport/crypto/)
 
 
@@ -62,7 +63,7 @@ if(HAVE_CUNIT)
   )
   add_test(run_tls run_tls)
   add_dependencies(check run_tls)
-  include_directories(/home/dreamwind.ll/work/git/xquic/libs/openssl/include/ )
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl )
   include_directories(../transport/crypto/)
 
 
