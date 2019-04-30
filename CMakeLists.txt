@@ -34,6 +34,12 @@ set(
     transport/xqc_send_ctl.c
     transport/xqc_packet.c
     transport/xqc_frame.c
+    
+    transport/crypto/xqc_tls_init.c
+    transport/crypto/xqc_crypto.c
+    transport/crypto/xqc_tls_cb.c
+    transport/crypto/xqc_tls_0rtt.c
+    transport/crypto/xqc_tls_if.c
 )
 
 set(
@@ -59,6 +65,9 @@ add_library(
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )
+link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
+link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
 
 ##### for unit test #########
 find_package(CUnit 2.1)
@@ -72,9 +81,19 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
+add_executable(tls_server tests/tls_server.c)
+add_executable(test        tests/main.c)
 
 include_directories( /usr/local/include )
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
+include_directories(./transport/crypto/)
 link_directories( /usr/local/lib )
+link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 
 target_link_libraries(test_server xquic -levent)
 target_link_libraries(test_client xquic -levent)
+target_link_libraries(tls_server xquic )
+target_link_libraries(test xquic -lssl )
+target_link_libraries(test xquic -lcrypto)
+
+
