@@ -17,7 +17,26 @@ if(HAVE_CUNIT)
     xqc_common_test.c
     xqc_vint_test.c
     xqc_packet_test.c
+    xqc_tls_init_test.c
+    xqc_tls_cb_test.c
   )
+
+
+  set(test_TLS
+    tls_client.c
+    xqc_random_test.c
+    xqc_timer_test.c
+    xqc_pq_test.c
+    xqc_common_test.c
+    xqc_conn_test.c
+    xqc_engine_test.c
+    xqc_common_test.c
+    xqc_vint_test.c
+    xqc_packet_test.c
+    xqc_tls_init_test.c
+    xqc_tls_cb_test.c
+  )
+
 
   add_executable(run_tests
     ${test_SOURCES}
@@ -29,4 +48,22 @@ if(HAVE_CUNIT)
   )
   add_test(run_tests run_tests)
   add_dependencies(check run_tests)
+  include_directories(/home/dreamwind.ll/work/git/xquic/libs/openssl/include/ )
+  include_directories(../transport/crypto/)
+
+
+  add_executable(run_tls
+      ${test_TLS}
+  )
+  target_include_directories(run_tls PRIVATE ${CUNIT_INCLUDE_DIRS})
+  target_link_libraries(run_tls
+    xquic
+    ${CUNIT_LIBRARIES}
+  )
+  add_test(run_tls run_tls)
+  add_dependencies(check run_tls)
+  include_directories(/home/dreamwind.ll/work/git/xquic/libs/openssl/include/ )
+  include_directories(../transport/crypto/)
+
+
 endif()
