@@ -119,7 +119,7 @@ int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secre
 {
     int ret = xqc_do_tls_key_cb(ssl, name, secret, secretlen, arg);
     if(ret == 0){
-        return 1;
+        return 1;//兼容openssl return value
     }else{
         return 0;
     }
@@ -229,9 +229,6 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
 
     return SSL_TLSEXT_ERR_OK;
 }
-
-
-
 
 /*
 int xqc_decode_transport_params(xqc_transport_params_t *src

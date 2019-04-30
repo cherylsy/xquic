@@ -65,7 +65,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
     xqc_tls_callbacks_t * callbacks = & conn->tlsref.callbacks;
     callbacks->client_initial = xqc_client_initial_cb;
-    callbacks->recv_client_initial = xqc_recv_client_initial_cb;
+    callbacks->recv_client_initial = NULL;
     callbacks->recv_crypto_data = xqc_recv_crypto_data_cb;
     callbacks->handshake_completed = xqc_handshake_completed_cb;
     callbacks->recv_version_negotiation = NULL;
@@ -155,7 +155,6 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ss
     callbacks->remove_connection_id = NULL;
     callbacks->update_key = NULL;   //need finish
     callbacks->path_validation = NULL;
-
 
     return 0;
 }

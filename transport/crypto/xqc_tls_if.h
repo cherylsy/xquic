@@ -9,7 +9,6 @@
 #include "common/xqc_str.h"
 #include "common/xqc_list.h"
 #include "transport/xqc_frame.h"
-//#include "xqc_tls_public.h"
 
 
 typedef struct {
@@ -17,6 +16,9 @@ typedef struct {
     const uint8_t *rand;
     size_t randlen;
 } xqc_pkt_stateless_reset;
+
+
+
 
 /**
  * @functypedef

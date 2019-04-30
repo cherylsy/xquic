@@ -4,13 +4,13 @@
 #include <openssl/ssl.h>
 #include <arpa/inet.h>
 #include <assert.h>
+#include <ctype.h>
 #include "xqc_crypto.h"
 #include "include/xquic_typedef.h"
 #include "common/xqc_str.h"
 #include "common/xqc_list.h"
 #include "transport/xqc_frame.h"
 #include "xqc_tls_if.h"
-#include <ctype.h>
 
 #ifdef WORDS_BIGENDIAN
 #  define bswap64(N) (N)
