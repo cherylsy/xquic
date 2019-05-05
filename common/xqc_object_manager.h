@@ -147,6 +147,36 @@ static inline int xqc_object_manager_free(xqc_object_manager_t* manager, xqc_obj
 }
 
 /*
+ * 重新调整容量
+ * */
+static inline xqc_object_manager_t* xqc_object_manager_recapacity(xqc_object_manager_t* manager, size_t new_capacity)
+{
+    if (manager->used_count > new_capacity) {
+        return NULL;
+    }
+
+    /*创建新的object manager*/
+    xqc_object_manager_t* new_manager = xqc_object_manager_create(manager->object_size, new_capacity, manager->a);
+    if (new_manager == NULL) {
+        return NULL;
+    }
+
+    /*从原manager拷贝used list到新manager*/
+    xqc_list_head_t *pos;
+    xqc_list_for_each(pos, &manager->used_list) {
+        xqc_object_t *from = xqc_list_entry(pos, xqc_object_t, list);
+        xqc_object_t *to = xqc_object_manager_alloc(new_manager);
+        memcpy(to->data, from->data, manager->object_size - sizeof(xqc_object_t));
+    }
+
+    /*销毁原manager*/
+    xqc_object_manager_destroy(manager);
+
+    /*返回新manager*/
+    return new_manager;
+}
+
+/*
  * 遍历 callback
  * */
 static inline void xqc_object_manager_foreach(xqc_object_manager_t* manager, void (*cb)(xqc_object_t*))
