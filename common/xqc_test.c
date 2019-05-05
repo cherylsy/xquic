@@ -44,7 +44,7 @@ int main(int argc, char* argv[])
     test_log(argc, argv);
 #endif
 
-#if 1
+#if 0
     test_list(argc, argv);
 #endif
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
     test_hash(argc, argv);
 #endif
 
-#if 0
+#if 1
     test_object_manager(argc, argv);
 #endif
 
@@ -377,11 +377,15 @@ int test_object_manager(int argc, char* argv[])
 
     xqc_object_manager_foreach(manager, test_object_manager_cb);
 
-    printf("object manager used count:%d, free count:%d\n", 
-            (int)xqc_object_manager_used_count(manager), 
-            (int)xqc_object_manager_free_count(manager));
+    xqc_object_manager_t* new_manager = xqc_object_manager_recapacity(manager, 10);
 
-    xqc_object_manager_destroy(manager);
+    printf("object manager used count:%d, free count:%d\n", 
+            (int)xqc_object_manager_used_count(new_manager), 
+            (int)xqc_object_manager_free_count(new_manager));
+
+    xqc_object_manager_foreach(new_manager, test_object_manager_cb);
+
+    xqc_object_manager_destroy(new_manager);
 
     return 0;
 }
