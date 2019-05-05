@@ -754,16 +754,16 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
 
     switch (type)
     {
-    case XQC_PACKET_TYPE_INIT:
+    case XQC_PTYPE_INIT:
         ret = xqc_packet_parse_initial(c, packet_in);
         break;
-    case XQC_PACKET_TYPE_0RTT:
+    case XQC_PTYPE_0RTT:
         ret = xqc_packet_parse_zero_rtt(c, packet_in);
         break;
-    case XQC_PACKET_TYPE_HANDSHAKE:
+    case XQC_PTYPE_HSK:
         ret = xqc_packet_parse_handshake(c, packet_in);
         break;
-    case XQC_PACKET_TYPE_RETRY:
+    case XQC_PTYPE_RETRY:
         ret = xqc_packet_parse_retry(c, packet_in);
         break;
     default:
