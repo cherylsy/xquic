@@ -8,8 +8,9 @@
  */
 
 #include <sys/socket.h>
+#include <openssl/ssl.h>
 #include "xquic_typedef.h"
-
+#include "xqc_tls_public.h"
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
 
@@ -94,6 +95,9 @@ typedef struct xqc_engine_s {
 
     xqc_log_t              *log;
     xqc_random_generator_t *rand_generator;
+
+    xqc_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
+    SSL_CTX                *ssl_ctx;  //for ssl
 }xqc_engine_t;
 
 
@@ -121,7 +125,7 @@ void xqc_engine_set_callback (xqc_engine_t *engine,
                               xqc_engine_callback_t engine_callback);
 
 
-xqc_connection_t *xqc_engine_connect (xqc_engine_t *engine, 
+xqc_connection_t *xqc_engine_connect (xqc_engine_t *engine,
                                       const struct sockaddr *peer_addr,
                                       socklen_t peer_addrlen,
                                       void *user_data);
@@ -144,7 +148,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                socklen_t peer_addrlen,
                                xqc_msec_t recv_time);
 
-xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine, 
+xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t dcid, xqc_cid_t scid,
                                 xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
@@ -163,7 +167,7 @@ xqc_stream_t *xqc_create_stream (xqc_connection_t *c,
  * Close stream.
  * @retval XQC_OK or XQC_ERROR
  */
-int xqc_close_stream (xqc_connection_t *c, 
+int xqc_close_stream (xqc_connection_t *c,
                             uint64_t stream_id);
 
 /**
