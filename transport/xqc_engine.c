@@ -257,6 +257,20 @@ xqc_engine_set_callback (xqc_engine_t *engine,
     engine->eng_callback = engine_callback;
 }
 
+xqc_msec_t
+xqc_engine_wakeup_after (xqc_engine_t *engine)
+{
+    xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_wakeup_pq);
+    if (el) {
+        xqc_msec_t now = xqc_gettimeofday();
+
+        return el->time_ms > now ? el->time_ms - now : 1;
+    }
+
+
+    return 0;
+}
+
 void
 xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 {
@@ -294,6 +308,29 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     xqc_msec_t now = xqc_gettimeofday();
     xqc_connection_t *conn;
 
+    xqc_list_head_t close_conns;
+    xqc_list_head_t ticked_conns;
+    xqc_list_head_t *pos, *next;
+    xqc_init_list_head(&close_conns);
+    xqc_init_list_head(&ticked_conns);
+
+    while (!xqc_pq_empty(engine->conns_wakeup_pq)) {
+        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_wakeup_pq);
+        conn = el->conn;
+        if (el->time_ms <= now) {
+            xqc_conns_pq_pop(engine->conns_wakeup_pq);
+            conn->conn_flag &= ~XQC_CONN_FLAG_WAKEUP;
+
+            if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
+                if (0 == xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time)) {
+                    conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+                }
+            }
+        } else {
+            break;
+        }
+    }
+
     while (!xqc_pq_empty(engine->conns_pq)) {
         xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
         conn = el->conn;
@@ -301,11 +338,35 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
 
         xqc_engine_process_conn(conn, now);
+        conn->last_ticked_time = now;
 
         xqc_conn_retransmit_lost_packets(conn);
         xqc_conn_send_packets(conn);
 
+        xqc_list_add_tail(&conn->conn_list, &ticked_conns);
+
     }
+
+    xqc_list_for_each_safe(pos, next, &ticked_conns) {
+        conn = xqc_list_entry(pos, xqc_connection_t, conn_list);
+
+        xqc_list_del_init(pos);
+
+        if (/*tickable*/0) {
+            if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
+                if (0 == xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time)) {
+                    conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+                }
+            }
+        } else if (!(conn->conn_flag & XQC_CONN_FLAG_WAKEUP)) {
+            conn->next_tick_time = xqc_conn_next_wakeup_time(conn);
+            if (conn->next_tick_time) {
+                xqc_conns_pq_push(engine->conns_wakeup_pq, conn, conn->next_tick_time);
+                conn->conn_flag |= XQC_CONN_FLAG_WAKEUP;
+            }
+        }
+    }
+
     return 0;
 }
 
@@ -379,8 +440,9 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     }
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-        xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time);
-        conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+        if (0 == xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time)) {
+            conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+        }
     }
 
 #if 1

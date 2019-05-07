@@ -53,7 +53,7 @@ typedef enum {
                                     |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
 
 typedef enum {
-    XQC_CONN_FLAG_NONE                  = 1 << 0,
+    XQC_CONN_FLAG_WAKEUP                = 1 << 0,
     XQC_CONN_FLAG_HANDSHAKE_COMPLETED   = 1 << 1,
     XQC_CONN_FLAG_TICKING               = 1 << 2,
     XQC_CONN_FLAG_SHOULD_ACK_INIT       = 1 << 3,
@@ -144,6 +144,7 @@ struct xqc_connection_s{
     xqc_memory_pool_t      *conn_pool;
 
     xqc_id_hash_table_t    *streams_hash;
+    xqc_list_head_t         conn_list;
     xqc_list_head_t         conn_write_streams,
                             conn_read_streams; /* xqc_stream_t */
     xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
@@ -206,5 +207,6 @@ void xqc_conn_send_probe_packets(xqc_connection_t *conn);
 
 xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 
+xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

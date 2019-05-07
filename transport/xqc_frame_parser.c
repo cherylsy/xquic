@@ -285,7 +285,7 @@ xqc_gen_ack_frame(unsigned char *dst_buf, size_t dst_buf_len, xqc_msec_t now, in
     unsigned first_ack_range_bits = xqc_vint_get_2bit(first_ack_range);
 
     need = 1    //type
-            + xqc_vint_len(lagest_recv)
+            + xqc_vint_len(lagest_recv_bits)
             + xqc_vint_len(ack_delay_bits)
             + 1  //range_count
             + xqc_vint_len(first_ack_range_bits);

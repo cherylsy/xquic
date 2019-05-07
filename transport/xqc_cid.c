@@ -12,6 +12,8 @@ xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)
         return XQC_ERROR;
     }   
 
+    cid->cid_buf[0] = 0xAA; //TODO: for debug
+    cid->cid_buf[1] = 0xAA;
     return XQC_OK;
 }
 

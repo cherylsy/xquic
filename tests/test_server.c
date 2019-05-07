@@ -15,13 +15,8 @@
 #define TEST_ADDR "127.0.0.1"
 #define TEST_PORT 8443
 
-#define max_pkt_num 10
 #define XQC_PACKET_TMP_BUF_LEN 1500
 
-char send_buff[max_pkt_num][XQC_PACKET_TMP_BUF_LEN];
-size_t send_buff_len[max_pkt_num];
-int send_buff_idx = 0;
-unsigned char recv_buf[XQC_PACKET_TMP_BUF_LEN];
 
 
 typedef struct xqc_server_ctx_s {
@@ -34,7 +29,8 @@ typedef struct xqc_server_ctx_s {
     socklen_t peer_addrlen;
     uint64_t send_offset;
     xqc_stream_t *stream;
-    struct event *event;    
+    struct event *ev_recv;
+    struct event *ev_timer;
 } xqc_server_ctx_t;
 
 xqc_server_ctx_t ctx;
@@ -180,6 +176,38 @@ err:
     return -1;
 }
 
+static int
+xqc_server_process_conns(xqc_server_ctx_t *ctx)
+{
+    int rc = xqc_engine_main_logic(ctx->engine);
+    if (rc) {
+        printf("xqc_engine_main_logic error %d\n", rc);
+        return -1;
+    }
+
+    xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
+    if (wake_after > 0) {
+        struct timeval tv;
+        tv.tv_sec = wake_after / 1000;
+        tv.tv_usec = wake_after % 1000;
+        event_add(ctx->ev_timer, &tv);
+        printf("xqc_engine_wakeup_after %llu ms\n", wake_after);
+    }
+    return 0;
+}
+
+static void
+xqc_server_timer_callback(int fd, short what, void *arg)
+{
+    DEBUG;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
+
+    int rc = xqc_server_process_conns(ctx);
+    if (rc) {
+        printf("xqc_server_timer_callback error\n");
+        return;
+    }
+}
 
 int main(int argc, char *argv[]) {
     printf("Usage: %s\n", argv[0], XQC_QUIC_VERSION);
@@ -205,16 +233,17 @@ int main(int argc, char *argv[]) {
 
     eb = event_base_new();
 
+    ctx.ev_timer = event_new(eb, -1, 0, xqc_server_timer_callback, &ctx);
+
     ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
     if (ctx.fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;
     }
 
-    struct event *ev_tmo = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
-    ctx.event = ev_tmo;
+    ctx.ev_recv = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
 
-    event_add(ev_tmo, NULL);
+    event_add(ctx.ev_recv, NULL);
 
     event_base_dispatch(eb);
 

@@ -35,9 +35,12 @@ typedef struct {
 } xqc_send_ctl_timer_t;
 
 typedef struct xqc_send_ctl_s {
-    xqc_list_head_t             ctl_packets; //xqc_packet_out_t
+    xqc_list_head_t             ctl_packets; //xqc_packet_out_t to send
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
     xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
+    xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
+    unsigned                    ctl_packets_used;
+    unsigned                    ctl_packets_free;
     xqc_connection_t            *ctl_conn;
 
     xqc_packet_number_t         ctl_packet_number[XQC_PNS_N];
@@ -97,13 +100,19 @@ void
 xqc_send_ctl_remove_send(xqc_list_head_t *pos);
 
 void
-xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head);
+xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_remove_lost(xqc_list_head_t *pos);
 
 void
 xqc_send_ctl_insert_lost(xqc_list_head_t *pos, xqc_list_head_t *head);
+
+void
+xqc_send_ctl_remove_free(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
+
+void
+xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
