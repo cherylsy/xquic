@@ -25,4 +25,7 @@
 #define XQC_MAX_UINT32_VALUE  (uint32_t) 0xffffffff
 #define XQC_MAX_INT32_VALUE   (uint32_t) 0x7fffffff
 
+#define XQC_MAX_UINT64_VALUE  (uint64_t) 0xffffffffffffffff
+#define XQC_MAX_INT64_VALUE   (uint64_t) 0x7fffffffffffffff
+
 #endif /*_XQC_H_CONFIG_INCLUDED_*/

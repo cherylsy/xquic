@@ -18,12 +18,8 @@
 #define TEST_SERVER_PORT 8443
 
 
-#define max_pkt_num 10
 #define XQC_PACKET_TMP_BUF_LEN 1500
 
-char send_buff[max_pkt_num][XQC_PACKET_TMP_BUF_LEN];
-size_t send_buff_len[max_pkt_num];
-int send_buff_idx = 0;
 
 typedef struct user_conn_s {
     int                 fd;
@@ -40,8 +36,8 @@ typedef struct user_conn_s {
 typedef struct client_ctx_s {
     xqc_engine_t  *engine;
     user_conn_t   *my_conn;
-    struct event  *event;  
-
+    struct event  *ev_recv;
+    struct event  *ev_timer;
     uint64_t       send_offset;
 } client_ctx_t;
 
@@ -140,7 +136,7 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     int ret;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[1000] = {0};
+    char buff[5000] = {0};
     ret = xqc_stream_send(stream, buff, sizeof(buff), 1);
 
     return ret;
@@ -151,58 +147,9 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[100] = {0};
 
-
+    char buff_send[5000] = {0};
+    xqc_stream_send(stream, buff_send, sizeof(buff), 1);
     return 0;
-}
-
-ssize_t xqc_client_send(xqc_connection_t *c, unsigned char *buf, size_t size) {
-    DEBUG;
-    if (send_buff_idx >= max_pkt_num) {
-        printf("exceed max_pkt_num\n");
-        return -1;
-    }
-    memset(send_buff[send_buff_idx], 0, sizeof(send_buff[send_buff_idx]));
-    memcpy(send_buff[send_buff_idx], buf, size);
-    send_buff_len[send_buff_idx] = size;
-    printf("=> send_buff_size %zu\n", send_buff_len[send_buff_idx]);
-    send_buff_idx++;
-    return size;
-}
-
-
-static void
-recv_handler(int fd, short what, void *arg)
-{
-    DEBUG;
-    client_ctx_t *ctx = (client_ctx_t *) arg;
-    //printf("conn %x\n", ctx->conn);
-    int idx = send_buff_idx - 1;
-    //for (; idx < send_buff_idx; idx++) {
-        printf("=> recv size %d\n", send_buff_len[idx]);
-        for (int i = 0; i < send_buff_len[idx]; i++) {
-            printf("0x%02hhx ", send_buff[idx][i]);
-        }
-        printf("\n");
-
-        if (xqc_engine_packet_process(ctx->engine, send_buff[idx], send_buff_len[idx],
-                                      (struct sockaddr *)&ctx->my_conn->local_addr, ctx->my_conn->local_addrlen,
-                                      (struct sockaddr *)&ctx->my_conn->peer_addr, ctx->my_conn->peer_addrlen, now())) {
-            printf("xqc_engine_packet_process error\n");
-        }
-    //}
-
-    //交还给xquic engine
-    int rc = xqc_engine_main_logic(ctx->engine);
-    if (rc) {
-        printf("xqc_engine_main_logic error %d\n", rc);
-        return ;
-    }
-
-    struct event *ev_tmo = event_new(eb, -1, 0, recv_handler, ctx);
-    struct timeval t;
-    t.tv_sec = 1;
-    t.tv_usec = 0;
-    event_add(ev_tmo, &t);
 }
 
 
@@ -246,7 +193,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
     recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
 
     if (recv_size < 0) {
-        printf("xqc_server_read_handler: recvmsg = %zd\n", recv_size);
+        printf("xqc_client_read_handler: recvmsg = %zd\n", recv_size);
         return;
     }
 
@@ -256,7 +203,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
                             (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen, 
                             (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen, (xqc_msec_t)recv_time) != 0)
     {
-        printf("xqc_server_read_handler: packet process err\n");
+        printf("xqc_client_read_handler: packet process err\n");
     }
 }
 
@@ -277,6 +224,38 @@ xqc_client_event_callback(int fd, short what, void *arg)
     }
 }
 
+static int
+xqc_client_process_conns(client_ctx_t *ctx)
+{
+    int rc = xqc_engine_main_logic(ctx->engine);
+    if (rc) {
+        printf("xqc_engine_main_logic error %d\n", rc);
+        return -1;
+    }
+
+    xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
+    if (wake_after > 0) {
+        struct timeval tv;
+        tv.tv_sec = wake_after / 1000;
+        tv.tv_usec = wake_after % 1000;
+        event_add(ctx->ev_timer, &tv);
+        printf("xqc_engine_wakeup_after %llu ms\n", wake_after);
+    }
+    return 0;
+}
+
+static void
+xqc_client_timer_callback(int fd, short what, void *arg)
+{
+    DEBUG;
+    client_ctx_t *ctx = (client_ctx_t *) arg;
+
+    int rc = xqc_client_process_conns(ctx);
+    if (rc) {
+        printf("xqc_client_timer_callback error\n");
+        return;
+    }
+}
 
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
@@ -320,18 +299,22 @@ int main(int argc, char *argv[]) {
     }
 
     eb = event_base_new();
-    struct event *ev_tmo = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
-    event_add(ev_tmo, NULL);
 
-    rc = xqc_engine_main_logic(ctx.engine);
+    ctx.ev_timer = event_new(eb, -1, 0, xqc_client_timer_callback, &ctx);
+
+    ctx.ev_recv = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
+    event_add(ctx.ev_recv, NULL);
+
+    rc = xqc_client_process_conns(&ctx);
     if (rc) {
-        printf("xqc_engine_main_logic error %d\n", rc);
+        printf("xqc_client_process_conns error\n");
         return 0;
     }
 
     event_base_dispatch(eb);
 
-    //xqc_client_write_notify(&ctx, ctx.stream);
+    /*xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+    DEBUG;*/
 
     xqc_engine_destroy(ctx.engine);
     return 0;

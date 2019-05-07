@@ -186,6 +186,10 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
                          size_t send_data_size,
                          uint8_t fin);
 
+/**
+ * @return >0 : user should call xqc_engine_main_logic after N ms
+ */
+xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
 #endif /* _XQUIC_H_INCLUDED_ */
 

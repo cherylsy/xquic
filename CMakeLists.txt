@@ -87,6 +87,7 @@ add_executable(test        tests/main.c)
 include_directories( /usr/local/include )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
 include_directories(./transport/crypto/)
+include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories( /usr/local/lib )
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 

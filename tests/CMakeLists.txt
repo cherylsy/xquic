@@ -4,6 +4,7 @@ if(HAVE_CUNIT)
     "${CMAKE_SOURCE_DIR}/lib/includes"
     "${CMAKE_BINARY_DIR}/lib/includes"
     "${CMAKE_SOURCE_DIR}/libs/openssl/include"
+    ${CMAKE_SOURCE_DIR}
     ${CUNIT_INCLUDE_DIRS}
   )
 

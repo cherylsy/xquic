@@ -22,6 +22,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     xqc_init_list_head(&send_ctl->ctl_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
+    xqc_init_list_head(&send_ctl->ctl_free_packets);
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
     }
@@ -111,9 +112,10 @@ xqc_send_ctl_remove_send(xqc_list_head_t *pos)
 }
 
 void
-xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head)
+xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl)
 {
     xqc_list_add_tail(pos, head);
+    ctl->ctl_packets_used++;
 }
 
 void
@@ -128,6 +130,20 @@ xqc_send_ctl_insert_lost(xqc_list_head_t *pos, xqc_list_head_t *head)
     xqc_list_add_tail(pos, head);
 }
 
+void
+xqc_send_ctl_remove_free(xqc_list_head_t *pos, xqc_send_ctl_t *ctl)
+{
+    xqc_list_del_init(pos);
+    ctl->ctl_packets_free--;
+}
+
+void
+xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl)
+{
+    xqc_list_add_tail(pos, head);
+    ctl->ctl_packets_free++;
+    ctl->ctl_packets_used--;
+}
 
 /* timer callbacks */
 void xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
@@ -272,6 +288,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
             //remove from unacked list
             xqc_send_ctl_remove_unacked(packet_out, ctl);
+            xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+
 
             if (packet_out->po_pkt.pkt_num == lagest_ack &&
                 packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked[pns] &&
@@ -378,6 +396,8 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
             xqc_send_ctl_remove_unacked(po, ctl);
             if (is_in_flight) {
                 xqc_send_ctl_insert_lost(pos, &ctl->ctl_lost_packets);
+            } else {
+                xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
             }
 
             if (largest_lost == NULL) {

@@ -12,23 +12,37 @@ xqc_packet_out_t *
 xqc_create_packet_out (xqc_memory_pool_t *pool, xqc_send_ctl_t *ctl, enum xqc_pkt_num_space pns)
 {
     xqc_packet_out_t *packet_out;
-    packet_out = xqc_pcalloc(pool, sizeof(xqc_packet_out_t));
+    xqc_list_head_t *pos, *next;
+
+    /*优先复用已申请*/
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_free_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        memset(packet_out, 0, sizeof(xqc_packet_out_t));
+
+        xqc_send_ctl_remove_free(pos, ctl);
+
+        goto set_packet;
+    }
+
+
+    packet_out = xqc_calloc(1, sizeof(xqc_packet_out_t));
     if (!packet_out) {
         return NULL;
     }
 
-    packet_out->po_buf = xqc_pnalloc(pool, XQC_PACKET_OUT_SIZE);//TODO: change to malloc
+    packet_out->po_buf = xqc_malloc(XQC_PACKET_OUT_SIZE);
     if (!packet_out->po_buf) {
         return NULL;
     }
 
+set_packet:
     packet_out->po_buf_size = XQC_PACKET_OUT_SIZE;
     packet_out->po_pkt.pkt_pns = pns;
 
     //TODO calc packet number
     packet_out->po_pkt.pkt_num = ctl->ctl_packet_number[pns]++;
 
-    xqc_send_ctl_insert_send(&packet_out->po_list, &ctl->ctl_packets);
+    xqc_send_ctl_insert_send(&packet_out->po_list, &ctl->ctl_packets, ctl);
 
     return packet_out;
 }
@@ -75,7 +89,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 }
 
 int
-xqc_write_ack_to_packets(xqc_connection_t *conn)
+ xqc_write_ack_to_packets(xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
     xqc_pkt_num_space_t pns;
@@ -90,6 +104,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
         if (conn->conn_flag & (XQC_CONN_FLAG_SHOULD_ACK_INIT << pns)) {
             packet_out = xqc_create_packet_out(conn->conn_pool, conn->conn_send_ctl, pns);
             if (packet_out == NULL) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_create_packet_out error");
                 return XQC_ERROR;
             }
 
@@ -115,12 +130,14 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                                                 packet_out->po_pkt.pkt_num, packet_number_bits);
             }
             if (rc < 0) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets gen header error");
                 return XQC_ERROR;
             }
             packet_out->po_used_size += rc;
 
             rc = xqc_write_ack_to_one_packet(conn, packet_out, pns);
             if (rc != XQC_OK) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_write_ack_to_one_packet error");
                 return XQC_ERROR;
             }
 

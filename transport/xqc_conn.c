@@ -133,7 +133,7 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->version = XQC_QUIC_VERSION;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
-    xc->conn_flag = XQC_CONN_FLAG_NONE;
+    xc->conn_flag = 0;
     xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;
     xc->zero_rtt_count = 0;
 
@@ -366,3 +366,19 @@ xqc_conn_check_handshake_completed(xqc_connection_t *conn)
     return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) != 0);
 }
 
+xqc_msec_t
+xqc_conn_next_wakeup_time(xqc_connection_t *conn)
+{
+    xqc_msec_t min_time = XQC_MAX_UINT64_VALUE;
+    xqc_send_ctl_timer_t *timer;
+    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+
+    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
+        timer = &ctl->ctl_timer[type];
+        if (timer->ctl_timer_is_set) {
+            min_time = xqc_min(min_time, timer->ctl_expire_time);
+        }
+    }
+
+    return min_time == XQC_MAX_UINT64_VALUE ? 0 : min_time;
+}
