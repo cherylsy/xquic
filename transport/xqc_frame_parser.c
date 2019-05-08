@@ -231,16 +231,12 @@ xqc_gen_crypto_frame(unsigned char *dst_buf, size_t dst_buf_len, size_t offset,
     return dst_buf - begin;
 }
 
-
 int
-xqc_parse_frames(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
-    while (packet_in->pos < packet_in->last) {
-        if(xqc_parse_stream_frame(packet_in, conn) != 0) {
-            return -1;
-        }
-    }
-    return 0;
+    //TODO: 实现
+    packet_in->pos = packet_in->last;
+    return XQC_OK;
 }
 
 void
@@ -251,6 +247,13 @@ xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
         packet_out->po_used_size = XQC_PACKET_INITIAL_MIN_LENGTH;
         xqc_long_packet_update_length(packet_out);
     }
+}
+
+int
+xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+{
+    packet_in->pos = packet_in->last;
+    return XQC_OK;
 }
 
 int
@@ -348,5 +351,7 @@ xqc_gen_ack_frame(unsigned char *dst_buf, size_t dst_buf_len, xqc_msec_t now, in
 int
 xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_info_t *ack_info)
 {
+    //TODO: 实现
+    packet_in->pos = packet_in->last;
     return XQC_OK;
 }

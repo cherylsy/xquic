@@ -259,7 +259,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     pos += packet_number_len;
 
     /* decrypt payload */
-    pos += payload_len - packet_number_len;
+    //pos += payload_len - packet_number_len; //parse frame时更新
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|payload=%ui|", packet->pkt_num, payload_len);
     packet_in->pos = pos;
@@ -407,7 +407,7 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     pos += packet_number_len;
 
     /* decrypt payload */
-    pos += payload_len - packet_number_len;
+    //pos += payload_len - packet_number_len; //parse frame时更新
 
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_handshake|success|packe_num=%ui|", packet->pkt_num);
@@ -801,20 +801,38 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         if (!xqc_conn_check_handshake_completed(c)) {
             /* TODO: buffer packets */
             xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd short header packet before handshake completed|");
+            packet_in->pos = packet_in->last;
             return XQC_OK;
         }
 
-        return xqc_packet_parse_short_header(c, packet_in);
+        ret = xqc_packet_parse_short_header(c, packet_in);
+        if (ret != XQC_OK) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_packet_parse_short_header error|");
+            return ret;
+        }
+    } else {  /* long header */
+
+        if (xqc_conn_check_handshake_completed(c)) {
+            /* ignore */
+            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd long header packet after handshake finishd|");
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
+        }
+
+        ret = xqc_packet_parse_long_header(c, packet_in);
+        if (ret != XQC_OK) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_packet_parse_long_header error|");
+            return ret;
+        }
     }
 
-    /* long header */
-    if (xqc_conn_check_handshake_completed(c)) {
-        /* ignore */
-        xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd long header packet after handshake finishd|");
-        return XQC_OK;
+    ret = xqc_process_frames(c, packet_in);
+    if (ret != XQC_OK) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_process_frames error|");
+        return ret;
     }
-    
-    return xqc_packet_parse_long_header(c, packet_in);
+
+    return XQC_OK;
 }
 
 
