@@ -58,12 +58,14 @@ struct xqc_packet_s {
 #define xqc_parse_uint16(p) ((p)[0] << 8 | (p)[1])
 #define xqc_parse_uint32(p) ((p)[0] << 24 | (p)[1] << 16 | (p)[2] << 8 | (p)[3])
 
-xqc_encrypt_level_t xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type);
+xqc_encrypt_level_t
+xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type);
 
-xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
-                             unsigned char *buf, size_t size);
+xqc_int_t
+xqc_packet_version_check(xqc_connection_t *c, uint32_t version);
 
-xqc_int_t xqc_conn_process_packets(xqc_connection_t *c,
+xqc_int_t
+xqc_conn_process_packets(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in);
 
 

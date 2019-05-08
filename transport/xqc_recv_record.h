@@ -32,14 +32,18 @@ typedef struct xqc_ack_info_s {
     xqc_msec_t              ack_delay;
 } xqc_ack_info_t;
 
-void xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from);
+void
+xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from);
 
-xqc_pkt_range_status xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number,
+xqc_pkt_range_status
+xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number,
                                           xqc_msec_t recv_time);
 
-xqc_packet_number_t xqc_recv_record_largest(xqc_recv_record_t *recv_record);
+xqc_packet_number_t
+xqc_recv_record_largest(xqc_recv_record_t *recv_record);
 
-void xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of_order, xqc_msec_t now);
+void
+xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of_order, xqc_msec_t now);
 
 
 #endif /* _XQC_RECV_RECORD_H_INCLUDED_ */
