@@ -34,6 +34,7 @@ set(
     transport/xqc_send_ctl.c
     transport/xqc_packet.c
     transport/xqc_frame.c
+    transport/xqc_recv_record.c
     
     transport/crypto/xqc_tls_init.c
     transport/crypto/xqc_crypto.c

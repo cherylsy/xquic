@@ -3,6 +3,7 @@
 
 #include "xqc_packet_test.h"
 #include "../transport/xqc_packet.h"
+#include "../transport/xqc_packet_parser.h"
 #include "../common/xqc_log.h"
 #include "../transport/xqc_engine.h"
 #include "../transport/xqc_cid.h"

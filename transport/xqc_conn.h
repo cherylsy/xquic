@@ -13,6 +13,7 @@
 #include "xqc_engine.h"
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
+#include "xqc_recv_record.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 

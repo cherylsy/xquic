@@ -11,6 +11,7 @@
 #include "../common/xqc_timer.h"
 #include "../transport/xqc_conn.h"
 #include "../congestion_control/xqc_new_reno.h"
+#include "../transport/xqc_packet_parser.h"
 
 
 void xqc_test_engine_create()

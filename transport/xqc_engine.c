@@ -416,6 +416,8 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to insert conns hash");
             return XQC_ERROR;
         }
+
+        xqc_log(engine->log, XQC_LOG_DEBUG, "xqc_engine_packet_process: server accept new conn");
     }
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection");
