@@ -19,10 +19,5 @@ int xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned ver, xqc_pkt_type_t type,
                             xqc_packet_number_t packet_number, unsigned char pktno_bits);
 
-int xqc_parse_packet_header (xqc_packet_in_t *packet_in);
-
-int xqc_parse_short_packet_header (xqc_packet_in_t *packet_in);
-
-int xqc_parse_long_packet_header (xqc_packet_in_t *packet_in);
 
 #endif /* _XQC_PACKET_PARSER_H_INCLUDED_ */

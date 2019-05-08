@@ -6,6 +6,7 @@
 #include "xqc_frame.h"
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
+#include "xqc_recv_record.h"
 
 /**
  * generate stream frame

@@ -166,48 +166,4 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
 
 }
 
-int
-xqc_parse_packet_header (xqc_packet_in_t *packet_in)
-{
-    if (packet_in->buf_size <= 0) {
-        return -1;
-    }
-    if (packet_in->buf[0] & 0x80) {
-        return xqc_parse_long_packet_header(packet_in);
-    }
-    else {
-        return xqc_parse_short_packet_header(packet_in);
-    }
-}
 
-/* Parse xqc_packet_in_t's buff, get xqc_packet_t */
-int
-xqc_parse_short_packet_header (xqc_packet_in_t *packet_in)
-{
-    unsigned char firt_byte = packet_in->buf[0];
-
-    unsigned char packno_bits = firt_byte & 0x03;
-    unsigned char packno_len = packno_bits + 1;
-
-    unsigned char cid_len = XQC_DEFAULT_CID_LEN; //TODO: parse from long header
-
-    unsigned char header_size = 1 + packno_len + cid_len;
-
-    memcpy(packet_in->pi_pkt.pkt_dcid.cid_buf, packet_in->buf + 1, cid_len);
-    packet_in->pi_pkt.pkt_dcid.cid_len = cid_len;
-
-    packet_in->pi_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
-    packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
-    //pi_pkt.pkt_num //TODO: need decrypted
-
-    //packet_in->pi_header_size = header_size;
-    //packet_in->processed_offset = header_size;
-    return 0;
-}
-
-int
-xqc_parse_long_packet_header (xqc_packet_in_t *packet_in)
-{
-
-    return 0;
-}
