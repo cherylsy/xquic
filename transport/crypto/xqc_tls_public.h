@@ -9,6 +9,7 @@
 #include "include/xquic_typedef.h"
 #include "common/xqc_str.h"
 #include "common/xqc_list.h"
+#include "include/xquic.h"
 #include "transport/xqc_frame.h"
 #include "xqc_tls_if.h"
 
@@ -218,17 +219,6 @@ typedef struct {
     uint64_t max_ack_delay;
     uint16_t no_crypto;
 } xqc_settings_t;
-
-
-struct xqc_ssl_config {
-    char       *private_key_file;
-    char       *cert_file;
-    char       *session_path;
-    const char *ciphers;
-    const char *groups;
-    uint32_t   timeout;
-};
-typedef struct xqc_ssl_config xqc_ssl_config_t;
 
 
 

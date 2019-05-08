@@ -31,44 +31,58 @@ int run(xqc_connection_t *conn){
     struct sockaddr_in g_client_addr;
 
     int len = sizeof(g_client_addr);
-    int n = recvfrom(g_sock, buf, sizeof(buf), 0, (struct sockaddr *)(&g_client_addr), &len );
 
-    if(n > 0){
-        hex_print(buf, n);
-        //recv_client_initial(conn, &dcid, NULL);
-        //xqc_recv_client_hello_derive_key(conn, &dcid);
-        conn->tlsref.callbacks.recv_client_initial(conn, &dcid, NULL);//recv client initial packets
-        conn->tlsref.callbacks.recv_crypto_data(conn, 0, buf, n, NULL);
-    }
+    while(1){
+        int n = recvfrom(g_sock, buf, sizeof(buf), 0, (struct sockaddr *)(&g_client_addr), &len );
 
-    xqc_list_head_t *head = &conn->tlsref.initial_pktns.msg_cb_head;
-    xqc_list_head_t *pos;
-    xqc_list_for_each(pos,head){
-        xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
-        if(buf->data_len > 0){
-            printf("in initial pktns:%d\n",buf->data_len);
-            int ret =  sendto(g_sock, buf->data, buf->data_len, 0, (struct sockaddr *)(&g_client_addr), len);
-            buf->data_len = 0;
-            if(ret < 0){
-                printf("error send\n");
-                return -1;
+        if(n > 0){
+            hex_print(buf, n);
+            //recv_client_initial(conn, &dcid, NULL);
+            //xqc_recv_client_hello_derive_key(conn, &dcid);
+            conn->tlsref.callbacks.recv_client_initial(conn, &dcid, NULL);//recv client initial packets
+            conn->tlsref.callbacks.recv_crypto_data(conn, 0, buf, n, NULL);
+        }
+
+        xqc_list_head_t *head = &conn->tlsref.initial_pktns.msg_cb_head;
+        xqc_list_head_t *pos, *next;
+        xqc_list_for_each_safe(pos, next, head){
+            xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
+            if(buf->data_len > 0){
+                printf("in initial pktns:%d\n",buf->data_len);
+                int ret =  sendto(g_sock, buf->data, buf->data_len, 0, (struct sockaddr *)(&g_client_addr), len);
+                buf->data_len = 0;
+                if(ret < 0){
+                    printf("error send\n");
+                    return -1;
+                }
             }
+            xqc_list_del(pos);
+            free(pos);
+        }
+
+        head = &conn->tlsref.hs_pktns.msg_cb_head;
+        xqc_list_for_each_safe(pos, next, head){
+            xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
+            if(buf->data_len > 0){
+                printf("in hs pktns:%d\n", buf->data_len);
+                int ret =  sendto(g_sock, buf->data, buf->data_len, 0, (struct sockaddr *)&g_client_addr, len);
+                buf->data_len = 0;
+                if(ret < 0){
+                    printf("error send\n");
+                    return -1;
+                }
+            }
+            xqc_list_del(pos);
+            free(pos);
+        }
+
+
+        if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED){
+            break;
         }
     }
+    printf("Negotiated cipher suite is:%s\n",SSL_get_cipher_name(conn->xc_ssl));
 
-    head = &conn->tlsref.hs_pktns.msg_cb_head;
-    xqc_list_for_each(pos,head){
-        xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
-        if(buf->data_len > 0){
-            printf("in hs pktns:%d\n", buf->data_len);
-            int ret =  sendto(g_sock, buf->data, buf->data_len, 0, (struct sockaddr *)&g_client_addr, len);
-            buf->data_len = 0;
-            if(ret < 0){
-                printf("error send\n");
-                return -1;
-            }
-        }
-    }
 }
 
 

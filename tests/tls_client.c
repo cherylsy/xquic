@@ -10,7 +10,6 @@
 #include "../include/xquic_typedef.h"
 #include "transport/xqc_conn.h"
 
-
 static char server_addr[256] = {0};
 unsigned short server_port = 0;
 
@@ -29,7 +28,8 @@ int do_handshake(xqc_connection_t * conn, xqc_cid_t * dcid){
     xqc_list_for_each(pos,head){
         xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
         if(buf->data_len > 0){
-
+            char send_buf[1024*2];
+            //NGTCP2_INITIAL_AEAD_OVERHEAD
             int ret =  sendto(g_sock, buf->data, buf->data_len, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
             printf("client hello buf len:%d\n",buf->data_len );
             hex_print(buf->data, buf->data_len);
@@ -57,7 +57,32 @@ int run(xqc_connection_t * conn, xqc_cid_t *dcid){
         printf("recv server hello len:%d\n", ret);
         hex_print(buf,ret);
         conn->tlsref.callbacks.recv_crypto_data(conn, 0, buf, ret, NULL);
+        if (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED){
+            break;
+        }
     }
+
+    xqc_list_head_t *head = &conn->tlsref.hs_pktns.msg_cb_head;
+    xqc_list_head_t *pos;
+    xqc_list_for_each(pos,head){
+        xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
+        if(buf->data_len > 0){
+
+            int ret =  sendto(g_sock, buf->data, buf->data_len, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
+            printf("client hs buf len:%d\n",buf->data_len );
+            hex_print(buf->data, buf->data_len);
+
+            buf->data_len  = 0;
+            if(ret < 0){
+                printf("error send data:%d",ret);
+                return -1;
+            }
+        }
+    }
+
+
+    printf("Negotiated cipher suite is:%s\n",SSL_get_cipher_name(conn->xc_ssl));
+
     return 0;
 }
 
@@ -93,6 +118,8 @@ int main(int argc, char *argv[]){
     xqc_ssl_config_t xs_config;
     xqc_ssl_init_config(&xs_config, NULL, NULL);
 
+    int no_crypto_flag = 1; // 1 means no crypto
+
     engine.ssl_ctx = xqc_create_client_ssl_ctx(&xs_config);
     xqc_connection_t conn;
     xqc_tlsref_init(& conn.tlsref);
@@ -100,7 +127,7 @@ int main(int argc, char *argv[]){
     memcpy(dcid.cid_buf, &DCID_TEST, sizeof(DCID_TEST));
     dcid.cid_len = sizeof(DCID_TEST);
     //xqc_create_client_ssl(&engine, &conn,  server_addr,
-    xqc_client_tls_initial(&engine, &conn, server_addr, &xs_config, &dcid, 1);
+    xqc_client_tls_initial(&engine, &conn, server_addr, &xs_config, &dcid, no_crypto_flag);
 
     xqc_client_setup_initial_crypto_context(&conn, &dcid);
     conn.version = XQC_QUIC_VERSION;

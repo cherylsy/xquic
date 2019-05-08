@@ -125,9 +125,7 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ss
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     settings->stateless_reset_token_present = 1;
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-    settings->no_crypto = 1;
-
-
+    settings->no_crypto = 0;
 
     xqc_tls_callbacks_t * callbacks = & conn->tlsref.callbacks;
     callbacks->client_initial = NULL;
