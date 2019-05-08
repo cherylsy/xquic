@@ -259,30 +259,12 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     pos += packet_number_len;
 
     /* decrypt payload */
-    pos += payload_len - packet_number_len;
+    //pos += payload_len - packet_number_len; //parse frame时更新
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|payload=%ui|", packet->pkt_num, payload_len);
     packet_in->pos = pos;
 
-    /* insert Initial & Handshake into packet send queue */
 
-    xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet->pkt_type);
-    xqc_stream_t *stream = c->crypto_stream[encrypt_level];
-    if (stream) {
-        xqc_stream_ready_to_read(stream);
-    } else {
-        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, encrypt_level, NULL);
-        if (c->crypto_stream[encrypt_level] == NULL) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_initial|xqc_create_crypto_stream err|");
-            return XQC_ERROR;
-        }
-        xqc_stream_ready_to_read(c->crypto_stream[encrypt_level]);
-    }
-
-    if (c->conn_type == XQC_CONN_TYPE_SERVER &&
-        encrypt_level == XQC_ENC_LEV_INIT && c->crypto_stream[XQC_ENC_LEV_HSK] == NULL) {
-        c->crypto_stream[XQC_ENC_LEV_HSK] = xqc_create_crypto_stream(c, XQC_ENC_LEV_HSK, NULL);
-    }
     return XQC_OK;
 }
 
@@ -327,14 +309,14 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
 
-    pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH 
+    pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
            + packet->pkt_dcid.cid_len + packet->pkt_scid.cid_len;
     packet_in->pos = pos;
-    
+
     /* Length(i) */
     size = xqc_vint_read(pos, packet_in->last, &payload_len);
-    if (size < 0 
-        || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len + packet_number_len) 
+    if (size < 0
+        || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len + packet_number_len)
     {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_zero_rtt|payload length err|");
         return XQC_ERROR;
@@ -407,24 +389,12 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     pos += packet_number_len;
 
     /* decrypt payload */
-    pos += payload_len - packet_number_len;
+    //pos += payload_len - packet_number_len; //parse frame时更新
 
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_handshake|success|packe_num=%ui|", packet->pkt_num);
     packet_in->pos = pos;
 
-    xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet->pkt_type);
-    xqc_stream_t *stream = c->crypto_stream[encrypt_level];
-    if (stream) {
-        xqc_stream_ready_to_read(stream);
-    } else {
-        c->crypto_stream[encrypt_level] = xqc_create_crypto_stream(c, encrypt_level, NULL);
-        if (c->crypto_stream[encrypt_level] == NULL) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_initial|xqc_create_crypto_stream err|");
-            return XQC_ERROR;
-        }
-        xqc_stream_ready_to_read(c->crypto_stream[encrypt_level]);
-    }
 
     return XQC_OK;
 }
@@ -465,7 +435,7 @@ xqc_packet_send_version_negotiation(xqc_connection_t *c)
     /*version*/
     *(uint32_t*)p = 0;
     p += sizeof(uint32_t);
-    
+
     /*DCIL(4)|SCIL(4)*/
     *p = (c->scid.cid_len - 3) << 4;
     *p |= c->dcid.cid_len - 3;
@@ -719,20 +689,20 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     }
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) < XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
-                                             + dcid->cid_len + scid->cid_len) 
+                                             + dcid->cid_len + scid->cid_len)
     {
-        return XQC_ERROR;    
+        return XQC_ERROR;
     }
 
     xqc_memcpy(dcid->cid_buf, pos, dcid->cid_len);
     pos += dcid->cid_len;
 
     xqc_memcpy(scid->cid_buf, pos, scid->cid_len);
-    pos += scid->cid_len;  
+    pos += scid->cid_len;
 
-    /* check cid */ 
+    /* check cid */
     if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->dcid) != XQC_OK
-        || xqc_cid_is_equal(&(packet->pkt_scid), &c->scid) != XQC_OK) 
+        || xqc_cid_is_equal(&(packet->pkt_scid), &c->scid) != XQC_OK)
     {
         /* log & ignore packet */
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|invalid dcid or scid|");
@@ -801,20 +771,38 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         if (!xqc_conn_check_handshake_completed(c)) {
             /* TODO: buffer packets */
             xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd short header packet before handshake completed|");
+            packet_in->pos = packet_in->last;
             return XQC_OK;
         }
 
-        return xqc_packet_parse_short_header(c, packet_in);
+        ret = xqc_packet_parse_short_header(c, packet_in);
+        if (ret != XQC_OK) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_packet_parse_short_header error|");
+            return ret;
+        }
+    } else {  /* long header */
+
+        if (xqc_conn_check_handshake_completed(c)) {
+            /* ignore */
+            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd long header packet after handshake finishd|");
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
+        }
+
+        ret = xqc_packet_parse_long_header(c, packet_in);
+        if (ret != XQC_OK) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_packet_parse_long_header error|");
+            return ret;
+        }
     }
 
-    /* long header */
-    if (xqc_conn_check_handshake_completed(c)) {
-        /* ignore */
-        xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd long header packet after handshake finishd|");
-        return XQC_OK;
+    ret = xqc_process_frames(c, packet_in);
+    if (ret != XQC_OK) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_process_frames error|");
+        return ret;
     }
-    
-    return xqc_packet_parse_long_header(c, packet_in);
+
+    return XQC_OK;
 }
 
 

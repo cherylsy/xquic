@@ -77,4 +77,19 @@ xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t
 unsigned int
 xqc_crypto_frame_header_size (uint64_t offset, size_t length);
 
+xqc_int_t
+xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
 #endif /* _XQC_FRAME_H_INCLUDED_ */
