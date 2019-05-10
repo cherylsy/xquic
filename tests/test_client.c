@@ -152,6 +152,18 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
+void xqc_client_wakeup(client_ctx_t *ctx)
+{
+    xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
+    //printf("xqc_engine_wakeup_after %llu\n", wake_after);
+    if (wake_after > 0) {
+        struct timeval tv;
+        tv.tv_sec = wake_after / 1000;
+        tv.tv_usec = wake_after % 1000;
+        event_add(ctx->ev_timer, &tv);
+        printf("xqc_engine_wakeup_after %llu ms\n", wake_after);
+    }
+}
 
 void 
 xqc_client_write_handler(client_ctx_t *ctx)
@@ -205,6 +217,8 @@ xqc_client_read_handler(client_ctx_t *ctx)
     {
         printf("xqc_client_read_handler: packet process err\n");
     }
+
+    xqc_client_wakeup(ctx);
 }
 
 
@@ -233,14 +247,7 @@ xqc_client_process_conns(client_ctx_t *ctx)
         return -1;
     }
 
-    xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
-    if (wake_after > 0) {
-        struct timeval tv;
-        tv.tv_sec = wake_after / 1000;
-        tv.tv_usec = wake_after % 1000;
-        event_add(ctx->ev_timer, &tv);
-        printf("xqc_engine_wakeup_after %llu ms\n", wake_after);
-    }
+    xqc_client_wakeup(ctx);
     return 0;
 }
 

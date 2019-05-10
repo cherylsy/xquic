@@ -83,6 +83,10 @@ xqc_stream_t *
 xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash);
 
 xqc_stream_t *
+xqc_server_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
+                          void *user_data);
+
+xqc_stream_t *
 xqc_create_crypto_stream (xqc_connection_t *conn,
                           xqc_encrypt_level_t encrypt_level,
                           void *user_data);

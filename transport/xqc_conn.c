@@ -370,6 +370,7 @@ xqc_msec_t
 xqc_conn_next_wakeup_time(xqc_connection_t *conn)
 {
     xqc_msec_t min_time = XQC_MAX_UINT64_VALUE;
+    xqc_msec_t wakeup_time;
     xqc_send_ctl_timer_t *timer;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
 
@@ -380,5 +381,9 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
         }
     }
 
-    return min_time == XQC_MAX_UINT64_VALUE ? 0 : min_time;
+    wakeup_time = min_time == XQC_MAX_UINT64_VALUE ? 0 : min_time;
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_conn_next_wakeup_time: %ui", wakeup_time);
+
+    return wakeup_time;
 }

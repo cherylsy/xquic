@@ -17,10 +17,12 @@ xqc_create_packet_out (xqc_memory_pool_t *pool, xqc_send_ctl_t *ctl, enum xqc_pk
     /*优先复用已申请*/
     xqc_list_for_each_safe(pos, next, &ctl->ctl_free_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        memset(packet_out, 0, sizeof(xqc_packet_out_t));
 
         xqc_send_ctl_remove_free(pos, ctl);
 
+        unsigned char *tmp = packet_out->po_buf;
+        memset(packet_out, 0, sizeof(xqc_packet_out_t));
+        packet_out->po_buf = tmp;
         goto set_packet;
     }
 
@@ -66,8 +68,8 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     xqc_msec_t now = xqc_gettimeofday();
 
 
-    size = xqc_gen_ack_frame(packet_out->po_buf + packet_out->po_used_size, packet_out->po_buf_size - packet_out->po_used_size,
-                      now, conn->trans_param.ack_delay_exponent, conn->recv_record, &has_gap, &largest_ack);
+    size = xqc_gen_ack_frame(conn, packet_out->po_buf + packet_out->po_used_size, packet_out->po_buf_size - packet_out->po_used_size,
+                      now, conn->trans_param.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
     if (size < 0) {
         return XQC_ERROR;
     }
