@@ -15,7 +15,7 @@ static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn) {
 }
 
 void xqc_conn_handshake_completed(xqc_connection_t *conn) {
-    conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
+    conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX;
 }
 
 

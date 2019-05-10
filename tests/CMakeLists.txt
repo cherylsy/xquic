@@ -26,8 +26,23 @@ if(HAVE_CUNIT)
   )
 
 
-  set(test_TLS
-    tls_client.c
+  set(test_TLS_C
+    test_tls_client.c
+    xqc_random_test.c
+    xqc_timer_test.c
+    xqc_pq_test.c
+    xqc_common_test.c
+    xqc_conn_test.c
+    xqc_engine_test.c
+    xqc_common_test.c
+    xqc_vint_test.c
+    xqc_packet_test.c
+    xqc_tls_init_test.c
+    xqc_tls_cb_test.c
+  )
+
+  set(test_TLS_S
+    test_tls_server.c
     xqc_random_test.c
     xqc_timer_test.c
     xqc_pq_test.c
@@ -56,18 +71,32 @@ if(HAVE_CUNIT)
   include_directories(../transport/crypto/)
 
 
-  add_executable(run_tls
-      ${test_TLS}
+  add_executable(test_tls_client
+      ${test_TLS_C}
   )
-  target_include_directories(run_tls PRIVATE ${CUNIT_INCLUDE_DIRS})
-  target_link_libraries(run_tls
+  target_include_directories(test_tls_client PRIVATE ${CUNIT_INCLUDE_DIRS})
+  target_link_libraries(test_tls_client
     xquic
     ${CUNIT_LIBRARIES}
   )
-  add_test(run_tls run_tls)
-  add_dependencies(check run_tls)
+  add_test(test_tls_client test_tls_client)
+  add_dependencies(check test_tls_client)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl )
   include_directories(../transport/crypto/)
+
+  add_executable(test_tls_server
+      ${test_TLS_S}
+  )
+  target_include_directories(test_tls_server PRIVATE ${CUNIT_INCLUDE_DIRS})
+  target_link_libraries(test_tls_server
+    xquic
+    ${CUNIT_LIBRARIES}
+  )
+  add_test(test_tls_server test_tls_server)
+  add_dependencies(check test_tls_server)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl )
+  include_directories(../transport/crypto/)
+
 
 
 endif()

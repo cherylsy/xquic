@@ -41,6 +41,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     xqc_tlsref_t * tlsref = & conn->tlsref;
     xqc_tlsref_init(tlsref);
 
+    tlsref->server = 0;
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
@@ -105,10 +106,12 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ss
         return -1;
     }
 
+
     xqc_ssl_config_t *config = conn->tlsref.sc;
     xqc_tlsref_t * tlsref = & conn->tlsref;
     xqc_tlsref_init(tlsref);
 
+    tlsref->server = 1;
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
@@ -125,9 +128,7 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ss
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     settings->stateless_reset_token_present = 1;
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-    settings->no_crypto = 1;
-
-
+    settings->no_crypto = 0;
 
     xqc_tls_callbacks_t * callbacks = & conn->tlsref.callbacks;
     callbacks->client_initial = NULL;

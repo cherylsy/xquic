@@ -11,6 +11,8 @@
 #define XQC_HP_SAMPLELEN 16
 #define XQC_HP_MASKLEN 5
 
+#define XQC_INITIAL_AEAD_OVERHEAD 16
+
 /* XQC_INITIAL_SALT is a salt value which is used to derive initial
    secret. */
 #define XQC_INITIAL_SALT                                                    \
@@ -149,5 +151,9 @@ size_t xqc_no_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t *ct
 size_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen);
+
+
+void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
+        uint64_t pkt_num) ;
 
 #endif
