@@ -151,6 +151,8 @@ void xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void
     xqc_connection_t *conn = ((xqc_send_ctl_t*)ctx)->ctl_conn;
     xqc_pkt_num_space_t pns = type - XQC_TIMER_ACK_INIT;
     conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_ack_timeout|pns=%d|", pns);
 }
 
 /**
@@ -160,12 +162,15 @@ void xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void
 void xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|");
     xqc_msec_t loss_time;
     xqc_pkt_num_space_t pns;
-    xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
+    loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
         // Time threshold loss Detection
         xqc_send_ctl_detect_lost(ctl, pns, now);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_send_ctl_detect_lost|");
     }
     // Retransmit crypto data if no packets were lost
     // and there are still crypto packets in flight.
@@ -173,11 +178,13 @@ void xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_
         // Crypto retransmission timeout.
         xqc_conn_retransmit_unacked_crypto(ctl->ctl_conn);
         ctl->ctl_crypto_count++;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_conn_retransmit_unacked_crypto|");
     }
     else {
         // PTO
         xqc_conn_send_probe_packets(ctl->ctl_conn);
         ctl->ctl_pto_count++;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_conn_send_probe_packets|");
     }
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
@@ -210,7 +217,8 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
         timer = &ctl->ctl_timer[type];
         if (timer->ctl_timer_is_set && timer->ctl_expire_time < now) {
             xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
-                    "|xqc_send_ctl_timer_expire|type=%d|", type);
+                    "|xqc_send_ctl_timer_expire|type=%d, expire_time=%ui, now=%ui|",
+                    type, timer->ctl_expire_time, now);
             timer->ctl_timer_callback(type, now, timer->ctl_ctx);
             xqc_send_ctl_timer_unset(ctl, type);
         }
@@ -455,7 +463,7 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
 {
     //TODO: 有疑问
     xqc_list_head_t *pos;
-    xqc_packet_out_t *packet_out, *smallest_lost_in_period;
+    xqc_packet_out_t *packet_out, *smallest_lost_in_period = NULL;
     unsigned in_period_num = 0;
 
     xqc_list_for_each(pos, &ctl->ctl_lost_packets) {
@@ -525,6 +533,8 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     xqc_pkt_num_space_t pns;
     xqc_msec_t loss_time, timeout;
 
+    xqc_connection_t *conn = ctl->ctl_conn;
+
     // Don't arm timer if there are no ack-eliciting packets
     // in flight.
     if (0 == ctl->ctl_bytes_in_flight) {
@@ -535,6 +545,10 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     if (loss_time != 0) {
         // Time threshold loss detection.
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION, loss_time);
+
+        xqc_log(conn->log, XQC_LOG_DEBUG,
+                "|xqc_send_ctl_set_loss_detection_timer|xqc_send_ctl_timer_set|loss_time=%ui|",
+                loss_time);
         return;
     }
 
@@ -550,6 +564,10 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
         timeout = timeout * xqc_send_ctl_pow(ctl->ctl_crypto_count);
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION,
                 ctl->ctl_time_of_last_sent_crypto_packet + timeout);
+
+        xqc_log(conn->log, XQC_LOG_DEBUG,
+                "|xqc_send_ctl_set_loss_detection_timer|xqc_send_ctl_timer_set|ctl_time_of_last_sent_crypto_packet=%ui, timeout=%ui|",
+                ctl->ctl_time_of_last_sent_crypto_packet, timeout);
         return;
     }
     // Calculate PTO duration
@@ -558,6 +576,10 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 
     xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION,
             ctl->ctl_time_of_last_sent_ack_eliciting_packet + timeout);
+
+    xqc_log(conn->log, XQC_LOG_DEBUG,
+            "|xqc_send_ctl_set_loss_detection_timer|xqc_send_ctl_timer_set|ctl_time_of_last_sent_ack_eliciting_packet=%ui, timeout=%ui|",
+            ctl->ctl_time_of_last_sent_ack_eliciting_packet, timeout);
 }
 
 /**

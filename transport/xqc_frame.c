@@ -8,6 +8,7 @@
 #include "xqc_packet_in.h"
 #include "xqc_conn.h"
 #include "xqc_frame_parser.h"
+#include "xqc_send_ctl.h"
 
 unsigned int
 xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t length)
@@ -140,8 +141,20 @@ xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     xqc_ack_info_t ack_info;
     ret = xqc_parse_ack_frame(packet_in, conn, &ack_info);
     if (ret) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_ack_frame|xqc_parse_stream_frame error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_ack_frame|xqc_parse_ack_frame error|");
         return XQC_ERROR;
     }
+
+    for (int i = 0; i < ack_info.n_ranges; i++) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_ack_frame|high: %ui, low: %ui|",
+        ack_info.ranges[i].high, ack_info.ranges[i].low);
+    }
+
+    ret = xqc_send_ctl_on_ack_received(conn->conn_send_ctl, &ack_info, packet_in->pkt_recv_time);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_ack_frame|xqc_send_ctl_on_ack_received error|");
+        return XQC_ERROR;
+    }
+
     return XQC_OK;
 }

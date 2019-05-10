@@ -216,8 +216,6 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
         c->discard_vn_flag = 1;
     }
 
-    //TODO: process frames
-    packet_in->pos = packet_in->last; //TODO: update in process frames
 
     return XQC_OK;
 }

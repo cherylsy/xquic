@@ -113,27 +113,53 @@ xqc_create_stream (xqc_connection_t *conn,
 
     xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t));
     if (stream == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_pcalloc error|");
         return NULL;
     }
 
-    stream->stream_id_type = XQC_CLI_BID;
     stream->stream_encrypt_level = XQC_ENC_LEV_1RTT;
-    stream->stream_id = xqc_gen_stream_id(conn, stream->stream_id_type);
+
     stream->stream_conn = conn;
     stream->stream_if = &conn->engine->eng_callback.stream_callbacks;
     stream->user_data = user_data;
 
     xqc_stream_set_flow_ctl(stream, &conn->trans_param);
 
-    xqc_id_hash_element_t e = {stream->stream_id, stream};
-    if (xqc_id_hash_add(conn->streams_hash, e)) {
+    xqc_init_list_head(&stream->stream_data_in.frames_tailq);
+
+
+    if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+        stream->stream_id_type = XQC_CLI_BID;
+        stream->stream_id = xqc_gen_stream_id(conn, stream->stream_id_type);
+        xqc_id_hash_element_t e = {stream->stream_id, stream};
+        if (xqc_id_hash_add(conn->streams_hash, e)) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_id_hash_add error|");
+            return NULL;
+        }
+        xqc_stream_ready_to_write(stream);
+    } else {
+        stream->stream_id_type = XQC_SVR_BID;
+    }
+
+    return stream;
+}
+
+xqc_stream_t *
+xqc_server_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
+                   void *user_data)
+{
+    xqc_stream_t *stream = xqc_create_stream(conn, user_data);
+    if (stream == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_server_create_stream|xqc_create_stream error|");
         return NULL;
     }
 
-    xqc_init_list_head(&stream->stream_data_in.frames_tailq);
-
-    xqc_stream_ready_to_write(stream);
-
+    stream->stream_id = stream_id;
+    xqc_id_hash_element_t e = {stream->stream_id, stream};
+    if (xqc_id_hash_add(conn->streams_hash, e)) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_server_create_stream|xqc_id_hash_add error|");
+        return NULL;
+    }
     return stream;
 }
 
