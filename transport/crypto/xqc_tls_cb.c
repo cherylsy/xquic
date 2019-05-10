@@ -16,8 +16,9 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
     int rv;
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
-    printf("xqc_tls_key_cb: %d\n", name);
-    hex_print((char *)secret, secretlen);
+    int server = conn -> tlsref.server;
+    //printf("xqc_tls_key_cb: %d\n", name);
+    //hex_print((char *)secret, secretlen);
     switch (name) {
         case SSL_KEY_CLIENT_EARLY_TRAFFIC:
         case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
@@ -79,32 +80,66 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             }
             break;
         case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
-            if(xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv,
-                        ivlen, hp, hplen) < 0){
-                printf("install handshake rx key error\n");
-                return -1;
+            if(server){
+                if(xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv,
+                            ivlen, hp, hplen) < 0){
+                    printf("install handshake rx key error\n");
+                    return -1;
+                }
+            }else{
+                if(xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv,
+                            ivlen, hp, hplen) < 0){
+                    printf("install handshake tx key error\n");
+                    return -1;
+                }
+
             }
             break;
         case SSL_KEY_CLIENT_APPLICATION_TRAFFIC:
-            if(xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen,
-                        hp, hplen) < 0){
-                printf("install rx keys error\n");
-                return -1;
+            if(server){
+                if(xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen,
+                            hp, hplen) < 0){
+                    printf("install rx keys error\n");
+                    return -1;
+                }
+            }else{
+                if(xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen,
+                            hp, hplen) < 0){
+                    printf("install tx keys error\n");
+                    return -1;
+
+                }
             }
             break;
         case SSL_KEY_SERVER_HANDSHAKE_TRAFFIC:
-            if(xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv,
-                        ivlen, hp, hplen) < 0){
-                printf("install handshake tx keys error\n");
-                return -1;
+            if(server){
+                if(xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv,
+                            ivlen, hp, hplen) < 0){
+                    printf("install handshake tx keys error\n");
+                    return -1;
+                }
+            }else{
+                if(xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv,
+                            ivlen, hp, hplen) < 0){
+                    printf("install handshake rx keys error\n");
+                    return -1;
+                }
+
             }
             break;
         case SSL_KEY_SERVER_APPLICATION_TRAFFIC:
-
-            if(xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen,
-                        hp, hplen) < 0){
-                printf("install tx keys error\n");
-                return -1;
+            if(server){
+                if(xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen,
+                            hp, hplen) < 0){
+                    printf("install tx keys error\n");
+                    return -1;
+                }
+            }else{
+                if(xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen,
+                            hp, hplen) < 0){
+                    printf("install rx keys error\n");
+                    return -1;
+                }
             }
             break;
     }
@@ -176,8 +211,8 @@ int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
 void xqc_msg_cb(int write_p, int version, int content_type, const void *buf,
         size_t len, SSL *ssl, void *arg) {
     int rv;
-    printf("xqc_msg_cb:content_type:%d, length:%d\n", content_type, len);
-    hex_print((char *)buf,len);
+    //printf("xqc_msg_cb:content_type:%d, length:%d\n", content_type, len);
+    //hex_print((char *)buf,len);
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
     if (!write_p) {
@@ -562,11 +597,6 @@ int xqc_decode_transport_params(xqc_transport_params_t *params,
     if (end - p != 0) {
         return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
-
-    return 0;
-
-
-
 
     return 0;
 }

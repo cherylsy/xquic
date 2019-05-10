@@ -57,7 +57,7 @@ int run(xqc_connection_t * conn, xqc_cid_t *dcid){
         printf("recv server hello len:%d\n", ret);
         hex_print(buf,ret);
         conn->tlsref.callbacks.recv_crypto_data(conn, 0, buf, ret, NULL);
-        if (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED){
+        if (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
             break;
         }
     }

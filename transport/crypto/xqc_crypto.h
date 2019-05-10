@@ -152,4 +152,8 @@ size_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen);
 
+
+void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
+        uint64_t pkt_num) ;
+
 #endif

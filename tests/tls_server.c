@@ -77,7 +77,7 @@ int run(xqc_connection_t *conn){
         }
 
 
-        if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED){
+        if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
             break;
         }
     }
