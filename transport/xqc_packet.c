@@ -9,6 +9,21 @@
 #include "xqc_recv_record.h"
 #include "xqc_packet_parser.h"
 
+static const char * const pkt_type_2_str[XQC_PTYPE_NUM] = {
+    [XQC_PTYPE_INIT]  = "INIT",
+    [XQC_PTYPE_0RTT]  = "0RTT",
+    [XQC_PTYPE_HSK]   = "HSK",
+    [XQC_PTYPE_RETRY] = "RETRY",
+    [XQC_PTYPE_SHORT_HEADER] = "SHORT_HEARER",
+    [XQC_PTYPE_VERSION_NEGOTIATION] = "VERSION_NEGOTIATION",
+};
+
+const char *
+xqc_pkt_type_2_str(xqc_pkt_type_t pkt_type)
+{
+    return pkt_type_2_str[pkt_type];
+}
+
 xqc_encrypt_level_t
 xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type)
 {
@@ -199,6 +214,10 @@ xqc_conn_process_packets(xqc_connection_t *c,
                                           packet_in->buf, packet_in->buf_size);
             return XQC_ERROR;
         }
+
+        xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_packets|pkt_type=%s|pkt_num=%ui|frame=%s|",
+                xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
+                xqc_frame_type_2_str(packet_in->pi_frame_types));
 
         //TODO: 放在包解析前，判断是否是重复的包XQC_PKTRANGE_DUP，如果接收过则不需要重复解包
         range_status = xqc_recv_record_add(&c->recv_record[packet_in->pi_pkt.pkt_pns], packet_in->pi_pkt.pkt_num,

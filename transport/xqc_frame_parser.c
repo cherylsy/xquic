@@ -9,7 +9,7 @@
 
 
 int
-xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
+xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
                      xqc_stream_id_t stream_id, size_t offset, uint8_t fin,
                      const unsigned char *payload, size_t size, size_t *written_size)
 {
@@ -32,6 +32,9 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
     |                        Stream Data (*)                      ...
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
      */
+
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size;
 
     *written_size = 0;
     /*  variable length integer's most significant 2 bits */
@@ -115,6 +118,9 @@ xqc_gen_stream_frame(unsigned char *dst_buf, size_t dst_buf_len,
                  | (!!offset_len << 2)
                  | (!!length_len << 1)
                  | (!!fin << 0);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_STREAM;
+
     return p - dst_buf;
 }
 
@@ -199,9 +205,12 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 }
 
 int
-xqc_gen_crypto_frame(unsigned char *dst_buf, size_t dst_buf_len, size_t offset,
+xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
                      const unsigned char *payload, size_t payload_size, size_t *written_size)
 {
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size;
+
     unsigned char offset_bits, length_bits;
     unsigned offset_vlen, length_vlen;
     unsigned char *begin = dst_buf;
@@ -232,6 +241,8 @@ xqc_gen_crypto_frame(unsigned char *dst_buf, size_t dst_buf_len, size_t offset,
     memcpy(dst_buf, payload, *written_size);
     dst_buf += *written_size;
 
+    packet_out->po_frame_types |= XQC_FRAME_BIT_CRYPTO;
+
     return dst_buf - begin;
 }
 
@@ -251,6 +262,7 @@ xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
         packet_out->po_used_size = XQC_PACKET_INITIAL_MIN_LENGTH;
         xqc_long_packet_update_length(packet_out);
     }
+    packet_out->po_frame_types |= XQC_FRAME_BIT_PADDING;
 }
 
 int
@@ -281,14 +293,18 @@ xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
                         Figure 17: ACK Frame Format
  */
 int
-xqc_gen_ack_frame(xqc_connection_t *conn, unsigned char *dst_buf, size_t dst_buf_len, xqc_msec_t now, int ack_delay_exponent,
+xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
+                  xqc_msec_t now, int ack_delay_exponent,
                       xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack)
 {
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size;
+
     xqc_packet_number_t lagest_recv;
     xqc_msec_t ack_delay;
 
-    unsigned char *begin = dst_buf;
-    unsigned char *end = dst_buf + dst_buf_len;
+    const unsigned char *begin = dst_buf;
+    const unsigned char *end = dst_buf + dst_buf_len;
     unsigned char *p_range_count;
     unsigned range_count = 0, first_ack_range, gap, acks, prev_low, gap_bits, acks_bits, need;
 
@@ -384,6 +400,8 @@ xqc_gen_ack_frame(xqc_connection_t *conn, unsigned char *dst_buf, size_t dst_buf
         *has_gap = 1;
     }
     xqc_vint_write(p_range_count, range_count, 0, 1);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
 
     return dst_buf - begin;
 }

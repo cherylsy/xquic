@@ -291,8 +291,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
             packet_out->po_used_size += n_written;
         }
 
-        n_written = xqc_gen_crypto_frame(packet_out->po_buf + packet_out->po_used_size,
-                                         packet_out->po_buf_size - packet_out->po_used_size,
+        n_written = xqc_gen_crypto_frame(packet_out,
                                          stream->stream_send_offset,
                                          send_data + offset,
                                          send_data_size - offset,
@@ -303,8 +302,6 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         offset += send_data_written;
         stream->stream_send_offset += send_data_written;
         packet_out->po_used_size += n_written;
-
-        packet_out->po_frame_types |= XQC_FRAME_BIT_CRYPTO;
 
         xqc_long_packet_update_length(packet_out);
     }
@@ -389,8 +386,7 @@ xqc_stream_send (xqc_stream_t *stream,
 
         //check if header is created
         if (!packet_out->po_used_size) {
-            n_written = xqc_gen_short_packet_header(packet_out->po_buf,
-                                                    packet_out->po_buf_size - packet_out->po_used_size,
+            n_written = xqc_gen_short_packet_header(packet_out,
                                                     c->dcid.cid_buf, c->dcid.cid_len,
                                                     packet_number_bits, packet_out->po_pkt.pkt_num);
             if (n_written < 0) {
@@ -399,8 +395,7 @@ xqc_stream_send (xqc_stream_t *stream,
             packet_out->po_used_size += n_written;
         }
 
-        n_written = xqc_gen_stream_frame(packet_out->po_buf + packet_out->po_used_size,
-                                         packet_out->po_buf_size - packet_out->po_used_size,
+        n_written = xqc_gen_stream_frame(packet_out,
                                          stream->stream_id, stream->stream_send_offset, fin,
                                          send_data + offset,
                                          send_data_size - offset,
@@ -412,8 +407,6 @@ xqc_stream_send (xqc_stream_t *stream,
         stream->stream_send_offset += send_data_written;
         stream->stream_conn->conn_flow_ctl.fc_data_sent += send_data_written;
         packet_out->po_used_size += n_written;
-
-        packet_out->po_frame_types |= XQC_FRAME_BIT_STREAM;
 
         fin_only = 0;
     }

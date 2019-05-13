@@ -105,7 +105,7 @@ xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number,
 
 
 int
-xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
+xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
                       unsigned char *dcid, unsigned int dcid_len,
                       unsigned char packet_number_bits, xqc_packet_number_t packet_number)
 {
@@ -131,6 +131,10 @@ xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
     unsigned int packet_number_len = xqc_packet_number_bits2len(packet_number_bits);
     unsigned int need = 1 + dcid_len + packet_number_len;
 
+    unsigned char *dst_buf = packet_out->po_buf;
+    size_t dst_buf_size = packet_out->po_buf_size - packet_out->po_used_size;
+
+    packet_out->po_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
 
     if (need > dst_buf_size) {
         return -1;
@@ -259,6 +263,8 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
 {
     unsigned char *dst_buf = packet_out->po_buf;
     size_t dst_buf_size = packet_out->po_buf_size - packet_out->po_used_size;
+
+    packet_out->po_pkt.pkt_type = type;
 
     unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, packet_number, pktno_bits, type);
 

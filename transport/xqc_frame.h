@@ -51,6 +51,8 @@ typedef enum {
     XQC_FRAME_BIT_NUM               = 1 << XQC_FRAME_NUM,
 } xqc_frame_type_bit_t;
 
+
+
 #define XQC_IS_ACK_ELICITING(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING))
 
 //TODO: more frames?
@@ -70,6 +72,9 @@ typedef struct xqc_stream_frame_s {
     unsigned char   fin;
     xqc_stream_id_t stream_id;
 } xqc_stream_frame_t;
+
+const char*
+xqc_frame_type_2_str (xqc_frame_type_bit_t type_bit);
 
 unsigned int
 xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t length);

@@ -68,7 +68,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     xqc_msec_t now = xqc_gettimeofday();
 
 
-    size = xqc_gen_ack_frame(conn, packet_out->po_buf + packet_out->po_used_size, packet_out->po_buf_size - packet_out->po_used_size,
+    size = xqc_gen_ack_frame(conn, packet_out,
                       now, conn->trans_param.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
     if (size < 0) {
         return XQC_ERROR;
@@ -76,8 +76,6 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 
     packet_out->po_used_size += size;
     packet_out->po_largest_ack = largest_ack;
-
-    packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
 
     conn->ack_eliciting_pkt[pns] = 0;
     if (has_gap) {
@@ -119,8 +117,7 @@ int
             }
 
             if (pns == XQC_PNS_01RTT && packet_out->po_used_size == 0) {
-                rc = xqc_gen_short_packet_header(packet_out->po_buf,
-                                                 packet_out->po_buf_size - packet_out->po_used_size,
+                rc = xqc_gen_short_packet_header(packet_out,
                                                  conn->dcid.cid_buf, conn->dcid.cid_len,
                                                  packet_number_bits, packet_out->po_pkt.pkt_num);
             } else if (pns != XQC_PNS_01RTT && packet_out->po_used_size == 0) {

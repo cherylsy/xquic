@@ -10,6 +10,47 @@
 #include "xqc_frame_parser.h"
 #include "xqc_send_ctl.h"
 
+
+static const char * const frame_type_2_str[XQC_FRAME_NUM] = {
+    [XQC_FRAME_PADDING]             = "PADDING",
+    [XQC_FRAME_PING]                = "PING",
+    [XQC_FRAME_ACK]                 = "ACK",
+    [XQC_FRAME_RESET_STREAM]        = "RESET_STREAM",
+    [XQC_FRAME_STOP_SENDING]        = "STOP_SENDING",
+    [XQC_FRAME_CRYPTO]              = "CRYPTO",
+    [XQC_FRAME_NEW_TOKEN]           = "NEW_TOKEN",
+    [XQC_FRAME_STREAM]              = "STREAM",
+    [XQC_FRAME_MAX_DATA]            = "MAX_DATA",
+    [XQC_FRAME_MAX_STREAM_DAT]      = "MAX_STREAM_DAT",
+    [XQC_FRAME_MAX_STREAMS]         = "MAX_STREAMS",
+    [XQC_FRAME_DATA_BLOCKED]        = "DATA_BLOCKED",
+    [XQC_FRAME_STREAM_DATA_BLOCKED] = "STREAM_DATA_BLOCKED",
+    [XQC_FRAME_STREAMS_BLOCKED]     = "STREAMS_BLOCKED",
+    [XQC_FRAME_NEW_CONNECTION_ID]   = "NEW_CONNECTION_ID",
+    [XQC_FRAME_RETIRE_CONNECTION_ID]= "RETIRE_CONNECTION_ID",
+    [XQC_FRAME_PATH_CHALLENGE]      = "PATH_CHALLENGE",
+    [XQC_FRAME_PATH_RESPONSE]       = "PATH_RESPONSE",
+    [XQC_FRAME_CONNECTION_CLOSE]    = "CONNECTION_CLOSE",
+    [XQC_FRAME_Extension]           = "Extension",
+};
+
+static char g_frame_type_buf[128];
+
+const char*
+xqc_frame_type_2_str (xqc_frame_type_bit_t type_bit)
+{
+    g_frame_type_buf[0] = '\0';
+    size_t pos = 0;
+    int wsize;
+    for (int i = 0; i < XQC_FRAME_NUM; i++) {
+        if (type_bit & 1 << i) {
+            wsize = snprintf(g_frame_type_buf + pos, sizeof(g_frame_type_buf) - pos, "%s ", frame_type_2_str[i]);
+            pos += wsize;
+        }
+    }
+    return g_frame_type_buf;
+}
+
 unsigned int
 xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t length)
 {

@@ -255,7 +255,8 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (xqc_send_ctl_can_send(conn)) { //TODO: 保证packet number大的，发送时间最新
-            if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT) {
+            if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
+                    && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
                 xqc_gen_padding_frame(packet_out);
             }
 
@@ -276,7 +277,10 @@ void
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
-    xqc_log(conn->log, XQC_LOG_DEBUG, "<== xqc_conn_send_one_packet conn=%p, size=%ui", conn, packet_out->po_used_size);
+    xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
+            conn, packet_out->po_used_size,
+            xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
+            xqc_frame_type_2_str(packet_out->po_frame_types));
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out);
 }
 
