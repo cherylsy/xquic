@@ -273,15 +273,21 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     //TODO: del packet_out
 }
 
-void
+ssize_t
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
-    xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
-            conn, packet_out->po_used_size,
+    ssize_t sent;
+    sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
+    xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui,%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
+            conn, packet_out->po_used_size, sent,
             xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
             xqc_frame_type_2_str(packet_out->po_frame_types));
+    if (sent != packet_out->po_used_size) {
+        return XQC_ERROR;
+    }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out);
+
+    return sent;
 }
 
 void

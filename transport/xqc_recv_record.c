@@ -5,6 +5,18 @@
 #include "xqc_send_ctl.h"
 #include "../common/xqc_log.h"
 
+void
+xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record)
+{
+    xqc_list_head_t *pos;
+    xqc_pktno_range_node_t *pnode;
+    xqc_list_for_each(pos, &recv_record->list_head) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "recv_record low:%ui, high=%ui",
+                pnode->pktno_range.low, pnode->pktno_range.high);
+    }
+}
+
 static int
 xqc_pktno_range_can_merge (xqc_pktno_range_node_t *node, xqc_packet_number_t packet_number)
 {
@@ -75,11 +87,6 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
             xqc_list_add_tail(&(new_node->list), &recv_record->list_head);
         }
     }
-
-    /*xqc_list_for_each(pos, &recv_record->list_head) {
-        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
-        printf("xqc_recv_record_add low:%llu, high=%llu\n", pnode->pktno_range.low, pnode->pktno_range.high);
-    }*/
 
     return XQC_PKTRANGE_OK;
 }
@@ -170,15 +177,16 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
     if (conn->ack_eliciting_pkt[pns] >= 2 || out_of_order) {
 
         conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
-        xqc_send_ctl_timer_unset(conn->conn_send_ctl, XQC_TIMER_ACK_INIT << pns);
+        xqc_send_ctl_timer_unset(conn->conn_send_ctl, XQC_TIMER_ACK_INIT + pns);
 
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack yes|out_of_order=%d|ack_eliciting_pkt=%d|pns=%d|flag=%d|",
                 out_of_order, conn->ack_eliciting_pkt[pns], pns, conn->conn_flag);
     } else if (conn->ack_eliciting_pkt[pns] > 0) {
-        xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_ACK_INIT << pns,
+        xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_ACK_INIT + pns,
                                now + conn->trans_param.max_ack_delay);
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack|set timer|ack_eliciting_pkt=%d|pns=%d|flag=%d|max_ack_delay=%ui|",
-                conn->ack_eliciting_pkt[pns], pns, conn->conn_flag, conn->trans_param.max_ack_delay);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_maybe_should_ack|set ack timer|ack_eliciting_pkt=%d|pns=%d|"
+                                          "flag=%d|now=%ui|max_ack_delay=%ui|",
+                conn->ack_eliciting_pkt[pns], pns, conn->conn_flag, now, conn->trans_param.max_ack_delay);
     }
 }

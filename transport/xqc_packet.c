@@ -223,13 +223,17 @@ xqc_conn_process_packets(xqc_connection_t *c,
         range_status = xqc_recv_record_add(&c->recv_record[packet_in->pi_pkt.pkt_pns], packet_in->pi_pkt.pkt_num,
                             packet_in->pkt_recv_time);
         if (range_status == XQC_PKTRANGE_OK) {
-            ++c->ack_eliciting_pkt[packet_in->pi_pkt.pkt_pns]; //TODO: ack padding不加计数
+            if (XQC_IS_ACK_ELICITING(packet_in->pi_frame_types)) {
+                ++c->ack_eliciting_pkt[packet_in->pi_pkt.pkt_pns];
+            }
             if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns])) {
                 out_of_order = 1;
             }
             xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order, packet_in->pkt_recv_time);
         }
-        xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|",
+
+        xqc_recv_record_log(c, &c->recv_record[packet_in->pi_pkt.pkt_pns]);
+        xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_conn_process_packets|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|",
                 range_status, packet_in->pi_pkt.pkt_num, xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]));
     }
 
