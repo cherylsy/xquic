@@ -146,6 +146,13 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
+
+    if (xqc_conn_check_handshake_completed(conn)) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_crypto_frame|recvd long header packet after handshake finishd|");
+        packet_in->pos = packet_in->last;
+        return XQC_OK;
+    }
+
     ret = xqc_parse_crypto_frame(packet_in, conn);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_crypto_frame|xqc_parse_crypto_frame error|");

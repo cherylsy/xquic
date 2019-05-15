@@ -77,6 +77,8 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     packet_out->po_used_size += size;
     packet_out->po_largest_ack = largest_ack;
 
+    xqc_long_packet_update_length(packet_out);
+
     conn->ack_eliciting_pkt[pns] = 0;
     if (has_gap) {
         conn->conn_flag |= XQC_CONN_FLAG_ACK_HAS_GAP;

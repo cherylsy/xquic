@@ -95,14 +95,6 @@ void
 xqc_send_ctl_insert_unacked(xqc_packet_out_t *packet_out, xqc_list_head_t *head, xqc_send_ctl_t *ctl)
 {
     xqc_list_add_tail(&packet_out->po_list, head);
-
-    if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types) && !(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
-        ctl->ctl_bytes_in_flight += packet_out->po_used_size;
-        if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-            ctl->ctl_crypto_bytes_in_flight += packet_out->po_used_size;
-        }
-        packet_out->po_flag |= XQC_POF_IN_FLIGHT;
-    }
 }
 
 void
@@ -252,6 +244,15 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             ctl->ctl_time_of_last_sent_ack_eliciting_packet = packet_out->po_sent_time;
         }
+
+        if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
+            ctl->ctl_bytes_in_flight += packet_out->po_used_size;
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+                ctl->ctl_crypto_bytes_in_flight += packet_out->po_used_size;
+            }
+            packet_out->po_flag |= XQC_POF_IN_FLIGHT;
+        }
+
         xqc_send_ctl_set_loss_detection_timer(ctl);
     }
 }
@@ -545,7 +546,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     // Don't arm timer if there are no ack-eliciting packets
     // in flight.
     if (0 == ctl->ctl_bytes_in_flight) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_set_loss_detection_timer|no data in flight");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_set_loss_detection_timer|unset|no data in flight|");
         xqc_send_ctl_timer_unset(ctl, XQC_TIMER_LOSS_DETECTION);
         return;
     }

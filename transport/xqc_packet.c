@@ -164,13 +164,6 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         }
     } else {  /* long header */
 
-        if (xqc_conn_check_handshake_completed(c)) {
-            /* ignore */
-            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd long header packet after handshake finishd|");
-            packet_in->pos = packet_in->last;
-            return XQC_OK;
-        }
-
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_packet_parse_long_header error|");

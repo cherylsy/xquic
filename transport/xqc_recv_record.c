@@ -174,7 +174,9 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
         return;
     }
 
-    if (conn->ack_eliciting_pkt[pns] >= 2 || out_of_order) {
+    if (conn->ack_eliciting_pkt[pns] >= 2
+        || (pns <= XQC_PNS_HSK && conn->ack_eliciting_pkt[pns] >= 1)
+        || out_of_order) {
 
         conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
         xqc_send_ctl_timer_unset(conn->conn_send_ctl, XQC_TIMER_ACK_INIT + pns);
