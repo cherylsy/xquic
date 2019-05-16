@@ -201,9 +201,25 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
     xqc_stream_ready_to_read(stream);
 
     packet_in->pos += (p - packet_in->buf + frame->data_length);
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAM;
     return 0;
 }
 
+
+/*
+ *
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          Offset (i)                         ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                          Length (i)                         ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Crypto Data (*)                      ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                      Figure 19: CRYPTO Frame Format
+ */
 int
 xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
                      const unsigned char *payload, size_t payload_size, size_t *written_size)
@@ -249,8 +265,31 @@ xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
 int
 xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
-    //TODO: 实现
-    packet_in->pos = packet_in->last;
+    int vlen;
+    uint64_t offset;
+    uint64_t length;
+    const unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+
+    const unsigned char first_byte = *p++;
+
+    vlen = xqc_vint_read(p, end, &offset);
+    if (vlen < 0) {
+        return -1;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, &length);
+    if (vlen < 0) {
+        return -2;
+    }
+    p += vlen;
+
+    //todo: process Crypto Data
+    p += length;
+
+    packet_in->pos = (unsigned char*)p;
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
     return XQC_OK;
 }
 
@@ -269,6 +308,7 @@ int
 xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
     packet_in->pos = packet_in->last;
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_PADDING;
     return XQC_OK;
 }
 
@@ -478,6 +518,8 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
     ack_info->n_ranges = n_ranges;
 
     packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_ACK;
 
     return XQC_OK;
 }
