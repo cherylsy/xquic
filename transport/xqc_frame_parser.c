@@ -399,6 +399,9 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     if (range_count > 0) {
         *has_gap = 1;
     }
+    else {
+        *has_gap = 0;
+    }
     xqc_vint_write(p_range_count, range_count, 0, 1);
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
