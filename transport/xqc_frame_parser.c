@@ -125,12 +125,9 @@ xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
 }
 
 int
-xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
+                       xqc_stream_frame_t *frame, xqc_stream_id_t *stream_id)
 {
-    xqc_stream_frame_t *frame;
-    xqc_stream_t *stream;
-    xqc_stream_id_t stream_id;
-
     uint64_t offset;
     uint64_t length;
     int vlen;
@@ -140,23 +137,11 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 
     const unsigned char first_byte = *p++;
 
-    vlen = xqc_vint_read(p, end, &stream_id);
+    vlen = xqc_vint_read(p, end, stream_id);
     if (vlen < 0) {
         return -1;
     }
     p += vlen;
-
-    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
-    if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
-        stream = xqc_server_create_stream(conn, stream_id, NULL);
-    }
-
-    if (!stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_parse_stream_frame|cannot find stream|");
-        return -2;
-    }
-
-    frame = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_frame_t));
 
     if (first_byte & 0x04) {
         vlen = xqc_vint_read(p, end, &offset);
@@ -182,23 +167,18 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 
     if (first_byte & 0x01) {
         frame->fin = 1;
-        stream->stream_data_in.fin_received = 1;
-        stream->stream_data_in.stream_length = frame->data_offset + frame->data_length;
     }
     else {
         frame->fin = 0;
     }
 
     if (frame->data_length > 0) {
-        frame->data = xqc_malloc(frame->data_length); //TODO: maybe use stream's pool?; free data
+        frame->data = xqc_malloc(frame->data_length);
         if (!frame->data) {
             return -5;
         }
         memcpy(frame->data, p, frame->data_length);
     }
-
-    //TODO: insert xqc_stream_frame_t into stream->stream_data_in.frames_tailq in order of offset
-    xqc_stream_ready_to_read(stream);
 
     packet_in->pos += (p - packet_in->buf + frame->data_length);
     packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAM;

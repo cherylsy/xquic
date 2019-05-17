@@ -19,6 +19,7 @@ typedef struct xqc_log_s xqc_log_t;
 typedef struct xqc_send_ctl_s xqc_send_ctl_t;
 typedef struct xqc_packet_s xqc_packet_t;
 typedef struct xqc_packet_in_s xqc_packet_in_t;
+typedef struct xqc_stream_frame_s xqc_stream_frame_t;
 
 typedef uint64_t xqc_msec_t;
 

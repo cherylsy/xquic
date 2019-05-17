@@ -64,14 +64,6 @@ typedef enum {
 
 #define XQC_CAN_IN_FLIGHT(types) (!(types == XQC_FRAME_BIT_ACK))
 
-/* Put one STREAM frame */
-typedef struct xqc_stream_frame_s {
-    unsigned char   *data;
-    unsigned        data_length;
-    uint64_t        data_offset;
-    unsigned char   fin;
-    xqc_stream_id_t stream_id;
-} xqc_stream_frame_t;
 
 const char*
 xqc_frame_type_2_str (xqc_frame_type_bit_t type_bit);
@@ -81,6 +73,9 @@ xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t
 
 unsigned int
 xqc_crypto_frame_header_size (uint64_t offset, size_t length);
+
+xqc_int_t
+xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *stream_frame);
 
 xqc_int_t
 xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in);

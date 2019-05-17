@@ -291,7 +291,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         }
 
         if (packet_out->po_pkt.pkt_num >= range->low) {
-            if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_acked[pns]) {
+            if (packet_out->po_pkt.pkt_num >= ctl->ctl_largest_acked[pns]) {
                 ctl->ctl_largest_acked[pns] = packet_out->po_pkt.pkt_num;
                 ctl->ctl_largest_acked_sent_time[pns] = packet_out->po_sent_time;
             }
@@ -314,7 +314,6 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 update_rtt = 1;
             }
 
-            //TODO: free packet_out
         }
     }
 

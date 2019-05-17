@@ -348,6 +348,27 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
     return stream;
 }
 
+
+ssize_t xqc_stream_recv (xqc_stream_t *stream,
+                         unsigned char *recv_buf,
+                         size_t recv_buf_size)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_stream_frame_t *stream_frame;
+    size_t read = 0;
+
+    xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
+        stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
+        if (stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
+            break;
+        }
+
+        /*if (read < recv)
+        memcpy(recv_buf, stream_frame->data, )*/
+    }
+}
+
+
 ssize_t
 xqc_stream_send (xqc_stream_t *stream,
                  unsigned char *send_data,
