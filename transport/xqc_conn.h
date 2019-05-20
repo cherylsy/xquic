@@ -54,13 +54,24 @@ typedef enum {
                                     |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
 
 typedef enum {
-    XQC_CONN_FLAG_WAKEUP                = 1 << 0,
-    XQC_CONN_FLAG_HANDSHAKE_COMPLETED   = 1 << 1,
-    XQC_CONN_FLAG_TICKING               = 1 << 2,
-    XQC_CONN_FLAG_SHOULD_ACK_INIT       = 1 << 3,
-    XQC_CONN_FLAG_SHOULD_ACK_HSK        = 1 << (3 + XQC_PNS_HSK),
-    XQC_CONN_FLAG_SHOULD_ACK_01RTT      = 1 << (3 + XQC_PNS_01RTT),
-    XQC_CONN_FLAG_ACK_HAS_GAP           = 1 << 6,
+    XQC_CONN_FLAG_WAKEUP_SHIFT,
+    XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
+    XQC_CONN_FLAG_TICKING_SHIFT,
+    XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT,
+    XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT        = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_HSK),
+    XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT      = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_01RTT),
+    XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
+    XQC_CONN_FLAG_SHIFT_NUM,
+}xqc_conn_flag_shift_t;
+
+typedef enum {
+    XQC_CONN_FLAG_WAKEUP                = 1 << XQC_CONN_FLAG_WAKEUP_SHIFT,
+    XQC_CONN_FLAG_HANDSHAKE_COMPLETED   = 1 << XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
+    XQC_CONN_FLAG_TICKING               = 1 << XQC_CONN_FLAG_TICKING_SHIFT,
+    XQC_CONN_FLAG_SHOULD_ACK_INIT       = 1 << XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT,
+    XQC_CONN_FLAG_SHOULD_ACK_HSK        = 1 << XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT,
+    XQC_CONN_FLAG_SHOULD_ACK_01RTT      = 1 << XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT,
+    XQC_CONN_FLAG_ACK_HAS_GAP           = 1 << XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -177,6 +188,8 @@ struct xqc_connection_s{
     xqc_conn_flow_ctl_t     conn_flow_ctl;
 };
 
+const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);
+
 void xqc_conn_init_trans_param(xqc_connection_t *conn);
 
 void xqc_conn_init_flow_ctl(xqc_connection_t *conn);
@@ -198,7 +211,7 @@ void xqc_destroy_connection(xqc_connection_t *xc);
 
 void xqc_conn_send_packets (xqc_connection_t *conn);
 
-void xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+ssize_t xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
 void xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
 

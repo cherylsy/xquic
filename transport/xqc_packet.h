@@ -30,6 +30,7 @@ typedef enum xqc_pkt_type
     XQC_PTYPE_RETRY = 3,
     XQC_PTYPE_SHORT_HEADER,
     XQC_PTYPE_VERSION_NEGOTIATION,
+    XQC_PTYPE_NUM,
 } xqc_pkt_type_t;
 
 
@@ -57,6 +58,9 @@ struct xqc_packet_s {
 
 #define xqc_parse_uint16(p) ((p)[0] << 8 | (p)[1])
 #define xqc_parse_uint32(p) ((p)[0] << 24 | (p)[1] << 16 | (p)[2] << 8 | (p)[3])
+
+const char *
+xqc_pkt_type_2_str(xqc_pkt_type_t pkt_type);
 
 xqc_encrypt_level_t
 xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type);

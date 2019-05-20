@@ -434,7 +434,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return XQC_ERROR;
     }
 
-    xqc_log(engine->log, XQC_LOG_DEBUG, "==> xqc_engine_packet_process conn=%p, size=%ui", conn, packet_in_size);
+    xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui", conn, packet_in_size);
 
     /* process packets */    
     if (xqc_conn_process_packets(conn, packet_in) != XQC_OK) {

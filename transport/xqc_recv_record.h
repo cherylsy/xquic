@@ -33,6 +33,9 @@ typedef struct xqc_ack_info_s {
 } xqc_ack_info_t;
 
 void
+xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record);
+
+void
 xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from);
 
 xqc_pkt_range_status

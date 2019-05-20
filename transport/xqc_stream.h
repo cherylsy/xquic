@@ -28,14 +28,25 @@ typedef struct {
     uint64_t                fc_max_stream_data_uni;
 } xqc_stream_flow_ctl_t;
 
+
+/* Put one STREAM frame */
+typedef struct xqc_stream_frame_s {
+    xqc_list_head_t sf_list;
+    unsigned char   *data;
+    unsigned        data_length;
+    uint64_t        data_offset;
+    uint64_t        next_read_offset;
+    unsigned char   fin;
+} xqc_stream_frame_t;
+
+
 /* Put all STREAM data here */
 typedef struct xqc_stream_data_in_s {
     /* A list of STREAM frame, order by offset */
     xqc_list_head_t                 frames_tailq; /* xqc_stream_frame_t */
-    unsigned                        frames_num;
+    uint64_t                        merged_offset_end; /* [0,end) 收齐 */
+    uint64_t                        next_read_offset;
     uint64_t                        stream_length;
-    unsigned char                   fin_received;
-    unsigned char                   all_received;
 } xqc_stream_data_in_t;
 
 

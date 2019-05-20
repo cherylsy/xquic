@@ -159,9 +159,9 @@ void xqc_client_wakeup(client_ctx_t *ctx)
     if (wake_after > 0) {
         struct timeval tv;
         tv.tv_sec = wake_after / 1000;
-        tv.tv_usec = wake_after % 1000;
+        tv.tv_usec = wake_after % 1000 * 1000;
         event_add(ctx->ev_timer, &tv);
-        printf("xqc_engine_wakeup_after %llu ms\n", wake_after);
+        printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
     }
 }
 
@@ -254,7 +254,7 @@ xqc_client_process_conns(client_ctx_t *ctx)
 static void
 xqc_client_timer_callback(int fd, short what, void *arg)
 {
-    DEBUG;
+    printf("xqc_client_timer_callback now %llu\n", now());
     client_ctx_t *ctx = (client_ctx_t *) arg;
 
     int rc = xqc_client_process_conns(ctx);

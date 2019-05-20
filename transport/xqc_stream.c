@@ -291,8 +291,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
             packet_out->po_used_size += n_written;
         }
 
-        n_written = xqc_gen_crypto_frame(packet_out->po_buf + packet_out->po_used_size,
-                                         packet_out->po_buf_size - packet_out->po_used_size,
+        n_written = xqc_gen_crypto_frame(packet_out,
                                          stream->stream_send_offset,
                                          send_data + offset,
                                          send_data_size - offset,
@@ -303,8 +302,6 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         offset += send_data_written;
         stream->stream_send_offset += send_data_written;
         packet_out->po_used_size += n_written;
-
-        packet_out->po_frame_types |= XQC_FRAME_BIT_CRYPTO;
 
         xqc_long_packet_update_length(packet_out);
     }
@@ -351,6 +348,27 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
     return stream;
 }
 
+
+ssize_t xqc_stream_recv (xqc_stream_t *stream,
+                         unsigned char *recv_buf,
+                         size_t recv_buf_size)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_stream_frame_t *stream_frame;
+    size_t read = 0;
+
+    xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
+        stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
+        if (stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
+            break;
+        }
+
+        /*if (read < recv)
+        memcpy(recv_buf, stream_frame->data, )*/
+    }
+}
+
+
 ssize_t
 xqc_stream_send (xqc_stream_t *stream,
                  unsigned char *send_data,
@@ -389,8 +407,7 @@ xqc_stream_send (xqc_stream_t *stream,
 
         //check if header is created
         if (!packet_out->po_used_size) {
-            n_written = xqc_gen_short_packet_header(packet_out->po_buf,
-                                                    packet_out->po_buf_size - packet_out->po_used_size,
+            n_written = xqc_gen_short_packet_header(packet_out,
                                                     c->dcid.cid_buf, c->dcid.cid_len,
                                                     packet_number_bits, packet_out->po_pkt.pkt_num);
             if (n_written < 0) {
@@ -399,8 +416,7 @@ xqc_stream_send (xqc_stream_t *stream,
             packet_out->po_used_size += n_written;
         }
 
-        n_written = xqc_gen_stream_frame(packet_out->po_buf + packet_out->po_used_size,
-                                         packet_out->po_buf_size - packet_out->po_used_size,
+        n_written = xqc_gen_stream_frame(packet_out,
                                          stream->stream_id, stream->stream_send_offset, fin,
                                          send_data + offset,
                                          send_data_size - offset,
@@ -412,8 +428,6 @@ xqc_stream_send (xqc_stream_t *stream,
         stream->stream_send_offset += send_data_written;
         stream->stream_conn->conn_flow_ctl.fc_data_sent += send_data_written;
         packet_out->po_used_size += n_written;
-
-        packet_out->po_frame_types |= XQC_FRAME_BIT_STREAM;
 
         fin_only = 0;
     }

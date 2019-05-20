@@ -3,15 +3,42 @@
 #include "../common/xqc_common.h"
 #include "../common/xqc_malloc.h"
 #include "../common/xqc_str_hash.h"
+#include "../common/xqc_timer.h"
+#include "../common/xqc_hash.h"
+#include "../common/xqc_priority_q.h"
 #include "xqc_conn.h"
 #include "xqc_send_ctl.h"
-#include "../common/xqc_priority_q.h"
 #include "xqc_engine.h"
 #include "xqc_cid.h"
 #include "xqc_stream.h"
-#include "../common/xqc_hash.h"
 #include "xqc_frame_parser.h"
-#include "../common/xqc_timer.h"
+
+static char g_conn_flag_buf[128];
+
+static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
+        [XQC_CONN_FLAG_WAKEUP_SHIFT]                = "WAKEUP",
+        [XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT]   = "HSK_DONE",
+        [XQC_CONN_FLAG_TICKING_SHIFT]               = "TICKING",
+        [XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT]       = "ACK_INIT",
+        [XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT]        = "ACK_HSK",
+        [XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT]      = "ACK_01RTT",
+        [XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT]           = "HAS_GAP",
+};
+
+const char*
+xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag)
+{
+    g_conn_flag_buf[0] = '\0';
+    size_t pos = 0;
+    int wsize;
+    for (int i = 0; i < XQC_CONN_FLAG_SHIFT_NUM; i++) {
+        if (conn_flag & 1 << i) {
+            wsize = snprintf(g_conn_flag_buf + pos, sizeof(g_conn_flag_buf) - pos, "%s ", conn_flag_2_str[i]);
+            pos += wsize;
+        }
+    }
+    return g_conn_flag_buf;
+}
 
 void xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
@@ -255,7 +282,8 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (xqc_send_ctl_can_send(conn)) { //TODO: 保证packet number大的，发送时间最新
-            if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT) {
+            if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
+                    && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
                 xqc_gen_padding_frame(packet_out);
             }
 
@@ -272,12 +300,21 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     //TODO: del packet_out
 }
 
-void
+ssize_t
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
-    xqc_log(conn->log, XQC_LOG_DEBUG, "<== xqc_conn_send_one_packet conn=%p, size=%ui", conn, packet_out->po_used_size);
+    ssize_t sent;
+    sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
+    xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui,%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
+            conn, packet_out->po_used_size, sent,
+            xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
+            xqc_frame_type_2_str(packet_out->po_frame_types));
+    if (sent != packet_out->po_used_size) {
+        return XQC_ERROR;
+    }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out);
+
+    return sent;
 }
 
 void

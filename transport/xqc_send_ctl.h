@@ -125,6 +125,8 @@ xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_ms
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_set|type=%d|expire=%ui|",
+        type, expire);
 }
 
 static inline void
@@ -132,6 +134,8 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 0;
     ctl->ctl_timer[type].ctl_expire_time = 0;
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_unset|type=%d|",
+            type);
 }
 
 void

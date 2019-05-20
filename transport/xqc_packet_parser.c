@@ -105,7 +105,7 @@ xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number,
 
 
 int
-xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
+xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
                       unsigned char *dcid, unsigned int dcid_len,
                       unsigned char packet_number_bits, xqc_packet_number_t packet_number)
 {
@@ -131,6 +131,10 @@ xqc_gen_short_packet_header (unsigned char *dst_buf, size_t dst_buf_size,
     unsigned int packet_number_len = xqc_packet_number_bits2len(packet_number_bits);
     unsigned int need = 1 + dcid_len + packet_number_len;
 
+    unsigned char *dst_buf = packet_out->po_buf;
+    size_t dst_buf_size = packet_out->po_buf_size - packet_out->po_used_size;
+
+    packet_out->po_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
 
     if (need > dst_buf_size) {
         return -1;
@@ -260,6 +264,8 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
     unsigned char *dst_buf = packet_out->po_buf;
     size_t dst_buf_size = packet_out->po_buf_size - packet_out->po_used_size;
 
+    packet_out->po_pkt.pkt_type = type;
+
     unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, packet_number, pktno_bits, type);
 
     unsigned char *begin = dst_buf;
@@ -356,17 +362,6 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         XQC_PACKET_IN_LEFT_SIZE(packet_in) < XQC_PACKET_INITIAL_MIN_LENGTH) {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|initial size too small|%z|",
                 XQC_PACKET_IN_LEFT_SIZE(packet_in));
-        return XQC_ERROR;
-    }
-
-    /* check available states */
-    if (c->conn_state != XQC_CONN_STATE_SERVER_INIT
-        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT
-        && c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_RECVD)
-    {
-        /* drop packet */
-        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|invalid state|%i|",
-                c->conn_state);
         return XQC_ERROR;
     }
 
