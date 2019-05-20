@@ -66,10 +66,10 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     size_t buff_size = 1000;
 
     ssize_t read;
-    while (read > 0) {
+    do {
         read = xqc_stream_recv(stream, buff, buff_size);
         printf("xqc_stream_recv %lld \n", read);
-    }
+    } while (read > 0);
     return 0;
 }
 

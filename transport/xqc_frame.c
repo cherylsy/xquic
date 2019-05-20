@@ -106,8 +106,10 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
         stream->stream_data_in.merged_offset_end = stream_frame->data_offset + stream_frame->data_length;
         xqc_list_for_each(pos, &stream_frame->sf_list) {
             frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
-            if (stream->stream_data_in.merged_offset_end == frame->data_offset + frame->data_length) {
+            if (stream->stream_data_in.merged_offset_end == frame->data_offset) {
                 stream->stream_data_in.merged_offset_end = frame->data_offset + frame->data_length;
+            } else if (stream->stream_data_in.merged_offset_end < frame->data_offset) {
+                break;
             }
         }
     }

@@ -23,7 +23,8 @@ if(HAVE_CUNIT)
     xqc_tls_cb_test.c
     xqc_recv_record_test.c
     xqc_reno_test.c
-  )
+    xqc_stream_frame_test.c
+    )
 
 
   set(test_TLS
