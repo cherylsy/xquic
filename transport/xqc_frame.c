@@ -94,6 +94,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
         if (stream_frame->data_offset >= frame->data_offset + frame->data_length) {
             xqc_list_add(&stream_frame->sf_list, pos);
             inserted = 1;
+            break;
         }
     }
     if (!inserted) {
@@ -110,6 +111,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
             }
         }
     }
+
     return XQC_OK;
 }
 

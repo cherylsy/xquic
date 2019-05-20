@@ -356,16 +356,50 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     xqc_list_head_t *pos, *next;
     xqc_stream_frame_t *stream_frame;
     size_t read = 0;
+    size_t frame_left;
+
 
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
+
+        /*printf("data_offset: %llu, data_length: %u, next_read_offset: %llu\n",
+               stream_frame->data_offset, stream_frame->data_length, stream_frame->next_read_offset);*/
+
         if (stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
             break;
         }
 
-        /*if (read < recv)
-        memcpy(recv_buf, stream_frame->data, )*/
+        if (read >= recv_buf_size) {
+            break;
+        }
+
+        frame_left = stream_frame->data_length - stream_frame->next_read_offset;
+
+        if (read + frame_left <= recv_buf_size) {
+            memcpy(recv_buf + read, stream_frame->data + stream_frame->next_read_offset, frame_left);
+            stream->stream_data_in.next_read_offset += frame_left;
+            stream_frame->next_read_offset = stream_frame->data_length;
+            read += frame_left;
+            //free frame
+            xqc_list_del_init(&stream_frame->sf_list);
+            xqc_free(stream_frame->data);
+            xqc_free(stream_frame);
+        } else {
+            memcpy(recv_buf + read, stream_frame->data + stream_frame->next_read_offset, recv_buf_size - read);
+            stream_frame->next_read_offset += recv_buf_size - read;
+            stream->stream_data_in.next_read_offset += recv_buf_size - read;
+            read = recv_buf_size;
+            break;
+        }
+
     }
+
+    if (stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
+        xqc_stream_shutdown_read(stream);
+    }
+
+
+    return read;
 }
 
 
