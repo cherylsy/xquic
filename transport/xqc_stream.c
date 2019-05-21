@@ -1,3 +1,4 @@
+#include <common/xqc_errno.h>
 #include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "xqc_packet_parser.h"
@@ -351,10 +352,11 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
 
 ssize_t xqc_stream_recv (xqc_stream_t *stream,
                          unsigned char *recv_buf,
-                         size_t recv_buf_size)
+                         size_t recv_buf_size,
+                         uint8_t *fin)
 {
     xqc_list_head_t *pos, *next;
-    xqc_stream_frame_t *stream_frame;
+    xqc_stream_frame_t *stream_frame = NULL;
     size_t read = 0;
     size_t frame_left;
 
@@ -394,11 +396,15 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 
     }
 
-    if (stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
-        xqc_stream_shutdown_read(stream);
+    if (stream->stream_data_in.stream_length > 0 &&
+        stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
+        *fin = 1;
+    } else if (read == 0) {
+        xqc_set_errno(XQC_EAGAIN);
+        return -1;
     }
 
-
+    xqc_stream_shutdown_read(stream);
     return read;
 }
 

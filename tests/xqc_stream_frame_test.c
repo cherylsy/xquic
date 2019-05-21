@@ -4,6 +4,7 @@
 #include "../transport/xqc_conn.h"
 #include "../transport/xqc_engine.h"
 #include "../transport/xqc_frame.h"
+#include "../common/xqc_errno.h"
 
 void
 xqc_test_stream_frame()
@@ -59,14 +60,14 @@ xqc_test_stream_frame()
 
     char recv_buf[16];
     unsigned recv_buf_size = 16;
+    unsigned char fin;
     offset = 0;
     do {
-        ret = xqc_stream_recv(stream, recv_buf, recv_buf_size);
-        CU_ASSERT(ret >= 0);
-        if (ret == 0) {
-            break;
+        ret = xqc_stream_recv(stream, recv_buf, recv_buf_size, &fin);
+        CU_ASSERT(ret >= 0 || errno == XQC_EAGAIN);
+        if (ret > 0) {
+            CU_ASSERT(memcmp(payload + offset, recv_buf, ret) == 0);
         }
-        memcmp(payload + offset, recv_buf, ret);
         offset += ret;
     } while (ret > 0);
 

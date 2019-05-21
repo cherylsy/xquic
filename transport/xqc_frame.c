@@ -184,7 +184,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     xqc_stream_id_t stream_id;
     xqc_stream_t *stream;
-    xqc_stream_frame_t *stream_frame = xqc_malloc(sizeof(xqc_stream_frame_t));
+    xqc_stream_frame_t *stream_frame = xqc_calloc(1, sizeof(xqc_stream_frame_t));
 
     ret = xqc_parse_stream_frame(packet_in, conn, stream_frame, &stream_id);
     if (ret) {
@@ -211,8 +211,8 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_frame|xqc_insert_stream_frame|");
         return XQC_ERROR;
     }
-
     if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end) {
+    //if (stream->stream_data_in.next_read_offset < stream->stream_data_in.merged_offset_end) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_stream_frame|xqc_stream_ready_to_read|");
         xqc_stream_ready_to_read(stream);
     }
