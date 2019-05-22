@@ -41,8 +41,8 @@ set_packet:
     packet_out->po_buf_size = XQC_PACKET_OUT_SIZE;
     packet_out->po_pkt.pkt_pns = pns;
 
-    //TODO calc packet number
-    packet_out->po_pkt.pkt_num = ctl->ctl_packet_number[pns]++;
+    //generate packet number when send
+    packet_out->po_pkt.pkt_num = 0;
 
     xqc_send_ctl_insert_send(&packet_out->po_list, &ctl->ctl_packets, ctl);
 

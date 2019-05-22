@@ -12,6 +12,7 @@
 #include "xqc_cid.h"
 #include "xqc_stream.h"
 #include "xqc_frame_parser.h"
+#include "xqc_packet_parser.h"
 
 static char g_conn_flag_buf[128];
 
@@ -298,13 +299,16 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
         }
     }
-    //TODO: del packet_out
 }
 
 ssize_t
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
+
+    packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
+    xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
+
     sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui,%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
             conn, packet_out->po_used_size, sent,

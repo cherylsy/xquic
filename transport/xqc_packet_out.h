@@ -21,7 +21,7 @@ typedef struct xqc_packet_out_s
     unsigned int            po_buf_size;
     unsigned int            po_used_size;
     xqc_packet_out_flag_t   po_flag;
-    unsigned char           *plength;
+    unsigned char           *ppktno;
     /* Largest Acknowledged in ACK frame, if there is no ACK frame, it should be 0 */
     xqc_packet_number_t     po_largest_ack;
     xqc_msec_t              po_sent_time;
