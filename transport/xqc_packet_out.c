@@ -97,8 +97,6 @@ int
     XQC_DEBUG_PRINT
     xqc_pkt_num_space_t pns;
     xqc_packet_out_t *packet_out;
-    //TODO calc packet_number_bits
-    unsigned char packet_number_bits = 0;
     xqc_pkt_type_t pkt_type;
 
     int rc;
@@ -122,14 +120,14 @@ int
             if (pns == XQC_PNS_01RTT && packet_out->po_used_size == 0) {
                 rc = xqc_gen_short_packet_header(packet_out,
                                                  conn->dcid.cid_buf, conn->dcid.cid_len,
-                                                 packet_number_bits, packet_out->po_pkt.pkt_num);
+                                                 XQC_PKTNO_BITS, packet_out->po_pkt.pkt_num);
             } else if (pns != XQC_PNS_01RTT && packet_out->po_used_size == 0) {
                 rc = xqc_gen_long_packet_header(packet_out,
                                                 conn->dcid.cid_buf, conn->dcid.cid_len,
                                                 conn->scid.cid_buf, conn->scid.cid_len,
                                                 NULL, 0,
                                                 XQC_QUIC_VERSION, pkt_type,
-                                                packet_out->po_pkt.pkt_num, packet_number_bits);
+                                                packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
             }
             if (rc < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets gen header error");

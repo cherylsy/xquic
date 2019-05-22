@@ -11,6 +11,31 @@
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
 
+unsigned
+xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits)
+{
+    return 1 //first byte
+           + dcid_len
+           + xqc_packet_number_bits2len(pktno_bits)
+            ;
+}
+
+unsigned
+xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
+                             unsigned char pktno_bits, xqc_pkt_type_t type)
+{
+    return 1 //first byte
+           + 4 //version
+           + 1 //DCIL(4)|SCIL(4)
+           + dcid_len
+           + scid_len
+           + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val(token_len) + token_len : 0)
+           + 2 //Length (i)
+           + xqc_packet_number_bits2len(pktno_bits);
+
+
+}
+
 
 xqc_int_t
 xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
@@ -225,22 +250,6 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 }
 
 
-unsigned
-xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
-                             xqc_packet_number_t packet_number, unsigned char pktno_bits, xqc_pkt_type_t type)
-{
-    return 1 //first byte
-           + 4 //version
-           + 1 //DCIL(4)|SCIL(4)
-           + dcid_len
-           + scid_len
-           + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val(token_len) + token_len : 0)
-           + 2 //Length (i)
-           + xqc_packet_number_bits2len(pktno_bits);
-
-
-}
-
 void
 xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
 {
@@ -266,7 +275,7 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
 
     packet_out->po_pkt.pkt_type = type;
 
-    unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, packet_number, pktno_bits, type);
+    unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, pktno_bits, type);
 
     unsigned char *begin = dst_buf;
     unsigned char bits;

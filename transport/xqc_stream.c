@@ -275,8 +275,6 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
             return -1;
         }
 
-        //TODO calc packet_number_bits
-        unsigned char packet_number_bits = 0;
 
         //check if header is created
         if (!packet_out->po_used_size) {
@@ -285,7 +283,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                                                     c->scid.cid_buf, c->scid.cid_len,
                                                     NULL, 0,
                                                     c->version, pkt_type,
-                                                    packet_out->po_pkt.pkt_num, packet_number_bits);
+                                                    packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
             if (n_written < 0) {
                 return -1;
             }
@@ -442,14 +440,12 @@ xqc_stream_send (xqc_stream_t *stream,
             return -1;
         }
 
-        //TODO calc packet_number_bits
-        unsigned char packet_number_bits = 0;
 
         //check if header is created
         if (!packet_out->po_used_size) {
             n_written = xqc_gen_short_packet_header(packet_out,
                                                     c->dcid.cid_buf, c->dcid.cid_len,
-                                                    packet_number_bits, packet_out->po_pkt.pkt_num);
+                                                    XQC_PKTNO_BITS, packet_out->po_pkt.pkt_num);
             if (n_written < 0) {
                 return -1;
             }
@@ -472,7 +468,7 @@ xqc_stream_send (xqc_stream_t *stream,
         fin_only = 0;
     }
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "xqc_stream_send offset=%ui", stream->stream_send_offset);
+    xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_stream_send|offset=%ui|", stream->stream_send_offset);
 
     xqc_stream_shutdown_write(stream);
 
