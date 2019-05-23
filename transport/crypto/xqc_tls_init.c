@@ -101,7 +101,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
         xqc_transport_params_t params ;
         char tp_path[512];
-        if(xqc_get_tp_path(config->tp_path, hostname, tp_path, sizeof(tp_path)) >= 0){
+        if(xqc_get_tp_path(config->tp_path, tlsref->hostname, tp_path, sizeof(tp_path)) >= 0){
             if( xqc_read_transport_params(tp_path, &params) >= 0){
                 xqc_conn_set_early_remote_transport_params(conn, &params);
             }

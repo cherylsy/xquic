@@ -1170,7 +1170,8 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
 
 
     if(sc -> tp_path != NULL){
-        const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+        //const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+        const char * servername = conn->tlsref.hostname;
         char  tp_path[512] ;
         if(xqc_get_tp_path(sc->tp_path, servername, tp_path, sizeof(tp_path)) >= 0){
             xqc_write_transport_params(tp_path, &params);
