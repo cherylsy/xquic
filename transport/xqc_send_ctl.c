@@ -142,6 +142,13 @@ xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_c
     ctl->ctl_packets_used--;
 }
 
+void
+xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head)
+{
+    xqc_list_del_init(pos);
+    xqc_list_add(pos, head);
+}
+
 /* timer callbacks */
 void xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {

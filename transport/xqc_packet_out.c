@@ -92,7 +92,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 }
 
 int
- xqc_write_ack_to_packets(xqc_connection_t *conn)
+xqc_write_ack_to_packets(xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
     xqc_pkt_num_space_t pns;
@@ -142,6 +142,9 @@ int
             }
 
             xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_write_ack_to_packets pns=%d", pns);
+
+            //ack packet send first
+            xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
         }
     }
