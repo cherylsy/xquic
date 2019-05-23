@@ -5,7 +5,8 @@
 #include "common/xqc_log.h"
 #include "transport/xqc_conn.h"
 #include "xqc_crypto.h"
-
+#include "xqc_tls_0rtt.h"
+#include "xqc_tls_init.h"
 /*
  * key callback
  *@param
@@ -185,11 +186,13 @@ int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
     xqc_pktns_t * pktns = NULL;
 
 
-    pktns = &conn->tlsref.hs_pktns;
-    if(pktns->tx_ckm.key.base != NULL && pktns->tx_ckm.key.len > 0){
+    if(conn->tlsref.pktns.tx_ckm.key.base != NULL && conn->tlsref.pktns.tx_ckm.key.len > 0){
+        pktns = & conn->tlsref.pktns;
+        phead = & pktns->msg_cb_head;
+    }else if(conn->tlsref.hs_pktns.tx_ckm.key.base != NULL && conn->tlsref.hs_pktns.tx_ckm.key.len > 0){
+        pktns = &conn->tlsref.hs_pktns;
         phead = & pktns->msg_cb_head;
     }else{
-
         pktns = & conn->tlsref.initial_pktns;
         if(pktns->tx_ckm.key.base != NULL && pktns->tx_ckm.key.len > 0){
             phead = & pktns->msg_cb_head;
@@ -707,6 +710,20 @@ int xqc_conn_set_remote_transport_params(
     return 0;
 }
 
+int xqc_conn_set_early_remote_transport_params(
+    xqc_connection_t *conn, const xqc_transport_params_t *params) {
+  if (conn->tlsref.server) {
+    return XQC_ERR_INVALID_STATE;
+  }
+
+  xqc_settings_copy_from_transport_params(&conn->tlsref.remote_settings, params);
+  conn_sync_stream_id_limit(conn);
+
+  //conn->max_tx_offset = conn->remote_settings.max_data;
+
+  return 0;
+}
+
 
 int xqc_server_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
         unsigned int context, const unsigned char *in,
@@ -1095,6 +1112,31 @@ int xqc_client_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
     return 1;
 }
 
+int xqc_write_transport_params(const char *path,
+        xqc_transport_params_t *params) {
+    FILE * fp = fopen(path, "w");
+    if (fp == NULL) {
+        return -1;
+    }
+
+    fprintf(fp, "initial_max_streams_bidi=%d\n"
+            "initial_max_streams_uni=%d\n"
+            "initial_max_stream_data_bidi_local=%d\n"
+            "initial_max_stream_data_bidi_remote=%d\n"
+            "initial_max_stream_data_uni=%d\n"
+            "initial_max_data=%d\n",
+            params->initial_max_streams_bidi,
+            params->initial_max_streams_uni,
+            params->initial_max_stream_data_bidi_local,
+            params->initial_max_stream_data_bidi_remote,
+            params->initial_max_stream_data_uni,
+            params->initial_max_data);
+
+    fclose(fp);
+
+    return 0;
+}
+
 int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
         unsigned int context, const unsigned char *in,
         size_t inlen, X509 *x, size_t chainidx, int *al,
@@ -1102,6 +1144,7 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
 
     xqc_connection_t * conn = (xqc_connection_t *)(SSL_get_app_data(ssl));
 
+    xqc_ssl_config_t * sc = conn->tlsref.sc;
     int rv;
 
     xqc_transport_params_t params;
@@ -1125,6 +1168,15 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
 
     }
 
+
+    if(sc -> tp_path != NULL){
+        const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
+        char  tp_path[512] ;
+        if(xqc_get_tp_path(sc->tp_path, servername, tp_path, sizeof(tp_path)) >= 0){
+            xqc_write_transport_params(tp_path, &params);
+        }
+    }
+
     /*
        if (config.tp_file && write_transport_params(config.tp_file, &params) != 0) {
        std::cerr << "Could not write transport parameters in " << config.tp_file
@@ -1139,3 +1191,44 @@ int xqc_client_handshake_completed(xqc_connection_t * conn){
 
     return 1;
 }
+
+
+
+int xqc_read_transport_params(const char *path, xqc_transport_params_t *params) {
+    FILE *fp;
+    char line[1000];
+    fp=fopen(path,"r");
+    if (fp == NULL) {
+        return -1;
+    }
+
+    while(!feof(fp)){
+        fgets(line, sizeof(line), fp);
+        char * p = line;
+        if( *p == ' ')p++;
+        if(strncmp( p , "initial_max_streams_bidi=", strlen("initial_max_streams_bidi=")) == 0){
+            p = p + strlen("initial_max_streams_bidi=");
+            params -> initial_max_streams_bidi = strtoul( p, NULL, 10);
+        }else if(strncmp(p, "initial_max_streams_uni=", strlen("initial_max_streams_uni=")) == 0){
+            p = p + strlen("initial_max_streams_uni=");
+            params -> initial_max_streams_uni = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_stream_data_bidi_local", strlen("initial_max_stream_data_bidi_local")) == 0){
+            p = p + strlen("initial_max_stream_data_bidi_local");
+            params -> initial_max_stream_data_bidi_local = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_stream_data_bidi_remote", strlen("initial_max_stream_data_bidi_remote")) == 0){
+            p = p + strlen("initial_max_stream_data_bidi_remote");
+            params -> initial_max_stream_data_bidi_remote = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_stream_data_uni", strlen("initial_max_stream_data_uni")) == 0){
+            p = p + strlen("initial_max_stream_data_uni");
+            params -> initial_max_stream_data_uni = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_data", strlen("initial_max_data")) == 0){
+            p = p + strlen("initial_max_data");
+            params -> initial_max_data = strtoul(p, NULL, 10);
+        }
+
+    }
+    fclose(fp);
+    return 0;
+}
+
+

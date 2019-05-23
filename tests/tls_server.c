@@ -130,7 +130,7 @@ int main(int argc, char *argv[]){
 
     xqc_engine_t  engine;
     xqc_ssl_config_t xs_config;
-    xqc_ssl_init_config(&xs_config, g_key_file, g_cert_file);
+    xqc_ssl_init_config(&xs_config, g_key_file, g_cert_file, NULL);
 
     engine.ssl_ctx = xqc_create_server_ssl_ctx(&xs_config);
     xqc_connection_t conn;

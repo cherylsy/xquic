@@ -11,7 +11,7 @@ void xqc_ssl_init_config_test(){
     char groups[] = "P-256:X25519:P-384:P-521";
     char p_key_file[] = "/usr/opt/keyfile";
     char cert_file[] = "/urs/opt/certfile";
-    xqc_ssl_init_config(&xqc, p_key_file, cert_file);
+    xqc_ssl_init_config(&xqc, p_key_file, cert_file, NULL);
 
     CU_ASSERT(0 == strcmp(xqc.ciphers, ciphers));
     CU_ASSERT(0 == strcmp(xqc.groups, groups));
@@ -24,7 +24,7 @@ void xqc_ssl_init_config_test(){
 
 void xqc_create_client_ssl_ctx_test(){
     xqc_ssl_config_t xsc;
-    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile");
+    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile", NULL);
 
     SSL_CTX * ssl_ctx = xqc_create_client_ssl_ctx(&xsc);
 
@@ -35,7 +35,7 @@ void xqc_create_client_ssl_ctx_test(){
 
 void xqc_create_server_ssl_ctx_test(){
     xqc_ssl_config_t xsc;
-    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile");
+    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile", NULL);
 
     SSL_CTX * ssl_ctx = xqc_create_server_ssl_ctx(&xsc);
 
@@ -46,7 +46,7 @@ void xqc_create_server_ssl_ctx_test(){
 void xqc_create_ssl_test(){
     xqc_engine_t engine;
     xqc_ssl_config_t xsc;
-    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile");
+    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile", NULL);
 
     engine.ssl_ctx = xqc_create_server_ssl_ctx(&xsc);
     CU_ASSERT( engine.ssl_ctx != NULL);
@@ -61,7 +61,7 @@ void xqc_create_ssl_test(){
 void xqc_create_client_ssl_test(){
     xqc_engine_t engine;
     xqc_ssl_config_t xsc;
-    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile");
+    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile", NULL);
 
     engine.ssl_ctx = xqc_create_client_ssl_ctx(&xsc);
 

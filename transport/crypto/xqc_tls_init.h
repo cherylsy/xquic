@@ -11,7 +11,7 @@
 #define INITIAL_SECRET_MAX_LEN  32
 
 
-int xqc_ssl_init_config(xqc_ssl_config_t *xsc, char *private_key_file, char *cert_file);
+int xqc_ssl_init_config(xqc_ssl_config_t *xsc, char *private_key_file, char *cert_file, char * session_ticket_path);
 
 int xqc_tlsref_init(xqc_tlsref_t * tlsref); //initialize tlsref memory to zero
 
