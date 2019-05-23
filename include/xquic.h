@@ -85,6 +85,8 @@ struct xqc_ssl_config {
     char       *private_key_file;
     char       *cert_file;
     char       *session_path;
+    char       *tp_path;
+    char       *session_ticket_path;
     const char *ciphers;
     const char *groups;
     uint32_t   timeout;

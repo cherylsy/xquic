@@ -116,7 +116,7 @@ int main(int argc, char *argv[]){
 
     xqc_engine_t  engine;
     xqc_ssl_config_t xs_config;
-    xqc_ssl_init_config(&xs_config, NULL, NULL);
+    xqc_ssl_init_config(&xs_config, NULL, NULL, NULL);
 
     int no_crypto_flag = 1; // 1 means no crypto
 

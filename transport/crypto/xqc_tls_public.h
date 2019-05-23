@@ -24,6 +24,7 @@
 #define XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS 0xffa5u
 #define XQC_MAX_PKT_SIZE  65527 //quic protocol define
 
+#define MAX_HOST_LEN 256
 /*XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
  *factor of ACK Delay field in ACK frame.
  */
@@ -393,6 +394,8 @@ typedef struct {
 
 struct xqc_tlsref{
     int server;
+    int initial;
+    char  hostname[MAX_HOST_LEN];
     uint8_t resumption;
     unsigned int flags;
     uint64_t max_local_stream_id_bidi;
@@ -422,6 +425,12 @@ struct xqc_tlsref{
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
 
+typedef struct {
+    size_t                      size;
+    u_char                      name[16];
+    u_char                      hmac_key[32];
+    u_char                      aes_key[32];
+} xqc_ssl_session_ticket_key_t;
 
 static inline uint16_t xqc_get_uint16(const uint8_t *p) {
     uint16_t n;
