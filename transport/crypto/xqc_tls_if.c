@@ -15,7 +15,7 @@ static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn) {
 }
 
 void xqc_conn_handshake_completed(xqc_connection_t *conn) {
-    conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
+    conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX;
 }
 
 
@@ -25,9 +25,50 @@ void xqc_conn_handshake_completed(xqc_connection_t *conn) {
  *@return 0 means success
  */
 int xqc_tls_handshake(xqc_connection_t *conn){
-    ERR_clear_error();
+
+    return 0;
+
+}
+
+int xqc_server_tls_handshake(xqc_connection_t * conn){
+    int rv = 0;
     SSL * ssl = conn->xc_ssl;
-    int rv = SSL_do_handshake(ssl);
+    if(conn->tlsref.initial){
+        char buf[2048];
+        size_t nread;
+        conn->tlsref.initial = 0;
+        rv = SSL_read_early_data(ssl, buf, sizeof(buf), &nread);
+        switch (rv) {
+            case SSL_READ_EARLY_DATA_ERROR:
+                {
+                    int err = SSL_get_error(ssl, rv);
+                    switch (err) {
+                        case SSL_ERROR_WANT_READ:
+                        case SSL_ERROR_WANT_WRITE:
+                            {
+                                return 0;
+                            }
+                        case SSL_ERROR_SSL:
+                            printf("TLS handshake error: %s \n", ERR_error_string(ERR_get_error(), NULL));
+                            return XQC_ERR_CRYPTO;
+                        default:
+                            printf("TLS handshake error: %s \n", ERR_error_string(ERR_get_error(), NULL));
+                            return XQC_ERR_CRYPTO;
+                    }
+                    break;
+                }
+            case SSL_READ_EARLY_DATA_SUCCESS:
+                // Reading 0-RTT data in TLS stream is a protocol violation.
+                if (nread > 0) {
+                    return XQC_ERR_PROTO;
+                }
+                break;
+            case SSL_READ_EARLY_DATA_FINISH:
+                break;
+        }
+    }
+
+    rv = SSL_do_handshake(ssl);
     if( rv <= 0){
         int err = SSL_get_error(ssl, rv);
         switch(err) {
@@ -43,39 +84,73 @@ int xqc_tls_handshake(xqc_connection_t *conn){
         }
     }
 
+
+
     xqc_conn_handshake_completed(conn);
     return 0;
-
 }
 
+int xqc_conn_early_data_rejected(xqc_connection_t * conn){
+    //if need finish
+    conn->tlsref.flags |= XQC_CONN_FLAG_EARLY_DATA_REJECTED;
+    return 0;
+}
 
-int xqc_client_tls_handshake(xqc_connection_t *conn){
+int xqc_client_tls_handshake(xqc_connection_t *conn, int initial){
     int rv;
     SSL *ssl = conn->xc_ssl;
-    rv = SSL_do_handshake(ssl);
-    int err = SSL_get_error(ssl, rv);
-    switch (err) {
-    case SSL_ERROR_WANT_READ:
-    case SSL_ERROR_WANT_WRITE:
-      return 0;
-    case SSL_ERROR_SSL:
-      printf("TLS handshake error:%s\n", ERR_error_string(ERR_get_error(), NULL));
-      return -1;
-    default:
-      printf("TLS handshake error:%d %s\n",err, ERR_error_string(ERR_get_error(), NULL)) ;
-      return -1;
+    ERR_clear_error();
+
+    if(initial && conn->tlsref.resumption && SSL_SESSION_get_max_early_data(SSL_get_session(ssl))){
+
+        size_t nwrite;
+        int rv = SSL_write_early_data(ssl, "", 0, &nwrite);
+        if(rv == 0){
+            int err = SSL_get_error(ssl, rv);
+            switch (err) {
+                case SSL_ERROR_SSL:
+                    printf("TLS handshake error: %s\n",ERR_error_string(ERR_get_error(), NULL));
+                    return -1;
+                default:
+                    printf("TLS handshake error: %s\n",ERR_error_string(ERR_get_error(), NULL));
+                    return -1;
+            }
+        }
     }
 
+    rv = SSL_do_handshake(ssl);
+    if( rv <= 0){
+        int err = SSL_get_error(ssl, rv);
+        switch(err) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                return 0;
+            case SSL_ERROR_SSL:
+                printf("TLS handshake error: %s \n", ERR_error_string(ERR_get_error(), NULL));
+                return -1;
+            default:
+                printf("TLS handshake error\n");
+                return -1;
+        }
+    }
+
+    if(conn->tlsref.resumption && SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED ){
+        printf("Early data was rejected by server\n");
+        if(xqc_conn_early_data_rejected(conn) < 0){
+            return -1;
+        }
+    }
     xqc_conn_handshake_completed(conn);
     return 0;
 }
+
 
 
 
 
 
 int xqc_client_initial_cb(xqc_connection_t *conn){
-    return xqc_client_tls_handshake(conn);
+    return xqc_client_tls_handshake(conn , 1);
 }
 
 int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) {
@@ -216,8 +291,14 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
     xqc_to_tls_handshake(conn, data, datalen);
     if (!xqc_conn_get_handshake_completed(conn)) {
 
-        if(xqc_tls_handshake(conn) < 0){
-            return -1;
+        if(conn->tlsref.server){
+            if(xqc_server_tls_handshake(conn) < 0){
+                return -1;
+            }
+        }else{
+            if(xqc_client_tls_handshake(conn, 0) < 0){
+                return -1;
+            }
         }
     }
 

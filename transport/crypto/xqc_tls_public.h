@@ -9,6 +9,7 @@
 #include "include/xquic_typedef.h"
 #include "common/xqc_str.h"
 #include "common/xqc_list.h"
+#include "include/xquic.h"
 #include "transport/xqc_frame.h"
 #include "xqc_tls_if.h"
 
@@ -23,6 +24,7 @@
 #define XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS 0xffa5u
 #define XQC_MAX_PKT_SIZE  65527 //quic protocol define
 
+#define MAX_HOST_LEN 256
 /*XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
  *factor of ACK Delay field in ACK frame.
  */
@@ -220,17 +222,6 @@ typedef struct {
 } xqc_settings_t;
 
 
-struct xqc_ssl_config {
-    char       *private_key_file;
-    char       *cert_file;
-    char       *session_path;
-    const char *ciphers;
-    const char *groups;
-    uint32_t   timeout;
-};
-typedef struct xqc_ssl_config xqc_ssl_config_t;
-
-
 
 typedef struct {
     xqc_client_initial client_initial;
@@ -403,6 +394,8 @@ typedef struct {
 
 struct xqc_tlsref{
     int server;
+    int initial;
+    char  hostname[MAX_HOST_LEN];
     uint8_t resumption;
     unsigned int flags;
     uint64_t max_local_stream_id_bidi;
@@ -432,6 +425,12 @@ struct xqc_tlsref{
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
 
+typedef struct {
+    size_t                      size;
+    u_char                      name[16];
+    u_char                      hmac_key[32];
+    u_char                      aes_key[32];
+} xqc_ssl_session_ticket_key_t;
 
 static inline uint16_t xqc_get_uint16(const uint8_t *p) {
     uint16_t n;

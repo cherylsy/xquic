@@ -9,7 +9,7 @@
 void xqc_tls_key_cb_test(){
     xqc_engine_t engine;
     xqc_ssl_config_t xsc;
-    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile");
+    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile", NULL);
 
     engine.ssl_ctx = xqc_create_client_ssl_ctx(&xsc);
 
@@ -33,7 +33,7 @@ void xqc_tls_key_cb_test(){
 void xqc_alpn_select_proto_cb_test(){
     xqc_engine_t engine;
     xqc_ssl_config_t xsc;
-    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile");
+    xqc_ssl_init_config(&xsc, "./keyfile", "./certfile", NULL);
 
     engine.ssl_ctx = xqc_create_server_ssl_ctx(&xsc);
 

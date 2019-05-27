@@ -10,7 +10,6 @@
 #include <sys/socket.h>
 #include <openssl/ssl.h>
 #include "xquic_typedef.h"
-#include "xqc_tls_public.h"
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
 
@@ -81,6 +80,19 @@ typedef struct xqc_engine_callback_s {
     /* for stream notify */
     xqc_stream_callbacks_t      stream_callbacks;
 }xqc_engine_callback_t;
+
+struct xqc_ssl_config {
+    char       *private_key_file;
+    char       *cert_file;
+    char       *session_path;
+    char       *tp_path;
+    char       *session_ticket_path;
+    const char *ciphers;
+    const char *groups;
+    uint32_t   timeout;
+};
+typedef struct xqc_ssl_config xqc_ssl_config_t;
+
 
 typedef struct xqc_engine_s {
     xqc_engine_type_t       eng_type;
