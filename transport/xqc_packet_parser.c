@@ -5,6 +5,7 @@
 #include "xqc_packet_out.h"
 #include <arpa/inet.h>
 #include <common/xqc_algorithm.h>
+#include <common/xqc_errno.h>
 #include "common/xqc_log.h"
 #include "xqc_conn.h"
 #include "xqc_packet.h"
@@ -806,7 +807,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
             break;
         default:
             xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|invalid packet type|%ui|", type);
-            ret = XQC_ERROR;
+            ret = -XQC_EILLPKT;
             break;
     }
 

@@ -9,6 +9,7 @@
 
 typedef int               xqc_err_t;
 
+/* For system call */
 #define XQC_EPERM         EPERM
 #define XQC_ENOENT        ENOENT
 #define XQC_ENOPATH       ENOENT
@@ -50,13 +51,17 @@ typedef int               xqc_err_t;
 
 #define XQC_EAGAIN        EAGAIN
 
-/*For QUIC*/
+/* For QUIC transport 6xx */
 #define XQC_ENOBUF          600
 #define XQC_EVINTREAD       601
 #define XQC_ENULLPTR        602
 #define XQC_EMALLOC         603
 #define XQC_EILLPKT         604
 
+/* For QUIC ssl 7xx */
+
+
+/* For QUIC application 8xx */
 
 #define xqc_errno                  errno
 #define xqc_socket_errno           errno
