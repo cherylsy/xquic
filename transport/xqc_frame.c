@@ -1,5 +1,6 @@
 
 #include <common/xqc_log.h>
+#include <common/xqc_errno.h>
 #include "xqc_frame.h"
 #include "../include/xquic_typedef.h"
 #include "../common/xqc_variable_len_int.h"
@@ -144,14 +145,17 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                 //stream frame
                 ret = xqc_process_stream_frame(conn, packet_in);
                 break;
+            case 0x1c ... 0x1d:
+                ret = xqc_process_conn_close_frame(conn, packet_in);
+                break;
             default:
                 xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_frames|unknown frame type|");
-                return XQC_ERROR;
+                return -XQC_EILLPKT;
         }
 
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_frames|process frame error|");
-            return XQC_ERROR;
+            return ret;
         }
 
         if (last_pos == packet_in->pos) {
@@ -170,7 +174,7 @@ xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_parse_padding_frame(packet_in, conn);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_padding_frame|xqc_parse_padding_frame error|");
-        return XQC_ERROR;
+        return ret;
     }
 
     return XQC_OK;
@@ -189,7 +193,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_parse_stream_frame(packet_in, conn, stream_frame, &stream_id);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_frame|xqc_parse_stream_frame error|");
-        return XQC_ERROR;
+        return ret;
     }
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
@@ -199,7 +203,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     if (!stream) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_frame|cannot find stream|");
-        return XQC_ERROR;
+        return -XQC_ENULLPTR;
     }
 
     if (stream_frame->fin) {
@@ -209,7 +213,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_insert_stream_frame(conn, stream, stream_frame);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_frame|xqc_insert_stream_frame|");
-        return XQC_ERROR;
+        return ret;
     }
     if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end) {
     //if (stream->stream_data_in.next_read_offset < stream->stream_data_in.merged_offset_end) {
@@ -234,7 +238,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_parse_crypto_frame(packet_in, conn);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_crypto_frame|xqc_parse_crypto_frame error|");
-        return XQC_ERROR;
+        return ret;
     }
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_in->pi_pkt.pkt_type);
@@ -245,7 +249,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         conn->crypto_stream[encrypt_level] = xqc_create_crypto_stream(conn, encrypt_level, NULL);
         if (conn->crypto_stream[encrypt_level] == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_crypto_frame|xqc_create_crypto_stream err|");
-            return XQC_ERROR;
+            return -XQC_ENULLPTR;
         }
         xqc_stream_ready_to_read(conn->crypto_stream[encrypt_level]);
     }
@@ -268,7 +272,7 @@ xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_parse_ack_frame(packet_in, conn, &ack_info);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_ack_frame|xqc_parse_ack_frame error|");
-        return XQC_ERROR;
+        return ret;
     }
 
     for (int i = 0; i < ack_info.n_ranges; i++) {
@@ -279,7 +283,22 @@ xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_send_ctl_on_ack_received(conn->conn_send_ctl, &ack_info, packet_in->pkt_recv_time);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_ack_frame|xqc_send_ctl_on_ack_received error|");
-        return XQC_ERROR;
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    xqc_int_t ret;
+    unsigned short err_code;
+
+    ret = xqc_parse_conn_close_frame(packet_in, &err_code);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_conn_close_frame|xqc_parse_conn_close_frame error|");
+        return ret;
     }
 
     return XQC_OK;

@@ -1,3 +1,4 @@
+#include <common/xqc_errno.h>
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 #include "../common/xqc_memory_pool.h"
@@ -72,7 +73,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     size = xqc_gen_ack_frame(conn, packet_out,
                       now, conn->trans_param.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
     if (size < 0) {
-        return XQC_ERROR;
+        return size;
     }
 
     packet_out->po_used_size += size;
@@ -106,7 +107,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
             packet_out = xqc_create_packet_out(conn->conn_pool, conn->conn_send_ctl, pns);
             if (packet_out == NULL) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_create_packet_out error");
-                return XQC_ERROR;
+                return -XQC_ENULLPTR;
             }
 
             if (pns == XQC_PNS_HSK) {
@@ -131,14 +132,14 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
             }
             if (rc < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets gen header error");
-                return XQC_ERROR;
+                return rc;
             }
             packet_out->po_used_size += rc;
 
             rc = xqc_write_ack_to_one_packet(conn, packet_out, pns);
             if (rc != XQC_OK) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_write_ack_to_one_packet error");
-                return XQC_ERROR;
+                return rc;
             }
 
             xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_write_ack_to_packets pns=%d", pns);

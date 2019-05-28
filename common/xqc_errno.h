@@ -50,6 +50,13 @@ typedef int               xqc_err_t;
 
 #define XQC_EAGAIN        EAGAIN
 
+/*For QUIC*/
+#define XQC_ENOBUF          600
+#define XQC_EVINTREAD       601
+#define XQC_ENULLPTR        602
+#define XQC_EMALLOC         603
+#define XQC_EILLPKT         604
+
 
 #define xqc_errno                  errno
 #define xqc_socket_errno           errno
