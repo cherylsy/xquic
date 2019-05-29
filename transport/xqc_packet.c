@@ -41,6 +41,22 @@ xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type)
     }
 }
 
+xqc_pkt_num_space_t
+xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type)
+{
+    switch (pkt_type) {
+        case XQC_PTYPE_INIT:
+            return XQC_PNS_INIT;
+        case XQC_PTYPE_0RTT:
+            return XQC_PNS_01RTT;
+        case XQC_PTYPE_HSK:
+            return XQC_PNS_HSK;
+        case XQC_PTYPE_SHORT_HEADER:
+            return XQC_PNS_01RTT;
+        default:
+            return XQC_PNS_N;
+    }
+}
 
 /*
  * 发送版本协商协议

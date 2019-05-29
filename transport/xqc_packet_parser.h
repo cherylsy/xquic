@@ -40,8 +40,8 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned char *dcid, unsigned char dcid_len,
                             unsigned char *scid, unsigned char scid_len,
                             unsigned char *token, unsigned char token_len,
-                            unsigned ver, xqc_pkt_type_t type,
-                            xqc_packet_number_t packet_number, unsigned char pktno_bits);
+                            unsigned ver,
+                            unsigned char pktno_bits);
 
 xqc_int_t
 xqc_packet_parse_long_header(xqc_connection_t *c,

@@ -270,7 +270,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
     while (stream->stream_send_offset < send_data_size) {
         unsigned int header_size = xqc_crypto_frame_header_size(stream->stream_send_offset,
                                                                 send_data_size - offset);
-        packet_out = xqc_send_ctl_get_packet_out(c->conn_send_ctl, header_size + 1, pns);
+        packet_out = xqc_send_ctl_get_packet_out(c->conn_send_ctl, header_size + 1, pkt_type);
         if (packet_out == NULL) {
             return -1;
         }
@@ -282,8 +282,8 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                                                     c->dcid.cid_buf, c->dcid.cid_len,
                                                     c->scid.cid_buf, c->scid.cid_len,
                                                     NULL, 0,
-                                                    c->version, pkt_type,
-                                                    packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
+                                                    c->version,
+                                                    XQC_PKTNO_BITS);
             if (n_written < 0) {
                 return -1;
             }
@@ -435,7 +435,7 @@ xqc_stream_send (xqc_stream_t *stream,
         unsigned int header_size = xqc_stream_frame_header_size(stream->stream_id,
                                                                 stream->stream_send_offset,
                                                                 send_data_size - offset);
-        packet_out = xqc_send_ctl_get_packet_out(c->conn_send_ctl, header_size + 1, XQC_PNS_01RTT);
+        packet_out = xqc_send_ctl_get_packet_out(c->conn_send_ctl, header_size + 1, XQC_PTYPE_0RTT);
         if (packet_out == NULL) {
             return -1;
         }

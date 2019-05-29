@@ -41,7 +41,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 }
 
 xqc_packet_out_t *
-xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_num_space pns)
+xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type)
 {
     xqc_packet_out_t *packet_out;
 
@@ -49,13 +49,13 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_nu
 
     xqc_list_for_each_reverse(pos, &ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (packet_out->po_pkt.pkt_pns == pns &&
+        if (packet_out->po_pkt.pkt_type == pkt_type &&
             packet_out->po_buf_size - packet_out->po_used_size >= need) {
             return packet_out;
         }
     }
 
-    packet_out = xqc_create_packet_out(ctl->ctl_conn->conn_pool, ctl, pns);
+    packet_out = xqc_create_packet_out(ctl->ctl_conn->conn_pool, ctl, pkt_type);
     if (packet_out == NULL) {
         return NULL;
     }

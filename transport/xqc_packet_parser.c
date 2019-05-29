@@ -273,13 +273,14 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned char *dcid, unsigned char dcid_len,
                             unsigned char *scid, unsigned char scid_len,
                             unsigned char *token, unsigned char token_len,
-                            unsigned ver, xqc_pkt_type_t type,
-                            xqc_packet_number_t packet_number, unsigned char pktno_bits)
+                            unsigned ver,
+                            unsigned char pktno_bits)
 {
     unsigned char *dst_buf = packet_out->po_buf;
     size_t dst_buf_size = packet_out->po_buf_size - packet_out->po_used_size;
 
-    packet_out->po_pkt.pkt_type = type;
+    xqc_pkt_type_t type = packet_out->po_pkt.pkt_type;
+    xqc_packet_number_t packet_number = packet_out->po_pkt.pkt_num;
 
     unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, pktno_bits, type);
 
