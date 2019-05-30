@@ -57,6 +57,7 @@ typedef int               xqc_err_t;
 #define XQC_ENULLPTR        602
 #define XQC_EMALLOC         603
 #define XQC_EILLPKT         604
+#define XQC_ELEVEL          605
 
 /* For QUIC ssl 7xx */
 

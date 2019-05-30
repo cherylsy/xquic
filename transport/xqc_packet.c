@@ -64,7 +64,7 @@ xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type)
 static inline xqc_int_t
 xqc_packet_send_version_negotiation(xqc_connection_t *c)
 {
-    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_pool, c->conn_send_ctl, 0);
+    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_send_ctl, 0);
     if (packet_out == NULL) {
         return XQC_ERROR;
     }

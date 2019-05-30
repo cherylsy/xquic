@@ -55,7 +55,7 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t 
         }
     }
 
-    packet_out = xqc_create_packet_out(ctl->ctl_conn->conn_pool, ctl, pkt_type);
+    packet_out = xqc_create_packet_out(ctl, pkt_type);
     if (packet_out == NULL) {
         return NULL;
     }
