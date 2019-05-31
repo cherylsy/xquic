@@ -58,6 +58,27 @@ xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type)
     }
 }
 
+xqc_pkt_type_t
+xqc_state_to_pkt_type(xqc_connection_t *conn)
+{
+    switch (conn->conn_state) {
+        case XQC_CONN_STATE_CLIENT_INIT:
+        case XQC_CONN_STATE_CLIENT_INITIAL_SENT:
+        case XQC_CONN_STATE_CLIENT_INITIAL_RECVD:
+        case XQC_CONN_STATE_SERVER_INIT:
+        case XQC_CONN_STATE_SERVER_INITIAL_RECVD:
+        case XQC_CONN_STATE_SERVER_INITIAL_SENT:
+            return XQC_PTYPE_INIT;
+        case XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD:
+        case XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT:
+        case XQC_CONN_STATE_SERVER_HANDSHAKE_SENT:
+        case XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD:
+            return XQC_PTYPE_HSK;
+        default:
+            return XQC_PTYPE_SHORT_HEADER;
+    }
+}
+
 /*
  * 发送版本协商协议
  * */

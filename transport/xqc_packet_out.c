@@ -51,6 +51,13 @@ set_packet:
     return packet_out;
 }
 
+void
+xqc_destroy_packet_out(xqc_packet_out_t *packet_out)
+{
+    xqc_free(packet_out->po_buf);
+    xqc_free(packet_out);
+}
+
 int
 xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
@@ -87,6 +94,11 @@ xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type)
 {
     int ret;
     xqc_packet_out_t *packet_out;
+
+    if (pkt_type == XQC_PTYPE_NUM) {
+        pkt_type = xqc_state_to_pkt_type(conn);
+    }
+
     packet_out = xqc_create_packet_out(conn->conn_send_ctl, pkt_type);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_new_packet xqc_create_packet_out error");
@@ -114,6 +126,11 @@ xqc_write_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type, unsigned need)
 {
     int ret;
     xqc_packet_out_t *packet_out;
+
+    if (pkt_type == XQC_PTYPE_NUM) {
+        pkt_type = xqc_state_to_pkt_type(conn);
+    }
+
     packet_out = xqc_send_ctl_get_packet_out(conn->conn_send_ctl, need, pkt_type);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_packet xqc_send_ctl_get_packet_out error");
@@ -225,9 +242,16 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
 
 
 int
-xqc_write_conn_close_to_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, unsigned short err_code)
+xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code)
 {
     int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
 
     ret = xqc_gen_conn_close_frame(packet_out, err_code, 0, 0);
     if (ret < 0) {

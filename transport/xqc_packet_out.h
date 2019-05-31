@@ -32,6 +32,9 @@ typedef struct xqc_packet_out_s
 xqc_packet_out_t *
 xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
 
+void
+xqc_destroy_packet_out(xqc_packet_out_t *packet_out);
+
 xqc_packet_out_t*
 xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type);
 
@@ -48,9 +51,9 @@ int
 xqc_write_ack_to_packets(xqc_connection_t *conn);
 
 int
-xqc_write_conn_close_to_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, unsigned short err_code);
+xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
 
 int
-xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
+xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

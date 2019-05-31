@@ -112,7 +112,7 @@ xqc_create_stream (xqc_connection_t *conn,
         return NULL;
     }
 
-    xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t));
+    xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t)); //TODO: 不使用pool？
     if (stream == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_pcalloc error|");
         return NULL;
@@ -143,6 +143,12 @@ xqc_create_stream (xqc_connection_t *conn,
     }
 
     return stream;
+}
+
+void
+xqc_destroy_stream(xqc_stream_t *stream)
+{
+    xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
 }
 
 xqc_stream_t *

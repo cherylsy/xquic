@@ -225,22 +225,25 @@ xqc_destroy_connection(xqc_connection_t *xc)
     if (!xc) {
         return;
     }
+
+    xqc_send_ctl_destroy(xc->conn_send_ctl);
+
     /* free streams hash */
     if (xc->streams_hash) {
         xqc_id_hash_release(xc->streams_hash);
         xc->streams_hash = NULL;
     }
 
-    /* free pool */
-    if (xc->conn_pool) {
-        xqc_destroy_pool(xc->conn_pool);
-        xc->conn_pool = NULL;
-    }
-
     /* Remove from engine's conns_hash */
     if (xc->engine->conns_hash) {
         xqc_remove_conns_hash(xc->engine->conns_hash, xc);
         xc->engine->conns_hash = NULL;
+    }
+
+    /* free pool */
+    if (xc->conn_pool) {
+        xqc_destroy_pool(xc->conn_pool);
+        xc->conn_pool = NULL;
     }
 }
 
@@ -428,3 +431,19 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
 
     return wakeup_time;
 }
+
+int
+xqc_conn_close(xqc_connection_t *conn)
+{
+    int ret;
+    ret = xqc_write_conn_close_to_packet(conn, 0);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_close xqc_write_conn_close_to_packet error");
+        return ret;
+    }
+
+    conn->conn_state = XQC_CONN_STATE_CLOSING;
+
+    return XQC_OK;
+}
+
