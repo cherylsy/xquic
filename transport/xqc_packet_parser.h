@@ -6,9 +6,22 @@
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
 
+#define XQC_PKTNO_BITS 3
+#define XQC_LONG_HEADER_LENGTH_BYTE 2
+
+unsigned
+xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits);
+
+unsigned
+xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
+                             unsigned char pktno_bits, xqc_pkt_type_t type);
 xqc_int_t
 xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
                                unsigned char *buf, size_t size);
+
+int
+xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number,
+                         unsigned char packet_number_bits);
 
 int
 xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
@@ -27,8 +40,8 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned char *dcid, unsigned char dcid_len,
                             unsigned char *scid, unsigned char scid_len,
                             unsigned char *token, unsigned char token_len,
-                            unsigned ver, xqc_pkt_type_t type,
-                            xqc_packet_number_t packet_number, unsigned char pktno_bits);
+                            unsigned ver,
+                            unsigned char pktno_bits);
 
 xqc_int_t
 xqc_packet_parse_long_header(xqc_connection_t *c,

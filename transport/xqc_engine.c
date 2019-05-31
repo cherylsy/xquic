@@ -280,8 +280,10 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 
     xqc_send_ctl_timer_expire(conn->conn_send_ctl, now);
 
-    xqc_process_crypto_read_streams(conn);
-    xqc_process_crypto_write_streams(conn);
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+        xqc_process_crypto_read_streams(conn);
+        xqc_process_crypto_write_streams(conn);
+    }
 
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
         xqc_process_read_streams(conn);
@@ -447,11 +449,10 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         }
     }
 
-#if 1
     /* main logic */
     if (xqc_engine_main_logic(engine) != XQC_OK) {
         return XQC_ERROR;
     }
-#endif
+
     return XQC_OK;
 }

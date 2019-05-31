@@ -29,14 +29,25 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     xqc_send_ctl_timer_init(send_ctl);
 
-    send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
+    if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
+        send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
+    } else {
+        send_ctl->ctl_cong_callback = &xqc_reno_cb;
+    }
     send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
     send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
+
     return send_ctl;
 }
 
+void
+xqc_send_ctl_destroy(xqc_send_ctl_t *ctl)
+{
+    xqc_send_ctl_destroy_packets_lists(ctl);
+}
+
 xqc_packet_out_t *
-xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_num_space pns)
+xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type)
 {
     xqc_packet_out_t *packet_out;
 
@@ -44,19 +55,44 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, enum xqc_pkt_nu
 
     xqc_list_for_each_reverse(pos, &ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (packet_out->po_pkt.pkt_pns == pns &&
+        if (packet_out->po_pkt.pkt_type == pkt_type &&
             packet_out->po_buf_size - packet_out->po_used_size >= need) {
             return packet_out;
         }
     }
 
-    packet_out = xqc_create_packet_out(ctl->ctl_conn->conn_pool, ctl, pns);
+    packet_out = xqc_create_packet_out(ctl, pkt_type);
     if (packet_out == NULL) {
         return NULL;
     }
 
 
     return packet_out;
+}
+
+void
+xqc_send_ctl_destroy_packets_list(xqc_list_head_t *head)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_packet_out_t *packet_out;
+    xqc_list_for_each_safe(pos, next, head) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        xqc_list_del_init(pos);
+        xqc_destroy_packet_out(packet_out);
+    }
+}
+
+void
+xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
+{
+    xqc_send_ctl_destroy_packets_list(&ctl->ctl_packets);
+    xqc_send_ctl_destroy_packets_list(&ctl->ctl_lost_packets);
+    xqc_send_ctl_destroy_packets_list(&ctl->ctl_free_packets);
+
+    for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
+        xqc_send_ctl_destroy_packets_list(&ctl->ctl_unacked_packets[pns]);
+    }
+
 }
 
 int
@@ -135,6 +171,13 @@ xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_c
     xqc_list_add_tail(pos, head);
     ctl->ctl_packets_free++;
     ctl->ctl_packets_used--;
+}
+
+void
+xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head)
+{
+    xqc_list_del_init(pos);
+    xqc_list_add(pos, head);
 }
 
 /* timer callbacks */

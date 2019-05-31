@@ -187,7 +187,8 @@ int xqc_close_stream (xqc_connection_t *c,
  */
 ssize_t xqc_stream_recv (xqc_stream_t *stream,
                          unsigned char *recv_buf,
-                         size_t recv_buf_size);
+                         size_t recv_buf_size,
+                         uint8_t *fin);
 
 /**
  * Send data in stream.

@@ -65,6 +65,12 @@ xqc_pkt_type_2_str(xqc_pkt_type_t pkt_type);
 xqc_encrypt_level_t
 xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type);
 
+xqc_pkt_num_space_t
+xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type);
+
+xqc_pkt_type_t
+xqc_state_to_pkt_type(xqc_connection_t *conn);
+
 xqc_int_t
 xqc_packet_version_check(xqc_connection_t *c, uint32_t version);
 

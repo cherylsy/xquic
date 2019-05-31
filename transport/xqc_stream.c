@@ -1,3 +1,4 @@
+#include <common/xqc_errno.h>
 #include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "xqc_packet_parser.h"
@@ -111,7 +112,7 @@ xqc_create_stream (xqc_connection_t *conn,
         return NULL;
     }
 
-    xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t));
+    xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t)); //TODO: 不使用pool？
     if (stream == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_pcalloc error|");
         return NULL;
@@ -142,6 +143,12 @@ xqc_create_stream (xqc_connection_t *conn,
     }
 
     return stream;
+}
+
+void
+xqc_destroy_stream(xqc_stream_t *stream)
+{
+    xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
 }
 
 xqc_stream_t *
@@ -197,7 +204,7 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
     } else {
         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "xqc_crypto_stream_on_read illegal encrypt_level %d",
                 encrypt_level);
-        return -1;
+        return -XQC_ELEVEL;
     }
 
     stream->stream_conn->conn_state = next_state;
@@ -217,6 +224,7 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 {
     XQC_DEBUG_PRINT
+    int ret;
     char send_data[100] = {0};
     unsigned send_data_size = 100;//TODO: 假数据
 
@@ -257,7 +265,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
     } else {
         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "xqc_crypto_stream_on_write illegal encrypt_level %d",
                 encrypt_level);
-        return -1;
+        return -XQC_ELEVEL;
     }
 
     size_t send_data_written = 0;
@@ -269,26 +277,10 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
     while (stream->stream_send_offset < send_data_size) {
         unsigned int header_size = xqc_crypto_frame_header_size(stream->stream_send_offset,
                                                                 send_data_size - offset);
-        packet_out = xqc_send_ctl_get_packet_out(c->conn_send_ctl, header_size + 1, pns);
+
+        packet_out = xqc_write_packet(c, pkt_type, header_size + 1);
         if (packet_out == NULL) {
-            return -1;
-        }
-
-        //TODO calc packet_number_bits
-        unsigned char packet_number_bits = 0;
-
-        //check if header is created
-        if (!packet_out->po_used_size) {
-            n_written = xqc_gen_long_packet_header(packet_out,
-                                                    c->dcid.cid_buf, c->dcid.cid_len,
-                                                    c->scid.cid_buf, c->scid.cid_len,
-                                                    NULL, 0,
-                                                    c->version, pkt_type,
-                                                    packet_out->po_pkt.pkt_num, packet_number_bits);
-            if (n_written < 0) {
-                return -1;
-            }
-            packet_out->po_used_size += n_written;
+            return -XQC_ENULLPTR;
         }
 
         n_written = xqc_gen_crypto_frame(packet_out,
@@ -297,7 +289,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                                          send_data_size - offset,
                                          &send_data_written);
         if (n_written < 0) {
-            return -1;
+            return n_written;
         }
         offset += send_data_written;
         stream->stream_send_offset += send_data_written;
@@ -351,21 +343,59 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
 
 ssize_t xqc_stream_recv (xqc_stream_t *stream,
                          unsigned char *recv_buf,
-                         size_t recv_buf_size)
+                         size_t recv_buf_size,
+                         uint8_t *fin)
 {
     xqc_list_head_t *pos, *next;
-    xqc_stream_frame_t *stream_frame;
+    xqc_stream_frame_t *stream_frame = NULL;
     size_t read = 0;
+    size_t frame_left;
+
 
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
+
+        /*printf("data_offset: %llu, data_length: %u, next_read_offset: %llu\n",
+               stream_frame->data_offset, stream_frame->data_length, stream_frame->next_read_offset);*/
+
         if (stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
             break;
         }
 
-        /*if (read < recv)
-        memcpy(recv_buf, stream_frame->data, )*/
+        if (read >= recv_buf_size) {
+            break;
+        }
+
+        frame_left = stream_frame->data_length - stream_frame->next_read_offset;
+
+        if (read + frame_left <= recv_buf_size) {
+            memcpy(recv_buf + read, stream_frame->data + stream_frame->next_read_offset, frame_left);
+            stream->stream_data_in.next_read_offset += frame_left;
+            stream_frame->next_read_offset = stream_frame->data_length;
+            read += frame_left;
+            //free frame
+            xqc_list_del_init(&stream_frame->sf_list);
+            xqc_free(stream_frame->data);
+            xqc_free(stream_frame);
+        } else {
+            memcpy(recv_buf + read, stream_frame->data + stream_frame->next_read_offset, recv_buf_size - read);
+            stream_frame->next_read_offset += recv_buf_size - read;
+            stream->stream_data_in.next_read_offset += recv_buf_size - read;
+            read = recv_buf_size;
+            break;
+        }
+
     }
+
+    if (stream->stream_data_in.stream_length > 0 &&
+        stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
+        *fin = 1;
+    } else if (read == 0) {
+        return -XQC_EAGAIN;
+    }
+
+    xqc_stream_shutdown_read(stream);
+    return read;
 }
 
 
@@ -375,10 +405,11 @@ xqc_stream_send (xqc_stream_t *stream,
                  size_t send_data_size,
                  uint8_t fin)
 {
+    int ret;
     size_t send_data_written = 0;
     size_t offset = 0; //本次send_data中的已写offset
     int n_written = 0;
-    xqc_connection_t *c = stream->stream_conn;
+    xqc_connection_t *conn = stream->stream_conn;
     xqc_packet_out_t *packet_out;
     uint8_t fin_only = fin && !send_data_size;
 
@@ -397,23 +428,10 @@ xqc_stream_send (xqc_stream_t *stream,
         unsigned int header_size = xqc_stream_frame_header_size(stream->stream_id,
                                                                 stream->stream_send_offset,
                                                                 send_data_size - offset);
-        packet_out = xqc_send_ctl_get_packet_out(c->conn_send_ctl, header_size + 1, XQC_PNS_01RTT);
+
+        packet_out = xqc_write_packet(conn, XQC_PTYPE_SHORT_HEADER, header_size + 1);
         if (packet_out == NULL) {
-            return -1;
-        }
-
-        //TODO calc packet_number_bits
-        unsigned char packet_number_bits = 0;
-
-        //check if header is created
-        if (!packet_out->po_used_size) {
-            n_written = xqc_gen_short_packet_header(packet_out,
-                                                    c->dcid.cid_buf, c->dcid.cid_len,
-                                                    packet_number_bits, packet_out->po_pkt.pkt_num);
-            if (n_written < 0) {
-                return -1;
-            }
-            packet_out->po_used_size += n_written;
+            return -XQC_ENULLPTR;
         }
 
         n_written = xqc_gen_stream_frame(packet_out,
@@ -422,7 +440,7 @@ xqc_stream_send (xqc_stream_t *stream,
                                          send_data_size - offset,
                                          &send_data_written);
         if (n_written < 0) {
-            return -1;
+            return n_written;
         }
         offset += send_data_written;
         stream->stream_send_offset += send_data_written;
@@ -432,7 +450,7 @@ xqc_stream_send (xqc_stream_t *stream,
         fin_only = 0;
     }
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "xqc_stream_send offset=%ui", stream->stream_send_offset);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|offset=%ui|", stream->stream_send_offset);
 
     xqc_stream_shutdown_write(stream);
 

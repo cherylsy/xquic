@@ -12,6 +12,7 @@
 #include "xqc_cid.h"
 #include "xqc_stream.h"
 #include "xqc_frame_parser.h"
+#include "xqc_packet_parser.h"
 
 static char g_conn_flag_buf[128];
 
@@ -201,10 +202,11 @@ xqc_create_connection(xqc_engine_t *engine,
     xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     /* Do callback */
-    if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
-        goto fail;
+    if (xc->conn_callbacks.conn_create_notify) {
+        if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
+            goto fail;
+        }
     }
-
 
 
     return xc;
@@ -223,22 +225,25 @@ xqc_destroy_connection(xqc_connection_t *xc)
     if (!xc) {
         return;
     }
+
+    xqc_send_ctl_destroy(xc->conn_send_ctl);
+
     /* free streams hash */
     if (xc->streams_hash) {
         xqc_id_hash_release(xc->streams_hash);
         xc->streams_hash = NULL;
     }
 
-    /* free pool */
-    if (xc->conn_pool) {
-        xqc_destroy_pool(xc->conn_pool);
-        xc->conn_pool = NULL;
-    }
-
     /* Remove from engine's conns_hash */
     if (xc->engine->conns_hash) {
         xqc_remove_conns_hash(xc->engine->conns_hash, xc);
         xc->engine->conns_hash = NULL;
+    }
+
+    /* free pool */
+    if (xc->conn_pool) {
+        xqc_destroy_pool(xc->conn_pool);
+        xc->conn_pool = NULL;
     }
 }
 
@@ -281,7 +286,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (xqc_send_ctl_can_send(conn)) { //TODO: 保证packet number大的，发送时间最新
+        if (xqc_send_ctl_can_send(conn)) {
             if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
                     && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
                 xqc_gen_padding_frame(packet_out);
@@ -297,13 +302,17 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
         }
     }
-    //TODO: del packet_out
 }
 
 ssize_t
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
+
+    /* generate packet number */
+    packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
+    xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
+
     sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui,%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
             conn, packet_out->po_used_size, sent,
@@ -347,7 +356,6 @@ xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-                //TODO: change packet number
 
                 xqc_conn_send_one_packet(conn, packet_out);
             }
@@ -386,7 +394,6 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-                //TODO: change packet number
 
                 xqc_conn_send_one_packet(conn, packet_out);
                 if (++cnt >= probe_num) {
@@ -424,3 +431,19 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
 
     return wakeup_time;
 }
+
+int
+xqc_conn_close(xqc_connection_t *conn)
+{
+    int ret;
+    ret = xqc_write_conn_close_to_packet(conn, 0);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_close xqc_write_conn_close_to_packet error");
+        return ret;
+    }
+
+    conn->conn_state = XQC_CONN_STATE_CLOSING;
+
+    return XQC_OK;
+}
+

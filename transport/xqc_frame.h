@@ -1,6 +1,7 @@
 #ifndef _XQC_FRAME_H_INCLUDED_
 #define _XQC_FRAME_H_INCLUDED_
 
+#include <common/xqc_list.h>
 #include "../include/xquic_typedef.h"
 
 typedef enum {
@@ -83,6 +84,12 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 xqc_int_t
 xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
+void
+xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame);
+
+void
+xqc_destroy_frame_list(xqc_list_head_t *head);
+
 xqc_int_t
 xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
@@ -91,5 +98,8 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t
 xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 #endif /* _XQC_FRAME_H_INCLUDED_ */

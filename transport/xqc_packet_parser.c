@@ -5,11 +5,37 @@
 #include "xqc_packet_out.h"
 #include <arpa/inet.h>
 #include <common/xqc_algorithm.h>
+#include <common/xqc_errno.h>
 #include "common/xqc_log.h"
 #include "xqc_conn.h"
 #include "xqc_packet.h"
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
+
+unsigned
+xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits)
+{
+    return 1 //first byte
+           + dcid_len
+           + xqc_packet_number_bits2len(pktno_bits)
+            ;
+}
+
+unsigned
+xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
+                             unsigned char pktno_bits, xqc_pkt_type_t type)
+{
+    return 1 //first byte
+           + 4 //version
+           + 1 //DCIL(4)|SCIL(4)
+           + dcid_len
+           + scid_len
+           + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val(token_len) + token_len : 0)
+           + XQC_LONG_HEADER_LENGTH_BYTE //Length (i)
+           + xqc_packet_number_bits2len(pktno_bits);
+
+
+}
 
 
 xqc_int_t
@@ -82,7 +108,7 @@ xqc_packet_parse_packet_number(unsigned char *pos,
 }
 
 
-static int
+int
 xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number,
                          unsigned char packet_number_bits)
 {
@@ -141,13 +167,16 @@ xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
     }
 
     dst_buf[0] = 0x40 | spin_bit << 5 | reserved_bits << 3 | key_phase_bit << 2 | packet_number_bits;
+    dst_buf++;
 
     if (dcid_len) {
-        memcpy(dst_buf + 1, dcid, dcid_len);
+        memcpy(dst_buf, dcid, dcid_len);
     }
+    dst_buf += dcid_len;
 
-    xqc_write_packet_number(dst_buf + 1 + dcid_len, packet_number, packet_number_bits);
+    packet_out->ppktno = dst_buf;
 
+    xqc_write_packet_number(dst_buf, packet_number, packet_number_bits);
 
     return need;
 }
@@ -225,22 +254,6 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 }
 
 
-unsigned
-xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
-                             xqc_packet_number_t packet_number, unsigned char pktno_bits, xqc_pkt_type_t type)
-{
-    return 1 //first byte
-           + 4 //version
-           + 1 //DCIL(4)|SCIL(4)
-           + dcid_len
-           + scid_len
-           + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val(token_len) + token_len : 0)
-           + 2 //Length (i)
-           + xqc_packet_number_bits2len(pktno_bits);
-
-
-}
-
 void
 xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
 {
@@ -248,9 +261,11 @@ xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
         return;
     }
 
-    unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->plength - 2;
+    unsigned char *plength = packet_out->ppktno - XQC_LONG_HEADER_LENGTH_BYTE;
 
-    xqc_vint_write(packet_out->plength, length, 0x01, 2);
+    unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno;
+
+    xqc_vint_write(plength, length, 0x01, 2);
 }
 
 int
@@ -258,15 +273,16 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned char *dcid, unsigned char dcid_len,
                             unsigned char *scid, unsigned char scid_len,
                             unsigned char *token, unsigned char token_len,
-                            unsigned ver, xqc_pkt_type_t type,
-                            xqc_packet_number_t packet_number, unsigned char pktno_bits)
+                            unsigned ver,
+                            unsigned char pktno_bits)
 {
     unsigned char *dst_buf = packet_out->po_buf;
     size_t dst_buf_size = packet_out->po_buf_size - packet_out->po_used_size;
 
-    packet_out->po_pkt.pkt_type = type;
+    xqc_pkt_type_t type = packet_out->po_pkt.pkt_type;
+    xqc_packet_number_t packet_number = packet_out->po_pkt.pkt_num;
 
-    unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, packet_number, pktno_bits, type);
+    unsigned int need = xqc_long_packet_header_size(dcid_len, scid_len, token_len, pktno_bits, type);
 
     unsigned char *begin = dst_buf;
     unsigned char bits;
@@ -309,11 +325,10 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
         }
     }
 
-    packet_out->plength = dst_buf;
-    dst_buf += 2; //Length update when write frame
+    dst_buf += XQC_LONG_HEADER_LENGTH_BYTE; //Length update when write frame
 
-    dst_buf += xqc_write_packet_number(dst_buf, packet_number, pktno_bits);
-
+    packet_out->ppktno = dst_buf;
+    dst_buf += xqc_write_packet_number(dst_buf, packet_number, pktno_bits); //packet_number update when send
 
     return dst_buf - begin;
 
@@ -793,7 +808,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
             break;
         default:
             xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|invalid packet type|%ui|", type);
-            ret = XQC_ERROR;
+            ret = -XQC_EILLPKT;
             break;
     }
 
