@@ -93,7 +93,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     callbacks->rand = NULL;
     callbacks->get_new_connection_id = NULL;
     callbacks->remove_connection_id = NULL;
-    callbacks->update_key = NULL;   //need finish
+    callbacks->update_key = xqc_update_key;
     callbacks->path_validation = NULL;
 
 
@@ -171,7 +171,7 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ss
     callbacks->rand = NULL;
     callbacks->get_new_connection_id = NULL;
     callbacks->remove_connection_id = NULL;
-    callbacks->update_key = NULL;   //need finish
+    callbacks->update_key = xqc_update_key;   //need finish
     callbacks->path_validation = NULL;
 
     return 0;

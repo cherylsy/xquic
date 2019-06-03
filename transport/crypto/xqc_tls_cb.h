@@ -80,6 +80,11 @@ int xqc_read_transport_params(const char *path, xqc_transport_params_t *params);
 int xqc_conn_set_early_remote_transport_params(
     xqc_connection_t *conn, const xqc_transport_params_t *params);
 
+
+
+int xqc_update_key(xqc_connection_t *conn, void *user_data );
+int xqc_do_update_key(xqc_connection_t *conn);
+int xqc_conn_commit_key_update(xqc_connection_t *conn, uint64_t pkt_num) ;
 #endif /* _XQC_TLS_CB_H_INCLUDED_ */
 
 

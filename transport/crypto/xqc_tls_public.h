@@ -56,6 +56,8 @@
  *    Token. */
 #define XQC_STATELESS_RESET_TOKENLEN 16
 
+#define XQC_MAX_PKT_NUM ((1llu << 62) - 1)
+
 #ifndef xqc_min
 #define xqc_min(A, B) ((A) < (B) ? (A) : (B))
 #endif
@@ -272,7 +274,7 @@ typedef struct {
     xqc_rand rand;
     xqc_get_new_connection_id get_new_connection_id;
     xqc_remove_connection_id remove_connection_id;
-    xqc_update_key update_key;
+    xqc_update_key_t update_key;
     xqc_path_validation path_validation;
 } xqc_tls_callbacks_t;
 
@@ -303,6 +305,13 @@ typedef struct {
 } xqc_crypto_km_t;
 
 
+typedef enum {
+    XQC_CRYPTO_KM_FLAG_NONE,
+    /* XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE is set if key phase bit is
+     *      set. */
+    XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE = 0x01,
+} xqc_crypto_km_flag;
+
 /*@struct
  * every packet number space has its own key,iv and hpkey,
  * */
@@ -311,6 +320,10 @@ typedef struct {
      global TLS stream and it specifies the offset where this local
      crypto stream starts. */
     uint64_t crypto_rx_offset_base;
+
+    /* last_tx_pkt_num is the packet number which the local endpoint
+     sent last time.*/
+    uint64_t last_tx_pkt_num;
 
     xqc_crypto_km_t  rx_ckm;
     xqc_crypto_km_t  tx_ckm;
@@ -413,6 +426,19 @@ struct xqc_tlsref{
 
     xqc_crypto_km_t        early_ckm;
     xqc_vec_t              early_hp;
+
+    xqc_crypto_km_t        new_tx_ckm;
+    xqc_crypto_km_t        new_rx_ckm;
+    xqc_crypto_km_t        old_rx_ckm;
+
+    xqc_vec_t              tx_secret;
+    xqc_vec_t              rx_secret;
+#if 0
+    uint8_t tx_secret[MAX_KEY_LEN];
+    uint16_t tx_secret_len;
+    uint8_t rx_secret[MAX_KEY_LEN];
+    uint16_t rx_secret_len;
+#endif
 
     //xqc_data_buffer_t      hello_data;
     xqc_hs_buffer_t        hs_to_tls_buf;
@@ -652,11 +678,27 @@ static inline void xqc_vec_init(xqc_vec_t * vec){
 }
 
 static inline void xqc_vec_free(xqc_vec_t *vec) {
-    free(vec->base);
+    if(vec->base)free(vec->base);
     vec->base = NULL;
     vec->len = 0;
 }
 
+static inline int xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len){
+    vec->base = malloc(data_len);
+    if(vec->base == NULL){
+        return -1;
+    }
+    memcpy(vec->base, data, data_len);
+    vec->len = data_len;
+    return 0;
+}
+
+static inline void xqc_vec_move(xqc_vec_t *dest_vec, xqc_vec_t * src_vec){
+    dest_vec->base = src_vec->base;
+    src_vec->base = NULL;
+    dest_vec->len = src_vec->len;
+    src_vec->len = 0;
+}
 
 static inline void hex_print(char *p, size_t n)
 {

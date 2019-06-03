@@ -421,7 +421,7 @@ typedef int (*xqc_remove_connection_id)(xqc_connection_t *conn,
  * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
-typedef int (*xqc_update_key)(xqc_connection_t *conn, void *user_data);
+typedef int (*xqc_update_key_t)(xqc_connection_t *conn, void *user_data);
 
 
 /**
@@ -493,4 +493,6 @@ size_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen, void *user_data);
 
+int xqc_conn_prepare_key_update(xqc_connection_t * conn);
+int xqc_start_key_update(xqc_connection_t * conn);
 #endif

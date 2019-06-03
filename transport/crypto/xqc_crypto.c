@@ -548,16 +548,23 @@ void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
 
 
 
-int xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len){
-    vec->base = malloc(data_len);
-    if(vec->base == NULL){
+
+int xqc_crypto_km_new(xqc_crypto_km_t * p_ckm, const uint8_t *key,
+                                 size_t keylen, const uint8_t *iv, size_t ivlen){
+
+    if(xqc_vec_assign(&p_ckm->key, key, keylen) < 0){
         return -1;
     }
-    memcpy(vec->base, data, data_len);
-    vec->len = data_len;
-    return 0;
-}
 
+    if(xqc_vec_assign(&p_ckm->iv, iv, ivlen) < 0){
+        return -1;
+    }
+
+    p_ckm->pkt_num = 0;
+    p_ckm->flags = XQC_CRYPTO_KM_FLAG_NONE;
+    return 0;
+
+}
 
 int xqc_conn_install_initial_tx_keys(xqc_connection_t *conn,  uint8_t *key,
                                         size_t keylen,  uint8_t *iv,
@@ -787,4 +794,90 @@ int xqc_conn_install_tx_keys(xqc_connection_t *conn, const uint8_t *key,
     return 0;
 }
 
+int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
+        size_t secretlen, const xqc_tls_context_t *ctx){
+
+    uint8_t LABEL[] = "traffic upd";
+    int rv;
+    if (destlen < secretlen) {
+        printf("update traffic secret error\n");
+        return -1;
+    }
+
+    rv = xqc_hkdf_expand_label(dest, secretlen, secret, secretlen, LABEL, strlen(LABEL), ctx);
+    if(rv < 0){
+
+        printf("update traffic secret hkdf expand error\n");
+        return -1;
+    }
+
+    return secretlen;
+}
+
+
+
+int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
+                                size_t keylen, const uint8_t *iv, size_t ivlen) {
+    int rv;
+    xqc_tlsref_t * tlsref = &conn->tlsref;
+
+    if(tlsref->flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
+        return XQC_ERR_INVALID_STATE;
+    }
+
+    if(tlsref->new_tx_ckm.key.base != NULL && tlsref->new_tx_ckm.key.len > 0){
+        return XQC_ERR_INVALID_STATE;
+    }
+
+    if(tlsref->new_tx_ckm.iv.base != NULL && tlsref->new_tx_ckm.iv.len > 0){
+        return XQC_ERR_INVALID_STATE;
+    }
+
+
+    if(xqc_crypto_km_new(& tlsref->new_tx_ckm, key, keylen, iv, ivlen) < 0){
+        return -1;
+    }
+
+    xqc_pktns_t *pktns = &conn->tlsref.pktns;
+
+    if (!(pktns->tx_ckm.flags & XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE)) {
+        tlsref->new_tx_ckm.flags |= XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE;
+    }
+
+    return 0;
+}
+
+int xqc_conn_update_rx_key(xqc_connection_t *conn, const uint8_t *key,
+                                size_t keylen, const uint8_t *iv, size_t ivlen) {
+
+    int rv;
+    xqc_tlsref_t * tlsref = &conn->tlsref;
+
+    if(tlsref->flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
+        return XQC_ERR_INVALID_STATE;
+    }
+
+    if(tlsref->new_rx_ckm.key.base != NULL && tlsref->new_rx_ckm.key.len > 0){
+        return XQC_ERR_INVALID_STATE;
+    }
+
+    if(tlsref->new_rx_ckm.iv.base != NULL && tlsref->new_rx_ckm.iv.len > 0){
+        return XQC_ERR_INVALID_STATE;
+    }
+
+
+    if(xqc_crypto_km_new(& tlsref->new_rx_ckm, key, keylen, iv, ivlen) < 0){
+        return -1;
+    }
+
+    xqc_pktns_t *pktns = &conn->tlsref.pktns;
+
+    if (!(pktns->rx_ckm.flags & XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE)) {
+        tlsref->new_rx_ckm.flags |= XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE;
+    }
+
+    return 0;
+
+    //need finish
+}
 
