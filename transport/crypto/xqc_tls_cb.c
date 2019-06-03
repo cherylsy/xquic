@@ -27,9 +27,47 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             break;
         case SSL_KEY_CLIENT_APPLICATION_TRAFFIC:
             //update traffic key ,should completed
+
+            if(server){
+                if(conn->tlsref.rx_secret.base != NULL){
+                    printf("error rx_secret , may case memory leak\n");
+                }
+                if(xqc_vec_assign(&conn->tlsref.rx_secret, secret, secretlen) < 0){
+                    printf("error assign rx_secret\n");
+                    return -1;
+                }
+
+            }else{
+                if(conn->tlsref.tx_secret.base != NULL){
+                    printf("error tx_secret , may case memory leak\n");
+                }
+                if(xqc_vec_assign(&conn->tlsref.tx_secret, secret, secretlen) < 0){
+                    printf("error assign tx_secret\n");
+                    return -1;
+                }
+            }
             break;
         case SSL_KEY_SERVER_APPLICATION_TRAFFIC:
             //for
+            if(server){
+                if(conn->tlsref.tx_secret.base != NULL){
+                    printf("error tx_secret , may case memory leak\n");
+                }
+                if(xqc_vec_assign(&conn->tlsref.tx_secret, secret, secretlen) < 0){
+                    printf("error assign tx_secret\n");
+                    return -1;
+                }
+
+            }else{
+                if(conn->tlsref.rx_secret.base != NULL){
+                    printf("error rx_secret , may case memory leak\n");
+                }
+                if(xqc_vec_assign(&conn->tlsref.rx_secret, secret, secretlen) < 0){
+                    printf("error assign rx_secret\n");
+                    return -1;
+                }
+            }
+
             break;
         default:
             return 0;
@@ -1232,4 +1270,135 @@ int xqc_read_transport_params(const char *path, xqc_transport_params_t *params) 
     return 0;
 }
 
+int xqc_do_update_key(xqc_connection_t *conn){
+
+    char secret[64], key[64], iv[64];
+    //conn->tlsref.nkey_update++;
+    int keylen,ivlen, rv;
+
+    xqc_tlsref_t *tlsref = &conn->tlsref;
+    int secretlen = xqc_update_traffic_secret(secret, sizeof(secret), tlsref->tx_secret.base, tlsref->tx_secret.len, & tlsref->crypto_ctx);
+    if(secretlen < 0){
+        return -1;
+    }
+
+    xqc_vec_free(&tlsref->tx_secret);
+    if(xqc_vec_assign(&tlsref->tx_secret, secret, secretlen) < 0){
+        return -1;
+    }
+
+    keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, secretlen, &tlsref-> crypto_ctx);
+
+    if(keylen < 0) {
+        return -1;
+    }
+
+    ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, secretlen,  &tlsref->crypto_ctx);
+
+    if(ivlen < 0){
+        return -1;
+    }
+
+    rv = xqc_conn_update_tx_key(conn, key, keylen, iv, ivlen);
+    if(rv != 0){
+        return -1;
+    }
+
+    secretlen = xqc_update_traffic_secret(secret, sizeof(secret), tlsref->rx_secret.base, tlsref->rx_secret.len, & tlsref->crypto_ctx);
+
+    if(secretlen < 0){
+        return -1;
+    }
+
+    xqc_vec_free(&tlsref->rx_secret);
+    if(xqc_vec_assign(&tlsref->rx_secret, secret, secretlen) < 0){
+        return -1;
+    }
+
+    keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, secretlen, &tlsref-> crypto_ctx);
+
+    if(keylen < 0) {
+        return -1;
+    }
+
+    ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, secretlen,  &tlsref->crypto_ctx);
+
+    if(ivlen < 0){
+        return -1;
+    }
+
+    rv = xqc_conn_update_rx_key(conn, key, keylen, iv, ivlen);
+    if(rv != 0){
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
+ *  conn_key_phase_changed returns nonzero if |hd| indicates that the
+ *  key phase has unexpected value.
+ */
+static int xqc_conn_key_phase_changed(xqc_connection_t *conn, const xqc_pkt_hd *hd) {
+    xqc_pktns_t *pktns = &conn->tlsref.pktns;
+
+    // if return 1, means rx_ckm's flags is different from hd's flags
+    return !(pktns->rx_ckm.flags & XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE) ^
+        !(hd->flags & XQC_PKT_FLAG_KEY_PHASE);
+}
+
+int xqc_update_key(xqc_connection_t *conn, void *user_data){
+    (void *)user_data;
+    if(xqc_do_update_key(conn) < 0){
+        printf("xqc_update_key error\n");
+        return -1;
+    }
+    return 0;
+}
+
+
+
+
+/*
+ *  conn_commit_key_update rotates keys.  The current key moves to old
+ *  key, and new key moves to the current key.
+ */
+int xqc_conn_commit_key_update(xqc_connection_t *conn, uint64_t pkt_num) {
+    xqc_pktns_t *pktns = &conn->tlsref.pktns;
+
+    xqc_tlsref_t *tlsref = & conn->tlsref;
+
+    if(tlsref->new_tx_ckm.key.base == NULL || tlsref->new_tx_ckm.key.len == 0
+            || tlsref->new_tx_ckm.iv.base == NULL || tlsref->new_tx_ckm.iv.len == 0){
+        printf("new key is not ready\n");
+        return -1;
+    }
+
+    xqc_vec_free(&tlsref->old_rx_ckm.key);
+    xqc_vec_free(&tlsref->old_rx_ckm.iv);
+
+    xqc_vec_move(&tlsref->old_rx_ckm.key, &pktns->rx_ckm.key);
+    xqc_vec_move(&tlsref->old_rx_ckm.iv, &pktns->rx_ckm.iv);
+
+    xqc_vec_move(&pktns->rx_ckm.key, &tlsref->new_rx_ckm.key);
+    xqc_vec_move(&pktns->rx_ckm.iv, &tlsref->new_rx_ckm.iv);
+
+    pktns->rx_ckm.flags = tlsref->new_rx_ckm.flags;
+    pktns->rx_ckm.pkt_num = pkt_num;
+
+
+    xqc_vec_free(&pktns->tx_ckm.key);
+    xqc_vec_free(&pktns->tx_ckm.iv);
+    xqc_vec_move(&pktns->tx_ckm.key, &tlsref->new_tx_ckm.key);
+    xqc_vec_move(&pktns->tx_ckm.iv, & tlsref->new_tx_ckm.iv);
+    pktns->tx_ckm.flags = tlsref->new_tx_ckm.flags;
+
+#if 0
+    ngtcp2_crypto_km_del(pktns->tx_ckm, conn->mem);
+    pktns->tx_ckm = conn->new_tx_ckm;
+    conn->new_tx_ckm = NULL;
+    pktns->tx_ckm->pkt_num = pktns->last_tx_pkt_num + 1;// need notice
+#endif
+    return 0;
+}
 
