@@ -224,6 +224,14 @@ void xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
 }
+
+void xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
+}
 /* timer callbacks end */
 
 
@@ -239,6 +247,9 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
             timer->ctl_ctx = ctl;
         } else if (type == XQC_TIMER_LOSS_DETECTION) {
             timer->ctl_timer_callback = xqc_send_ctl_loss_detection_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_IDLE) {
+            timer->ctl_timer_callback = xqc_send_ctl_idle_timeout;
             timer->ctl_ctx = ctl;
         }
     }
@@ -274,11 +285,11 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
 void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
-    packet_out->po_sent_time = xqc_gettimeofday();
+    xqc_msec_t now = xqc_gettimeofday();
+    packet_out->po_sent_time = now;
     if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent) {
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
     }
-
 
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
@@ -286,6 +297,12 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
         }
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             ctl->ctl_time_of_last_sent_ack_eliciting_packet = packet_out->po_sent_time;
+            /*
+             * The timer is also restarted
+             * when sending a packet containing frames other than ACK or PADDING (an
+             * ACK-eliciting packet
+             */
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->trans_param.idle_timeout);
         }
 
         if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {

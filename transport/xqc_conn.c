@@ -24,6 +24,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT]        = "ACK_HSK",
         [XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT]      = "ACK_01RTT",
         [XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT]           = "HAS_GAP",
+        [XQC_CONN_FLAG_TIME_OUT_SHIFT]              = "TIME_OUT",
 };
 
 const char*
@@ -47,6 +48,7 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     param->max_ack_delay = 25;
     param->ack_delay_exponent = 3;
     //TODO: 临时值
+    param->idle_timeout = 5000;
     param->initial_max_data = 1*1024*1024;
     param->initial_max_stream_data_bidi_local = 100*1024;
     param->initial_max_stream_data_bidi_remote = 100*1024;
@@ -237,7 +239,6 @@ xqc_destroy_connection(xqc_connection_t *xc)
     /* Remove from engine's conns_hash */
     if (xc->engine->conns_hash) {
         xqc_remove_conns_hash(xc->engine->conns_hash, xc);
-        xc->engine->conns_hash = NULL;
     }
 
     /* free pool */

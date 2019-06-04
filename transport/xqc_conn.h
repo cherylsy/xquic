@@ -53,6 +53,7 @@ typedef enum {
                                     |XQC_CONN_FLAG_SHOULD_ACK_HSK    \
                                     |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
 
+/* 添加flag请更新conn_flag_2_str */
 typedef enum {
     XQC_CONN_FLAG_WAKEUP_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
@@ -61,6 +62,7 @@ typedef enum {
     XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT        = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_HSK),
     XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT      = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_01RTT),
     XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
+    XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -72,6 +74,7 @@ typedef enum {
     XQC_CONN_FLAG_SHOULD_ACK_HSK        = 1 << XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT,
     XQC_CONN_FLAG_SHOULD_ACK_01RTT      = 1 << XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT,
     XQC_CONN_FLAG_ACK_HAS_GAP           = 1 << XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
+    XQC_CONN_FLAG_TIME_OUT              = 1 << XQC_CONN_FLAG_TIME_OUT_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {

@@ -280,6 +280,11 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 
     xqc_send_ctl_timer_expire(conn->conn_send_ctl, now);
 
+    if (conn->conn_flag & XQC_CONN_FLAG_TIME_OUT) {
+        conn->conn_state = XQC_CONN_STATE_CLOSED;
+        return;
+    }
+
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
         xqc_process_crypto_read_streams(conn);
         xqc_process_crypto_write_streams(conn);
@@ -298,6 +303,9 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
             xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets error");
         }
     }
+
+    xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
+                           now + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout);
 }
 
 
@@ -340,13 +348,23 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
 
         xqc_engine_process_conn(conn, now);
-        conn->last_ticked_time = now;
+        if (conn->conn_state == XQC_CONN_STATE_CLOSED) {
+            xqc_list_add_tail(&conn->conn_list, &close_conns);
+        } else {
+            conn->last_ticked_time = now;
 
-        xqc_conn_retransmit_lost_packets(conn);
-        xqc_conn_send_packets(conn);
+            xqc_conn_retransmit_lost_packets(conn);
+            xqc_conn_send_packets(conn);
 
-        xqc_list_add_tail(&conn->conn_list, &ticked_conns);
+            xqc_list_add_tail(&conn->conn_list, &ticked_conns);
+        }
 
+    }
+
+    xqc_list_for_each_safe(pos, next, &close_conns) {
+        conn = xqc_list_entry(pos, xqc_connection_t, conn_list);
+        xqc_list_del_init(pos);
+        xqc_destroy_connection(conn);
     }
 
     xqc_list_for_each_safe(pos, next, &ticked_conns) {
@@ -437,6 +455,9 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     }
 
     xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui", conn, packet_in_size);
+
+    xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
+                           recv_time + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout);
 
     /* process packets */    
     if (xqc_conn_process_packets(conn, packet_in) != XQC_OK) {
