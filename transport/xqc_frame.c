@@ -117,6 +117,19 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     while (packet_in->pos < packet_in->last) {
         last_pos = packet_in->pos;
 
+        if (conn->conn_state == XQC_CONN_STATE_CLOSING) {
+            /* respond connection close when recv any packet */
+            if (packet_in->pos[0] != 0x1c && packet_in->pos[0] != 0x1d) {
+                xqc_conn_immediate_close(conn);
+                packet_in->pos = packet_in->last;
+                return XQC_OK;
+            }
+        } else if (conn->conn_state == XQC_CONN_STATE_DRAINING) {
+            /* do not respond any packet */
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
+        }
+
         switch (packet_in->pos[0]) {
             case 0x00:
                 //padding frame
@@ -326,7 +339,14 @@ xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         return ret;
     }
 
-
+    if (conn->conn_state < XQC_CONN_STATE_CLOSING) {
+        ret = xqc_conn_immediate_close(conn);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_conn_close_frame|xqc_conn_immediate_close error|");
+            return ret;
+        }
+    }
+    conn->conn_state = XQC_CONN_STATE_DRAINING;
 
     return XQC_OK;
 }

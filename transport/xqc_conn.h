@@ -24,6 +24,7 @@
 #define XQC_DEBUG_PRINT
 #endif
 
+/* 添加state请更新conn_state_2_str */
 typedef enum {
     /* server */
     XQC_CONN_STATE_SERVER_INIT = 0,
@@ -41,7 +42,8 @@ typedef enum {
     XQC_CONN_STATE_ESTABED = 10,
     XQC_CONN_STATE_CLOSING,
     XQC_CONN_STATE_DRAINING,
-    XQC_CONN_STATE_CLOSED
+    XQC_CONN_STATE_CLOSED,
+    XQC_CONN_STATE_N,
 }xqc_conn_state_t;
 
 typedef enum {
@@ -53,6 +55,8 @@ typedef enum {
                                     |XQC_CONN_FLAG_SHOULD_ACK_HSK    \
                                     |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
 
+#define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_TIME_OUT|XQC_CONN_FLAG_ERROR)
+
 /* 添加flag请更新conn_flag_2_str */
 typedef enum {
     XQC_CONN_FLAG_WAKEUP_SHIFT,
@@ -63,6 +67,7 @@ typedef enum {
     XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT      = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_01RTT),
     XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
     XQC_CONN_FLAG_TIME_OUT_SHIFT,
+    XQC_CONN_FLAG_ERROR_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -75,6 +80,7 @@ typedef enum {
     XQC_CONN_FLAG_SHOULD_ACK_01RTT      = 1 << XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT,
     XQC_CONN_FLAG_ACK_HAS_GAP           = 1 << XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
     XQC_CONN_FLAG_TIME_OUT              = 1 << XQC_CONN_FLAG_TIME_OUT_SHIFT,
+    XQC_CONN_FLAG_ERROR                 = 1 << XQC_CONN_FLAG_ERROR_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -193,6 +199,8 @@ struct xqc_connection_s{
 
 const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);
 
+const char* xqc_conn_state_2_str(xqc_conn_state_t state);
+
 void xqc_conn_init_trans_param(xqc_connection_t *conn);
 
 void xqc_conn_init_flow_ctl(xqc_connection_t *conn);
@@ -225,5 +233,7 @@ void xqc_conn_send_probe_packets(xqc_connection_t *conn);
 xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 
 xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
+
+int xqc_conn_immediate_close(xqc_connection_t *conn);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

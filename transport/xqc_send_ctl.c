@@ -93,6 +93,10 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
         xqc_send_ctl_destroy_packets_list(&ctl->ctl_unacked_packets[pns]);
     }
 
+    ctl->ctl_bytes_in_flight = 0;
+    ctl->ctl_crypto_bytes_in_flight = 0;
+    ctl->ctl_packets_used = 0;
+    ctl->ctl_packets_free = 0;
 }
 
 int
@@ -178,6 +182,12 @@ xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head)
 {
     xqc_list_del_init(pos);
     xqc_list_add(pos, head);
+}
+
+void
+xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl)
+{
+    xqc_send_ctl_destroy_packets_lists(ctl);
 }
 
 /* timer callbacks */

@@ -59,6 +59,7 @@ typedef int               xqc_err_t;
 #define XQC_EILLPKT         604
 #define XQC_ELEVEL          605
 #define XQC_EOFFSET         606
+#define XQC_CLOSING         607
 
 /* For QUIC ssl 7xx */
 

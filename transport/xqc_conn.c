@@ -25,6 +25,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT]      = "ACK_01RTT",
         [XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT]           = "HAS_GAP",
         [XQC_CONN_FLAG_TIME_OUT_SHIFT]              = "TIME_OUT",
+        [XQC_CONN_FLAG_ERROR_SHIFT]                 = "ERROR",
 };
 
 const char*
@@ -40,6 +41,30 @@ xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag)
         }
     }
     return g_conn_flag_buf;
+}
+
+static const char * const conn_state_2_str[XQC_CONN_STATE_N] = {
+        [XQC_CONN_STATE_SERVER_INIT]            = "SINIT",
+        [XQC_CONN_STATE_SERVER_INITIAL_RECVD]   = "SINITIAL_RECVD",
+        [XQC_CONN_STATE_SERVER_INITIAL_SENT]    = "SINITIAL_SENT",
+        [XQC_CONN_STATE_SERVER_HANDSHAKE_SENT]  = "SHANDSHAKE_SENT",
+        [XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD] = "SHANDSHAKE_RECVD",
+        [XQC_CONN_STATE_CLIENT_INIT]            = "CINIT",
+        [XQC_CONN_STATE_CLIENT_INITIAL_RECVD]   = "CINITIAL_RECVD",
+        [XQC_CONN_STATE_CLIENT_INITIAL_SENT]    = "CINITIAL_SENT",
+        [XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT]  = "CHANDSHAKE_SENT",
+        [XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD] = "CHANDSHAKE_RECVD",
+        [XQC_CONN_STATE_ESTABED]                = "ESTABED",
+        [XQC_CONN_STATE_CLOSING]                = "CLOSING",
+        [XQC_CONN_STATE_DRAINING]               = "DRAINING",
+        [XQC_CONN_STATE_CLOSED]                 = "CLOSED",
+
+};
+
+const char *
+xqc_conn_state_2_str(xqc_conn_state_t state)
+{
+    return conn_state_2_str[state];
 }
 
 void xqc_conn_init_trans_param(xqc_connection_t *conn)
@@ -297,9 +322,14 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);
-            xqc_send_ctl_insert_unacked(packet_out,
-                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
-                                        conn->conn_send_ctl);
+            if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+                xqc_send_ctl_insert_unacked(packet_out,
+                                            &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                            conn->conn_send_ctl);
+            }
+            else {
+                xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
+            }
 
         }
     }
@@ -437,14 +467,42 @@ int
 xqc_conn_close(xqc_connection_t *conn)
 {
     int ret;
+    ret = xqc_conn_immediate_close(conn);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_close xqc_conn_immediate_close error");
+        return ret;
+    }
+
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
+        if (0 == xqc_conns_pq_push(conn->engine->conns_pq, conn, conn->last_ticked_time)) {
+            conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+        }
+    }
+
+    ret = xqc_engine_main_logic(conn->engine);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_close xqc_engine_main_logic error");
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
+int
+xqc_conn_immediate_close(xqc_connection_t *conn)
+{
+    int ret;
+
+    xqc_send_ctl_drop_packets(conn->conn_send_ctl);
+
     ret = xqc_write_conn_close_to_packet(conn, 0);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_close xqc_write_conn_close_to_packet error");
         return ret;
     }
 
+
     conn->conn_state = XQC_CONN_STATE_CLOSING;
 
     return XQC_OK;
 }
-

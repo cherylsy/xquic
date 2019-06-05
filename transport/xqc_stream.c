@@ -216,8 +216,8 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
     xqc_stream_shutdown_read(stream);
 
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
-            "xqc_crypto_stream_on_read encrypt_level=%d, cur_state=%d, next_state=%d",
-            encrypt_level, cur_state, next_state);
+            "xqc_crypto_stream_on_read encrypt_level=%d, cur_state=%s, next_state=%s",
+            encrypt_level, xqc_conn_state_2_str(cur_state), xqc_conn_state_2_str(next_state));
     return 0;
 }
 
@@ -306,8 +306,8 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
     }
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
-            "xqc_crypto_stream_on_write encrypt_level=%d, cur_state=%d, next_state=%d",
-            encrypt_level, cur_state, next_state);
+            "xqc_crypto_stream_on_write encrypt_level=%d, cur_state=%s, next_state=%s",
+            encrypt_level, xqc_conn_state_2_str(cur_state), xqc_conn_state_2_str(next_state));
     return 0;
 }
 
@@ -321,8 +321,8 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
                           xqc_encrypt_level_t encrypt_level,
                           void *user_data)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_create_crypto_stream encrypt_level=%d, cur_state=%d",
-            encrypt_level, conn->conn_state);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_create_crypto_stream encrypt_level=%d, cur_state=%s",
+            encrypt_level, xqc_conn_state_2_str(conn->conn_state));
 
     xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t));
     if (stream == NULL) {
@@ -412,6 +412,10 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_connection_t *conn = stream->stream_conn;
     xqc_packet_out_t *packet_out;
     uint8_t fin_only = fin && !send_data_size;
+
+    if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
+        return -XQC_CLOSING;
+    }
 
     while (offset < send_data_size || fin_only) {
         if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {

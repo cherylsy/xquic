@@ -204,5 +204,7 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
  */
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
+int xqc_conn_close(xqc_connection_t *conn);
+
 #endif /* _XQUIC_H_INCLUDED_ */
 

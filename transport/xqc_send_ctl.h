@@ -129,6 +129,9 @@ void
 xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head);
 
 void
+xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl);
+
+void
 xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
 
 void

@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <transport/xqc_stream.h>
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -38,6 +39,7 @@ typedef struct client_ctx_s {
     user_conn_t   *my_conn;
     struct event  *ev_recv;
     struct event  *ev_timer;
+    struct event  *ev_timeout;
     uint64_t       send_offset;
 } client_ctx_t;
 
@@ -138,6 +140,7 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[5000] = {0};
     ret = xqc_stream_send(stream, buff, sizeof(buff), 1);
+
 
     return ret;
 }
@@ -264,6 +267,26 @@ xqc_client_timer_callback(int fd, short what, void *arg)
     }
 }
 
+static void
+xqc_client_timeout_callback(int fd, short what, void *arg)
+{
+    printf("xqc_client_timeout_callback now %llu\n", now());
+    client_ctx_t *ctx = (client_ctx_t *) arg;
+    int rc;
+    rc = xqc_conn_close(ctx->my_conn->conn);
+    if (rc) {
+        printf("xqc_conn_close error\n");
+        return;
+    }
+
+    rc = xqc_client_process_conns(ctx);
+    if (rc) {
+        printf("xqc_client_timer_callback error\n");
+        return;
+    }
+    //event_base_loopbreak(eb);
+}
+
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
@@ -308,9 +331,15 @@ int main(int argc, char *argv[]) {
     eb = event_base_new();
 
     ctx.ev_timer = event_new(eb, -1, 0, xqc_client_timer_callback, &ctx);
+    ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
 
     ctx.ev_recv = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_recv, NULL);
+
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+    event_add(ctx.ev_timeout, &tv);
 
     rc = xqc_client_process_conns(&ctx);
     if (rc) {
