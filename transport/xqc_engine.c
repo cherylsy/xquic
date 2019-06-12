@@ -17,6 +17,7 @@
 #include "xqc_packet_in.h"
 #include "xqc_packet.h"
 #include "xqc_cid.h"
+#include "xqc_wakeup_pq.h"
 
 
 xqc_config_t *
@@ -104,6 +105,29 @@ fail:
     return NULL;
 }
 
+xqc_wakeup_pq_t *
+xqc_engine_wakeup_pq_create(xqc_config_t *config)
+{
+    xqc_wakeup_pq_t *q = xqc_malloc(sizeof(xqc_wakeup_pq_t));
+    if (q == NULL) {
+        return NULL;
+    }
+
+    xqc_memzero(q, sizeof(xqc_wakeup_pq_t));
+
+    if (xqc_wakeup_pq_init(q, config->conns_pq_capacity,
+                    xqc_default_allocator, xqc_wakeup_pq_revert_cmp)) {
+        goto fail;
+    }
+
+    return q;
+
+    fail:
+    xqc_wakeup_pq_destroy(q);
+    xqc_free(q);
+    return NULL;
+}
+
 
 xqc_int_t
 xqc_engine_conns_hash_insert(xqc_engine_t *engine, xqc_connection_t *c)
@@ -138,6 +162,13 @@ void
 xqc_engine_conns_pq_destroy(xqc_pq_t *q)
 {
     xqc_pq_destroy(q);
+    xqc_free(q);
+}
+
+void
+xqc_engine_wakeup_pq_destroy(xqc_wakeup_pq_t *q)
+{
+    xqc_wakeup_pq_destroy(q);
     xqc_free(q);
 }
 
@@ -187,7 +218,7 @@ xqc_engine_create(xqc_engine_type_t engine_type)
         goto fail;
     }
 
-    engine->conns_wakeup_pq = xqc_engine_conns_pq_create(engine->config);
+    engine->conns_wakeup_pq = xqc_engine_wakeup_pq_create(engine->config);
     if (engine->conns_wakeup_pq == NULL) {
         goto fail;
     }
@@ -231,7 +262,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
         engine->conns_pq = NULL;
     }
     if (engine->conns_wakeup_pq) {
-        xqc_engine_conns_pq_destroy(engine->conns_wakeup_pq);
+        xqc_engine_wakeup_pq_destroy(engine->conns_wakeup_pq);
         engine->conns_wakeup_pq = NULL;
     }
     xqc_free(engine);
@@ -260,11 +291,11 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 xqc_msec_t
 xqc_engine_wakeup_after (xqc_engine_t *engine)
 {
-    xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_wakeup_pq);
+    xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wakeup_pq);
     if (el) {
         xqc_msec_t now = xqc_gettimeofday();
 
-        return el->time_ms > now ? el->time_ms - now : 1;
+        return el->wakeup_time > now ? el->wakeup_time - now : 1;
     }
 
 
@@ -281,11 +312,10 @@ xqc_engine_wakeup_after (xqc_engine_t *engine)
 void
 xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_engine_process_conn %p", conn);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_engine_process_conn|conn=%p, state=%s, flag=%s, now=%ui",
+            conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now);
 
     int ret;
-
-    XQC_CHECK_IMMEDIATE_CLOSE();
 
     xqc_send_ctl_timer_expire(conn->conn_send_ctl, now);
 
@@ -315,12 +345,13 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets error");
         }
+        //conn->conn_flag = XQC_CONN_FLAG_ERROR;
     }
 
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
-                           now + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout);
+    /*xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
+                           now + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout);*/
 
 end:
     return;
@@ -342,11 +373,13 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     xqc_init_list_head(&close_conns);
     xqc_init_list_head(&ticked_conns);
 
-    while (!xqc_pq_empty(engine->conns_wakeup_pq)) {
-        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_wakeup_pq);
+    while (!xqc_wakeup_pq_empty(engine->conns_wakeup_pq)) {
+        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wakeup_pq);
         conn = el->conn;
-        if (el->time_ms <= now) {
-            xqc_conns_pq_pop(engine->conns_wakeup_pq);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_engine_main_logic wakeup|conn=%p, state=%s, flag=%s, now=%ui, wakeup=%ui",
+                conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now, el->wakeup_time);
+        if (el->wakeup_time <= now) {
+            xqc_wakeup_pq_pop(engine->conns_wakeup_pq);
             conn->conn_flag &= ~XQC_CONN_FLAG_WAKEUP;
 
             if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
@@ -362,9 +395,14 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     while (!xqc_pq_empty(engine->conns_pq)) {
         xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
         conn = el->conn;
+
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_engine_main_logic ticking|conn=%p, state=%s, flag=%s, now=%ui",
+                conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now);
+
         xqc_conns_pq_pop(engine->conns_pq);
         conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
 
+        now = xqc_gettimeofday();
         xqc_engine_process_conn(conn, now);
         if (conn->conn_state == XQC_CONN_STATE_CLOSED) {
             xqc_list_add_tail(&conn->conn_list, &close_conns);
@@ -396,11 +434,19 @@ xqc_engine_main_logic (xqc_engine_t *engine)
                     conn->conn_flag |= XQC_CONN_FLAG_TICKING;
                 }
             }
-        } else if (!(conn->conn_flag & XQC_CONN_FLAG_WAKEUP)) {
+        } else if (1/*!(conn->conn_flag & XQC_CONN_FLAG_WAKEUP)*/) {
             conn->next_tick_time = xqc_conn_next_wakeup_time(conn);
             if (conn->next_tick_time) {
-                xqc_conns_pq_push(engine->conns_wakeup_pq, conn, conn->next_tick_time);
-                conn->conn_flag |= XQC_CONN_FLAG_WAKEUP;
+                if (!(conn->conn_flag & XQC_CONN_FLAG_WAKEUP)) {
+                    xqc_wakeup_pq_push(engine->conns_wakeup_pq, conn->next_tick_time, conn);
+                    conn->conn_flag |= XQC_CONN_FLAG_WAKEUP;
+                }
+                else {
+                    //remove from pq then push again, update wakeup time
+                    xqc_wakeup_pq_remove(engine->conns_wakeup_pq, conn);
+                    xqc_wakeup_pq_push(engine->conns_wakeup_pq, conn->next_tick_time, conn);
+                    conn->conn_flag |= XQC_CONN_FLAG_WAKEUP;
+                }
             }
         }
     }

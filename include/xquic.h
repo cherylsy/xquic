@@ -101,7 +101,7 @@ typedef struct xqc_engine_s {
     xqc_config_t           *config;
     xqc_str_hash_table_t   *conns_hash;
     xqc_pq_t               *conns_pq; /* In process */
-    xqc_pq_t               *conns_wakeup_pq; /* Need wakeup after next tick time */
+    xqc_wakeup_pq_t        *conns_wakeup_pq; /* Need wakeup after next tick time */
 
     xqc_conn_settings_t    *settings;
 

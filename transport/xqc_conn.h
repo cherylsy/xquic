@@ -195,6 +195,8 @@ struct xqc_connection_s{
     xqc_tlsref_t            tlsref;   //all tls reference
 
     xqc_conn_flow_ctl_t     conn_flow_ctl;
+
+    unsigned                wakeup_pq_index;
 };
 
 const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);

@@ -158,13 +158,13 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
 void xqc_client_wakeup(client_ctx_t *ctx)
 {
     xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
-    //printf("xqc_engine_wakeup_after %llu\n", wake_after);
+    printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
     if (wake_after > 0) {
         struct timeval tv;
         tv.tv_sec = wake_after / 1000;
         tv.tv_usec = wake_after % 1000 * 1000;
         event_add(ctx->ev_timer, &tv);
-        printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
+        //printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
     }
 }
 
@@ -292,6 +292,29 @@ int main(int argc, char *argv[]) {
 
     int rc;
 
+    char server_addr[64] = TEST_SERVER_ADDR;
+    int server_port = TEST_SERVER_PORT;
+
+    int ch = 0;
+    while((ch = getopt(argc, argv, "a:p:")) != -1){
+        switch(ch)
+        {
+            case 'a':
+                printf("option a:'%s'\n", optarg);
+                snprintf(server_addr, sizeof(server_addr), optarg);
+                break;
+            case 'p':
+                printf("option port :%s\n", optarg);
+                server_port = atoi(optarg);
+                break;
+
+            default:
+                printf("other option :%c\n", ch);
+                exit(0);
+        }
+
+    }
+
     memset(&ctx, 0, sizeof(ctx));
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT);
@@ -316,7 +339,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    ctx.my_conn->fd = xqc_client_create_socket(TEST_SERVER_ADDR, TEST_SERVER_PORT);
+    ctx.my_conn->fd = xqc_client_create_socket(server_addr, server_port);
     if (ctx.my_conn->fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;

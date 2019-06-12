@@ -14,6 +14,7 @@
 #include "xqc_reno_test.h"
 #include "xqc_packet_test.h"
 #include "xqc_stream_frame_test.h"
+#include "xqc_wakeup_pq_test.h"
 
 static int xqc_init_suite(void) { return 0; }
 static int xqc_clean_suite(void) { return 0; }
@@ -47,6 +48,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_long_header_parse_cid", xqc_test_long_header_packet_parse_cid)
         || !CU_add_test(pSuite, "xqc_test_engine_packet_process", xqc_test_engine_packet_process)
         || !CU_add_test(pSuite, "xqc_test_stream_frame", xqc_test_stream_frame)
+        || !CU_add_test(pSuite, "xqc_test_wakeup_pq", xqc_test_wakeup_pq)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

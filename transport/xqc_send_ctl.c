@@ -242,6 +242,14 @@ void xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, voi
 
     conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
 }
+
+void xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
+}
 /* timer callbacks end */
 
 
@@ -260,6 +268,9 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
             timer->ctl_ctx = ctl;
         } else if (type == XQC_TIMER_IDLE) {
             timer->ctl_timer_callback = xqc_send_ctl_idle_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_DRAINING) {
+            timer->ctl_timer_callback = xqc_send_ctl_draining_timeout;
             timer->ctl_ctx = ctl;
         }
     }
@@ -650,6 +661,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     }
     // Calculate PTO duration
     timeout = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) + ctl->ctl_conn->trans_param.max_ack_delay;
+
     timeout = timeout * xqc_send_ctl_pow(ctl->ctl_pto_count);
 
     xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION,

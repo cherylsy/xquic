@@ -23,6 +23,7 @@ typedef enum {
     XQC_TIMER_ACK_01RTT = XQC_TIMER_ACK_INIT + XQC_PNS_01RTT,
     XQC_TIMER_LOSS_DETECTION,
     XQC_TIMER_IDLE,
+    XQC_TIMER_DRAINING,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 
