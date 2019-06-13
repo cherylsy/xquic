@@ -220,6 +220,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
                             (xqc_msec_t)recv_time, ctx) != 0)
     {
         printf("xqc_client_read_handler: packet process err\n");
+        return;
     }
 
     xqc_client_wakeup(ctx);

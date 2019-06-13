@@ -134,9 +134,9 @@ xqc_int_t
 xqc_engine_conns_hash_insert(xqc_engine_t *engine, xqc_connection_t *c)
 {
     xqc_str_hash_element_t element;
-    element.hash = xqc_hash_string(c->dcid.cid_buf, c->dcid.cid_len);
-    element.str.data = c->dcid.cid_buf;
-    element.str.len = c->dcid.cid_len;
+    element.hash = xqc_hash_string(c->scid.cid_buf, c->scid.cid_len);
+    element.str.data = c->scid.cid_buf;
+    element.str.len = c->scid.cid_len;
     element.value = c;
 
     return xqc_str_hash_add(engine->conns_hash, element);
@@ -472,18 +472,19 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
 {
     /* find connection with cid*/
     xqc_connection_t *conn = NULL;
-    xqc_cid_t dcid, scid;
+    xqc_cid_t dcid, scid; //dcid:对端cid，scid:本地cid
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
     int ret;
 
-    if (xqc_packet_parse_cid(&dcid, &scid, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK) {
+    /* 对端的scid是本地的dcid */
+    if (xqc_packet_parse_cid(&scid, &dcid, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to parse cid");
         return -XQC_EILLPKT;
     }
 
-    conn = xqc_engine_conns_hash_find(engine, &dcid);
+    conn = xqc_engine_conns_hash_find(engine, &scid);
 
     /* server creates connection when receiving a initial packet*/
     if (conn == NULL
@@ -493,7 +494,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ?
                                      XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
 
-        conn = xqc_create_connection(engine, &dcid, &scid, 
+        conn = xqc_create_connection(engine, &dcid, &scid,
                                      &(engine->eng_callback.conn_callbacks), 
                                      engine->settings, user_data,
                                      conn_type);
@@ -512,7 +513,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     }
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection");
-        ret = xqc_send_reset(engine, &dcid, user_data);
+        ret = xqc_send_reset(engine, &scid, user_data);
         if (ret) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to send reset");
         }

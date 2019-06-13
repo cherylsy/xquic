@@ -65,4 +65,7 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
 xqc_int_t
 xqc_gen_reset_packet(xqc_cid_t *dcid, unsigned char *dst_buf);
 
+int
+xqc_is_reset_packet(xqc_cid_t *dcid, const unsigned char *buf, unsigned buf_size);
+
 #endif /* _XQC_PACKET_PARSER_H_INCLUDED_ */

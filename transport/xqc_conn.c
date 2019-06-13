@@ -120,14 +120,14 @@ xqc_conns_pq_top (xqc_pq_t *pq)
 static inline int
 xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 {
-    xqc_cid_t *dcid = &conn->dcid;
+    xqc_cid_t *scid = &conn->scid;
 
-    uint64_t hash = xqc_hash_string(dcid->cid_buf, dcid->cid_len);
+    uint64_t hash = xqc_hash_string(scid->cid_buf, scid->cid_len);
 
     xqc_str_hash_element_t c = {
             .str    = {
-                        .data = dcid->cid_buf,
-                        .len = dcid->cid_len
+                        .data = scid->cid_buf,
+                        .len = scid->cid_len
                     },
             .hash   = hash,
             .value  = conn
