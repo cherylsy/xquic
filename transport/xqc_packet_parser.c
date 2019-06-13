@@ -823,10 +823,10 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
 
 
 void
-xqc_gen_reset_token(xqc_cid_t *dcid, unsigned char *token)
+xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token)
 {
     //TODO: HMAC or HKDF with static key
-    memcpy(token, dcid->cid_buf, dcid->cid_len);
+    memcpy(token, cid->cid_buf, cid->cid_len);
 }
 
 /*
@@ -847,7 +847,7 @@ xqc_gen_reset_token(xqc_cid_t *dcid, unsigned char *token)
                      Figure 6: Stateless Reset Packet
  */
 xqc_int_t
-xqc_gen_reset_packet(xqc_cid_t *dcid, unsigned char *dst_buf)
+xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf)
 {
     const unsigned char *begin = dst_buf;
     const int unpredictable_len = 23;
@@ -857,9 +857,9 @@ xqc_gen_reset_packet(xqc_cid_t *dcid, unsigned char *dst_buf)
     dst_buf[0] = 0x40;
     dst_buf++;
 
-    if (dcid->cid_len > 0) {
-        memcpy(dst_buf, dcid->cid_buf, dcid->cid_len);
-        dst_buf += dcid->cid_len;
+    if (cid->cid_len > 0) {
+        memcpy(dst_buf, cid->cid_buf, cid->cid_len);
+        dst_buf += cid->cid_len;
     } else {
         return -XQC_EILLPKT;
     }
@@ -872,7 +872,7 @@ xqc_gen_reset_packet(xqc_cid_t *dcid, unsigned char *dst_buf)
     memset(dst_buf, 0, padding_len);
     dst_buf += padding_len;
 
-    xqc_gen_reset_token(dcid, token);
+    xqc_gen_reset_token(cid, token);
     memcpy(dst_buf, token, sizeof(token));
     dst_buf += sizeof(token);
 
@@ -880,7 +880,7 @@ xqc_gen_reset_packet(xqc_cid_t *dcid, unsigned char *dst_buf)
 }
 
 int
-xqc_is_reset_packet(xqc_cid_t *dcid, const unsigned char *buf, unsigned buf_size)
+xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size)
 {
     if (XQC_PACKET_IS_LONG_HEADER(buf)) {
         return 0;
@@ -894,7 +894,7 @@ xqc_is_reset_packet(xqc_cid_t *dcid, const unsigned char *buf, unsigned buf_size
     token = buf + (buf_size - XQC_RESET_TOKEN_LEN);
 
     unsigned char calc_token[XQC_RESET_TOKEN_LEN] = {0};
-    xqc_gen_reset_token(dcid, calc_token);
+    xqc_gen_reset_token(cid, calc_token);
 
     if (memcmp(token,calc_token, XQC_RESET_TOKEN_LEN) == 0) {
         return 1;

@@ -354,6 +354,11 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     /*xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
                            now + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout);*/
 
+    /*if (conn->conn_type == XQC_CONN_TYPE_SERVER && conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
+    {
+        //for test
+        xqc_remove_conns_hash(conn->engine->conns_hash, conn);
+    }*/
 end:
     return;
 }
@@ -513,9 +518,11 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     }
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection");
-        ret = xqc_send_reset(engine, &scid, user_data);
-        if (ret) {
-            xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to send reset");
+        if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
+            ret = xqc_send_reset(engine, &scid, user_data);
+            if (ret) {
+                xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to send reset");
+            }
         }
         return -XQC_ECONN_NFOUND;
     }

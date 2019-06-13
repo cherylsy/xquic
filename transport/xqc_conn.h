@@ -213,6 +213,10 @@ void xqc_conns_pq_pop (xqc_pq_t *pq);
 
 xqc_conns_pq_elem_t *xqc_conns_pq_top (xqc_pq_t *pq);
 
+int xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn);
+
+int xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn);
+
 xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t *dcid, xqc_cid_t *scid,
                                 xqc_conn_callbacks_t *callbacks,

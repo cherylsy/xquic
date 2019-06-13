@@ -117,7 +117,7 @@ xqc_conns_pq_top (xqc_pq_t *pq)
 }
 
 
-static inline int
+int
 xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 {
     xqc_cid_t *scid = &conn->scid;
@@ -138,14 +138,14 @@ xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
     return 0;
 }
 
-static inline int
+int
 xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 {
-    xqc_cid_t *dcid = &conn->dcid;
-    uint64_t hash = xqc_hash_string(dcid->cid_buf, dcid->cid_len);
+    xqc_cid_t *scid = &conn->scid;
+    uint64_t hash = xqc_hash_string(scid->cid_buf, scid->cid_len);
     xqc_str_t str = {
-        .data   = dcid->cid_buf,
-        .len    = dcid->cid_len,
+        .data   = scid->cid_buf,
+        .len    = scid->cid_len,
     };
     if (xqc_str_hash_delete(conns_hash, hash, str)) {
         return -1;
@@ -536,5 +536,7 @@ xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data)
     if (size < 0) {
         return size;
     }
+
+    xqc_log(engine->log, XQC_LOG_WARN, "xqc_send_reset ok");
     return XQC_OK;
 }
