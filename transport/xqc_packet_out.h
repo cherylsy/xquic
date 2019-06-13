@@ -8,6 +8,7 @@
 #include "../common/xqc_memory_pool.h"
 #include "xqc_frame.h"
 
+#define XQC_PACKET_OUT_SIZE 1280    //TODO 先写死
 
 typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,

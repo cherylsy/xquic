@@ -238,4 +238,6 @@ xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
 int xqc_conn_immediate_close(xqc_connection_t *conn);
 
+int xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
+
 #endif /* _XQC_CONN_H_INCLUDED_ */

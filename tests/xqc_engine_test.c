@@ -71,7 +71,7 @@ void xqc_test_engine_packet_process()
     xqc_int_t rc = xqc_engine_packet_process(engine, 
                          XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1, 
                          local_addr, local_addrlen, 
-                         peer_addr, peer_addrlen, recv_time);
+                         peer_addr, peer_addrlen, recv_time, NULL);
     //CU_ASSERT(rc == XQC_OK);
 
     /* get connection */
@@ -92,7 +92,7 @@ void xqc_test_engine_packet_process()
     rc = xqc_engine_packet_process(engine, 
                          XQC_TEST_SHORT_HEADER_PACKET_A, sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1, 
                          local_addr, local_addrlen, 
-                         peer_addr, peer_addrlen, recv_time);
+                         peer_addr, peer_addrlen, recv_time, NULL);
     CU_ASSERT(rc == XQC_OK);
 
     xqc_engine_destroy(engine);

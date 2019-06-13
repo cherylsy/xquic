@@ -216,7 +216,8 @@ xqc_client_read_handler(client_ctx_t *ctx)
 
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen, 
-                            (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen, (xqc_msec_t)recv_time) != 0)
+                            (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
+                            (xqc_msec_t)recv_time, ctx) != 0)
     {
         printf("xqc_client_read_handler: packet process err\n");
     }

@@ -818,3 +818,67 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
 
     return ret;
 }
+
+
+void
+xqc_gen_reset_token(xqc_cid_t *dcid, char *token)
+{
+    //TODO: HMAC or HKDF with static key
+    memcpy(token, dcid->cid_buf, dcid->cid_len);
+}
+
+/*
+ *     0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |0|1|               Unpredictable Bits (182..)                ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +                                                               +
+   |                                                               |
+   +                   Stateless Reset Token (128)                 +
+   |                                                               |
+   +                                                               +
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                     Figure 6: Stateless Reset Packet
+ */
+xqc_int_t
+xqc_gen_reset_packet(xqc_cid_t *dcid, unsigned char *dst_buf)
+{
+    const unsigned char *begin = dst_buf;
+    const int unpredictable_len = 23;
+    int padding_len;
+    char token[16] = {0};
+
+    dst_buf[0] = 0x40;
+    dst_buf++;
+
+    if (dcid->cid_len > 0) {
+        memcpy(dst_buf, dcid->cid_buf, dcid->cid_len);
+        dst_buf += dcid->cid_len;
+    } else {
+        return -XQC_EILLPKT;
+    }
+
+    padding_len = unpredictable_len - (dst_buf - begin);
+    if (padding_len < 0) {
+        return -XQC_EILLPKT;
+    }
+
+    memset(dst_buf, 0, padding_len);
+    dst_buf += padding_len;
+
+    xqc_gen_reset_token(dcid, token);
+    memcpy(dst_buf, token, sizeof(token));
+    dst_buf += sizeof(token);
+
+    return dst_buf - begin;
+}
+
+xqc_int_t
+xqc_parse_reset_packet(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+
+}

@@ -520,3 +520,21 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
     }
     return XQC_OK;
 }
+
+int
+xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data)
+{
+    unsigned char buf[XQC_PACKET_OUT_SIZE];
+    int size;
+
+    size = (int)xqc_gen_reset_packet(dcid, buf);
+    if (size < 0) {
+        return size;
+    }
+
+    size = (int)engine->eng_callback.write_socket(user_data, buf, (size_t)size);
+    if (size < 0) {
+        return size;
+    }
+    return XQC_OK;
+}

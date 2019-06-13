@@ -51,6 +51,8 @@ struct xqc_packet_s {
 #define XQC_PACKET_LONG_HEADER_GET_DCIL(buf) ((buf[0] & 0xF0) >> 4)
 #define XQC_PACKET_LONG_HEADER_GET_SCIL(buf) ((buf[0] & 0x0F))
 
+#define XQC_PACKET_LONG_HEADER_GET_TYPE(buf) ((buf[0] & 0x30) >> 4)
+
 #define XQC_PACKET_VERSION_LENGTH 4
 #define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH + 1)
 #define XQC_PACKET_INITIAL_MIN_LENGTH   1200

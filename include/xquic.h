@@ -158,7 +158,8 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                socklen_t local_addrlen,
                                const struct sockaddr *peer_addr,
                                socklen_t peer_addrlen,
-                               xqc_msec_t recv_time);
+                               xqc_msec_t recv_time,
+                               void *user_data);
 
 xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t dcid, xqc_cid_t scid,

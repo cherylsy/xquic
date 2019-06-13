@@ -7,8 +7,6 @@
 #include "../common/xqc_timer.h"
 #include "xqc_packet_parser.h"
 
-#define XQC_PACKET_OUT_SIZE 1280    //TODO 先写死
-
 xqc_packet_out_t *
 xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
 {

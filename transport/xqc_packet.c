@@ -1,4 +1,5 @@
 
+#include <common/xqc_errno.h>
 #include "../include/xquic.h"
 #include "xqc_packet.h"
 #include "xqc_packet_out.h"
@@ -242,7 +243,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
             xqc_log(c->log, XQC_LOG_WARN, "process packets err|%z|%p|%p|%z|", 
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);
-            return XQC_ERROR;
+            return ret != XQC_OK ? ret : XQC_ESYS;
         }
 
         xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_packets|pkt_type=%s|pkt_num=%ui|frame=%s|",

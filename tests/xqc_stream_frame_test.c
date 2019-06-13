@@ -64,7 +64,7 @@ xqc_test_stream_frame()
     offset = 0;
     do {
         ret = xqc_stream_recv(stream, recv_buf, recv_buf_size, &fin);
-        CU_ASSERT(ret >= 0 || errno == XQC_EAGAIN);
+        CU_ASSERT(ret >= 0 || ret == -XQC_EAGAIN);
         if (ret > 0) {
             CU_ASSERT(memcmp(payload + offset, recv_buf, ret) == 0);
         }

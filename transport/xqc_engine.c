@@ -2,6 +2,7 @@
 #include "xqc_engine.h"
 #include "xqc_transport.h"
 #include <sys/queue.h>
+#include <common/xqc_errno.h>
 #include "../include/xquic.h"
 #include "../common/xqc_str.h"
 #include "../common/xqc_random.h"
@@ -466,7 +467,8 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                socklen_t local_addrlen,
                                const struct sockaddr *peer_addr,
                                socklen_t peer_addrlen,
-                               xqc_msec_t recv_time)
+                               xqc_msec_t recv_time,
+                               void *user_data)
 {
     /* find connection with cid*/
     xqc_connection_t *conn = NULL;
@@ -474,38 +476,47 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
+    int ret;
+
     if (xqc_packet_parse_cid(&dcid, &scid, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to parse cid");
-        return XQC_ERROR;
+        return -XQC_EILLPKT;
     }
 
     conn = xqc_engine_conns_hash_find(engine, &dcid);
 
-    /* client need user_data, do not auto create */
-    if (conn == NULL && engine->eng_type != XQC_ENGINE_CLIENT) {
+    /* server creates connection when receiving a initial packet*/
+    if (conn == NULL
+            && engine->eng_type == XQC_ENGINE_SERVER
+            && XQC_PACKET_IS_LONG_HEADER(packet_in_buf)
+            && XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_INIT) {
         xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ?
                                      XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
 
         conn = xqc_create_connection(engine, &dcid, &scid, 
                                      &(engine->eng_callback.conn_callbacks), 
-                                     engine->settings, NULL, 
+                                     engine->settings, user_data,
                                      conn_type);
 
         if (conn == NULL) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create connection");
-            return XQC_ERROR;
+            return -XQC_ENULLPTR;
         }
 
         if (xqc_engine_conns_hash_insert(engine, conn) != XQC_OK) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to insert conns hash");
-            return XQC_ERROR;
+            return -XQC_EMALLOC;
         }
 
         xqc_log(engine->log, XQC_LOG_DEBUG, "xqc_engine_packet_process: server accept new conn");
     }
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection");
-        return XQC_ERROR;
+        ret = xqc_send_reset(engine, &dcid, user_data);
+        if (ret) {
+            xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to send reset");
+        }
+        return -XQC_ECONN_NFOUND;
     }
 
     /* create packet in */
@@ -515,7 +526,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                                       recv_time); //TODO: when to del
     if (!packet_in) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create packet in");
-        return XQC_ERROR;
+        return -XQC_ENULLPTR;
     }
 
     xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui, state=%s",
@@ -525,8 +536,9 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                            recv_time + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout);
 
     /* process packets */
-    if (xqc_conn_process_packets(conn, packet_in) != XQC_OK) {
-        return XQC_ERROR;
+    ret = (int)xqc_conn_process_packets(conn, packet_in);
+    if (ret) {
+        return ret;
     }
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
@@ -537,7 +549,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
 
     /* main logic */
     if (xqc_engine_main_logic(engine) != XQC_OK) {
-        return XQC_ERROR;
+        return -XQC_ESYS;
     }
 
     return XQC_OK;
