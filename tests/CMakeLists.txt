@@ -24,7 +24,8 @@ if(HAVE_CUNIT)
     xqc_recv_record_test.c
     xqc_reno_test.c
     xqc_stream_frame_test.c
-    )
+    xqc_wakeup_pq_test.c
+  )
 
 
   set(test_TLS_C

@@ -7,8 +7,6 @@
 #include "../common/xqc_timer.h"
 #include "xqc_packet_parser.h"
 
-#define XQC_PACKET_OUT_SIZE 1280    //TODO 先写死
-
 xqc_packet_out_t *
 xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
 {
@@ -226,7 +224,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
 
             ret = xqc_write_ack_to_one_packet(conn, packet_out, pns);
             if (ret != XQC_OK) {
-                xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_write_ack_to_one_packet error");
+                xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_write_ack_to_one_packet error %d", ret);
                 return ret;
             }
 
@@ -262,6 +260,168 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code)
     packet_out->po_used_size += ret;
 
     xqc_long_packet_update_length(packet_out);
+
+    return XQC_OK;
+}
+
+int
+xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_data_blocked_frame(packet_out, data_limit);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_data_blocked_to_packet error");
+        return ret;
+    }
+
+    packet_out->po_used_size += ret;
+
+    xqc_long_packet_update_length(packet_out);
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
+
+    return XQC_OK;
+}
+
+int
+xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t stream_data_limit)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_stream_data_blocked_frame(packet_out, stream_id, stream_data_limit);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_stream_data_blocked_frame error");
+        return ret;
+    }
+
+    packet_out->po_used_size += ret;
+
+    xqc_long_packet_update_length(packet_out);
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
+
+    return XQC_OK;
+}
+
+int
+xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limit, int bidirectional)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_streams_blocked_frame(packet_out, stream_limit, bidirectional);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_streams_blocked_frame error");
+        return ret;
+    }
+
+    packet_out->po_used_size += ret;
+
+    xqc_long_packet_update_length(packet_out);
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
+
+    return XQC_OK;
+}
+
+int
+xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_max_data_frame(packet_out, max_data);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_max_data_frame error");
+        return ret;
+    }
+
+    packet_out->po_used_size += ret;
+
+    xqc_long_packet_update_length(packet_out);
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
+
+    return XQC_OK;
+}
+
+int
+xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t max_stream_data)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_max_stream_data_frame(packet_out, stream_id, max_stream_data);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_max_stream_data_frame error");
+        return ret;
+    }
+
+    packet_out->po_used_size += ret;
+
+    xqc_long_packet_update_length(packet_out);
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
+
+    return XQC_OK;
+}
+
+int
+xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int bidirectional)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_max_streams_frame(packet_out, max_stream, bidirectional);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_max_streams_frame error");
+        return ret;
+    }
+
+    packet_out->po_used_size += ret;
+
+    xqc_long_packet_update_length(packet_out);
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
     return XQC_OK;
 }

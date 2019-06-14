@@ -22,6 +22,8 @@ typedef enum {
     XQC_TIMER_ACK_HSK = XQC_TIMER_ACK_INIT + XQC_PNS_HSK,
     XQC_TIMER_ACK_01RTT = XQC_TIMER_ACK_INIT + XQC_PNS_01RTT,
     XQC_TIMER_LOSS_DETECTION,
+    XQC_TIMER_IDLE,
+    XQC_TIMER_DRAINING,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 
@@ -126,6 +128,9 @@ xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_c
 
 void
 xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head);
+
+void
+xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);

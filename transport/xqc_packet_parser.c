@@ -12,6 +12,8 @@
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
 
+#define XQC_RESET_TOKEN_LEN 16
+
 unsigned
 xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits)
 {
@@ -231,7 +233,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     /* check dcid */
     xqc_cid_set(&(packet->pkt_dcid), pos, XQC_DEFAULT_CID_LEN);
     pos += XQC_DEFAULT_CID_LEN;
-    if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->dcid) != XQC_OK) {
+    if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK) {
         /* log & ignore */
         xqc_log(c->log, XQC_LOG_WARN, "parse short header: invalid destination cid");
         return XQC_ERROR;
@@ -771,8 +773,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     pos += scid->cid_len;
 
     /* check cid */
-    if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->dcid) != XQC_OK
-        || xqc_cid_is_equal(&(packet->pkt_scid), &c->scid) != XQC_OK)
+    if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
+        || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK)
     {
         /* log & ignore packet */
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|invalid dcid or scid|");
@@ -817,4 +819,85 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     }
 
     return ret;
+}
+
+
+void
+xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token)
+{
+    //TODO: HMAC or HKDF with static key
+    memcpy(token, cid->cid_buf, cid->cid_len);
+}
+
+/*
+ *     0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |0|1|               Unpredictable Bits (182..)                ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                                                               |
+   +                                                               +
+   |                                                               |
+   +                   Stateless Reset Token (128)                 +
+   |                                                               |
+   +                                                               +
+   |                                                               |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
+                     Figure 6: Stateless Reset Packet
+ */
+xqc_int_t
+xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf)
+{
+    const unsigned char *begin = dst_buf;
+    const int unpredictable_len = 23;
+    int padding_len;
+    unsigned char token[XQC_RESET_TOKEN_LEN] = {0};
+
+    dst_buf[0] = 0x40;
+    dst_buf++;
+
+    if (cid->cid_len > 0) {
+        memcpy(dst_buf, cid->cid_buf, cid->cid_len);
+        dst_buf += cid->cid_len;
+    } else {
+        return -XQC_EILLPKT;
+    }
+
+    padding_len = unpredictable_len - (dst_buf - begin);
+    if (padding_len < 0) {
+        return -XQC_EILLPKT;
+    }
+
+    memset(dst_buf, 0, padding_len);
+    dst_buf += padding_len;
+
+    xqc_gen_reset_token(cid, token);
+    memcpy(dst_buf, token, sizeof(token));
+    dst_buf += sizeof(token);
+
+    return dst_buf - begin;
+}
+
+int
+xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size)
+{
+    if (XQC_PACKET_IS_LONG_HEADER(buf)) {
+        return 0;
+    }
+
+    if (buf_size < 39) {
+        return 0;
+    }
+
+    const unsigned char *token;
+    token = buf + (buf_size - XQC_RESET_TOKEN_LEN);
+
+    unsigned char calc_token[XQC_RESET_TOKEN_LEN] = {0};
+    xqc_gen_reset_token(cid, calc_token);
+
+    if (memcmp(token,calc_token, XQC_RESET_TOKEN_LEN) == 0) {
+        return 1;
+    }
+    return 0;
 }

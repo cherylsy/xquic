@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <transport/xqc_stream.h>
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -38,6 +39,7 @@ typedef struct client_ctx_s {
     user_conn_t   *my_conn;
     struct event  *ev_recv;
     struct event  *ev_timer;
+    struct event  *ev_timeout;
     uint64_t       send_offset;
 } client_ctx_t;
 
@@ -138,6 +140,9 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[5000] = {0};
     ret = xqc_stream_send(stream, buff, sizeof(buff), 1);
+    if (ret < 0) {
+        printf("xqc_stream_send error %d\n", ret);
+    }
 
     return ret;
 }
@@ -155,13 +160,13 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
 void xqc_client_wakeup(client_ctx_t *ctx)
 {
     xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
-    //printf("xqc_engine_wakeup_after %llu\n", wake_after);
+    printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
     if (wake_after > 0) {
         struct timeval tv;
         tv.tv_sec = wake_after / 1000;
         tv.tv_usec = wake_after % 1000 * 1000;
         event_add(ctx->ev_timer, &tv);
-        printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
+        //printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
     }
 }
 
@@ -213,9 +218,11 @@ xqc_client_read_handler(client_ctx_t *ctx)
 
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen, 
-                            (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen, (xqc_msec_t)recv_time) != 0)
+                            (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
+                            (xqc_msec_t)recv_time, ctx) != 0)
     {
         printf("xqc_client_read_handler: packet process err\n");
+        return;
     }
 
     xqc_client_wakeup(ctx);
@@ -264,10 +271,53 @@ xqc_client_timer_callback(int fd, short what, void *arg)
     }
 }
 
+static void
+xqc_client_timeout_callback(int fd, short what, void *arg)
+{
+    printf("xqc_client_timeout_callback now %llu\n", now());
+    client_ctx_t *ctx = (client_ctx_t *) arg;
+    int rc;
+    rc = xqc_conn_close(ctx->my_conn->conn);
+    if (rc) {
+        printf("xqc_conn_close error\n");
+        return;
+    }
+
+    rc = xqc_client_process_conns(ctx);
+    if (rc) {
+        printf("xqc_client_timer_callback error\n");
+        return;
+    }
+    //event_base_loopbreak(eb);
+}
+
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
     int rc;
+
+    char server_addr[64] = TEST_SERVER_ADDR;
+    int server_port = TEST_SERVER_PORT;
+
+    int ch = 0;
+    while((ch = getopt(argc, argv, "a:p:")) != -1){
+        switch(ch)
+        {
+            case 'a':
+                printf("option a:'%s'\n", optarg);
+                snprintf(server_addr, sizeof(server_addr), optarg);
+                break;
+            case 'p':
+                printf("option port :%s\n", optarg);
+                server_port = atoi(optarg);
+                break;
+
+            default:
+                printf("other option :%c\n", ch);
+                exit(0);
+        }
+
+    }
 
     memset(&ctx, 0, sizeof(ctx));
 
@@ -293,7 +343,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    ctx.my_conn->fd = xqc_client_create_socket(TEST_SERVER_ADDR, TEST_SERVER_PORT);
+    ctx.my_conn->fd = xqc_client_create_socket(server_addr, server_port);
     if (ctx.my_conn->fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;
@@ -308,9 +358,15 @@ int main(int argc, char *argv[]) {
     eb = event_base_new();
 
     ctx.ev_timer = event_new(eb, -1, 0, xqc_client_timer_callback, &ctx);
+    ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
 
     ctx.ev_recv = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_recv, NULL);
+
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+    event_add(ctx.ev_timeout, &tv);
 
     rc = xqc_client_process_conns(&ctx);
     if (rc) {

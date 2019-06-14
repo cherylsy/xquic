@@ -93,6 +93,10 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
         xqc_send_ctl_destroy_packets_list(&ctl->ctl_unacked_packets[pns]);
     }
 
+    ctl->ctl_bytes_in_flight = 0;
+    ctl->ctl_crypto_bytes_in_flight = 0;
+    ctl->ctl_packets_used = 0;
+    ctl->ctl_packets_free = 0;
 }
 
 int
@@ -180,6 +184,12 @@ xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head)
     xqc_list_add(pos, head);
 }
 
+void
+xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl)
+{
+    xqc_send_ctl_destroy_packets_lists(ctl);
+}
+
 /* timer callbacks */
 void xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {
@@ -224,6 +234,22 @@ void xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
 }
+
+void xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
+}
+
+void xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
+}
 /* timer callbacks end */
 
 
@@ -239,6 +265,12 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
             timer->ctl_ctx = ctl;
         } else if (type == XQC_TIMER_LOSS_DETECTION) {
             timer->ctl_timer_callback = xqc_send_ctl_loss_detection_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_IDLE) {
+            timer->ctl_timer_callback = xqc_send_ctl_idle_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_DRAINING) {
+            timer->ctl_timer_callback = xqc_send_ctl_draining_timeout;
             timer->ctl_ctx = ctl;
         }
     }
@@ -274,11 +306,11 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
 void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
-    packet_out->po_sent_time = xqc_gettimeofday();
+    xqc_msec_t now = xqc_gettimeofday();
+    packet_out->po_sent_time = now;
     if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent) {
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
     }
-
 
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
@@ -286,6 +318,12 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
         }
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             ctl->ctl_time_of_last_sent_ack_eliciting_packet = packet_out->po_sent_time;
+            /*
+             * The timer is also restarted
+             * when sending a packet containing frames other than ACK or PADDING (an
+             * ACK-eliciting packet
+             */
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->trans_param.idle_timeout);
         }
 
         if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
@@ -296,7 +334,9 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
             packet_out->po_flag |= XQC_POF_IN_FLIGHT;
         }
 
-        xqc_send_ctl_set_loss_detection_timer(ctl);
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            xqc_send_ctl_set_loss_detection_timer(ctl);
+        }
     }
 }
 
@@ -366,7 +406,10 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_detect_lost(ctl, pns, ack_recv_time);
 
-    xqc_recv_record_del(&ctl->ctl_conn->recv_record[XQC_PNS_01RTT], ctl->ctl_largest_ack_both[XQC_PNS_01RTT] + 1);
+    xqc_recv_record_del(&ctl->ctl_conn->recv_record[pns], ctl->ctl_largest_ack_both[pns] + 1);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_ack_received|xqc_recv_record_del from %ui",
+            ctl->ctl_largest_ack_both[pns] + 1);
+    xqc_recv_record_log(ctl->ctl_conn, &ctl->ctl_conn->recv_record[pns]);
 
     ctl->ctl_crypto_count = 0;
     ctl->ctl_pto_count = 0;
@@ -592,6 +635,11 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
         xqc_send_ctl_timer_unset(ctl, XQC_TIMER_LOSS_DETECTION);
         return;
     }
+
+    xqc_log(conn->log, XQC_LOG_DEBUG,
+            "|ctl_bytes_in_flight %ui|",
+            ctl->ctl_bytes_in_flight);
+
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
         // Time threshold loss detection.
@@ -623,6 +671,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     }
     // Calculate PTO duration
     timeout = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) + ctl->ctl_conn->trans_param.max_ack_delay;
+
     timeout = timeout * xqc_send_ctl_pow(ctl->ctl_pto_count);
 
     xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION,

@@ -101,7 +101,7 @@ typedef struct xqc_engine_s {
     xqc_config_t           *config;
     xqc_str_hash_table_t   *conns_hash;
     xqc_pq_t               *conns_pq; /* In process */
-    xqc_pq_t               *conns_wakeup_pq; /* Need wakeup after next tick time */
+    xqc_wakeup_pq_t        *conns_wakeup_pq; /* Need wakeup after next tick time */
 
     xqc_conn_settings_t    *settings;
 
@@ -158,7 +158,8 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                socklen_t local_addrlen,
                                const struct sockaddr *peer_addr,
                                socklen_t peer_addrlen,
-                               xqc_msec_t recv_time);
+                               xqc_msec_t recv_time,
+                               void *user_data);
 
 xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t dcid, xqc_cid_t scid,
@@ -203,6 +204,8 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
  * @return >0 : user should call xqc_engine_main_logic after N ms
  */
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
+
+int xqc_conn_close(xqc_connection_t *conn);
 
 #endif /* _XQUIC_H_INCLUDED_ */
 

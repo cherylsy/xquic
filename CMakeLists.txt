@@ -35,13 +35,14 @@ set(
     transport/xqc_packet.c
     transport/xqc_frame.c
     transport/xqc_recv_record.c
+    transport/xqc_wakeup_pq.c
     
     transport/crypto/xqc_tls_init.c
     transport/crypto/xqc_crypto.c
     transport/crypto/xqc_tls_cb.c
     transport/crypto/xqc_tls_0rtt.c
     transport/crypto/xqc_tls_if.c
-)
+    )
 
 set(
     COMMON_SOURCES

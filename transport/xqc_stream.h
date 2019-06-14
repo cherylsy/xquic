@@ -23,9 +23,7 @@ typedef enum {
 } xqc_stream_flag_t;
 
 typedef struct {
-    uint64_t                fc_max_stream_data_bidi_local;
-    uint64_t                fc_max_stream_data_bidi_remote;
-    uint64_t                fc_max_stream_data_uni;
+    uint64_t                fc_max_stream_data;
 } xqc_stream_flow_ctl_t;
 
 

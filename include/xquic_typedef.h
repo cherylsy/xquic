@@ -15,6 +15,7 @@ typedef struct xqc_client_connection_s xqc_client_connection_t;
 typedef struct xqc_id_hash_table_s xqc_id_hash_table_t;
 typedef struct xqc_str_hash_table_s xqc_str_hash_table_t;
 typedef struct xqc_priority_queue_s xqc_pq_t;
+typedef struct xqc_wakeup_pq_s xqc_wakeup_pq_t;
 typedef struct xqc_log_s xqc_log_t;
 typedef struct xqc_send_ctl_s xqc_send_ctl_t;
 typedef struct xqc_packet_s xqc_packet_t;

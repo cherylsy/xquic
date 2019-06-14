@@ -8,6 +8,7 @@
 #include "../common/xqc_memory_pool.h"
 #include "xqc_frame.h"
 
+#define XQC_PACKET_OUT_SIZE 1280    //TODO 先写死
 
 typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,
@@ -55,5 +56,25 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 
 int
 xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code);
+
+int
+xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit);
+
+int
+xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t stream_data_limit);
+
+int
+xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limit, int bidirectional);
+
+int
+xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data);
+
+int
+xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t max_stream_data);
+
+int
+xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int bidirectional);
+
+
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_
