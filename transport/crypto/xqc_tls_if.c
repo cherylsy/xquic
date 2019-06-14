@@ -477,3 +477,66 @@ static int xqc_conn_handshake_completed_handled(xqc_connection_t *conn) {
   return 0;
 }
 
+
+int xqc_judge_ckm_null(xqc_crypto_km_t * ckm){//if null return 0, both key and iv not null return 1, else return -1;
+    if((ckm->key.base == NULL && ckm->key.len == 0) && (ckm->iv.base == NULL && ckm->iv.len == 0)){
+        return  0;
+    }
+
+    if((ckm->key.base != NULL && ckm->key.len != 0) && (ckm->iv.base != NULL && ckm->iv.len != 0)){
+        return 1;
+    }
+
+    return -1;
+}
+
+int xqc_conn_prepare_key_update(xqc_connection_t * conn){
+
+    int rv;
+    xqc_tlsref_t *tlsref = &conn->tlsref;
+    if(xqc_judge_ckm_null(&tlsref->new_rx_ckm) == 1  || xqc_judge_ckm_null(&tlsref->new_tx_ckm) == 1){
+
+        printf("error call xqc_conn_prepare_key_update because new_rx_ckm or new_tx_ckm is not null\n");
+        return -1;
+    }
+
+    if(tlsref->callbacks.update_key == NULL){
+
+        printf("callback function update_key is null \n");
+        return -1;
+    }
+
+    rv = tlsref->callbacks.update_key(conn, NULL);
+
+    if(rv != 0){
+        printf("update key error \n");
+        return rv;
+    }
+    return 0;
+}
+
+int xqc_start_key_update(xqc_connection_t * conn){
+    if(xqc_do_update_key(conn) < 0){
+        printf("start key error\n");
+        return -1;
+    }
+
+    if (conn->tlsref.flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
+        printf("flags error,cannot start key update\n");
+        return -1;
+    }
+
+    if(xqc_judge_ckm_null(& conn->tlsref.new_rx_ckm) != 1 ||
+            xqc_judge_ckm_null(& conn->tlsref.new_tx_ckm) != 1){
+        printf("new_rx_ckm is  null ,start key update error\n");
+        return -1;
+    }
+
+    if(xqc_conn_commit_key_update(conn, XQC_MAX_PKT_NUM) < 0){ //pkt num right? should be careful when integrated
+
+        printf("update key commit error\n");
+        return -1;
+    }
+    conn->tlsref.flags |= XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE;
+    return 0;
+}

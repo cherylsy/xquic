@@ -13,7 +13,8 @@
 #include "transport/crypto/xqc_tls_public.h"
 #include "../include/xquic_typedef.h"
 #include "transport/xqc_conn.h"
-
+#include "transport/crypto/xqc_tls_cb.h"
+#include "transport/crypto/xqc_tls_if.h"
 
 
 static char server_addr[256] = {0};
@@ -108,6 +109,9 @@ int send_data(xqc_connection_t * conn, xqc_crypto_km_t * ckm, char *data, int da
     memcpy(pkt_data, data, data_len);
     xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
 
+    printf("encryp data key:\n");
+    hex_print(p_ckm->key.base, p_ckm->key.len);
+
     size_t nwrite = encrypt_func(conn, pkt_data, sizeof(send_buf) - TEST_PKT_HEADER_LEN, pkt_data, data_len, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_header, TEST_PKT_HEADER_LEN, NULL);
     int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
     printf("client send data:%d\n", nwrite + TEST_PKT_HEADER_LEN);
@@ -180,21 +184,22 @@ int send_buf_packet( xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encryp
 
 int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
 
+    char recv_buf[2*2048];
     char buf[2*2048];
     int len = sizeof(struct sockaddr_in);
     while(1){
-        int recv_len = recvfrom(g_sock, buf, sizeof(buf), 0, (struct sockaddr *) p_client_addr, &len );
+        int recv_len = recvfrom(g_sock, recv_buf, sizeof(recv_buf), 0, (struct sockaddr *) p_client_addr, &len );
         if(recv_len < 0){
             return -1;
         }
         printf("recv %d bytes\n",recv_len);
-        hex_print(buf, recv_len);
+        hex_print(recv_buf, recv_len);
 
 
-        if(buf[0] == APP_PKT_TYPE){
-            xqc_pktns_t * pktns = NULL;
-            pktns = &conn->tlsref.pktns;
-        }else if(buf[0] == HANDSHAKE_PKT_TYPE ){
+        if(recv_buf[0] == APP_PKT_TYPE){
+            //xqc_pktns_t * pktns = NULL;
+            //pktns = &conn->tlsref.pktns;
+        }else if(recv_buf[0] == HANDSHAKE_PKT_TYPE ){
             recv_session_ticket(conn, buf + TEST_PKT_HEADER_LEN, recv_len - TEST_PKT_HEADER_LEN);
             continue;
         }
@@ -204,24 +209,55 @@ int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
             continue;
         }
 
+        if(recv_buf[1] != (conn->tlsref.pktns.rx_ckm.flags & XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE)?1:0 ){
+
+            if(xqc_conn_prepare_key_update(conn) < 0){
+
+                printf("update key error\n");
+                return -1;
+            }
+            if(xqc_conn_commit_key_update(conn, 0) < 0){
+                printf("update key error\n");
+                return -1;
+            }
+        }
+
+        if(conn->tlsref.flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
+           conn->tlsref.flags &= (uint16_t)~XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE;
+        }
+
+
+
         xqc_encrypt_t decrypt = NULL;
         decrypt = conn->tlsref.callbacks.decrypt;
 
-        unsigned char * pkt_header = buf;
+        unsigned char * pkt_header = recv_buf;
         unsigned char * encrypt_data = pkt_header + TEST_PKT_HEADER_LEN;
 
         uint8_t nonce[32];
         xqc_crypto_km_t *p_ckm = & conn->tlsref.pktns.rx_ckm;
         //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
-        xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
+        //xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
+        xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, 0); //not care about pkt_num , but pkt_num should be careful when doing integrated
 
-        size_t nwrite = decrypt(conn, buf, sizeof(buf), encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
+        printf("decrypt  pkt num: %d, data key and iv key:\n", p_ckm->pkt_num);
+        hex_print(p_ckm->key.base, p_ckm->key.len);
+        hex_print(nonce, p_ckm->iv.len);
 
+
+        int nwrite = decrypt(conn, buf, sizeof(buf), encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
+
+        if(nwrite > 0){
         printf("decrypt %d bytes\n",nwrite);
         hex_print(buf, nwrite);
+        }else{
 
+            printf("decrypt error\n");
+            return -1;
+        }
         break;
     }
+    return 0;
 }
 
 
@@ -285,10 +321,6 @@ int recv_server_hello(xqc_connection_t * conn){
 }
 
 
-
-
-
-
 int run(xqc_connection_t * conn, xqc_cid_t *dcid){
     conn->tlsref.callbacks.client_initial(conn);
 
@@ -310,7 +342,11 @@ int run(xqc_connection_t * conn, xqc_cid_t *dcid){
         char send_buf[100];
         int send_len = snprintf(send_buf, sizeof(send_buf), "send data num:%d",send_num);
         send_data(conn, &conn->tlsref.pktns.tx_ckm, send_buf, send_len, conn->tlsref.callbacks.in_encrypt, APP_PKT_TYPE);
+
         recv_data(conn, &g_server_addr);
+        if(send_num == 5){
+           xqc_start_key_update(conn);
+        }
     }
     return 0;
 }

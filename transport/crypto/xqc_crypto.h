@@ -156,4 +156,14 @@ size_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
 void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
         uint64_t pkt_num) ;
 
+
+int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
+        size_t secretlen, const xqc_tls_context_t *ctx);
+
+int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
+                                size_t keylen, const uint8_t *iv, size_t ivlen);
+int xqc_conn_update_rx_key(xqc_connection_t *conn, const uint8_t *key,
+                                size_t keylen, const uint8_t *iv, size_t ivlen);
+
+
 #endif

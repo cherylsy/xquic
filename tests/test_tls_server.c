@@ -9,6 +9,7 @@
 #include "../include/xquic_typedef.h"
 #include "transport/xqc_conn.h"
 #include "transport/crypto/xqc_tls_init.h"
+#include "transport/crypto/xqc_tls_cb.h"
 
 #define TEST_PKT_HEADER_LEN 16
 //static char server_addr[256] = {0};
@@ -19,6 +20,7 @@ char g_session_ticket_file[256] = {0};
 
 int                 g_sock;
 struct sockaddr_in  g_addr;
+int                 g_read_data = 0;
 
 int init_pkt_header(unsigned char * dest, int n){
     int i = 0;
@@ -34,6 +36,38 @@ int init_pkt_header(unsigned char * dest, int n){
 
 
 unsigned long DCID_TEST = 0x1234567812345678;
+
+int send_data(xqc_connection_t * conn, xqc_pktns_t * p_pktns, xqc_encrypt_t encrypt_func , char *buf, int len, struct sockaddr_in * p_client_addr ){
+
+    unsigned char send_buf[1024*2];
+    unsigned char * pkt_header = send_buf;
+    unsigned char * pkt_data = pkt_header + TEST_PKT_HEADER_LEN ;
+    init_pkt_header(pkt_header,  TEST_PKT_HEADER_LEN);
+
+    pkt_header[0] = APP_PKT_TYPE;
+    pkt_header[1] = p_pktns->tx_ckm.flags;
+
+    uint8_t nonce[32];
+    xqc_crypto_km_t *p_ckm = & p_pktns->tx_ckm;
+    xqc_vec_t  * p_hp = & p_pktns->tx_hp;
+    xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
+
+    printf("encrypt  pkt num: %d, data key and iv key:\n", p_ckm->pkt_num);
+    hex_print(p_ckm->key.base, p_ckm->key.len);
+    hex_print(nonce, p_ckm->iv.len);
+
+
+    memcpy(pkt_data, buf, len);
+
+    size_t nwrite = encrypt_func(conn, pkt_data, sizeof(send_buf) - TEST_PKT_HEADER_LEN, pkt_data, len, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_header, TEST_PKT_HEADER_LEN, NULL);
+
+    int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (struct sockaddr *)(p_client_addr), sizeof(struct sockaddr_in));
+    if(ret < 0){
+        printf("error send\n");
+        return -1;
+    }
+    return ret;
+}
 
 int send_server_handshake(xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encrypt_t encrypt_func , struct sockaddr_in * p_client_addr ){
 
@@ -93,6 +127,82 @@ int send_server_handshake(xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_e
 }
 
 
+int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
+
+    char recv_buf[2*2048];
+    char buf[2*2048];
+    int len = sizeof(struct sockaddr_in);
+    while(1){
+        int recv_len = recvfrom(g_sock, recv_buf, sizeof(recv_buf), 0, (struct sockaddr *) p_client_addr, &len );
+        if(recv_len < 0){
+            return -1;
+        }
+        printf("recv %d bytes\n",recv_len);
+        hex_print(recv_buf, recv_len);
+
+
+        if(recv_buf[0] == APP_PKT_TYPE){
+            xqc_pktns_t * pktns = NULL;
+            pktns = &conn->tlsref.pktns;
+        }else{
+            printf("read %d type data\n", buf[0]);
+            continue;
+        }
+
+        if(recv_buf[1] != (conn->tlsref.pktns.rx_ckm.flags & XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE)?1:0 ){
+
+            if(xqc_conn_prepare_key_update(conn) < 0){
+
+                printf("update key error\n");
+                return -1;
+            }
+            if(xqc_conn_commit_key_update(conn, 0) < 0){
+                printf("update key error\n");
+                return -1;
+            }
+        }
+
+        if(conn->tlsref.flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
+           conn->tlsref.flags &= (uint16_t)~XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE;
+        }
+
+
+
+
+        xqc_encrypt_t decrypt = NULL;
+        decrypt = conn->tlsref.callbacks.decrypt;
+
+        unsigned char * pkt_header = recv_buf;
+        unsigned char * encrypt_data = pkt_header + TEST_PKT_HEADER_LEN;
+
+        uint8_t nonce[32];
+        xqc_crypto_km_t *p_ckm = & conn->tlsref.pktns.rx_ckm;
+        printf("decryt key:\n");
+        hex_print(p_ckm->key.base, p_ckm->key.len);
+        //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
+        xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
+
+
+        int nwrite = decrypt(conn, buf, sizeof(buf), encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
+
+        if(nwrite > 0) {
+
+        printf("decrypt %d bytes\n",nwrite);
+
+        hex_print(buf, nwrite);
+        }else{
+
+            printf("error decrypt data\n");
+            return -1;
+        }
+
+        char send_buf[2048];
+        static int send_num = 0;
+        int send_len = snprintf(send_buf, sizeof(send_buf), "send back data:%d",send_num++);
+        send_data(conn, &conn->tlsref.pktns, conn->tlsref.callbacks.encrypt, send_buf, send_len,  p_client_addr );
+
+    }
+}
 
 int recv_client_hello( xqc_connection_t *conn, struct sockaddr_in * p_client_addr, char * recv_buf, size_t buf_len ){
     xqc_cid_t dcid;
@@ -220,12 +330,19 @@ int run(xqc_connection_t *conn){
     int n = recv_client_hello(conn, &g_client_addr, buf, sizeof(buf));
     //n = recv_client_hs_data(conn,  &g_client_addr, buf, sizeof(buf));
     printf("Negotiated cipher suite is:%s\n",SSL_get_cipher_name(conn->xc_ssl));
+
+
+    if(g_read_data){
+        n = recv_data(conn, &g_client_addr);
+        //printf("application data\n");
+        //hex_print(buf, n);
+    }
 }
 
 
 int main(int argc, char *argv[]){
     int ch = 0;
-    while((ch = getopt(argc, argv, "l:k:c:s:")) != -1){
+    while((ch = getopt(argc, argv, "l:k:c:s:r:")) != -1){
         switch(ch)
         {
             case 'l':
@@ -243,6 +360,9 @@ int main(int argc, char *argv[]){
             case 's':
                 printf("session ticket file:%s\n", optarg);
                 snprintf(g_session_ticket_file, sizeof(g_session_ticket_file), optarg);
+                break;
+            case 'r':
+                g_read_data = atoi(optarg);
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -275,13 +395,13 @@ int main(int argc, char *argv[]){
 
     engine.ssl_ctx = xqc_create_server_ssl_ctx(&xs_config);
     while(1){
-    xqc_connection_t conn;
-    conn.version = XQC_QUIC_VERSION;
-    xqc_tlsref_init(& conn.tlsref);
-    xqc_server_tls_initial(&engine, &conn, &xs_config);
-    conn.tlsref.server = 1;
+        xqc_connection_t conn;
+        conn.version = XQC_QUIC_VERSION;
+        xqc_tlsref_init(& conn.tlsref);
+        xqc_server_tls_initial(&engine, &conn, &xs_config);
+        conn.tlsref.server = 1;
 
-    run(&conn);
+        run(&conn);
     }
 
     close(g_sock);

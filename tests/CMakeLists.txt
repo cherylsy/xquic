@@ -74,6 +74,21 @@ if(HAVE_CUNIT)
     xqc_tls_cb_test.c
   )
 
+  set(test_TLS_REKEY
+      test_tls_rekey.c
+    xqc_random_test.c
+    xqc_timer_test.c
+    xqc_pq_test.c
+    xqc_common_test.c
+    xqc_conn_test.c
+    xqc_engine_test.c
+    xqc_common_test.c
+    xqc_vint_test.c
+    xqc_packet_test.c
+    xqc_tls_init_test.c
+    xqc_tls_cb_test.c
+  )
+
 
 
   add_executable(run_tests
@@ -127,6 +142,20 @@ if(HAVE_CUNIT)
   )
   add_test(test_tls_0rtt test_tls_0rtt)
   add_dependencies(check test_tls_0rtt)
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl )
+  include_directories(../transport/crypto/)
+
+  add_executable(test_tls_rekey
+      ${test_TLS_REKEY}
+  )
+ 
+  target_include_directories(test_tls_rekey PRIVATE ${CUNIT_INCLUDE_DIRS})
+  target_link_libraries(test_tls_rekey
+    xquic
+    ${CUNIT_LIBRARIES}
+  )
+  add_test(test_tls_rekey test_tls_rekey)
+  add_dependencies(check test_tls_rekey)
   include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl )
   include_directories(../transport/crypto/)
 

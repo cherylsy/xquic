@@ -31,6 +31,7 @@ int init_pkt_header(unsigned char * dest, int n){
     for(i = 0; i < n ; i++){
         dest[i] = 0xff;
     }
+
     return 0;
 }
 
