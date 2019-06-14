@@ -264,8 +264,9 @@ xqc_conn_process_packets(xqc_connection_t *c,
         }
 
         xqc_recv_record_log(c, &c->recv_record[packet_in->pi_pkt.pkt_pns]);
-        xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_conn_process_packets|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|",
-                range_status, packet_in->pi_pkt.pkt_num, xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]));
+        xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_conn_process_packets|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|pns=%d|",
+                range_status, packet_in->pi_pkt.pkt_num,
+                xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]), packet_in->pi_pkt.pkt_pns);
     }
 
     return XQC_OK;

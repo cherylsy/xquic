@@ -224,7 +224,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
 
             ret = xqc_write_ack_to_one_packet(conn, packet_out, pns);
             if (ret != XQC_OK) {
-                xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_write_ack_to_one_packet error");
+                xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets xqc_write_ack_to_one_packet error %d", ret);
                 return ret;
             }
 

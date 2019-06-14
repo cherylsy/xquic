@@ -406,7 +406,10 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_detect_lost(ctl, pns, ack_recv_time);
 
-    xqc_recv_record_del(&ctl->ctl_conn->recv_record[XQC_PNS_01RTT], ctl->ctl_largest_ack_both[XQC_PNS_01RTT] + 1);
+    xqc_recv_record_del(&ctl->ctl_conn->recv_record[pns], ctl->ctl_largest_ack_both[pns] + 1);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_ack_received|xqc_recv_record_del from %ui",
+            ctl->ctl_largest_ack_both[pns] + 1);
+    xqc_recv_record_log(ctl->ctl_conn, &ctl->ctl_conn->recv_record[pns]);
 
     ctl->ctl_crypto_count = 0;
     ctl->ctl_pto_count = 0;

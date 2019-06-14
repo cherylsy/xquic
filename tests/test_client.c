@@ -140,7 +140,9 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[5000] = {0};
     ret = xqc_stream_send(stream, buff, sizeof(buff), 1);
-
+    if (ret < 0) {
+        printf("xqc_stream_send error %d\n", ret);
+    }
 
     return ret;
 }

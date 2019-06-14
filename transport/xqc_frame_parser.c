@@ -337,8 +337,11 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         printf("xqc_gen_ack_frame low:%llu, high=%llu\n", range_node->pktno_range.low, range_node->pktno_range.high);
     }
 
-    xqc_pktno_range_node_t *first_range =
-            xqc_list_entry((&recv_record->list_head)->next, xqc_pktno_range_node_t, list);
+    xqc_pktno_range_node_t *first_range = NULL;
+    xqc_list_for_each(pos, &recv_record->list_head) {
+        first_range = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+        break;
+    }
 
     if (first_range == NULL) {
         return -XQC_ENULLPTR;

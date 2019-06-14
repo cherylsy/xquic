@@ -44,16 +44,16 @@ xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag)
 }
 
 static const char * const conn_state_2_str[XQC_CONN_STATE_N] = {
-        [XQC_CONN_STATE_SERVER_INIT]            = "SINIT",
-        [XQC_CONN_STATE_SERVER_INITIAL_RECVD]   = "SINITIAL_RECVD",
-        [XQC_CONN_STATE_SERVER_INITIAL_SENT]    = "SINITIAL_SENT",
-        [XQC_CONN_STATE_SERVER_HANDSHAKE_SENT]  = "SHANDSHAKE_SENT",
-        [XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD] = "SHANDSHAKE_RECVD",
-        [XQC_CONN_STATE_CLIENT_INIT]            = "CINIT",
-        [XQC_CONN_STATE_CLIENT_INITIAL_RECVD]   = "CINITIAL_RECVD",
-        [XQC_CONN_STATE_CLIENT_INITIAL_SENT]    = "CINITIAL_SENT",
-        [XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT]  = "CHANDSHAKE_SENT",
-        [XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD] = "CHANDSHAKE_RECVD",
+        [XQC_CONN_STATE_SERVER_INIT]            = "S_INIT",
+        [XQC_CONN_STATE_SERVER_INITIAL_RECVD]   = "S_INITIAL_RECVD",
+        [XQC_CONN_STATE_SERVER_INITIAL_SENT]    = "S_INITIAL_SENT",
+        [XQC_CONN_STATE_SERVER_HANDSHAKE_SENT]  = "S_HANDSHAKE_SENT",
+        [XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD] = "S_HANDSHAKE_RECVD",
+        [XQC_CONN_STATE_CLIENT_INIT]            = "C_INIT",
+        [XQC_CONN_STATE_CLIENT_INITIAL_RECVD]   = "C_INITIAL_RECVD",
+        [XQC_CONN_STATE_CLIENT_INITIAL_SENT]    = "C_INITIAL_SENT",
+        [XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT]  = "C_HANDSHAKE_SENT",
+        [XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD] = "C_HANDSHAKE_RECVD",
         [XQC_CONN_STATE_ESTABED]                = "ESTABED",
         [XQC_CONN_STATE_CLOSING]                = "CLOSING",
         [XQC_CONN_STATE_DRAINING]               = "DRAINING",
@@ -74,7 +74,7 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     param->ack_delay_exponent = 3;
     //TODO: 临时值
     param->idle_timeout = 5000;
-    param->initial_max_data = 1*1024*1024;
+    param->initial_max_data = /*1*1024**/1024;
     param->initial_max_stream_data_bidi_local = 100*1024;
     param->initial_max_stream_data_bidi_remote = 100*1024;
     param->initial_max_stream_data_uni = 100*1024;
@@ -347,7 +347,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
 
     sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
-    xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui,%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
+    xqc_log(conn->log, XQC_LOG_INFO, "<== xqc_conn_send_one_packet conn=%p, size=%ui, sent=%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
             conn, packet_out->po_used_size, sent,
             xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
             xqc_frame_type_2_str(packet_out->po_frame_types));

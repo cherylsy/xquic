@@ -12,7 +12,7 @@ xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record)
     xqc_pktno_range_node_t *pnode;
     xqc_list_for_each(pos, &recv_record->list_head) {
         pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "recv_record low:%ui, high=%ui",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_recv_record_log|low:%ui, high=%ui",
                 pnode->pktno_range.low, pnode->pktno_range.high);
     }
 }
@@ -43,7 +43,11 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
     pnode = prev_node = NULL;
     pos = prev = NULL;
 
-    xqc_pktno_range_node_t *first = xqc_list_entry(&recv_record->list_head, xqc_pktno_range_node_t, list);
+    xqc_pktno_range_node_t *first = NULL;
+    xqc_list_for_each(pos, &recv_record->list_head) {
+        first = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+        break;
+    }
     if (first && packet_number > first->pktno_range.high) {
         recv_record->largest_pkt_recv_time = recv_time;
     }
@@ -125,7 +129,13 @@ xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_fro
 xqc_packet_number_t
 xqc_recv_record_largest(xqc_recv_record_t *recv_record)
 {
-    xqc_pktno_range_node_t *pnode = xqc_list_entry(recv_record->list_head.next, xqc_pktno_range_node_t, list);
+    xqc_pktno_range_node_t *pnode = NULL;
+    xqc_list_head_t *pos;
+    xqc_list_for_each(pos, &recv_record->list_head) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+        break;
+    }
+
     if (pnode) {
         return pnode->pktno_range.high;
     } else {
