@@ -62,6 +62,7 @@ typedef int               xqc_err_t;
 #define XQC_CLOSING         607
 #define XQC_ECONN_NFOUND    608
 #define XQC_ESYS            609
+#define XQC_EBLOCKED        610
 
 /* For QUIC ssl 7xx */
 

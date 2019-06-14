@@ -334,7 +334,9 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
             packet_out->po_flag |= XQC_POF_IN_FLIGHT;
         }
 
-        xqc_send_ctl_set_loss_detection_timer(ctl);
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            xqc_send_ctl_set_loss_detection_timer(ctl);
+        }
     }
 }
 
@@ -630,6 +632,11 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
         xqc_send_ctl_timer_unset(ctl, XQC_TIMER_LOSS_DETECTION);
         return;
     }
+
+    xqc_log(conn->log, XQC_LOG_DEBUG,
+            "|ctl_bytes_in_flight %ui|",
+            ctl->ctl_bytes_in_flight);
+
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
         // Time threshold loss detection.

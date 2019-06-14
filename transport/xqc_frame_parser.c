@@ -606,3 +606,327 @@ xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, unsigned short *err_code)
     return XQC_OK;
 }
 
+/*
+ *     0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       Data Limit (i)                        ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_data_blocked_frame(xqc_packet_out_t *packet_out, uint64_t data_limit)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    *dst_buf++ = 0x14;
+
+    unsigned data_limit_bits = xqc_vint_get_2bit(data_limit);
+    xqc_vint_write(dst_buf, data_limit, data_limit_bits, xqc_vint_len(data_limit_bits));
+    dst_buf += xqc_vint_len(data_limit_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_DATA_BLOCKED;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_data_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *data_limit)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    vlen = xqc_vint_read(p, end, data_limit);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_DATA_BLOCKED;
+
+    return XQC_OK;
+}
+
+
+/*
+ *     0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Stream ID (i)                        ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Stream Data Limit (i)                    ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_stream_data_blocked_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id, uint64_t stream_data_limit)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    *dst_buf++ = 0x15;
+
+    unsigned stream_id_bits = xqc_vint_get_2bit(stream_id);
+    unsigned data_limit_bits = xqc_vint_get_2bit(stream_data_limit);
+
+    xqc_vint_write(dst_buf, stream_id, stream_id_bits, xqc_vint_len(stream_id_bits));
+    dst_buf += xqc_vint_len(stream_id_bits);
+
+    xqc_vint_write(dst_buf, stream_data_limit, data_limit_bits, xqc_vint_len(data_limit_bits));
+    dst_buf += xqc_vint_len(data_limit_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_STREAM_DATA_BLOCKED;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_stream_data_blocked_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *stream_data_limit)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    vlen = xqc_vint_read(p, end, stream_id);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, stream_data_limit);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAM_DATA_BLOCKED;
+
+    return XQC_OK;
+}
+
+/*
+ *  0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Stream Limit (i)                     ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_streams_blocked_frame(xqc_packet_out_t *packet_out, uint64_t stream_limit, int bidirectional)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    if (bidirectional) {
+        *dst_buf++ = 0x16;
+    } else {
+        *dst_buf++ = 0x17;
+    }
+
+    unsigned stream_limit_bits = xqc_vint_get_2bit(stream_limit);
+    xqc_vint_write(dst_buf, stream_limit, stream_limit_bits, xqc_vint_len(stream_limit_bits));
+    dst_buf += xqc_vint_len(stream_limit_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_STREAMS_BLOCKED;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_streams_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *stream_limit, int *bidirectional)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    if (first_byte == 0x16) {
+        *bidirectional = 1;
+    } else {
+        *bidirectional = 0;
+    }
+
+    vlen = xqc_vint_read(p, end, stream_limit);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAMS_BLOCKED;
+
+    return XQC_OK;
+}
+
+/*
+ *
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Maximum Data (i)                     ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_max_data_frame(xqc_packet_out_t *packet_out, uint64_t max_data)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    *dst_buf++ = 0x10;
+
+    unsigned max_data_bits = xqc_vint_get_2bit(max_data);
+    xqc_vint_write(dst_buf, max_data, max_data_bits, xqc_vint_len(max_data_bits));
+    dst_buf += xqc_vint_len(max_data_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_MAX_DATA;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_max_data_frame(xqc_packet_in_t *packet_in, uint64_t *max_data)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    vlen = xqc_vint_read(p, end, max_data);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_MAX_DATA;
+
+    return XQC_OK;
+}
+
+/*
+ *     0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Stream ID (i)                        ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                    Maximum Stream Data (i)                  ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_max_stream_data_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id, uint64_t max_stream_data)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    *dst_buf++ = 0x11;
+
+    unsigned stream_id_bits = xqc_vint_get_2bit(stream_id);
+    unsigned max_stream_data_bits = xqc_vint_get_2bit(max_stream_data);
+
+    xqc_vint_write(dst_buf, stream_id, stream_id_bits, xqc_vint_len(stream_id_bits));
+    dst_buf += xqc_vint_len(stream_id_bits);
+
+    xqc_vint_write(dst_buf, max_stream_data, max_stream_data_bits, xqc_vint_len(max_stream_data_bits));
+    dst_buf += xqc_vint_len(max_stream_data_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_MAX_STREAM_DATA;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *max_stream_data)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    vlen = xqc_vint_read(p, end, stream_id);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, max_stream_data);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_MAX_STREAM_DATA;
+
+    return XQC_OK;
+}
+
+/*
+ *
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                     Maximum Streams (i)                     ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, int bidirectional)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    if (bidirectional) {
+        *dst_buf++ = 0x12;
+    } else {
+        *dst_buf++ = 0x13;
+    }
+
+    unsigned max_streams_bits = xqc_vint_get_2bit(max_streams);
+    xqc_vint_write(dst_buf, max_streams, max_streams_bits, xqc_vint_len(max_streams_bits));
+    dst_buf += xqc_vint_len(max_streams_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_MAX_STREAMS;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, int *bidirectional)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    if (first_byte == 0x12) {
+        *bidirectional = 1;
+    } else {
+        *bidirectional = 0;
+    }
+
+    vlen = xqc_vint_read(p, end, max_streams);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_MAX_STREAMS;
+
+    return XQC_OK;
+}

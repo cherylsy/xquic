@@ -14,7 +14,7 @@ typedef enum {
     XQC_FRAME_NEW_TOKEN,
     XQC_FRAME_STREAM,
     XQC_FRAME_MAX_DATA,
-    XQC_FRAME_MAX_STREAM_DAT,
+    XQC_FRAME_MAX_STREAM_DATA,
     XQC_FRAME_MAX_STREAMS,
     XQC_FRAME_DATA_BLOCKED,
     XQC_FRAME_STREAM_DATA_BLOCKED,
@@ -38,7 +38,7 @@ typedef enum {
     XQC_FRAME_BIT_NEW_TOKEN         = 1 << XQC_FRAME_NEW_TOKEN,
     XQC_FRAME_BIT_STREAM            = 1 << XQC_FRAME_STREAM,
     XQC_FRAME_BIT_MAX_DATA          = 1 << XQC_FRAME_MAX_DATA,
-    XQC_FRAME_BIT_MAX_STREAM_DAT    = 1 << XQC_FRAME_MAX_STREAM_DAT,
+    XQC_FRAME_BIT_MAX_STREAM_DATA   = 1 << XQC_FRAME_MAX_STREAM_DATA,
     XQC_FRAME_BIT_MAX_STREAMS       = 1 << XQC_FRAME_MAX_STREAMS,
     XQC_FRAME_BIT_DATA_BLOCKED      = 1 << XQC_FRAME_DATA_BLOCKED,
     XQC_FRAME_BIT_STREAM_DATA_BLOCKED = 1 << XQC_FRAME_STREAM_DATA_BLOCKED,
@@ -106,5 +106,23 @@ xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t
 xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 #endif /* _XQC_FRAME_H_INCLUDED_ */

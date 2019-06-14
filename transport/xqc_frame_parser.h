@@ -39,4 +39,28 @@ int xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, unsigned short err_co
 
 int xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, unsigned short *err_code);
 
+int xqc_gen_data_blocked_frame(xqc_packet_out_t *packet_out, uint64_t data_limit);
+
+int xqc_parse_data_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *data_limit);
+
+int xqc_gen_stream_data_blocked_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id, uint64_t stream_data_limit);
+
+int xqc_parse_stream_data_blocked_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *stream_data_limit);
+
+int xqc_gen_streams_blocked_frame(xqc_packet_out_t *packet_out, uint64_t stream_limit, int bidirectional);
+
+int xqc_parse_streams_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *stream_limit, int *bidirectional);
+
+int xqc_gen_max_data_frame(xqc_packet_out_t *packet_out, uint64_t max_data);
+
+int xqc_parse_max_data_frame(xqc_packet_in_t *packet_in, uint64_t *max_data);
+
+int xqc_gen_max_stream_data_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id, uint64_t max_stream_data);
+
+int xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *max_stream_data);
+
+int xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, int bidirectional);
+
+int xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, int *bidirectional);
+
 #endif /*_XQC_FRAME_PARSER_H_INCLUDED_*/

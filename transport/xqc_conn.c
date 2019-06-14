@@ -414,9 +414,13 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);
-            xqc_send_ctl_insert_unacked(packet_out,
-                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
-                                        conn->conn_send_ctl);
+            if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+                xqc_send_ctl_insert_unacked(packet_out,
+                                            &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                            conn->conn_send_ctl);
+            } else {
+                xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
+            }
             if (++cnt >= probe_num) {
                 return;
             }

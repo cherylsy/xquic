@@ -10,6 +10,7 @@
 #include "xqc_conn.h"
 #include "xqc_frame_parser.h"
 #include "xqc_send_ctl.h"
+#include "xqc_stream.h"
 
 
 static const char * const frame_type_2_str[XQC_FRAME_NUM] = {
@@ -22,7 +23,7 @@ static const char * const frame_type_2_str[XQC_FRAME_NUM] = {
     [XQC_FRAME_NEW_TOKEN]           = "NEW_TOKEN",
     [XQC_FRAME_STREAM]              = "STREAM",
     [XQC_FRAME_MAX_DATA]            = "MAX_DATA",
-    [XQC_FRAME_MAX_STREAM_DAT]      = "MAX_STREAM_DAT",
+    [XQC_FRAME_MAX_STREAM_DATA]     = "MAX_STREAM_DAT",
     [XQC_FRAME_MAX_STREAMS]         = "MAX_STREAMS",
     [XQC_FRAME_DATA_BLOCKED]        = "DATA_BLOCKED",
     [XQC_FRAME_STREAM_DATA_BLOCKED] = "STREAM_DATA_BLOCKED",
@@ -146,6 +147,24 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             case 0x08 ... 0x0f:
                 //stream frame
                 ret = xqc_process_stream_frame(conn, packet_in);
+                break;
+            case 0x10:
+                ret = xqc_process_max_data_frame(conn, packet_in);
+                break;
+            case 0x11:
+                ret = xqc_process_max_stream_data_frame(conn, packet_in);
+                break;
+            case 0x12 ... 0x13:
+                ret = xqc_process_max_streams_frame(conn, packet_in);
+                break;
+            case 0x14:
+                ret = xqc_process_data_blocked_frame(conn, packet_in);
+                break;
+            case 0x15:
+                ret = xqc_process_stream_data_blocked_frame(conn, packet_in);
+                break;
+            case 0x16 ... 0x17:
+                ret = xqc_process_streams_blocked_frame(conn, packet_in);
                 break;
             case 0x1c ... 0x1d:
                 ret = xqc_process_conn_close_frame(conn, packet_in);
@@ -348,5 +367,130 @@ xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
     conn->conn_state = XQC_CONN_STATE_DRAINING;
 
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    int ret;
+    uint64_t data_limit;
+
+    ret = xqc_parse_data_blocked_frame(packet_in, &data_limit);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_data_blocked_frame|xqc_parse_data_blocked_frame error|");
+        return ret;
+    }
+
+    ret = xqc_write_max_data_to_packet(conn, data_limit * 2);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_data_blocked_frame|xqc_write_max_data_to_packet error|");
+        return ret;
+    }
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    int ret;
+    uint64_t stream_data_limit;
+    xqc_stream_id_t stream_id;
+
+    ret = xqc_parse_stream_data_blocked_frame(packet_in, &stream_id, &stream_data_limit);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_data_blocked_frame|xqc_parse_stream_data_blocked_frame error|");
+        return ret;
+    }
+
+    ret = xqc_write_max_stream_data_to_packet(conn, stream_id, stream_data_limit * 2);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_data_blocked_frame|xqc_write_max_stream_data_to_packet error|");
+        return ret;
+    }
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    int ret;
+    uint64_t stream_limit;
+    int bidirectional;
+
+    ret = xqc_parse_streams_blocked_frame(packet_in, &stream_limit, &bidirectional);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_streams_blocked_frame|xqc_parse_streams_blocked_frame error|");
+        return ret;
+    }
+
+    ret = xqc_write_max_streams_to_packet(conn, stream_limit * 2, bidirectional);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_streams_blocked_frame|xqc_write_max_streams_to_packet error|");
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    int ret;
+    uint64_t max_data;
+
+    ret = xqc_parse_max_data_frame(packet_in, &max_data);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_max_data_frame|xqc_parse_max_data_frame error|");
+        return ret;
+    }
+
+    conn->conn_flow_ctl.fc_max_data = max_data;
+
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    int ret;
+    uint64_t max_stream_data;
+    xqc_stream_id_t stream_id;
+    xqc_stream_t *stream;
+
+    ret = xqc_parse_max_stream_data_frame(packet_in, &stream_id, &max_stream_data);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_max_stream_data_frame|xqc_parse_max_stream_data_frame error|");
+        return ret;
+    }
+
+    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
+    if (stream) {
+        stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;
+    } else {
+        //TODO: STREAM_STATE_ERROR
+    }
+
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    int ret;
+    uint64_t max_streams;
+    int bidirectional;
+
+    ret = xqc_parse_max_streams_frame(packet_in, &max_streams, &bidirectional);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_max_streams_frame|xqc_parse_max_streams_frame error|");
+        return ret;
+    }
+
+    if (bidirectional) {
+        conn->conn_flow_ctl.fc_max_streams_bidi = max_streams;
+    } else {
+        conn->conn_flow_ctl.fc_max_streams_uni = max_streams;
+    }
     return XQC_OK;
 }
