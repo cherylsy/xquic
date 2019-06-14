@@ -74,7 +74,7 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     param->ack_delay_exponent = 3;
     //TODO: 临时值
     param->idle_timeout = 5000;
-    param->initial_max_data = /*1*1024**/1024;
+    param->initial_max_data = 1*1024*1024;
     param->initial_max_stream_data_bidi_local = 100*1024;
     param->initial_max_stream_data_bidi_remote = 100*1024;
     param->initial_max_stream_data_uni = 100*1024;
