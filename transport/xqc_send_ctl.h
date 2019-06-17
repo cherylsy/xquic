@@ -156,6 +156,13 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
             type);
 }
 
+static inline xqc_msec_t
+xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
+{
+    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) +
+                     ctl->ctl_conn->trans_param.max_ack_delay;
+}
+
 void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
 

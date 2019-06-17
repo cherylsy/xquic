@@ -537,8 +537,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 int
 xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost)
 {
-    xqc_msec_t pto = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) +
-          ctl->ctl_conn->trans_param.max_ack_delay;
+    xqc_msec_t pto = xqc_send_ctl_calc_pto(ctl);
     xqc_msec_t congestion_period =
             pto * ( xqc_send_ctl_pow(XQC_kPersistentCongestionThreshold) - 1);
     // Determine if all packets in the window before the

@@ -133,29 +133,29 @@ xqc_engine_wakeup_pq_create(xqc_config_t *config)
 xqc_int_t
 xqc_engine_conns_hash_insert(xqc_engine_t *engine, xqc_connection_t *c)
 {
-    xqc_str_hash_element_t element;
-    element.hash = xqc_hash_string(c->scid.cid_buf, c->scid.cid_len);
-    element.str.data = c->scid.cid_buf;
-    element.str.len = c->scid.cid_len;
-    element.value = c;
-
-    return xqc_str_hash_add(engine->conns_hash, element);
+    xqc_insert_conns_hash(engine->conns_hash, c, &c->scid);
+    xqc_insert_conns_hash(engine->conns_hash_dcid, c, &c->dcid);
+    return 0;
 }
 
 
 xqc_connection_t *
-xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *dcid)
+xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type)
 {
-    if (dcid == NULL || dcid->cid_len == 0 || dcid->cid_buf == NULL) {
+    if (cid == NULL || cid->cid_len == 0 || cid->cid_buf == NULL) {
         return NULL;
     }
 
-    uint64_t hash = xqc_hash_string(dcid->cid_buf, dcid->cid_len);
+    uint64_t hash = xqc_hash_string(cid->cid_buf, cid->cid_len);
     xqc_str_t str;
-    str.data = dcid->cid_buf;
-    str.len = dcid->cid_len;
+    str.data = cid->cid_buf;
+    str.len = cid->cid_len;
 
-    return xqc_str_hash_find(engine->conns_hash, hash, str);
+    if (type == 's') {
+        return xqc_str_hash_find(engine->conns_hash, hash, str);
+    } else {
+        return xqc_str_hash_find(engine->conns_hash_dcid, hash, str);
+    }
 }
 
 
@@ -213,6 +213,10 @@ xqc_engine_create(xqc_engine_type_t engine_type)
     if (engine->conns_hash == NULL) {
         goto fail;
     }
+    engine->conns_hash_dcid = xqc_engine_conns_hash_create(engine->config);
+    if (engine->conns_hash_dcid == NULL) {
+        goto fail;
+    }
 
     engine->conns_pq = xqc_engine_conns_pq_create(engine->config);
     if (engine->conns_pq == NULL) {
@@ -258,6 +262,11 @@ xqc_engine_destroy(xqc_engine_t *engine)
         xqc_engine_conns_hash_destroy(engine->conns_hash);
         engine->conns_hash = NULL;
     }
+    if (engine->conns_hash_dcid) {
+        xqc_engine_conns_hash_destroy(engine->conns_hash_dcid);
+        engine->conns_hash_dcid = NULL;
+    }
+
     if (engine->conns_pq) {
         xqc_engine_conns_pq_destroy(engine->conns_pq);
         engine->conns_pq = NULL;
@@ -357,7 +366,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     /*if (conn->conn_type == XQC_CONN_TYPE_SERVER && conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
     {
         //for test
-        xqc_remove_conns_hash(conn->engine->conns_hash, conn);
+        xqc_remove_conns_hash(conn->engine->conns_hash, conn, &conn->scid);
     }*/
 end:
     return;
@@ -489,7 +498,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return -XQC_EILLPKT;
     }
 
-    conn = xqc_engine_conns_hash_find(engine, &scid);
+    conn = xqc_engine_conns_hash_find(engine, &scid, 's');
 
     /* server creates connection when receiving a initial packet*/
     if (conn == NULL
@@ -517,12 +526,23 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         xqc_log(engine->log, XQC_LOG_DEBUG, "xqc_engine_packet_process: server accept new conn");
     }
     if (conn == NULL) {
-        xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection");
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
+            xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection, send reset");
             ret = xqc_send_reset(engine, &scid, user_data);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to send reset");
             }
+        } else {
+            //RST包只有对端cid
+            conn = xqc_engine_conns_hash_find(engine, &scid, 'd');
+            if (conn) {
+                xqc_log(engine->log, XQC_LOG_WARN, "packet_process: receive reset, enter draining");
+                conn->conn_state = XQC_CONN_STATE_DRAINING;
+                xqc_msec_t pto = xqc_send_ctl_calc_pto(conn->conn_send_ctl);
+                xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_DRAINING, 3 * pto + recv_time);
+                goto after_process;
+            }
+            xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection, exit");
         }
         return -XQC_ECONN_NFOUND;
     }
@@ -549,6 +569,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return ret;
     }
 
+after_process:
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (0 == xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;

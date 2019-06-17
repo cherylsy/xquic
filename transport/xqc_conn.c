@@ -116,19 +116,16 @@ xqc_conns_pq_top (xqc_pq_t *pq)
     return  (xqc_conns_pq_elem_t*)xqc_pq_top(pq);
 }
 
-
 int
-xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
+xqc_insert_conns_hash(xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid)
 {
-    xqc_cid_t *scid = &conn->scid;
-
-    uint64_t hash = xqc_hash_string(scid->cid_buf, scid->cid_len);
+    uint64_t hash = xqc_hash_string(cid->cid_buf, cid->cid_len);
 
     xqc_str_hash_element_t c = {
             .str    = {
-                        .data = scid->cid_buf,
-                        .len = scid->cid_len
-                    },
+                    .data = cid->cid_buf,
+                    .len = cid->cid_len
+            },
             .hash   = hash,
             .value  = conn
     };
@@ -139,15 +136,34 @@ xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
 }
 
 int
-xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn)
+xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid)
 {
-    xqc_cid_t *scid = &conn->scid;
-    uint64_t hash = xqc_hash_string(scid->cid_buf, scid->cid_len);
+    uint64_t hash = xqc_hash_string(cid->cid_buf, cid->cid_len);
     xqc_str_t str = {
-        .data   = scid->cid_buf,
-        .len    = scid->cid_len,
+            .data   = cid->cid_buf,
+            .len    = cid->cid_len,
     };
     if (xqc_str_hash_delete(conns_hash, hash, str)) {
+        return -1;
+    }
+    return 0;
+}
+
+int
+xqc_insert_conns_addr_hash(xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn,
+                           const struct sockaddr *addr,
+                           socklen_t addrlen)
+{
+    uint64_t hash = xqc_hash_string((unsigned char*)addr, addrlen);
+    xqc_str_hash_element_t c = {
+            .str    = {
+                    .data = (unsigned char*)addr,
+                    .len = addrlen
+                    },
+            .hash   = hash,
+            .value  = conn
+    };
+    if (xqc_str_hash_add(conns_hash, c)) {
         return -1;
     }
     return 0;
@@ -213,7 +229,10 @@ xqc_create_connection(xqc_engine_t *engine,
     }
 
     /* Insert into engine's conns_hash */
-    if (xqc_insert_conns_hash(engine->conns_hash, xc)) {
+    if (xqc_insert_conns_hash(engine->conns_hash, xc, &xc->scid)) {
+        goto fail;
+    }
+    if (xqc_insert_conns_hash(engine->conns_hash_dcid, xc, &xc->dcid)) {
         goto fail;
     }
 
@@ -265,7 +284,10 @@ xqc_destroy_connection(xqc_connection_t *xc)
 
     /* Remove from engine's conns_hash */
     if (xc->engine->conns_hash) {
-        xqc_remove_conns_hash(xc->engine->conns_hash, xc);
+        xqc_remove_conns_hash(xc->engine->conns_hash, xc, &xc->scid);
+    }
+    if (xc->engine->conns_hash_dcid) {
+        xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
 
     /* free pool */
@@ -518,8 +540,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 
         ctl = conn->conn_send_ctl;
         now = xqc_gettimeofday();
-        xqc_msec_t pto = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) +
-                         ctl->ctl_conn->trans_param.max_ack_delay;
+        xqc_msec_t pto = xqc_send_ctl_calc_pto(ctl);
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, 3 * pto + now);
     }
     return XQC_OK;
@@ -541,6 +562,6 @@ xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data)
         return size;
     }
 
-    xqc_log(engine->log, XQC_LOG_WARN, "xqc_send_reset ok");
+    xqc_log(engine->log, XQC_LOG_WARN, "xqc_send_reset ok, size=%d", size);
     return XQC_OK;
 }

@@ -55,7 +55,7 @@ typedef enum {
                                     |XQC_CONN_FLAG_SHOULD_ACK_HSK    \
                                     |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
 
-#define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_TIME_OUT|XQC_CONN_FLAG_ERROR)
+#define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_ERROR)
 
 /* 添加flag请更新conn_flag_2_str */
 typedef enum {
@@ -213,9 +213,9 @@ void xqc_conns_pq_pop (xqc_pq_t *pq);
 
 xqc_conns_pq_elem_t *xqc_conns_pq_top (xqc_pq_t *pq);
 
-int xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn);
+int xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
 
-int xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn);
+int xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
 
 xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t *dcid, xqc_cid_t *scid,

@@ -69,8 +69,14 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     unsigned char fin;
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
-        printf("xqc_stream_recv %lld \n", read);
+        printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
     } while (read > 0);
+
+    /*ssize_t sent;
+    if (fin) {
+        sent = xqc_stream_send(stream, buff, buff_size, fin);
+        printf("xqc_stream_send %lld \n", sent);
+    }*/
     return 0;
 }
 
