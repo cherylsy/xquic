@@ -427,6 +427,7 @@ xqc_stream_send (xqc_stream_t *stream,
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data|%d|",
                     stream->stream_conn->conn_flow_ctl.fc_max_data);
 
+            conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
             xqc_write_data_blocked_to_packet(conn, stream->stream_conn->conn_flow_ctl.fc_max_data);
 
             return stream->stream_send_offset;
@@ -483,7 +484,8 @@ xqc_process_write_streams (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_write_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
-        if (stream->stream_flag & XQC_SF_STREAM_DATA_BLOCKED) {
+        if (stream->stream_flag & XQC_SF_STREAM_DATA_BLOCKED ||
+                conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) {
             continue;
         }
         ret = stream->stream_if->stream_write_notify(stream, stream->user_data);

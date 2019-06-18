@@ -452,7 +452,13 @@ xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         return ret;
     }
 
-    conn->conn_flow_ctl.fc_max_data = max_data;
+    if (max_data > conn->conn_flow_ctl.fc_max_data) {
+        conn->conn_flow_ctl.fc_max_data = max_data;
+        conn->conn_flag &= ~XQC_CONN_FLAG_DATA_BLOCKED;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_max_data_frame|max_data=%ui|", max_data);
+    } else {
+        xqc_log(conn->log, XQC_LOG_WARN, "|xqc_process_max_data_frame|max_data too small|");
+    }
 
     return XQC_OK;
 }
@@ -476,6 +482,7 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
         if (max_stream_data > stream->stream_flow_ctl.fc_max_stream_data) {
             stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;
             stream->stream_flag &= ~XQC_SF_STREAM_DATA_BLOCKED;
+            xqc_log(conn->log, XQC_LOG_WARN, "|xqc_process_max_stream_data_frame|max_stream_data=%ui|", max_stream_data);
         } else {
             xqc_log(conn->log, XQC_LOG_WARN, "|xqc_process_max_stream_data_frame|max_stream_data too small|");
         }

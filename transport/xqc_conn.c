@@ -26,6 +26,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT]           = "HAS_GAP",
         [XQC_CONN_FLAG_TIME_OUT_SHIFT]              = "TIME_OUT",
         [XQC_CONN_FLAG_ERROR_SHIFT]                 = "ERROR",
+        [XQC_CONN_FLAG_DATA_BLOCKED_SHIFT]          = "DATA_BLOCKED"
 };
 
 const char*
