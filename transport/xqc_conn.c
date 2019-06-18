@@ -144,6 +144,7 @@ xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn,
             .len    = cid->cid_len,
     };
     if (xqc_str_hash_delete(conns_hash, hash, str)) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_str_hash_delete error");
         return -1;
     }
     return 0;
@@ -528,7 +529,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 
     xqc_send_ctl_drop_packets(conn->conn_send_ctl);
 
-    ret = xqc_write_conn_close_to_packet(conn, 0);
+    ret = xqc_write_conn_close_to_packet(conn, conn->conn_err);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_close xqc_write_conn_close_to_packet error");
         return ret;

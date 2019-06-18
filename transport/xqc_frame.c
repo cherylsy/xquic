@@ -119,6 +119,7 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         last_pos = packet_in->pos;
 
         if (conn->conn_state == XQC_CONN_STATE_CLOSING) {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_frames|closing state|");
             /* respond connection close when recv any packet */
             if (packet_in->pos[0] != 0x1c && packet_in->pos[0] != 0x1d) {
                 xqc_conn_immediate_close(conn);
@@ -126,6 +127,7 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                 return XQC_OK;
             }
         } else if (conn->conn_state == XQC_CONN_STATE_DRAINING) {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_frames|draining state, skip|");
             /* do not respond any packet */
             packet_in->pos = packet_in->last;
             return XQC_OK;

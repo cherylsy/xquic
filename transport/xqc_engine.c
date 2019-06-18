@@ -355,7 +355,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_ack_to_packets error");
         }
-        //conn->conn_flag = XQC_CONN_FLAG_ERROR;
+        //XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
     }
 
     XQC_CHECK_IMMEDIATE_CLOSE();
@@ -490,7 +490,7 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
-    int ret;
+    int ret = 0;
 
     /* 对端的scid是本地的dcid */
     if (xqc_packet_parse_cid(&scid, &dcid, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK) {
@@ -547,15 +547,19 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
         return -XQC_ECONN_NFOUND;
     }
 
+    xqc_packet_in_t packet;
+    xqc_packet_in_t *packet_in = &packet;
+    memset(packet_in, 0, sizeof(*packet_in));
+    xqc_init_packet_in(packet_in, packet_in_buf, packet_in_size, recv_time);
     /* create packet in */
-    xqc_packet_in_t *packet_in = xqc_create_packet_in(conn->conn_pool,
+    /*xqc_packet_in_t *packet_in = xqc_create_packet_in(conn->conn_pool,
                                                       &conn->packet_in_tailq,
                                                       packet_in_buf, packet_in_size, 
                                                       recv_time); //TODO: when to del
     if (!packet_in) {
         xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create packet in");
         return -XQC_ENULLPTR;
-    }
+    }*/
 
     xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui, state=%s",
             conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state));
@@ -566,7 +570,9 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
     /* process packets */
     ret = (int)xqc_conn_process_packets(conn, packet_in);
     if (ret) {
-        return ret;
+        xqc_log(engine->log, XQC_LOG_ERROR, "packet_process: fail to process packets");
+        XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);
+        goto after_process;
     }
 
 after_process:
@@ -581,5 +587,5 @@ after_process:
         return -XQC_ESYS;
     }
 
-    return XQC_OK;
+    return ret;
 }

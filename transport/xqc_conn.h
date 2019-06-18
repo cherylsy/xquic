@@ -24,6 +24,11 @@
 #define XQC_DEBUG_PRINT
 #endif
 
+#define XQC_CONN_ERR(conn, err) do {        \
+    conn->conn_err = err;                   \
+    conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
+} while(0)                                  \
+
 /* 添加state请更新conn_state_2_str */
 typedef enum {
     /* server */
@@ -197,6 +202,8 @@ struct xqc_connection_s{
     xqc_conn_flow_ctl_t     conn_flow_ctl;
 
     unsigned                wakeup_pq_index;
+
+    xqc_trans_error_code    conn_err;
 };
 
 const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);

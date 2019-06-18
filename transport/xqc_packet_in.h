@@ -29,4 +29,8 @@ xqc_create_packet_in(xqc_memory_pool_t *pool, xqc_list_head_t *tailq,
                      const unsigned char *packet_in_buf,
                      size_t packet_in_size, xqc_msec_t recv_time);
 
+void
+xqc_init_packet_in(xqc_packet_in_t *packet_in, const unsigned char *packet_in_buf,
+                   size_t packet_in_size, xqc_msec_t recv_time);
+
 #endif /* _XQC_PACKET_IN_H_INCLUDED_ */
