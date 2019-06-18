@@ -129,8 +129,8 @@ int xqc_client_conn_notify(xqc_connection_t *conn, void *user_data) {
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
-    user_conn->stream = xqc_create_stream(conn, user_data);
-
+    user_conn->stream = xqc_create_stream(conn, &ctx);
+    ctx.send_offset = 0;
     return 0;
 }
 
@@ -139,9 +139,12 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     int ret;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     char buff[5000] = {0};
-    ret = xqc_stream_send(stream, buff, sizeof(buff), 1);
+    ret = xqc_stream_send(stream, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
     if (ret < 0) {
         printf("xqc_stream_send error %d\n", ret);
+    } else {
+        ctx->send_offset = ret;
+        printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
     }
 
     return ret;

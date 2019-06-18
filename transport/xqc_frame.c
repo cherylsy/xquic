@@ -473,9 +473,15 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
     if (stream) {
-        stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;
+        if (max_stream_data > stream->stream_flow_ctl.fc_max_stream_data) {
+            stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;
+            stream->stream_flag &= ~XQC_SF_STREAM_DATA_BLOCKED;
+        } else {
+            xqc_log(conn->log, XQC_LOG_WARN, "|xqc_process_max_stream_data_frame|max_stream_data too small|");
+        }
+
     } else {
-        //TODO: STREAM_STATE_ERROR
+        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
     }
 
     return XQC_OK;

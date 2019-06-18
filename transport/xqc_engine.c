@@ -414,9 +414,6 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_engine_main_logic ticking|conn=%p, state=%s, flag=%s, now=%ui",
                 conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now);
 
-        xqc_conns_pq_pop(engine->conns_pq);
-        conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
-
         now = xqc_gettimeofday();
         xqc_engine_process_conn(conn, now);
         if (conn->conn_state == XQC_CONN_STATE_CLOSED) {
@@ -430,6 +427,8 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             xqc_list_add_tail(&conn->conn_list, &ticked_conns);
         }
 
+        xqc_conns_pq_pop(engine->conns_pq);
+        conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
     }
 
     xqc_list_for_each_safe(pos, next, &close_conns) {

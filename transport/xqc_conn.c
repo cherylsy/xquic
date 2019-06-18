@@ -402,6 +402,7 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_lost_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (xqc_send_ctl_can_send(conn)) {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_retransmit_lost_packets|");
             xqc_conn_send_one_packet(conn, packet_out);
 
             xqc_send_ctl_remove_lost(&packet_out->po_list);
