@@ -54,7 +54,8 @@ struct xqc_stream_s {
     xqc_stream_id_type_t    stream_id_type;
     uint64_t                stream_send_offset;
     xqc_list_head_t         write_stream_list,
-                            read_stream_list;
+                            read_stream_list,
+                            all_stream_list;
     void                    *user_data;
     xqc_stream_callbacks_t  *stream_if;
     xqc_stream_flag_t       stream_flag;
@@ -63,6 +64,9 @@ struct xqc_stream_s {
 
     xqc_stream_flow_ctl_t   stream_flow_ctl;
 };
+
+void
+xqc_destroy_stream(xqc_stream_t *stream);
 
 void
 xqc_process_write_streams (xqc_connection_t *conn);

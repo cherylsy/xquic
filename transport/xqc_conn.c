@@ -216,6 +216,7 @@ xqc_create_connection(xqc_engine_t *engine,
 
     xqc_init_list_head(&xc->conn_write_streams);
     xqc_init_list_head(&xc->conn_read_streams);
+    xqc_init_list_head(&xc->conn_all_streams);
     xqc_init_list_head(&xc->packet_in_tailq);
 
     /* create streams_hash */
@@ -273,6 +274,9 @@ xqc_destroy_connection(xqc_connection_t *xc)
         return;
     }
 
+    xqc_list_head_t *pos, *next;
+    xqc_stream_t *stream;
+
     xqc_log(xc->log, XQC_LOG_DEBUG, "xqc_destroy_connection %p", xc);
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
@@ -281,6 +285,13 @@ xqc_destroy_connection(xqc_connection_t *xc)
     if (xc->streams_hash) {
         xqc_id_hash_release(xc->streams_hash);
         xc->streams_hash = NULL;
+    }
+
+    /* destroy streams */
+    xqc_list_for_each_safe(pos, next, &xc->conn_all_streams) {
+        stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
+        xqc_list_del_init(pos);
+        xqc_destroy_stream(stream);
     }
 
     /* Remove from engine's conns_hash */

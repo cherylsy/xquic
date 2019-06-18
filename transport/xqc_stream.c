@@ -122,6 +122,7 @@ xqc_create_stream (xqc_connection_t *conn,
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_pcalloc error|");
         return NULL;
     }
+    xqc_list_add_tail(&stream->all_stream_list, &conn->conn_all_streams);
 
     stream->stream_encrypt_level = XQC_ENC_LEV_1RTT;
 
@@ -132,7 +133,6 @@ xqc_create_stream (xqc_connection_t *conn,
     xqc_stream_set_flow_ctl(stream, &conn->trans_param);
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
-
 
     if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         stream->stream_id_type = XQC_CLI_BID;
@@ -394,7 +394,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 
     if (stream->stream_data_in.stream_length > 0 &&
         stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
-        *fin = 1;
+        *fin = 1; //TODO: free stream?
     } else if (read == 0) {
         return -XQC_EAGAIN;
     }

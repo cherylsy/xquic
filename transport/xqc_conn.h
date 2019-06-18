@@ -172,7 +172,8 @@ struct xqc_connection_s{
     xqc_id_hash_table_t    *streams_hash;
     xqc_list_head_t         conn_list;
     xqc_list_head_t         conn_write_streams,
-                            conn_read_streams; /* xqc_stream_t */
+                            conn_read_streams, /* xqc_stream_t */
+                            conn_all_streams;
     xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
     uint64_t                cur_stream_id_bidi_local;
     uint64_t                cur_stream_id_uni_local;
