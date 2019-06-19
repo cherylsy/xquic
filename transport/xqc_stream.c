@@ -310,6 +310,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                                          send_data_size - offset,
                                          &send_data_written);
         if (n_written < 0) {
+            xqc_maybe_recycle_packet_out(packet_out, stream->stream_conn);
             return n_written;
         }
         offset += send_data_written;
@@ -473,6 +474,7 @@ xqc_stream_send (xqc_stream_t *stream,
                                          send_data_size - offset,
                                          &send_data_written);
         if (n_written < 0) {
+            xqc_maybe_recycle_packet_out(packet_out, conn);
             return n_written;
         }
         offset += send_data_written;

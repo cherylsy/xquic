@@ -36,6 +36,9 @@ xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
 void
 xqc_destroy_packet_out(xqc_packet_out_t *packet_out);
 
+void
+xqc_maybe_recycle_packet_out(xqc_packet_out_t *packet_out, xqc_connection_t *conn);
+
 xqc_packet_out_t*
 xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type);
 
