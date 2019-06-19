@@ -24,7 +24,7 @@
 
 typedef struct user_conn_s {
     int                 fd;
-    xqc_connection_t   *conn;
+    xqc_cid_t           cid;
 
     struct sockaddr_in  local_addr;
     socklen_t           local_addrlen;
@@ -57,9 +57,9 @@ static inline uint64_t now()
 
 ssize_t xqc_client_read_socket(void *user, unsigned char *buf, size_t size)
 {
-    user_conn_t *conn = (user_conn_t *) user;
+    client_ctx_t *ctx = (client_ctx_t *) user;
     ssize_t res;
-    int fd = conn->fd;
+    int fd = ctx->my_conn->fd;
 
     do {
         res = read(fd, buf, size);
@@ -71,9 +71,9 @@ ssize_t xqc_client_read_socket(void *user, unsigned char *buf, size_t size)
 
 ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
 {
-    user_conn_t *conn = (user_conn_t *) user;
+    client_ctx_t *ctx = (client_ctx_t *) user;
     ssize_t res;
-    int fd = conn->fd;
+    int fd = ctx->my_conn->fd;
     printf("xqc_client_write_socket size %zd\n",size);
     do {
         res = write(fd, buf, size);
@@ -125,12 +125,12 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
 }
 
 
-int xqc_client_conn_notify(xqc_connection_t *conn, void *user_data) {
+int xqc_client_conn_notify(xqc_cid_t *cid, void *user_data) {
     DEBUG;
 
-    user_conn_t *user_conn = (user_conn_t *) user_data;
-    user_conn->stream = xqc_create_stream(conn, &ctx);
-    ctx.send_offset = 0;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    ctx->my_conn->stream = xqc_create_stream(ctx->engine, cid, ctx);
+    ctx->send_offset = 0;
     return 0;
 }
 
@@ -280,7 +280,7 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
     printf("xqc_client_timeout_callback now %llu\n", now());
     client_ctx_t *ctx = (client_ctx_t *) arg;
     int rc;
-    rc = xqc_conn_close(ctx->my_conn->conn);
+    rc = xqc_conn_close(ctx->engine, &ctx->my_conn->cid);
     if (rc) {
         printf("xqc_conn_close error\n");
         return;
@@ -352,11 +352,12 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    ctx.my_conn->conn = xqc_connect(ctx.engine, ctx.my_conn);
-    if (ctx.my_conn->conn == NULL) {
+    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx);
+    if (cid == NULL) {
         printf("xqc_connect error\n");
         return 0;
     }
+    memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
 
     eb = event_base_new();
 

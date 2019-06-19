@@ -16,10 +16,10 @@
 typedef ssize_t (*xqc_recv_pt)(void *user, unsigned char *buf, size_t size);
 typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
-typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
+typedef int (*xqc_conn_notify_pt)(xqc_cid_t *cid, void *user_data);
 
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
-typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
+typedef int (*xqc_handshake_finished_pt)(xqc_cid_t *cid, void *user_data);
 
 struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
@@ -138,11 +138,6 @@ void xqc_engine_set_callback (xqc_engine_t *engine,
                               xqc_engine_callback_t engine_callback);
 
 
-xqc_connection_t *xqc_engine_connect (xqc_engine_t *engine,
-                                      const struct sockaddr *peer_addr,
-                                      socklen_t peer_addrlen,
-                                      void *user_data);
-
 /**
  * Process all connections
  */
@@ -162,27 +157,23 @@ xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
                                xqc_msec_t recv_time,
                                void *user_data);
 
-xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
-                                xqc_cid_t dcid, xqc_cid_t scid,
-                                xqc_conn_callbacks_t *callbacks,
-                                xqc_conn_settings_t *settings,
-                                void *user_data);
-
-xqc_connection_t * xqc_connect(xqc_engine_t *engine, void *user_data);
+xqc_cid_t* xqc_connect(xqc_engine_t *engine, void *user_data);
 
 /**
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
-xqc_stream_t *xqc_create_stream (xqc_connection_t *c,
+xqc_stream_t* xqc_create_stream (xqc_engine_t *engine,
+                                 xqc_cid_t *cid,
                                  void *user_data);
 
 /**
  * Close stream.
  * @retval XQC_OK or XQC_ERROR
  */
-int xqc_close_stream (xqc_connection_t *c,
-                            uint64_t stream_id);
+int xqc_close_stream (xqc_engine_t *engine,
+                     xqc_cid_t *cid,
+                     uint64_t stream_id);
 
 /**
  * Recv data in stream.
@@ -206,7 +197,7 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
  */
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
-int xqc_conn_close(xqc_connection_t *conn);
+int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 #endif /* _XQUIC_H_INCLUDED_ */
 

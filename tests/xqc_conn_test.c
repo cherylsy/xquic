@@ -7,7 +7,7 @@
 #include "../common/xqc_str.h"
 #include "../congestion_control/xqc_new_reno.h"
 
-int xqc_test_client_conn_notify(xqc_connection_t *conn, void *user_data)
+int xqc_test_client_conn_notify(xqc_cid_t *cid, void *user_data)
 {
     //printf("%s\n",__FUNCTION__);
     return 0;
@@ -27,10 +27,9 @@ void xqc_test_conn_create()
 
     CU_ASSERT(engine != NULL);
 
-    xqc_connection_t *xc = xqc_connect(engine, NULL);
-    CU_ASSERT_NOT_EQUAL(xc, NULL);
+    xqc_cid_t *cid = xqc_connect(engine, NULL);
+    CU_ASSERT_NOT_EQUAL(cid, NULL);
 
-    xqc_destroy_connection(xc);
     xqc_engine_destroy(engine);
 }
 

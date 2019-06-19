@@ -14,10 +14,14 @@ xqc_test_stream_frame()
     xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT);
     CU_ASSERT(engine != NULL);
 
-    xqc_connection_t *conn = xqc_connect(engine, NULL);
+    xqc_connection_t *conn;
+    xqc_cid_t *cid = xqc_connect(engine, NULL);
+    CU_ASSERT(cid != NULL);
+
+    conn = xqc_engine_conns_hash_find(engine, cid, 's');
     CU_ASSERT(conn != NULL);
 
-    xqc_stream_t *stream = xqc_create_stream(conn, NULL);
+    xqc_stream_t *stream = xqc_create_stream_with_conn(conn, NULL);
     CU_ASSERT(stream != NULL);
 
     char payload[100];
@@ -26,6 +30,7 @@ xqc_test_stream_frame()
 
     for (int i = 0; i < 10; i++) {
         frame[i] = xqc_malloc(sizeof(xqc_stream_frame_t));
+        memset(frame[i], 0, sizeof(*frame[i]));
         frame[i]->data_length = 10;
         frame[i]->data_offset = i * 10;
         memset(payload + i * 10, i, 10);

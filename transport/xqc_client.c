@@ -5,7 +5,7 @@
 
 
 
-xqc_connection_t *
+xqc_cid_t *
 xqc_connect(xqc_engine_t *engine, void *user_data)
 {
     int ret = XQC_ERROR;
@@ -36,10 +36,13 @@ xqc_connect(xqc_engine_t *engine, void *user_data)
         goto fail;
     }
 
-    return xc;
+    return &xc->scid;
 
 fail:
     ret = XQC_ERROR;
     return NULL;
 }
+
+
+
 

@@ -104,8 +104,24 @@ xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_param_t *trans_param)
 }
 
 xqc_stream_t *
-xqc_create_stream (xqc_connection_t *conn,
+xqc_create_stream (xqc_engine_t *engine,
+                   xqc_cid_t *cid,
                   void *user_data)
+{
+    xqc_connection_t *conn;
+
+    conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (!conn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conn_close|can not find connection");
+        return NULL;
+    }
+
+    return xqc_create_stream_with_conn(conn, user_data);
+}
+
+xqc_stream_t *
+xqc_create_stream_with_conn (xqc_connection_t *conn,
+                            void *user_data)
 {
     xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_create_stream cur_stream_id_bidi_local=%ui",
             conn->cur_stream_id_bidi_local);
@@ -160,7 +176,7 @@ xqc_stream_t *
 xqc_server_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
                    void *user_data)
 {
-    xqc_stream_t *stream = xqc_create_stream(conn, user_data);
+    xqc_stream_t *stream = xqc_create_stream_with_conn(conn, user_data);
     if (stream == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_server_create_stream|xqc_create_stream error|");
         return NULL;

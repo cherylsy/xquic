@@ -66,6 +66,9 @@ struct xqc_stream_s {
     xqc_stream_flow_ctl_t   stream_flow_ctl;
 };
 
+xqc_stream_t *
+xqc_create_stream_with_conn (xqc_connection_t *conn,
+                             void *user_data);
 void
 xqc_destroy_stream(xqc_stream_t *stream);
 

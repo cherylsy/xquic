@@ -1,4 +1,5 @@
 
+#include <common/xqc_errno.h>
 #include "../include/xquic.h"
 #include "../common/xqc_common.h"
 #include "../common/xqc_malloc.h"
@@ -252,7 +253,7 @@ xqc_create_connection(xqc_engine_t *engine,
 
     /* Do callback */
     if (xc->conn_callbacks.conn_create_notify) {
-        if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
+        if (xc->conn_callbacks.conn_create_notify(&xc->scid, user_data)) {
             goto fail;
         }
     }
@@ -506,9 +507,16 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
 }
 
 int
-xqc_conn_close(xqc_connection_t *conn)
+xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
 {
     int ret;
+    xqc_connection_t *conn;
+
+    conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (!conn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conn_close|can not find connection");
+        return -XQC_ECONN_NFOUND;
+    }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_conn_close %p", conn);
 

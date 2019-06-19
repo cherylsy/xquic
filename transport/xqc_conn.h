@@ -234,6 +234,12 @@ xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
                                 void *user_data,
                                 xqc_conn_type_t type);
 
+xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
+                                                xqc_cid_t dcid, xqc_cid_t scid,
+                                                xqc_conn_callbacks_t *callbacks,
+                                                xqc_conn_settings_t *settings,
+                                                void *user_data);
+
 void xqc_destroy_connection(xqc_connection_t *xc);
 
 void xqc_conn_send_packets (xqc_connection_t *conn);

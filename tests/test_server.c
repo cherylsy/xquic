@@ -45,7 +45,8 @@ static inline uint64_t now()
     return  ul;
 }
 
-int xqc_server_conn_notify(xqc_connection_t *conn, void *user_data) {
+int xqc_server_conn_notify(xqc_cid_t *cid, void *user_data) {
+
     DEBUG;
     return 0;
 }
