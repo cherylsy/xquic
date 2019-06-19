@@ -1,4 +1,5 @@
 
+#include <common/xqc_errno.h>
 #include "xqc_send_ctl.h"
 #include "xqc_packet.h"
 #include "xqc_packet_out.h"
@@ -356,7 +357,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     if (lagest_ack > ctl->ctl_largest_sent) {
         xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|xqc_send_ctl_on_ack_received|recv ack is not sent yet");
-        return XQC_ERROR;
+        return -XQC_EPROTO;
     }
 
     packet_out = xqc_list_entry(&ctl->ctl_unacked_packets[pns], xqc_packet_out_t, po_list);

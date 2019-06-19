@@ -52,17 +52,22 @@ typedef int               xqc_err_t;
 #define XQC_EAGAIN        EAGAIN
 
 /* For QUIC transport 6xx */
-#define XQC_ENOBUF          600
+#define XQC_ENOBUF          600 //buf空间不足
 #define XQC_EVINTREAD       601
 #define XQC_ENULLPTR        602
 #define XQC_EMALLOC         603
-#define XQC_EILLPKT         604
-#define XQC_ELEVEL          605
+#define XQC_EILLPKT         604 //非法报文
+#define XQC_ELEVEL          605 //加密等级错误
 #define XQC_EOFFSET         606
 #define XQC_CLOSING         607
 #define XQC_ECONN_NFOUND    608
 #define XQC_ESYS            609
 #define XQC_EBLOCKED        610
+#define XQC_EPARAM          611 //参数错误
+#define XQC_ESTATE          612
+#define XQC_ELIMIT          613 //超过协议限制
+#define XQC_EPROTO          614 //违反协议规定
+#define XQC_ESOCKET         615
 
 /* For QUIC ssl 7xx */
 

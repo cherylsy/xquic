@@ -100,7 +100,7 @@ xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
 {
     xqc_conns_pq_elem_t *elem = (xqc_conns_pq_elem_t*)xqc_pq_push(pq, time_ms);
     if (!elem) {
-        return -1;
+        return -XQC_ENULLPTR;
     }
     elem->conn = conn;
     return 0;
@@ -132,7 +132,7 @@ xqc_insert_conns_hash(xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, 
             .value  = conn
     };
     if (xqc_str_hash_add(conns_hash, c)) {
-        return -1;
+        return -XQC_EMALLOC;
     }
     return 0;
 }
@@ -147,7 +147,7 @@ xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn,
     };
     if (xqc_str_hash_delete(conns_hash, hash, str)) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_str_hash_delete error");
-        return -1;
+        return -XQC_ECONN_NFOUND;
     }
     return 0;
 }
@@ -167,7 +167,7 @@ xqc_insert_conns_addr_hash(xqc_str_hash_table_t *conns_hash, xqc_connection_t *c
             .value  = conn
     };
     if (xqc_str_hash_add(conns_hash, c)) {
-        return -1;
+        return -XQC_EMALLOC;
     }
     return 0;
 }
@@ -388,7 +388,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
             xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
             xqc_frame_type_2_str(packet_out->po_frame_types));
     if (sent != packet_out->po_used_size) {
-        return XQC_ERROR;
+        return -XQC_ESOCKET;
     }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out);
 

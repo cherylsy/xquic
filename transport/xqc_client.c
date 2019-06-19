@@ -8,7 +8,6 @@
 xqc_cid_t *
 xqc_connect(xqc_engine_t *engine, void *user_data)
 {
-    int ret = XQC_ERROR;
     xqc_cid_t dcid;
     xqc_cid_t scid;
     xqc_conn_callbacks_t callbacks = engine->eng_callback.conn_callbacks;
@@ -39,7 +38,6 @@ xqc_connect(xqc_engine_t *engine, void *user_data)
     return &xc->scid;
 
 fail:
-    ret = XQC_ERROR;
     return NULL;
 }
 

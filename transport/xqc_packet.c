@@ -86,9 +86,9 @@ xqc_state_to_pkt_type(xqc_connection_t *conn)
 static inline xqc_int_t
 xqc_packet_send_version_negotiation(xqc_connection_t *c)
 {
-    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_send_ctl, 0);
+    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_send_ctl, XQC_PTYPE_VERSION_NEGOTIATION);
     if (packet_out == NULL) {
-        return XQC_ERROR;
+        return -XQC_ENULLPTR;
     }
     //assert(packet_out->po_buf_size >= 1 + 4 + 1 + c->scid.cid_len + c->dcid.cid_len + 4);
 
@@ -156,12 +156,12 @@ xqc_packet_version_check(xqc_connection_t *c, uint32_t version)
         uint32_t count = engine->config->support_version_count;
         if (xqc_uint32_list_find(list, count, version) == -1) {
             xqc_packet_send_version_negotiation(c); /*发送version negotiation*/
-            return XQC_ERROR;
+            return -XQC_EPROTO;
         }
 
         /*版本号不匹配*/
         if (c->version != version) {
-            return XQC_ERROR;
+            return -XQC_EPROTO;
         }
     }
 
@@ -181,7 +181,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     xqc_int_t ret = XQC_ERROR;
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) == 0) {
-        return XQC_ERROR;
+        return -XQC_ENOBUF;
     }
 
     /* short header */

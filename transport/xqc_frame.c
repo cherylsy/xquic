@@ -183,7 +183,7 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
         if (last_pos == packet_in->pos) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_frames|pos not update|");
-            return XQC_ERROR;
+            return -XQC_ESYS;
         }
     }
     return XQC_OK;
