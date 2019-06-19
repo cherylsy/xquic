@@ -1,7 +1,6 @@
 #ifndef _XQC_CONN_H_INCLUDED_
 #define _XQC_CONN_H_INCLUDED_
 
-#include <sys/queue.h>
 #include <openssl/ssl.h>
 #include "xqc_tls_public.h"
 #include "xqc_transport.h"

@@ -91,7 +91,6 @@ struct xqc_ssl_config {
     const char *groups;
     uint32_t   timeout;
 };
-typedef struct xqc_ssl_config xqc_ssl_config_t;
 
 
 typedef struct xqc_engine_s {
@@ -123,13 +122,6 @@ xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type);
 
 void xqc_engine_destroy(xqc_engine_t *engine);
 
-/**
- * Create engine config.
- * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
- */
-xqc_config_t *xqc_engine_config_create(xqc_engine_type_t engine_type);
-void xqc_engine_config_destoy(xqc_config_t *config);
-
 
 /**
  * Set xquic engine API.
@@ -138,26 +130,9 @@ void xqc_engine_set_callback (xqc_engine_t *engine,
                               xqc_engine_callback_t engine_callback);
 
 
-/**
- * Process all connections
- */
-int xqc_engine_main_logic (xqc_engine_t *engine);
-
-/**
- * Pass received UDP packet payload into xquic engine.
- * @param recv_time   UDP packet recieved time in millisecond
- */
-xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
-                               const unsigned char *packet_in_buf,
-                               size_t packet_in_size,
-                               const struct sockaddr *local_addr,
-                               socklen_t local_addrlen,
-                               const struct sockaddr *peer_addr,
-                               socklen_t peer_addrlen,
-                               xqc_msec_t recv_time,
-                               void *user_data);
-
 xqc_cid_t* xqc_connect(xqc_engine_t *engine, void *user_data);
+
+int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * Create new stream in quic connection.
@@ -193,11 +168,29 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
                          uint8_t fin);
 
 /**
+ * Process all connections
+ */
+int xqc_engine_main_logic (xqc_engine_t *engine);
+
+/**
+ * Pass received UDP packet payload into xquic engine.
+ * @param recv_time   UDP packet recieved time in millisecond
+ */
+int xqc_engine_packet_process (xqc_engine_t *engine,
+                               const unsigned char *packet_in_buf,
+                               size_t packet_in_size,
+                               const struct sockaddr *local_addr,
+                               socklen_t local_addrlen,
+                               const struct sockaddr *peer_addr,
+                               socklen_t peer_addrlen,
+                               xqc_msec_t recv_time,
+                               void *user_data);
+
+/**
  * @return >0 : user should call xqc_engine_main_logic after N ms
  */
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
-int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 #endif /* _XQUIC_H_INCLUDED_ */
 

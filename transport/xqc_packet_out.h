@@ -2,7 +2,6 @@
 #ifndef _XQC_PACKET_OUT_H_INCLUDED_
 #define _XQC_PACKET_OUT_H_INCLUDED_
 
-#include <sys/queue.h>
 #include "../include/xquic_typedef.h"
 #include "xqc_packet.h"
 #include "../common/xqc_memory_pool.h"

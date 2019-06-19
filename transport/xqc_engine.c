@@ -1,7 +1,6 @@
 
 #include "xqc_engine.h"
 #include "xqc_transport.h"
-#include <sys/queue.h>
 #include <common/xqc_errno.h>
 #include "../include/xquic.h"
 #include "../common/xqc_str.h"
@@ -51,7 +50,7 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
 }
 
 void 
-xqc_engine_config_destoy(xqc_config_t *config)
+xqc_engine_config_destroy(xqc_config_t *config)
 {
     xqc_free(config);
 }
@@ -244,7 +243,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
     }
 
     if (engine->config) {
-        xqc_engine_config_destoy(engine->config);
+        xqc_engine_config_destroy(engine->config);
         engine->config = NULL;
     }
 
@@ -473,7 +472,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
  * Pass received UDP packet payload into xquic engine.
  * @param recv_time   UDP packet recieved time in millisecond
  */
-xqc_int_t xqc_engine_packet_process (xqc_engine_t *engine,
+int xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,
                                size_t packet_in_size,
                                const struct sockaddr *local_addr,

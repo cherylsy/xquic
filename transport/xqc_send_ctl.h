@@ -2,7 +2,6 @@
 #ifndef _XQC_SEND_CTL_H_INCLUDED_
 #define _XQC_SEND_CTL_H_INCLUDED_
 
-#include <sys/queue.h>
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 

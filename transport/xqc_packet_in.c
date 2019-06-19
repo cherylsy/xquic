@@ -1,4 +1,3 @@
-#include <sys/queue.h>
 #include "xqc_packet_in.h"
 #include "../common/xqc_memory_pool.h"
 #include "xqc_conn.h"
