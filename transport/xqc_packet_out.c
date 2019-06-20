@@ -56,6 +56,16 @@ xqc_destroy_packet_out(xqc_packet_out_t *packet_out)
     xqc_free(packet_out);
 }
 
+void
+xqc_maybe_recycle_packet_out(xqc_packet_out_t *packet_out, xqc_connection_t *conn)
+{
+    /* recycle packetout if no frame in it */
+    if (packet_out->po_frame_types == 0) {
+        xqc_send_ctl_remove_send(&packet_out->po_list);
+        xqc_send_ctl_insert_free(&packet_out->po_list, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
+    }
+}
+
 int
 xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
@@ -168,18 +178,17 @@ xqc_should_generate_ack(xqc_connection_t *conn)
 int
 xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns)
 {
-    int size, has_gap;
+    int ret, has_gap;
     xqc_packet_number_t largest_ack;
     xqc_msec_t now = xqc_gettimeofday();
 
-
-    size = xqc_gen_ack_frame(conn, packet_out,
+    ret = xqc_gen_ack_frame(conn, packet_out,
                       now, conn->trans_param.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
-    if (size < 0) {
-        return size;
+    if (ret < 0) {
+        goto error;
     }
 
-    packet_out->po_used_size += size;
+    packet_out->po_used_size += ret;
     packet_out->po_largest_ack = largest_ack;
 
     xqc_long_packet_update_length(packet_out);
@@ -193,6 +202,10 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     conn->conn_flag &= ~(XQC_CONN_FLAG_SHOULD_ACK_INIT << pns);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }
 
 int
@@ -254,7 +267,7 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code)
     ret = xqc_gen_conn_close_frame(packet_out, err_code, 0, 0);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet error");
-        return ret;
+        goto error;
     }
 
     packet_out->po_used_size += ret;
@@ -262,6 +275,10 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code)
     xqc_long_packet_update_length(packet_out);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }
 
 int
@@ -279,7 +296,7 @@ xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
     ret = xqc_gen_data_blocked_frame(packet_out, data_limit);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_data_blocked_to_packet error");
-        return ret;
+        goto error;
     }
 
     packet_out->po_used_size += ret;
@@ -289,6 +306,10 @@ xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }
 
 int
@@ -296,7 +317,6 @@ xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t 
 {
     int ret;
     xqc_packet_out_t *packet_out;
-
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
@@ -306,7 +326,7 @@ xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t 
     ret = xqc_gen_stream_data_blocked_frame(packet_out, stream_id, stream_data_limit);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_stream_data_blocked_frame error");
-        return ret;
+        goto error;
     }
 
     packet_out->po_used_size += ret;
@@ -316,6 +336,10 @@ xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t 
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }
 
 int
@@ -333,7 +357,7 @@ xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limi
     ret = xqc_gen_streams_blocked_frame(packet_out, stream_limit, bidirectional);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_streams_blocked_frame error");
-        return ret;
+        goto error;
     }
 
     packet_out->po_used_size += ret;
@@ -343,6 +367,10 @@ xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limi
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }
 
 int
@@ -360,7 +388,7 @@ xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data)
     ret = xqc_gen_max_data_frame(packet_out, max_data);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_max_data_frame error");
-        return ret;
+        goto error;
     }
 
     packet_out->po_used_size += ret;
@@ -370,6 +398,10 @@ xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data)
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }
 
 int
@@ -387,7 +419,7 @@ xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stre
     ret = xqc_gen_max_stream_data_frame(packet_out, stream_id, max_stream_data);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_max_stream_data_frame error");
-        return ret;
+        goto error;
     }
 
     packet_out->po_used_size += ret;
@@ -397,6 +429,10 @@ xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stre
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }
 
 int
@@ -414,7 +450,7 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
     ret = xqc_gen_max_streams_frame(packet_out, max_stream, bidirectional);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_max_streams_frame error");
-        return ret;
+        goto error;
     }
 
     packet_out->po_used_size += ret;
@@ -424,4 +460,8 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
 
     return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
 }

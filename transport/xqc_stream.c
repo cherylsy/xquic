@@ -104,8 +104,24 @@ xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_param_t *trans_param)
 }
 
 xqc_stream_t *
-xqc_create_stream (xqc_connection_t *conn,
+xqc_create_stream (xqc_engine_t *engine,
+                   xqc_cid_t *cid,
                   void *user_data)
+{
+    xqc_connection_t *conn;
+
+    conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (!conn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conn_close|can not find connection");
+        return NULL;
+    }
+
+    return xqc_create_stream_with_conn(conn, user_data);
+}
+
+xqc_stream_t *
+xqc_create_stream_with_conn (xqc_connection_t *conn,
+                            void *user_data)
 {
     xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_create_stream cur_stream_id_bidi_local=%ui",
             conn->cur_stream_id_bidi_local);
@@ -117,11 +133,12 @@ xqc_create_stream (xqc_connection_t *conn,
         return NULL;
     }
 
-    xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t)); //TODO: 不使用pool？
+    xqc_stream_t *stream = xqc_calloc(1, sizeof(xqc_stream_t));
     if (stream == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_pcalloc error|");
         return NULL;
     }
+    xqc_list_add_tail(&stream->all_stream_list, &conn->conn_all_streams);
 
     stream->stream_encrypt_level = XQC_ENC_LEV_1RTT;
 
@@ -133,14 +150,13 @@ xqc_create_stream (xqc_connection_t *conn,
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
 
-
     if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         stream->stream_id_type = XQC_CLI_BID;
         stream->stream_id = xqc_gen_stream_id(conn, stream->stream_id_type);
         xqc_id_hash_element_t e = {stream->stream_id, stream};
         if (xqc_id_hash_add(conn->streams_hash, e)) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_id_hash_add error|");
-            return NULL;
+            goto error;
         }
         xqc_stream_ready_to_write(stream);
     } else {
@@ -148,19 +164,25 @@ xqc_create_stream (xqc_connection_t *conn,
     }
 
     return stream;
+
+error:
+    xqc_list_del_init(&stream->all_stream_list);
+    xqc_free(stream);
+    return NULL;
 }
 
 void
 xqc_destroy_stream(xqc_stream_t *stream)
 {
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
+    xqc_free(stream);
 }
 
 xqc_stream_t *
 xqc_server_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
                    void *user_data)
 {
-    xqc_stream_t *stream = xqc_create_stream(conn, user_data);
+    xqc_stream_t *stream = xqc_create_stream_with_conn(conn, user_data);
     if (stream == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_server_create_stream|xqc_create_stream error|");
         return NULL;
@@ -294,6 +316,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                                          send_data_size - offset,
                                          &send_data_written);
         if (n_written < 0) {
+            xqc_maybe_recycle_packet_out(packet_out, stream->stream_conn);
             return n_written;
         }
         offset += send_data_written;
@@ -355,7 +378,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     xqc_stream_frame_t *stream_frame = NULL;
     size_t read = 0;
     size_t frame_left;
-
+    *fin = 0;
 
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
@@ -394,9 +417,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 
     if (stream->stream_data_in.stream_length > 0 &&
         stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
-        *fin = 1;
-    } else if (read == 0) {
-        return -XQC_EAGAIN;
+        *fin = 1; //TODO: free stream?
     }
 
     xqc_stream_shutdown_read(stream);
@@ -427,17 +448,19 @@ xqc_stream_send (xqc_stream_t *stream,
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data|%d|",
                     stream->stream_conn->conn_flow_ctl.fc_max_data);
 
+            conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
             xqc_write_data_blocked_to_packet(conn, stream->stream_conn->conn_flow_ctl.fc_max_data);
 
-            return -XQC_EBLOCKED;
+            return stream->stream_send_offset;
         }
         if (stream->stream_send_offset >= stream->stream_flow_ctl.fc_max_stream_data) {
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_stream_data|%d|",
                     stream->stream_flow_ctl.fc_max_stream_data);
 
+            stream->stream_flag |= XQC_SF_STREAM_DATA_BLOCKED;
             xqc_write_stream_data_blocked_to_packet(conn, stream->stream_id, stream->stream_flow_ctl.fc_max_stream_data);
 
-            return -XQC_EBLOCKED;
+            return stream->stream_send_offset;
         }
 
         unsigned int header_size = xqc_stream_frame_header_size(stream->stream_id,
@@ -455,6 +478,7 @@ xqc_stream_send (xqc_stream_t *stream,
                                          send_data_size - offset,
                                          &send_data_written);
         if (n_written < 0) {
+            xqc_maybe_recycle_packet_out(packet_out, conn);
             return n_written;
         }
         offset += send_data_written;
@@ -482,7 +506,12 @@ xqc_process_write_streams (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_write_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
+        if (stream->stream_flag & XQC_SF_STREAM_DATA_BLOCKED
+            || conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) {
+            continue;
+        }
         ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_write_notify|flag=%d", stream->stream_flag);
         if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err|%d|", ret);
             xqc_stream_shutdown_write(stream);
@@ -501,6 +530,7 @@ xqc_process_read_streams (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_read_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
         ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag=%d", stream->stream_flag);
         if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err|%d|", ret);
             xqc_stream_shutdown_read(stream);

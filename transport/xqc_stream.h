@@ -18,8 +18,9 @@ typedef enum {
 
 
 typedef enum {
-    XQC_SF_READY_TO_WRITE   = 1 << 0,
-    XQC_SF_READY_TO_READ    = 1 << 1,
+    XQC_SF_READY_TO_WRITE       = 1 << 0,
+    XQC_SF_READY_TO_READ        = 1 << 1,
+    XQC_SF_STREAM_DATA_BLOCKED  = 1 << 2,
 } xqc_stream_flag_t;
 
 typedef struct {
@@ -54,7 +55,8 @@ struct xqc_stream_s {
     xqc_stream_id_type_t    stream_id_type;
     uint64_t                stream_send_offset;
     xqc_list_head_t         write_stream_list,
-                            read_stream_list;
+                            read_stream_list,
+                            all_stream_list;
     void                    *user_data;
     xqc_stream_callbacks_t  *stream_if;
     xqc_stream_flag_t       stream_flag;
@@ -63,6 +65,12 @@ struct xqc_stream_s {
 
     xqc_stream_flow_ctl_t   stream_flow_ctl;
 };
+
+xqc_stream_t *
+xqc_create_stream_with_conn (xqc_connection_t *conn,
+                             void *user_data);
+void
+xqc_destroy_stream(xqc_stream_t *stream);
 
 void
 xqc_process_write_streams (xqc_connection_t *conn);

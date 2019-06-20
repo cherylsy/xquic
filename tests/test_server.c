@@ -45,7 +45,8 @@ static inline uint64_t now()
     return  ul;
 }
 
-int xqc_server_conn_notify(xqc_connection_t *conn, void *user_data) {
+int xqc_server_conn_notify(xqc_cid_t *cid, void *user_data) {
+
     DEBUG;
     return 0;
 }
@@ -69,8 +70,14 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     unsigned char fin;
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
-        printf("xqc_stream_recv %lld \n", read);
+        printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
     } while (read > 0);
+
+    /*ssize_t sent;
+    if (fin) {
+        sent = xqc_stream_send(stream, buff, buff_size, fin);
+        printf("xqc_stream_send %lld \n", sent);
+    }*/
     return 0;
 }
 

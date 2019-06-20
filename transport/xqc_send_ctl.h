@@ -2,7 +2,6 @@
 #ifndef _XQC_SEND_CTL_H_INCLUDED_
 #define _XQC_SEND_CTL_H_INCLUDED_
 
-#include <sys/queue.h>
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 
@@ -154,6 +153,13 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
     ctl->ctl_timer[type].ctl_expire_time = 0;
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_unset|type=%d|",
             type);
+}
+
+static inline xqc_msec_t
+xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
+{
+    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) +
+                     ctl->ctl_conn->trans_param.max_ack_delay;
 }
 
 void

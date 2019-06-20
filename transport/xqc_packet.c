@@ -86,9 +86,9 @@ xqc_state_to_pkt_type(xqc_connection_t *conn)
 static inline xqc_int_t
 xqc_packet_send_version_negotiation(xqc_connection_t *c)
 {
-    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_send_ctl, 0);
+    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_send_ctl, XQC_PTYPE_VERSION_NEGOTIATION);
     if (packet_out == NULL) {
-        return XQC_ERROR;
+        return -XQC_ENULLPTR;
     }
     //assert(packet_out->po_buf_size >= 1 + 4 + 1 + c->scid.cid_len + c->dcid.cid_len + 4);
 
@@ -156,12 +156,12 @@ xqc_packet_version_check(xqc_connection_t *c, uint32_t version)
         uint32_t count = engine->config->support_version_count;
         if (xqc_uint32_list_find(list, count, version) == -1) {
             xqc_packet_send_version_negotiation(c); /*发送version negotiation*/
-            return XQC_ERROR;
+            return -XQC_EPROTO;
         }
 
         /*版本号不匹配*/
         if (c->version != version) {
-            return XQC_ERROR;
+            return -XQC_EPROTO;
         }
     }
 
@@ -181,7 +181,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     xqc_int_t ret = XQC_ERROR;
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) == 0) {
-        return XQC_ERROR;
+        return -XQC_ENOBUF;
     }
 
     /* short header */
@@ -190,21 +190,24 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         /* check handshake */
         if (!xqc_conn_check_handshake_completed(c)) {
             /* TODO: buffer packets */
-            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|recvd short header packet before handshake completed|");
+            xqc_log(c->log, XQC_LOG_DEBUG,
+                    "|process_single_packet|recvd short header packet before handshake completed|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }
 
         ret = xqc_packet_parse_short_header(c, packet_in);
         if (ret != XQC_OK) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_packet_parse_short_header error|");
+            xqc_log(c->log, XQC_LOG_ERROR,
+                    "|process_single_packet|xqc_packet_parse_short_header error|");
             return ret;
         }
     } else {  /* long header */
 
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_packet_parse_long_header error|");
+            xqc_log(c->log, XQC_LOG_ERROR,
+                    "|process_single_packet|xqc_packet_parse_long_header error|");
             return ret;
         }
     }
@@ -243,7 +246,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
             xqc_log(c->log, XQC_LOG_WARN, "process packets err|%z|%p|%p|%z|", 
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);
-            return ret != XQC_OK ? ret : XQC_ESYS;
+            return ret != XQC_OK ? ret : -XQC_ESYS;
         }
 
         xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_packets|pkt_type=%s|pkt_num=%ui|frame=%s|",
@@ -264,7 +267,8 @@ xqc_conn_process_packets(xqc_connection_t *c,
         }
 
         xqc_recv_record_log(c, &c->recv_record[packet_in->pi_pkt.pkt_pns]);
-        xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_conn_process_packets|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|pns=%d|",
+        xqc_log(c->log, XQC_LOG_DEBUG,
+                "|xqc_conn_process_packets|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|pns=%d|",
                 range_status, packet_in->pi_pkt.pkt_num,
                 xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]), packet_in->pi_pkt.pkt_pns);
     }

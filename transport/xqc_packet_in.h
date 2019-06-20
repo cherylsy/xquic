@@ -1,7 +1,6 @@
 #ifndef _XQC_PACKET_IN_H_INCLUDED_
 #define _XQC_PACKET_IN_H_INCLUDED_
 
-#include <sys/queue.h>
 #include "../include/xquic_typedef.h"
 #include "xqc_packet.h"
 #include "../common/xqc_memory_pool.h"
@@ -25,8 +24,12 @@ struct xqc_packet_in_s
 
 
 xqc_packet_in_t *
-xqc_create_packet_in(xqc_memory_pool_t *pool, xqc_list_head_t *tailq,
+xqc_create_packet_in(xqc_connection_t *conn,
                      const unsigned char *packet_in_buf,
                      size_t packet_in_size, xqc_msec_t recv_time);
+
+void
+xqc_init_packet_in(xqc_packet_in_t *packet_in, const unsigned char *packet_in_buf,
+                   size_t packet_in_size, xqc_msec_t recv_time);
 
 #endif /* _XQC_PACKET_IN_H_INCLUDED_ */

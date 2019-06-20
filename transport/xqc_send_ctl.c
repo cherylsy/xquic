@@ -1,4 +1,5 @@
 
+#include <common/xqc_errno.h>
 #include "xqc_send_ctl.h"
 #include "xqc_packet.h"
 #include "xqc_packet_out.h"
@@ -28,6 +29,9 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     }
 
     xqc_send_ctl_timer_init(send_ctl);
+
+    xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
+                           xqc_gettimeofday() + send_ctl->ctl_conn->trans_param.idle_timeout);
 
     if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
         send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
@@ -356,7 +360,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     if (lagest_ack > ctl->ctl_largest_sent) {
         xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|xqc_send_ctl_on_ack_received|recv ack is not sent yet");
-        return XQC_ERROR;
+        return -XQC_EPROTO;
     }
 
     packet_out = xqc_list_entry(&ctl->ctl_unacked_packets[pns], xqc_packet_out_t, po_list);
@@ -493,6 +497,8 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 
         // Mark packet as lost, or set time when it should be marked.
         if (po->po_sent_time <= lost_send_time || po->po_pkt.pkt_num <= lost_pn) {
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_detect_lost|mark lost, pns=%d, pkt_num=%ui",
+                pns, po->po_pkt.pkt_num);
             is_in_flight = po->po_flag & XQC_POF_IN_FLIGHT;
             xqc_send_ctl_remove_unacked(po, ctl);
             if (is_in_flight) {
@@ -537,8 +543,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 int
 xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost)
 {
-    xqc_msec_t pto = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) +
-          ctl->ctl_conn->trans_param.max_ack_delay;
+    xqc_msec_t pto = xqc_send_ctl_calc_pto(ctl);
     xqc_msec_t congestion_period =
             pto * ( xqc_send_ctl_pow(XQC_kPersistentCongestionThreshold) - 1);
     // Determine if all packets in the window before the

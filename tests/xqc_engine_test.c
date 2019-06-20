@@ -34,15 +34,13 @@ void xqc_test_engine_create()
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
 
-int xqc_test_conn_create_notify(xqc_connection_t *conn, void *user_data)
+int xqc_test_conn_create_notify(xqc_cid_t *cid, void *user_data)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "create quic connection|%p|", conn);
     return XQC_OK;
 }
 
-int xqc_test_conn_close_notify(xqc_connection_t *conn, void *user_data)
+int xqc_test_conn_close_notify(xqc_cid_t *cid, void *user_data)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "close quic connection|%p|", conn);
     return XQC_OK;
 }
 
@@ -82,7 +80,7 @@ void xqc_test_engine_packet_process()
     rc = xqc_packet_parse_cid(&dcid, &scid, XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1);
     CU_ASSERT(rc == XQC_OK);
 
-    xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, &dcid);
+    xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, &dcid, 's');
     CU_ASSERT(conn != NULL);
 
     /* set handshake completed */

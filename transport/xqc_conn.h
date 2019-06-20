@@ -1,7 +1,6 @@
 #ifndef _XQC_CONN_H_INCLUDED_
 #define _XQC_CONN_H_INCLUDED_
 
-#include <sys/queue.h>
 #include <openssl/ssl.h>
 #include "xqc_tls_public.h"
 #include "xqc_transport.h"
@@ -23,6 +22,11 @@
 #else
 #define XQC_DEBUG_PRINT
 #endif
+
+#define XQC_CONN_ERR(conn, err) do {        \
+    conn->conn_err = err;                   \
+    conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
+} while(0)                                  \
 
 /* 添加state请更新conn_state_2_str */
 typedef enum {
@@ -55,7 +59,7 @@ typedef enum {
                                     |XQC_CONN_FLAG_SHOULD_ACK_HSK    \
                                     |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
 
-#define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_TIME_OUT|XQC_CONN_FLAG_ERROR)
+#define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_ERROR)
 
 /* 添加flag请更新conn_flag_2_str */
 typedef enum {
@@ -68,6 +72,7 @@ typedef enum {
     XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
     XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR_SHIFT,
+    XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -81,6 +86,7 @@ typedef enum {
     XQC_CONN_FLAG_ACK_HAS_GAP           = 1 << XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
     XQC_CONN_FLAG_TIME_OUT              = 1 << XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR                 = 1 << XQC_CONN_FLAG_ERROR_SHIFT,
+    XQC_CONN_FLAG_DATA_BLOCKED          = 1 << XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -167,7 +173,8 @@ struct xqc_connection_s{
     xqc_id_hash_table_t    *streams_hash;
     xqc_list_head_t         conn_list;
     xqc_list_head_t         conn_write_streams,
-                            conn_read_streams; /* xqc_stream_t */
+                            conn_read_streams, /* xqc_stream_t */
+                            conn_all_streams;
     xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
     uint64_t                cur_stream_id_bidi_local;
     uint64_t                cur_stream_id_uni_local;
@@ -197,6 +204,8 @@ struct xqc_connection_s{
     xqc_conn_flow_ctl_t     conn_flow_ctl;
 
     unsigned                wakeup_pq_index;
+
+    xqc_trans_error_code    conn_err;
 };
 
 const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);
@@ -213,9 +222,9 @@ void xqc_conns_pq_pop (xqc_pq_t *pq);
 
 xqc_conns_pq_elem_t *xqc_conns_pq_top (xqc_pq_t *pq);
 
-int xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn);
+int xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
 
-int xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn);
+int xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
 
 xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t *dcid, xqc_cid_t *scid,
@@ -223,6 +232,12 @@ xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
                                 xqc_conn_settings_t *settings,
                                 void *user_data,
                                 xqc_conn_type_t type);
+
+xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
+                                                xqc_cid_t dcid, xqc_cid_t scid,
+                                                xqc_conn_callbacks_t *callbacks,
+                                                xqc_conn_settings_t *settings,
+                                                void *user_data);
 
 void xqc_destroy_connection(xqc_connection_t *xc);
 
