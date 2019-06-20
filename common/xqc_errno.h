@@ -68,6 +68,7 @@ typedef int               xqc_err_t;
 #define XQC_ELIMIT          613 //超过协议限制
 #define XQC_EPROTO          614 //违反协议规定
 #define XQC_ESOCKET         615
+#define XQC_EFATAL          616 //致命错误
 
 /* For QUIC ssl 7xx */
 

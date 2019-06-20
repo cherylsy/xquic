@@ -133,7 +133,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn,
         return NULL;
     }
 
-    xqc_stream_t *stream = xqc_pcalloc(conn->conn_pool, sizeof(xqc_stream_t)); //TODO: 不使用pool？
+    xqc_stream_t *stream = xqc_calloc(1, sizeof(xqc_stream_t));
     if (stream == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_pcalloc error|");
         return NULL;
@@ -156,7 +156,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn,
         xqc_id_hash_element_t e = {stream->stream_id, stream};
         if (xqc_id_hash_add(conn->streams_hash, e)) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream|xqc_id_hash_add error|");
-            return NULL;
+            goto error;
         }
         xqc_stream_ready_to_write(stream);
     } else {
@@ -164,12 +164,18 @@ xqc_create_stream_with_conn (xqc_connection_t *conn,
     }
 
     return stream;
+
+error:
+    xqc_list_del_init(&stream->all_stream_list);
+    xqc_free(stream);
+    return NULL;
 }
 
 void
 xqc_destroy_stream(xqc_stream_t *stream)
 {
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
+    xqc_free(stream);
 }
 
 xqc_stream_t *
@@ -412,8 +418,6 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     if (stream->stream_data_in.stream_length > 0 &&
         stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
         *fin = 1; //TODO: free stream?
-    } else if (read == 0) {
-        return -XQC_EAGAIN;
     }
 
     xqc_stream_shutdown_read(stream);
@@ -502,8 +506,8 @@ xqc_process_write_streams (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_write_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
-        if (stream->stream_flag & XQC_SF_STREAM_DATA_BLOCKED ||
-                conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) {
+        if (stream->stream_flag & XQC_SF_STREAM_DATA_BLOCKED
+            || conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) {
             continue;
         }
         ret = stream->stream_if->stream_write_notify(stream, stream->user_data);

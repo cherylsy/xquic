@@ -3,18 +3,18 @@
 #include "xqc_conn.h"
 
 
-/* TODO: reuse freed packets */
+/* 未使用 */
 xqc_packet_in_t *
-xqc_create_packet_in (xqc_memory_pool_t *pool, xqc_list_head_t *tailq,
+xqc_create_packet_in (xqc_connection_t *conn,
                       const unsigned char *packet_in_buf,
                       size_t packet_in_size, xqc_msec_t recv_time)
 {
     xqc_packet_in_t *packet_in;
-    packet_in = xqc_pcalloc(pool, sizeof(xqc_packet_in_t));
+    packet_in = xqc_calloc(1, sizeof(xqc_packet_in_t));
     if (!packet_in) {
         return NULL;
     }
-    xqc_list_add_tail(&packet_in->pi_list, tailq);
+    xqc_list_add_tail(&packet_in->pi_list, &conn->packet_in_tailq);
 
     xqc_init_packet_in(packet_in, packet_in_buf, packet_in_size, recv_time);
 

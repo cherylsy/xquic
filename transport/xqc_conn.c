@@ -100,6 +100,7 @@ xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
 {
     xqc_conns_pq_elem_t *elem = (xqc_conns_pq_elem_t*)xqc_pq_push(pq, time_ms);
     if (!elem) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|");
         return -XQC_ENULLPTR;
     }
     elem->conn = conn;
@@ -347,6 +348,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     XQC_DEBUG_PRINT
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
+    ssize_t ret;
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
@@ -356,7 +358,10 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                 xqc_gen_padding_frame(packet_out);
             }
 
-            xqc_conn_send_one_packet(conn, packet_out);
+            ret = xqc_conn_send_one_packet(conn, packet_out);
+            if (ret < 0) {
+                return;
+            }
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);
@@ -388,6 +393,11 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
             xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
             xqc_frame_type_2_str(packet_out->po_frame_types));
     if (sent != packet_out->po_used_size) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_send_one_packet|write_socket error|"
+                                          "conn=%p, size=%ui, sent=%ui, pkt_type=%s, pkt_num=%ui, frame=%s",
+                conn, packet_out->po_used_size, sent,
+                xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
+                xqc_frame_type_2_str(packet_out->po_frame_types));
         return -XQC_ESOCKET;
     }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out);
@@ -400,13 +410,16 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
 {
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
+    ssize_t ret;
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_lost_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (xqc_send_ctl_can_send(conn)) {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_retransmit_lost_packets|");
-            xqc_conn_send_one_packet(conn, packet_out);
-
+            ret = xqc_conn_send_one_packet(conn, packet_out);
+            if (ret < 0) {
+                return;
+            }
             xqc_send_ctl_remove_lost(&packet_out->po_list);
             xqc_send_ctl_insert_unacked(packet_out,
                                         &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],

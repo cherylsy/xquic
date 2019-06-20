@@ -30,6 +30,9 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     xqc_send_ctl_timer_init(send_ctl);
 
+    xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
+                           xqc_gettimeofday() + send_ctl->ctl_conn->trans_param.idle_timeout);
+
     if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
         send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
     } else {
