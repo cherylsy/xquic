@@ -137,6 +137,12 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
 void
 xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now);
 
+static inline int
+xqc_send_ctl_timer_is_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
+{
+    return ctl->ctl_timer[type].ctl_timer_is_set;
+}
+
 static inline void
 xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t expire)
 {

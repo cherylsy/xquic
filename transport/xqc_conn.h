@@ -73,6 +73,7 @@ typedef enum {
     XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR_SHIFT,
     XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
+    XQC_CONN_FLAG_DCID_OK_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -87,6 +88,7 @@ typedef enum {
     XQC_CONN_FLAG_TIME_OUT              = 1 << XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR                 = 1 << XQC_CONN_FLAG_ERROR_SHIFT,
     XQC_CONN_FLAG_DATA_BLOCKED          = 1 << XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
+    XQC_CONN_FLAG_DCID_OK               = 1 << XQC_CONN_FLAG_DCID_OK_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {

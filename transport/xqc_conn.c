@@ -27,7 +27,8 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT]           = "HAS_GAP",
         [XQC_CONN_FLAG_TIME_OUT_SHIFT]              = "TIME_OUT",
         [XQC_CONN_FLAG_ERROR_SHIFT]                 = "ERROR",
-        [XQC_CONN_FLAG_DATA_BLOCKED_SHIFT]          = "DATA_BLOCKED"
+        [XQC_CONN_FLAG_DATA_BLOCKED_SHIFT]          = "DATA_BLOCKED",
+        [XQC_CONN_FLAG_DCID_OK_SHIFT]               = "DCID_OK"
 };
 
 const char*
@@ -237,8 +238,13 @@ xqc_create_connection(xqc_engine_t *engine,
     if (xqc_insert_conns_hash(engine->conns_hash, xc, &xc->scid)) {
         goto fail;
     }
-    if (xqc_insert_conns_hash(engine->conns_hash_dcid, xc, &xc->dcid)) {
-        goto fail;
+
+    /* 客户端创建连接时，服务端的cid还未生成 */
+    if (type == XQC_CONN_TYPE_SERVER) {
+        if (xqc_insert_conns_hash(engine->conns_hash_dcid, xc, &xc->dcid)) {
+            goto fail;
+        }
+        xc->conn_flag |= XQC_CONN_FLAG_DCID_OK;
     }
 
     if (xqc_conns_pq_push(engine->conns_pq, xc, 0)) {
@@ -301,7 +307,7 @@ xqc_destroy_connection(xqc_connection_t *xc)
     if (xc->engine->conns_hash) {
         xqc_remove_conns_hash(xc->engine->conns_hash, xc, &xc->scid);
     }
-    if (xc->engine->conns_hash_dcid) {
+    if (xc->engine->conns_hash_dcid && (xc->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
         xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
 
@@ -576,7 +582,9 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         ctl = conn->conn_send_ctl;
         now = xqc_gettimeofday();
         xqc_msec_t pto = xqc_send_ctl_calc_pto(ctl);
-        xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, 3 * pto + now);
+        if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, 3 * pto + now);
+        }
     }
     return XQC_OK;
 }

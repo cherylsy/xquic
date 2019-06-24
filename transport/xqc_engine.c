@@ -129,14 +129,6 @@ xqc_engine_wakeup_pq_create(xqc_config_t *config)
 }
 
 
-xqc_int_t
-xqc_engine_conns_hash_insert(xqc_engine_t *engine, xqc_connection_t *c)
-{
-    xqc_insert_conns_hash(engine->conns_hash, c, &c->scid);
-    xqc_insert_conns_hash(engine->conns_hash_dcid, c, &c->dcid);
-    return 0;
-}
-
 
 xqc_connection_t *
 xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type)
@@ -519,6 +511,12 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
         xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ?
                                      XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
 
+        /* server generates it's own cid */
+        if (xqc_generate_cid(engine, &scid) != XQC_OK) {
+            xqc_log(engine->log, XQC_LOG_ERROR, "packet_process: fail to generate_cid");
+            return -XQC_ESYS;
+        }
+        memset(&scid.cid_buf, 0xDD, 4); //TODO: for test
         conn = xqc_create_connection(engine, &dcid, &scid,
                                      &(engine->eng_callback.conn_callbacks), 
                                      engine->settings, user_data,
@@ -543,9 +541,13 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             conn = xqc_engine_conns_hash_find(engine, &scid, 'd');
             if (conn) {
                 xqc_log(engine->log, XQC_LOG_WARN, "packet_process: receive reset, enter draining");
-                conn->conn_state = XQC_CONN_STATE_DRAINING;
-                xqc_msec_t pto = xqc_send_ctl_calc_pto(conn->conn_send_ctl);
-                xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_DRAINING, 3 * pto + recv_time);
+                if (conn->conn_state < XQC_CONN_STATE_DRAINING) {
+                    conn->conn_state = XQC_CONN_STATE_DRAINING;
+                    xqc_msec_t pto = xqc_send_ctl_calc_pto(conn->conn_send_ctl);
+                    if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
+                        xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_DRAINING, 3 * pto + recv_time);
+                    }
+                }
                 goto after_process;
             }
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to find connection, exit");

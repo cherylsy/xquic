@@ -21,10 +21,8 @@ xqc_connect(xqc_engine_t *engine, void *user_data)
     }
 
     //TODO: for test
-    scid.cid_buf[0] = 0xCC;
-    scid.cid_buf[1] = 0xCC;
-    dcid.cid_buf[0] = 0xDD;
-    dcid.cid_buf[1] = 0xDD;
+    memset(scid.cid_buf, 0xCC, 4);
+    memset(dcid.cid_buf, 0xDD, dcid.cid_len);
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
                     &callbacks, engine->settings, user_data);

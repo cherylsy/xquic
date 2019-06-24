@@ -772,15 +772,22 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     xqc_memcpy(scid->cid_buf, pos, scid->cid_len);
     pos += scid->cid_len;
 
-    /* check cid */
-    if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
-        || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK)
-    {
-        /* log & ignore packet */
-        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|invalid dcid or scid|");
-        return -XQC_EILLPKT;
-    }
+    if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK) && c->conn_type == XQC_CONN_TYPE_CLIENT) {
+        xqc_cid_copy(&c->dcid, &packet->pkt_scid);
+        if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
+            return -XQC_ESYS;
+        }
+        c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
+    } else if (type != XQC_PTYPE_INIT) {
 
+        /* check cid */
+        if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
+            || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK) {
+            /* log & ignore packet */
+            xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_long_header|invalid dcid or scid|");
+            return -XQC_EILLPKT;
+        }
+    }
     if (xqc_packet_version_check(c, version) != XQC_OK) {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_long_header|version check err|");
         return -XQC_EILLPKT;
