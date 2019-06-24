@@ -250,13 +250,12 @@ xqc_create_connection(xqc_engine_t *engine,
     if (xqc_conns_pq_push(engine->conns_pq, xc, 0)) {
         goto fail;
     }
+    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     for (xqc_pkt_num_space_t i = 0; i < XQC_PNS_N; i++) {
         memset(&xc->recv_record[i], 0, sizeof(xqc_recv_record_t));
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
-
-    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     /* Do callback */
     if (xc->conn_callbacks.conn_create_notify) {

@@ -230,6 +230,8 @@ fail:
 void 
 xqc_engine_destroy(xqc_engine_t *engine)
 {
+    xqc_connection_t *conn;
+
     if (engine == NULL) {
         return;
     }
@@ -256,6 +258,32 @@ xqc_engine_destroy(xqc_engine_t *engine)
     if (engine->conns_hash_dcid) {
         xqc_engine_conns_hash_destroy(engine->conns_hash_dcid);
         engine->conns_hash_dcid = NULL;
+    }
+
+    while (!xqc_pq_empty(engine->conns_pq)) {
+        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
+        xqc_conns_pq_pop(engine->conns_pq);
+        if (el == NULL || el->conn == NULL) {
+            xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_engine_destroy|NULL ptr, skip");
+            continue;
+        }
+        conn = el->conn;
+        if (conn->conn_flag & XQC_CONN_FLAG_WAKEUP) {
+            xqc_wakeup_pq_remove(engine->conns_wakeup_pq, conn);
+            conn->conn_flag &= ~XQC_CONN_FLAG_WAKEUP;
+        }
+        xqc_destroy_connection(conn);
+    }
+
+    while (!xqc_wakeup_pq_empty(engine->conns_wakeup_pq)) {
+        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wakeup_pq);
+        xqc_wakeup_pq_pop(engine->conns_wakeup_pq);
+        if (el == NULL || el->conn == NULL) {
+            xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_engine_destroy|NULL ptr, skip");
+            continue;
+        }
+        conn = el->conn;
+        xqc_destroy_connection(conn);
     }
 
     if (engine->conns_pq) {
@@ -405,7 +433,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
         if (el == NULL || el->conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_engine_main_logic|NULL ptr, skip");
-            xqc_wakeup_pq_pop(engine->conns_wakeup_pq);
+            xqc_conns_pq_pop(engine->conns_pq);
             continue;
         }
         conn = el->conn;
