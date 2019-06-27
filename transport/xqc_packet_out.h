@@ -9,9 +9,16 @@
 
 #define XQC_PACKET_OUT_SIZE 1280    //TODO 先写死
 
+#define XQC_MAX_STREAM_FRAME_IN_PO 3
+
 typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,
 } xqc_packet_out_flag_t;
+
+typedef struct xqc_po_stream_frame_s {
+    xqc_stream_t            *ps_stream;
+    unsigned char           ps_has_fin; /* stream frame是否带fin */
+} xqc_po_stream_frame_t;
 
 typedef struct xqc_packet_out_s
 {
@@ -26,7 +33,8 @@ typedef struct xqc_packet_out_s
     xqc_packet_number_t     po_largest_ack;
     xqc_msec_t              po_sent_time;
     xqc_frame_type_bit_t    po_frame_types;
-
+    /* stream frame 关联的stream */
+    xqc_po_stream_frame_t   po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO];
 } xqc_packet_out_t;
 
 xqc_packet_out_t *

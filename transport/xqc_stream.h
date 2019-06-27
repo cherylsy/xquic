@@ -23,6 +23,24 @@ typedef enum {
     XQC_SF_STREAM_DATA_BLOCKED  = 1 << 2,
 } xqc_stream_flag_t;
 
+typedef enum {
+    XQC_SSS_READY,
+    XQC_SSS_SEND,
+    XQC_SSS_DATA_SENT,
+    XQC_SSS_DATA_RECVD,
+    XQC_SSS_RESET_SENT,
+    XQC_SSS_RESET_RECVD,
+} xqc_send_stream_state_t;
+
+typedef enum {
+    XQC_RSS_RECV,
+    XQC_RSS_SIZE_KNOWN,
+    XQC_RSS_DATA_RECVD,
+    XQC_RSS_DATA_READ,
+    XQC_RSS_RESET_RECVD,
+    XQC_RSS_RESET_READ,
+} xqc_recv_stream_state_t;
+
 typedef struct {
     uint64_t                fc_max_stream_data;
 } xqc_stream_flow_ctl_t;
@@ -64,6 +82,9 @@ struct xqc_stream_s {
     xqc_stream_data_in_t    stream_data_in;
 
     xqc_stream_flow_ctl_t   stream_flow_ctl;
+    unsigned                stream_unacked_pkt;
+    xqc_send_stream_state_t stream_state_send;
+    xqc_recv_stream_state_t stream_state_recv;
 };
 
 xqc_stream_t *

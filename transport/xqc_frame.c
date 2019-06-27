@@ -241,6 +241,8 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_frame|xqc_parse_stream_frame error|");
         goto error;
     }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_stream_frame|offset: %ui, len: %ui, fin: %ud|",
+            stream_frame->data_offset, stream_frame->data_length, stream_frame->fin);
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
     if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
@@ -255,6 +257,9 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     if (stream_frame->fin) {
         stream->stream_data_in.stream_length = stream_frame->data_offset + stream_frame->data_length;
+        if (stream->stream_state_recv == XQC_RSS_RECV) {
+            stream->stream_state_recv = XQC_RSS_SIZE_KNOWN;
+        }
     }
 
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
@@ -275,6 +280,9 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto error;
     }
     if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end) {
+        if (stream->stream_state_recv == XQC_RSS_SIZE_KNOWN) {
+            stream->stream_state_recv = XQC_RSS_DATA_RECVD;
+        }
     //if (stream->stream_data_in.next_read_offset < stream->stream_data_in.merged_offset_end) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_stream_frame|xqc_stream_ready_to_read|");
         xqc_stream_ready_to_read(stream);

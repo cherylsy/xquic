@@ -145,6 +145,8 @@ xqc_create_stream_with_conn (xqc_connection_t *conn,
     stream->stream_conn = conn;
     stream->stream_if = &conn->engine->eng_callback.stream_callbacks;
     stream->user_data = user_data;
+    stream->stream_state_send = XQC_SSS_READY;
+    stream->stream_state_recv = XQC_RSS_RECV;
 
     xqc_stream_set_flow_ctl(stream, &conn->trans_param);
 
@@ -418,6 +420,9 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     if (stream->stream_data_in.stream_length > 0 &&
         stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
         *fin = 1; //TODO: free stream?
+        if (stream->stream_state_recv == XQC_RSS_DATA_RECVD) {
+            stream->stream_state_recv = XQC_RSS_DATA_READ;
+        }
     }
 
     xqc_stream_shutdown_read(stream);
@@ -443,7 +448,12 @@ xqc_stream_send (xqc_stream_t *stream,
         return -XQC_CLOSING;
     }
 
+    if (stream->stream_state_send > XQC_SSS_SEND) {
+        return -XQC_ESTREAM_ST;
+    }
+
     while (offset < send_data_size || fin_only) {
+
         if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data|%d|",
                     stream->stream_conn->conn_flow_ctl.fc_max_data);
@@ -472,6 +482,13 @@ xqc_stream_send (xqc_stream_t *stream,
             return -XQC_ENULLPTR;
         }
 
+        if (packet_out->po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO - 1].ps_stream != NULL) {
+            packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
+            if (packet_out == NULL) {
+                return -XQC_ENULLPTR;
+            }
+        }
+
         n_written = xqc_gen_stream_frame(packet_out,
                                          stream->stream_id, stream->stream_send_offset, fin,
                                          send_data + offset,
@@ -485,6 +502,15 @@ xqc_stream_send (xqc_stream_t *stream,
         stream->stream_send_offset += send_data_written;
         stream->stream_conn->conn_flow_ctl.fc_data_sent += send_data_written;
         packet_out->po_used_size += n_written;
+
+        for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+            if (packet_out->po_stream_frames[i].ps_stream == NULL) {
+                packet_out->po_stream_frames[i].ps_stream = stream;
+                if (fin_only || (offset == send_data_size && fin)) {
+                    packet_out->po_stream_frames[i].ps_has_fin = 1;
+                }
+            }
+        }
 
         fin_only = 0;
     }

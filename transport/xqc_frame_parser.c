@@ -71,6 +71,7 @@ xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
             n_avail -= length_len;
             if (size > n_avail) {
                 size = n_avail;
+                fin = 0;
             }
         } else {
             length_len = 0;

@@ -124,13 +124,38 @@ xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
         if (ctl->ctl_bytes_in_flight < packet_out->po_used_size) {
             xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
             ctl->ctl_bytes_in_flight = 0;
-            packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
-            return;
+        } else {
+            ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
         }
-        ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-            ctl->ctl_crypto_bytes_in_flight -= packet_out->po_used_size;
+            if (ctl->ctl_crypto_bytes_in_flight < packet_out->po_used_size) {
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_crypto_bytes_in_flight too small|");
+                ctl->ctl_crypto_bytes_in_flight = 0;
+            } else {
+                ctl->ctl_crypto_bytes_in_flight -= packet_out->po_used_size;
+            }
         }
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+            xqc_stream_t *stream;
+            for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+                stream = packet_out->po_stream_frames[i].ps_stream;
+                if (stream != NULL) {
+                    if (stream->stream_unacked_pkt == 0) {
+                        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|stream_unacked_pkt too small|");
+                    } else {
+                        stream->stream_unacked_pkt--;
+                    }
+                } else {
+                    break;
+                }
+
+                if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SSS_DATA_SENT) {
+                    stream->stream_state_send = XQC_SSS_DATA_RECVD;
+                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|DATA RECVD|");
+                }
+            }
+        }
+
         packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
     }
 }
@@ -334,6 +359,24 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
             ctl->ctl_bytes_in_flight += packet_out->po_used_size;
             if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
                 ctl->ctl_crypto_bytes_in_flight += packet_out->po_used_size;
+            }
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+                xqc_stream_t *stream;
+                for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+                    stream = packet_out->po_stream_frames[i].ps_stream;
+                    if (stream != NULL) {
+                        stream->stream_unacked_pkt++;
+                        if (stream->stream_state_send == XQC_SSS_READY) {
+                            stream->stream_state_send = XQC_SSS_SEND;
+                        }
+                        if (packet_out->po_stream_frames[i].ps_has_fin
+                                && stream->stream_state_send == XQC_SSS_SEND) {
+                            stream->stream_state_send = XQC_SSS_DATA_SENT;
+                        }
+                    } else {
+                        break;
+                    }
+                }
             }
             packet_out->po_flag |= XQC_POF_IN_FLIGHT;
         }
