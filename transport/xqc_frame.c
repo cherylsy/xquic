@@ -143,6 +143,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                 //ack frame
                 ret = xqc_process_ack_frame(conn, packet_in);
                 break;
+            case 0x04:
+                ret = xqc_process_reset_stream_frame(conn, packet_in);
+                break;
             case 0x06:
                 //crypto frame
                 ret = xqc_process_crypto_frame(conn, packet_in);
@@ -386,6 +389,34 @@ xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
     conn->conn_state = XQC_CONN_STATE_DRAINING;
 
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    xqc_int_t ret;
+    unsigned short err_code;
+    xqc_stream_id_t stream_id;
+    uint64_t final_size;
+    xqc_stream_t *stream;
+
+    ret = xqc_parse_reset_stream_frame(packet_in, &stream_id, &err_code, &final_size);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_process_reset_stream_frame|xqc_parse_reset_stream_frame error|");
+        return ret;
+    }
+
+    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
+    if (stream == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_process_reset_stream_frame|cannot find stream|");
+        return XQC_OK;
+    }
+    if (stream->stream_state_recv < XQC_RSS_RESET_RECVD) {
+        stream->stream_state_recv = XQC_RSS_RESET_RECVD;
+    }
     return XQC_OK;
 }
 

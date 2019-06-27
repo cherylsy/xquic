@@ -18,6 +18,7 @@ typedef enum {
 typedef struct xqc_po_stream_frame_s {
     xqc_stream_t            *ps_stream;
     unsigned char           ps_has_fin; /* stream frame是否带fin */
+    unsigned char           ps_is_reset; /* 是否是RESET STREAM frame */
 } xqc_po_stream_frame_t;
 
 typedef struct xqc_packet_out_s
@@ -66,6 +67,10 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 
 int
 xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code);
+
+int
+xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
+                                 unsigned short err_code, uint64_t final_size);
 
 int
 xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit);

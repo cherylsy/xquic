@@ -47,6 +47,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 void
 xqc_send_ctl_destroy(xqc_send_ctl_t *ctl)
 {
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "xqc_send_ctl_destroy ctl_bytes_in_flight: %ui", ctl->ctl_bytes_in_flight);
     xqc_send_ctl_destroy_packets_lists(ctl);
 }
 
@@ -120,44 +121,6 @@ xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 {
     xqc_list_del_init(&packet_out->po_list);
 
-    if (packet_out->po_flag & XQC_POF_IN_FLIGHT) {
-        if (ctl->ctl_bytes_in_flight < packet_out->po_used_size) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
-            ctl->ctl_bytes_in_flight = 0;
-        } else {
-            ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
-        }
-        if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-            if (ctl->ctl_crypto_bytes_in_flight < packet_out->po_used_size) {
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_crypto_bytes_in_flight too small|");
-                ctl->ctl_crypto_bytes_in_flight = 0;
-            } else {
-                ctl->ctl_crypto_bytes_in_flight -= packet_out->po_used_size;
-            }
-        }
-        if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
-            xqc_stream_t *stream;
-            for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
-                stream = packet_out->po_stream_frames[i].ps_stream;
-                if (stream != NULL) {
-                    if (stream->stream_unacked_pkt == 0) {
-                        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|stream_unacked_pkt too small|");
-                    } else {
-                        stream->stream_unacked_pkt--;
-                    }
-                } else {
-                    break;
-                }
-
-                if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SSS_DATA_SENT) {
-                    stream->stream_state_send = XQC_SSS_DATA_RECVD;
-                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|DATA RECVD|");
-                }
-            }
-        }
-
-        packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
-    }
 }
 
 void
@@ -654,6 +617,56 @@ xqc_send_ctl_is_app_limited()
 void
 xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet)
 {
+    xqc_stream_t *stream;
+    xqc_packet_out_t *packet_out = acked_packet;
+    if (packet_out->po_flag & XQC_POF_IN_FLIGHT) {
+        if (ctl->ctl_bytes_in_flight < packet_out->po_used_size) {
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
+            ctl->ctl_bytes_in_flight = 0;
+        } else {
+            ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
+        }
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+            if (ctl->ctl_crypto_bytes_in_flight < packet_out->po_used_size) {
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_crypto_bytes_in_flight too small|");
+                ctl->ctl_crypto_bytes_in_flight = 0;
+            } else {
+                ctl->ctl_crypto_bytes_in_flight -= packet_out->po_used_size;
+            }
+        }
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+            for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+                stream = packet_out->po_stream_frames[i].ps_stream;
+                if (stream != NULL) {
+                    if (stream->stream_unacked_pkt == 0) {
+                        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|stream_unacked_pkt too small|");
+                    } else {
+                        stream->stream_unacked_pkt--;
+                    }
+                } else {
+                    break;
+                }
+
+                if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SSS_DATA_SENT) {
+                    stream->stream_state_send = XQC_SSS_DATA_RECVD;
+                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|DATA RECVD|");
+                }
+            }
+        }
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_RESET_STREAM) {
+            for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+                stream = packet_out->po_stream_frames[i].ps_stream;
+                if (stream != NULL && packet_out->po_stream_frames[i].ps_is_reset) {
+                    if (stream->stream_state_send == XQC_SSS_RESET_SENT) {
+                        stream->stream_state_send = XQC_SSS_RESET_RECVD;
+                    }
+                }
+            }
+        }
+
+        packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
+    }
+
     if (xqc_send_ctl_is_app_limited()) {
         // Do not increase congestion_window if application
         // limited.
@@ -661,7 +674,6 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
     }
 
     ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet->po_sent_time, acked_packet->po_used_size);
-
 }
 
 

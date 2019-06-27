@@ -176,6 +176,8 @@ error:
 void
 xqc_destroy_stream(xqc_stream_t *stream)
 {
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "xqc_destroy_stream send_state:%ui, recv_state: %ui",
+            stream->stream_state_send, stream->stream_state_recv);
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
     xqc_free(stream);
 }
