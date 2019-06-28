@@ -24,8 +24,10 @@
 #endif
 
 #define XQC_CONN_ERR(conn, err) do {        \
+    if (conn->conn_err == 0) {              \
     conn->conn_err = err;                   \
     conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
+    }                                       \
 } while(0)                                  \
 
 /* 添加state请更新conn_state_2_str */
