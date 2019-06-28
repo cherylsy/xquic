@@ -691,6 +691,74 @@ xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream
 }
 
 /*
+ *
+    0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                        Stream ID (i)                        ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |  Application Error Code (16)  |
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_stop_sending_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id,
+                           unsigned short err_code)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    unsigned stream_id_bits = xqc_vint_get_2bit(stream_id);
+
+    unsigned need = 1
+                    + xqc_vint_len(stream_id_bits)
+                    + 2
+                    ;
+    if (need > packet_out->po_buf_size - packet_out->po_used_size) {
+        return -XQC_ENOBUF;
+    }
+
+    *dst_buf++ = 0x05;
+
+    xqc_vint_write(dst_buf, stream_id, stream_id_bits, xqc_vint_len(stream_id_bits));
+    dst_buf += xqc_vint_len(stream_id_bits);
+
+    err_code = htons(err_code);
+    memcpy(dst_buf, (unsigned char*)&err_code, 2);
+    dst_buf += 2;
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_STOP_SENDING;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_stop_sending_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
+                             unsigned short *err_code)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    vlen = xqc_vint_read(p, end, stream_id);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    *err_code = *(unsigned short*)p;
+    *err_code = ntohs(*err_code);
+    p += 2;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_STOP_SENDING;
+
+    return XQC_OK;
+}
+
+/*
  *     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+

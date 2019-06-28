@@ -146,6 +146,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             case 0x04:
                 ret = xqc_process_reset_stream_frame(conn, packet_in);
                 break;
+            case 0x05:
+                ret = xqc_process_stop_sending_frame(conn, packet_in);
+                break;
             case 0x06:
                 //crypto frame
                 ret = xqc_process_crypto_frame(conn, packet_in);
@@ -444,6 +447,41 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
 }
 
 xqc_int_t
+xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    xqc_int_t ret;
+    unsigned short err_code;
+    xqc_stream_id_t stream_id;
+    xqc_stream_t *stream;
+
+    ret = xqc_parse_stop_sending_frame(packet_in, &stream_id, &err_code);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_process_stop_sending_frame|xqc_parse_stop_sending_frame error|");
+        return ret;
+    }
+
+    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
+    if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
+        stream = xqc_server_create_stream(conn, stream_id, NULL);
+    }
+
+    if (!stream) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stop_sending_frame|cannot find stream|");
+        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+        return -XQC_ENULLPTR;
+    }
+
+    /*
+     * An endpoint that receives a STOP_SENDING frame
+   MUST send a RESET_STREAM frame if the stream is in the Ready or Send
+   state.
+     */
+
+    return XQC_OK;
+}
+
+xqc_int_t
 xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     int ret;
@@ -563,21 +601,24 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
     }
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
-    if (stream) {
-        if (max_stream_data > stream->stream_flow_ctl.fc_max_stream_data) {
-            stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;
-            stream->stream_flag &= ~XQC_SF_STREAM_DATA_BLOCKED;
-            xqc_log(conn->log, XQC_LOG_WARN,
-                    "|xqc_process_max_stream_data_frame|max_stream_data=%ui|", max_stream_data);
-        } else {
-            xqc_log(conn->log, XQC_LOG_WARN,
-                    "|xqc_process_max_stream_data_frame|max_stream_data too small|");
-        }
-
-    } else {
-        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+    if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
+        stream = xqc_server_create_stream(conn, stream_id, NULL);
     }
 
+    if (!stream) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_max_stream_data_frame|cannot find stream|");
+        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+        return -XQC_ENULLPTR;
+    }
+    if (max_stream_data > stream->stream_flow_ctl.fc_max_stream_data) {
+        stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;
+        stream->stream_flag &= ~XQC_SF_STREAM_DATA_BLOCKED;
+        xqc_log(conn->log, XQC_LOG_WARN,
+                "|xqc_process_max_stream_data_frame|max_stream_data=%ui|", max_stream_data);
+    } else {
+        xqc_log(conn->log, XQC_LOG_WARN,
+                "|xqc_process_max_stream_data_frame|max_stream_data too small|");
+    }
     return XQC_OK;
 }
 

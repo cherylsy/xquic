@@ -319,6 +319,46 @@ error:
 }
 
 int
+xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
+                                 unsigned short err_code)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    /*
+     * A STOP_SENDING frame can be sent for streams in the Recv or Size
+        Known states
+     */
+    if (stream->stream_state_recv > XQC_RSS_SIZE_KNOWN) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_stop_sending_to_packet state error");
+        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+        return -XQC_ESTREAM_ST;
+    }
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_stop_sending_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_stop_sending_frame(packet_out, stream->stream_id, err_code);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_stop_sending_to_packet error");
+        goto error;
+    }
+
+    packet_out->po_used_size += ret;
+
+    xqc_long_packet_update_length(packet_out);
+
+    return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
+}
+
+int
 xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
 {
     int ret;

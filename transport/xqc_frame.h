@@ -111,6 +111,9 @@ xqc_int_t
 xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t
+xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
 xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t

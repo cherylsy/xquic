@@ -45,6 +45,12 @@ int xqc_gen_reset_stream_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t str
 int xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
                              unsigned short *err_code, uint64_t *final_size);
 
+int xqc_gen_stop_sending_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id,
+                               unsigned short err_code);
+
+int xqc_parse_stop_sending_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
+                                 unsigned short *err_code);
+
 int xqc_gen_data_blocked_frame(xqc_packet_out_t *packet_out, uint64_t data_limit);
 
 int xqc_parse_data_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *data_limit);

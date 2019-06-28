@@ -384,6 +384,10 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     size_t frame_left;
     *fin = 0;
 
+    if (stream->stream_state_recv >= XQC_RSS_RESET_RECVD) {
+        return -XQC_ESTREAM_ST;
+    }
+
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 

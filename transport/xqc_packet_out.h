@@ -73,6 +73,10 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
                                  unsigned short err_code, uint64_t final_size);
 
 int
+xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
+                                 unsigned short err_code);
+
+int
 xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit);
 
 int
