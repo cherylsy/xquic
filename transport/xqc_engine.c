@@ -583,24 +583,12 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
         return -XQC_ECONN_NFOUND;
     }
 
-    xqc_packet_in_t packet;
-    xqc_packet_in_t *packet_in = &packet;
-    memset(packet_in, 0, sizeof(*packet_in));
-    xqc_init_packet_in(packet_in, packet_in_buf, packet_in_size, recv_time);
-    /* create packet in */
-    /*xqc_packet_in_t *packet_in = xqc_create_packet_in(conn,
-                                                      packet_in_buf, packet_in_size, 
-                                                      recv_time); //TODO: when to del
-    if (!packet_in) {
-        xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create packet in");
-        return -XQC_ENULLPTR;
-    }*/
 
     xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui, state=%s",
             conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state));
 
     /* process packets */
-    ret = (int)xqc_conn_process_packets(conn, packet_in);
+    ret = (int)xqc_conn_process_packets(conn, packet_in_buf, packet_in_size, recv_time);
     if (ret) {
         xqc_log(engine->log, XQC_LOG_ERROR, "packet_process: fail to process packets");
         XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);

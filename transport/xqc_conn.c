@@ -584,6 +584,10 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
             xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, 3 * pto + now);
         }
+
+        for (int i = 0; i <= XQC_TIMER_LOSS_DETECTION; i++) {
+            xqc_send_ctl_timer_unset(ctl, i);
+        }
     }
     return XQC_OK;
 }

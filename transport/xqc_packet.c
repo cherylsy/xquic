@@ -178,6 +178,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
+    unsigned char *last = packet_in->last;
     xqc_int_t ret = XQC_ERROR;
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) == 0) {
@@ -212,11 +213,17 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         }
     }
 
+
+    /*packet_in->pos = packet_in->decode_payload;
+    packet_in->last = packet_in->decode_payload + packet_in->decode_payload_size;*/
+
     ret = xqc_process_frames(c, packet_in);
     if (ret != XQC_OK) {
         xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_process_frames error|");
         return ret;
     }
+
+    packet_in->last = last;
 
     return XQC_OK;
 }
@@ -227,16 +234,30 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
  */
 xqc_int_t
 xqc_conn_process_packets(xqc_connection_t *c,
-                          xqc_packet_in_t *packet_in)
+                         const unsigned char *packet_in_buf,
+                         size_t packet_in_size,
+                         xqc_msec_t recv_time)
 {
     xqc_int_t ret = XQC_ERROR;
-    unsigned char *last_pos = NULL;
+    const unsigned char *last_pos = NULL;
+    /* QUIC包的起始地址 */
+    const unsigned char *pos = packet_in_buf;
+    /* UDP包的结束地址 */
+    const unsigned char *end = packet_in_buf + packet_in_size;
+
     xqc_pkt_range_status range_status;
     int out_of_order = 0;
 
-    while (packet_in->pos < packet_in->last) {
+    xqc_packet_in_t packet;
+    unsigned char decrypt_payload[MAX_PACKET_LEN];
 
-        last_pos = packet_in->pos;
+    while (pos < end) {
+
+        last_pos = pos;
+
+        xqc_packet_in_t *packet_in = &packet;
+        memset(packet_in, 0, sizeof(*packet_in));
+        xqc_init_packet_in(packet_in, pos, end - pos, decrypt_payload, MAX_PACKET_LEN, recv_time);
 
         /* packet_in->pos will update inside */
         ret = xqc_conn_process_single_packet(c, packet_in);
@@ -248,6 +269,8 @@ xqc_conn_process_packets(xqc_connection_t *c,
                                           packet_in->buf, packet_in->buf_size);
             return ret != XQC_OK ? ret : -XQC_ESYS;
         }
+
+        pos = packet_in->last;
 
         xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_packets|pkt_type=%s|pkt_num=%ui|frame=%s|",
                 xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,

@@ -413,6 +413,8 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     }
     pos += size;
 
+    packet_in->last = pos + payload_len;
+
     /* packet number */
     xqc_packet_parse_packet_number(pos, packet_number_len, &packet->pkt_num);
     pos += packet_number_len;
@@ -480,6 +482,9 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_zero_rtt|payload length err|");
         return -XQC_EILLPKT;
     }
+    pos += size;
+
+    packet_in->last = pos + payload_len;
 
     /* packet number */
     xqc_packet_parse_packet_number(pos, packet_number_len, &packet->pkt_num);
@@ -542,6 +547,8 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         return -XQC_EILLPKT;
     }
     pos += size;
+
+    packet_in->last = pos + payload_len;
 
     /* packet number */
     xqc_packet_parse_packet_number(pos, packet_number_len, &packet->pkt_num);
