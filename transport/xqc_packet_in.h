@@ -15,6 +15,7 @@ struct xqc_packet_in_s
     size_t                  buf_size;
     const unsigned char    *decode_payload;
     size_t                  decode_payload_size;
+    size_t                  decode_payload_len;
     unsigned char          *pos;
     unsigned char          *last;
     xqc_msec_t              pkt_recv_time;  /* millisecond */
