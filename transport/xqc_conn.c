@@ -286,6 +286,9 @@ xqc_destroy_connection(xqc_connection_t *xc)
     xqc_stream_t *stream;
 
     xqc_log(xc->log, XQC_LOG_DEBUG, "xqc_destroy_connection %p", xc);
+    xqc_log(xc->log, XQC_LOG_DEBUG, "srtt: %ui, retrans rate: %.2f, send_count: %ui, retrans_count: %ui",
+            xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count);
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
@@ -421,6 +424,8 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (xqc_send_ctl_can_send(conn)) {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_retransmit_lost_packets|");
+            packet_out->po_flag |= XQC_POF_RETRANS;
+
             ret = xqc_conn_send_one_packet(conn, packet_out);
             if (ret < 0) {
                 return;
@@ -443,6 +448,8 @@ xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+            packet_out->po_flag |= XQC_POF_RETRANS;
+
             if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
 
                 xqc_conn_send_one_packet(conn, packet_out);

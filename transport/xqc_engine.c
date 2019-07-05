@@ -536,6 +536,13 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             && engine->eng_type == XQC_ENGINE_SERVER
             && XQC_PACKET_IS_LONG_HEADER(packet_in_buf)
             && XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_INIT) {
+
+        /* 防止initial包重传重复创建连接 */
+        conn = xqc_engine_conns_hash_find(engine, &dcid, 'd');
+        if (conn) {
+            goto process;
+        }
+
         xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ?
                                      XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
 
@@ -583,7 +590,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
         return -XQC_ECONN_NFOUND;
     }
 
-
+process:
     xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui, state=%s",
             conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state));
 

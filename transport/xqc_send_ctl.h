@@ -73,6 +73,9 @@ typedef struct xqc_send_ctl_s {
     unsigned                    ctl_pto_count;
     unsigned                    ctl_crypto_count;
 
+    unsigned                    ctl_send_count;
+    unsigned                    ctl_retrans_count;
+
     unsigned                    ctl_bytes_in_flight;
     unsigned                    ctl_crypto_bytes_in_flight;
 
@@ -203,5 +206,11 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl);
 
 xqc_msec_t
 xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret);
+
+xqc_msec_t
+xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
+
+float
+xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
 
 #endif //_XQC_SEND_CTL_H_INCLUDED_
