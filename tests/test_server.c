@@ -45,6 +45,17 @@ static inline uint64_t now()
     return  ul;
 }
 
+void xqc_server_set_event_timer(void *timer, xqc_msec_t wake_after)
+{
+    printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
+
+    struct timeval tv;
+    tv.tv_sec = wake_after / 1000;
+    tv.tv_usec = wake_after % 1000 * 1000;
+    event_add((struct event *) timer, &tv);
+
+}
+
 int xqc_server_conn_notify(xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
@@ -94,18 +105,6 @@ ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
     return res;
 }
 
-void xqc_client_wakeup(xqc_server_ctx_t *ctx)
-{
-    xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
-    //printf("xqc_engine_wakeup_after %llu\n", wake_after);
-    if (wake_after > 0) {
-        struct timeval tv;
-        tv.tv_sec = wake_after / 1000;
-        tv.tv_usec = wake_after % 1000 * 1000;
-        event_add(ctx->ev_timer, &tv);
-        printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
-    }
-}
 
 void 
 xqc_server_write_handler(xqc_server_ctx_t *ctx)
@@ -142,7 +141,6 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
         printf("xqc_server_read_handler: packet process err\n");
     }
 
-    xqc_client_wakeup(ctx);
 }
 
 
@@ -212,18 +210,6 @@ err:
     return -1;
 }
 
-static int
-xqc_server_process_conns(xqc_server_ctx_t *ctx)
-{
-    int rc = xqc_engine_main_logic(ctx->engine);
-    if (rc) {
-        printf("xqc_engine_main_logic error %d\n", rc);
-        return -1;
-    }
-
-    xqc_client_wakeup(ctx);
-    return 0;
-}
 
 static void
 xqc_server_timer_callback(int fd, short what, void *arg)
@@ -231,11 +217,7 @@ xqc_server_timer_callback(int fd, short what, void *arg)
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
 
-    int rc = xqc_server_process_conns(ctx);
-    if (rc) {
-        printf("xqc_server_timer_callback error\n");
-        return;
-    }
+    xqc_engine_main_logic(ctx->engine);
 }
 
 int main(int argc, char *argv[]) {
@@ -257,12 +239,14 @@ int main(int argc, char *argv[]) {
             },
             .write_socket = xqc_server_send,
             .cong_ctrl_callback = xqc_reno_cb,
+            .set_event_timer = xqc_server_set_event_timer,
     };
-    xqc_engine_set_callback(ctx.engine, callback);
 
     eb = event_base_new();
 
     ctx.ev_timer = event_new(eb, -1, 0, xqc_server_timer_callback, &ctx);
+
+    xqc_engine_init(ctx.engine, callback, ctx.ev_timer);
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
     if (ctx.fd < 0) {

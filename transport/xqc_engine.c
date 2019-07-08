@@ -303,11 +303,12 @@ xqc_engine_destroy(xqc_engine_t *engine)
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 void 
-xqc_engine_init_config (xqc_engine_t *engine,
-                             xqc_config_t *engine_config, 
-                             xqc_engine_type_t engine_type)
+xqc_engine_init (xqc_engine_t *engine,
+                 xqc_engine_callback_t engine_callback,
+                 void *event_timer)
 {
-    *(engine->config) = *engine_config;
+    xqc_engine_set_callback(engine, engine_callback);
+    engine->event_timer = event_timer;
 }
 
 void
@@ -392,7 +393,7 @@ end:
 /**
  * Process all connections
  */
-int
+void
 xqc_engine_main_logic (xqc_engine_t *engine)
 {
     xqc_msec_t now = xqc_gettimeofday();
@@ -497,7 +498,12 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         }
     }
 
-    return 0;
+    xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
+    if (wake_after > 0 && engine->event_timer) {
+        engine->eng_callback.set_event_timer(engine->event_timer, xqc_engine_wakeup_after(engine));
+    }
+
+    return;
 }
 
 
@@ -617,10 +623,7 @@ after_process:
     }
 
     /* main logic */
-    if (xqc_engine_main_logic(engine) != XQC_OK) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "packet_process: main logic error");
-        return -XQC_EFATAL;
-    }
+    xqc_engine_main_logic(engine);
 
     return ret;
 }

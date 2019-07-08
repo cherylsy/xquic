@@ -557,11 +557,7 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
         }
     }
 
-    /*ret = xqc_engine_main_logic(conn->engine);
-    if (ret) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_close xqc_engine_main_logic error");
-        return ret;
-    }*/
+    xqc_engine_main_logic(conn->engine);
 
     return XQC_OK;
 }

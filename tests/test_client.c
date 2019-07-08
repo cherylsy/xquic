@@ -55,6 +55,17 @@ static inline uint64_t now()
     return  ul;
 }
 
+void xqc_client_set_event_timer(void *timer, xqc_msec_t wake_after)
+{
+    printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
+
+    struct timeval tv;
+    tv.tv_sec = wake_after / 1000;
+    tv.tv_usec = wake_after % 1000 * 1000;
+    event_add((struct event *) timer, &tv);
+
+}
+
 ssize_t xqc_client_read_socket(void *user, unsigned char *buf, size_t size)
 {
     client_ctx_t *ctx = (client_ctx_t *) user;
@@ -160,18 +171,6 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-void xqc_client_wakeup(client_ctx_t *ctx)
-{
-    xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
-    printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
-    if (wake_after > 0) {
-        struct timeval tv;
-        tv.tv_sec = wake_after / 1000;
-        tv.tv_usec = wake_after % 1000 * 1000;
-        event_add(ctx->ev_timer, &tv);
-        //printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
-    }
-}
 
 void 
 xqc_client_write_handler(client_ctx_t *ctx)
@@ -228,7 +227,6 @@ xqc_client_read_handler(client_ctx_t *ctx)
         return;
     }
 
-    xqc_client_wakeup(ctx);
 }
 
 
@@ -248,18 +246,6 @@ xqc_client_event_callback(int fd, short what, void *arg)
     }
 }
 
-static int
-xqc_client_process_conns(client_ctx_t *ctx)
-{
-    int rc = xqc_engine_main_logic(ctx->engine);
-    if (rc) {
-        printf("xqc_engine_main_logic error %d\n", rc);
-        return -1;
-    }
-
-    xqc_client_wakeup(ctx);
-    return 0;
-}
 
 static void
 xqc_client_timer_callback(int fd, short what, void *arg)
@@ -267,11 +253,7 @@ xqc_client_timer_callback(int fd, short what, void *arg)
     printf("xqc_client_timer_callback now %llu\n", now());
     client_ctx_t *ctx = (client_ctx_t *) arg;
 
-    int rc = xqc_client_process_conns(ctx);
-    if (rc) {
-        printf("xqc_client_timer_callback error\n");
-        return;
-    }
+    xqc_engine_main_logic(ctx->engine);
 }
 
 static void
@@ -286,11 +268,6 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
         return;
     }
 
-    rc = xqc_client_process_conns(ctx);
-    if (rc) {
-        printf("xqc_client_timer_callback error\n");
-        return;
-    }
     //event_base_loopbreak(eb);
 }
 
@@ -324,6 +301,11 @@ int main(int argc, char *argv[]) {
 
     memset(&ctx, 0, sizeof(ctx));
 
+    eb = event_base_new();
+
+    ctx.ev_timer = event_new(eb, -1, 0, xqc_client_timer_callback, &ctx);
+    ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
+
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT);
 
     xqc_engine_callback_t callback = {
@@ -337,8 +319,9 @@ int main(int argc, char *argv[]) {
             .read_socket = xqc_client_read_socket,
             .write_socket = xqc_client_write_socket,
             .cong_ctrl_callback = xqc_reno_cb,
+            .set_event_timer = xqc_client_set_event_timer,
     };
-    xqc_engine_set_callback(ctx.engine, callback);
+    xqc_engine_init(ctx.engine, callback, ctx.ev_timer);
 
     ctx.my_conn = malloc(sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {
@@ -352,18 +335,6 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx);
-    if (cid == NULL) {
-        printf("xqc_connect error\n");
-        return 0;
-    }
-    memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
-
-    eb = event_base_new();
-
-    ctx.ev_timer = event_new(eb, -1, 0, xqc_client_timer_callback, &ctx);
-    ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
-
     ctx.ev_recv = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_recv, NULL);
 
@@ -372,11 +343,13 @@ int main(int argc, char *argv[]) {
     tv.tv_usec = 0;
     event_add(ctx.ev_timeout, &tv);
 
-    rc = xqc_client_process_conns(&ctx);
-    if (rc) {
-        printf("xqc_client_process_conns error\n");
+    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx);
+    if (cid == NULL) {
+        printf("xqc_connect error\n");
         return 0;
     }
+    memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
+
 
     event_base_dispatch(eb);
 

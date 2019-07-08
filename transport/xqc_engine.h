@@ -14,6 +14,9 @@ xqc_config_t *xqc_engine_config_create(xqc_engine_type_t engine_type);
 
 void xqc_engine_config_destroy(xqc_config_t *config);
 
+void xqc_engine_set_callback (xqc_engine_t *engine,
+                         xqc_engine_callback_t engine_callback);
+
 typedef struct xqc_conns_pq_elem_s
 {
     xqc_pq_key_t        time_ms;

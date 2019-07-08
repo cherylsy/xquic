@@ -33,6 +33,10 @@ xqc_connect(xqc_engine_t *engine, void *user_data)
         goto fail;
     }
 
+    if (engine->event_timer) {
+        xqc_engine_main_logic(engine);
+    }
+
     return &xc->scid;
 
 fail:
