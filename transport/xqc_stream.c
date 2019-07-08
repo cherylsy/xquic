@@ -103,6 +103,30 @@ xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_param_t *trans_param)
     }
 }
 
+int
+xqc_stream_do_flow_ctl(xqc_stream_t *stream)
+{
+    if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data|%d|",
+                stream->stream_conn->conn_flow_ctl.fc_max_data);
+
+        stream->stream_conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
+        xqc_write_data_blocked_to_packet(stream->stream_conn, stream->stream_conn->conn_flow_ctl.fc_max_data);
+        return 1;
+    }
+
+    if (stream->stream_send_offset >= stream->stream_flow_ctl.fc_max_stream_data) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_stream_data|%d|",
+                stream->stream_flow_ctl.fc_max_stream_data);
+
+        stream->stream_flag |= XQC_SF_STREAM_DATA_BLOCKED;
+        xqc_write_stream_data_blocked_to_packet(stream->stream_conn, stream->stream_id,
+                                                stream->stream_flow_ctl.fc_max_stream_data);
+        return 1;
+    }
+    return 0;
+}
+
 xqc_stream_t *
 xqc_create_stream (xqc_engine_t *engine,
                    xqc_cid_t *cid,
@@ -334,7 +358,9 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 
     stream->stream_conn->conn_state = next_state;
 
-    if (next_state == XQC_CONN_STATE_ESTABED) {
+    if (next_state == XQC_CONN_STATE_ESTABED ||
+            next_state == XQC_CONN_STATE_SERVER_HANDSHAKE_SENT ||
+            next_state == XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT) {
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
     }
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
@@ -436,6 +462,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 }
 
 
+
 ssize_t
 xqc_stream_send (xqc_stream_t *stream,
                  unsigned char *send_data,
@@ -460,22 +487,7 @@ xqc_stream_send (xqc_stream_t *stream,
 
     while (offset < send_data_size || fin_only) {
 
-        if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {
-            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data|%d|",
-                    stream->stream_conn->conn_flow_ctl.fc_max_data);
-
-            conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
-            xqc_write_data_blocked_to_packet(conn, stream->stream_conn->conn_flow_ctl.fc_max_data);
-
-            return stream->stream_send_offset;
-        }
-        if (stream->stream_send_offset >= stream->stream_flow_ctl.fc_max_stream_data) {
-            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_stream_data|%d|",
-                    stream->stream_flow_ctl.fc_max_stream_data);
-
-            stream->stream_flag |= XQC_SF_STREAM_DATA_BLOCKED;
-            xqc_write_stream_data_blocked_to_packet(conn, stream->stream_id, stream->stream_flow_ctl.fc_max_stream_data);
-
+        if (xqc_stream_do_flow_ctl(stream)) {
             return stream->stream_send_offset;
         }
 

@@ -288,7 +288,7 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_reset_stream_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;
@@ -335,7 +335,7 @@ xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
         return -XQC_ESTREAM_ST;
     }
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_stop_sending_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;
@@ -364,7 +364,7 @@ xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;
@@ -394,7 +394,7 @@ xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t 
 {
     int ret;
     xqc_packet_out_t *packet_out;
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;
@@ -425,7 +425,7 @@ xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limi
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;
@@ -456,7 +456,7 @@ xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data)
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;
@@ -487,7 +487,7 @@ xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stre
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;
@@ -518,7 +518,7 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_conn_close_to_packet xqc_write_new_packet error");
         return -XQC_ENULLPTR;

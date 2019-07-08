@@ -15,7 +15,7 @@ static const char * const pkt_type_2_str[XQC_PTYPE_NUM] = {
     [XQC_PTYPE_0RTT]  = "0RTT",
     [XQC_PTYPE_HSK]   = "HSK",
     [XQC_PTYPE_RETRY] = "RETRY",
-    [XQC_PTYPE_SHORT_HEADER] = "SHORT_HEARER",
+    [XQC_PTYPE_SHORT_HEADER] = "SHORT_HEADER",
     [XQC_PTYPE_VERSION_NEGOTIATION] = "VERSION_NEGOTIATION",
 };
 
