@@ -28,6 +28,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
     }
 
+    send_ctl->ctl_packets_used_max = XQC_CTL_PACKETS_USED_MAX;
+
     xqc_send_ctl_timer_init(send_ctl);
 
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
@@ -104,6 +106,9 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
     ctl->ctl_packets_free = 0;
 }
 
+/*
+ * 拥塞检查
+ */
 int
 xqc_send_ctl_can_send (xqc_connection_t *conn)
 {
@@ -114,6 +119,18 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
         can = 0;
     }
     return can;
+}
+
+/*
+ * 写缓存
+ */
+int
+xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
+{
+    if (ctl->ctl_packets_used < ctl->ctl_packets_used_max) {
+        return 1;
+    }
+    return 0;
 }
 
 void

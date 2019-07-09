@@ -363,7 +363,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
         xqc_process_read_streams(conn);
-        if (xqc_send_ctl_can_send(conn)) {
+        if (xqc_send_ctl_can_write(conn->conn_send_ctl)) {
             xqc_process_write_streams(conn);
         }
     }

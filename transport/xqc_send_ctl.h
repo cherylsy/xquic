@@ -16,6 +16,8 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
 //2^n
 #define xqc_send_ctl_pow(n) (1 << n)
 
+#define XQC_CTL_PACKETS_USED_MAX 1000
+
 typedef enum {
     XQC_TIMER_ACK_INIT,
     XQC_TIMER_ACK_HSK = XQC_TIMER_ACK_INIT + XQC_PNS_HSK,
@@ -42,6 +44,7 @@ typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
     unsigned                    ctl_packets_used;
     unsigned                    ctl_packets_free;
+    unsigned                    ctl_packets_used_max;
     xqc_connection_t            *ctl_conn;
 
     xqc_packet_number_t         ctl_packet_number[XQC_PNS_N];
@@ -103,6 +106,9 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
 
 int
 xqc_send_ctl_can_send (xqc_connection_t *conn);
+
+int
+xqc_send_ctl_can_write(xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
