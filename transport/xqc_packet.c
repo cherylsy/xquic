@@ -214,7 +214,6 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     }
 
 
-
     /*packet_in->pos = packet_in->decode_payload;
     packet_in->last = packet_in->decode_payload + packet_in->decode_payload_len;*/
 
@@ -225,6 +224,32 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     }
 
     packet_in->last = last;
+
+    xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_single_packet|pkt_type=%s|pkt_num=%ui|frame=%s|",
+            xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
+            xqc_frame_type_2_str(packet_in->pi_frame_types));
+
+    xqc_pkt_range_status range_status;
+    int out_of_order = 0;
+
+    //TODO: 放在包解析前，判断是否是重复的包XQC_PKTRANGE_DUP，如果接收过则不需要重复解包
+    range_status = xqc_recv_record_add(&c->recv_record[packet_in->pi_pkt.pkt_pns], packet_in->pi_pkt.pkt_num,
+                                       packet_in->pkt_recv_time);
+    if (range_status == XQC_PKTRANGE_OK) {
+        if (XQC_IS_ACK_ELICITING(packet_in->pi_frame_types)) {
+            ++c->ack_eliciting_pkt[packet_in->pi_pkt.pkt_pns];
+        }
+        if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns])) {
+            out_of_order = 1;
+        }
+        xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order, packet_in->pkt_recv_time);
+    }
+
+    xqc_recv_record_log(c, &c->recv_record[packet_in->pi_pkt.pkt_pns]);
+    xqc_log(c->log, XQC_LOG_DEBUG,
+            "|xqc_conn_process_single_packet|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|pns=%d|",
+            range_status, packet_in->pi_pkt.pkt_num,
+            xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]), packet_in->pi_pkt.pkt_pns);
 
     return XQC_OK;
 }
@@ -245,9 +270,6 @@ xqc_conn_process_packets(xqc_connection_t *c,
     const unsigned char *pos = packet_in_buf;
     /* UDP包的结束地址 */
     const unsigned char *end = packet_in_buf + packet_in_size;
-
-    xqc_pkt_range_status range_status;
-    int out_of_order = 0;
 
     xqc_packet_in_t packet;
     unsigned char decrypt_payload[MAX_PACKET_LEN];
@@ -273,28 +295,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
 
         pos = packet_in->last;
 
-        xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_packets|pkt_type=%s|pkt_num=%ui|frame=%s|",
-                xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
-                xqc_frame_type_2_str(packet_in->pi_frame_types));
 
-        //TODO: 放在包解析前，判断是否是重复的包XQC_PKTRANGE_DUP，如果接收过则不需要重复解包
-        range_status = xqc_recv_record_add(&c->recv_record[packet_in->pi_pkt.pkt_pns], packet_in->pi_pkt.pkt_num,
-                            packet_in->pkt_recv_time);
-        if (range_status == XQC_PKTRANGE_OK) {
-            if (XQC_IS_ACK_ELICITING(packet_in->pi_frame_types)) {
-                ++c->ack_eliciting_pkt[packet_in->pi_pkt.pkt_pns];
-            }
-            if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns])) {
-                out_of_order = 1;
-            }
-            xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order, packet_in->pkt_recv_time);
-        }
-
-        xqc_recv_record_log(c, &c->recv_record[packet_in->pi_pkt.pkt_pns]);
-        xqc_log(c->log, XQC_LOG_DEBUG,
-                "|xqc_conn_process_packets|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|pns=%d|",
-                range_status, packet_in->pi_pkt.pkt_num,
-                xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]), packet_in->pi_pkt.pkt_pns);
     }
 
     return XQC_OK;
