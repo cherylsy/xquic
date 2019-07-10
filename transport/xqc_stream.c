@@ -350,8 +350,6 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         offset += send_data_written;
         stream->stream_send_offset += send_data_written;
         packet_out->po_used_size += n_written;
-
-        xqc_long_packet_update_length(packet_out);
     }
 
     xqc_stream_shutdown_write(stream);

@@ -352,6 +352,7 @@ int main(int argc, char *argv[]) {
     }
     memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
 
+    //xqc_client_write_notify(ctx.my_conn->stream, &ctx);
 
     event_base_dispatch(eb);
 
