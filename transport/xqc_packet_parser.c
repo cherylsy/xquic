@@ -178,7 +178,7 @@ xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
 
     packet_out->ppktno = dst_buf;
 
-    xqc_write_packet_number(dst_buf, packet_number, packet_number_bits);
+    xqc_write_packet_number(dst_buf, packet_number, packet_number_bits);//packet_number update when send
 
     return need;
 }
@@ -422,6 +422,11 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* decrypt payload */
     //pos += payload_len - packet_number_len; //parse frame时更新
 
+    if (packet_in->last < pos) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_initial|last offset error|");
+        return -XQC_EILLPKT;
+    }
+
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|payload=%ui|", packet->pkt_num, payload_len);
     packet_in->pos = pos;
 
@@ -477,7 +482,7 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* Length(i) */
     size = xqc_vint_read(pos, packet_in->last, &payload_len);
     if (size < 0
-        || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len + packet_number_len)
+        || XQC_PACKET_IN_LEFT_SIZE(packet_in) < size + payload_len/* + packet_number_len*/)
     {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_zero_rtt|payload length err|");
         return -XQC_EILLPKT;
@@ -489,6 +494,11 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* packet number */
     xqc_packet_parse_packet_number(pos, packet_number_len, &packet->pkt_num);
     pos += packet_number_len;
+
+    if (packet_in->last < pos) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_zero_rtt|last offset error|");
+        return -XQC_EILLPKT;
+    }
 
     /* decrypt payload */
 
@@ -553,6 +563,11 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* packet number */
     xqc_packet_parse_packet_number(pos, packet_number_len, &packet->pkt_num);
     pos += packet_number_len;
+
+    if (packet_in->last < pos) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_handshake|last offset error|");
+        return -XQC_EILLPKT;
+    }
 
     /* decrypt payload */
     //pos += payload_len - packet_number_len; //parse frame时更新
@@ -785,7 +800,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
             return -XQC_ESYS;
         }
         c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
-    } else if (type != XQC_PTYPE_INIT) {
+    } else if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT) {
 
         /* check cid */
         if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK

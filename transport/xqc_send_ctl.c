@@ -210,6 +210,7 @@ xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head)
 void
 xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl)
 {
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "xqc_send_ctl_drop_packets ctl_bytes_in_flight: %ui", ctl->ctl_bytes_in_flight);
     xqc_send_ctl_destroy_packets_lists(ctl);
 }
 

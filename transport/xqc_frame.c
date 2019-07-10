@@ -134,6 +134,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             return XQC_OK;
         }
 
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_frames|frame_type=0x%xd|",
+                packet_in->pos[0]);
+
         switch (packet_in->pos[0]) {
             case 0x00:
                 //padding frame
@@ -201,6 +204,7 @@ xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_padding_frame|");
     ret = xqc_parse_padding_frame(packet_in, conn);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_padding_frame|xqc_parse_padding_frame error|");

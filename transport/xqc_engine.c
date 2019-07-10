@@ -354,7 +354,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
         return;
     }
 
-    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+    if (conn->conn_state < XQC_CONN_STATE_ESTABED) {
         xqc_process_crypto_read_streams(conn);
         xqc_process_crypto_write_streams(conn);
     }
@@ -541,7 +541,10 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     if (conn == NULL
             && engine->eng_type == XQC_ENGINE_SERVER
             && XQC_PACKET_IS_LONG_HEADER(packet_in_buf)
-            && XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_INIT) {
+            &&
+                (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_INIT
+                || XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_0RTT)
+            ) {
 
         /* 防止initial包重传重复创建连接 */
         conn = xqc_engine_conns_hash_find(engine, &dcid, 'd');

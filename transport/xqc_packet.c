@@ -178,7 +178,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
-    unsigned char *last = packet_in->last;
+
     xqc_int_t ret = XQC_ERROR;
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) == 0) {
@@ -212,7 +212,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
             return ret;
         }
     }
-
+    unsigned char *last = packet_in->last;
 
     /*packet_in->pos = packet_in->decode_payload;
     packet_in->last = packet_in->decode_payload + packet_in->decode_payload_len;*/
@@ -293,6 +293,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
             return ret != XQC_OK ? ret : -XQC_ESYS;
         }
 
+        //从上一个QUIC包的结束开始处理下一个包
         pos = packet_in->last;
 
 
