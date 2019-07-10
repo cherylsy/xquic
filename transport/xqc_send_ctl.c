@@ -108,6 +108,20 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
 
 /*
  * 拥塞检查
+ * QUIC's congestion control is based on TCP NewReno [RFC6582].  NewReno
+   is a congestion window based congestion control.  QUIC specifies the
+   congestion window in bytes rather than packets due to finer control
+   and the ease of appropriate byte counting [RFC3465].
+
+   QUIC hosts MUST NOT send packets if they would increase
+   bytes_in_flight (defined in Appendix B.2) beyond the available
+   congestion window, unless the packet is a probe packet sent after a
+   PTO timer expires, as described in Section 6.3.
+
+   Implementations MAY use other congestion control algorithms, such as
+   Cubic [RFC8312], and endpoints MAY use different algorithms from one
+   another.  The signals QUIC provides for congestion control are
+   generic and are designed to support different algorithms.
  */
 int
 xqc_send_ctl_can_send (xqc_connection_t *conn)

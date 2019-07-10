@@ -7,7 +7,16 @@
 #include "../common/xqc_memory_pool.h"
 #include "xqc_frame.h"
 
-#define XQC_PACKET_OUT_SIZE 1280    //TODO 先写死
+/*
+ * https://tools.ietf.org/html/draft-ietf-quic-transport-20#section-14.1
+   In the absence of these mechanisms, QUIC endpoints SHOULD NOT send IP
+   packets larger than 1280 bytes.  Assuming the minimum IP header size,
+   this results in a QUIC maximum packet size of 1232 bytes for IPv6 and
+   1252 bytes for IPv4.  A QUIC implementation MAY be more conservative
+   in computing the QUIC maximum packet size to allow for unknown tunnel
+   overheads or IP header options/extensions.
+ */
+#define XQC_PACKET_OUT_SIZE 1200    //TODO 先写死
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3
 

@@ -360,35 +360,38 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (xqc_send_ctl_can_send(conn)) {
-            if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
-                    && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-                xqc_gen_padding_frame(packet_out);
-            }
-
-            if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
-                    !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
-                xqc_log(conn->log, XQC_LOG_WARN, "HSK NOT FINISHED");
-                continue;
-            }
-
-            ret = xqc_conn_send_one_packet(conn, packet_out);
-            if (ret < 0) {
-                return;
-            }
-
-            /* move send list to unacked list */
-            xqc_send_ctl_remove_send(&packet_out->po_list);
-            if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-                xqc_send_ctl_insert_unacked(packet_out,
-                                            &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
-                                            conn->conn_send_ctl);
-            }
-            else {
-                xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
-            }
-
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types) &&
+                !xqc_send_ctl_can_send(conn)) {
+            continue;
         }
+
+        if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
+                && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+            xqc_gen_padding_frame(packet_out);
+        }
+
+        if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
+                !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+            xqc_log(conn->log, XQC_LOG_WARN, "HSK NOT FINISHED");
+            continue;
+        }
+
+        ret = xqc_conn_send_one_packet(conn, packet_out);
+        if (ret < 0) {
+            return;
+        }
+
+        /* move send list to unacked list */
+        xqc_send_ctl_remove_send(&packet_out->po_list);
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            xqc_send_ctl_insert_unacked(packet_out,
+                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                        conn->conn_send_ctl);
+        }
+        else {
+            xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
+        }
+
     }
 }
 
@@ -428,19 +431,19 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_lost_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        //if (xqc_send_ctl_can_send(conn)) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_retransmit_lost_packets|");
-            packet_out->po_flag |= XQC_POF_RETRANS;
 
-            ret = xqc_conn_send_one_packet(conn, packet_out);
-            if (ret < 0) {
-                return;
-            }
-            xqc_send_ctl_remove_lost(&packet_out->po_list);
-            xqc_send_ctl_insert_unacked(packet_out,
-                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
-                                        conn->conn_send_ctl);
-        //}
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_retransmit_lost_packets|");
+        packet_out->po_flag |= XQC_POF_RETRANS;
+
+        ret = xqc_conn_send_one_packet(conn, packet_out);
+        if (ret < 0) {
+            return;
+        }
+        xqc_send_ctl_remove_lost(&packet_out->po_list);
+        xqc_send_ctl_insert_unacked(packet_out,
+                                    &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                    conn->conn_send_ctl);
+
     }
 }
 
@@ -477,22 +480,20 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        //if (xqc_send_ctl_can_send(conn)) {
+
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             xqc_conn_send_one_packet(conn, packet_out);
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);
-            if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-                xqc_send_ctl_insert_unacked(packet_out,
-                                            &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
-                                            conn->conn_send_ctl);
-            } else {
-                xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
-            }
-            if (++cnt >= probe_num) {
-                return;
-            }
-        //}
+            xqc_send_ctl_insert_unacked(packet_out,
+                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                        conn->conn_send_ctl);
+        }
+
+        if (++cnt >= probe_num) {
+            return;
+        }
     }
 
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
