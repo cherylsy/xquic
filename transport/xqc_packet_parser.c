@@ -259,15 +259,16 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 void
 xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
 {
-    if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER) {
-        return;
+    if (packet_out->po_pkt.pkt_type == XQC_PTYPE_INIT
+            || packet_out->po_pkt.pkt_type == XQC_PTYPE_HSK
+            || packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT) {
+
+        unsigned char *plength = packet_out->ppktno - XQC_LONG_HEADER_LENGTH_BYTE;
+
+        unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno;
+
+        xqc_vint_write(plength, length, 0x01, 2);
     }
-
-    unsigned char *plength = packet_out->ppktno - XQC_LONG_HEADER_LENGTH_BYTE;
-
-    unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno;
-
-    xqc_vint_write(plength, length, 0x01, 2);
 }
 
 void
