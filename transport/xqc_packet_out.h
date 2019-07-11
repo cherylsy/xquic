@@ -24,6 +24,7 @@ typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,
     XQC_POF_RETRANS          = 1 << 1,
     XQC_POF_DCID_NOT_DONE    = 1 << 2,
+    XQC_POF_ENCRYPTED        = 1 << 3,
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {
