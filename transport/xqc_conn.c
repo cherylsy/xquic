@@ -406,7 +406,8 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     xqc_long_packet_update_length(packet_out);
 
     if (!(packet_out->po_flag & XQC_POF_ENCRYPTED)) {
-
+        //do encrypt
+        packet_out->po_flag |= XQC_POF_ENCRYPTED;
     }
 
     sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
