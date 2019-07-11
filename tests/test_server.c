@@ -29,8 +29,8 @@ typedef struct xqc_server_ctx_s {
     socklen_t peer_addrlen;
     uint64_t send_offset;
     xqc_stream_t *stream;
-    struct event *ev_recv;
-    struct event *ev_timer;
+    struct event *ev_socket;
+    struct event *ev_engine;
 } xqc_server_ctx_t;
 
 xqc_server_ctx_t ctx;
@@ -212,7 +212,7 @@ err:
 
 
 static void
-xqc_server_timer_callback(int fd, short what, void *arg)
+xqc_server_engine_callback(int fd, short what, void *arg)
 {
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
@@ -244,9 +244,9 @@ int main(int argc, char *argv[]) {
 
     eb = event_base_new();
 
-    ctx.ev_timer = event_new(eb, -1, 0, xqc_server_timer_callback, &ctx);
+    ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
-    xqc_engine_init(ctx.engine, callback, ctx.ev_timer);
+    xqc_engine_init(ctx.engine, callback, ctx.ev_engine);
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
     if (ctx.fd < 0) {
@@ -254,9 +254,9 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    ctx.ev_recv = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
+    ctx.ev_socket = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
 
-    event_add(ctx.ev_recv, NULL);
+    event_add(ctx.ev_socket, NULL);
 
     event_base_dispatch(eb);
 

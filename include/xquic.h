@@ -196,6 +196,12 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                void *user_data);
 
 /**
+ * User should call xqc_conn_write_handler when write event ready
+ */
+int
+xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid);
+
+/**
  * @return >0 : user should call xqc_engine_main_logic after N ms
  */
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);

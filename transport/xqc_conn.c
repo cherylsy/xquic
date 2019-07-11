@@ -454,6 +454,7 @@ xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     xqc_pkt_num_space_t pns;
+    int ret;
 
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
@@ -462,7 +463,10 @@ xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
 
             if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
 
-                xqc_conn_send_one_packet(conn, packet_out);
+                ret = xqc_conn_send_one_packet(conn, packet_out);
+                if (ret < 0) {
+                    return;
+                }
             }
         }
     }
@@ -478,12 +482,16 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
     xqc_pkt_num_space_t pns;
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
+    int ret;
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-            xqc_conn_send_one_packet(conn, packet_out);
+            ret = xqc_conn_send_one_packet(conn, packet_out);
+            if (ret < 0) {
+                return;
+            }
 
             /* move send list to unacked list */
             xqc_send_ctl_remove_send(&packet_out->po_list);
@@ -502,7 +510,10 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
 
-                xqc_conn_send_one_packet(conn, packet_out);
+                ret = xqc_conn_send_one_packet(conn, packet_out);
+                if (ret < 0) {
+                    return;
+                }
                 if (++cnt >= probe_num) {
                     return;
                 }
@@ -620,5 +631,21 @@ xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data)
     }
 
     xqc_log(engine->log, XQC_LOG_WARN, "xqc_send_reset ok, size=%d", size);
+    return XQC_OK;
+}
+
+int
+xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid)
+{
+    xqc_connection_t *conn;
+
+    conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (!conn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conn_write_handler|can not find connection");
+        return -XQC_ECONN_NFOUND;
+    }
+    xqc_conn_send_packets(conn);
+    xqc_engine_main_logic(conn->engine);
+
     return XQC_OK;
 }
