@@ -35,6 +35,9 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 void
 xqc_long_packet_update_length (xqc_packet_out_t *packet_out);
 
+void
+xqc_short_packet_update_dcid(xqc_packet_out_t *packet_out, xqc_connection_t *conn);
+
 int
 xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned char *dcid, unsigned char dcid_len,

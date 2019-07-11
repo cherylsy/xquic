@@ -270,6 +270,14 @@ xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
     xqc_vint_write(plength, length, 0x01, 2);
 }
 
+void
+xqc_short_packet_update_dcid(xqc_packet_out_t *packet_out, xqc_connection_t *conn)
+{
+    unsigned char *dst = packet_out->po_buf + 1;
+    //dcid len不能变
+    memcpy(dst, conn->dcid.cid_buf, conn->dcid.cid_len);
+}
+
 int
 xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             unsigned char *dcid, unsigned char dcid_len,

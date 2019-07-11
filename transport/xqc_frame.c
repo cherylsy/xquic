@@ -333,6 +333,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_process_crypto_frame|recvd crypto after conn estabed|");
         packet_in->pos = packet_in->last;
+        packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
         return XQC_OK;
     }
 

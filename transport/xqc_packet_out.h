@@ -23,6 +23,7 @@
 typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,
     XQC_POF_RETRANS          = 1 << 1,
+    XQC_POF_DCID_NOT_DONE    = 1 << 2,
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {
@@ -104,6 +105,7 @@ xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stre
 int
 xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int bidirectional);
 
-
+void
+xqc_process_buff_packets(xqc_connection_t *conn);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

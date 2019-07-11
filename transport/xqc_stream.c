@@ -475,11 +475,14 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_packet_out_t *packet_out;
     uint8_t fin_only = fin && !send_data_size;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
-    int support_0rtt = 1;
+    int support_0rtt = 1; //TODO
+    int buff_1rtt = 0;
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
             support_0rtt) {
         pkt_type = XQC_PTYPE_0RTT;
+    } else if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+        buff_1rtt = 1;
     }
 
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
@@ -500,22 +503,33 @@ xqc_stream_send (xqc_stream_t *stream,
             return stream->stream_send_offset;
         }
 
-        unsigned int header_size = xqc_stream_frame_header_size(stream->stream_id,
-                                                                stream->stream_send_offset,
-                                                                send_data_size - offset);
-
-        packet_out = xqc_write_packet(conn, pkt_type, header_size + 1);
-        if (packet_out == NULL) {
-            return -XQC_ENULLPTR;
-        }
-
-        if (packet_out->po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO - 1].ps_stream != NULL) {
+        if (buff_1rtt) {
             packet_out = xqc_write_new_packet(conn, pkt_type);
             if (packet_out == NULL) {
                 return -XQC_ENULLPTR;
             }
-        }
+            xqc_send_ctl_remove_send(&packet_out->po_list);
+            xqc_send_ctl_insert_buff(&packet_out->po_list, &conn->conn_send_ctl->ctl_buff_packets);
+            if (!(conn->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
+                packet_out->po_flag |= XQC_POF_DCID_NOT_DONE;
+            }
+        } else {
+            unsigned int header_size = xqc_stream_frame_header_size(stream->stream_id,
+                                                                    stream->stream_send_offset,
+                                                                    send_data_size - offset);
 
+            packet_out = xqc_write_packet(conn, pkt_type, header_size + 1);
+            if (packet_out == NULL) {
+                return -XQC_ENULLPTR;
+            }
+
+            if (packet_out->po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO - 1].ps_stream != NULL) {
+                packet_out = xqc_write_new_packet(conn, pkt_type);
+                if (packet_out == NULL) {
+                    return -XQC_ENULLPTR;
+                }
+            }
+        }
         n_written = xqc_gen_stream_frame(packet_out,
                                          stream->stream_id, stream->stream_send_offset, fin,
                                          send_data + offset,

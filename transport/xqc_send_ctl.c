@@ -24,6 +24,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_init_list_head(&send_ctl->ctl_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
     xqc_init_list_head(&send_ctl->ctl_free_packets);
+    xqc_init_list_head(&send_ctl->ctl_buff_packets);
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
     }
@@ -95,6 +96,7 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_lost_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_free_packets);
+    xqc_send_ctl_destroy_packets_list(&ctl->ctl_buff_packets);
 
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_send_ctl_destroy_packets_list(&ctl->ctl_unacked_packets[pns]);
@@ -198,6 +200,19 @@ xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_c
     xqc_list_add_tail(pos, head);
     ctl->ctl_packets_free++;
     ctl->ctl_packets_used--;
+}
+
+void
+xqc_send_ctl_remove_buff(xqc_list_head_t *pos, xqc_send_ctl_t *ctl)
+{
+    xqc_list_del_init(pos);
+    ctl->ctl_packets_used--;
+}
+
+void
+xqc_send_ctl_insert_buff(xqc_list_head_t *pos, xqc_list_head_t *head)
+{
+    xqc_list_add_tail(pos, head);
 }
 
 void
