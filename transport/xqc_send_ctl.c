@@ -134,6 +134,12 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
     if (conn->conn_send_ctl->ctl_bytes_in_flight >= congestion_window) {
         can = 0;
     }
+
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
+          && conn->conn_type == XQC_CONN_TYPE_SERVER
+          && conn->conn_send_ctl->ctl_bytes_send > 3 * conn->conn_send_ctl->ctl_bytes_recv) {
+        can = 0;
+    }
     return can;
 }
 
@@ -350,6 +356,8 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
     if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent) {
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
     }
+
+    ctl->ctl_bytes_send += packet_out->po_used_size;
 
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {

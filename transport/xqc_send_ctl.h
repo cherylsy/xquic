@@ -83,6 +83,9 @@ typedef struct xqc_send_ctl_s {
     unsigned                    ctl_bytes_in_flight;
     unsigned                    ctl_crypto_bytes_in_flight;
 
+    uint64_t                    ctl_bytes_send;
+    uint64_t                    ctl_bytes_recv;
+
     const
     xqc_cong_ctrl_callback_t    *ctl_cong_callback;
     void                        *ctl_cong;

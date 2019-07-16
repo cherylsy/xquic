@@ -271,6 +271,8 @@ xqc_conn_process_packets(xqc_connection_t *c,
     /* UDP包的结束地址 */
     const unsigned char *end = packet_in_buf + packet_in_size;
 
+    c->conn_send_ctl->ctl_bytes_recv += packet_in_size;
+
     xqc_packet_in_t packet;
     unsigned char decrypt_payload[MAX_PACKET_LEN];
 
