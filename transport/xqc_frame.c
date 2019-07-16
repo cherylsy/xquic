@@ -156,6 +156,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                 //crypto frame
                 ret = xqc_process_crypto_frame(conn, packet_in);
                 break;
+            case 0x07:
+                ret = xqc_process_new_token_frame(conn, packet_in);
+                break;
             case 0x08 ... 0x0f:
                 //stream frame
                 ret = xqc_process_stream_frame(conn, packet_in);
@@ -331,19 +334,22 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     /*  check token */
     if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
-        && conn->conn_type == XQC_CONN_TYPE_SERVER
-        && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT
-        && !xqc_conn_check_token_ok(conn, conn->conn_token, conn->conn_token_len)) {
-        unsigned char token[XQC_MAX_TOKEN_LEN];
-        unsigned token_len = XQC_MAX_TOKEN_LEN;
-        xqc_conn_gen_token(conn, token, &token_len);
-        if (xqc_send_retry(conn, token, token_len) != 0) {
-            return -XQC_SEND_RETRY;
+            && conn->conn_type == XQC_CONN_TYPE_SERVER
+            && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {
+
+        if (xqc_conn_check_token_ok(conn, conn->conn_token, conn->conn_token_len)) {
+            conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
+        } else {
+            unsigned char token[XQC_MAX_TOKEN_LEN];
+            unsigned token_len = XQC_MAX_TOKEN_LEN;
+            xqc_conn_gen_token(conn, token, &token_len);
+            if (xqc_send_retry(conn, token, token_len) != 0) {
+                return -XQC_SEND_RETRY;
+            }
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
         }
-        packet_in->pos = packet_in->last;
-        return XQC_OK;
     }
-    conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
 
     if (conn->conn_state >= XQC_CONN_STATE_ESTABED) {
         xqc_log(conn->log, XQC_LOG_ERROR,
@@ -662,5 +668,23 @@ xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     } else {
         conn->conn_flow_ctl.fc_max_streams_uni = max_streams;
     }
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    int ret;
+
+    conn->conn_token_len = XQC_MAX_TOKEN_LEN;
+    ret = xqc_parse_new_token_frame(packet_in, conn->conn_token, &conn->conn_token_len);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_process_new_token_frame|xqc_parse_new_token_frame error|");
+        return ret;
+    }
+
+    conn->engine->eng_callback.save_token(conn->conn_token, conn->conn_token_len);
+
     return XQC_OK;
 }

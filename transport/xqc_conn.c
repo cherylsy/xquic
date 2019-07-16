@@ -723,9 +723,15 @@ xqc_conn_check_token_ok(xqc_connection_t *conn, const unsigned char *token, unsi
     uint32_t *expire = (uint32_t*)pos;
     *expire = ntohl(*expire);
 
-    if (*expire < xqc_gettimeofday() / 1000) {
+    xqc_msec_t now = xqc_gettimeofday() / 1000;
+    if (*expire < now) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|token_expire %ui", *expire);
         return 0;
+    }
+
+    if (*expire < now + XQC_TOKEN_UPDATE_DELTA) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_check_token_ok|new token %ui", *expire);
+        xqc_write_new_token_to_packet(conn);
     }
 
     return 1;

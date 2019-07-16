@@ -1,4 +1,5 @@
 #include <common/xqc_errno.h>
+#include <common/xqc_variable_len_int.h>
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 #include "../common/xqc_memory_pool.h"
@@ -515,6 +516,42 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
     packet_out->po_used_size += ret;
 
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_packets);
+
+    return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
+}
+
+int
+xqc_write_new_token_to_packet(xqc_connection_t *conn)
+{
+    int ret;
+    unsigned need;
+    xqc_packet_out_t *packet_out;
+
+    unsigned char token[XQC_MAX_TOKEN_LEN];
+    unsigned token_len = XQC_MAX_TOKEN_LEN;
+    xqc_conn_gen_token(conn, token, &token_len);
+
+    need = 1 //type
+            + xqc_vint_get_2bit(token_len) // token len
+            + token_len; //token
+
+    packet_out = xqc_write_packet(conn, XQC_PTYPE_NUM, need);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_write_new_token_to_packet xqc_write_new_packet error");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_new_token_frame(packet_out, token, token_len);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_gen_new_token_frame error");
+        goto error;
+    }
+
+    packet_out->po_used_size += ret;
 
     return XQC_OK;
 

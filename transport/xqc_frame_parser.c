@@ -1081,3 +1081,72 @@ xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, i
 
     return XQC_OK;
 }
+
+/*
+ *     0                   1                   2                   3
+    0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                     Token Length (i)  ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                            Token (*)                        ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ */
+int
+xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *token, unsigned token_len)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    *dst_buf++ = 0x07;
+
+    unsigned token_len_bits = xqc_vint_get_2bit(token_len);
+    xqc_vint_write(dst_buf, token_len, token_len_bits, xqc_vint_len(token_len_bits));
+    dst_buf += xqc_vint_len(token_len_bits);
+
+    if (packet_out->po_used_size
+        + 1
+        + xqc_vint_len(token_len_bits)
+        + token_len
+        > packet_out->po_buf_size) {
+        return -XQC_ENOBUF;
+    }
+    xqc_memcpy(dst_buf, token, token_len);
+    dst_buf += token_len;
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_NEW_TOKEN;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsigned *token_len)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+    uint64_t recv_token_len;
+
+    vlen = xqc_vint_read(p, end, &recv_token_len);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    if (recv_token_len > *token_len) {
+        return -XQC_ENOBUF;
+    }
+    if (p + recv_token_len > end) {
+        return -XQC_EILLPKT;
+    }
+    xqc_memcpy(token, p, recv_token_len);
+    *token_len = recv_token_len;
+    p += recv_token_len;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_NEW_TOKEN;
+
+    return XQC_OK;
+}

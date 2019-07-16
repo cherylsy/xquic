@@ -106,6 +106,9 @@ xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stre
 int
 xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int bidirectional);
 
+int
+xqc_write_new_token_to_packet(xqc_connection_t *conn);
+
 void
 xqc_process_buff_packets(xqc_connection_t *conn);
 
