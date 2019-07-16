@@ -14,8 +14,8 @@
 #define XQC_SUPPORT_VERSION_MAX 64
 
 typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
+typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
 
-typedef ssize_t (*xqc_recv_pt)(void *user, unsigned char *buf, size_t size);
 typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
 typedef int (*xqc_conn_notify_pt)(xqc_cid_t *cid, void *user_data);
@@ -75,8 +75,9 @@ typedef struct xqc_engine_callback_s {
     /* for event loop */
     xqc_set_event_timer_pt      set_event_timer;
 
-    /* for socket read & write */
-    xqc_recv_pt                 read_socket;
+    xqc_save_token_pt           save_token;
+
+    /* for socket write */
     xqc_send_pt                 write_socket;
 
     /* for connection notify */

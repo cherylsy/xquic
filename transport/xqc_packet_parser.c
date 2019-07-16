@@ -693,8 +693,8 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_memcpy(c->conn_token, pos, packet_in->last - pos);
     c->conn_token_len = packet_in->last - pos;
 
-    //TODO:存储token
-
+    //存储token
+    c->engine->eng_callback.save_token(c->conn_token, c->conn_token_len);
 
     /* 重新发起握手 */
     c->conn_state = XQC_CONN_STATE_CLIENT_INIT;

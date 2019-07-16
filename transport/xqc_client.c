@@ -39,7 +39,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigne
         goto fail;
     }
 
-    if (token) {
+    if (token && token_len > 0) {
         xc->conn_token_len = token_len;
         memcpy(xc->conn_token, token, token_len);
     }

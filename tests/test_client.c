@@ -68,19 +68,33 @@ void xqc_client_set_event_timer(void *timer, xqc_msec_t wake_after)
 
 }
 
-ssize_t xqc_client_read_socket(void *user, unsigned char *buf, size_t size)
+void xqc_client_save_token(const unsigned char *token, unsigned token_len)
 {
-    client_ctx_t *ctx = (client_ctx_t *) user;
-    ssize_t res;
-    int fd = ctx->my_conn->fd;
+    int fd = open("./xqc_token",O_TRUNC|O_CREAT|O_WRONLY, S_IRWXU);
+    if (fd < 0) {
+        printf("save token error %s\n", strerror(errno));
+        return;
+    }
 
-    do {
-        res = read(fd, buf, size);
-    } while ((res < 0) && (errno == EINTR));
-
-    return res;
+    ssize_t n = write(fd, token, token_len);
+    if (n < token_len) {
+        printf("save token error %s\n", strerror(errno));
+        return;
+    }
 }
 
+int xqc_client_read_token(unsigned char *token, unsigned token_len)
+{
+    int fd = open("./xqc_token", O_RDONLY);
+    if (fd < 0) {
+        printf("read token error %s\n", strerror(errno));
+        return -1;
+    }
+
+    ssize_t n = read(fd, token, token_len);
+    printf("read token size %lld\n", n);
+    return n;
+}
 
 ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
 {
@@ -314,6 +328,7 @@ int main(int argc, char *argv[]) {
 
     }
 
+
     memset(&ctx, 0, sizeof(ctx));
 
     eb = event_base_new();
@@ -331,10 +346,10 @@ int main(int argc, char *argv[]) {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
             },
-            .read_socket = xqc_client_read_socket,
             .write_socket = xqc_client_write_socket,
             .cong_ctrl_callback = xqc_reno_cb,
             .set_event_timer = xqc_client_set_event_timer,
+            .save_token = xqc_client_save_token,
     };
     xqc_engine_init(ctx.engine, callback, ctx.ev_engine);
 
@@ -352,6 +367,14 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_socket = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_socket, NULL);
+
+    unsigned char token[XQC_MAX_TOKEN_LEN];
+    int token_len = XQC_MAX_TOKEN_LEN;
+    token_len = xqc_client_read_token(token, token_len);
+    if (token_len > 0) {
+        ctx.my_conn->token = token;
+        ctx.my_conn->token_len = token_len;
+    }
 
     struct timeval tv;
     tv.tv_sec = 3;
