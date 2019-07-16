@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <event2/event.h>
+#include <arpa/inet.h>
 #include "xqc_cmake_config.h"
 #include "../include/xquic_typedef.h"
 #include "../include/xquic.h"
@@ -133,7 +134,9 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     }
 
     printf("xqc_server_read_handler recv_size=%zd\n",recv_size);
-
+    /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
+    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));
+*/
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen, 
                             (struct sockaddr *)(&ctx->peer_addr), ctx->peer_addrlen, (xqc_msec_t)recv_time, ctx) != 0)

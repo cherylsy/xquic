@@ -28,7 +28,8 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_TIME_OUT_SHIFT]              = "TIME_OUT",
         [XQC_CONN_FLAG_ERROR_SHIFT]                 = "ERROR",
         [XQC_CONN_FLAG_DATA_BLOCKED_SHIFT]          = "DATA_BLOCKED",
-        [XQC_CONN_FLAG_DCID_OK_SHIFT]               = "DCID_OK"
+        [XQC_CONN_FLAG_DCID_OK_SHIFT]               = "DCID_OK",
+        [XQC_CONN_FLAG_TOKEN_OK_SHIFT]              = "TOKEN_OK"
 };
 
 const char*
@@ -335,7 +336,9 @@ xqc_client_create_connection(xqc_engine_t *engine,
     if (xc == NULL) {
         return NULL;
     }
-                    
+
+    xqc_cid_copy(&(xc->ocid), &(xc->dcid));
+
     xc->cur_stream_id_bidi_local = 0;
     xc->cur_stream_id_uni_local = 2;
 
@@ -640,6 +643,31 @@ xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data)
 }
 
 int
+xqc_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len)
+{
+    xqc_engine_t *engine = conn->engine;
+    unsigned char buf[XQC_PACKET_OUT_SIZE];
+    int size;
+
+    size = (int)xqc_gen_retry_packet(buf,
+                                     conn->dcid.cid_buf, conn->dcid.cid_len,
+                                     conn->scid.cid_buf, conn->scid.cid_len,
+                                     conn->ocid.cid_buf, conn->ocid.cid_len,
+                                     token, token_len, XQC_QUIC_VERSION);
+    if (size < 0) {
+        return size;
+    }
+
+    size = (int)engine->eng_callback.write_socket(conn->user_data, buf, (size_t)size);
+    if (size < 0) {
+        return size;
+    }
+
+    xqc_log(engine->log, XQC_LOG_WARN, "xqc_send_retry ok, size=%d", size);
+    return XQC_OK;
+}
+
+int
 xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid)
 {
     xqc_connection_t *conn;
@@ -653,4 +681,88 @@ xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid)
     xqc_engine_main_logic(conn->engine);
 
     return XQC_OK;
+}
+
+int
+xqc_conn_check_token_ok(xqc_connection_t *conn, const unsigned char *token, unsigned token_len)
+{
+    if (token_len > XQC_MAX_TOKEN_LEN) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|exceed XQC_MAX_TOKEN_LEN");
+        return 0;
+    }
+
+    struct sockaddr *sa = (struct sockaddr *)conn->peer_addr;
+    const unsigned char *pos = token;
+    if (*pos++ & 0x80) {
+        struct in6_addr *in6 = (struct in6_addr *)pos;
+        struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)sa;
+        if (token_len != 21) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|token_len error");
+            return 0;
+        }
+        if (memcmp(&sa6->sin6_addr, in6, sizeof(struct in6_addr)) != 0) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|ipv6 not match");
+            return 0;
+        }
+        pos += sizeof(struct in6_addr);
+
+    } else {
+        struct in_addr *in4 = (struct in_addr *)pos;
+        struct sockaddr_in *sa4 = (struct sockaddr_in*)sa;
+        if (token_len != 9) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|token_len error");
+            return 0;
+        }
+        if (memcmp(&sa4->sin_addr, in4, sizeof(struct in_addr)) != 0) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|ipv4 not match");
+            return 0;
+        }
+        pos += sizeof(struct in_addr);
+    }
+
+    uint32_t *expire = (uint32_t*)pos;
+    *expire = ntohl(*expire);
+
+    if (*expire < xqc_gettimeofday() / 1000) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|token_expire %ui", *expire);
+        return 0;
+    }
+
+    return 1;
+}
+
+/*
++-+-+-+-+-+-+-+-+
+|v|0|0|0|0|0|0|0|
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                     IP(32/128)                                |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                   Expire Time(32)                             |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+ v: 0 For IPv4, 1 For IPv6
+ */
+void
+xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len)
+{
+    struct sockaddr *sa = (struct sockaddr *)conn->peer_addr;
+    if (sa->sa_family == AF_INET) {
+        *token++ = 0x00;
+        struct sockaddr_in *sa4 = (struct sockaddr_in*)sa;
+        memcpy(token, &sa4->sin_addr, sizeof(struct in_addr));
+        token += sizeof(struct in_addr);
+
+        *token_len = 9;
+    } else {
+        *token++ = 0x80;
+        struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)sa;
+        memcpy(token, &sa6->sin6_addr, sizeof(struct in6_addr));
+        token += sizeof(struct in6_addr);
+
+        *token_len = 21;
+    }
+
+    uint32_t expire = xqc_gettimeofday() / 1000 + XQC_TOKEN_EXPIRE_DELTA;
+    expire = htonl(expire);
+    memcpy(token, &expire, sizeof(expire));
+
 }

@@ -70,16 +70,14 @@ typedef int               xqc_err_t;
 #define XQC_ESOCKET         615
 #define XQC_EFATAL          616 //致命错误
 #define XQC_ESTREAM_ST      617
+#define XQC_SEND_RETRY      618
 
 /* For QUIC ssl 7xx */
 
 
 /* For QUIC application 8xx */
 
-#define xqc_errno                  errno
-#define xqc_socket_errno           errno
-#define xqc_set_errno(err)         errno = err
-#define xqc_set_socket_errno(err)  errno = err
+
 
 
 

@@ -139,7 +139,7 @@ xqc_engine_init (xqc_engine_t *engine,
                  void *event_timer);
 
 
-xqc_cid_t* xqc_connect(xqc_engine_t *engine, void *user_data);
+xqc_cid_t* xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigned token_len);
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 

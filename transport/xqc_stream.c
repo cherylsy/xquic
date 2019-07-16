@@ -333,7 +333,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         unsigned int header_size = xqc_crypto_frame_header_size(stream->stream_send_offset,
                                                                 send_data_size - offset);
 
-        packet_out = xqc_write_packet(c, pkt_type, header_size + 1);
+        packet_out = xqc_write_new_packet(c, pkt_type);
         if (packet_out == NULL) {
             return -XQC_ENULLPTR;
         }

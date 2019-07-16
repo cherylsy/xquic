@@ -27,7 +27,7 @@ void xqc_test_conn_create()
 
     CU_ASSERT(engine != NULL);
 
-    xqc_cid_t *cid = xqc_connect(engine, NULL);
+    xqc_cid_t *cid = xqc_connect(engine, NULL, NULL, 0);
     CU_ASSERT_NOT_EQUAL(cid, NULL);
 
     xqc_engine_destroy(engine);

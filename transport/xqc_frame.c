@@ -329,6 +329,22 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
 
+    /*  check token */
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
+        && conn->conn_type == XQC_CONN_TYPE_SERVER
+        && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT
+        && !xqc_conn_check_token_ok(conn, conn->conn_token, conn->conn_token_len)) {
+        unsigned char token[XQC_MAX_TOKEN_LEN];
+        unsigned token_len = XQC_MAX_TOKEN_LEN;
+        xqc_conn_gen_token(conn, token, &token_len);
+        if (xqc_send_retry(conn, token, token_len) != 0) {
+            return -XQC_SEND_RETRY;
+        }
+        packet_in->pos = packet_in->last;
+        return XQC_OK;
+    }
+    conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
+
     if (conn->conn_state >= XQC_CONN_STATE_ESTABED) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_process_crypto_frame|recvd crypto after conn estabed|");

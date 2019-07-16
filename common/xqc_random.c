@@ -69,10 +69,10 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
 			
             if(bytes_read == -1){
 				
-                if(xqc_errno == EINTR){
+                if(errno == EINTR){
                     continue;
                 }
-                if(xqc_errno == EAGAIN){
+                if(errno == EAGAIN){
                     break;
                 }
             }

@@ -32,6 +32,8 @@ typedef struct user_conn_s {
     socklen_t           peer_addrlen;
 
     xqc_stream_t       *stream;
+    unsigned char      *token;
+    unsigned            token_len;
 } user_conn_t;
 
 typedef struct client_ctx_s {
@@ -97,7 +99,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
 static int xqc_client_create_socket(const char *addr, unsigned int port)
 {
     int fd;
-    struct sockaddr_in saddr;
+    struct sockaddr_in *saddr = &ctx.my_conn->peer_addr;
     struct hostent *remote;
 
     remote = gethostbyname(addr);
@@ -117,16 +119,24 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
         goto err;
     }
 
-    memset(&saddr, 0, sizeof(saddr));
+    memset(saddr, 0, sizeof(struct sockaddr_in));
 
-    saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(port);
-    saddr.sin_addr = *((struct in_addr *)remote->h_addr);
+    saddr->sin_family = AF_INET;
+    saddr->sin_port = htons(port);
+    saddr->sin_addr = *((struct in_addr *)remote->h_addr);
 
-    if (connect(fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+    if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
     }
+
+    socklen_t tmp = sizeof(struct sockaddr_in);
+    getsockname(fd, (struct sockaddr *)&ctx.my_conn->local_addr, &tmp);
+
+    printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx.my_conn->peer_addr.sin_addr), ntohs(ctx.my_conn->peer_addr.sin_port));
+    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx.my_conn->local_addr.sin_addr), ntohs(ctx.my_conn->local_addr.sin_port));
+
+
 
     return fd;
 
@@ -220,7 +230,9 @@ xqc_client_read_handler(client_ctx_t *ctx)
     }
 
     printf("xqc_client_read_handler recv_size=%zd\n",recv_size);
-
+    /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
+    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
+*/
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen, 
                             (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
@@ -326,7 +338,7 @@ int main(int argc, char *argv[]) {
     };
     xqc_engine_init(ctx.engine, callback, ctx.ev_engine);
 
-    ctx.my_conn = malloc(sizeof(user_conn_t));
+    ctx.my_conn = xqc_calloc(1, sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {
         printf("xqc_malloc error\n");
         return 0;
@@ -346,7 +358,7 @@ int main(int argc, char *argv[]) {
     tv.tv_usec = 0;
     event_add(ctx.ev_timeout, &tv);
 
-    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx);
+    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len);
     if (cid == NULL) {
         printf("xqc_connect error\n");
         return 0;

@@ -85,7 +85,7 @@ xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         ret = xqc_gen_long_packet_header(packet_out,
                                          conn->dcid.cid_buf, conn->dcid.cid_len,
                                          conn->scid.cid_buf, conn->scid.cid_len,
-                                         NULL, 0,
+                                         conn->conn_token, conn->conn_token_len,
                                          XQC_QUIC_VERSION, XQC_PKTNO_BITS);
     }
     if (ret < 0) {
