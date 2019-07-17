@@ -283,6 +283,10 @@ xqc_destroy_connection(xqc_connection_t *xc)
         return;
     }
 
+    if (xc->conn_callbacks.conn_close_notify) {
+        xc->conn_callbacks.conn_close_notify(&xc->scid, xc->user_data);
+    }
+
     xqc_list_head_t *pos, *next;
     xqc_stream_t *stream;
 

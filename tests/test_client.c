@@ -160,7 +160,7 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
 }
 int xqc_client_write_notify(xqc_stream_t *stream, void *user_data);
 
-int xqc_client_conn_notify(xqc_cid_t *cid, void *user_data) {
+int xqc_client_conn_create_notify(xqc_cid_t *cid, void *user_data) {
     DEBUG;
 
     client_ctx_t *ctx = (client_ctx_t *) user_data;
@@ -168,6 +168,14 @@ int xqc_client_conn_notify(xqc_cid_t *cid, void *user_data) {
     ctx->send_offset = 0;
 
     //xqc_client_write_notify(ctx->my_conn->stream, user_data);
+    return 0;
+}
+
+int xqc_client_conn_close_notify(xqc_cid_t *cid, void *user_data) {
+    DEBUG;
+
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
     return 0;
 }
 
@@ -340,7 +348,8 @@ int main(int argc, char *argv[]) {
 
     xqc_engine_callback_t callback = {
             .conn_callbacks = {
-                    .conn_create_notify = xqc_client_conn_notify,
+                    .conn_create_notify = xqc_client_conn_create_notify,
+                    .conn_close_notify = xqc_client_conn_close_notify,
             },
             .stream_callbacks = {
                     .stream_write_notify = xqc_client_write_notify,
