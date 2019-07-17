@@ -11,7 +11,7 @@
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
 #define XQC_kGranularity 1
-#define XQC_kInitialRtt 100
+#define XQC_kInitialRtt 500
 
 //2^n
 #define xqc_send_ctl_pow(n) (1 << n)
@@ -183,8 +183,8 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 static inline xqc_msec_t
 xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
 {
-    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) +
-                     ctl->ctl_conn->trans_param.max_ack_delay;
+    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity*1000) +
+                     ctl->ctl_conn->trans_param.max_ack_delay*1000;
 }
 
 void

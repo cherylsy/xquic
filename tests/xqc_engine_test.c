@@ -64,7 +64,7 @@ void xqc_test_engine_packet_process()
     engine->eng_callback.write_socket = xqc_client_send;
     engine->eng_callback.cong_ctrl_callback = xqc_reno_cb;
 
-    xqc_msec_t recv_time = xqc_gettimeofday();
+    xqc_msec_t recv_time = xqc_now();
 
     xqc_int_t rc = xqc_engine_packet_process(engine, 
                          XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1, 
@@ -86,7 +86,7 @@ void xqc_test_engine_packet_process()
     /* set handshake completed */
     conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
 
-    recv_time = xqc_gettimeofday();
+    recv_time = xqc_now();
     rc = xqc_engine_packet_process(engine, 
                          XQC_TEST_SHORT_HEADER_PACKET_A, sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1, 
                          local_addr, local_addrlen, 

@@ -39,20 +39,20 @@ struct event_base *eb;
 
 static inline uint64_t now()
 {
-    /*获取毫秒单位时间*/
+    /*获取微秒单位时间*/
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    uint64_t ul = tv.tv_sec * 1000000 + tv.tv_usec;
     return  ul;
 }
 
 void xqc_server_set_event_timer(void *timer, xqc_msec_t wake_after)
 {
-    printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
+    printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
-    tv.tv_sec = wake_after / 1000;
-    tv.tv_usec = wake_after % 1000 * 1000;
+    tv.tv_sec = wake_after / 1000000;
+    tv.tv_usec = wake_after % 1000000;
     event_add((struct event *) timer, &tv);
 
 }
@@ -120,9 +120,7 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     DEBUG
 
     ssize_t recv_size = 0;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    uint64_t recv_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    uint64_t recv_time = now();
 
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 

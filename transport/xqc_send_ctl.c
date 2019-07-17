@@ -34,7 +34,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_init(send_ctl);
 
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
-                           xqc_gettimeofday() + send_ctl->ctl_conn->trans_param.idle_timeout);
+                           xqc_now() + send_ctl->ctl_conn->trans_param.idle_timeout * 1000);
 
     if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
         send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
@@ -351,7 +351,7 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
 void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
-    xqc_msec_t now = xqc_gettimeofday();
+    xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
     if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent) {
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
@@ -370,7 +370,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
              * when sending a packet containing frames other than ACK or PADDING (an
              * ACK-eliciting packet
              */
-            xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->trans_param.idle_timeout);
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->trans_param.idle_timeout * 1000);
         }
 
         if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
@@ -505,7 +505,7 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
     // min_rtt ignores ack delay.
     ctl->ctl_minrtt = xqc_min(*latest_rtt, ctl->ctl_minrtt);
     // Limit ack_delay by max_ack_delay
-    ack_delay = xqc_min(ack_delay, ctl->ctl_conn->trans_param.max_ack_delay);
+    ack_delay = xqc_min(ack_delay, ctl->ctl_conn->trans_param.max_ack_delay * 1000);
 
 
     // Adjust for ack delay if it's plausible.
@@ -775,12 +775,12 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     if (ctl->ctl_crypto_bytes_in_flight > 0) {
         // Crypto retransmission timer.
         if (ctl->ctl_srtt == 0) {
-            timeout = 2 * XQC_kInitialRtt;
+            timeout = 2 * XQC_kInitialRtt * 1000;
         }
         else {
             timeout = 2 * ctl->ctl_srtt;
         }
-        timeout = xqc_max(timeout, XQC_kGranularity);
+        timeout = xqc_max(timeout, XQC_kGranularity*1000);
         timeout = timeout * xqc_send_ctl_pow(ctl->ctl_crypto_count);
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION,
                 ctl->ctl_time_of_last_sent_crypto_packet + timeout);
@@ -791,7 +791,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
         return;
     }
     // Calculate PTO duration
-    timeout = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity) + ctl->ctl_conn->trans_param.max_ack_delay;
+    timeout = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity*1000) + ctl->ctl_conn->trans_param.max_ack_delay*1000;
 
     timeout = timeout * xqc_send_ctl_pow(ctl->ctl_pto_count);
 

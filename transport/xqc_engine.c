@@ -323,7 +323,7 @@ xqc_engine_wakeup_after (xqc_engine_t *engine)
 {
     xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wakeup_pq);
     if (el) {
-        xqc_msec_t now = xqc_gettimeofday();
+        xqc_msec_t now = xqc_now();
 
         return el->wakeup_time > now ? el->wakeup_time - now : 1;
     }
@@ -399,7 +399,7 @@ end:
 void
 xqc_engine_main_logic (xqc_engine_t *engine)
 {
-    xqc_msec_t now = xqc_gettimeofday();
+    xqc_msec_t now = xqc_now();
     xqc_connection_t *conn;
 
     xqc_list_head_t closed_conns;
@@ -445,7 +445,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_engine_main_logic ticking|conn=%p, state=%s, flag=%s, now=%ui",
                 conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now);
 
-        now = xqc_gettimeofday();
+        now = xqc_now();
         xqc_engine_process_conn(conn, now);
         if (conn->conn_state == XQC_CONN_STATE_CLOSED) {
             xqc_list_add_tail(&conn->conn_list, &closed_conns);
@@ -620,7 +620,7 @@ process:
     }
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
-                           recv_time + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout);
+                           recv_time + conn->conn_send_ctl->ctl_conn->trans_param.idle_timeout*1000);
 
 
 after_process:

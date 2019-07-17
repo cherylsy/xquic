@@ -613,7 +613,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         conn->conn_state = XQC_CONN_STATE_CLOSING;
 
         ctl = conn->conn_send_ctl;
-        now = xqc_gettimeofday();
+        now = xqc_now();
         xqc_msec_t pto = xqc_send_ctl_calc_pto(ctl);
         if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
             xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, 3 * pto + now);
@@ -727,7 +727,7 @@ xqc_conn_check_token_ok(xqc_connection_t *conn, const unsigned char *token, unsi
     uint32_t *expire = (uint32_t*)pos;
     *expire = ntohl(*expire);
 
-    xqc_msec_t now = xqc_gettimeofday() / 1000;
+    xqc_msec_t now = xqc_now() / 1000000;
     if (*expire < now) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_check_token_ok|token_expire %ui", *expire);
         return 0;
@@ -771,7 +771,7 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
         *token_len = 21;
     }
 
-    uint32_t expire = xqc_gettimeofday() / 1000 + XQC_TOKEN_EXPIRE_DELTA;
+    uint32_t expire = xqc_now() / 1000000 + XQC_TOKEN_EXPIRE_DELTA;
     expire = htonl(expire);
     memcpy(token, &expire, sizeof(expire));
 

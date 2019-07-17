@@ -181,7 +181,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 {
     int ret, has_gap;
     xqc_packet_number_t largest_ack;
-    xqc_msec_t now = xqc_gettimeofday();
+    xqc_msec_t now = xqc_now();
 
     ret = xqc_gen_ack_frame(conn, packet_out,
                       now, conn->trans_param.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
