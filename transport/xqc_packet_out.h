@@ -17,6 +17,7 @@
    overheads or IP header options/extensions.
  */
 #define XQC_PACKET_OUT_SIZE 1200    //TODO 先写死
+#define XQC_MSS 1500 //TODO
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3
 

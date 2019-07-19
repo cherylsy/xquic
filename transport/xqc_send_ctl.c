@@ -44,6 +44,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
     send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
 
+    xqc_pacing_init(&send_ctl->ctl_pacing);
     return send_ctl;
 }
 
@@ -140,6 +141,7 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
           && conn->conn_send_ctl->ctl_bytes_send > 3 * conn->conn_send_ctl->ctl_bytes_recv) {
         can = 0;
     }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_can_send|%ui", can);
     return can;
 }
 
@@ -236,7 +238,8 @@ xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl)
 }
 
 /* timer callbacks */
-void xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+void
+xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {
     xqc_connection_t *conn = ((xqc_send_ctl_t*)ctx)->ctl_conn;
     xqc_pkt_num_space_t pns = type - XQC_TIMER_ACK_INIT;
@@ -249,7 +252,8 @@ void xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.9
  * OnLossDetectionTimeout
  */
-void xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+void
+xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
@@ -280,7 +284,8 @@ void xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_
     xqc_send_ctl_set_loss_detection_timer(ctl);
 }
 
-void xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+void
+xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
@@ -288,12 +293,20 @@ void xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, voi
     conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
 }
 
-void xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+void
+xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
 
     conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
+}
+
+void
+xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    ctl->ctl_pacing.timer_expire = 1;
 }
 /* timer callbacks end */
 
@@ -316,6 +329,9 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
             timer->ctl_ctx = ctl;
         } else if (type == XQC_TIMER_DRAINING) {
             timer->ctl_timer_callback = xqc_send_ctl_draining_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_PACING) {
+            timer->ctl_timer_callback = xqc_send_ctl_pacing_timeout;
             timer->ctl_ctx = ctl;
         }
     }

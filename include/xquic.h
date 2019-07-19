@@ -44,6 +44,7 @@ typedef struct xqc_congestion_control_callback_s {
     void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes);
     uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
+    int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
 
 

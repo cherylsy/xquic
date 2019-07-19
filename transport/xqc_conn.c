@@ -363,24 +363,33 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     XQC_DEBUG_PRINT
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
+    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
     ssize_t ret;
 
-    xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_packets) {
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types) &&
-                !xqc_send_ctl_can_send(conn)) {
-            continue;
+
+        if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
+            !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+            xqc_log(conn->log, XQC_LOG_WARN, "HSK NOT FINISHED");
+            return;
+        }
+
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            if (!xqc_send_ctl_can_send(conn)) {
+                return;
+            } else {
+                xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
+                if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
+                    xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
+                    return;
+                }
+            }
         }
 
         if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
                 && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
             xqc_gen_padding_frame(packet_out);
-        }
-
-        if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
-                !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
-            xqc_log(conn->log, XQC_LOG_WARN, "HSK NOT FINISHED");
-            continue;
         }
 
         ret = xqc_conn_send_one_packet(conn, packet_out);

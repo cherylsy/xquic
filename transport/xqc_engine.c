@@ -503,7 +503,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
     xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
     if (wake_after > 0 && engine->event_timer) {
-        engine->eng_callback.set_event_timer(engine->event_timer, xqc_engine_wakeup_after(engine));
+        engine->eng_callback.set_event_timer(engine->event_timer, wake_after);
     }
 
     return;

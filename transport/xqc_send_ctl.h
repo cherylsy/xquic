@@ -4,7 +4,7 @@
 
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
-
+#include "xqc_pacing.h"
 
 #define XQC_kPacketThreshold 3
 #define XQC_kPersistentCongestionThreshold 2
@@ -25,6 +25,7 @@ typedef enum {
     XQC_TIMER_LOSS_DETECTION,
     XQC_TIMER_IDLE,
     XQC_TIMER_DRAINING,
+    XQC_TIMER_PACING,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 
@@ -89,6 +90,8 @@ typedef struct xqc_send_ctl_s {
     const
     xqc_cong_ctrl_callback_t    *ctl_cong_callback;
     void                        *ctl_cong;
+
+    xqc_pacing_t                ctl_pacing;
 
 } xqc_send_ctl_t;
 
