@@ -358,7 +358,11 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer,
             .save_token = xqc_client_save_token,
     };
-    xqc_engine_init(ctx.engine, callback, ctx.ev_engine);
+
+    xqc_conn_settings_t conn_settings = {
+            .pacing_on  =   1,
+    };
+    xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
 
     ctx.my_conn = xqc_calloc(1, sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {

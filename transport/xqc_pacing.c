@@ -5,11 +5,21 @@
 #define XQC_MAX_BURST_NUM 1
 
 void
-xqc_pacing_init(xqc_pacing_t *pacing)
+xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on)
 {
     pacing->burst_num = 0;
     pacing->next_send_time = 0;
     pacing->timer_expire = 0;
+    pacing->on = pacing_on;
+}
+
+/**
+ * @return 是否启用pacing
+ */
+int
+xqc_pacing_is_on(xqc_pacing_t *pacing)
+{
+    return pacing->on;
 }
 
 /**

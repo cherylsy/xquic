@@ -31,7 +31,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigne
     memset(dcid.cid_buf, 0xDD, dcid.cid_len);
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
-                    &callbacks, engine->settings, user_data);
+                    &callbacks, &engine->conn_settings, user_data);
 
     if (xc == NULL) {
         xqc_log(engine->log, XQC_LOG_WARN, 

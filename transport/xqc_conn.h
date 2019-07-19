@@ -148,9 +148,6 @@ typedef struct {
     xqc_preferred_address_t preferred_addr;
 }xqc_trans_param_t;
 
-struct xqc_conn_settings_s {
-
-};
 
 typedef struct {
     /* flow control limit */
@@ -161,6 +158,12 @@ typedef struct {
     uint32_t                fc_max_streams_bidi;
     uint32_t                fc_max_streams_uni;
 } xqc_conn_flow_ctl_t;
+
+typedef struct xqc_conns_pq_elem_s
+{
+    xqc_pq_key_t        time_ms;
+    xqc_connection_t    *conn;
+}xqc_conns_pq_elem_t;
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;

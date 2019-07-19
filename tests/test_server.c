@@ -243,11 +243,15 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_server_set_event_timer,
     };
 
+    xqc_conn_settings_t conn_settings = {
+            .pacing_on  =   1,
+    };
+
     eb = event_base_new();
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
-    xqc_engine_init(ctx.engine, callback, ctx.ev_engine);
+    xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
     if (ctx.fd < 0) {

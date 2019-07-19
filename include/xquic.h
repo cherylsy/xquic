@@ -99,6 +99,9 @@ struct xqc_ssl_config {
     uint32_t   timeout;
 };
 
+struct xqc_conn_settings_s {
+    int     pacing_on;
+};
 
 typedef struct xqc_engine_s {
     xqc_engine_type_t       eng_type;
@@ -110,7 +113,7 @@ typedef struct xqc_engine_s {
     xqc_pq_t               *conns_pq; /* In process */
     xqc_wakeup_pq_t        *conns_wakeup_pq; /* Need wakeup after next tick time */
 
-    xqc_conn_settings_t    *settings;
+    xqc_conn_settings_t    conn_settings;
 
     xqc_log_t              *log;
     xqc_random_generator_t *rand_generator;
@@ -138,6 +141,7 @@ void xqc_engine_destroy(xqc_engine_t *engine);
 void
 xqc_engine_init (xqc_engine_t *engine,
                  xqc_engine_callback_t engine_callback,
+                 xqc_conn_settings_t conn_settings,
                  void *event_timer);
 
 
@@ -203,10 +207,6 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 int
 xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid);
 
-/**
- * @return >0 : user should call xqc_engine_main_logic after N ms
- */
-xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
 
 #endif /* _XQUIC_H_INCLUDED_ */

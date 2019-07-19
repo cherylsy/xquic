@@ -44,7 +44,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
     send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
 
-    xqc_pacing_init(&send_ctl->ctl_pacing);
+    xqc_pacing_init(&send_ctl->ctl_pacing, 1);
     return send_ctl;
 }
 

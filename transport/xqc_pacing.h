@@ -10,10 +10,14 @@ typedef struct xqc_pacing_s {
     xqc_msec_t          now;
     uint32_t            burst_num;
     int                 timer_expire;
+    int                 on;
 } xqc_pacing_t;
 
 void
-xqc_pacing_init(xqc_pacing_t *pacing);
+xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on);
+
+int
+xqc_pacing_is_on(xqc_pacing_t *pacing);
 
 uint64_t
 xqc_pacing_rate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl);

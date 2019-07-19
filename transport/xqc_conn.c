@@ -378,7 +378,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             if (!xqc_send_ctl_can_send(conn)) {
                 return;
-            } else {
+            } else if (conn->conn_settings.pacing_on) {
                 xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
                 if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
                     xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);

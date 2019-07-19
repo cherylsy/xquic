@@ -305,9 +305,11 @@ xqc_engine_destroy(xqc_engine_t *engine)
 void 
 xqc_engine_init (xqc_engine_t *engine,
                  xqc_engine_callback_t engine_callback,
+                 xqc_conn_settings_t conn_settings,
                  void *event_timer)
 {
     xqc_engine_set_callback(engine, engine_callback);
+    engine->conn_settings = conn_settings;
     engine->event_timer = event_timer;
 }
 
@@ -567,7 +569,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
         memset(&new_scid.cid_buf, 0xDD, 4); //TODO: for test
         conn = xqc_create_connection(engine, &dcid, &new_scid,
                                      &(engine->eng_callback.conn_callbacks), 
-                                     engine->settings, user_data,
+                                     &engine->conn_settings, user_data,
                                      conn_type);
 
         if (conn == NULL) {
