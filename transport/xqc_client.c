@@ -44,6 +44,13 @@ xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigne
         memcpy(xc->conn_token, token, token_len);
     }
 
+    if (xc->conn_callbacks.conn_create_notify) {
+        if (xc->conn_callbacks.conn_create_notify(&xc->scid, user_data)) {
+            xqc_destroy_connection(xc);
+            goto fail;
+        }
+    }
+
     if (engine->event_timer) {
         xqc_engine_main_logic(engine);
     }

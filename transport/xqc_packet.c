@@ -205,6 +205,14 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         }
     } else {  /* long header */
 
+        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
+                && c->conn_type == XQC_CONN_TYPE_SERVER
+                && c->conn_state < XQC_CONN_STATE_SERVER_INITIAL_RECVD) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|ignore 0RTT before initial received|");
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
+        }
+
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR,

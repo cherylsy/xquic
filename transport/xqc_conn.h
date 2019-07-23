@@ -279,7 +279,7 @@ int xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
 
 int xqc_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
 
-int xqc_conn_check_token_ok(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
+int xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
 
 void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
 

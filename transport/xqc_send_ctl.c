@@ -21,7 +21,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     send_ctl->ctl_conn = conn;
     send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
 
-    xqc_init_list_head(&send_ctl->ctl_packets);
+    xqc_init_list_head(&send_ctl->ctl_send_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
     xqc_init_list_head(&send_ctl->ctl_free_packets);
     xqc_init_list_head(&send_ctl->ctl_buff_packets);
@@ -62,7 +62,7 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t 
 
     xqc_list_head_t *pos;
 
-    xqc_list_for_each_reverse(pos, &ctl->ctl_packets) {
+    xqc_list_for_each_reverse(pos, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (packet_out->po_pkt.pkt_type == pkt_type &&
             packet_out->po_buf_size - packet_out->po_used_size >= need) {
@@ -94,7 +94,7 @@ xqc_send_ctl_destroy_packets_list(xqc_list_head_t *head)
 void
 xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
 {
-    xqc_send_ctl_destroy_packets_list(&ctl->ctl_packets);
+    xqc_send_ctl_destroy_packets_list(&ctl->ctl_send_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_lost_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_free_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_buff_packets);

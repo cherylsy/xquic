@@ -217,24 +217,6 @@ xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     return XQC_OK;
 }
 
-void
-xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame)
-{
-    xqc_free(stream_frame->data);
-    xqc_free(stream_frame);
-}
-
-void
-xqc_destroy_frame_list(xqc_list_head_t *head)
-{
-    xqc_list_head_t *pos, *next;
-    xqc_stream_frame_t *stream_frame;
-    xqc_list_for_each_safe(pos, next, head) {
-        stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
-        xqc_list_del_init(pos);
-        xqc_destroy_stream_frame(stream_frame);
-    }
-}
 
 xqc_int_t
 xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
@@ -337,7 +319,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             && conn->conn_type == XQC_CONN_TYPE_SERVER
             && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {
 
-        if (xqc_conn_check_token_ok(conn, conn->conn_token, conn->conn_token_len)) {
+        if (xqc_conn_check_token(conn, conn->conn_token, conn->conn_token_len)) {
             conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
         } else {
             unsigned char token[XQC_MAX_TOKEN_LEN];

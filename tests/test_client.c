@@ -93,6 +93,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
 
     ssize_t n = read(fd, token, token_len);
     printf("read token size %lld\n", n);
+    printf("0x%x\n", token[0]);
     return n;
 }
 
@@ -167,7 +168,7 @@ int xqc_client_conn_create_notify(xqc_cid_t *cid, void *user_data) {
     ctx->my_conn->stream = xqc_create_stream(ctx->engine, cid, ctx);
     ctx->send_offset = 0;
 
-    //xqc_client_write_notify(ctx->my_conn->stream, user_data);
+    xqc_client_write_notify(ctx->my_conn->stream, user_data); //提前写1RTT
     return 0;
 }
 
@@ -402,9 +403,6 @@ int main(int argc, char *argv[]) {
     //xqc_client_write_notify(ctx.my_conn->stream, &ctx); //0rtt打开注释
 
     event_base_dispatch(eb);
-
-    /*xqc_client_write_notify(ctx.my_conn->stream, &ctx);
-    DEBUG;*/
 
     xqc_engine_destroy(ctx.engine);
     return 0;

@@ -9,6 +9,8 @@
 #include "xqc_frame.h"
 #include "../include/xquic_typedef.h"
 
+#define XQC_STREAM_BUFF_MAX 1024*1024
+
 static xqc_stream_id_t
 xqc_gen_stream_id (xqc_connection_t *conn, xqc_stream_id_type_t type)
 {
@@ -133,14 +135,22 @@ xqc_create_stream (xqc_engine_t *engine,
                   void *user_data)
 {
     xqc_connection_t *conn;
+    xqc_stream_t *stream;
 
     conn = xqc_engine_conns_hash_find(engine, cid, 's');
     if (!conn) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conn_close|can not find connection");
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_create_stream|can not find connection");
         return NULL;
     }
 
-    return xqc_create_stream_with_conn(conn, user_data);
+    stream = xqc_create_stream_with_conn(conn, user_data);
+    if (!stream) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_create_stream|can not find connection");
+        return NULL;
+    }
+
+    xqc_engine_main_logic(engine);
+    return stream;
 }
 
 xqc_stream_t *
@@ -176,6 +186,8 @@ xqc_create_stream_with_conn (xqc_connection_t *conn,
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
 
+    xqc_init_list_head(&stream->stream_write_buff_list.write_buff_list);
+
     if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         stream->stream_id_type = XQC_CLI_BID;
         stream->stream_id = xqc_gen_stream_id(conn, stream->stream_id_type);
@@ -203,6 +215,9 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "xqc_destroy_stream send_state:%ui, recv_state: %ui",
             stream->stream_state_send, stream->stream_state_recv);
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
+
+    xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
+
     xqc_free(stream);
 }
 
@@ -470,7 +485,6 @@ xqc_stream_send (xqc_stream_t *stream,
     int ret;
     size_t send_data_written = 0;
     size_t offset = 0; //本次send_data中的已写offset
-    int n_written = 0;
     xqc_connection_t *conn = stream->stream_conn;
     xqc_packet_out_t *packet_out;
     uint8_t fin_only = fin && !send_data_size;
@@ -496,71 +510,138 @@ xqc_stream_send (xqc_stream_t *stream,
     while (offset < send_data_size || fin_only) {
 
         if (xqc_stream_do_flow_ctl(stream)) {
-            return stream->stream_send_offset;
+            goto do_buff;
         }
 
         if (!xqc_send_ctl_can_write(conn->conn_send_ctl)) {
-            return stream->stream_send_offset;
+            goto do_buff;
         }
 
-        if (buff_1rtt) {
-            packet_out = xqc_write_new_packet(conn, pkt_type);
-            if (packet_out == NULL) {
-                return -XQC_ENULLPTR;
-            }
-            xqc_send_ctl_remove_send(&packet_out->po_list);
-            xqc_send_ctl_insert_buff(&packet_out->po_list, &conn->conn_send_ctl->ctl_buff_packets);
-            if (!(conn->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
-                packet_out->po_flag |= XQC_POF_DCID_NOT_DONE;
-            }
-        } else {
-            unsigned int header_size = xqc_stream_frame_header_size(stream->stream_id,
-                                                                    stream->stream_send_offset,
-                                                                    send_data_size - offset);
-
-            packet_out = xqc_write_packet(conn, pkt_type, header_size + 1);
-            if (packet_out == NULL) {
-                return -XQC_ENULLPTR;
-            }
-
-            if (packet_out->po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO - 1].ps_stream != NULL) {
-                packet_out = xqc_write_new_packet(conn, pkt_type);
-                if (packet_out == NULL) {
-                    return -XQC_ENULLPTR;
-                }
-            }
+        if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count > XQC_PACKET_0RTT_MAX_COUNT) {
+            goto do_buff;
         }
-        n_written = xqc_gen_stream_frame(packet_out,
-                                         stream->stream_id, stream->stream_send_offset, fin,
-                                         send_data + offset,
-                                         send_data_size - offset,
-                                         &send_data_written);
-        if (n_written < 0) {
-            xqc_maybe_recycle_packet_out(packet_out, conn);
-            return n_written;
+
+        ret = xqc_write_stream_frame_to_packet(conn, stream, pkt_type,
+                                               fin,
+                                               send_data + offset,
+                                               send_data_size - offset,
+                                               &send_data_written);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_stream_frame_to_packet error|");
+            return ret;
         }
+
         offset += send_data_written;
-        stream->stream_send_offset += send_data_written;
-        stream->stream_conn->conn_flow_ctl.fc_data_sent += send_data_written;
-        packet_out->po_used_size += n_written;
+        fin_only = 0;
+    }
 
-        for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
-            if (packet_out->po_stream_frames[i].ps_stream == NULL) {
-                packet_out->po_stream_frames[i].ps_stream = stream;
-                if (fin_only || (offset == send_data_size && fin)) {
-                    packet_out->po_stream_frames[i].ps_has_fin = 1;
+    xqc_stream_shutdown_write(stream);
+
+do_buff:
+    /* 握手完成后再发送，移到缓存包队列 */
+    if (buff_1rtt) {
+        xqc_list_head_t *pos, *next;
+        xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
+            packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+            if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER) {
+                xqc_send_ctl_remove_send(&packet_out->po_list);
+                xqc_send_ctl_insert_buff(&packet_out->po_list, &conn->conn_send_ctl->ctl_buff_packets);
+                if (!(conn->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
+                    packet_out->po_flag |= XQC_POF_DCID_NOT_DONE;
                 }
             }
         }
+    }
 
-        fin_only = 0;
+    /* 0RTT失败需要回退到1RTT，保存原始发送数据 */
+    if (pkt_type == XQC_PTYPE_0RTT) {
+        /* fin还未写入packet */
+        if (offset != send_data_size && fin) {
+            fin = 0;
+        }
+
+        /* 如果没有写入任何数据或fin，则不需要缓存 */
+        if (offset > 0 || fin_only) {
+            xqc_stream_write_buff(stream, send_data, offset, fin);
+        }
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|offset=%ui|", stream->stream_send_offset);
 
-    xqc_stream_shutdown_write(stream);
-
     return stream->stream_send_offset;
+}
+
+ssize_t
+xqc_stream_write_buff(xqc_stream_t *stream,
+                      unsigned char *send_data,
+                      size_t send_data_size,
+                      uint8_t fin)
+{
+    xqc_connection_t *conn = stream->stream_conn;
+    xqc_stream_write_buff_list_t *buff_list = &stream->stream_write_buff_list;
+    xqc_stream_write_buff_t *write_buff = xqc_calloc(1, sizeof(xqc_stream_write_buff_t));
+    if (!write_buff) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_calloc error|");
+        return -XQC_EMALLOC;
+    }
+
+    write_buff->sw_data = xqc_malloc(send_data_size);
+    memcpy(write_buff->sw_data, send_data, send_data_size);
+    write_buff->data_length = send_data_size;
+    write_buff->data_offset += buff_list->total_len;
+    write_buff->next_write_offset = 0;
+    write_buff->fin = fin;
+
+    buff_list->total_len += send_data_size;
+    xqc_list_add_tail(&write_buff->sw_list, &buff_list->write_buff_list);
+
+    return send_data_size;
+}
+
+int
+xqc_stream_write_buff_to_packets(xqc_stream_t *stream)
+{
+    xqc_connection_t *conn = stream->stream_conn;
+    xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
+    xqc_stream_write_buff_list_t *buff_list = &stream->stream_write_buff_list;
+    xqc_stream_write_buff_t *write_buff;
+    xqc_list_head_t *pos, *next;
+    unsigned char *send_data;
+    size_t send_data_size;
+    size_t offset;
+    size_t send_data_written;
+    int ret;
+    unsigned char fin;
+
+    xqc_list_for_each_safe(pos, next, &buff_list->write_buff_list) {
+        write_buff = xqc_list_entry(pos, xqc_stream_write_buff_t, sw_list);
+        send_data_size = write_buff->data_length;
+        offset = 0;
+        fin = write_buff->fin;
+        send_data = write_buff->sw_data;
+        uint8_t fin_only = fin && send_data_size == 0;
+
+        while (offset < send_data_size || fin_only) {
+
+            ret = xqc_write_stream_frame_to_packet(conn, stream, pkt_type,
+                                             fin,
+                                             send_data + offset,
+                                             send_data_size - offset,
+                                             &send_data_written);
+            if (ret) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_stream_frame_to_packet error|");
+                return ret;
+            }
+            offset += send_data_written;
+            if (fin_only) {
+                break;
+            }
+        }
+
+        xqc_list_del_init(&write_buff->sw_list);
+        xqc_destroy_write_buff(write_buff);
+    }
+    return XQC_OK;
 }
 
 void
@@ -638,5 +719,43 @@ xqc_process_crypto_read_streams (xqc_connection_t *conn)
                 xqc_stream_shutdown_read(stream);
             }
         }
+    }
+}
+
+void
+xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame)
+{
+    xqc_free(stream_frame->data);
+    xqc_free(stream_frame);
+}
+
+void
+xqc_destroy_write_buff(xqc_stream_write_buff_t *write_buff)
+{
+    xqc_free(write_buff->sw_data);
+    xqc_free(write_buff);
+}
+
+void
+xqc_destroy_frame_list(xqc_list_head_t *head)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_stream_frame_t *stream_frame;
+    xqc_list_for_each_safe(pos, next, head) {
+        stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
+        xqc_list_del_init(pos);
+        xqc_destroy_stream_frame(stream_frame);
+    }
+}
+
+void
+xqc_destroy_write_buff_list(xqc_list_head_t *head)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_stream_write_buff_t *write_buff;
+    xqc_list_for_each_safe(pos, next, head) {
+        write_buff = xqc_list_entry(pos, xqc_stream_write_buff_t, sw_list);
+        xqc_list_del_init(pos);
+        xqc_destroy_write_buff(write_buff);
     }
 }
