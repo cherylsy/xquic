@@ -102,12 +102,11 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
     client_ctx_t *ctx = (client_ctx_t *) user;
     ssize_t res;
     int fd = ctx->my_conn->fd;
-    printf("xqc_client_write_socket size %zd\n",size);
+    printf("xqc_client_write_socket size=%zd, now=%llu\n",size, now());
     do {
         res = write(fd, buf, size);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
-
     return res;
 }
 
@@ -250,7 +249,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
         return;
     }
 
-    printf("xqc_client_read_handler recv_size=%zd\n",recv_size);
+    printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n",recv_size, recv_time);
     /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
     printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
 */

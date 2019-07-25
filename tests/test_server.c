@@ -97,7 +97,7 @@ ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
     DEBUG;
     ssize_t res;
     int fd = ctx.fd;
-    printf("xqc_server_send size %zd\n",size);
+    printf("xqc_server_send size=%zd now=%llu\n",size, now());
     do {
         res = sendto(fd, buf, size, 0, (struct sockaddr*)&ctx.peer_addr, ctx.peer_addrlen);
         printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
@@ -131,7 +131,7 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
         return;
     }
 
-    printf("xqc_server_read_handler recv_size=%zd\n",recv_size);
+    printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu\n",recv_size, recv_time, now());
     /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
     printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));
 */
