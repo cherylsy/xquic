@@ -33,10 +33,22 @@
 #define XQC_TRUE 1
 #define XQC_FALSE 0
 
-
 #define XQC_SERVER 1
 #define XQC_CLIENT 0
 
+
+#define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+#define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
+
+
+
+//xquic tls error code
+#define XQC_EARLY_DATA_REJECT (-701)
+
+#define XQC_ENCRYPT_DATA_ERROR  (-790)
+#define XQC_DECRYPT_DATA_ERROR  (-791)
+
+#define XQC_NONCE_LEN   32
 #define XQC_UINT32_MAX  (0xffffffff)
 /**
  * @macro
@@ -48,8 +60,6 @@
 #define XQC_DEFAULT_MAX_ACK_DELAY 25
 
 /* Short header specific macros */
-#define XQC_SHORT_SPIN_BIT_MASK 0x20
-#define XQC_SHORT_RESERVED_BIT_MASK 0x18
 #define XQC_SHORT_KEY_PHASE_BIT 0x04
 
 /* XQC_STATELESS_RESET_TOKENLEN is the length of Stateless Reset
@@ -64,7 +74,7 @@
 
 typedef enum {
   //XQC_CONN_FLAG_NONE = 0x00,
-  /* XQC_CONN_FLAG_HANDSHAKE_COMPLETED is set if handshake
+  /* XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX is set if handshake
      completed. */
   XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX = 0x01,
   /* XQC_CONN_FLAG_CONN_ID_NEGOTIATED is set if connection ID is
@@ -148,8 +158,6 @@ typedef enum {
     XQC_PKT_FLAG_LONG_FORM = 0x01,
     XQC_PKT_FLAG_KEY_PHASE = 0x04
 } xqc_pkt_flag;
-
-
 
 /*@struct address
  * */
@@ -353,63 +361,30 @@ static inline xqc_hs_buffer_t * xqc_create_hs_buffer(){
     return p_buf;
 }
 
-#if 0
-typedef enum {
-  XQC_FRAME_PADDING = 0x00,
-  XQC_FRAME_PING = 0x01,
-  XQC_FRAME_ACK = 0x02,
-  XQC_FRAME_ACK_ECN = 0x03,
-  XQC_FRAME_RESET_STREAM = 0x04,
-  XQC_FRAME_STOP_SENDING = 0x05,
-  XQC_FRAME_CRYPTO = 0x06,
-  XQC_FRAME_NEW_TOKEN = 0x07,
-  XQC_FRAME_STREAM = 0x08,
-  XQC_FRAME_MAX_DATA = 0x10,
-  XQC_FRAME_MAX_STREAM_DATA = 0x11,
-  XQC_FRAME_MAX_STREAMS_BIDI = 0x12,
-  XQC_FRAME_MAX_STREAMS_UNI = 0x13,
-  XQC_FRAME_DATA_BLOCKED = 0x14,
-  XQC_FRAME_STREAM_DATA_BLOCKED = 0x15,
-  XQC_FRAME_STREAMS_BLOCKED_BIDI = 0x16,
-  XQC_FRAME_STREAMS_BLOCKED_UNI = 0x17,
-  XQC_FRAME_NEW_CONNECTION_ID = 0x18,
-  XQC_FRAME_RETIRE_CONNECTION_ID = 0x19,
-  XQC_FRAME_PATH_CHALLENGE = 0x1a,
-  XQC_FRAME_PATH_RESPONSE = 0x1b,
-  XQC_FRAME_CONNECTION_CLOSE = 0x1c,
-  XQC_FRAME_CONNECTION_CLOSE_APP = 0x1d
-} xqc_frame_type;
-#endif
 
 #define MAX_PACKET_LEN 1500
 //just temporary, need rewrite with frame structure
 typedef struct {
   xqc_list_head_t buffer_list;
   uint8_t type;
-  /**
-   * flags of decoded STREAM frame.  This gets ignored when encoding
-   * STREAM frame.
-   */
-  //uint8_t flags;
-  //uint8_t fin;
-  //uint64_t stream_id;
-  //uint64_t offset;
-  /* datacnt is the number of elements that data contains.  Although
-     the length of data is 1 in this definition, the library may
-     allocate extra bytes to hold more elements. */
-  //size_t datacnt;
-  /* data is the array of xqc_vec_t which references data. */
   uint16_t data_len;
   char data[ MAX_PACKET_LEN];
 }xqc_data_buffer_t;
 
+//callback function
+typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
+typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
+typedef int  (*xqc_read_session_cb_t )(char ** data);
 
+typedef int (*xqc_early_data_reject_cb_t)(xqc_connection_t *conn);
 
 struct xqc_tlsref{
+    xqc_connection_t       * conn;
     int server;
     int initial;
     char  hostname[MAX_HOST_LEN];
     uint8_t resumption;
+    uint8_t no_early_data;
     unsigned int flags;
     uint64_t max_local_stream_id_bidi;
     uint64_t max_local_stream_id_uni;
@@ -433,30 +408,24 @@ struct xqc_tlsref{
 
     xqc_vec_t              tx_secret;
     xqc_vec_t              rx_secret;
-#if 0
-    uint8_t tx_secret[MAX_KEY_LEN];
-    uint16_t tx_secret_len;
-    uint8_t rx_secret[MAX_KEY_LEN];
-    uint16_t rx_secret_len;
-#endif
 
     //xqc_data_buffer_t      hello_data;
     xqc_hs_buffer_t        hs_to_tls_buf;
     xqc_hs_buffer_t        hs_msg_cb_buf;
 
-    xqc_ssl_config_t *     sc;
+    xqc_conn_ssl_config_t  conn_ssl_config;
 
     xqc_tls_callbacks_t    callbacks;
 
+    xqc_save_session_cb_t   save_session_cb;
+    xqc_save_tp_cb_t        save_tp_cb;
+    void *                  tp_user_data;
+    void *                  session_user_data;
+
+    xqc_early_data_reject_cb_t  early_data_reject_cb;
+
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
-
-typedef struct {
-    size_t                      size;
-    u_char                      name[16];
-    u_char                      hmac_key[32];
-    u_char                      aes_key[32];
-} xqc_ssl_session_ticket_key_t;
 
 static inline uint16_t xqc_get_uint16(const uint8_t *p) {
     uint16_t n;

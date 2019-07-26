@@ -32,7 +32,7 @@ xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
         return NULL;
     }
 
-    packet_out->po_buf = xqc_malloc(XQC_PACKET_OUT_SIZE);
+    packet_out->po_buf = xqc_malloc(XQC_PACKET_OUT_SIZE + EXTRA_SPACE);
     if (!packet_out->po_buf) {
         return NULL;
     }

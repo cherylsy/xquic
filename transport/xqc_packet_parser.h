@@ -79,4 +79,5 @@ xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf);
 int
 xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size);
 
+int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in );
 #endif /* _XQC_PACKET_PARSER_H_INCLUDED_ */

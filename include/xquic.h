@@ -88,16 +88,34 @@ typedef struct xqc_engine_callback_s {
     xqc_stream_callbacks_t      stream_callbacks;
 }xqc_engine_callback_t;
 
-struct xqc_ssl_config {
+
+struct xqc_engine_ssl_config {
     char       *private_key_file;
     char       *cert_file;
-    char       *session_path;
-    char       *tp_path;
-    char       *session_ticket_path;
-    const char *ciphers;
-    const char *groups;
-    uint32_t   timeout;
+    char       *ciphers;
+    char       *groups;
+    //uint32_t   timeout;
+    char       *session_ticket_key_data;
+    size_t     session_ticket_key_len;
 };
+
+struct xqc_conn_ssl_config {
+    char       *session_ticket_data;
+    size_t     session_ticket_len;
+    char       *tp_data;
+    size_t     tp_data_len;
+};
+
+typedef struct {
+    size_t                      size;
+    uint8_t                     name[16];
+    uint8_t                     hmac_key[32];
+    uint8_t                     aes_key[32];
+} xqc_ssl_session_ticket_key_t;
+
+typedef struct xqc_engine_ssl_config xqc_engine_ssl_config_t;
+typedef struct xqc_conn_ssl_config  xqc_conn_ssl_config_t;
+
 
 struct xqc_conn_settings_s {
     int     pacing_on;
@@ -120,8 +138,10 @@ typedef struct xqc_engine_s {
 
     void                   *event_timer;
 
-    xqc_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
     SSL_CTX                *ssl_ctx;  //for ssl
+    xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
+    xqc_ssl_session_ticket_key_t  session_ticket_key;
+
 }xqc_engine_t;
 
 
@@ -130,7 +150,7 @@ typedef struct xqc_engine_s {
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
-xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type);
+xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * xc_config);
 
 void xqc_engine_destroy(xqc_engine_t *engine);
 
@@ -145,7 +165,7 @@ xqc_engine_init (xqc_engine_t *engine,
                  void *event_timer);
 
 
-xqc_cid_t* xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigned token_len);
+xqc_cid_t * xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigned token_len, char *server_host, int no_crypto_flag, uint8_t no_early_data_flag, xqc_conn_ssl_config_t * conn_ssl_config );
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 

@@ -245,7 +245,7 @@ xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
 }
 
 int
-xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn , xqc_stream_frame_t * frame)
 {
     int vlen;
     uint64_t offset;
@@ -259,14 +259,23 @@ xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
+    frame->data_offset = offset;
     p += vlen;
 
     vlen = xqc_vint_read(p, end, &length);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
+    frame->data_length = length;
     p += vlen;
 
+    if (frame->data_length > 0) {
+        frame->data = xqc_malloc(frame->data_length);
+        if (!frame->data) {
+            return -XQC_EMALLOC;
+        }
+        memcpy(frame->data, p, frame->data_length);
+    }
     //todo: process Crypto Data
     p += length;
 
@@ -281,6 +290,7 @@ xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
     if (packet_out->po_used_size < XQC_PACKET_INITIAL_MIN_LENGTH) {
         memset(packet_out->po_buf + packet_out->po_used_size, 0, XQC_PACKET_INITIAL_MIN_LENGTH - packet_out->po_used_size);
         packet_out->po_used_size = XQC_PACKET_INITIAL_MIN_LENGTH;
+        //xqc_long_packet_update_length(packet_out);
     }
     packet_out->po_frame_types |= XQC_FRAME_BIT_PADDING;
 }

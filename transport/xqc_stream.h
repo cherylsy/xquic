@@ -132,5 +132,6 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
 int
 xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data);
 
+int xqc_read_crypto_stream(xqc_stream_t * stream);
 #endif /* _XQC_STREAM_H_INCLUDED_ */
 

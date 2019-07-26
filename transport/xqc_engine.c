@@ -18,6 +18,7 @@
 #include "xqc_packet.h"
 #include "xqc_cid.h"
 #include "xqc_wakeup_pq.h"
+#include "crypto/xqc_tls_header.h"
 
 
 xqc_config_t *
@@ -49,7 +50,7 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
     return config;
 }
 
-void 
+void
 xqc_engine_config_destroy(xqc_config_t *config)
 {
     xqc_free(config);
@@ -169,7 +170,7 @@ xqc_engine_wakeup_pq_destroy(xqc_wakeup_pq_t *q)
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 xqc_engine_t *
-xqc_engine_create(xqc_engine_type_t engine_type)
+xqc_engine_create(xqc_engine_type_t engine_type , xqc_engine_ssl_config_t * ssl_config)
 {
     xqc_engine_t *engine = NULL;
 
@@ -194,7 +195,7 @@ xqc_engine_create(xqc_engine_type_t engine_type)
     if (engine->log == NULL) {
         goto fail;
     }
-    
+
     engine->rand_generator = xqc_random_generator_create(engine->log);
     if (engine->rand_generator == NULL) {
         goto fail;
@@ -219,6 +220,26 @@ xqc_engine_create(xqc_engine_type_t engine_type)
         goto fail;
     }
 
+    if(ssl_config != NULL){ //ssl_config null for test
+        if(xqc_ssl_init_engine_config( &engine->ssl_config, ssl_config, &engine->session_ticket_key ) < 0){
+            goto fail;
+        }
+
+        if(engine_type == XQC_ENGINE_SERVER){
+            engine->ssl_ctx = xqc_create_server_ssl_ctx(ssl_config);
+            if(engine -> ssl_ctx == NULL){
+                goto fail;
+            }
+        }else{
+            engine->ssl_ctx = xqc_create_client_ssl_ctx(ssl_config);
+            if(engine -> ssl_ctx == NULL){
+                goto fail;
+            }
+        }
+    }else{
+        goto fail;
+    }
+
     return engine;
 
 fail:
@@ -227,7 +248,7 @@ fail:
 }
 
 
-void 
+void
 xqc_engine_destroy(xqc_engine_t *engine)
 {
     xqc_connection_t *conn;
@@ -302,7 +323,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
  * Init engine config.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
-void 
+void
 xqc_engine_init (xqc_engine_t *engine,
                  xqc_engine_callback_t engine_callback,
                  xqc_conn_settings_t conn_settings,
@@ -356,10 +377,18 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
         return;
     }
 
-    if (conn->conn_state < XQC_CONN_STATE_ESTABED) {
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
         xqc_process_crypto_read_streams(conn);
         xqc_process_crypto_write_streams(conn);
+
+        int support_0rtt = xqc_is_ready_to_send_early_data(conn);
+        if(conn->tlsref.server == XQC_CLIENT){
+            if(conn->conn_flag  & XQC_CONN_STATE_CLIENT_INITIAL_SENT && support_0rtt){
+                xqc_process_write_streams(conn);
+            }
+        }
     }
+
 
     XQC_CHECK_IMMEDIATE_CLOSE();
 
@@ -568,13 +597,17 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
         }
         memset(&new_scid.cid_buf, 0xDD, 4); //TODO: for test
         conn = xqc_create_connection(engine, &dcid, &new_scid,
-                                     &(engine->eng_callback.conn_callbacks), 
+                                     &(engine->eng_callback.conn_callbacks),
                                      &engine->conn_settings, user_data,
                                      conn_type);
 
         if (conn == NULL) {
             xqc_log(engine->log, XQC_LOG_WARN, "packet_process: fail to create connection");
             return -XQC_ENULLPTR;
+        }
+
+        if(xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0){
+            return XQC_ERROR;
         }
 
         xqc_cid_copy(&conn->ocid, &scid);

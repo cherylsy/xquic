@@ -11,6 +11,10 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <transport/xqc_stream.h>
+#include "../include/xquic_typedef.h"
+#include "../transport/crypto/xqc_tls_header.h"
+#include "transport/xqc_conn.h"
+
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -66,6 +70,29 @@ void xqc_client_set_event_timer(void *timer, xqc_msec_t wake_after)
     tv.tv_usec = wake_after % 1000000;
     event_add((struct event *) timer, &tv);
 
+}
+
+int save_session_cb( char * data, size_t data_len, void *user_data){
+    FILE * fp  = fopen("test_session", "wb");
+    int write_size = fwrite(data, 1, data_len, fp);
+    if(data_len != write_size){
+        printf("save _session_cb error\n");
+        return -1;
+    }
+    fclose(fp);
+    return 0;
+}
+
+
+int save_tp_cb(char * data, size_t data_len, void * user_data){
+    FILE * fp = fopen("tp_localhost", "wb");
+    int write_size = fwrite(data, 1, data_len, fp);
+    if(data_len != write_size){
+        printf("save _tp_cb error\n");
+        return -1;
+    }
+    fclose(fp);
+    return 0;
 }
 
 void xqc_client_save_token(const unsigned char *token, unsigned token_len)
@@ -181,9 +208,9 @@ int xqc_client_conn_close_notify(xqc_cid_t *cid, void *user_data) {
 
 int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
-    int ret;
+    int ret = 0;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[5000] = {0};
+    char buff[800] = {0};
     ret = xqc_stream_send(stream, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
     if (ret < 0) {
         printf("xqc_stream_send error %d\n", ret);
@@ -191,7 +218,6 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
         ctx->send_offset = ret;
         printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
     }
-
     return ret;
 }
 
@@ -206,7 +232,7 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
 }
 
 
-void 
+void
 xqc_client_write_handler(client_ctx_t *ctx)
 {
     DEBUG
@@ -214,7 +240,7 @@ xqc_client_write_handler(client_ctx_t *ctx)
 }
 
 
-void 
+void
 xqc_client_read_handler(client_ctx_t *ctx)
 {
     DEBUG
@@ -225,7 +251,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
     /* recv udp packet */
     ssize_t  n;
     struct iovec  iov[1];
-    struct msghdr msg;    
+    struct msghdr msg;
     unsigned char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
@@ -253,8 +279,8 @@ xqc_client_read_handler(client_ctx_t *ctx)
     /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
     printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
 */
-    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
-                            (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen, 
+    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
+                            (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen,
                             (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
                             (xqc_msec_t)recv_time, ctx) != 0)
     {
@@ -306,6 +332,34 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
     //event_base_loopbreak(eb);
 }
 
+int read_file_data( char * data, size_t data_len, char *filename){
+    FILE * fp = fopen( filename, "rb");
+
+    if(fp == NULL){
+        return -1;
+    }
+    fseek(fp, 0 , SEEK_END);
+    size_t total_len  = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if(total_len > data_len){
+        return -1;
+    }
+
+    size_t read_len = fread(data, 1, total_len, fp);
+    if (read_len != total_len){
+
+        return -1;
+    }
+
+    return read_len;
+
+}
+int  early_data_reject_cb(xqc_connection_t *conn){
+
+    printf(".....................early data reject\n");
+
+}
+
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
@@ -337,12 +391,27 @@ int main(int argc, char *argv[]) {
 
     memset(&ctx, 0, sizeof(ctx));
 
+    char  session_path[256] = "./test_session";
+    char  tp_path[256] = "./tp_localhost";
+    char session_data[2048] = {0};
+    //size_t session_data_len = read_file_data(session_data, sizeof(session_data), session_path );
+
+    xqc_engine_ssl_config_t  engine_ssl_config;
+    engine_ssl_config.private_key_file = "./server.key";
+    engine_ssl_config.cert_file = "./server.crt";
+    engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
+    engine_ssl_config.groups = XQC_TLS_GROUPS;
+    engine_ssl_config.session_ticket_key_len = 0;
+    engine_ssl_config.session_ticket_key_data = NULL;
+
+
+
     eb = event_base_new();
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
     ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
 
     xqc_engine_callback_t callback = {
             .conn_callbacks = {
@@ -392,12 +461,41 @@ int main(int argc, char *argv[]) {
     tv.tv_usec = 0;
     event_add(ctx.ev_timeout, &tv);
 
-    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len);
+
+    xqc_conn_ssl_config_t conn_ssl_config;
+
+    memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
+    char session_ticket_data[8192]={0};
+    char tp_data[8192] = {0};
+
+    int session_len = read_file_data(session_ticket_data, sizeof(session_ticket_data), "test_session");
+    int tp_len = read_file_data(tp_data, sizeof(tp_data), "tp_localhost");
+
+    if(session_len < 0 || tp_len < 0){
+        printf("sessoin data read error");
+        conn_ssl_config.session_ticket_data = NULL;
+        conn_ssl_config.tp_data  = NULL;
+    }else{
+        conn_ssl_config.session_ticket_data = session_ticket_data;
+        conn_ssl_config.session_ticket_len = session_len;
+        conn_ssl_config.tp_data = tp_data;
+        conn_ssl_config.tp_data_len = tp_len;
+    }
+
+
+
+    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 1, 0 ,&conn_ssl_config );
     if (cid == NULL) {
         printf("xqc_connect error\n");
         return 0;
     }
     memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
+
+    xqc_connection_t * conn = xqc_engine_conns_hash_find(ctx.engine, cid, 's');
+    xqc_set_early_data_reject_cb(conn, early_data_reject_cb);
+    xqc_set_save_session_cb(conn, (xqc_save_session_cb_t)save_session_cb, conn);
+    xqc_set_save_tp_cb(conn, (xqc_save_tp_cb_t) save_tp_cb, conn);
+
 
     //xqc_client_write_notify(ctx.my_conn->stream, &ctx); //0rtt打开注释
 

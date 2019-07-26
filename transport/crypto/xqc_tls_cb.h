@@ -3,7 +3,7 @@
 
 #include "include/xquic_typedef.h"
 #include "xqc_tls_public.h"
-#define XQC_ALPN_D17 "\x5hq-17"
+#define XQC_ALPN_D17 "\x7xuqic-1"
 
 
 typedef enum {
@@ -76,7 +76,7 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
         size_t inlen, X509 *x, size_t chainidx, int *al,
         void *parse_arg);
 
-int xqc_read_transport_params(const char *path, xqc_transport_params_t *params);
+int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params);
 int xqc_conn_set_early_remote_transport_params(
     xqc_connection_t *conn, const xqc_transport_params_t *params);
 

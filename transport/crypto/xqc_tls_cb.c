@@ -13,7 +13,8 @@
  *@return 0 mearns error, no zero means no error
  */
 
-int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg){
+int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg)
+{
     int rv;
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
@@ -184,8 +185,6 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
     }
 
     return 0;
-
-
 }
 
 
@@ -200,26 +199,20 @@ int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secre
 }
 
 
-int xqc_cache_client_hello(xqc_connection_t *conn, const void * buf, size_t buf_len){
+int xqc_cache_client_hello(xqc_connection_t *conn, const void * buf, size_t buf_len)
+{
 
 }
 
-int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len){
+int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
+{
 
     return 0;
 }
 
 
-
-
-int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len){
-#if 0
-    if(conn->tlsref.server){
-        xqc_cache_server_handshake(conn, buf, buf_len);
-    }else{
-        xqc_cache_client_hello(conn, buf, buf_len);
-    }
-#endif
+int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
+{
     xqc_list_head_t  * phead = NULL;
     xqc_pktns_t * pktns = NULL;
 
@@ -239,21 +232,18 @@ int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
             return -1;
         }
     }
-    //p_data = &conn-> tlsref.hs_msg_cb_buf;
-    //p_data->type = XQC_FRAME_CRYPTO;
     xqc_hs_buffer_t  * p_data = xqc_create_hs_buffer();
     p_data->data_len = buf_len;
     memcpy(p_data->data, buf, buf_len);
 
     xqc_list_add_tail(& p_data->list_head, phead);
-    return 0;//need finish
+    return 0;
 }
 
 void xqc_msg_cb(int write_p, int version, int content_type, const void *buf,
-        size_t len, SSL *ssl, void *arg) {
+        size_t len, SSL *ssl, void *arg)
+{
     int rv;
-    //printf("xqc_msg_cb:content_type:%d, length:%d\n", content_type, len);
-    //hex_print((char *)buf,len);
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
     if (!write_p) {
@@ -1150,14 +1140,12 @@ int xqc_client_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
     return 1;
 }
 
-int xqc_write_transport_params(const char *path,
-        xqc_transport_params_t *params) {
-    FILE * fp = fopen(path, "w");
-    if (fp == NULL) {
-        return -1;
-    }
 
-    fprintf(fp, "initial_max_streams_bidi=%d\n"
+int xqc_write_transport_params(xqc_connection_t * conn,
+        xqc_transport_params_t *params) {
+
+    char tp_buf[8192] = {0};
+    size_t tp_data_len = snprintf(tp_buf, sizeof(tp_buf), "initial_max_streams_bidi=%d\n"
             "initial_max_streams_uni=%d\n"
             "initial_max_stream_data_bidi_local=%d\n"
             "initial_max_stream_data_bidi_remote=%d\n"
@@ -1169,8 +1157,14 @@ int xqc_write_transport_params(const char *path,
             params->initial_max_stream_data_bidi_remote,
             params->initial_max_stream_data_uni,
             params->initial_max_data);
-
-    fclose(fp);
+    if(tp_data_len == -1){
+        return -1;
+    }
+    if(conn -> tlsref.save_tp_cb != NULL){
+        if(conn -> tlsref.save_tp_cb(tp_buf, tp_data_len, conn->tlsref.tp_user_data) < 0){
+            return -1;
+        }
+    }
 
     return 0;
 }
@@ -1178,15 +1172,13 @@ int xqc_write_transport_params(const char *path,
 int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
         unsigned int context, const unsigned char *in,
         size_t inlen, X509 *x, size_t chainidx, int *al,
-        void *parse_arg) {
-
+        void *parse_arg)
+{
     xqc_connection_t * conn = (xqc_connection_t *)(SSL_get_app_data(ssl));
 
-    xqc_ssl_config_t * sc = conn->tlsref.sc;
     int rv;
 
     xqc_transport_params_t params;
-
 
     rv = xqc_decode_transport_params(
             &params, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, in, inlen);
@@ -1206,21 +1198,11 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
 
     }
 
-
-    if(sc -> tp_path != NULL){
-        //const char *servername = SSL_get_servername(ssl, TLSEXT_NAMETYPE_host_name);
-        const char * servername = conn->tlsref.hostname;
-        char  tp_path[512] ;
-        if(xqc_get_tp_path(sc->tp_path, servername, tp_path, sizeof(tp_path)) >= 0){
-            xqc_write_transport_params(tp_path, &params);
+    if(conn->tlsref.save_tp_cb != NULL){
+        if( xqc_write_transport_params(conn, &params) < 0){
+            return -1;
         }
     }
-
-    /*
-       if (config.tp_file && write_transport_params(config.tp_file, &params) != 0) {
-       std::cerr << "Could not write transport parameters in " << config.tp_file
-       << std::endl;
-       }*/
 
     return 1;
 }
@@ -1232,18 +1214,13 @@ int xqc_client_handshake_completed(xqc_connection_t * conn){
 }
 
 
+int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params){
 
-int xqc_read_transport_params(const char *path, xqc_transport_params_t *params) {
-    FILE *fp;
-    char line[1000];
-    fp=fopen(path,"r");
-    if (fp == NULL) {
-        return -1;
+    if(strlen(tp_data) != tp_data_len){
+        tp_data[tp_data_len] = '\0';
     }
-
-    while(!feof(fp)){
-        fgets(line, sizeof(line), fp);
-        char * p = line;
+    char * p = tp_data;
+    while(*p != '\0'){
         if( *p == ' ')p++;
         if(strncmp( p , "initial_max_streams_bidi=", strlen("initial_max_streams_bidi=")) == 0){
             p = p + strlen("initial_max_streams_bidi=");
@@ -1263,12 +1240,16 @@ int xqc_read_transport_params(const char *path, xqc_transport_params_t *params) 
         }else if(strncmp(p, "initial_max_data", strlen("initial_max_data")) == 0){
             p = p + strlen("initial_max_data");
             params -> initial_max_data = strtoul(p, NULL, 10);
+        }else{
+            continue;
         }
-
+        p = strchr(p, '\n');
+        if(p == NULL)return 0;
+        p++;
     }
-    fclose(fp);
     return 0;
 }
+
 
 int xqc_do_update_key(xqc_connection_t *conn){
 
