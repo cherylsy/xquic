@@ -24,7 +24,7 @@ int xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
 int xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
                      const unsigned char *payload, size_t payload_size, size_t *written_size);
 
-int xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+int xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_stream_frame_t * frame);
 
 void xqc_gen_padding_frame(xqc_packet_out_t *packet_out);
 

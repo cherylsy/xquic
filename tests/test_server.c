@@ -11,6 +11,7 @@
 #include "../include/xquic.h"
 #include "../congestion_control/xqc_new_reno.h"
 
+#include "../transport/crypto/xqc_tls_header.h"
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
 #define TEST_ADDR "127.0.0.1"
@@ -107,14 +108,14 @@ ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
 }
 
 
-void 
+void
 xqc_server_write_handler(xqc_server_ctx_t *ctx)
 {
     DEBUG
 }
 
 
-void 
+void
 xqc_server_read_handler(xqc_server_ctx_t *ctx)
 {
     DEBUG
@@ -135,8 +136,8 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
     printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));
 */
-    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
-                            (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen, 
+    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
+                            (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen,
                             (struct sockaddr *)(&ctx->peer_addr), ctx->peer_addrlen, (xqc_msec_t)recv_time, ctx) != 0)
     {
         printf("xqc_server_read_handler: packet process err\n");
@@ -221,6 +222,31 @@ xqc_server_engine_callback(int fd, short what, void *arg)
     xqc_engine_main_logic(ctx->engine);
 }
 
+
+int read_file_data( char * data, size_t data_len, char *filename){
+    FILE * fp = fopen( filename, "rb");
+
+    if(fp == NULL){
+        return -1;
+    }
+    fseek(fp, 0 , SEEK_END);
+    size_t total_len  = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if(total_len > data_len){
+        return -1;
+    }
+
+    size_t read_len = fread(data, 1, total_len, fp);
+    if (read_len != total_len){
+
+        return -1;
+    }
+
+    return read_len;
+
+}
+
+
 int main(int argc, char *argv[]) {
     printf("Usage: %s\n", argv[0], XQC_QUIC_VERSION);
 
@@ -228,7 +254,36 @@ int main(int argc, char *argv[]) {
 
     memset(&ctx, 0, sizeof(ctx));
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER);
+    char g_key_file[] = "./server.key";
+    char g_cert_file[] = "./server.crt";
+    char g_session_ticket_file[] = "session_ticket.key";
+
+
+    xqc_engine_ssl_config_t  engine_ssl_config;
+    engine_ssl_config.private_key_file = "./server.key";
+    engine_ssl_config.cert_file = "./server.crt";
+    engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
+    engine_ssl_config.groups = XQC_TLS_GROUPS;
+
+
+    char g_session_ticket_key[2048];
+    int ticket_key_len  = read_file_data(g_session_ticket_key, sizeof(g_session_ticket_key), g_session_ticket_file);
+
+    if(ticket_key_len < 0){
+        engine_ssl_config.session_ticket_key_data = NULL;
+        engine_ssl_config.session_ticket_key_len = 0;
+    }else{
+        engine_ssl_config.session_ticket_key_data = g_session_ticket_key;
+        engine_ssl_config.session_ticket_key_len = ticket_key_len;
+    }
+
+
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
+
+    if(ctx.engine == NULL){
+        printf("error create engine\n");
+        return -1;
+    }
 
     xqc_engine_callback_t callback = {
             .conn_callbacks = {

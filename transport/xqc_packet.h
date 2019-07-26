@@ -42,6 +42,16 @@ struct xqc_packet_s {
     xqc_pkt_type_t          pkt_type;
     xqc_cid_t               pkt_dcid;
     xqc_cid_t               pkt_scid;
+
+    size_t                  pkt_numlen;
+    /*
+     * len is the sum of pkt_numlen and the length of QUIC packet
+     * payload.
+     */
+    size_t len;
+    uint8_t flags;
+    uint8_t pkt_num_offset;
+
 };
 
 

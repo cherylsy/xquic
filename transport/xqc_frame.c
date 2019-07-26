@@ -11,6 +11,7 @@
 #include "xqc_frame_parser.h"
 #include "xqc_send_ctl.h"
 #include "xqc_stream.h"
+#include "crypto/xqc_tls_public.h"
 
 
 static const char * const frame_type_2_str[XQC_FRAME_NUM] = {
@@ -312,6 +313,30 @@ free:
     return ret;
 }
 
+
+xqc_int_t xqc_insert_crypto_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *stream_frame){
+
+    unsigned char inserted = 0;
+    xqc_list_head_t *pos;
+    xqc_stream_frame_t *frame;
+    xqc_list_for_each_reverse(pos, &stream->stream_data_in.frames_tailq) {
+        frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
+
+        if (stream_frame->data_offset >= frame->data_offset + frame->data_length) {
+            xqc_list_add(&stream_frame->sf_list, pos);
+            inserted = 1;
+            break;
+        }
+    }
+    if (!inserted) {
+        xqc_list_add(&stream_frame->sf_list, &stream->stream_data_in.frames_tailq);
+    }
+
+    return XQC_OK;
+
+}
+
+
 xqc_int_t
 xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
@@ -336,6 +361,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         }
     }
 
+#if 0
     if (conn->conn_state >= XQC_CONN_STATE_ESTABED) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_process_crypto_frame|recvd crypto after conn estabed|");
@@ -343,8 +369,10 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
         return XQC_OK;
     }
+#endif
 
-    ret = xqc_parse_crypto_frame(packet_in, conn);
+    xqc_stream_frame_t *stream_frame = xqc_calloc(1, sizeof(xqc_stream_frame_t));
+    ret = xqc_parse_crypto_frame(packet_in, conn, stream_frame);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_crypto_frame|xqc_parse_crypto_frame error|");
         return ret;
@@ -356,22 +384,39 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_in->pi_pkt.pkt_type);
-    xqc_stream_t *stream = conn->crypto_stream[encrypt_level];
-    if (stream) {
-        xqc_stream_ready_to_read(stream);
-    } else {
+    if(conn->crypto_stream[encrypt_level] == NULL){
         conn->crypto_stream[encrypt_level] = xqc_create_crypto_stream(conn, encrypt_level, NULL);
         if (conn->crypto_stream[encrypt_level] == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_crypto_frame|xqc_create_crypto_stream err|");
             return -XQC_ENULLPTR;
         }
-        xqc_stream_ready_to_read(conn->crypto_stream[encrypt_level]);
     }
+
+    xqc_stream_t *stream = conn->crypto_stream[encrypt_level];
+
+    ret = xqc_insert_crypto_frame(conn, stream, stream_frame);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_crypto_frame|xqc_insert_crypto_frame|");
+        return -1;
+    }
+
+    ret = xqc_read_crypto_stream(stream);
+    if(ret < 0){
+        return ret;
+    }
+    xqc_stream_ready_to_read(stream);
+
 
     if (conn->conn_type == XQC_CONN_TYPE_SERVER &&
         encrypt_level == XQC_ENC_LEV_INIT && conn->crypto_stream[XQC_ENC_LEV_HSK] == NULL) {
         conn->crypto_stream[XQC_ENC_LEV_HSK] = xqc_create_crypto_stream(conn, XQC_ENC_LEV_HSK, NULL);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_crypto_frame|server create hsk stream|");
+    }
+
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER &&
+        encrypt_level == XQC_ENC_LEV_HSK && conn->crypto_stream[XQC_ENC_LEV_1RTT] == NULL) {
+        conn->crypto_stream[XQC_ENC_LEV_1RTT] = xqc_create_crypto_stream(conn, XQC_ENC_LEV_1RTT, NULL);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_crypto_frame|server create 1RTT stream|");
     }
 
     return XQC_OK;
