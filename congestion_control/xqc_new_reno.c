@@ -97,6 +97,13 @@ xqc_reno_reset_cwnd (void *cong_ctl)
     reno->reno_congestion_window = XQC_kMinimumWindow;
 }
 
+int
+xqc_reno_in_slow_start (void *cong_ctl)
+{
+    xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
+    return reno->reno_congestion_window < reno->reno_ssthresh ? 1 : 0;
+}
+
 const xqc_cong_ctrl_callback_t xqc_reno_cb = {
     .xqc_cong_ctl_size      = xqc_reno_size,
     .xqc_cong_ctl_init      = xqc_reno_init,
@@ -104,4 +111,5 @@ const xqc_cong_ctrl_callback_t xqc_reno_cb = {
     .xqc_cong_ctl_on_ack    = xqc_reno_on_ack,
     .xqc_cong_ctl_get_cwnd  = xqc_reno_get_cwnd,
     .xqc_cong_ctl_reset_cwnd = xqc_reno_reset_cwnd,
+    .xqc_cong_ctl_in_slow_start = xqc_reno_in_slow_start,
 };

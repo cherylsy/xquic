@@ -32,13 +32,15 @@ typedef struct user_conn_s {
     socklen_t           peer_addrlen;
 
     xqc_stream_t       *stream;
+    unsigned char      *token;
+    unsigned            token_len;
 } user_conn_t;
 
 typedef struct client_ctx_s {
     xqc_engine_t  *engine;
     user_conn_t   *my_conn;
-    struct event  *ev_recv;
-    struct event  *ev_timer;
+    struct event  *ev_socket;
+    struct event  *ev_engine;
     struct event  *ev_timeout;
     uint64_t       send_offset;
 } client_ctx_t;
@@ -48,45 +50,70 @@ struct event_base *eb;
 
 static inline uint64_t now()
 {
-    /*获取毫秒单位时间*/
+    /*获取微秒单位时间*/
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    uint64_t ul = tv.tv_sec * 1000000 + tv.tv_usec;
     return  ul;
 }
 
-ssize_t xqc_client_read_socket(void *user, unsigned char *buf, size_t size)
+void xqc_client_set_event_timer(void *timer, xqc_msec_t wake_after)
 {
-    client_ctx_t *ctx = (client_ctx_t *) user;
-    ssize_t res;
-    int fd = ctx->my_conn->fd;
+    printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
-    do {
-        res = read(fd, buf, size);
-    } while ((res < 0) && (errno == EINTR));
+    struct timeval tv;
+    tv.tv_sec = wake_after / 1000000;
+    tv.tv_usec = wake_after % 1000000;
+    event_add((struct event *) timer, &tv);
 
-    return res;
 }
 
+void xqc_client_save_token(const unsigned char *token, unsigned token_len)
+{
+    int fd = open("./xqc_token",O_TRUNC|O_CREAT|O_WRONLY, S_IRWXU);
+    if (fd < 0) {
+        printf("save token error %s\n", strerror(errno));
+        return;
+    }
+
+    ssize_t n = write(fd, token, token_len);
+    if (n < token_len) {
+        printf("save token error %s\n", strerror(errno));
+        return;
+    }
+}
+
+int xqc_client_read_token(unsigned char *token, unsigned token_len)
+{
+    int fd = open("./xqc_token", O_RDONLY);
+    if (fd < 0) {
+        printf("read token error %s\n", strerror(errno));
+        return -1;
+    }
+
+    ssize_t n = read(fd, token, token_len);
+    printf("read token size %lld\n", n);
+    printf("0x%x\n", token[0]);
+    return n;
+}
 
 ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
 {
     client_ctx_t *ctx = (client_ctx_t *) user;
     ssize_t res;
     int fd = ctx->my_conn->fd;
-    printf("xqc_client_write_socket size %zd\n",size);
+    printf("xqc_client_write_socket size=%zd, now=%llu\n",size, now());
     do {
         res = write(fd, buf, size);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
-
     return res;
 }
 
 static int xqc_client_create_socket(const char *addr, unsigned int port)
 {
     int fd;
-    struct sockaddr_in saddr;
+    struct sockaddr_in *saddr = &ctx.my_conn->peer_addr;
     struct hostent *remote;
 
     remote = gethostbyname(addr);
@@ -106,16 +133,24 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
         goto err;
     }
 
-    memset(&saddr, 0, sizeof(saddr));
+    memset(saddr, 0, sizeof(struct sockaddr_in));
 
-    saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(port);
-    saddr.sin_addr = *((struct in_addr *)remote->h_addr);
+    saddr->sin_family = AF_INET;
+    saddr->sin_port = htons(port);
+    saddr->sin_addr = *((struct in_addr *)remote->h_addr);
 
-    if (connect(fd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+    if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
     }
+
+    socklen_t tmp = sizeof(struct sockaddr_in);
+    getsockname(fd, (struct sockaddr *)&ctx.my_conn->local_addr, &tmp);
+
+    printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx.my_conn->peer_addr.sin_addr), ntohs(ctx.my_conn->peer_addr.sin_port));
+    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx.my_conn->local_addr.sin_addr), ntohs(ctx.my_conn->local_addr.sin_port));
+
+
 
     return fd;
 
@@ -123,14 +158,24 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
     close(fd);
     return -1;
 }
+int xqc_client_write_notify(xqc_stream_t *stream, void *user_data);
 
-
-int xqc_client_conn_notify(xqc_cid_t *cid, void *user_data) {
+int xqc_client_conn_create_notify(xqc_cid_t *cid, void *user_data) {
     DEBUG;
 
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     ctx->my_conn->stream = xqc_create_stream(ctx->engine, cid, ctx);
     ctx->send_offset = 0;
+
+    xqc_client_write_notify(ctx->my_conn->stream, user_data); //提前写1RTT
+    return 0;
+}
+
+int xqc_client_conn_close_notify(xqc_cid_t *cid, void *user_data) {
+    DEBUG;
+
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
     return 0;
 }
 
@@ -160,23 +205,12 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-void xqc_client_wakeup(client_ctx_t *ctx)
-{
-    xqc_msec_t wake_after = xqc_engine_wakeup_after(ctx->engine);
-    printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
-    if (wake_after > 0) {
-        struct timeval tv;
-        tv.tv_sec = wake_after / 1000;
-        tv.tv_usec = wake_after % 1000 * 1000;
-        event_add(ctx->ev_timer, &tv);
-        //printf("xqc_engine_wakeup_after %llu ms, now %llu\n", wake_after, now());
-    }
-}
 
 void 
 xqc_client_write_handler(client_ctx_t *ctx)
 {
     DEBUG
+    xqc_conn_write_handler(ctx->engine, &ctx->my_conn->cid);
 }
 
 
@@ -186,9 +220,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
     DEBUG
 
     ssize_t recv_size = 0;
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    uint64_t recv_time = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    uint64_t recv_time = now();
 
     /* recv udp packet */
     ssize_t  n;
@@ -217,8 +249,10 @@ xqc_client_read_handler(client_ctx_t *ctx)
         return;
     }
 
-    printf("xqc_client_read_handler recv_size=%zd\n",recv_size);
-
+    printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n",recv_size, recv_time);
+    /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
+    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
+*/
     if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size, 
                             (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen, 
                             (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
@@ -228,7 +262,6 @@ xqc_client_read_handler(client_ctx_t *ctx)
         return;
     }
 
-    xqc_client_wakeup(ctx);
 }
 
 
@@ -248,30 +281,14 @@ xqc_client_event_callback(int fd, short what, void *arg)
     }
 }
 
-static int
-xqc_client_process_conns(client_ctx_t *ctx)
-{
-    int rc = xqc_engine_main_logic(ctx->engine);
-    if (rc) {
-        printf("xqc_engine_main_logic error %d\n", rc);
-        return -1;
-    }
-
-    xqc_client_wakeup(ctx);
-    return 0;
-}
 
 static void
-xqc_client_timer_callback(int fd, short what, void *arg)
+xqc_client_engine_callback(int fd, short what, void *arg)
 {
     printf("xqc_client_timer_callback now %llu\n", now());
     client_ctx_t *ctx = (client_ctx_t *) arg;
 
-    int rc = xqc_client_process_conns(ctx);
-    if (rc) {
-        printf("xqc_client_timer_callback error\n");
-        return;
-    }
+    xqc_engine_main_logic(ctx->engine);
 }
 
 static void
@@ -286,11 +303,6 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
         return;
     }
 
-    rc = xqc_client_process_conns(ctx);
-    if (rc) {
-        printf("xqc_client_timer_callback error\n");
-        return;
-    }
     //event_base_loopbreak(eb);
 }
 
@@ -322,25 +334,37 @@ int main(int argc, char *argv[]) {
 
     }
 
+
     memset(&ctx, 0, sizeof(ctx));
+
+    eb = event_base_new();
+
+    ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
+    ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT);
 
     xqc_engine_callback_t callback = {
             .conn_callbacks = {
-                    .conn_create_notify = xqc_client_conn_notify,
+                    .conn_create_notify = xqc_client_conn_create_notify,
+                    .conn_close_notify = xqc_client_conn_close_notify,
             },
             .stream_callbacks = {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
             },
-            .read_socket = xqc_client_read_socket,
             .write_socket = xqc_client_write_socket,
             .cong_ctrl_callback = xqc_reno_cb,
+            .set_event_timer = xqc_client_set_event_timer,
+            .save_token = xqc_client_save_token,
     };
-    xqc_engine_set_callback(ctx.engine, callback);
 
-    ctx.my_conn = malloc(sizeof(user_conn_t));
+    xqc_conn_settings_t conn_settings = {
+            .pacing_on  =   1,
+    };
+    xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
+
+    ctx.my_conn = xqc_calloc(1, sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {
         printf("xqc_malloc error\n");
         return 0;
@@ -352,36 +376,32 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx);
-    if (cid == NULL) {
-        printf("xqc_connect error\n");
-        return 0;
+    ctx.ev_socket = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
+    event_add(ctx.ev_socket, NULL);
+
+    unsigned char token[XQC_MAX_TOKEN_LEN];
+    int token_len = XQC_MAX_TOKEN_LEN;
+    token_len = xqc_client_read_token(token, token_len);
+    if (token_len > 0) {
+        ctx.my_conn->token = token;
+        ctx.my_conn->token_len = token_len;
     }
-    memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
-
-    eb = event_base_new();
-
-    ctx.ev_timer = event_new(eb, -1, 0, xqc_client_timer_callback, &ctx);
-    ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
-
-    ctx.ev_recv = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
-    event_add(ctx.ev_recv, NULL);
 
     struct timeval tv;
     tv.tv_sec = 3;
     tv.tv_usec = 0;
     event_add(ctx.ev_timeout, &tv);
 
-    rc = xqc_client_process_conns(&ctx);
-    if (rc) {
-        printf("xqc_client_process_conns error\n");
+    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len);
+    if (cid == NULL) {
+        printf("xqc_connect error\n");
         return 0;
     }
+    memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
+
+    //xqc_client_write_notify(ctx.my_conn->stream, &ctx); //0rtt打开注释
 
     event_base_dispatch(eb);
-
-    /*xqc_client_write_notify(ctx.my_conn->stream, &ctx);
-    DEBUG;*/
 
     xqc_engine_destroy(ctx.engine);
     return 0;

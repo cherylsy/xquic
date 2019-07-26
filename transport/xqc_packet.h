@@ -78,7 +78,9 @@ xqc_packet_version_check(xqc_connection_t *c, uint32_t version);
 
 xqc_int_t
 xqc_conn_process_packets(xqc_connection_t *c,
-                          xqc_packet_in_t *packet_in);
+                         const unsigned char *packet_in_buf,
+                         size_t packet_in_size,
+                         xqc_msec_t recv_time);
 
 
 #endif //_XQC_PACKET_H_INCLUDED_

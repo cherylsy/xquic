@@ -13,7 +13,9 @@
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
 
-typedef ssize_t (*xqc_recv_pt)(void *user, unsigned char *buf, size_t size);
+typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
+typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
+
 typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
 typedef int (*xqc_conn_notify_pt)(xqc_cid_t *cid, void *user_data);
@@ -42,6 +44,7 @@ typedef struct xqc_congestion_control_callback_s {
     void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes);
     uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
+    int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
 
 
@@ -70,8 +73,12 @@ typedef struct xqc_engine_callback_s {
     /* for congestion control */
     xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 
-    /* for socket read & write */
-    xqc_recv_pt                 read_socket;
+    /* for event loop */
+    xqc_set_event_timer_pt      set_event_timer;
+
+    xqc_save_token_pt           save_token;
+
+    /* for socket write */
     xqc_send_pt                 write_socket;
 
     /* for connection notify */
@@ -92,6 +99,9 @@ struct xqc_ssl_config {
     uint32_t   timeout;
 };
 
+struct xqc_conn_settings_s {
+    int     pacing_on;
+};
 
 typedef struct xqc_engine_s {
     xqc_engine_type_t       eng_type;
@@ -103,10 +113,12 @@ typedef struct xqc_engine_s {
     xqc_pq_t               *conns_pq; /* In process */
     xqc_wakeup_pq_t        *conns_wakeup_pq; /* Need wakeup after next tick time */
 
-    xqc_conn_settings_t    *settings;
+    xqc_conn_settings_t    conn_settings;
 
     xqc_log_t              *log;
     xqc_random_generator_t *rand_generator;
+
+    void                   *event_timer;
 
     xqc_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
     SSL_CTX                *ssl_ctx;  //for ssl
@@ -124,13 +136,16 @@ void xqc_engine_destroy(xqc_engine_t *engine);
 
 
 /**
- * Set xquic engine API.
+ * Init engine after engine created.
  */
-void xqc_engine_set_callback (xqc_engine_t *engine,
-                              xqc_engine_callback_t engine_callback);
+void
+xqc_engine_init (xqc_engine_t *engine,
+                 xqc_engine_callback_t engine_callback,
+                 xqc_conn_settings_t conn_settings,
+                 void *event_timer);
 
 
-xqc_cid_t* xqc_connect(xqc_engine_t *engine, void *user_data);
+xqc_cid_t* xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigned token_len);
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
@@ -170,7 +185,7 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
 /**
  * Process all connections
  */
-int xqc_engine_main_logic (xqc_engine_t *engine);
+void xqc_engine_main_logic (xqc_engine_t *engine);
 
 /**
  * Pass received UDP packet payload into xquic engine.
@@ -187,9 +202,11 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                void *user_data);
 
 /**
- * @return >0 : user should call xqc_engine_main_logic after N ms
+ * User should call xqc_conn_write_handler when write event ready
  */
-xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
+int
+xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid);
+
 
 
 #endif /* _XQUIC_H_INCLUDED_ */

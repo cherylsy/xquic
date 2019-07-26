@@ -16,6 +16,10 @@
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
+#define XQC_MAX_TOKEN_LEN 32
+#define XQC_TOKEN_EXPIRE_DELTA 7*24*60*60   //N秒后过期
+#define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA - 10) //提前N秒更新
+
 /* 调试时候用，会删掉 */
 #ifdef DEBUG_PRINT
 #define XQC_DEBUG_PRINT printf("%s:%d (%s)\n", __FILE__, __LINE__, __FUNCTION__);
@@ -24,8 +28,10 @@
 #endif
 
 #define XQC_CONN_ERR(conn, err) do {        \
+    if (conn->conn_err == 0) {              \
     conn->conn_err = err;                   \
     conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
+    }                                       \
 } while(0)                                  \
 
 /* 添加state请更新conn_state_2_str */
@@ -61,7 +67,7 @@ typedef enum {
 
 #define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_ERROR)
 
-/* 添加flag请更新conn_flag_2_str */
+/* !!WARNING: 添加flag请更新conn_flag_2_str */
 typedef enum {
     XQC_CONN_FLAG_WAKEUP_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
@@ -73,6 +79,10 @@ typedef enum {
     XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR_SHIFT,
     XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
+    XQC_CONN_FLAG_DCID_OK_SHIFT,
+    XQC_CONN_FLAG_TOKEN_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_REJ_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -87,6 +97,10 @@ typedef enum {
     XQC_CONN_FLAG_TIME_OUT              = 1 << XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR                 = 1 << XQC_CONN_FLAG_ERROR_SHIFT,
     XQC_CONN_FLAG_DATA_BLOCKED          = 1 << XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
+    XQC_CONN_FLAG_DCID_OK               = 1 << XQC_CONN_FLAG_DCID_OK_SHIFT,
+    XQC_CONN_FLAG_TOKEN_OK              = 1 << XQC_CONN_FLAG_TOKEN_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_OK               = 1 << XQC_CONN_FLAG_0RTT_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_REJ              = 1 << XQC_CONN_FLAG_0RTT_REJ_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -138,9 +152,6 @@ typedef struct {
     xqc_preferred_address_t preferred_addr;
 }xqc_trans_param_t;
 
-struct xqc_conn_settings_s {
-
-};
 
 typedef struct {
     /* flow control limit */
@@ -151,6 +162,12 @@ typedef struct {
     uint32_t                fc_max_streams_bidi;
     uint32_t                fc_max_streams_uni;
 } xqc_conn_flow_ctl_t;
+
+typedef struct xqc_conns_pq_elem_s
+{
+    xqc_pq_key_t        time_ms;
+    xqc_connection_t    *conn;
+}xqc_conns_pq_elem_t;
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
@@ -164,8 +181,13 @@ struct xqc_connection_s{
     xqc_cid_t               scid;
     xqc_cid_t               ocid; /* original connection id */
 
-    xqc_str_t               token;
-    xqc_uint_t              zero_rtt_count;
+    unsigned char           peer_addr[sizeof(struct sockaddr_in6)],
+                            local_addr[sizeof(struct sockaddr_in6)];
+
+    unsigned char           conn_token[XQC_MAX_TOKEN_LEN];
+    uint32_t                conn_token_len;
+    uint32_t                zero_rtt_count;
+    uint32_t                retry_count;
 
     xqc_conn_state_t        conn_state;
     xqc_memory_pool_t      *conn_pool;
@@ -187,7 +209,7 @@ struct xqc_connection_s{
 
     xqc_list_head_t         packet_in_tailq;  /* xqc_packet_in_t */
     xqc_recv_record_t       recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
-    unsigned                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
+    uint32_t                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 
     xqc_log_t              *log;
 
@@ -203,7 +225,7 @@ struct xqc_connection_s{
 
     xqc_conn_flow_ctl_t     conn_flow_ctl;
 
-    unsigned                wakeup_pq_index;
+    uint32_t                wakeup_pq_index;
 
     xqc_trans_error_code    conn_err;
 };
@@ -258,5 +280,15 @@ xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 int xqc_conn_immediate_close(xqc_connection_t *conn);
 
 int xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
+
+int xqc_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
+
+int xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
+
+void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
+
+int xqc_conn_early_data_reject(xqc_connection_t *conn);
+
+int xqc_conn_early_data_accept(xqc_connection_t *conn);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

@@ -2,7 +2,7 @@
 #include "xqc_reno_test.h"
 #include "../congestion_control/xqc_new_reno.h"
 #include <stdio.h>
-#include "../common/xqc_timer.h"
+#include "../common/xqc_time.h"
 
 void
 print_reno (xqc_new_reno_t *reno)
@@ -16,7 +16,7 @@ print_reno (xqc_new_reno_t *reno)
 void
 xqc_test_reno ()
 {
-    xqc_msec_t now = xqc_gettimeofday();
+    xqc_msec_t now = xqc_now();
 
     xqc_new_reno_t reno;
     xqc_reno_cb.xqc_cong_ctl_init(&reno);

@@ -35,11 +35,14 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 void
 xqc_long_packet_update_length (xqc_packet_out_t *packet_out);
 
+void
+xqc_short_packet_update_dcid(xqc_packet_out_t *packet_out, xqc_connection_t *conn);
+
 int
 xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
-                            unsigned char *dcid, unsigned char dcid_len,
-                            unsigned char *scid, unsigned char scid_len,
-                            unsigned char *token, unsigned char token_len,
+                            const unsigned char *dcid, unsigned char dcid_len,
+                            const unsigned char *scid, unsigned char scid_len,
+                            const unsigned char *token, unsigned token_len,
                             unsigned ver,
                             unsigned char pktno_bits);
 
@@ -55,6 +58,14 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in);
 
 xqc_int_t
 xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in);
+
+int
+xqc_gen_retry_packet(unsigned char *dst_buf,
+                     const unsigned char *dcid, unsigned char dcid_len,
+                     const unsigned char *scid, unsigned char scid_len,
+                     const unsigned char *odcid, unsigned char odcid_len,
+                     const unsigned char *token, unsigned token_len,
+                     unsigned ver);
 
 xqc_int_t
 xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in);

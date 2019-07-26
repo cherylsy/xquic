@@ -14,11 +14,13 @@ xqc_config_t *xqc_engine_config_create(xqc_engine_type_t engine_type);
 
 void xqc_engine_config_destroy(xqc_config_t *config);
 
-typedef struct xqc_conns_pq_elem_s
-{
-    xqc_pq_key_t        time_ms;
-    xqc_connection_t    *conn;
-}xqc_conns_pq_elem_t;
+void xqc_engine_set_callback (xqc_engine_t *engine,
+                         xqc_engine_callback_t engine_callback);
+
+/**
+ * @return >0 : user should call xqc_engine_main_logic after N ms
+ */
+xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
 xqc_connection_t * xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type);
 
