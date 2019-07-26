@@ -263,8 +263,8 @@ int xqc_read_crypto_stream(xqc_stream_t * stream){
         size_t data_len  = stream_frame->data_offset  + stream_frame->data_length - stream->stream_data_in.next_read_offset;
         char * data_start =  stream_frame->data + (stream->stream_data_in.next_read_offset - stream_frame->data_offset);
 
-        printf("recv crypto data:%d\n",data_len);
-        hex_print(data_start, data_len);
+        //printf("recv crypto data:%d\n",data_len);
+        //hex_print(data_start, data_len);
         int ret = conn->tlsref.callbacks.recv_crypto_data(conn, 0, data_start, data_len, NULL);
 
         xqc_list_del(pos);
@@ -373,8 +373,8 @@ int xqc_crypto_stream_send( xqc_stream_t *stream, xqc_pktns_t *  p_pktns, xqc_en
 
     xqc_list_for_each_safe(pos,next, head){
         xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
-        printf("send crypto data:%d\n", buf->data_len);
-        hex_print(buf->data, buf->data_len);
+        //printf("send crypto data:%d\n", buf->data_len);
+        //hex_print(buf->data, buf->data_len);
         if(buf->data_len > 0){
             int send_data_num =  stream->stream_send_offset + buf->data_len;
             size_t offset = 0;
@@ -389,13 +389,13 @@ int xqc_crypto_stream_send( xqc_stream_t *stream, xqc_pktns_t *  p_pktns, xqc_en
                     return -XQC_ENULLPTR;
                 }
 
-                printf("crypt send packet_out:%p\n", packet_out);
+                //printf("crypt send packet_out:%p\n", packet_out);
                 n_written = xqc_gen_crypto_frame(packet_out,
                         stream->stream_send_offset,
                         buf->data + offset,
                         buf->data_len - offset,
                         &send_data_written);
-                printf("send data written :%d\n", send_data_written);
+                //printf("send data written :%d\n", send_data_written);
                 if (n_written < 0) {
                     return n_written;
                 }

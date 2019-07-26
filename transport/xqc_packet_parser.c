@@ -537,7 +537,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
     if(XQC_ENC_LEV_0RTT == encrypt_level){
 
         if(SSL_get_early_data_status(conn->xc_ssl) != SSL_EARLY_DATA_ACCEPTED){
-            printf("early data not decrypt");
+            //printf("early data not decrypt");
             xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_do_decrypt_pkt|early data not decrypt");
             return XQC_EARLY_DATA_REJECT;
         }
@@ -575,8 +575,8 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
             decrypt_func = conn->tlsref.callbacks.decrypt;
             break;
         default:
-            //xqc_log(c->log, XQC_LOG_WARN, "|do_decrypt_pkt|invalid packet type|%ui|", type);
-            printf("|do_decrypt_pkt|invalid packet type|%ui|", type);
+            xqc_log(conn->log, XQC_LOG_WARN, "|do_decrypt_pkt|invalid packet type|%ui|", type);
+            //printf("|do_decrypt_pkt|invalid packet type|%ui|", type);
             int ret = -XQC_EILLPKT;
             return ret;
 
@@ -584,7 +584,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
 
     if(ckm->key.base == NULL || ckm->key.len == 0 || ckm->iv.base == NULL || ckm->iv.len == 0 || hp->base == NULL || hp->len == 0){
         int ret = -1;
-        printf("error decrypt :%d level data\n", encrypt_level);
+        //printf("error decrypt :%d level data\n", encrypt_level);
         return ret;
     }
 

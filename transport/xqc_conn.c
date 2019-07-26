@@ -493,7 +493,8 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out){
     int nwrite = encrypt_func(conn,  payload, packet_out->po_buf_size + EXTRA_SPACE, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
 
     if(nwrite < 0){
-        printf("encrypt error \n");
+        //printf("encrypt error \n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_do_encrypt_pkt|encrypt packet error");
         return -1;
     }
 
@@ -540,14 +541,14 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
 
             xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_send_one_packet | encrypt packet error");
-            printf("encrypt packet error\n");
+            //printf("encrypt packet error\n");
             return XQC_ENCRYPT_DATA_ERROR;
         }
 
         packet_out->po_flag |= XQC_POF_ENCRYPTED;
     }
-    printf("send packet :%d, packet type:%d\n", packet_out->po_used_size, packet_out->po_pkt.pkt_type);
-    hex_print(packet_out->po_buf, packet_out->po_used_size);
+    //printf("send packet :%d, packet type:%d\n", packet_out->po_used_size, packet_out->po_pkt.pkt_type);
+    //hex_print(packet_out->po_buf, packet_out->po_used_size);
 
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
@@ -568,7 +569,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
 
-    printf("send size:%d\n",send);
+    //printf("send size:%d\n",send);
     return sent;
 }
 

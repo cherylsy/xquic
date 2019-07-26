@@ -245,7 +245,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
             xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|decrypt early data error, continue |");
         }else{
             xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|decrypt  data error, return|");
-            printf("error do decrypt packet\n");
+            //printf("error do decrypt packet\n");
             return ret;
         }
     }
@@ -303,7 +303,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
     xqc_packet_in_t packet;
     unsigned char decrypt_payload[MAX_PACKET_LEN];
 
-    printf("recv packet %d\n", packet_in_size);
+    //printf("recv packet %d\n", packet_in_size);
     hex_print((char *)packet_in_buf, packet_in_size);
 
     while (pos < end) {
