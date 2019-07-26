@@ -35,7 +35,8 @@ xqc_pktno_range_can_merge (xqc_pktno_range_node_t *node, xqc_packet_number_t pac
  * insert into range list when receive a new packet
  */
 xqc_pkt_range_status
-xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number, xqc_msec_t recv_time)
+xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number,
+                     xqc_msec_t recv_time)
 {
     xqc_list_head_t *pos, *prev;
     xqc_pktno_range_node_t *pnode, *prev_node;
@@ -64,7 +65,7 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
         prev = pos;
     }
 
-    if (pos) {
+    if (pos && !xqc_list_empty(&recv_record->list_head)) {
         pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
     }
     if (prev) {
@@ -80,8 +81,9 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
         }
     } else {
         xqc_pktno_range_node_t *new_node = xqc_calloc(1, sizeof(*new_node));
-        if (!new_node)
+        if (!new_node) {
             return XQC_PKTRANGE_ERR;
+        }
         new_node->pktno_range.low = new_node->pktno_range.high = packet_number;
         if (pos) {
             //insert before pos

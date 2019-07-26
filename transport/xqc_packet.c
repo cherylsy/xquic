@@ -191,7 +191,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         /* check handshake */
         if (!xqc_conn_check_handshake_completed(c)) {
             /* TODO: buffer packets */
-            xqc_log(c->log, XQC_LOG_DEBUG,
+            xqc_log(c->log, XQC_LOG_WARN,
                     "|process_single_packet|recvd short header packet before handshake completed|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
@@ -204,6 +204,22 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
             return ret;
         }
     } else {  /* long header */
+
+        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
+                && c->conn_type == XQC_CONN_TYPE_SERVER
+                && c->conn_state < XQC_CONN_STATE_SERVER_INITIAL_RECVD) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|ignore 0RTT before initial received|");
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
+        }
+
+        /* TODO: 0RTT回退 用于模拟0rtt失败 */
+        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
+            && c->conn_type == XQC_CONN_TYPE_SERVER) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|ignore 0RTT test|");
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
+        }
 
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
@@ -236,9 +252,9 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
 
     packet_in->last = last;
 
-    xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_single_packet|pkt_type=%s|pkt_num=%ui|frame=%s|",
+    xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_single_packet|pkt_type=%s|pkt_num=%ui|frame=%s|recv_time=%ui|",
             xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
-            xqc_frame_type_2_str(packet_in->pi_frame_types));
+            xqc_frame_type_2_str(packet_in->pi_frame_types), packet_in->pkt_recv_time);
 
     xqc_pkt_range_status range_status;
     int out_of_order = 0;

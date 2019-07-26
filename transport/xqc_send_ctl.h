@@ -39,11 +39,11 @@ typedef struct {
 } xqc_send_ctl_timer_t;
 
 typedef struct xqc_send_ctl_s {
-    xqc_list_head_t             ctl_packets; //xqc_packet_out_t to send
+    xqc_list_head_t             ctl_send_packets; //xqc_packet_out_t to send
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
     xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
-    xqc_list_head_t             ctl_buff_packets; //xqc_packet_out_t
+    xqc_list_head_t             ctl_buff_packets; //xqc_packet_out_t buff 1RTT before handshake complete
     unsigned                    ctl_packets_used;
     unsigned                    ctl_packets_free;
     unsigned                    ctl_packets_used_max;
@@ -95,6 +95,8 @@ typedef struct xqc_send_ctl_s {
 
 } xqc_send_ctl_t;
 
+const char *
+xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type);
 
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn);
@@ -154,6 +156,9 @@ void
 xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl);
 
 void
+xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl);
+
+void
 xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
 
 void
@@ -170,8 +175,8 @@ xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_ms
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_set|type=%d|expire=%ui|",
-        type, expire);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_set|type=%s|expire=%ui|",
+            xqc_timer_type_2_str(type), expire);
 }
 
 static inline void
@@ -179,8 +184,8 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 0;
     ctl->ctl_timer[type].ctl_expire_time = 0;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_unset|type=%d|",
-            type);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_unset|type=%s|",
+            xqc_timer_type_2_str(type));
 }
 
 static inline xqc_msec_t
@@ -191,7 +196,7 @@ xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
 }
 
 void
-xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_msec_t now);
 
 int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time);

@@ -69,7 +69,7 @@ typedef enum {
 
 #define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_ERROR)
 
-/* 添加flag请更新conn_flag_2_str */
+/* !!WARNING: 添加flag请更新conn_flag_2_str */
 typedef enum {
     XQC_CONN_FLAG_WAKEUP_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
@@ -83,6 +83,8 @@ typedef enum {
     XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
     XQC_CONN_FLAG_DCID_OK_SHIFT,
     XQC_CONN_FLAG_TOKEN_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_REJ_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -99,6 +101,8 @@ typedef enum {
     XQC_CONN_FLAG_DATA_BLOCKED          = 1 << XQC_CONN_FLAG_DATA_BLOCKED_SHIFT,
     XQC_CONN_FLAG_DCID_OK               = 1 << XQC_CONN_FLAG_DCID_OK_SHIFT,
     XQC_CONN_FLAG_TOKEN_OK              = 1 << XQC_CONN_FLAG_TOKEN_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_OK               = 1 << XQC_CONN_FLAG_0RTT_OK_SHIFT,
+    XQC_CONN_FLAG_0RTT_REJ              = 1 << XQC_CONN_FLAG_0RTT_REJ_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -286,8 +290,12 @@ int xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
 
 int xqc_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
 
-int xqc_conn_check_token_ok(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
+int xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
 
 void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
+
+int xqc_conn_early_data_reject(xqc_connection_t *conn);
+
+int xqc_conn_early_data_accept(xqc_connection_t *conn);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

@@ -144,8 +144,10 @@ xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type)
     str.len = cid->cid_len;
 
     if (type == 's') {
+        /* 本地cid */
         return xqc_str_hash_find(engine->conns_hash, hash, str);
     } else {
+        /* 对端cid */
         return xqc_str_hash_find(engine->conns_hash_dcid, hash, str);
     }
 }
@@ -643,8 +645,8 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     }
 
 process:
-    xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui, state=%s",
-            conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state));
+    xqc_log(engine->log, XQC_LOG_INFO, "==> xqc_engine_packet_process conn=%p, size=%ui, state=%s, recv_time=%ui",
+            conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state), recv_time);
 
     /* process packets */
     ret = (int)xqc_conn_process_packets(conn, packet_in_buf, packet_in_size, recv_time);

@@ -218,24 +218,6 @@ xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     return XQC_OK;
 }
 
-void
-xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame)
-{
-    xqc_free(stream_frame->data);
-    xqc_free(stream_frame);
-}
-
-void
-xqc_destroy_frame_list(xqc_list_head_t *head)
-{
-    xqc_list_head_t *pos, *next;
-    xqc_stream_frame_t *stream_frame;
-    xqc_list_for_each_safe(pos, next, head) {
-        stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
-        xqc_list_del_init(pos);
-        xqc_destroy_stream_frame(stream_frame);
-    }
-}
 
 xqc_int_t
 xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
@@ -255,7 +237,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_stream_frame|xqc_parse_stream_frame error|");
         goto error;
     }
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_stream_frame|offset: %ui, len: %ui, fin: %ud|",
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_stream_frame|offset: %ui, data_length: %ui, fin: %ud|",
             stream_frame->data_offset, stream_frame->data_length, stream_frame->fin);
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
@@ -294,12 +276,12 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|already read|data_offset: %ui, data_length: %u, merged_offset_end: %ui",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|already read|data_offset: %ui, data_length: %ui, merged_offset_end: %ui",
                 stream_frame->data_offset, stream_frame->data_length, stream->stream_data_in.merged_offset_end);
         goto free;
     }
     else if (stream_frame->data_offset < stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_WARN, "|error offset|data_offset: %ui, data_length: %u, merged_offset_end: %ui",
+        xqc_log(conn->log, XQC_LOG_WARN, "|error offset|data_offset: %ui, data_length: %ui, merged_offset_end: %ui",
                 stream_frame->data_offset, stream_frame->data_length, stream->stream_data_in.merged_offset_end);
         ret = -XQC_EOFFSET;
         goto error;
@@ -318,6 +300,9 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_process_stream_frame|xqc_stream_ready_to_read|");
         xqc_stream_ready_to_read(stream);
     }
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_length:%ui|merged_offset_end:%ui|",
+            stream->stream_data_in.stream_length, stream->stream_data_in.merged_offset_end);
 
     return XQC_OK;
 
@@ -362,7 +347,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             && conn->conn_type == XQC_CONN_TYPE_SERVER
             && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {
 
-        if (xqc_conn_check_token_ok(conn, conn->conn_token, conn->conn_token_len)) {
+        if (xqc_conn_check_token(conn, conn->conn_token, conn->conn_token_len)) {
             conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
         } else {
             unsigned char token[XQC_MAX_TOKEN_LEN];
@@ -391,6 +376,11 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_crypto_frame|xqc_parse_crypto_frame error|");
         return ret;
+    }
+
+    /* TODO: 0RTT回退 加密层回调 */
+    if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_HSK && conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+        xqc_conn_early_data_reject(conn);
     }
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_in->pi_pkt.pkt_type);

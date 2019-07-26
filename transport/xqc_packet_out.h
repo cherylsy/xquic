@@ -41,6 +41,8 @@ typedef struct xqc_packet_out_s
     unsigned char           *po_buf;
     unsigned int            po_buf_size;
     unsigned int            po_used_size;
+    unsigned char           *po_encrypt_buf;
+    unsigned int            po_encrypt_buf_size;
     xqc_packet_out_flag_t   po_flag;
     unsigned char           *p_data;
     unsigned char           *ppktno;
@@ -111,6 +113,10 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
 int
 xqc_write_new_token_to_packet(xqc_connection_t *conn);
 
+int
+xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
+                                 xqc_pkt_type_t pkt_type, uint8_t fin,
+                                 const unsigned char *payload, size_t payload_size, size_t *send_data_written);
 void
 xqc_process_buff_packets(xqc_connection_t *conn);
 

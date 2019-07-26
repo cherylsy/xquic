@@ -345,6 +345,8 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_list_for_each(pos, &recv_record->list_head) {
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
         printf("xqc_gen_ack_frame low:%llu, high=%llu\n", range_node->pktno_range.low, range_node->pktno_range.high);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high: %ui, low: %ui|",
+                range_node->pktno_range.high, range_node->pktno_range.low);
     }
 
     xqc_pktno_range_node_t *first_range = NULL;
@@ -354,11 +356,9 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     }
 
     if (first_range == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|recv_record empty|");
         return -XQC_ENULLPTR;
     }
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high: %ui, low: %ui|",
-            first_range->pktno_range.high, first_range->pktno_range.low);
 
     lagest_recv = first_range->pktno_range.high;
     ack_delay = (now - recv_record->largest_pkt_recv_time) >> ack_delay_exponent;

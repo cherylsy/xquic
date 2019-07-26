@@ -120,6 +120,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
 
     ssize_t n = read(fd, token, token_len);
     printf("read token size %lld\n", n);
+    printf("0x%x\n", token[0]);
     return n;
 }
 
@@ -128,12 +129,11 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
     client_ctx_t *ctx = (client_ctx_t *) user;
     ssize_t res;
     int fd = ctx->my_conn->fd;
-    printf("xqc_client_write_socket size %zd\n",size);
+    printf("xqc_client_write_socket size=%zd, now=%llu\n",size, now());
     do {
         res = write(fd, buf, size);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
-
     return res;
 }
 
@@ -194,7 +194,7 @@ int xqc_client_conn_create_notify(xqc_cid_t *cid, void *user_data) {
     ctx->my_conn->stream = xqc_create_stream(ctx->engine, cid, ctx);
     ctx->send_offset = 0;
 
-    //xqc_client_write_notify(ctx->my_conn->stream, user_data);
+    xqc_client_write_notify(ctx->my_conn->stream, user_data); //提前写1RTT
     return 0;
 }
 
@@ -275,7 +275,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
         return;
     }
 
-    printf("xqc_client_read_handler recv_size=%zd\n",recv_size);
+    printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n",recv_size, recv_time);
     /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
     printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
 */
@@ -500,9 +500,6 @@ int main(int argc, char *argv[]) {
     //xqc_client_write_notify(ctx.my_conn->stream, &ctx); //0rtt打开注释
 
     event_base_dispatch(eb);
-
-    /*xqc_client_write_notify(ctx.my_conn->stream, &ctx);
-    DEBUG;*/
 
     xqc_engine_destroy(ctx.engine);
     return 0;
