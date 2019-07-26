@@ -214,12 +214,14 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         }
 
         /* TODO: 0RTT回退 用于模拟0rtt失败 */
+#if 0
         if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
             && c->conn_type == XQC_CONN_TYPE_SERVER) {
             xqc_log(c->log, XQC_LOG_ERROR, "|ignore 0RTT test|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }
+#endif
 
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
