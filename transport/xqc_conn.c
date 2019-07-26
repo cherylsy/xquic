@@ -398,18 +398,19 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                 xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
                 if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
                     xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
-                continue;
-            } else if (conn->conn_settings.pacing_on) {
-                if (pacing_blocked == 0) {
-                    xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
-                    if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
-                        pacing_blocked = 1;
-                        xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
+                    continue;
+                } else if (conn->conn_settings.pacing_on) {
+                    if (pacing_blocked == 0) {
+                        xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
+                        if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
+                            pacing_blocked = 1;
+                            xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
+                            continue;
+                        }
+                    } else {
+                        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
                         continue;
                     }
-                } else {
-                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
-                    continue;
                 }
             }
         }

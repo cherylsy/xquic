@@ -331,6 +331,7 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
         switch (cur_state) {
 
             case XQC_CONN_STATE_ESTABED:
+                next_state = XQC_CONN_STATE_ESTABED;
                 break;
             default:
                 xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "xqc_crypto_stream_on_read illegal encrypt_level %d",
@@ -477,6 +478,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         switch (cur_state) {
             case XQC_CONN_STATE_ESTABED:
                 p_pktns = &conn->tlsref.pktns;
+                next_state = cur_state;
                 break;
             default:
                 xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "xqc_crypto_stream_on_write illegal encrypt_level %d",
@@ -495,37 +497,6 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         xqc_crypto_stream_send(stream, p_pktns, NULL, pkt_type );
     }
 
-
-#if 0
-    size_t send_data_written = 0;
-    size_t offset = 0;
-    int n_written = 0;
-    xqc_packet_out_t *packet_out;
-    xqc_connection_t *c = stream->stream_conn;
-
-    while (stream->stream_send_offset < send_data_size) {
-        unsigned int header_size = xqc_crypto_frame_header_size(stream->stream_send_offset,
-                                                                send_data_size - offset);
-
-        packet_out = xqc_write_new_packet(c, pkt_type);
-        if (packet_out == NULL) {
-            return -XQC_ENULLPTR;
-        }
-
-        n_written = xqc_gen_crypto_frame(packet_out,
-                                         stream->stream_send_offset,
-                                         send_data + offset,
-                                         send_data_size - offset,
-                                         &send_data_written);
-        if (n_written < 0) {
-            xqc_maybe_recycle_packet_out(packet_out, stream->stream_conn);
-            return n_written;
-        }
-        offset += send_data_written;
-        stream->stream_send_offset += send_data_written;
-        packet_out->po_used_size += n_written;
-    }
-#endif
 
     xqc_stream_shutdown_write(stream);
 
