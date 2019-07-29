@@ -376,7 +376,7 @@ typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user
 typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
 typedef int  (*xqc_read_session_cb_t )(char ** data);
 
-typedef int (*xqc_early_data_reject_cb_t)(xqc_connection_t *conn);
+typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means early data accept, 0 means early data reject
 
 struct xqc_tlsref{
     xqc_connection_t       * conn;
@@ -422,7 +422,7 @@ struct xqc_tlsref{
     void *                  tp_user_data;
     void *                  session_user_data;
 
-    xqc_early_data_reject_cb_t  early_data_reject_cb;
+    xqc_early_data_cb_t    early_data_cb;
 
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
