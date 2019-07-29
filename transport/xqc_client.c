@@ -44,6 +44,9 @@ xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigne
         memcpy(xc->conn_token, token, token_len);
     }
 
+    xqc_log(engine->log, XQC_LOG_DEBUG,
+            "|xqc_connect|");
+
     if (xc->conn_callbacks.conn_create_notify) {
         if (xc->conn_callbacks.conn_create_notify(&xc->scid, user_data)) {
             xqc_destroy_connection(xc);

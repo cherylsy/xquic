@@ -3,10 +3,10 @@
 #include "../congestion_control/xqc_new_reno.h"
 #include <stdio.h>
 #include "../common/xqc_time.h"
-
 void
 print_reno (xqc_new_reno_t *reno)
 {
+
 #ifdef DEBUG_PRINT
     printf("cwnd:%u, ssthresh:%u, recovery_start_time:%llu\n",
            reno->reno_congestion_window, reno->reno_ssthresh, reno->reno_recovery_start_time);
@@ -25,6 +25,7 @@ xqc_test_reno ()
     //slow start
     for (int i = 0; i < 10; ++i) {
         xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, 1000);
+        now += 1000000;
         print_reno(&reno);
     }
 
@@ -34,7 +35,8 @@ xqc_test_reno ()
 
     //congestion avoid
     for (int i = 0; i < 10; ++i) {
-        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now+100, 1000);
+        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, 1000);
+        now += 1000000;
         print_reno(&reno);
     }
 

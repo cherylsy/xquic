@@ -12,6 +12,7 @@
 #include "xqc_vint_test.h"
 #include "xqc_recv_record_test.h"
 #include "xqc_reno_test.h"
+#include "xqc_cubic_test.h"
 #include "xqc_packet_test.h"
 #include "xqc_stream_frame_test.h"
 #include "xqc_wakeup_pq_test.h"
@@ -44,6 +45,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_vint", xqc_test_vint)
         || !CU_add_test(pSuite, "xqc_test_recv_record", xqc_test_recv_record)
         || !CU_add_test(pSuite, "xqc_test_reno", xqc_test_reno)
+        || !CU_add_test(pSuite, "xqc_test_cubic", xqc_test_cubic)
         || !CU_add_test(pSuite, "xqc_test_short_header_parse_cid", xqc_test_short_header_packet_parse_cid)
         || !CU_add_test(pSuite, "xqc_test_long_header_parse_cid", xqc_test_long_header_packet_parse_cid)
         || !CU_add_test(pSuite, "xqc_test_engine_packet_process", xqc_test_engine_packet_process)

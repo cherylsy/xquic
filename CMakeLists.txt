@@ -57,6 +57,7 @@ set(
     CONGESTION_CONTROL_SOURCES
 
     congestion_control/xqc_new_reno.c
+    congestion_control/xqc_cubic.c
 )
 
 add_library(
@@ -95,8 +96,8 @@ include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories( /usr/local/lib )
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 
-target_link_libraries(test_server xquic -levent)
-target_link_libraries(test_client xquic -levent)
+target_link_libraries(test_server xquic -levent -lm)
+target_link_libraries(test_client xquic -levent -lm)
 target_link_libraries(tls_server xquic )
 target_link_libraries(tls_client xquic )
 target_link_libraries(test xquic -lssl )

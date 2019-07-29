@@ -3,6 +3,8 @@
 #include "xqc_new_reno.h"
 #include "../include/xquic.h"
 
+/* https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B */
+
 #define XQC_kMaxDatagramSize 1200
 #define XQC_kMinimumWindow (2 * XQC_kMaxDatagramSize)
 /*The RECOMMENDED value is the minimum of 10 *

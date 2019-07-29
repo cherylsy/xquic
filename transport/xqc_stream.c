@@ -149,6 +149,8 @@ xqc_create_stream (xqc_engine_t *engine,
         return NULL;
     }
 
+    xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_create_stream|");
+
     xqc_engine_main_logic(engine);
     return stream;
 }
@@ -279,7 +281,7 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 
     stream->stream_conn->conn_state = next_state;
 
-    if (next_state == XQC_CONN_STATE_ESTABED) {
+    if (next_state == XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD) {
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
     }
 
@@ -371,9 +373,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 
     stream->stream_conn->conn_state = next_state;
 
-    if (next_state == XQC_CONN_STATE_ESTABED ||
-            next_state == XQC_CONN_STATE_SERVER_HANDSHAKE_SENT ||
-            next_state == XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT) {
+    if (next_state == XQC_CONN_STATE_SERVER_HANDSHAKE_SENT) {
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
     }
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
@@ -566,7 +566,7 @@ do_buff:
         }
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|offset=%ui|", stream->stream_send_offset);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|stream_send_offset=%ui|", stream->stream_send_offset);
 
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {

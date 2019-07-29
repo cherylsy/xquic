@@ -177,8 +177,8 @@ struct xqc_connection_s{
     uint32_t                version;
     uint32_t                discard_vn_flag; /*当客户端收到来自服务器的非VN包或者收到VN包并处理后，设置该标志*/
 
-    xqc_cid_t               dcid;
-    xqc_cid_t               scid;
+    xqc_cid_t               dcid; /* 对端cid */
+    xqc_cid_t               scid; /* 本地cid */
     xqc_cid_t               ocid; /* original connection id */
 
     unsigned char           peer_addr[sizeof(struct sockaddr_in6)],

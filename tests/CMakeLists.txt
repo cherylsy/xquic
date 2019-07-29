@@ -23,6 +23,7 @@ if(HAVE_CUNIT)
     xqc_tls_cb_test.c
     xqc_recv_record_test.c
     xqc_reno_test.c
+    xqc_cubic_test.c
     xqc_stream_frame_test.c
     xqc_wakeup_pq_test.c
   )
@@ -97,6 +98,7 @@ if(HAVE_CUNIT)
   target_include_directories(run_tests PRIVATE ${CUNIT_INCLUDE_DIRS})
   target_link_libraries(run_tests
     xquic
+    m
     ${CUNIT_LIBRARIES}
   )
   add_test(run_tests run_tests)
