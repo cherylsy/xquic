@@ -214,12 +214,14 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         }
 
         /* TODO: 0RTT回退 用于模拟0rtt失败 */
+#if 0
         if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
             && c->conn_type == XQC_CONN_TYPE_SERVER) {
             xqc_log(c->log, XQC_LOG_ERROR, "|ignore 0RTT test|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }
+#endif
 
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
@@ -233,10 +235,21 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     /*packet_in->pos = packet_in->decode_payload;
     packet_in->last = packet_in->decode_payload + packet_in->decode_payload_len;*/
 
-    ret = xqc_process_frames(c, packet_in);
-    if (ret != XQC_OK) {
-        xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_process_frames error|");
-        return ret;
+    ret = xqc_do_decrypt_pkt(c, packet_in);
+    if(ret == 0){
+        ret = xqc_process_frames(c, packet_in);
+        if (ret != XQC_OK) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_process_frames error|");
+            return ret;
+        }
+    }else{
+        if(ret ==  XQC_EARLY_DATA_REJECT){
+            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|decrypt early data error, continue |");
+        }else{
+            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|decrypt  data error, return|");
+            //printf("error do decrypt packet\n");
+            return ret;
+        }
     }
 
     packet_in->last = last;
@@ -292,6 +305,9 @@ xqc_conn_process_packets(xqc_connection_t *c,
     xqc_packet_in_t packet;
     unsigned char decrypt_payload[MAX_PACKET_LEN];
 
+    //printf("recv packet %d\n", packet_in_size);
+    hex_print((char *)packet_in_buf, packet_in_size);
+
     while (pos < end) {
 
         last_pos = pos;
@@ -305,7 +321,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
 
         /* err in parse packet, don't cause dead loop */
         if (ret != XQC_OK || last_pos == packet_in->pos) {
-            xqc_log(c->log, XQC_LOG_WARN, "process packets err|%z|%p|%p|%z|", 
+            xqc_log(c->log, XQC_LOG_WARN, "process packets err|%z|%p|%p|%z|",
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);
             return ret != XQC_OK ? ret : -XQC_ESYS;

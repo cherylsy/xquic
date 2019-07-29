@@ -16,6 +16,8 @@
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
+#define EXTRA_SPACE 128
+
 #define XQC_MAX_TOKEN_LEN 32
 #define XQC_TOKEN_EXPIRE_DELTA 7*24*60*60   //N秒后过期
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA - 10) //提前N秒更新
@@ -259,6 +261,11 @@ xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                                 xqc_cid_t dcid, xqc_cid_t scid,
                                                 xqc_conn_callbacks_t *callbacks,
                                                 xqc_conn_settings_t *settings,
+                                                char * server_host,
+                                                int no_crypto_flag,
+                                                uint8_t no_early_data_flag,
+                                                xqc_conn_ssl_config_t * conn_ssl_config,
+
                                                 void *user_data);
 
 void xqc_destroy_connection(xqc_connection_t *xc);

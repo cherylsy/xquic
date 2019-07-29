@@ -14,6 +14,7 @@
 #include "xqc_stream.h"
 #include "xqc_frame_parser.h"
 #include "xqc_packet_parser.h"
+#include "crypto/xqc_tls_header.h"
 
 static char g_conn_flag_buf[128];
 
@@ -328,19 +329,30 @@ xqc_destroy_connection(xqc_connection_t *xc)
 }
 
 
-xqc_connection_t * 
-xqc_client_create_connection(xqc_engine_t *engine, 
+xqc_connection_t *
+xqc_client_create_connection(xqc_engine_t *engine,
                                 xqc_cid_t dcid, xqc_cid_t scid,
                                 xqc_conn_callbacks_t *callbacks,
                                 xqc_conn_settings_t *settings,
+                                char * server_host,
+                                int no_crypto_flag,
+                                uint8_t no_early_data_flag,
+                                xqc_conn_ssl_config_t * conn_ssl_config,
                                 void *user_data)
 {
-    xqc_connection_t *xc = xqc_create_connection(engine, &dcid, &scid, 
-                                        callbacks, settings, user_data, 
+    xqc_connection_t *xc = xqc_create_connection(engine, &dcid, &scid,
+                                        callbacks, settings, user_data,
                                         XQC_CONN_TYPE_CLIENT);
 
     if (xc == NULL) {
         return NULL;
+    }
+
+    if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag, no_early_data_flag) < 0 ){
+        goto fail;
+    }
+    if(xqc_client_setup_initial_crypto_context(xc, &dcid) < 0){
+        goto fail;
     }
 
     xqc_cid_copy(&(xc->ocid), &(xc->dcid));
@@ -378,23 +390,31 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             continue;
         }
 
+#if 0
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             if (!xqc_send_ctl_can_send(conn)) {
                 continue;
             } else if (conn->conn_settings.pacing_on) {
-                if (pacing_blocked == 0) {
-                    xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
-                    if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
-                        pacing_blocked = 1;
-                        xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
+                xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
+                if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
+                    xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
+                    continue;
+                } else if (conn->conn_settings.pacing_on) {
+                    if (pacing_blocked == 0) {
+                        xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
+                        if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
+                            pacing_blocked = 1;
+                            xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
+                            continue;
+                        }
+                    } else {
+                        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
                         continue;
                     }
-                } else {
-                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
-                    continue;
                 }
             }
         }
+#endif
 
         if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
                 && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
@@ -420,6 +440,93 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     }
 }
 
+int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out){
+
+    xqc_pktns_t * p_pktns;
+    xqc_encrypt_t encrypt_func;
+    xqc_hp_mask_t hp_mask;
+
+    xqc_crypto_km_t * p_ckm = NULL;
+    xqc_vec_t * tx_hp = NULL;
+
+
+    xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_out->po_pkt.pkt_type);
+    if(encrypt_level == XQC_ENC_LEV_INIT){
+        p_pktns = &conn->tlsref.initial_pktns;
+        p_ckm = & p_pktns->tx_ckm;
+        tx_hp = & p_pktns->tx_hp;
+        encrypt_func = conn->tlsref.callbacks.in_encrypt;
+        hp_mask = conn->tlsref.callbacks.in_hp_mask;
+    }else if(encrypt_level == XQC_ENC_LEV_0RTT){
+        p_ckm = &conn->tlsref.early_ckm;
+        tx_hp = &conn->tlsref.early_hp;
+        encrypt_func = conn->tlsref.callbacks.in_encrypt;
+        hp_mask = conn->tlsref.callbacks.hp_mask;
+
+    }else if(encrypt_level == XQC_ENC_LEV_HSK){
+        p_pktns = &conn->tlsref.hs_pktns;
+        p_ckm = & p_pktns->tx_ckm;
+        tx_hp = & p_pktns->tx_hp;
+        encrypt_func = conn->tlsref.callbacks.encrypt;
+        hp_mask = conn->tlsref.callbacks.hp_mask;
+    }else if(encrypt_level == XQC_ENC_LEV_1RTT ){
+        p_pktns = & conn->tlsref.pktns;
+        p_ckm = & p_pktns->tx_ckm;
+        tx_hp = & p_pktns->tx_hp;
+        encrypt_func = conn->tlsref.callbacks.encrypt;
+        hp_mask = conn->tlsref.callbacks.hp_mask;
+    }else{
+        return -1;
+    }
+
+    uint8_t nonce[XQC_NONCE_LEN];
+    xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, packet_out->po_pkt.pkt_num);
+
+    unsigned char * pkt_hd = packet_out->po_buf;
+    unsigned int hdlen = (packet_out->p_data - packet_out->po_buf);
+    unsigned int payloadlen = packet_out->po_used_size - hdlen;
+    unsigned char * payload = packet_out->p_data;
+    int pktno_len = (packet_out->po_buf[0] & XQC_PKT_NUMLEN_MASK) + 1;
+
+    packet_out->po_used_size = packet_out->po_used_size + conn->tlsref.aead_overhead;
+    xqc_long_packet_update_length(packet_out); // encrypt may add padding bytes
+
+    int nwrite = encrypt_func(conn,  payload, packet_out->po_buf_size + EXTRA_SPACE, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
+
+    if(nwrite < 0){
+        //printf("encrypt error \n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_do_encrypt_pkt|encrypt packet error");
+        return -1;
+    }
+
+    uint8_t mask[XQC_HP_SAMPLELEN];
+
+
+    nwrite = hp_mask(conn, mask, sizeof(mask), tx_hp->base, tx_hp->len, packet_out->ppktno + 4, XQC_HP_SAMPLELEN, NULL);
+
+    if(nwrite < XQC_HP_MASKLEN){
+        return -1;
+    }
+
+    xqc_pkt_type_t pkt_type = packet_out->po_pkt.pkt_type;
+    unsigned char * p = pkt_hd;
+    if (pkt_type == XQC_PTYPE_SHORT_HEADER){
+        *p = (uint8_t)(*p ^ (mask[0] & 0x1f));
+    }else{
+        *p = (uint8_t)(*p ^ (mask[0] & 0x0f));
+    }
+
+    p = packet_out->ppktno;
+    int i = 0;
+    for (i = 0; i < pktno_len; ++i) {
+        *(p + i) ^= mask[i + 1];
+    }
+    return 0;
+
+}
+
+
+
 ssize_t
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
@@ -432,8 +539,17 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     if (!(packet_out->po_flag & XQC_POF_ENCRYPTED)) {
         //do encrypt
+        if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
+
+            xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_send_one_packet | encrypt packet error");
+            //printf("encrypt packet error\n");
+            return XQC_ENCRYPT_DATA_ERROR;
+        }
+
         packet_out->po_flag |= XQC_POF_ENCRYPTED;
     }
+    //printf("send packet :%d, packet type:%d\n", packet_out->po_used_size, packet_out->po_pkt.pkt_type);
+    //hex_print(packet_out->po_buf, packet_out->po_used_size);
 
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
@@ -454,6 +570,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
 
+    //printf("send size:%d\n",send);
     return sent;
 }
 

@@ -17,7 +17,7 @@ unsigned long DCID_TEST = 0x1234567812345678;
 
 int                 g_sock;
 struct sockaddr_in  g_server_addr;
-
+#if 0
 
 int do_handshake(xqc_connection_t * conn, xqc_cid_t * dcid){
     conn->tlsref.callbacks.client_initial(conn);
@@ -85,9 +85,9 @@ int run(xqc_connection_t * conn, xqc_cid_t *dcid){
 
     return 0;
 }
-
+#endif
 int main(int argc, char *argv[]){
-
+#if 0
     g_sock = socket(AF_INET, SOCK_DGRAM, 0);
 
     int ch = 0;
@@ -132,6 +132,6 @@ int main(int argc, char *argv[]){
     xqc_client_setup_initial_crypto_context(&conn, &dcid);
     conn.version = XQC_QUIC_VERSION;
     run(&conn, &dcid);
-
+#endif
 
 }

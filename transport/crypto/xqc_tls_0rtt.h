@@ -13,10 +13,16 @@ int xqc_read_session( SSL * ssl, xqc_connection_t *conn, char * filename);
 
 int xqc_new_session_cb(SSL *ssl, SSL_SESSION *session) ;
 
+int xqc_read_session_data( SSL * ssl, xqc_connection_t *conn, char * session_data, size_t session_data_len);
 
 int xqc_ssl_session_ticket_keys(SSL_CTX *ctx ,  xqc_ssl_session_ticket_key_t * key ,char * path );
 
 int xqc_ssl_session_ticket_key_callback(SSL *s, unsigned char key_name[16],
         unsigned char iv[EVP_MAX_IV_LENGTH],
         EVP_CIPHER_CTX *ctx, HMAC_CTX *hctx, int enc);
+int xqc_set_save_session_cb(xqc_connection_t * conn, xqc_save_session_cb_t  cb, void * user_data);
+int xqc_init_session_ticket_keys(xqc_ssl_session_ticket_key_t * key, char * session_key_data, size_t session_key_len);
+int xqc_set_early_data_reject_cb(xqc_connection_t * conn, xqc_early_data_reject_cb_t  early_data_reject_cb);
+
+int xqc_set_save_tp_cb(xqc_connection_t * conn, xqc_save_tp_cb_t  cb, void * user_data);
 #endif

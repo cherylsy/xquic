@@ -44,6 +44,7 @@ typedef struct xqc_packet_out_s
     unsigned char           *po_encrypt_buf;
     unsigned int            po_encrypt_buf_size;
     xqc_packet_out_flag_t   po_flag;
+    unsigned char           *p_data;
     unsigned char           *ppktno;
     /* Largest Acknowledged in ACK frame, if there is no ACK frame, it should be 0 */
     xqc_packet_number_t     po_largest_ack;

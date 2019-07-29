@@ -9,12 +9,14 @@
 #include "xqc_tls_cb.h"
 
 
-static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn) {
+static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn)
+{
     return (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) &&
         (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED);
 }
 
-void xqc_conn_handshake_completed(xqc_connection_t *conn) {
+void xqc_conn_handshake_completed(xqc_connection_t *conn)
+{
     conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX;
 }
 
@@ -24,13 +26,13 @@ void xqc_conn_handshake_completed(xqc_connection_t *conn) {
  *call ssl to generate handshake data
  *@return 0 means success
  */
-int xqc_tls_handshake(xqc_connection_t *conn){
-
+int xqc_tls_handshake(xqc_connection_t *conn)
+{
     return 0;
-
 }
 
-int xqc_server_tls_handshake(xqc_connection_t * conn){
+int xqc_server_tls_handshake(xqc_connection_t * conn)
+{
     int rv = 0;
     SSL * ssl = conn->xc_ssl;
     if(conn->tlsref.initial){
@@ -49,9 +51,11 @@ int xqc_server_tls_handshake(xqc_connection_t * conn){
                                 return 0;
                             }
                         case SSL_ERROR_SSL:
+                            xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                             printf("TLS handshake error: %s \n", ERR_error_string(ERR_get_error(), NULL));
                             return XQC_ERR_CRYPTO;
                         default:
+                            xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                             printf("TLS handshake error: %s \n", ERR_error_string(ERR_get_error(), NULL));
                             return XQC_ERR_CRYPTO;
                     }
@@ -76,27 +80,72 @@ int xqc_server_tls_handshake(xqc_connection_t * conn){
             case SSL_ERROR_WANT_WRITE:
                 return 0;
             case SSL_ERROR_SSL:
+                xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 printf("TLS handshake error: %s \n", ERR_error_string(ERR_get_error(), NULL));
                 return -1;
             default:
+                xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 printf("TLS handshake error\n");
                 return -1;
         }
     }
 
-
-
     xqc_conn_handshake_completed(conn);
     return 0;
 }
 
-int xqc_conn_early_data_rejected(xqc_connection_t * conn){
-    //if need finish
+int xqc_conn_early_data_rejected(xqc_connection_t * conn)
+{
     conn->tlsref.flags |= XQC_CONN_FLAG_EARLY_DATA_REJECTED;
+    if(conn->tlsref.early_data_reject_cb != NULL){
+        return conn->tlsref.early_data_reject_cb(conn);
+    }
+
     return 0;
 }
 
-int xqc_client_tls_handshake(xqc_connection_t *conn, int initial){
+/*
+ *@return XQC_FALSE means not reject, XQC_TRUE means early reject
+ *
+ */
+int xqc_is_early_data_reject(xqc_connection_t * conn)
+{
+    if(conn->tlsref.resumption  == 0){
+        return XQC_TRUE;
+    }
+
+    if(conn->tlsref.flags & XQC_CONN_FLAG_EARLY_DATA_REJECTED != 0){
+        return XQC_TRUE;
+    }else{
+        return XQC_FALSE;
+    }
+}
+
+/*
+ *@return  XQC_FALSE means not ready, XQC_TRUE means ready
+ */
+int xqc_is_ready_to_send_early_data(xqc_connection_t * conn)
+{
+
+    if(conn->tlsref.resumption == 0){
+        return XQC_FALSE;
+    }
+    if(conn->tlsref.early_ckm.key.len  <= 0 || conn->tlsref.early_ckm.key.base == NULL ){
+        return XQC_FALSE;
+    }
+    if(conn->tlsref.early_ckm.iv.len <= 0 || conn->tlsref.early_ckm.iv.base == NULL) {
+        return XQC_FALSE;
+    }
+    if(conn->tlsref.early_hp.len <= 0 || conn->tlsref.early_hp.base == NULL){
+        return XQC_FALSE;
+    }
+    return XQC_TRUE;
+}
+
+
+
+int xqc_client_tls_handshake(xqc_connection_t *conn, int initial)
+{
     int rv;
     SSL *ssl = conn->xc_ssl;
     ERR_clear_error();
@@ -109,9 +158,11 @@ int xqc_client_tls_handshake(xqc_connection_t *conn, int initial){
             int err = SSL_get_error(ssl, rv);
             switch (err) {
                 case SSL_ERROR_SSL:
+                    xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                     printf("TLS handshake error: %s\n",ERR_error_string(ERR_get_error(), NULL));
                     return -1;
                 default:
+                    xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                     printf("TLS handshake error: %s\n",ERR_error_string(ERR_get_error(), NULL));
                     return -1;
             }
@@ -126,17 +177,23 @@ int xqc_client_tls_handshake(xqc_connection_t *conn, int initial){
             case SSL_ERROR_WANT_WRITE:
                 return 0;
             case SSL_ERROR_SSL:
+                xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 printf("TLS handshake error: %s \n", ERR_error_string(ERR_get_error(), NULL));
                 return -1;
             default:
+                xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 printf("TLS handshake error\n");
                 return -1;
         }
     }
 
     if(conn->tlsref.resumption && SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED ){
+        conn->tlsref.resumption = 0;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
         printf("Early data was rejected by server\n");
         if(xqc_conn_early_data_rejected(conn) < 0){
+            printf("Error do early data rejected action\n");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "Error do early data rejected action|");
             return -1;
         }
     }
@@ -145,15 +202,13 @@ int xqc_client_tls_handshake(xqc_connection_t *conn, int initial){
 }
 
 
-
-
-
-
-int xqc_client_initial_cb(xqc_connection_t *conn){
+int xqc_client_initial_cb(xqc_connection_t *conn)
+{
     return xqc_client_tls_handshake(conn , 1);
 }
 
-int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) {
+int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
+{
     int rv;
 
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0}, secret[INITIAL_SECRET_MAX_LEN]={0};
@@ -162,6 +217,7 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) 
             (const uint8_t *)(XQC_INITIAL_SALT),
             strlen(XQC_INITIAL_SALT));
     if (rv != 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "derive_initial_secret() failed|");
         printf("derive_initial_secret() failed\n");
         return -1;
     }
@@ -173,6 +229,7 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) 
             initial_secret,
             sizeof(initial_secret));
     if (rv != 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "derive_server_initial_secret() failed|");
         printf("derive_server_initial_secret() failed\n");
         return -1;
     }
@@ -188,18 +245,21 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) 
     size_t ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_derive_packet_protection_iv failed|");
         return -1;
     }
 
     size_t hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_derive_header_protection_key failed|");
         return -1;
     }
     //need log
 
     if(xqc_conn_install_initial_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
         printf("install initial key error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "install initial key error|");
         return -1;
     }
 
@@ -207,6 +267,7 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) 
             initial_secret,
             sizeof(initial_secret));
     if (rv != 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_derive_client_initial_secret error|");
         printf("derive_server_initial_secret() failed\n");
         return -1;
     }
@@ -214,23 +275,27 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) 
     keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_derive_packet_protection_key error|");
         return -1;
     }
 
     ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_derive_packet_protection_iv error|");
         return -1;
     }
 
     hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_derive_header_protection_key error|");
         return -1;
     }
 
     if(xqc_conn_install_initial_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
         printf("install initial key error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_conn_install_initial_rx_keys error|");
         return -1;
     }
 
@@ -239,12 +304,14 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid ) 
 
 int xqc_recv_client_initial_cb(xqc_connection_t * conn,
         xqc_cid_t *dcid,
-        void *user_data){
+        void *user_data)
+{
     return xqc_recv_client_hello_derive_key(conn, dcid);
 }
 
 
-int xqc_read_tls(SSL *ssl) {
+int xqc_read_tls(SSL *ssl)
+{
     ERR_clear_error();
 
     char buf[4096];
@@ -254,6 +321,7 @@ int xqc_read_tls(SSL *ssl) {
         int rv = SSL_read_ex(ssl, buf, sizeof(buf), &nread);
         if (rv == 1) {
             printf("Read  bytes from TLS crypto stream\n");
+            //xqc_log(conn->log, XQC_LOG_ERROR, "Read  bytes from TLS crypto stream|");
             return XQC_ERR_PROTO;
         }
         int err = SSL_get_error(ssl, 0);
@@ -264,8 +332,10 @@ int xqc_read_tls(SSL *ssl) {
             case SSL_ERROR_SSL:
             case SSL_ERROR_ZERO_RETURN:
                 printf("TLS read error: %s\n", ERR_error_string(ERR_get_error(), NULL));
+                //xqc_log(conn->log, XQC_LOG_ERROR, "TLS read error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 return XQC_ERR_CRYPTO;
             default:
+                //xqc_log(conn->log, XQC_LOG_ERROR, "TLS read error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 printf("TLS read error: %d\n", err);
                 return XQC_ERR_CRYPTO;
         }
@@ -274,7 +344,8 @@ int xqc_read_tls(SSL *ssl) {
 }
 
 
-int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len){
+int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
+{
     xqc_hs_buffer_t  * p_data = &conn-> tlsref.hs_to_tls_buf;
     //p_data->type = XQC_FRAME_CRYPTO;
     p_data->data_len = buf_len;
@@ -286,7 +357,8 @@ int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
 
 int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
         const uint8_t *data, size_t datalen,
-        void *user_data){
+        void *user_data)
+{
 
     xqc_to_tls_handshake(conn, data, datalen);
     if (!xqc_conn_get_handshake_completed(conn)) {
@@ -308,8 +380,8 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
     return 0;
 }
 
-int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data){
-
+int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data)
+{
     return 0;
 }
 
@@ -318,8 +390,8 @@ size_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data){
-
+                                  size_t adlen, void *user_data)
+{
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
     if(conn -> tlsref.local_settings.no_crypto == 1){
@@ -340,7 +412,8 @@ size_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data){
+                                  size_t adlen, void *user_data)
+{
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
     if(conn -> tlsref.local_settings.no_crypto == 1){
@@ -362,7 +435,8 @@ size_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data){
+                                  size_t adlen, void *user_data)
+{
 
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
     size_t nwrite;
@@ -385,7 +459,8 @@ size_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data){
+                                  size_t adlen, void *user_data)
+{
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
     size_t nwrite;
     if(conn -> tlsref.local_settings.no_crypto == 1){
@@ -405,7 +480,8 @@ size_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
 
 size_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data){
+        size_t samplelen, void *user_data)
+{
 
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
@@ -425,7 +501,8 @@ size_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
 size_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data){
+        size_t samplelen, void *user_data)
+{
 
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
     size_t nwrite;
@@ -444,7 +521,8 @@ size_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 }
 
 
-static int xqc_conn_handshake_completed_handled(xqc_connection_t *conn) {
+static int xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
+{
   int rv;
 
   conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED;
@@ -457,28 +535,13 @@ static int xqc_conn_handshake_completed_handled(xqc_connection_t *conn) {
     return rv;
   }
 
-#if 0
-  if (conn->max_local_stream_id_bidi > 0) {
-    rv = conn_call_extend_max_streams_bidi(conn,
-                                           conn->max_local_stream_id_bidi >> 2);
-    if (rv != 0) {
-      return rv;
-    }
-  }
-  if (conn->max_local_stream_id_uni > 0) {
-    rv = conn_call_extend_max_streams_uni(conn,
-                                          conn->max_local_stream_id_uni >> 2);
-    if (rv != 0) {
-      return rv;
-    }
-  }
-#endif
 
   return 0;
 }
 
 
-int xqc_judge_ckm_null(xqc_crypto_km_t * ckm){//if null return 0, both key and iv not null return 1, else return -1;
+int xqc_judge_ckm_null(xqc_crypto_km_t * ckm)//if null return 0, both key and iv not null return 1, else return -1;
+{
     if((ckm->key.base == NULL && ckm->key.len == 0) && (ckm->iv.base == NULL && ckm->iv.len == 0)){
         return  0;
     }
@@ -490,18 +553,21 @@ int xqc_judge_ckm_null(xqc_crypto_km_t * ckm){//if null return 0, both key and i
     return -1;
 }
 
-int xqc_conn_prepare_key_update(xqc_connection_t * conn){
+int xqc_conn_prepare_key_update(xqc_connection_t * conn)
+{
 
     int rv;
     xqc_tlsref_t *tlsref = &conn->tlsref;
     if(xqc_judge_ckm_null(&tlsref->new_rx_ckm) == 1  || xqc_judge_ckm_null(&tlsref->new_tx_ckm) == 1){
 
+        xqc_log(conn->log, XQC_LOG_DEBUG, "error call xqc_conn_prepare_key_update because new_rx_ckm or new_tx_ckm is not null|");
         printf("error call xqc_conn_prepare_key_update because new_rx_ckm or new_tx_ckm is not null\n");
         return -1;
     }
 
     if(tlsref->callbacks.update_key == NULL){
 
+        xqc_log(conn->log, XQC_LOG_DEBUG, "callback function update_key is null|");
         printf("callback function update_key is null \n");
         return -1;
     }
@@ -509,19 +575,23 @@ int xqc_conn_prepare_key_update(xqc_connection_t * conn){
     rv = tlsref->callbacks.update_key(conn, NULL);
 
     if(rv != 0){
+        xqc_log(conn->log, XQC_LOG_DEBUG, "update key error|");
         printf("update key error \n");
         return rv;
     }
     return 0;
 }
 
-int xqc_start_key_update(xqc_connection_t * conn){
+int xqc_start_key_update(xqc_connection_t * conn)
+{
     if(xqc_do_update_key(conn) < 0){
+        xqc_log(conn->log, XQC_LOG_DEBUG, "start key error");
         printf("start key error\n");
         return -1;
     }
 
     if (conn->tlsref.flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
+        xqc_log(conn->log, XQC_LOG_DEBUG, "flags error,cannot start key update|");
         printf("flags error,cannot start key update\n");
         return -1;
     }
@@ -529,12 +599,14 @@ int xqc_start_key_update(xqc_connection_t * conn){
     if(xqc_judge_ckm_null(& conn->tlsref.new_rx_ckm) != 1 ||
             xqc_judge_ckm_null(& conn->tlsref.new_tx_ckm) != 1){
         printf("new_rx_ckm is  null ,start key update error\n");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "new_rx_ckm is  null ,start key update error|");
         return -1;
     }
 
     if(xqc_conn_commit_key_update(conn, XQC_MAX_PKT_NUM) < 0){ //pkt num right? should be careful when integrated
 
         printf("update key commit error\n");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "update key commit error|");
         return -1;
     }
     conn->tlsref.flags |= XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE;
