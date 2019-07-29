@@ -355,10 +355,14 @@ int read_file_data( char * data, size_t data_len, char *filename){
     return read_len;
 
 }
-int  early_data_reject_cb(xqc_connection_t *conn){
+int  early_data_cb(xqc_connection_t *conn, int flag){
 
-    printf(".....................early data reject\n");
-
+    if(flag == 0){
+        printf(".....................early data reject\n");
+    }else{
+        printf("---------------------early data accept\n");
+    }
+    return 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -494,7 +498,7 @@ int main(int argc, char *argv[]) {
     memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
 
     xqc_connection_t * conn = xqc_engine_conns_hash_find(ctx.engine, cid, 's');
-    xqc_set_early_data_reject_cb(conn, early_data_reject_cb);
+    xqc_set_early_data_cb(conn, early_data_cb);
     xqc_set_save_session_cb(conn, (xqc_save_session_cb_t)save_session_cb, conn);
     xqc_set_save_tp_cb(conn, (xqc_save_tp_cb_t) save_tp_cb, conn);
 

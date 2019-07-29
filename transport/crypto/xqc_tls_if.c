@@ -97,12 +97,24 @@ int xqc_server_tls_handshake(xqc_connection_t * conn)
 int xqc_conn_early_data_rejected(xqc_connection_t * conn)
 {
     conn->tlsref.flags |= XQC_CONN_FLAG_EARLY_DATA_REJECTED;
-    if(conn->tlsref.early_data_reject_cb != NULL){
-        return conn->tlsref.early_data_reject_cb(conn);
+    if(conn->tlsref.early_data_cb != NULL){
+        return conn->tlsref.early_data_cb(conn, 0);
     }
 
     return 0;
 }
+
+int xqc_conn_early_data_accepted(xqc_connection_t * conn)
+{
+    conn->tlsref.flags &= ~(XQC_CONN_FLAG_EARLY_DATA_REJECTED);
+    if(conn->tlsref.early_data_cb != NULL){
+        return conn->tlsref.early_data_cb(conn, 1);
+    }
+
+    return 0;
+}
+
+
 
 /*
  *@return XQC_FALSE means not reject, XQC_TRUE means early reject
@@ -187,14 +199,23 @@ int xqc_client_tls_handshake(xqc_connection_t *conn, int initial)
         }
     }
 
-    if(conn->tlsref.resumption && SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED ){
+    if(conn->tlsref.resumption ){
         conn->tlsref.resumption = 0;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
-        printf("Early data was rejected by server\n");
-        if(xqc_conn_early_data_rejected(conn) < 0){
-            printf("Error do early data rejected action\n");
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Error do early data rejected action|");
-            return -1;
+
+        if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
+            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
+            printf("Early data was rejected by server\n");
+            if(xqc_conn_early_data_rejected(conn) < 0){
+                printf("Error do early data rejected action\n");
+                xqc_log(conn->log, XQC_LOG_DEBUG, "Error do early data rejected action|");
+                return -1;
+            }
+        }else{
+
+            if(xqc_conn_early_data_accepted(conn) < 0){
+                printf("error do early data accept action\n");
+                xqc_log(conn->log, XQC_LOG_DEBUG, "Error do early data accept action|");
+            }
         }
     }
     xqc_conn_handshake_completed(conn);

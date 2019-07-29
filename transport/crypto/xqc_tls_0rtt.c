@@ -128,9 +128,9 @@ int xqc_set_save_tp_cb(xqc_connection_t * conn, xqc_save_tp_cb_t  cb, void * use
     return 0;
 }
 
-int xqc_set_early_data_reject_cb(xqc_connection_t * conn, xqc_early_data_reject_cb_t  early_data_reject_cb)
+int xqc_set_early_data_cb(xqc_connection_t * conn, xqc_early_data_cb_t  early_data_cb)
 {
-    conn->tlsref.early_data_reject_cb = early_data_reject_cb;
+    conn->tlsref.early_data_cb = early_data_cb;
     return 0;
 }
 
