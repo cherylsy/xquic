@@ -346,7 +346,7 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 
     stream->stream_conn->conn_state = next_state;
 
-    if (next_state == XQC_CONN_STATE_ESTABED && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) {
+    if (xqc_tls_check_tx_key_ready(conn)) {
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
     }
 
@@ -359,9 +359,11 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 }
 
 #define MIN_CRYPTO_FRAME_SIZE 8
-int xqc_crypto_stream_send( xqc_stream_t *stream, xqc_pktns_t *  p_pktns, xqc_encrypt_t encrypt_func, xqc_pkt_type_t pkt_type  ){
 
-    if(p_pktns == NULL){
+int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encrypt_t encrypt_func,
+                           xqc_pkt_type_t pkt_type)
+{
+    if (p_pktns == NULL) {
         return 0;
     }
     size_t send_data_written = 0;
@@ -372,31 +374,31 @@ int xqc_crypto_stream_send( xqc_stream_t *stream, xqc_pktns_t *  p_pktns, xqc_en
     xqc_list_head_t *head = &p_pktns->msg_cb_head;
     xqc_list_head_t *pos, *next;
 
-    xqc_list_for_each_safe(pos,next, head){
-        xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *)pos;
+    xqc_list_for_each_safe(pos, next, head) {
+        xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *) pos;
         //printf("send crypto data:%d\n", buf->data_len);
         //hex_print(buf->data, buf->data_len);
-        if(buf->data_len > 0){
-            int send_data_num =  stream->stream_send_offset + buf->data_len;
+        if (buf->data_len > 0) {
+            int send_data_num = stream->stream_send_offset + buf->data_len;
             size_t offset = 0;
             while (stream->stream_send_offset < send_data_num) {
                 unsigned int header_size = xqc_crypto_frame_header_size(stream->stream_send_offset,
-                        buf->data_len - offset);
+                                                                        buf->data_len - offset);
 
                 int need = 0;
-                need = ((buf->data_len - offset + header_size) > XQC_PACKET_OUT_SIZE) ?(header_size + MIN_CRYPTO_FRAME_SIZE):( buf->data_len - offset + header_size);
+                need = ((buf->data_len - offset + header_size) > XQC_PACKET_OUT_SIZE) ? (header_size +
+                                                                                         MIN_CRYPTO_FRAME_SIZE) : (
+                               buf->data_len - offset + header_size);
                 packet_out = xqc_write_packet(c, pkt_type, header_size + MIN_CRYPTO_FRAME_SIZE);
                 if (packet_out == NULL) {
                     return -XQC_ENULLPTR;
                 }
 
-                //printf("crypt send packet_out:%p\n", packet_out);
                 n_written = xqc_gen_crypto_frame(packet_out,
-                        stream->stream_send_offset,
-                        buf->data + offset,
-                        buf->data_len - offset,
-                        &send_data_written);
-                //printf("send data written :%d\n", send_data_written);
+                                                 stream->stream_send_offset,
+                                                 buf->data + offset,
+                                                 buf->data_len - offset,
+                                                 &send_data_written);
                 if (n_written < 0) {
                     return n_written;
                 }
@@ -501,14 +503,10 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
     xqc_stream_shutdown_write(stream);
 
     stream->stream_conn->conn_state = next_state;
-#if 0
-    if (next_state == XQC_CONN_STATE_ESTABED ||
-            next_state == XQC_CONN_STATE_SERVER_HANDSHAKE_SENT ||
-            next_state == XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT) {
-#endif
-    if (next_state == XQC_CONN_STATE_ESTABED && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
+
+    if (xqc_tls_check_tx_key_ready(conn)){
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
-    }//????????????????????????
+    }
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
             "xqc_crypto_stream_on_write encrypt_level=%d, cur_state=%s, next_state=%s",
             encrypt_level, xqc_conn_state_2_str(cur_state), xqc_conn_state_2_str(next_state));
@@ -630,6 +628,7 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
     int support_0rtt = xqc_is_ready_to_send_early_data(conn);
 
+    //support_0rtt = 0;
     int buff_1rtt = 0;
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
@@ -708,7 +707,8 @@ do_buff:
         }
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|offset=%ui|", stream->stream_send_offset);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|offset=%ui|pkt_type=%s|buff_1rtt=%ui|",
+            stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt);
 
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {

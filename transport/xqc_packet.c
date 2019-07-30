@@ -244,10 +244,10 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         }
     }else{
         if(ret ==  XQC_EARLY_DATA_REJECT){
-            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|decrypt early data error, continue |");
+            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|decrypt early data reject, continue |");
+            packet_in->pos = packet_in->last;
         }else{
-            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|decrypt  data error, return|");
-            //printf("error do decrypt packet\n");
+            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|decrypt data error, return|");
             return ret;
         }
     }

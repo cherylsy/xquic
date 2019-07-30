@@ -312,23 +312,23 @@ xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now
     xqc_pkt_num_space_t pns;
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_send_ctl_detect_lost|");
         // Time threshold loss Detection
         xqc_send_ctl_detect_lost(ctl, pns, now);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_send_ctl_detect_lost|");
     }
     // Retransmit crypto data if no packets were lost
     // and there are still crypto packets in flight.
     else if (ctl->ctl_crypto_bytes_in_flight) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_conn_retransmit_unacked_crypto|");
         // Crypto retransmission timeout.
         xqc_conn_retransmit_unacked_crypto(ctl->ctl_conn);
         ctl->ctl_crypto_count++;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_conn_retransmit_unacked_crypto|");
     }
     else {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_conn_send_probe_packets|");
         // PTO
         xqc_conn_send_probe_packets(ctl->ctl_conn);
         ctl->ctl_pto_count++;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_loss_detection_timeout|xqc_conn_send_probe_packets|");
     }
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
@@ -439,7 +439,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
 
         if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
             ctl->ctl_bytes_in_flight += packet_out->po_used_size;
-            if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO && packet_out->po_pkt.pkt_pns <= XQC_PNS_HSK) {
                 ctl->ctl_crypto_bytes_in_flight += packet_out->po_used_size;
             }
             if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
@@ -628,8 +628,9 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 
         // Mark packet as lost, or set time when it should be marked.
         if (po->po_sent_time <= lost_send_time || po->po_pkt.pkt_num <= lost_pn) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_detect_lost|mark lost, pns=%d, pkt_num=%ui, frame=%s",
-                pns, po->po_pkt.pkt_num, xqc_frame_type_2_str(po->po_frame_types));
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
+                    "|xqc_send_ctl_detect_lost|mark lost, pns=%d, pkt_num=%ui, lost_pn=%ui, frame=%s",
+                pns, po->po_pkt.pkt_num, lost_pn, xqc_frame_type_2_str(po->po_frame_types));
             is_in_flight = po->po_flag & XQC_POF_IN_FLIGHT;
             xqc_send_ctl_remove_unacked(po, ctl);
             if (is_in_flight) {
@@ -751,7 +752,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
         } else {
             ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
         }
-        if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO && packet_out->po_pkt.pkt_pns <= XQC_PNS_HSK) {
             if (ctl->ctl_crypto_bytes_in_flight < packet_out->po_used_size) {
                 xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_crypto_bytes_in_flight too small|");
                 ctl->ctl_crypto_bytes_in_flight = 0;
