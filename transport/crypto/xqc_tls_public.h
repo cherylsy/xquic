@@ -380,12 +380,11 @@ typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means
 
 struct xqc_tlsref{
     xqc_connection_t       * conn;
-    int server;
-    int initial;
-    char  hostname[MAX_HOST_LEN];
+    uint8_t  server;
+    uint8_t initial;
     uint8_t resumption;
     uint8_t no_early_data;
-    unsigned int flags;
+    uint64_t flags;
     uint64_t max_local_stream_id_bidi;
     uint64_t max_local_stream_id_uni;
     xqc_settings_t local_settings;
@@ -567,7 +566,7 @@ static inline uint64_t xqc_nth_client_uni_id(uint64_t n) {
 static inline int xqc_check_numeric_host(const char *hostname, int family) {
   int rv;
   uint8_t dst[32];
-  rv = inet_pton(family, hostname, dst);
+  rv = inet_pton(family, hostname, dst); // ip transfer success return 1, else return 0 or -1
   return rv == 1;
 }
 
@@ -711,6 +710,7 @@ static inline void hex_print(char *p, size_t n)
         }
     }
 }
+
 
 
 

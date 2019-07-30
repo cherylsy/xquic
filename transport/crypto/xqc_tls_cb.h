@@ -3,7 +3,7 @@
 
 #include "include/xquic_typedef.h"
 #include "xqc_tls_public.h"
-#define XQC_ALPN_D17 "\x7xuqic-1"
+#define XQC_ALPN_V1 "\x7xuqic-1"
 
 
 typedef enum {

@@ -270,7 +270,7 @@ void xqc_msg_cb(int write_p, int version, int content_type, const void *buf,
     assert(0 == rv);
 }
 
-/*select aplication layer proto, now only just support XQC_ALPN_D17
+/*select aplication layer proto, now only just support XQC_ALPN_V1
  *
  */
 int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
@@ -284,8 +284,8 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
     // Just select alpn for now.
     switch (version) {
         case XQC_QUIC_VERSION:
-            alpn = XQC_ALPN_D17;
-            alpnlen = strlen(XQC_ALPN_D17);
+            alpn = XQC_ALPN_V1;
+            alpnlen = strlen(XQC_ALPN_V1);
             break;
         default:
             return SSL_TLSEXT_ERR_NOACK;

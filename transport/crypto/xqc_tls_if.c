@@ -633,3 +633,26 @@ int xqc_start_key_update(xqc_connection_t * conn)
     conn->tlsref.flags |= XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE;
     return 0;
 }
+
+//0 means not ready, 1 means ready
+int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
+{
+    xqc_pktns_t * pktns = &conn->tlsref.pktns;
+
+    xqc_crypto_km_t * tx_ckm = & pktns->tx_ckm;
+    xqc_vec_t * tx_hp = & pktns->tx_hp;
+
+    if(tx_ckm->key.base == NULL || tx_ckm->key.len == 0){
+        return 0;
+    }
+
+    if(tx_ckm->iv.base == NULL || tx_ckm->iv.len == 0){
+        return 0;
+    }
+
+    if(tx_hp->base == NULL || tx_hp->len == 0){
+        return 0;
+    }
+
+    return 1;
+}

@@ -56,6 +56,7 @@ int xqc_read_session_data( SSL * ssl, xqc_connection_t *conn, char * session_dat
 {
     BIO * m_f = BIO_new_mem_buf(session_data, session_data_len);
     if(m_f == NULL){
+        xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_read_session_data | new mem buf error");
         return -1;
     }
 
@@ -64,17 +65,17 @@ int xqc_read_session_data( SSL * ssl, xqc_connection_t *conn, char * session_dat
 
     if(session == NULL){
         ret = -1;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "read session ticket info error");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_read_session_data | read session ticket info error");
         goto end;
     }else{
         if(xqc_tls_check_session_ticket_timeout(session) == 0){
             ret = -1;
-            xqc_log(conn->log, XQC_LOG_DEBUG, "session timeout");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_read_session_data | session timeout");
             goto end;
         }
         if (!SSL_set_session(ssl, session)) {
             ret = -1;
-            xqc_log(conn->log, XQC_LOG_DEBUG, "set session error");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "xqc_read_session_data | set session error");
             goto end;
         }else{
             ret = 0;
