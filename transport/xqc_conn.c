@@ -833,7 +833,7 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
 
     conn->conn_flag |= XQC_CONN_FLAG_0RTT_REJ;
 
-    xqc_log(conn->log, "|xqc_conn_early_data_reject|");
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_early_data_reject|");
 
     if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
         return XQC_OK;
@@ -860,7 +860,7 @@ xqc_conn_early_data_accept(xqc_connection_t *conn)
 
     conn->conn_flag |= XQC_CONN_FLAG_0RTT_OK;
 
-    xqc_log(conn->log, "|xqc_conn_early_data_accept|");
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_early_data_accept|");
 
     if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
         return XQC_OK;
