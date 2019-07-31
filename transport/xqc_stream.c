@@ -522,9 +522,9 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         conn->conn_type == XQC_CONN_TYPE_CLIENT) {
 
         int accept = xqc_tls_is_early_data_accepted(conn);
-        if (accept == -1) {
+        if (accept == XQC_TLS_EARLY_DATA_REJECT) {
             xqc_conn_early_data_reject(conn);
-        } else if (accept == 1) {
+        } else if (accept == XQC_TLS_EARLY_DATA_ACCEPT) {
             xqc_conn_early_data_accept(conn);
         }
     }

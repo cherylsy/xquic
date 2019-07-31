@@ -357,8 +357,6 @@ xqc_client_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
-    xqc_set_early_data_cb(xc, xqc_conn_early_data_cb);
-
     xqc_cid_copy(&(xc->ocid), &(xc->dcid));
 
     xc->cur_stream_id_bidi_local = 0;

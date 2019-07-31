@@ -605,8 +605,6 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             return XQC_ERROR;
         }
 
-        xqc_set_early_data_cb(conn, xqc_conn_early_data_cb);
-
         xqc_cid_copy(&conn->ocid, &scid);
         xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
         xqc_memcpy(conn->peer_addr, peer_addr, peer_addrlen);
