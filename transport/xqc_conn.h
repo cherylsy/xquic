@@ -16,7 +16,6 @@
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
-#define EXTRA_SPACE 128
 
 #define XQC_MAX_TOKEN_LEN 32
 #define XQC_TOKEN_EXPIRE_DELTA 7*24*60*60   //N秒后过期
@@ -293,6 +292,8 @@ int xqc_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_
 int xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
 
 void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
+
+int xqc_conn_early_data_cb(xqc_connection_t *conn, int flag);
 
 int xqc_conn_early_data_reject(xqc_connection_t *conn);
 

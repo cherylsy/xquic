@@ -86,19 +86,20 @@ struct xqc_stream_s {
     xqc_connection_t        *stream_conn;
     xqc_stream_id_t         stream_id;
     xqc_stream_id_type_t    stream_id_type;
-    uint64_t                stream_send_offset;
+    void                    *user_data;
+    xqc_stream_callbacks_t  *stream_if;
+
+    xqc_stream_flow_ctl_t   stream_flow_ctl;
+    xqc_stream_write_buff_list_t
+                            stream_write_buff_list; /* 0RTT缓存原始数据 */
     xqc_list_head_t         write_stream_list,
                             read_stream_list,
                             all_stream_list;
-    void                    *user_data;
-    xqc_stream_callbacks_t  *stream_if;
+
+    uint64_t                stream_send_offset;
     xqc_stream_flag_t       stream_flag;
     xqc_encrypt_level_t     stream_encrypt_level;
     xqc_stream_data_in_t    stream_data_in;
-    xqc_stream_write_buff_list_t
-                            stream_write_buff_list;
-
-    xqc_stream_flow_ctl_t   stream_flow_ctl;
     unsigned                stream_unacked_pkt;
     xqc_send_stream_state_t stream_state_send;
     xqc_recv_stream_state_t stream_state_recv;

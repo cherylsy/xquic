@@ -355,6 +355,8 @@ xqc_client_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
+    xqc_set_early_data_cb(xc, xqc_conn_early_data_cb);
+
     xqc_cid_copy(&(xc->ocid), &(xc->dcid));
 
     xc->cur_stream_id_bidi_local = 0;
@@ -826,6 +828,17 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
 }
 
 int
+xqc_conn_early_data_cb(xqc_connection_t *conn, int flag)
+{
+    if(flag == 0){
+        xqc_conn_early_data_reject(conn);
+    }else{
+        xqc_conn_early_data_accept(conn);
+    }
+    return 0;
+}
+
+int
 xqc_conn_early_data_reject(xqc_connection_t *conn)
 {
     xqc_list_head_t *pos, *next;
@@ -840,7 +853,7 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
     }
 
     xqc_send_ctl_drop_0rtt_packets(conn->conn_send_ctl);
-
+//TODO: list要清空
     xqc_list_for_each_safe(pos, next, &conn->conn_all_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
         stream->stream_send_offset = 0;

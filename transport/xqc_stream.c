@@ -108,7 +108,7 @@ xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_param_t *trans_param)
 int
 xqc_stream_do_flow_ctl(xqc_stream_t *stream)
 {
-    if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {
+    if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {//TODO: 边界值
         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data|%d|",
                 stream->stream_conn->conn_flow_ctl.fc_max_data);
 
@@ -149,7 +149,6 @@ xqc_create_stream (xqc_engine_t *engine,
         return NULL;
     }
 
-    xqc_engine_main_logic(engine);
     return stream;
 }
 
@@ -632,10 +631,10 @@ xqc_stream_send (xqc_stream_t *stream,
     int buff_1rtt = 0;
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
-        if((conn->tlsref.server == XQC_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT)  &&
-            support_0rtt){
+        if ((conn->tlsref.server == XQC_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) &&
+            support_0rtt) {
             pkt_type = XQC_PTYPE_0RTT;
-        }else{
+        } else {
             buff_1rtt = 1;
         }
     }
@@ -707,8 +706,10 @@ do_buff:
         }
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|offset=%ui|pkt_type=%s|buff_1rtt=%ui|",
-            stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_send|stream_send_offset=%ui|pkt_type=%s|buff_1rtt=%ui|"
+                                      "send_data_size=%ui|offset=%ui|fin=%ui|",
+            stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
+            send_data_size, offset, fin);
 
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
@@ -718,7 +719,10 @@ do_buff:
     }
     xqc_engine_main_logic(conn->engine);
 
-    return stream->stream_send_offset;
+    if (offset == 0) {
+        return -XQC_EBLOCKED;
+    }
+    return offset;
 }
 
 ssize_t

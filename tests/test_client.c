@@ -192,10 +192,7 @@ int xqc_client_conn_create_notify(xqc_cid_t *cid, void *user_data) {
     DEBUG;
 
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    ctx->my_conn->stream = xqc_create_stream(ctx->engine, cid, ctx);
-    ctx->send_offset = 0;
 
-    xqc_client_write_notify(ctx->my_conn->stream, user_data); //提前写1RTT
     return 0;
 }
 
@@ -211,12 +208,12 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     int ret = 0;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[800] = {0};
+    char buff[5000] = {0};
     ret = xqc_stream_send(stream, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
     if (ret < 0) {
         printf("xqc_stream_send error %d\n", ret);
     } else {
-        ctx->send_offset = ret;
+        ctx->send_offset += ret;
         printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
     }
     return ret;
@@ -498,12 +495,13 @@ int main(int argc, char *argv[]) {
     memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
 
     xqc_connection_t * conn = xqc_engine_conns_hash_find(ctx.engine, cid, 's');
-    xqc_set_early_data_cb(conn, early_data_cb);
+    //xqc_set_early_data_cb(conn, early_data_cb);
     xqc_set_save_session_cb(conn, (xqc_save_session_cb_t)save_session_cb, conn);
     xqc_set_save_tp_cb(conn, (xqc_save_tp_cb_t) save_tp_cb, conn);
 
+    ctx.my_conn->stream = xqc_create_stream(ctx.engine, cid, &ctx);
 
-    //xqc_client_write_notify(ctx.my_conn->stream, &ctx); //0rtt打开注释
+    xqc_client_write_notify(ctx.my_conn->stream, &ctx);
 
     event_base_dispatch(eb);
 

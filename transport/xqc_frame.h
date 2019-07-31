@@ -61,12 +61,7 @@ typedef enum {
       CONNECTION_CLOSE frames, are not sent again when packet loss is
       detected, but as described in Section 10.
  */
-//TODO: more frames?
-#define XQC_CAN_RETRANSMIT(types) (types & ( \
-    XQC_FRAME_BIT_RESET_STREAM | \
-    XQC_FRAME_BIT_CRYPTO | \
-    XQC_FRAME_BIT_STREAM | \
-    )) \
+
 
 #define XQC_CAN_IN_FLIGHT(types) XQC_IS_ACK_ELICITING(types)
 

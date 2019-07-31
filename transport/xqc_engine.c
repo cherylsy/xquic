@@ -385,7 +385,9 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    xqc_process_buff_packets(conn);
+    if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_packets)) {
+        xqc_process_buff_packets(conn);
+    }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
@@ -602,6 +604,8 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
         if(xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0){
             return XQC_ERROR;
         }
+
+        xqc_set_early_data_cb(conn, xqc_conn_early_data_cb);
 
         xqc_cid_copy(&conn->ocid, &scid);
         xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
