@@ -379,9 +379,11 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     /* TODO: 0RTT回退 加密层回调 */
+#if 0
     if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_HSK && conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         xqc_conn_early_data_reject(conn);
     }
+#endif
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_in->pi_pkt.pkt_type);
     if(conn->crypto_stream[encrypt_level] == NULL){
