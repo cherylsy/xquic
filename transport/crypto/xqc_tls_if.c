@@ -200,7 +200,9 @@ int xqc_client_tls_handshake(xqc_connection_t *conn, int initial)
     }
 
     if(conn->tlsref.resumption ){
-        conn->tlsref.resumption = 0;
+
+#if 0
+        //conn->tlsref.resumption = 0;
 
         if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
             xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
@@ -212,14 +214,38 @@ int xqc_client_tls_handshake(xqc_connection_t *conn, int initial)
             }
         }else{
 
+            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was accepted by server|");
+            printf("do early data accept\n");
             if(xqc_conn_early_data_accepted(conn) < 0){
                 printf("error do early data accept action\n");
                 xqc_log(conn->log, XQC_LOG_DEBUG, "Error do early data accept action|");
             }
         }
+#endif
     }
     xqc_conn_handshake_completed(conn);
     return 0;
+}
+
+
+//return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept
+int xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
+{
+
+    if(conn->tlsref.resumption){
+
+        SSL * ssl = conn->xc_ssl;
+        if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
+            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
+            return XQC_TLS_EARLY_DATA_REJECT ;
+        }else{
+            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was accepted by server|");
+            return  XQC_TLS_EARLY_DATA_ACCEPT ;
+        }
+    }else{
+        return XQC_TLS_NO_EARLY_DATA ;
+    }
+
 }
 
 
@@ -637,6 +663,7 @@ int xqc_start_key_update(xqc_connection_t * conn)
 //0 means not ready, 1 means ready
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
 {
+    //if(conn->tlsref.server == 1){
     xqc_pktns_t * pktns = &conn->tlsref.pktns;
 
     xqc_crypto_km_t * tx_ckm = & pktns->tx_ckm;
@@ -655,6 +682,16 @@ int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
     }
 
     return 1;
+
+#if 0
+    }else{
+        if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
+            return 1;
+        }else{
+            return 0;
+        }
+    }
+#endif
 #if 0
     if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
         return 1;
