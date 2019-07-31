@@ -669,6 +669,8 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
     if(ckm->key.base == NULL || ckm->key.len == 0 || ckm->iv.base == NULL || ckm->iv.len == 0 || hp->base == NULL || hp->len == 0){
         int ret = -1;
         //printf("error decrypt :%d level data\n", encrypt_level);
+        xqc_log(conn->log, XQC_LOG_WARN, "|do_decrypt_pkt|decrypt key NULL");
+
         return ret;
     }
 
@@ -685,6 +687,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
 
     size_t nwrite = hp_mask(conn, mask ,sizeof(mask), hp->base, hp->len, pkt+sample_offset,  XQC_HP_SAMPLELEN, NULL);
     if(nwrite < XQC_HP_MASKLEN){
+        xqc_log(conn->log, XQC_LOG_WARN, "|do_decrypt_pkt| hp_mask return  error :%d", nwrite);
         return -1;
     }
 
@@ -724,6 +727,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
     nwrite = decrypt_func(conn, decrypt_buf, sizeof(decrypt_buf), payload, payload_len, ckm->key.base, ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, NULL  );
 
     if(nwrite < 0 || nwrite > payload_len){
+        xqc_log(conn->log, XQC_LOG_WARN, "|do_decrypt_pkt| decrypt_func return  error :%d", nwrite);
         return -1;
     }
 

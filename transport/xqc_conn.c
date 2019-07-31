@@ -394,6 +394,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             continue;
         }
 
+//#if 0
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             if (!xqc_send_ctl_can_send(conn)) {
                 continue;
@@ -411,7 +412,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                 }
             }
         }
-
+//#endif
         if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
                 && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
             xqc_gen_padding_frame(packet_out);

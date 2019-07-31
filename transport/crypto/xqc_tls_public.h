@@ -270,20 +270,7 @@ typedef struct {
      */
     xqc_hp_mask_t hp_mask;
 
-    xqc_recv_stream_data recv_stream_data;
-    xqc_acked_crypto_offset acked_crypto_offset;
-    xqc_acked_stream_data_offset acked_stream_data_offset;
-    xqc_stream_open stream_open;
-    xqc_stream_close stream_close;
-    xqc_recv_stateless_reset recv_stateless_reset;
-    xqc_recv_retry recv_retry;
-    xqc_extend_max_streams extend_max_streams_bidi;
-    xqc_extend_max_streams extend_max_streams_uni;
-    xqc_rand rand;
-    xqc_get_new_connection_id get_new_connection_id;
-    xqc_remove_connection_id remove_connection_id;
     xqc_update_key_t update_key;
-    xqc_path_validation path_validation;
 } xqc_tls_callbacks_t;
 
 /**

@@ -137,7 +137,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
     conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc);// config, early data flag should initial before call xqc_create_client_ssl
     if(conn->xc_ssl == NULL){
-        printf("create ssl error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_client_tls_initial | xqc_create_client_ssl error");
         return -1;
     }
 
@@ -177,21 +177,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     callbacks->decrypt = xqc_do_decrypt;
     callbacks->in_hp_mask = do_in_hp_mask;
     callbacks->hp_mask = do_hp_mask;
-    callbacks->recv_stream_data = NULL;
-    callbacks->acked_crypto_offset = NULL;
-    callbacks->acked_stream_data_offset = NULL;
-    callbacks->stream_open = NULL;
-    callbacks->stream_close = NULL;
-    callbacks->recv_stateless_reset = NULL;
-    callbacks->recv_retry = NULL;
-    callbacks->extend_max_streams_bidi = NULL;
-    callbacks->extend_max_streams_uni = NULL;
-    callbacks->rand = NULL;
-    callbacks->get_new_connection_id = NULL;
-    callbacks->remove_connection_id = NULL;
     callbacks->update_key = xqc_update_key;
-    callbacks->path_validation = NULL;
-
 
     if( (config->tp_data_len > 0) && (config->tp_data != NULL)){
         xqc_transport_params_t params ;
@@ -199,8 +185,6 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
             xqc_conn_set_early_remote_transport_params(conn, &params);
         }
     }
-
-
 
     if(xqc_client_setup_initial_crypto_context(conn, dcid) < 0){
         printf("error setup initial crypto key\n");
@@ -256,20 +240,7 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     callbacks->decrypt = xqc_do_decrypt;
     callbacks->in_hp_mask = do_in_hp_mask;
     callbacks->hp_mask = do_hp_mask;
-    callbacks->recv_stream_data = NULL;
-    callbacks->acked_crypto_offset = NULL;
-    callbacks->acked_stream_data_offset = NULL;
-    callbacks->stream_open = NULL;
-    callbacks->stream_close = NULL;
-    callbacks->recv_stateless_reset = NULL;
-    callbacks->recv_retry = NULL;
-    callbacks->extend_max_streams_bidi = NULL;
-    callbacks->extend_max_streams_uni = NULL;
-    callbacks->rand = NULL;
-    callbacks->get_new_connection_id = NULL;
-    callbacks->remove_connection_id = NULL;
     callbacks->update_key = xqc_update_key;   //need finish
-    callbacks->path_validation = NULL;
 
     return 0;
 }

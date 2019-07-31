@@ -655,4 +655,11 @@ int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
     }
 
     return 1;
+#if 0
+    if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
+        return 1;
+    }else{
+        return 0;
+    }
+#endif
 }
