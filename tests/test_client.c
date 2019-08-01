@@ -495,7 +495,6 @@ int main(int argc, char *argv[]) {
     memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
 
     xqc_connection_t * conn = xqc_engine_conns_hash_find(ctx.engine, cid, 's');
-    //xqc_set_early_data_cb(conn, early_data_cb);
     xqc_set_save_session_cb(conn, (xqc_save_session_cb_t)save_session_cb, conn);
     xqc_set_save_tp_cb(conn, (xqc_save_tp_cb_t) save_tp_cb, conn);
 

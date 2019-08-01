@@ -603,7 +603,7 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 void
 xqc_process_buff_packets(xqc_connection_t *conn)
 {
-    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+    if (conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
         xqc_send_ctl_t *ctl = conn->conn_send_ctl;
         xqc_list_head_t *pos, *next;
         xqc_packet_out_t *packet_out;

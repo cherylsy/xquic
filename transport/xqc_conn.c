@@ -21,6 +21,7 @@ static char g_conn_flag_buf[128];
 static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_WAKEUP_SHIFT]                = "WAKEUP",
         [XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT]   = "HSK_DONE",
+        [XQC_CONN_FLAG_CAN_SEND_1RTT_SHIFT]         = "CAN_SEND_1RTT",
         [XQC_CONN_FLAG_TICKING_SHIFT]               = "TICKING",
         [XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT]       = "ACK_INIT",
         [XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT]        = "ACK_HSK",
@@ -31,6 +32,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_DATA_BLOCKED_SHIFT]          = "DATA_BLOCKED",
         [XQC_CONN_FLAG_DCID_OK_SHIFT]               = "DCID_OK",
         [XQC_CONN_FLAG_TOKEN_OK_SHIFT]              = "TOKEN_OK",
+        [XQC_CONN_FLAG_HAS_0RTT_SHIFT]              = "HAS_0RTT",
         [XQC_CONN_FLAG_0RTT_OK_SHIFT]               = "0RTT_OK",
         [XQC_CONN_FLAG_0RTT_REJ_SHIFT]              = "0RTT_REJECT",
 };
@@ -355,8 +357,6 @@ xqc_client_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
-    xqc_set_early_data_cb(xc, xqc_conn_early_data_cb);
-
     xqc_cid_copy(&(xc->ocid), &(xc->dcid));
 
     xc->cur_stream_id_bidi_local = 0;
@@ -388,7 +388,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
         //printf("get packet_out: %p\n", packet_out);
         if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
-            !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+            !(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
             xqc_log(conn->log, XQC_LOG_WARN, "|HSK NOT FINISHED, skip send|pkt_type=%s, pkt_num=%ui, frame=%s|",
                     xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
                     xqc_frame_type_2_str(packet_out->po_frame_types));
