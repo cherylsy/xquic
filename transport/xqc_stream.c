@@ -94,14 +94,14 @@ xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_h
 }
 
 static void
-xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_param_t *trans_param)
+xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_settings_t *trans_param)
 {
     if (stream->stream_id_type == XQC_CLI_BID) {
-        stream->stream_flow_ctl.fc_max_stream_data = trans_param->initial_max_stream_data_bidi_local;
+        stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_bidi_local;
     } else if (stream->stream_id_type == XQC_SVR_BID) {
-        stream->stream_flow_ctl.fc_max_stream_data = trans_param->initial_max_stream_data_bidi_remote;
+        stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_bidi_remote;
     } else {
-        stream->stream_flow_ctl.fc_max_stream_data = trans_param->initial_max_stream_data_uni;
+        stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_uni;
     }
 }
 
@@ -181,7 +181,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn,
     stream->stream_state_send = XQC_SSS_READY;
     stream->stream_state_recv = XQC_RSS_RECV;
 
-    xqc_stream_set_flow_ctl(stream, &conn->trans_param);
+    xqc_stream_set_flow_ctl(stream, &conn->local_settings);
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
 
@@ -262,8 +262,8 @@ int xqc_read_crypto_stream(xqc_stream_t * stream){
         size_t data_len  = stream_frame->data_offset  + stream_frame->data_length - stream->stream_data_in.next_read_offset;
         char * data_start =  stream_frame->data + (stream->stream_data_in.next_read_offset - stream_frame->data_offset);
 
-        printf("recv crypto data:%d\n",data_len);
-        hex_print(data_start, data_len);
+        //printf("recv crypto data:%d\n",data_len);
+        //hex_print(data_start, data_len);
         int ret = conn->tlsref.callbacks.recv_crypto_data(conn, 0, data_start, data_len, NULL);
 
         xqc_list_del(pos);
@@ -378,8 +378,6 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
 
     xqc_list_for_each_safe(pos, next, head) {
         xqc_hs_buffer_t *buf = (xqc_hs_buffer_t *) pos;
-        printf("send crypto data:%d\n", buf->data_len);
-        hex_print(buf->data, buf->data_len);
         if (buf->data_len > 0) {
             int send_data_num = stream->stream_send_offset + buf->data_len;
             size_t offset = 0;
@@ -395,7 +393,6 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 if (packet_out == NULL) {
                     return -XQC_ENULLPTR;
                 }
-
                 n_written = xqc_gen_crypto_frame(packet_out,
                                                  stream->stream_send_offset,
                                                  buf->data + offset,
@@ -404,6 +401,10 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 if (n_written < 0) {
                     return n_written;
                 }
+                //printf("crypto packet_out: %p\n", packet_out);
+                //printf("send crypto data:%d, pkt_type = %d\n", buf->data_len, pkt_type );
+                hex_print(buf->data, buf->data_len);
+
                 offset += send_data_written;
                 stream->stream_send_offset += send_data_written;
                 packet_out->po_used_size += n_written;
@@ -563,7 +564,7 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
 
-    if(!conn->tlsref.server){
+    if(!(conn->conn_type == XQC_CONN_TYPE_SERVER)){
         xqc_stream_ready_to_write(stream);
     }
 
@@ -654,7 +655,7 @@ xqc_stream_send (xqc_stream_t *stream,
     int buff_1rtt = 0;
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
-        if ((conn->tlsref.server == XQC_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) &&
+        if ((conn->conn_type == XQC_CONN_TYPE_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) &&
             support_0rtt) {
             pkt_type = XQC_PTYPE_0RTT;
             conn->conn_flag |= XQC_CONN_FLAG_HAS_0RTT;

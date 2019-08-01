@@ -11,6 +11,7 @@
 #include "common/xqc_list.h"
 #include "include/xquic.h"
 #include "transport/xqc_frame.h"
+//#include "transport/xqc_conn.h"
 #include "xqc_tls_if.h"
 
 #ifdef WORDS_BIGENDIAN
@@ -22,7 +23,6 @@
 
 
 #define XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS 0xffa5u
-#define XQC_MAX_PKT_SIZE  65527 //quic protocol define
 
 #define MAX_HOST_LEN 256
 /*XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
@@ -164,51 +164,26 @@ typedef enum {
     XQC_PKT_FLAG_KEY_PHASE = 0x04
 } xqc_pkt_flag;
 
-/*@struct address
- * */
+#if 0
 typedef struct {
-    xqc_cid_t cid;
-    /* ip_addresslen is the length of ip_address. */
-    size_t ip_addresslen;
-    uint16_t port;
-    /* ip_version is the version of IP address.  It should be one of the
-     * defined values in :type:`xqc_ip_version`.
-     *:enum:`XQC_IP_VERSION_NONE` indicates that no preferred
-     *address is set and the other fields are ignored. */
-    uint8_t ip_version;
-    uint8_t ip_address[255];
-    uint8_t stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-} xqc_preferred_addr_t;
-
-typedef struct {
-    union {
-        struct {
-            uint32_t initial_version;
-        } ch;
-        struct {
-            uint32_t negotiated_version;
-            uint32_t supported_versions[63];
-            size_t len;
-        } ee;
-    } v;
-    xqc_preferred_addr_t preferred_address;
-    xqc_cid_t original_connection_id;
-    uint64_t initial_max_stream_data_bidi_local;
-    uint64_t initial_max_stream_data_bidi_remote;
-    uint64_t initial_max_stream_data_uni;
-    uint64_t initial_max_data;
-    uint64_t initial_max_streams_bidi;
-    uint64_t initial_max_streams_uni;
-    uint64_t idle_timeout;
-    uint64_t max_packet_size;
-    uint8_t stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-    uint8_t stateless_reset_token_present;
-    uint64_t ack_delay_exponent;
-    uint8_t disable_migration;
-    uint8_t original_connection_id_present;
-    uint64_t max_ack_delay;
-    uint16_t no_crypto;
+    xqc_cid_t               original_connection_id;
+    xqc_msec_t              idle_timeout;
+    xqc_buf_t               stateless_reset_token;
+    uint32_t                max_packet_size;
+    uint64_t                initial_max_data;
+    uint64_t                initial_max_stream_data_bidi_local;
+    uint64_t                initial_max_stream_data_bidi_remote;
+    uint64_t                initial_max_stream_data_uni;
+    uint64_t                initial_max_streams_bidi;
+    uint64_t                initial_max_streams_uni;
+    uint32_t                ack_delay_exponent;
+    xqc_msec_t              max_ack_delay;
+    xqc_flag_t              disable_migration;
+    xqc_preferred_address_t preferred_addr;
+    uint16_t                no_crypto;
 } xqc_transport_params_t;
+#endif
+
 
 typedef enum {
     XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
@@ -217,24 +192,6 @@ typedef enum {
 
 
 
-typedef struct {
-    xqc_preferred_addr_t preferred_address;
-    //xqc_tstamp initial_ts;
-    uint64_t max_stream_data_bidi_local;
-    uint64_t max_stream_data_bidi_remote;
-    uint64_t max_stream_data_uni;
-    uint64_t max_data;
-    uint64_t max_streams_bidi;
-    uint64_t max_streams_uni;
-    uint64_t idle_timeout;
-    uint64_t max_packet_size;
-    uint8_t stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-    uint8_t stateless_reset_token_present;
-    uint64_t ack_delay_exponent;
-    uint8_t disable_migration;
-    uint64_t max_ack_delay;
-    uint16_t no_crypto;
-} xqc_settings_t;
 
 
 
@@ -372,15 +329,13 @@ typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means
 
 struct xqc_tlsref{
     xqc_connection_t       * conn;
-    uint8_t  server;
+    //uint8_t  server;
     uint8_t initial;
     uint8_t resumption;
     uint8_t no_early_data;
     uint64_t flags;
     uint64_t max_local_stream_id_bidi;
     uint64_t max_local_stream_id_uni;
-    xqc_settings_t local_settings;
-    xqc_settings_t remote_settings;
 
     uint32_t aead_overhead;  //aead for gcm or chacha
 

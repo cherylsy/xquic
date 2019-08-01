@@ -184,7 +184,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     xqc_msec_t now = xqc_now();
 
     ret = xqc_gen_ack_frame(conn, packet_out,
-                      now, conn->trans_param.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
+                      now, conn->local_settings.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
     if (ret < 0) {
         goto error;
     }

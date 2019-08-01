@@ -410,7 +410,7 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
     xqc_to_tls_handshake(conn, data, datalen);
     if (!xqc_conn_get_handshake_completed(conn)) {
 
-        if(conn->tlsref.server){
+        if(conn->conn_type == XQC_CONN_TYPE_SERVER){
             if(xqc_server_tls_handshake(conn) < 0){
                 return -1;
             }
@@ -441,7 +441,7 @@ size_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
-    if(conn -> tlsref.local_settings.no_crypto == 1){
+    if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_encrypt(dest, destlen, plaintext, plaintextlen, ctx, key, keylen,
                 nonce, noncelen,  ad, adlen);
     }else{
@@ -463,7 +463,7 @@ size_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
-    if(conn -> tlsref.local_settings.no_crypto == 1){
+    if(conn -> local_settings.no_crypto == 1){
        nwrite = xqc_no_decrypt(dest, destlen, ciphertext, ciphertextlen, ctx,
                key, keylen, nonce, noncelen, ad, adlen);
     }else{
@@ -487,7 +487,7 @@ size_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
 
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
     size_t nwrite;
-    if(conn -> tlsref.local_settings.no_crypto == 1){
+    if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_encrypt(dest, destlen, plaintext, plaintextlen, ctx, key, keylen,
                 nonce, noncelen,  ad, adlen);
     }else{
@@ -510,7 +510,7 @@ size_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
 {
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
     size_t nwrite;
-    if(conn -> tlsref.local_settings.no_crypto == 1){
+    if(conn -> local_settings.no_crypto == 1){
        nwrite = xqc_no_decrypt(dest, destlen, ciphertext, ciphertextlen, ctx,
                key, keylen, nonce, noncelen, ad, adlen);
     }else{
@@ -532,7 +532,7 @@ size_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
-    if(conn -> tlsref.local_settings.no_crypto == 1){
+    if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_hp_mask(dest, destlen, ctx, key, keylen, sample,
                          samplelen);
     }else{
@@ -553,7 +553,7 @@ size_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
     size_t nwrite;
-    if(conn -> tlsref.local_settings.no_crypto == 1){
+    if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_hp_mask(dest, destlen, ctx, key, keylen, sample,
                          samplelen);
     }else{
@@ -663,7 +663,6 @@ int xqc_start_key_update(xqc_connection_t * conn)
 //0 means not ready, 1 means ready
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
 {
-    //if(conn->tlsref.server == 1){
     xqc_pktns_t * pktns = &conn->tlsref.pktns;
 
     xqc_crypto_km_t * tx_ckm = & pktns->tx_ckm;

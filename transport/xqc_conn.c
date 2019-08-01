@@ -78,26 +78,31 @@ xqc_conn_state_2_str(xqc_conn_state_t state)
 
 void xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
-    xqc_trans_param_t *param = &conn->trans_param;
-    param->max_ack_delay = 25;
-    param->ack_delay_exponent = 3;
+    memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
+    memset(&conn->remote_settings, 0, sizeof(xqc_trans_settings_t));
+
+    xqc_trans_settings_t * settings = & conn->local_settings;
+
+    settings->max_ack_delay = 25;
+    settings->ack_delay_exponent = 3;
     //TODO: 临时值
-    param->idle_timeout = 5000;
-    param->initial_max_data = 1*1024*1024;
-    param->initial_max_stream_data_bidi_local = 100*1024;
-    param->initial_max_stream_data_bidi_remote = 100*1024;
-    param->initial_max_stream_data_uni = 100*1024;
-    param->initial_max_streams_bidi = 3;
-    param->initial_max_streams_uni = 3;
+    settings->idle_timeout = 5000;
+    settings->max_data = 1*1024*1024;
+    settings->max_stream_data_bidi_local = 100*1024;
+    settings->max_stream_data_bidi_remote = 100*1024;
+    settings->max_stream_data_uni = 100*1024;
+    settings->max_streams_bidi = 3;
+    settings->max_streams_uni = 3;
+    settings->max_packet_size = XQC_MAX_PKT_SIZE;
 }
 
 void xqc_conn_init_flow_ctl(xqc_connection_t *conn)
 {
-    xqc_trans_param_t *param = &conn->trans_param;
     xqc_conn_flow_ctl_t *flow_ctl = &conn->conn_flow_ctl;
-    flow_ctl->fc_max_data = param->initial_max_data;
-    flow_ctl->fc_max_streams_bidi = param->initial_max_streams_bidi;
-    flow_ctl->fc_max_streams_uni = param->initial_max_streams_uni;
+    xqc_trans_settings_t * settings = & conn->local_settings;
+    flow_ctl->fc_max_data = settings->max_data;
+    flow_ctl->fc_max_streams_bidi = settings->max_streams_bidi;
+    flow_ctl->fc_max_streams_uni = settings->max_streams_uni;
     flow_ctl->fc_data_sent = 0;
     flow_ctl->fc_date_recved = 0;
 }
@@ -386,6 +391,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
+        //printf("get packet_out: %p\n", packet_out);
         if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
             !(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
             xqc_log(conn->log, XQC_LOG_WARN, "|HSK NOT FINISHED, skip send|pkt_type:%s|pkt_num:%ui|frame:%s|",

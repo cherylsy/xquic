@@ -119,7 +119,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
     xqc_tlsref_zero(tlsref);
 
-    tlsref->server = 0;
+    //tlsref->server = 0;
     if(no_early_data == 0){
         tlsref->no_early_data = 0;
     }else{
@@ -144,19 +144,8 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
-    xqc_settings_t * settings = & tlsref->local_settings ;
 
-    settings->max_stream_data_bidi_local = XQC_256_K;
-    settings->max_stream_data_bidi_remote = XQC_256_K;
-    settings->max_stream_data_uni = XQC_256_K;
-    settings->max_data = XQC_1_M;
-    settings->max_streams_bidi = 1;
-    settings->max_streams_uni = 1;
-    settings->idle_timeout = 30;
-    settings->max_packet_size = XQC_MAX_PKT_SIZE;
-    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
-    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-
+    xqc_trans_settings_t * settings = &conn->local_settings;
     if(no_crypto_flag == 1){
         settings->no_crypto = 1;
     }else{
@@ -206,25 +195,13 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
         return -1;
     }
 
-    tlsref->server = 1;
+    //tlsref->server = 1;
     tlsref->initial = 1;
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
 
-    xqc_settings_t *settings = & conn->tlsref.local_settings;
-    settings->max_stream_data_bidi_local = XQC_256_K;
-    settings->max_stream_data_bidi_remote = XQC_256_K;
-    settings->max_stream_data_uni = XQC_256_K;
-    settings->max_data = XQC_1_M;
-    settings->max_streams_bidi = 100;
-    settings->max_streams_uni = 0;
-    settings->idle_timeout = 30;
-    settings->max_packet_size = XQC_MAX_PKT_SIZE;
-    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
-    settings->stateless_reset_token_present = 1;
-    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-    settings->no_crypto = 1;
+    conn->local_settings.no_crypto = 1;
 
     tlsref->aead_overhead = XQC_INITIAL_AEAD_OVERHEAD;
 
