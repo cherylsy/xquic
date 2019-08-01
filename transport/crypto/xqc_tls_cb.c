@@ -18,7 +18,6 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
     int rv;
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
-    int server = conn -> tlsref.server;
     //printf("xqc_tls_key_cb: %d\n", name);
     //hex_print((char *)secret, secretlen);
     switch (name) {
@@ -29,7 +28,7 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
         case SSL_KEY_CLIENT_APPLICATION_TRAFFIC:
             //update traffic key ,should completed
 
-            if(server){
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
                 if(conn->tlsref.rx_secret.base != NULL){
                     printf("error rx_secret , may case memory leak\n");
                 }
@@ -50,7 +49,7 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             break;
         case SSL_KEY_SERVER_APPLICATION_TRAFFIC:
             //for
-            if(server){
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
                 if(conn->tlsref.tx_secret.base != NULL){
                     printf("error tx_secret , may case memory leak\n");
                 }
@@ -120,7 +119,7 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             }
             break;
         case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
-            if(server){
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
                 if(xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv,
                             ivlen, hp, hplen) < 0){
                     printf("install handshake rx key error\n");
@@ -136,7 +135,7 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             }
             break;
         case SSL_KEY_CLIENT_APPLICATION_TRAFFIC:
-            if(server){
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
                 if(xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen,
                             hp, hplen) < 0){
                     printf("install rx keys error\n");
@@ -152,7 +151,7 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             }
             break;
         case SSL_KEY_SERVER_HANDSHAKE_TRAFFIC:
-            if(server){
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
                 if(xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv,
                             ivlen, hp, hplen) < 0){
                     printf("install handshake tx keys error\n");
@@ -168,7 +167,7 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             }
             break;
         case SSL_KEY_SERVER_APPLICATION_TRAFFIC:
-            if(server){
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
                 if(xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen,
                             hp, hplen) < 0){
                     printf("install tx keys error\n");
@@ -740,7 +739,7 @@ int xqc_conn_set_remote_transport_params(
 
 int xqc_conn_set_early_remote_transport_params(
     xqc_connection_t *conn, const xqc_transport_params_t *params) {
-  if (conn->tlsref.server) {
+  if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
     return XQC_ERR_INVALID_STATE;
   }
 
@@ -794,14 +793,14 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
         uint8_t exttype) {
     switch (exttype) {
         case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
-            if (conn->tlsref.server) {
+            if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
                 return XQC_ERR_INVALID_ARGUMENT;
             }
             /* TODO Fix this; not sure how to handle them correctly */
             params->v.ch.initial_version = conn->version;
             break;
         case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
-            if (!conn->tlsref.server) {
+            if (!(conn->conn_type == XQC_CONN_TYPE_SERVER)) {
                 return XQC_ERR_INVALID_ARGUMENT;
             }
             /* TODO Fix this; not sure how to handle them correctly */
@@ -813,7 +812,7 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
             return XQC_ERR_INVALID_ARGUMENT;
     }
     xqc_transport_params_copy_from_settings(params, &conn->tlsref.local_settings);
-    if (conn->tlsref.server && (conn->tlsref.flags & XQC_CONN_FLAG_OCID_PRESENT)) {
+    if ((conn->conn_type == XQC_CONN_TYPE_SERVER) && (conn->tlsref.flags & XQC_CONN_FLAG_OCID_PRESENT)) {
         xqc_cid_init(&params->original_connection_id, conn->ocid.cid_buf,
                 conn->ocid.cid_len);
         params->original_connection_id_present = 1;

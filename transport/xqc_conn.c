@@ -386,6 +386,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
+        //printf("get packet_out: %p\n", packet_out);
         if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
             !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
             xqc_log(conn->log, XQC_LOG_WARN, "|HSK NOT FINISHED, skip send|pkt_type=%s, pkt_num=%ui, frame=%s|",

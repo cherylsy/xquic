@@ -417,6 +417,7 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
 void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_msec_t now)
 {
+    //printf("send packet_out: %p\n", packet_out);
     if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent) {
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
     }

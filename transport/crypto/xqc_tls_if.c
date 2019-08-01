@@ -410,7 +410,7 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
     xqc_to_tls_handshake(conn, data, datalen);
     if (!xqc_conn_get_handshake_completed(conn)) {
 
-        if(conn->tlsref.server){
+        if(conn->conn_type == XQC_CONN_TYPE_SERVER){
             if(xqc_server_tls_handshake(conn) < 0){
                 return -1;
             }
@@ -663,7 +663,6 @@ int xqc_start_key_update(xqc_connection_t * conn)
 //0 means not ready, 1 means ready
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
 {
-    //if(conn->tlsref.server == 1){
     xqc_pktns_t * pktns = &conn->tlsref.pktns;
 
     xqc_crypto_km_t * tx_ckm = & pktns->tx_ckm;

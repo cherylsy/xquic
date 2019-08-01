@@ -1156,7 +1156,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     switch (type)
     {
         case XQC_PTYPE_INIT:
-            if(c->tlsref.server){
+            if(c->conn_type == XQC_CONN_TYPE_SERVER){
                 ret = c->tlsref.callbacks.recv_client_initial(c, dcid, NULL); //
                 if(ret < 0){
                     return ret;
