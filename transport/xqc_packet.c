@@ -192,7 +192,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         if (!xqc_conn_check_handshake_completed(c)) {
             /* TODO: buffer packets */
             xqc_log(c->log, XQC_LOG_WARN,
-                    "|process_single_packet|recvd short header packet before handshake completed|");
+                    "|recvd short header packet before handshake completed|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }
@@ -200,7 +200,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         ret = xqc_packet_parse_short_header(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR,
-                    "|process_single_packet|xqc_packet_parse_short_header error|");
+                    "|xqc_packet_parse_short_header error|");
             return ret;
         }
     } else {  /* long header */
@@ -213,20 +213,10 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
             return XQC_OK;
         }
 
-        /* TODO: 0RTT回退 用于模拟0rtt失败 */
-#if 0
-        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
-            && c->conn_type == XQC_CONN_TYPE_SERVER) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|ignore 0RTT test|");
-            packet_in->pos = packet_in->last;
-            return XQC_OK;
-        }
-#endif
-
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR,
-                    "|process_single_packet|xqc_packet_parse_long_header error|");
+                    "|xqc_packet_parse_long_header error|");
             return ret;
         }
     }
@@ -236,25 +226,25 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     packet_in->last = packet_in->decode_payload + packet_in->decode_payload_len;*/
 
     ret = xqc_do_decrypt_pkt(c, packet_in);
-    if(ret == 0){
+    if (ret == 0) {
         ret = xqc_process_frames(c, packet_in);
         if (ret != XQC_OK) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|xqc_process_frames error|");
+            xqc_log(c->log, XQC_LOG_ERROR, "|xqc_process_frames error|");
             return ret;
         }
-    }else{
-        if(ret ==  XQC_EARLY_DATA_REJECT){
-            xqc_log(c->log, XQC_LOG_DEBUG, "|process_single_packet|decrypt early data reject, continue |");
+    } else {
+        if (ret == XQC_EARLY_DATA_REJECT) {
+            xqc_log(c->log, XQC_LOG_DEBUG, "|decrypt early data reject, continue |");
             packet_in->pos = packet_in->last;
-        }else{
-            xqc_log(c->log, XQC_LOG_ERROR, "|process_single_packet|decrypt data error, return|");
+        } else {
+            xqc_log(c->log, XQC_LOG_ERROR, "|decrypt data error, return|");
             return ret;
         }
     }
 
     packet_in->last = last;
 
-    xqc_log(c->log, XQC_LOG_INFO, "====>|xqc_conn_process_single_packet|pkt_type=%s|pkt_num=%ui|frame=%s|recv_time=%ui|",
+    xqc_log(c->log, XQC_LOG_INFO, "|====>|pkt_type:%s|pkt_num:%ui|frame:%s|recv_time:%ui|",
             xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
             xqc_frame_type_2_str(packet_in->pi_frame_types), packet_in->pkt_recv_time);
 
@@ -276,7 +266,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
 
     xqc_recv_record_log(c, &c->recv_record[packet_in->pi_pkt.pkt_pns]);
     xqc_log(c->log, XQC_LOG_DEBUG,
-            "|xqc_conn_process_single_packet|xqc_recv_record_add|status=%d|pkt_num=%ui|largest=%ui|pns=%d|",
+            "|xqc_recv_record_add|status:%d|pkt_num:%ui|largest:%ui|pns:%d|",
             range_status, packet_in->pi_pkt.pkt_num,
             xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]), packet_in->pi_pkt.pkt_pns);
 
@@ -321,7 +311,7 @@ xqc_conn_process_packets(xqc_connection_t *c,
 
         /* err in parse packet, don't cause dead loop */
         if (ret != XQC_OK || last_pos == packet_in->pos) {
-            xqc_log(c->log, XQC_LOG_WARN, "process packets err|%z|%p|%p|%z|",
+            xqc_log(c->log, XQC_LOG_WARN, "|process packets err|ret:%z|pos:%p|buf:%p|buf_size:%z|",
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);
             return ret != XQC_OK ? ret : -XQC_ESYS;

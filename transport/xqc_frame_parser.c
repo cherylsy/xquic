@@ -345,7 +345,7 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_list_for_each(pos, &recv_record->list_head) {
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
         printf("xqc_gen_ack_frame low:%llu, high=%llu\n", range_node->pktno_range.low, range_node->pktno_range.high);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high: %ui, low: %ui|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high:%ui|low:%ui|",
                 range_node->pktno_range.high, range_node->pktno_range.low);
     }
 
@@ -403,7 +403,7 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         }
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high: %ui, low: %ui|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high:%ui|low:%ui|",
                 range_node->pktno_range.high, range_node->pktno_range.low);
 
         gap = prev_low - range_node->pktno_range.high - 2;

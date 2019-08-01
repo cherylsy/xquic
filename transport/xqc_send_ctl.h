@@ -175,7 +175,7 @@ xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_ms
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_set|type=%s|expire=%ui|",
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|expire=%ui|",
             xqc_timer_type_2_str(type), expire);
 }
 
@@ -184,7 +184,7 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 0;
     ctl->ctl_timer[type].ctl_expire_time = 0;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_unset|type=%s|",
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|",
             xqc_timer_type_2_str(type));
 }
 
