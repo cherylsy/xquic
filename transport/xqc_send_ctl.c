@@ -49,7 +49,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_init(send_ctl);
 
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
-                           xqc_now() + send_ctl->ctl_conn->trans_param.idle_timeout * 1000);
+                           xqc_now() + send_ctl->ctl_conn->local_settings.idle_timeout * 1000);
 
     if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
         send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
@@ -437,7 +437,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
              * when sending a packet containing frames other than ACK or PADDING (an
              * ACK-eliciting packet
              */
-            xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->trans_param.idle_timeout * 1000);
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->local_settings.idle_timeout * 1000);
         }
 
         if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
@@ -572,7 +572,7 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
     // min_rtt ignores ack delay.
     ctl->ctl_minrtt = xqc_min(*latest_rtt, ctl->ctl_minrtt);
     // Limit ack_delay by max_ack_delay
-    ack_delay = xqc_min(ack_delay, ctl->ctl_conn->trans_param.max_ack_delay * 1000);
+    ack_delay = xqc_min(ack_delay, ctl->ctl_conn->local_settings.max_ack_delay * 1000);
 
 
     // Adjust for ack delay if it's plausible.
@@ -860,7 +860,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     }
 
     // Calculate PTO duration
-    timeout = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity*1000) + ctl->ctl_conn->trans_param.max_ack_delay*1000;
+    timeout = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity*1000) + ctl->ctl_conn->local_settings.max_ack_delay*1000;
 
     timeout = timeout * xqc_send_ctl_pow(ctl->ctl_pto_count);
 
