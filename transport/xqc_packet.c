@@ -168,7 +168,7 @@ xqc_packet_version_check(xqc_connection_t *c, uint32_t version)
     return XQC_OK;
 }
 
-
+int g_c=0;
 
 /**
  * @retval XQC_OK / XQC_ERROR
@@ -188,20 +188,25 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     /* short header */
     if (XQC_PACKET_IS_SHORT_HEADER(pos)) {
 
-        /* check handshake */
-        if (!xqc_conn_check_handshake_completed(c)) {
-            /* TODO: buffer packets */
-            xqc_log(c->log, XQC_LOG_WARN,
-                    "|recvd short header packet before handshake completed|");
-            packet_in->pos = packet_in->last;
-            return XQC_OK;
-        }
-
         ret = xqc_packet_parse_short_header(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR,
                     "|xqc_packet_parse_short_header error|");
             return ret;
+        }
+
+        /* check handshake */
+        if (!xqc_conn_check_handshake_completed(c)) {
+
+            if (c->undecrypt_count <= XQC_UNDECRYPT_PACKET_MAX) {
+                /* buffer packets */
+                xqc_buff_undecrypt_packet_in(packet_in, c);
+            }
+
+            xqc_log(c->log, XQC_LOG_WARN,
+                    "|recvd short header packet before handshake completed|");
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
         }
     } else {  /* long header */
 
@@ -289,8 +294,6 @@ xqc_conn_process_packets(xqc_connection_t *c,
     const unsigned char *pos = packet_in_buf;
     /* UDP包的结束地址 */
     const unsigned char *end = packet_in_buf + packet_in_size;
-
-    c->conn_send_ctl->ctl_bytes_recv += packet_in_size;
 
     xqc_packet_in_t packet;
     unsigned char decrypt_payload[MAX_PACKET_LEN];

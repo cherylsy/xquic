@@ -659,6 +659,7 @@ xqc_stream_send (xqc_stream_t *stream,
             support_0rtt) {
             pkt_type = XQC_PTYPE_0RTT;
             conn->conn_flag |= XQC_CONN_FLAG_HAS_0RTT;
+            stream->stream_flag |= XQC_SF_HAS_0RTT;
         } else {
             buff_1rtt = 1;
         }

@@ -35,6 +35,7 @@ typedef enum xqc_pkt_type
 
 
 #define XQC_PACKET_0RTT_MAX_COUNT  100
+#define XQC_UNDECRYPT_PACKET_MAX  100
 
 struct xqc_packet_s {
     xqc_packet_number_t     pkt_num;
