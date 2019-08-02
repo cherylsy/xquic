@@ -21,6 +21,7 @@ typedef enum {
     XQC_SF_READY_TO_WRITE       = 1 << 0,
     XQC_SF_READY_TO_READ        = 1 << 1,
     XQC_SF_STREAM_DATA_BLOCKED  = 1 << 2,
+    XQC_SF_HAS_0RTT             = 1 << 3,
 } xqc_stream_flag_t;
 
 typedef enum {

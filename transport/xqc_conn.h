@@ -266,14 +266,15 @@ struct xqc_connection_s{
     uint64_t                cur_stream_id_uni_local;
 
     //xqc_trans_param_t       trans_param;
-    xqc_settings_t          local_settings;
-    xqc_settings_t          remote_settings;
+    xqc_trans_settings_t    local_settings;
+    xqc_trans_settings_t    remote_settings;
     xqc_conn_flag_t         conn_flag;
     xqc_conn_type_t         conn_type;
 
     void                   *user_data;  /* user_data for application layer */
 
-    xqc_list_head_t         packet_in_tailq;  /* xqc_packet_in_t */
+    xqc_list_head_t         undecrypt_packet_in;  /* xqc_packet_in_t */
+    uint32_t                undecrypt_count;
     xqc_recv_record_t       recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
     uint32_t                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 
@@ -329,7 +330,6 @@ xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                                 int no_crypto_flag,
                                                 uint8_t no_early_data_flag,
                                                 xqc_conn_ssl_config_t * conn_ssl_config,
-
                                                 void *user_data);
 
 void xqc_destroy_connection(xqc_connection_t *xc);
@@ -363,5 +363,8 @@ int xqc_conn_early_data_cb(xqc_connection_t *conn, int flag);
 int xqc_conn_early_data_reject(xqc_connection_t *conn);
 
 int xqc_conn_early_data_accept(xqc_connection_t *conn);
+
+int
+xqc_conn_process_undecrypt_packet(xqc_connection_t *conn);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

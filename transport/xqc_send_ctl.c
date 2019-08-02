@@ -249,8 +249,8 @@ void
 xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl)
 {
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|ctl_bytes_in_flight:%ui|"
-                                               "ctl_bytes_in_flight:%ui|ctl_packets_used:%ui|ctl_packets_free:%ui|",
-            ctl->ctl_bytes_in_flight, ctl->ctl_packets_used, ctl->ctl_packets_free);
+                                               "ctl_crypto_bytes_in_flight:%ui|ctl_packets_used:%ui|ctl_packets_free:%ui|",
+            ctl->ctl_bytes_in_flight, ctl->ctl_crypto_bytes_in_flight, ctl->ctl_packets_used, ctl->ctl_packets_free);
     xqc_send_ctl_destroy_packets_lists(ctl);
 }
 

@@ -391,6 +391,8 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     XQC_CHECK_IMMEDIATE_CLOSE();
 
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+        xqc_conn_process_undecrypt_packet(conn);
+
         xqc_process_read_streams(conn);
         if (xqc_send_ctl_can_write(conn->conn_send_ctl)) {
             xqc_process_write_streams(conn);
@@ -648,6 +650,8 @@ process:
         XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);
         goto after_process;
     }
+
+    conn->conn_send_ctl->ctl_bytes_recv += packet_in_size;
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
                            recv_time + conn->conn_send_ctl->ctl_conn->local_settings.idle_timeout*1000);

@@ -17,10 +17,10 @@ kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 
 static inline uint64_t now()
 {
-    /*获取毫秒单位时间*/
+    /*获取微秒单位时间*/
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    uint64_t ul = tv.tv_sec * 1000000 + tv.tv_usec;
     return  ul;
 }
 

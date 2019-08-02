@@ -34,4 +34,10 @@ xqc_init_packet_in(xqc_packet_in_t *packet_in,
                    size_t decode_payload_size,
                    xqc_msec_t recv_time);
 
+void
+xqc_destroy_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+
+void
+xqc_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+
 #endif /* _XQC_PACKET_IN_H_INCLUDED_ */
