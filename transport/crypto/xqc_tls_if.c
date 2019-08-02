@@ -441,6 +441,7 @@ size_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
+#if 0
     if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_encrypt(dest, destlen, plaintext, plaintextlen, ctx, key, keylen,
                 nonce, noncelen,  ad, adlen);
@@ -448,6 +449,10 @@ size_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
         nwrite = xqc_encrypt(dest, destlen, plaintext, plaintextlen, ctx, key, keylen,
                 nonce, noncelen,  ad, adlen);
     }
+#endif
+    nwrite = xqc_encrypt(dest, destlen, plaintext, plaintextlen, ctx, key, keylen,
+            nonce, noncelen,  ad, adlen);
+
     if(nwrite < 0){
         return XQC_ERR_CALLBACK_FAILURE;
     }
@@ -463,6 +468,7 @@ size_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
+#if 0
     if(conn -> local_settings.no_crypto == 1){
        nwrite = xqc_no_decrypt(dest, destlen, ciphertext, ciphertextlen, ctx,
                key, keylen, nonce, noncelen, ad, adlen);
@@ -470,6 +476,10 @@ size_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
         nwrite = xqc_decrypt(dest, destlen, ciphertext, ciphertextlen, ctx,
                  key, keylen, nonce, noncelen, ad, adlen);
     }
+#endif
+    nwrite = xqc_decrypt(dest, destlen, ciphertext, ciphertextlen, ctx,
+            key, keylen, nonce, noncelen, ad, adlen);
+
     if(nwrite < 0){
         return XQC_ERR_TLS_DECRYPT;
     }
@@ -532,13 +542,15 @@ size_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     size_t nwrite;
+#if 0
     if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_hp_mask(dest, destlen, ctx, key, keylen, sample,
                          samplelen);
     }else{
-        nwrite = xqc_hp_mask(dest, destlen, ctx, key, keylen, sample,
-                                         samplelen);
     }
+#endif
+    nwrite = xqc_hp_mask(dest, destlen, ctx, key, keylen, sample,
+                                         samplelen);
 
     if(nwrite < 0){
         return XQC_ERR_CALLBACK_FAILURE;
@@ -682,20 +694,29 @@ int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
 
     return 1;
 
-#if 0
-    }else{
-        if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
-            return 1;
-        }else{
-            return 0;
-        }
-    }
-#endif
-#if 0
-    if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
-        return 1;
-    }else{
+}
+
+
+//0 means not ready, 1 means ready
+int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn)
+{
+    xqc_pktns_t * pktns = &conn->tlsref.hs_pktns;
+
+    xqc_crypto_km_t * tx_ckm = & pktns->tx_ckm;
+    xqc_vec_t * tx_hp = & pktns->tx_hp;
+
+    if(tx_ckm->key.base == NULL || tx_ckm->key.len == 0){
         return 0;
     }
-#endif
+
+    if(tx_ckm->iv.base == NULL || tx_ckm->iv.len == 0){
+        return 0;
+    }
+
+    if(tx_hp->base == NULL || tx_hp->len == 0){
+        return 0;
+    }
+
+    return 1;
 }
+
