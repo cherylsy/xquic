@@ -539,7 +539,7 @@ xqc_write_new_token_to_packet(xqc_connection_t *conn)
             + xqc_vint_get_2bit(token_len) // token len
             + token_len; //token
 
-    packet_out = xqc_write_packet(conn, XQC_PTYPE_NUM, need);
+    packet_out = xqc_write_packet(conn, XQC_PTYPE_INIT, need);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
         return -XQC_ENULLPTR;

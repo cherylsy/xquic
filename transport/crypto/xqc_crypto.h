@@ -134,7 +134,7 @@ size_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);
 
-size_t xqc_no_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+ssize_t xqc_no_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         size_t ciphertextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);

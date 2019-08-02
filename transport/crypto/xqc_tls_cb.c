@@ -741,7 +741,6 @@ int xqc_conn_set_early_remote_transport_params(
 
   xqc_settings_copy_from_transport_params(&conn->remote_settings, params);
   //conn_sync_stream_id_limit(conn);
-
   //conn->max_tx_offset = conn->remote_settings.max_data;
 
   return 0;
@@ -1215,22 +1214,22 @@ int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_
         if( *p == ' ')p++;
         if(strncmp( p , "initial_max_streams_bidi=", strlen("initial_max_streams_bidi=")) == 0){
             p = p + strlen("initial_max_streams_bidi=");
-            params -> initial_max_streams_bidi = strtoul( p, NULL, 10);
+            params->initial_max_streams_bidi = strtoul(p, NULL, 10);
         }else if(strncmp(p, "initial_max_streams_uni=", strlen("initial_max_streams_uni=")) == 0){
-            p = p + strlen("initial_max_streams_uni=");
-            params -> initial_max_streams_uni = strtoul(p, NULL, 10);
-        }else if(strncmp(p, "initial_max_stream_data_bidi_local", strlen("initial_max_stream_data_bidi_local")) == 0){
-            p = p + strlen("initial_max_stream_data_bidi_local");
-            params -> initial_max_stream_data_bidi_local = strtoul(p, NULL, 10);
-        }else if(strncmp(p, "initial_max_stream_data_bidi_remote", strlen("initial_max_stream_data_bidi_remote")) == 0){
-            p = p + strlen("initial_max_stream_data_bidi_remote");
-            params -> initial_max_stream_data_bidi_remote = strtoul(p, NULL, 10);
-        }else if(strncmp(p, "initial_max_stream_data_uni", strlen("initial_max_stream_data_uni")) == 0){
-            p = p + strlen("initial_max_stream_data_uni");
-            params -> initial_max_stream_data_uni = strtoul(p, NULL, 10);
-        }else if(strncmp(p, "initial_max_data", strlen("initial_max_data")) == 0){
-            p = p + strlen("initial_max_data");
-            params -> initial_max_data = strtoul(p, NULL, 10);
+            p = p+strlen("initial_max_streams_uni=");
+            params->initial_max_streams_uni = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_stream_data_bidi_local=", strlen("initial_max_stream_data_bidi_local=")) == 0){
+            p = p+strlen("initial_max_stream_data_bidi_local=");
+            params->initial_max_stream_data_bidi_local = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_stream_data_bidi_remote=", strlen("initial_max_stream_data_bidi_remote=")) == 0){
+            p = p + strlen("initial_max_stream_data_bidi_remote=");
+            params->initial_max_stream_data_bidi_remote = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_stream_data_uni=", strlen("initial_max_stream_data_uni=")) == 0){
+            p = p + strlen("initial_max_stream_data_uni=");
+            params->initial_max_stream_data_uni = strtoul(p, NULL, 10);
+        }else if(strncmp(p, "initial_max_data=", strlen("initial_max_data=")) == 0){
+            p = p + strlen("initial_max_data=");
+            params->initial_max_data = strtoul(p, NULL, 10);
         }else{
             continue;
         }

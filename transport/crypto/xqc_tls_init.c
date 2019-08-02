@@ -74,7 +74,7 @@ int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * sr
         ssl_config->session_ticket_len = src->session_ticket_len;
         ssl_config->session_ticket_data  = (char *)xqc_malloc(src->session_ticket_len + 1);
         if(ssl_config->session_ticket_data == NULL){
-            xqc_log(conn->log, XQC_LOG_ERROR, "xqc_ssl_init_conn_config | xqc_malloc error");
+            xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_malloc error |");
             return -1;
         }
         memcpy(ssl_config->session_ticket_data, src->session_ticket_data, src->session_ticket_len);
@@ -82,15 +82,14 @@ int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * sr
     }else{
         ssl_config->session_ticket_len = 0;
         ssl_config->session_ticket_data = NULL;
-        //printf("no session ticket data\n");
-        xqc_log(conn->log, XQC_LOG_WARN, "xqc_ssl_init_conn_config | no session ticket data");
+        xqc_log(conn->log, XQC_LOG_WARN, "| no session ticket data |");
     }
 
     if(src->tp_data_len > 0){
         ssl_config->tp_data_len = src->tp_data_len;
         ssl_config->tp_data  = (char *)xqc_malloc(src->tp_data_len + 1 );
         if(ssl_config->tp_data == NULL){
-            xqc_log(conn->log, XQC_LOG_ERROR, "xqc_ssl_init_conn_config | xqc_malloc error");
+            xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_malloc error | ");
             return -1;
         }
         memcpy(ssl_config->tp_data, src->tp_data, src->tp_data_len);
@@ -98,8 +97,7 @@ int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * sr
     }else{
         ssl_config->tp_data_len = 0;
         ssl_config->tp_data = NULL;
-        //printf("no transport parameter data\n");
-        xqc_log(conn->log, XQC_LOG_WARN, "xqc_ssl_init_conn_config | no no transport parameter data");
+        xqc_log(conn->log, XQC_LOG_WARN, "| no no transport parameter data |");
     }
 
     return 0;
@@ -119,25 +117,24 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
     xqc_tlsref_zero(tlsref);
 
-    //tlsref->server = 0;
+    tlsref->conn = conn;
+    tlsref->initial = 1;
+
     if(no_early_data == 0){
         tlsref->no_early_data = 0;
     }else{
         tlsref->no_early_data = 1;
-        xqc_log(conn->log, XQC_LOG_WARN, "xqc_client_tls_initial | no early data set");
+        xqc_log(conn->log, XQC_LOG_WARN, "| no early data set |");
     }
 
-    tlsref->conn = conn;
     if( xqc_ssl_init_conn_config(conn, sc) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_client_tls_initial | initial conn config error");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| initial conn config error |");
         return -1;
     }
 
-    xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
-
-    conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc);// config, early data flag should initial before call xqc_create_client_ssl
+    conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc);// connection ssl config, early data flag should initial before call xqc_create_client_ssl
     if(conn->xc_ssl == NULL){
-        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_client_tls_initial | xqc_create_client_ssl error");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_create_client_ssl error |");
         return -1;
     }
 
@@ -168,15 +165,20 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     callbacks->hp_mask = do_hp_mask;
     callbacks->update_key = xqc_update_key;
 
+    xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
     if( (config->tp_data_len > 0) && (config->tp_data != NULL)){
         xqc_transport_params_t params ;
+        memset(&params, 0, sizeof(xqc_transport_params_t));
         if( xqc_read_transport_params(config->tp_data, config->tp_data_len, &params) >= 0){
-            xqc_conn_set_early_remote_transport_params(conn, &params);
+            int ret = xqc_conn_set_early_remote_transport_params(conn, &params);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "| set early remote transport params failed | error_code:%d |", ret);
+        }else{
+            xqc_log(conn->log, XQC_LOG_DEBUG, "| read transport params failed |");
         }
     }
 
     if(xqc_client_setup_initial_crypto_context(conn, dcid) < 0){
-        printf("error setup initial crypto key\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| error setup initial crypto key |");
         return -1;
     }
 
@@ -189,19 +191,18 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     xqc_tlsref_zero(tlsref);
 
     tlsref->conn = conn;
+    tlsref->initial = 1;
+    //conn->local_settings.no_crypto = 1;
     conn->xc_ssl = xqc_create_ssl(engine, conn, XQC_SERVER);
     if(conn->xc_ssl == NULL){
         printf("create ssl error\n");
         return -1;
     }
 
-    //tlsref->server = 1;
-    tlsref->initial = 1;
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
 
-    conn->local_settings.no_crypto = 1;
 
     tlsref->aead_overhead = XQC_INITIAL_AEAD_OVERHEAD;
 
@@ -425,6 +426,8 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag)
 {
     SSL *ssl = SSL_new((SSL_CTX *)engine->ssl_ctx);
     if(ssl == NULL){
+
+        xqc_log(conn->log, XQC_LOG_ERROR, "| SSL_new return null | ");
         return NULL;
     }
     BIO * bio = BIO_new(xqc_create_bio_method());
@@ -496,7 +499,7 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
             (const uint8_t *)(XQC_INITIAL_SALT),
             strlen(XQC_INITIAL_SALT));
     if (rv != 0) {
-        printf("derive_initial_secret() failed\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive initial secret failed | ");
         return -1;
     }
 
@@ -507,7 +510,7 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
             initial_secret,
             sizeof(initial_secret));
     if (rv != 0) {
-        printf("derive_client_initial_secret() failed\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive client initial secret failed | ");
         return -1;
     }
 
@@ -516,24 +519,27 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
     size_t keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection key failed | ");
         return -1;
     }
 
     size_t ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection iv failed | ");
         return -1;
     }
 
     size_t hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet header protection key failed | ");
         return -1;
     }
     //need log
 
     if(xqc_conn_install_initial_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
-        printf("install initial key error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| install initial tx  key failed | ");
         return -1;
     }
 
@@ -541,30 +547,33 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
             initial_secret,
             sizeof(initial_secret));
     if (rv != 0) {
-        printf("derive_server_initial_secret() failed\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive server initial secret failed | ");
         return -1;
     }
 
     keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection key failed | ");
         return -1;
     }
 
     ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection iv failed | ");
         return -1;
     }
 
     hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet header protection key failed | ");
         return -1;
     }
 
     if(xqc_conn_install_initial_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
-        printf("install initial key error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| install initial key error | ");
         return -1;
     }
 

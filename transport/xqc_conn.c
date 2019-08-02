@@ -358,9 +358,6 @@ xqc_client_create_connection(xqc_engine_t *engine,
     if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag, no_early_data_flag) < 0 ){
         goto fail;
     }
-    if(xqc_client_setup_initial_crypto_context(xc, &dcid) < 0){
-        goto fail;
-    }
 
     xqc_cid_copy(&(xc->ocid), &(xc->dcid));
 
@@ -467,6 +464,9 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
+
+    //printf("send encrypto data:%d\n", packet_out->po_used_size);
+    //hex_print(packet_out->po_buf, packet_out->po_used_size);
 
     sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO,

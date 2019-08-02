@@ -241,7 +241,11 @@ xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_CRYPTO;
 
+
+
     return dst_buf - begin;
+
+
 }
 
 int
@@ -439,8 +443,8 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_vint_write(p_range_count, range_count, 0, 1);
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
-
     return dst_buf - begin;
+
 }
 
 /**
