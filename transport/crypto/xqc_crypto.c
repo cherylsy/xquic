@@ -293,7 +293,7 @@ size_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
 
 #define XQC_FAKE_HP_MASK "\x00\x00\x00\x00\x00"
 
-size_t xqc_no_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t *ctx,
+ssize_t xqc_no_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t *ctx,
                 const uint8_t *key, size_t keylen, const uint8_t *sample,
                 size_t samplelen) {
 
@@ -301,7 +301,7 @@ size_t xqc_no_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t *ct
   return sizeof(XQC_FAKE_HP_MASK) - 1;
 }
 
-size_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
+ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen) {
     static   uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
@@ -395,7 +395,7 @@ ssize_t xqc_no_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
     return (size_t)ciphertextlen - XQC_FAKE_AEAD_OVERHEAD;
 }
 
-size_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         size_t ciphertextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen){
@@ -461,7 +461,7 @@ err:
 }
 
 
-size_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+ssize_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t plaintextlen, xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen) {
@@ -469,7 +469,7 @@ size_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
     return (size_t)plaintextlen + XQC_FAKE_AEAD_OVERHEAD;
 }
 
-size_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+ssize_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t plaintextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen) {
@@ -800,14 +800,11 @@ int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
     uint8_t LABEL[] = "traffic upd";
     int rv;
     if (destlen < secretlen) {
-        printf("update traffic secret error\n");
         return -1;
     }
 
     rv = xqc_hkdf_expand_label(dest, secretlen, secret, secretlen, LABEL, strlen(LABEL), ctx);
     if(rv < 0){
-
-        printf("update traffic secret hkdf expand error\n");
         return -1;
     }
 

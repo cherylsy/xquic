@@ -10,14 +10,14 @@
 #endif
 
 #define INITIAL_SECRET_MAX_LEN  32
-int xqc_ssl_init_engine_config(xqc_engine_ssl_config_t *ssl_config, xqc_engine_ssl_config_t * src , xqc_ssl_session_ticket_key_t * session_ticket_key);
+int xqc_ssl_init_engine_config(xqc_engine_t *engine, xqc_engine_ssl_config_t * src , xqc_ssl_session_ticket_key_t * session_ticket_key);
 int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src);
 
 int xqc_tlsref_init(xqc_tlsref_t * tlsref); //initialize tlsref memory to zero
 
-SSL_CTX *xqc_create_client_ssl_ctx(xqc_engine_ssl_config_t *xs_config);
+SSL_CTX *xqc_create_client_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config_t *xs_config);
 
-SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_ssl_config_t *xs_config);
+SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config_t *xs_config);
 
 
 SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn, int flag);

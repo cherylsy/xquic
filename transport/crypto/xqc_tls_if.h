@@ -143,7 +143,7 @@ typedef int (*xqc_recv_version_negotiation)(xqc_connection_t *conn,
  * |dest|, or :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the
  * library call return immediately.
  */
-typedef size_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
+typedef ssize_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *plaintext,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
@@ -172,7 +172,7 @@ typedef size_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
  * :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the library call
  * return immediately.
  */
-typedef size_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
+typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *ciphertext,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
@@ -199,7 +199,7 @@ typedef size_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
  * |dest|, or :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the
  * library call return immediately.
  */
-typedef size_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
+typedef ssize_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *sample,
                                   size_t samplelen, void *user_data);
@@ -457,39 +457,39 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
         void *user_data);
 int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data);
 
-size_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
+ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *plaintext,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
                                   size_t adlen, void *user_data);
 
-size_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
+ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *ciphertext,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
                                   size_t adlen, void *user_data);
 
-size_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
+ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *plaintext,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
                                   size_t adlen, void *user_data);
 
-size_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
+ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *ciphertext,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
                                   size_t adlen, void *user_data);
 
-size_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
+ssize_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen, void *user_data);
 
-size_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
+ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen, void *user_data);
 

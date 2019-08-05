@@ -124,12 +124,12 @@ int xqc_conn_install_tx_keys(xqc_connection_t *conn, const uint8_t *key,
                                 const uint8_t *pn, size_t pnlen);
 
 
-size_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+ssize_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t plaintextlen, xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);
 
-size_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+ssize_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t plaintextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);
@@ -139,16 +139,16 @@ ssize_t xqc_no_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);
 
-size_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         size_t ciphertextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);
 
-size_t xqc_no_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t *ctx,
+ssize_t xqc_no_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t *ctx,
                 const uint8_t *key, size_t keylen, const uint8_t *sample,
                 size_t samplelen);
 
-size_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
+ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen);
 

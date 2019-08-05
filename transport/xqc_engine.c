@@ -223,17 +223,17 @@ xqc_engine_create(xqc_engine_type_t engine_type , xqc_engine_ssl_config_t * ssl_
     }
 
     if(ssl_config != NULL){ //ssl_config null for test
-        if(xqc_ssl_init_engine_config( &engine->ssl_config, ssl_config, &engine->session_ticket_key ) < 0){
+        if(xqc_ssl_init_engine_config( engine, ssl_config, &engine->session_ticket_key ) < 0){
             goto fail;
         }
 
         if(engine_type == XQC_ENGINE_SERVER){
-            engine->ssl_ctx = xqc_create_server_ssl_ctx(ssl_config);
+            engine->ssl_ctx = xqc_create_server_ssl_ctx(engine, ssl_config);
             if(engine -> ssl_ctx == NULL){
                 goto fail;
             }
         }else{
-            engine->ssl_ctx = xqc_create_client_ssl_ctx(ssl_config);
+            engine->ssl_ctx = xqc_create_client_ssl_ctx(engine, ssl_config);
             if(engine -> ssl_ctx == NULL){
                 goto fail;
             }
