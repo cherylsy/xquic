@@ -295,18 +295,18 @@ typedef struct {
 struct xqc_hs_buffer{
     xqc_list_head_t list_head;
     //uint16_t read_n;
-    uint16_t data_len;
-    char data[MAX_HS_BUFFER];
+    size_t data_len;
+    char data[];
 };
 typedef struct xqc_hs_buffer xqc_hs_buffer_t;
 
 
-static inline xqc_hs_buffer_t * xqc_create_hs_buffer(){
+static inline xqc_hs_buffer_t * xqc_create_hs_buffer(int buf_size){
 
-    xqc_hs_buffer_t * p_buf = malloc(sizeof(xqc_hs_buffer_t));
+    xqc_hs_buffer_t * p_buf = malloc(sizeof(xqc_hs_buffer_t) + buf_size);
     if(p_buf == NULL)return NULL;
     xqc_init_list_head(&p_buf->list_head);
-    p_buf->data_len = 0;
+    p_buf->data_len = buf_size;
     return p_buf;
 }
 
@@ -355,9 +355,7 @@ struct xqc_tlsref{
     xqc_vec_t              tx_secret;
     xqc_vec_t              rx_secret;
 
-    //xqc_data_buffer_t      hello_data;
-    xqc_hs_buffer_t        hs_to_tls_buf;
-    xqc_hs_buffer_t        hs_msg_cb_buf;
+    xqc_hs_buffer_t        * hs_to_tls_buf;
 
     xqc_conn_ssl_config_t  conn_ssl_config;
 

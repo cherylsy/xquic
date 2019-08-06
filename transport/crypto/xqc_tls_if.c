@@ -378,7 +378,14 @@ int xqc_read_tls(SSL *ssl)
 
 int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
 {
-    xqc_hs_buffer_t  * p_data = &conn-> tlsref.hs_to_tls_buf;
+    if(conn->tlsref.hs_to_tls_buf)free(conn->tlsref.hs_to_tls_buf);
+    conn->tlsref.hs_to_tls_buf = xqc_create_hs_buffer(buf_len);
+    if(conn->tlsref.hs_to_tls_buf == NULL){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|malloc %d bytes failed|", buf_len);
+        return -1;
+    }
+
+    xqc_hs_buffer_t  * p_data = conn->tlsref.hs_to_tls_buf;
     //p_data->type = XQC_FRAME_CRYPTO;
     p_data->data_len = buf_len;
     memcpy(p_data->data, buf, buf_len);
@@ -392,7 +399,10 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
         void *user_data)
 {
 
-    xqc_to_tls_handshake(conn, data, datalen);
+    if( xqc_to_tls_handshake(conn, data, datalen) < 0){
+        xqc_log(conn->log, XQC_LOG_ERROR, "save crypto data to tls buffer error");
+        return -1;
+    }
     if (!xqc_conn_get_handshake_completed(conn)) {
 
         if(conn->conn_type == XQC_CONN_TYPE_SERVER){

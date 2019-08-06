@@ -175,7 +175,9 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
         memset(&params, 0, sizeof(xqc_transport_params_t));
         if( xqc_read_transport_params(config->tp_data, config->tp_data_len, &params) >= 0){
             int ret = xqc_conn_set_early_remote_transport_params(conn, &params);
-            xqc_log(conn->log, XQC_LOG_DEBUG, "| set early remote transport params failed | error_code:%d |", ret);
+            if(ret < 0){
+                xqc_log(conn->log, XQC_LOG_DEBUG, "| set early remote transport params failed | error_code:%d |", ret);
+            }
         }else{
             xqc_log(conn->log, XQC_LOG_DEBUG, "| read transport params failed |");
         }
@@ -358,15 +360,22 @@ int xqc_bio_read(BIO *b, char *buf, int len)
     BIO_clear_retry_flags(b);
 
     xqc_connection_t * conn = (xqc_connection_t *) BIO_get_data(b);
-    xqc_hs_buffer_t * p_buff = & conn->tlsref.hs_to_tls_buf;
+    xqc_hs_buffer_t * p_buff = conn->tlsref.hs_to_tls_buf;
+    if(p_buff == NULL){
+        BIO_set_retry_read(b);
+        return -1;
+    }
     //int n = xqc_min(p_buff->data_len, len);
-    if(p_buff->data_len > len){
+    if(p_buff->data_len > len){ //len default value:16K
         //printf("bio buf too small\n");
         return 0;
     }
     memcpy(buf, p_buff->data, p_buff->data_len);
     int ret_len = p_buff->data_len;
-    p_buff->data_len = 0;
+
+    //should free
+    free(conn->tlsref.hs_to_tls_buf);
+    conn->tlsref.hs_to_tls_buf = NULL;
 
     if(ret_len == 0){
         BIO_set_retry_read(b);

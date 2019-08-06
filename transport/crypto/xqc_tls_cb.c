@@ -237,8 +237,11 @@ int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
             return -1;
         }
     }
-    xqc_hs_buffer_t  * p_data = xqc_create_hs_buffer();
-    p_data->data_len = buf_len;
+    xqc_hs_buffer_t  * p_data = xqc_create_hs_buffer(buf_len);
+    if(p_data == NULL){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_hs_buffer failed|");
+        return -1;
+    }
     memcpy(p_data->data, buf, buf_len);
 
     xqc_list_add_tail(& p_data->list_head, phead);
