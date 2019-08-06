@@ -454,13 +454,13 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
 
-    /* generate packet number */
-    packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
-    xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
-    xqc_long_packet_update_length(packet_out);
-
     if (!(packet_out->po_flag & XQC_POF_ENCRYPTED)) {
         //do encrypt
+        /* generate packet number */
+        packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
+        xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
+        xqc_long_packet_update_length(packet_out);
+
         if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
 
             xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
