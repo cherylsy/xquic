@@ -328,25 +328,22 @@ typedef int  (*xqc_read_session_cb_t )(char ** data);
 typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means early data accept, 0 means early data reject
 
 struct xqc_tlsref{
-    xqc_connection_t       * conn;
-    //uint8_t  server;
-    uint8_t initial;
-    uint8_t resumption;
-    uint8_t no_early_data;
-    uint64_t flags;
-    uint64_t max_local_stream_id_bidi;
-    uint64_t max_local_stream_id_uni;
+    xqc_connection_t        *conn;
+    uint8_t                 initial;
+    uint8_t                 resumption;
+    uint8_t                 no_early_data;
+    uint64_t                flags;
 
-    uint32_t aead_overhead;  //aead for gcm or chacha
+    uint32_t                aead_overhead;  //aead for gcm or chacha
 
-    xqc_tls_context_t          crypto_ctx; /* prf and aead */
-    xqc_tls_context_t          hs_crypto_ctx;
-    xqc_pktns_t            initial_pktns; // initial packet space key
-    xqc_pktns_t            hs_pktns; // handshake packet space  key
-    xqc_pktns_t            pktns; //application packet space key
+    xqc_tls_context_t       hs_crypto_ctx;
+    xqc_tls_context_t       crypto_ctx; /* prf and aead */
+    xqc_pktns_t             initial_pktns; // initial packet space key
+    xqc_pktns_t             hs_pktns; // handshake packet space  key
+    xqc_pktns_t             pktns; //application packet space key
 
-    xqc_crypto_km_t        early_ckm;
-    xqc_vec_t              early_hp;
+    xqc_crypto_km_t         early_ckm;
+    xqc_vec_t               early_hp;
 
     xqc_crypto_km_t        new_tx_ckm;
     xqc_crypto_km_t        new_rx_ckm;

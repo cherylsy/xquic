@@ -712,3 +712,73 @@ int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn)
     return 1;
 }
 
+int xqc_tls_free_ckm(xqc_crypto_km_t * p_ckm){
+    xqc_vec_free(&p_ckm->key);
+    xqc_vec_free(&p_ckm->iv);
+    return 0;
+}
+
+int xqc_tls_free_pktns(xqc_pktns_t * p_pktns){
+
+    if(p_pktns == NULL)return 0;
+    xqc_crypto_km_t * p_ckm = & p_pktns->rx_ckm;
+    xqc_tls_free_ckm(p_ckm);
+
+    p_ckm = &p_pktns->tx_ckm;
+    xqc_tls_free_ckm(p_ckm);
+
+    xqc_vec_free(&p_pktns->rx_hp);
+    xqc_vec_free(&p_pktns->tx_hp);
+
+    xqc_list_head_t *head = &p_pktns->msg_cb_head;
+    xqc_list_head_t *pos, *next;
+    xqc_list_for_each_safe(pos, next, head) {
+        xqc_list_del(pos);
+        free(pos);
+    }
+
+    return 0;
+
+}
+
+
+int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
+
+    if(ssl_config->session_ticket_data){
+        xqc_free(ssl_config->session_ticket_data);
+    }
+    if(ssl_config->tp_data){
+        xqc_free(ssl_config->tp_data);
+    }
+    return 0;
+}
+
+int xqc_tls_free_tlsref(xqc_connection_t * conn)
+{
+    xqc_tlsref_t * tlsref = &conn->tlsref;
+
+    //
+    xqc_tls_free_pktns(&tlsref->initial_pktns);
+    xqc_tls_free_pktns(&tlsref->hs_pktns);
+    xqc_tls_free_pktns(&tlsref->pktns);
+
+    xqc_tls_free_ckm(&tlsref->early_ckm);
+    xqc_vec_free(&tlsref->early_hp);
+
+    xqc_tls_free_ckm(&tlsref->new_tx_ckm);
+    xqc_tls_free_ckm(&tlsref->new_rx_ckm);
+    xqc_tls_free_ckm(&tlsref->old_rx_ckm);
+
+    xqc_vec_free(&tlsref->tx_secret);
+    xqc_vec_free(&tlsref->rx_secret);
+
+    if(tlsref->hs_to_tls_buf){
+        free(tlsref->hs_to_tls_buf);
+    }
+
+    xqc_tls_free_ssl_config(&tlsref->conn_ssl_config);
+
+    return 0;
+
+}
+

@@ -499,4 +499,5 @@ int xqc_is_ready_to_send_early_data(xqc_connection_t * conn);
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn);
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
 int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn);
+int xqc_tls_free_tlsref(xqc_connection_t * conn);
 #endif

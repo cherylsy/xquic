@@ -230,6 +230,8 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     /*packet_in->pos = packet_in->decode_payload;
     packet_in->last = packet_in->decode_payload + packet_in->decode_payload_len;*/
 
+    //printf("recv crypto data :%d\n", packet_in->last - packet_in->pos);
+    //hex_print(packet_in->pos, packet_in->last - packet_in->pos);
     ret = xqc_do_decrypt_pkt(c, packet_in);
     if (ret == 0) {
         ret = xqc_process_frames(c, packet_in);

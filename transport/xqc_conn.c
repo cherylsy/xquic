@@ -341,6 +341,8 @@ xqc_destroy_connection(xqc_connection_t *xc)
         xqc_destroy_pool(xc->conn_pool);
         xc->conn_pool = NULL;
     }
+
+    xqc_tls_free_tlsref(xc);
 }
 
 
