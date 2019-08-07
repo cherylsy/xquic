@@ -648,6 +648,7 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_connection_t *conn = stream->stream_conn;
     xqc_packet_out_t *packet_out;
     uint8_t fin_only = fin && !send_data_size;
+    uint8_t fin_only_done = 0;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
     int support_0rtt = xqc_is_ready_to_send_early_data(conn);
 
@@ -698,7 +699,10 @@ xqc_stream_send (xqc_stream_t *stream,
         }
 
         offset += send_data_written;
-        fin_only = 0;
+        if (fin_only) {
+            fin_only_done = 1;
+            break;
+        }
     }
 
     xqc_stream_shutdown_write(stream);
@@ -745,7 +749,7 @@ do_buff:
     }
     xqc_engine_main_logic(conn->engine);
 
-    if (offset == 0) {
+    if (offset == 0 && !fin_only_done) {
         return -XQC_EBLOCKED;
     }
     return offset;
