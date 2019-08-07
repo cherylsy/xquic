@@ -437,8 +437,8 @@ xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     for (int i = 0; i < ack_info.n_ranges; i++) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|",
-        ack_info.ranges[i].high, ack_info.ranges[i].low);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",
+        ack_info.ranges[i].high, ack_info.ranges[i].low, packet_in->pi_pkt.pkt_pns);
     }
 
     ret = xqc_send_ctl_on_ack_received(conn->conn_send_ctl, &ack_info, packet_in->pkt_recv_time);

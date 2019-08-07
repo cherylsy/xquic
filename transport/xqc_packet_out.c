@@ -32,7 +32,7 @@ xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
         return NULL;
     }
 
-    packet_out->po_buf = xqc_malloc(XQC_PACKET_OUT_SIZE + EXTRA_SPACE);
+    packet_out->po_buf = xqc_malloc(XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE);
     if (!packet_out->po_buf) {
         return NULL;
     }
@@ -188,6 +188,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     if (ret < 0) {
         goto error;
     }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|ack_size:%ui|", ret);
 
     packet_out->po_used_size += ret;
     packet_out->po_largest_ack = largest_ack;
@@ -214,6 +215,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
     xqc_pkt_num_space_t pns;
     xqc_packet_out_t *packet_out;
     xqc_pkt_type_t pkt_type;
+    xqc_list_head_t *pos;
 
     int ret;
 
@@ -228,6 +230,22 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                 pkt_type = XQC_PTYPE_SHORT_HEADER;
             }
 
+            xqc_list_for_each(pos, &conn->conn_send_ctl->ctl_send_packets) {
+                packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+                if (packet_out->po_pkt.pkt_type == pkt_type) {
+                    ret = xqc_write_ack_to_one_packet(conn, packet_out, pns);
+                    if (ret == -XQC_ENOBUF) {
+                        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_ack_to_one_packet try new packet|");
+                        goto write_new;
+                    } else if (ret == XQC_OK){
+                        goto done;
+                    } else {
+                        return ret;
+                    }
+                }
+            }
+
+write_new:
             packet_out = xqc_write_new_packet(conn, pkt_type);
             if (packet_out == NULL) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
@@ -240,6 +258,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                 return ret;
             }
 
+done:
             xqc_log(conn->log, XQC_LOG_DEBUG, "|pns:%d|", pns);
 
             //ack packet send first

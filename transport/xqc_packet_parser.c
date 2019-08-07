@@ -217,7 +217,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 
     /* check fixed bit(0x40) = 1 */
     if ((pos[0] & 0x40) == 0) {
-        xqc_log(c->log, XQC_LOG_WARN, "parse short header: fixed bit err");
+        xqc_log(c->log, XQC_LOG_WARN, "|parse short header: fixed bit err|");
         return -XQC_EILLPKT;
     }
 
@@ -227,7 +227,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
     pos += 1;
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "parse short header: spin_bit=%ui, reserved_bits=%ui, key_phase=%ui, packet_number_len=%ui",
+    xqc_log(c->log, XQC_LOG_DEBUG, "|parse short header|spin_bit:%ui|reserved_bits:%ui|key_phase:%ui|packet_number_len:%ui|",
             spin_bit, reserved_bits,
             key_phase, packet_number_len);
 
@@ -236,7 +236,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     pos += XQC_DEFAULT_CID_LEN;
     if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK) {
         /* log & ignore */
-        xqc_log(c->log, XQC_LOG_WARN, "parse short header: invalid destination cid");
+        xqc_log(c->log, XQC_LOG_WARN, "|parse short header|invalid destination cid|");
         return -XQC_EILLPKT;
     }
 
@@ -571,7 +571,7 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     packet_out->po_used_size = packet_out->po_used_size + conn->tlsref.aead_overhead;
     xqc_long_packet_update_length(packet_out); // encrypt may add padding bytes
 
-    int nwrite = encrypt_func(conn,  payload, packet_out->po_buf_size + EXTRA_SPACE, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
+    int nwrite = encrypt_func(conn,  payload, packet_out->po_buf_size + XQC_EXTRA_SPACE, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
 
     if(nwrite < 0){
         //printf("encrypt error \n");

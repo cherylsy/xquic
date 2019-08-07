@@ -303,7 +303,7 @@ xqc_destroy_connection(xqc_connection_t *xc)
     xqc_packet_in_t *packet_in;
 
     xqc_log(xc->log, XQC_LOG_DEBUG, "|%p|", xc);
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|srtt:%ui|retrans rate:%.2f|send_count:%ui|retrans_count:%ui|",
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|srtt:%ui|retrans rate:%.2f|send_count:%ud|retrans_count:%ud|",
             xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
             xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count);
 

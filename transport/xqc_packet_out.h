@@ -16,8 +16,9 @@
    in computing the QUIC maximum packet size to allow for unknown tunnel
    overheads or IP header options/extensions.
  */
-#define XQC_PACKET_OUT_SIZE 1200    //TODO 先写死
-#define EXTRA_SPACE 16
+#define XQC_PACKET_OUT_SIZE 1200    //不含XQC_EXTRA_SPACE XQC_ACK_SPACE
+#define XQC_EXTRA_SPACE 16
+#define XQC_ACK_SPACE 16
 #define XQC_MSS 1460 //TODO
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3

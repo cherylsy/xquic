@@ -12,7 +12,7 @@ xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record)
     xqc_pktno_range_node_t *pnode;
     xqc_list_for_each(pos, &recv_record->list_head) {
         pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_recv_record_log|low:%ui|high=%ui|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|low:%ui|high:%ui|",
                 pnode->pktno_range.low, pnode->pktno_range.high);
     }
 }
