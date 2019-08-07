@@ -456,7 +456,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
 
-    if (!(packet_out->po_flag & XQC_POF_ENCRYPTED)) {
+    if (packet_out->po_pkt.pkt_type != XQC_PTYPE_RETRY && !(packet_out->po_flag & XQC_POF_ENCRYPTED)) {
         //do encrypt
         /* generate packet number */
         packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
@@ -674,6 +674,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         return ret;
     }
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_conn_close|state:%s|", xqc_conn_state_2_str(conn->conn_state));
 
     if (conn->conn_state < XQC_CONN_STATE_CLOSING) {
         conn->conn_state = XQC_CONN_STATE_CLOSING;

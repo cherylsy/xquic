@@ -443,7 +443,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         return -XQC_EILLPKT;
     }
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|packe_num=%ui|payload=%ui|", packet->pkt_num, payload_len);
+    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_initial|success|pkt_num=%ui|payload=%ui|", packet->pkt_num, payload_len);
 
     return XQC_OK;
 }
@@ -515,7 +515,7 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     /* decrypt payload */
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_zero_rtt|success|packe_num=%ui|", packet->pkt_num);
+    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_zero_rtt|success|pkt_num=%ui|", packet->pkt_num);
 
     return XQC_OK;
 }
@@ -846,7 +846,7 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     //pos += payload_len - packet_number_len; //parse frame时更新
 
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_handshake|success|packe_num=%ui|", packet->pkt_num);
+    xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_handshake|success|pkt_num=%ui|", packet->pkt_num);
 
 
     return XQC_OK;

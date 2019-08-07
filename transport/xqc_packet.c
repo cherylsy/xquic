@@ -224,6 +224,12 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
                     "|xqc_packet_parse_long_header error|");
             return ret;
         }
+
+        if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_RETRY) {
+            xqc_log(c->log, XQC_LOG_INFO, "|====>|pkt_type:%s|recv_time:%ui|",
+                    xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pkt_recv_time);
+            return XQC_OK;
+        }
     }
     unsigned char *last = packet_in->last;
 
