@@ -403,7 +403,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 }
                 //printf("crypto packet_out: %p\n", packet_out);
                 //printf("send crypto data:%d, pkt_type = %d\n", buf->data_len, pkt_type );
-                hex_print(buf->data, buf->data_len);
+                //hex_print(buf->data, buf->data_len);
 
                 offset += send_data_written;
                 stream->stream_send_offset += send_data_written;

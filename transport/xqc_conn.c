@@ -341,6 +341,8 @@ xqc_destroy_connection(xqc_connection_t *xc)
         xqc_destroy_pool(xc->conn_pool);
         xc->conn_pool = NULL;
     }
+
+    xqc_tls_free_tlsref(xc);
 }
 
 
@@ -364,9 +366,6 @@ xqc_client_create_connection(xqc_engine_t *engine,
     }
 
     if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag, no_early_data_flag) < 0 ){
-        goto fail;
-    }
-    if(xqc_client_setup_initial_crypto_context(xc, &dcid) < 0){
         goto fail;
     }
 
@@ -457,13 +456,13 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
 
-    /* generate packet number */
-    packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
-    xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
-    xqc_long_packet_update_length(packet_out);
-
     if (!(packet_out->po_flag & XQC_POF_ENCRYPTED)) {
         //do encrypt
+        /* generate packet number */
+        packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
+        xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
+        xqc_long_packet_update_length(packet_out);
+
         if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
 
             xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
@@ -475,6 +474,9 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
+
+    //printf("send encrypto data:%d\n", packet_out->po_used_size);
+    //hex_print(packet_out->po_buf, packet_out->po_used_size);
 
     sent = conn->engine->eng_callback.write_socket(conn->user_data, packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO,
