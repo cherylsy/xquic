@@ -584,7 +584,7 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     if(nwrite < 0){
         //printf("encrypt error \n");
-        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_do_encrypt_pkt|encrypt packet error");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
         return -1;
     }
 
@@ -957,6 +957,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     /* 重新发起握手 */
     c->conn_state = XQC_CONN_STATE_CLIENT_INIT;
+    xqc_destroy_stream(c->crypto_stream[XQC_ENC_LEV_INIT]);
     c->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(c, XQC_ENC_LEV_INIT, NULL);
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_retry|success|");
