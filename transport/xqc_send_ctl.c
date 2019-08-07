@@ -491,9 +491,10 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_packet_number_t lagest_ack = ack_info->ranges[0].high;
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
     xqc_pkt_num_space_t pns = ack_info->pns;
+    unsigned char need_del_record = 0;
 
     if (lagest_ack > ctl->ctl_largest_sent) {
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet");
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|");
         return -XQC_EPROTO;
     }
 
@@ -519,6 +520,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
             if (packet_out->po_largest_ack > ctl->ctl_largest_ack_both[pns]) {
                 ctl->ctl_largest_ack_both[pns] = packet_out->po_largest_ack;
+                need_del_record = 1;
             }
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out);
@@ -544,9 +546,12 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_detect_lost(ctl, pns, ack_recv_time);
 
-    xqc_recv_record_del(&ctl->ctl_conn->recv_record[pns], ctl->ctl_largest_ack_both[pns] + 1);
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_recv_record_del from %ui|",
-            ctl->ctl_largest_ack_both[pns] + 1);
+    if (need_del_record) {
+        xqc_recv_record_del(&ctl->ctl_conn->recv_record[pns], ctl->ctl_largest_ack_both[pns] + 1);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_recv_record_del from %ui|pns:%d|",
+                ctl->ctl_largest_ack_both[pns] + 1, pns);
+    }
+
     xqc_recv_record_log(ctl->ctl_conn, &ctl->ctl_conn->recv_record[pns]);
 
     ctl->ctl_crypto_count = 0;
