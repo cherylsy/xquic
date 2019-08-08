@@ -291,6 +291,8 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code)
 
     packet_out->po_used_size += ret;
 
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
+
     return XQC_OK;
 
 error:

@@ -404,30 +404,22 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
-        //printf("get packet_out: %p\n", packet_out);
-        if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER &&
-            !(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
-            xqc_log(conn->log, XQC_LOG_WARN, "|HSK NOT FINISHED, skip send|pkt_type:%s|pkt_num:%ui|frame:%s|",
-                    xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
-                    xqc_frame_type_2_str(packet_out->po_frame_types));
-            continue;
-        }
-
 //#if 0
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            /* 优先级高的包一定在前面 */
             if (!xqc_send_ctl_can_send(conn)) {
-                continue;
+                break;
             } else if (conn->conn_settings.pacing_on) {
                 if (pacing_blocked == 0) {
                     xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
                     if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
                         pacing_blocked = 1;
                         xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
-                        continue;
+                        break;
                     }
                 } else {
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
-                    continue;
+                    break;
                 }
             }
         }
