@@ -312,7 +312,7 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
 }
 
 
-void xqc_settings_copy_from_transport_params(xqc_settings_t *dest,
+void xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
         const xqc_transport_params_t *src)
 {
     dest->max_stream_data_bidi_local = src->initial_max_stream_data_bidi_local;
@@ -337,7 +337,7 @@ void xqc_settings_copy_from_transport_params(xqc_settings_t *dest,
 }
 
 void xqc_transport_params_copy_from_settings(xqc_transport_params_t *dest,
-        const xqc_settings_t *src)
+        const xqc_trans_settings_t *src)
 {
     dest->initial_max_stream_data_bidi_local = src->max_stream_data_bidi_local;
     dest->initial_max_stream_data_bidi_remote = src->max_stream_data_bidi_remote;

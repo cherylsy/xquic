@@ -160,7 +160,7 @@ typedef struct {
 } xqc_preferred_addr_t;
 
 
-
+/* For Handshake */
 typedef struct {
     union {
         struct {
@@ -191,7 +191,7 @@ typedef struct {
     xqc_flag_t              disable_migration;
     uint8_t                 original_connection_id_present;
     uint8_t                 no_crypto;
-}xqc_trans_param_t;
+} xqc_transport_params_t;
 
 
 typedef struct {
@@ -211,10 +211,7 @@ typedef struct {
     xqc_flag_t              disable_migration;
     uint8_t                 original_connection_id_present;
     uint16_t                no_crypto;
-} xqc_settings_t;
-
-typedef xqc_trans_param_t xqc_transport_params_t;
-typedef xqc_settings_t xqc_trans_settings_t;
+} xqc_trans_settings_t;
 
 
 typedef struct {
@@ -257,7 +254,6 @@ struct xqc_connection_s{
     xqc_memory_pool_t      *conn_pool;
 
     xqc_id_hash_table_t    *streams_hash;
-    xqc_list_head_t         conn_list;
     xqc_list_head_t         conn_write_streams,
                             conn_read_streams, /* xqc_stream_t */
                             conn_all_streams;
@@ -265,7 +261,6 @@ struct xqc_connection_s{
     uint64_t                cur_stream_id_bidi_local;
     uint64_t                cur_stream_id_uni_local;
 
-    //xqc_trans_param_t       trans_param;
     xqc_trans_settings_t    local_settings;
     xqc_trans_settings_t    remote_settings;
     xqc_conn_flag_t         conn_flag;
@@ -280,8 +275,6 @@ struct xqc_connection_s{
     uint32_t                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 
     xqc_log_t              *log;
-
-    /* recovery state ctx */
 
     xqc_send_ctl_t         *conn_send_ctl;
 
