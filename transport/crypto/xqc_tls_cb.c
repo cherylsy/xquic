@@ -930,6 +930,9 @@ ssize_t xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     if (params->idle_timeout) {
         len += 4 + xqc_put_varint_len(params->idle_timeout);
     }
+    if( params->no_crypto){
+        len += 4;
+    }
 
     if (destlen < len) {
         return XQC_ERR_NOBUF;
@@ -1063,6 +1066,12 @@ ssize_t xqc_encode_transport_params(uint8_t *dest, size_t destlen,
                 p, (uint16_t)xqc_put_varint_len(params->idle_timeout));
         p = xqc_put_varint(p, params->idle_timeout);
     }
+
+    if (params->no_crypto) {
+        p = xqc_put_uint16be(p, XQC_TRANSPORT_PARAM_NO_CRYPTO);
+        p = xqc_put_uint16be(p, 1);
+    }
+
 
     assert((size_t)(p - dest) == len);
 
