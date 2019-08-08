@@ -413,7 +413,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
             }
         }
         xqc_list_del(pos);
-        free(pos);
+        xqc_list_add_tail(pos, & p_pktns->msg_cb_buffer);
     }
 
     return 0;
@@ -441,7 +441,15 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         pkt_type = XQC_PTYPE_INIT;
         switch (cur_state) {
             case XQC_CONN_STATE_CLIENT_INIT:
-                conn->tlsref.callbacks.client_initial(conn);
+                //conn->tlsref.callbacks.client_initial(conn);
+                if(!(conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY)){
+                    ret = conn->tlsref.callbacks.client_initial(conn);
+                    if(ret < 0){
+                        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "| client handshake initial packet error|");
+                        return XQC_TLS_CLIENT_INITIAL_ERROR;
+                    }
+                }
+
                 p_pktns = &conn->tlsref.initial_pktns;
                 next_state = XQC_CONN_STATE_CLIENT_INITIAL_SENT;
                 break;
@@ -513,6 +521,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 
     if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) {
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
+        conn->tlsref.callbacks.handshake_completed(conn, NULL);
     }
 
     /* 0RTT rejected, send in 1RTT again */
@@ -563,6 +572,7 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
     stream->user_data = user_data;
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
+    xqc_init_list_head(&stream->stream_write_buff_list.write_buff_list);
 
     if(!(conn->conn_type == XQC_CONN_TYPE_SERVER)){
         xqc_stream_ready_to_write(stream);
