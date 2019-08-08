@@ -243,6 +243,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                         return ret;
                     }
                 }
+                goto write_new;
             }
 
 write_new:

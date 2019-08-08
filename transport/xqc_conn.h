@@ -273,8 +273,9 @@ struct xqc_connection_s{
 
     void                   *user_data;  /* user_data for application layer */
 
-    xqc_list_head_t         undecrypt_packet_in;  /* xqc_packet_in_t */
-    uint32_t                undecrypt_count;
+    xqc_list_head_t         undecrypt_packet_in[XQC_ENC_MAX_LEVEL];  /* xqc_packet_in_t */
+    uint32_t                undecrypt_count[XQC_ENC_MAX_LEVEL];
+
     xqc_recv_record_t       recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
     uint32_t                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 
@@ -365,6 +366,6 @@ int xqc_conn_early_data_reject(xqc_connection_t *conn);
 int xqc_conn_early_data_accept(xqc_connection_t *conn);
 
 int
-xqc_conn_process_undecrypt_packet(xqc_connection_t *conn);
+xqc_conn_process_undecrypt_packet(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

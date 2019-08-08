@@ -198,13 +198,13 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         /* check handshake */
         if (!xqc_conn_check_handshake_completed(c)) {
 
-            if (c->undecrypt_count <= XQC_UNDECRYPT_PACKET_MAX) {
+            if (c->undecrypt_count[XQC_ENC_LEV_1RTT] <= XQC_UNDECRYPT_PACKET_MAX) {
                 /* buffer packets */
-                xqc_buff_undecrypt_packet_in(packet_in, c);
+                xqc_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_1RTT);
             }
 
             xqc_log(c->log, XQC_LOG_WARN,
-                    "|recvd short header packet before handshake completed|");
+                    "|buff header packet before handshake completed|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }
@@ -213,7 +213,13 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
         if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
                 && c->conn_type == XQC_CONN_TYPE_SERVER
                 && c->conn_state < XQC_CONN_STATE_SERVER_INITIAL_RECVD) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|ignore 0RTT before initial received|");
+
+            if (c->undecrypt_count[XQC_ENC_LEV_0RTT] <= XQC_UNDECRYPT_PACKET_MAX) {
+                /* buffer packets */
+                xqc_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
+            }
+
+            xqc_log(c->log, XQC_LOG_WARN, "|buff 0RTT before initial received|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }

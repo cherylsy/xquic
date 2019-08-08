@@ -31,7 +31,7 @@ xqc_destroy_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 }
 
 void
-xqc_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+xqc_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level)
 {
     xqc_packet_in_t *new_packet = xqc_calloc(1, sizeof(xqc_packet_in_t));
     new_packet->pi_pkt = packet_in->pi_pkt;
@@ -42,7 +42,7 @@ xqc_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
     new_packet->last = (unsigned char *)new_packet->buf + (packet_in->last - packet_in->buf);
     new_packet->pkt_recv_time = packet_in->pkt_recv_time;
 
-    xqc_list_add_tail(&new_packet->pi_list, &conn->undecrypt_packet_in);
-    conn->undecrypt_count++;
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|undecrypt_count:%ui|", conn->undecrypt_count);
+    xqc_list_add_tail(&new_packet->pi_list, &conn->undecrypt_packet_in[encrypt_level]);
+    conn->undecrypt_count[encrypt_level]++;
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|undecrypt_count:%ud|encrypt_level:%d|", conn->undecrypt_count[encrypt_level], encrypt_level);
 }

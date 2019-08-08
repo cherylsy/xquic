@@ -132,6 +132,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
     int fd = ctx->my_conn->fd;
     printf("xqc_client_write_socket size=%zd, now=%llu\n",size, now());
     do {
+        errno = 0;
         res = write(fd, buf, size);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
@@ -266,26 +267,27 @@ xqc_client_read_handler(client_ctx_t *ctx)
         msg.msg_controllen = sizeof(msg_control);
     }
 
-    recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
+    do {
+        recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
 
-    if (recv_size < 0) {
-        printf("xqc_client_read_handler: recvmsg = %zd\n", recv_size);
-        return;
-    }
+        if (recv_size < 0) {
+            printf("xqc_client_read_handler: recvmsg = %zd\n", recv_size);
+            break;
+        }
 
-    printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n",recv_size, recv_time);
-    /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
-    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
-*/
-    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
-                            (struct sockaddr *)(&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen,
-                            (struct sockaddr *)(&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
-                            (xqc_msec_t)recv_time, ctx) != 0)
-    {
-        printf("xqc_client_read_handler: packet process err\n");
-        return;
-    }
-
+        printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
+        /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
+        printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
+    */
+        if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
+                                      (struct sockaddr *) (&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen,
+                                      (struct sockaddr *) (&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
+                                      (xqc_msec_t) recv_time, ctx) != 0) {
+            printf("xqc_client_read_handler: packet process err\n");
+            return;
+        }
+    } while (recv_size > 0);
+    xqc_engine_main_logic(ctx->engine);
 }
 
 
@@ -432,7 +434,7 @@ int main(int argc, char *argv[]) {
     };
 
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   1,
+            .pacing_on  =   0,
     };
     xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
 

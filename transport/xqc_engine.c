@@ -381,9 +381,14 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 
     xqc_process_crypto_read_streams(conn);
     xqc_process_crypto_write_streams(conn);
-
-
     XQC_CHECK_IMMEDIATE_CLOSE();
+
+    if (conn->conn_state >= XQC_CONN_STATE_SERVER_INITIAL_RECVD) {
+        xqc_conn_process_undecrypt_packet(conn, XQC_ENC_LEV_0RTT);
+    }
+    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+        xqc_conn_process_undecrypt_packet(conn, XQC_ENC_LEV_1RTT);
+    }
 
     if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_packets)) {
         xqc_process_buff_packets(conn);
@@ -391,14 +396,11 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     XQC_CHECK_IMMEDIATE_CLOSE();
 
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
-        xqc_conn_process_undecrypt_packet(conn);
-
         xqc_process_read_streams(conn);
         if (xqc_send_ctl_can_write(conn->conn_send_ctl)) {
             xqc_process_write_streams(conn);
         }
     }
-
     XQC_CHECK_IMMEDIATE_CLOSE();
 
     if (xqc_should_generate_ack(conn)) {
@@ -408,7 +410,6 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
         }
     }
-
     XQC_CHECK_IMMEDIATE_CLOSE();
 
     /*if (conn->conn_type == XQC_CONN_TYPE_SERVER && conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
@@ -668,7 +669,7 @@ after_process:
     }
 
     /* main logic */
-    xqc_engine_main_logic(engine);
+    /*xqc_engine_main_logic(engine);*/
 
     return ret;
 }
