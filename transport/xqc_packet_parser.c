@@ -540,7 +540,7 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     }else if(encrypt_level == XQC_ENC_LEV_0RTT){
         p_ckm = &conn->tlsref.early_ckm;
         tx_hp = &conn->tlsref.early_hp;
-        encrypt_func = conn->tlsref.callbacks.in_encrypt;
+        encrypt_func = conn->tlsref.callbacks.encrypt;
         hp_mask = conn->tlsref.callbacks.hp_mask;
 
     }else if(encrypt_level == XQC_ENC_LEV_HSK){

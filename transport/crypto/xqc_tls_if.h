@@ -496,8 +496,12 @@ int xqc_conn_prepare_key_update(xqc_connection_t * conn);
 int xqc_start_key_update(xqc_connection_t * conn);
 int xqc_is_ready_to_send_early_data(xqc_connection_t * conn);
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn);
+int xqc_tls_check_rx_key_ready(xqc_connection_t * conn);
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
 int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn);
+int xqc_tls_check_hs_rx_key_ready(xqc_connection_t * conn);
+int xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn);
+
 int xqc_tls_free_tlsref(xqc_connection_t * conn);
 int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid);
 #endif
