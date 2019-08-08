@@ -296,8 +296,11 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         if (stream->stream_state_recv == XQC_RSS_SIZE_KNOWN) {
             stream->stream_state_recv = XQC_RSS_DATA_RECVD;
         }
-    //if (stream->stream_data_in.next_read_offset < stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_ready_to_read|");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_ready_to_read all recvd|");
+        xqc_stream_ready_to_read(stream);
+    }
+    else if (stream->stream_data_in.next_read_offset < stream->stream_data_in.merged_offset_end) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_ready_to_read part recvd|");
         xqc_stream_ready_to_read(stream);
     }
 

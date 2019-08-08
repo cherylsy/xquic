@@ -38,6 +38,6 @@ void
 xqc_destroy_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
 
 void
-xqc_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+xqc_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
 #endif /* _XQC_PACKET_IN_H_INCLUDED_ */

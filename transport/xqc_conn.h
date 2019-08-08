@@ -70,7 +70,7 @@ typedef enum {
 
 /* !!WARNING: 添加flag请更新conn_flag_2_str */
 typedef enum {
-    XQC_CONN_FLAG_WAKEUP_SHIFT,
+    XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
     XQC_CONN_FLAG_CAN_SEND_1RTT_SHIFT,
     XQC_CONN_FLAG_TICKING_SHIFT,
@@ -90,7 +90,7 @@ typedef enum {
 }xqc_conn_flag_shift_t;
 
 typedef enum {
-    XQC_CONN_FLAG_WAKEUP                = 1 << XQC_CONN_FLAG_WAKEUP_SHIFT,
+    XQC_CONN_FLAG_WAIT_WAKEUP           = 1 << XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_COMPLETED   = 1 << XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
     XQC_CONN_FLAG_CAN_SEND_1RTT         = 1 << XQC_CONN_FLAG_CAN_SEND_1RTT_SHIFT,
     XQC_CONN_FLAG_TICKING               = 1 << XQC_CONN_FLAG_TICKING_SHIFT,
@@ -273,8 +273,9 @@ struct xqc_connection_s{
 
     void                   *user_data;  /* user_data for application layer */
 
-    xqc_list_head_t         undecrypt_packet_in;  /* xqc_packet_in_t */
-    uint32_t                undecrypt_count;
+    xqc_list_head_t         undecrypt_packet_in[XQC_ENC_MAX_LEVEL];  /* xqc_packet_in_t */
+    uint32_t                undecrypt_count[XQC_ENC_MAX_LEVEL];
+
     xqc_recv_record_t       recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
     uint32_t                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 
@@ -365,6 +366,6 @@ int xqc_conn_early_data_reject(xqc_connection_t *conn);
 int xqc_conn_early_data_accept(xqc_connection_t *conn);
 
 int
-xqc_conn_process_undecrypt_packet(xqc_connection_t *conn);
+xqc_conn_process_undecrypt_packet(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

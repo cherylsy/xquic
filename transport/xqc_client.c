@@ -6,7 +6,11 @@
 
 
 xqc_cid_t *
-xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigned token_len, char *server_host, int no_crypto_flag, uint8_t no_early_data_flag, xqc_conn_ssl_config_t * conn_ssl_config )
+xqc_connect(xqc_engine_t *engine, void *user_data,
+            unsigned char *token, unsigned token_len,
+            char *server_host, int no_crypto_flag,
+            uint8_t no_early_data_flag,
+            xqc_conn_ssl_config_t * conn_ssl_config )
 {
     xqc_cid_t dcid;
     xqc_cid_t scid;

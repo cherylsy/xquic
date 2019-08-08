@@ -188,7 +188,10 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
 
 
     if(pns == XQC_PNS_HSK && (xqc_tls_check_hs_tx_key_ready(conn) == 0)){
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|handshake ack should send after tx key ready");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|handshake ack should send after tx key ready|");
+        return;
+    } else if (pns == XQC_PNS_01RTT && !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|01RTT ack should send after handshake complete|");
         return;
     }
 
