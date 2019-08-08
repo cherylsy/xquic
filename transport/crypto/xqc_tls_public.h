@@ -47,11 +47,16 @@
 
 
 
-//xquic tls error code
+//xquic tls error code, for call
 #define XQC_EARLY_DATA_REJECT (-701)
 
 #define XQC_ENCRYPT_DATA_ERROR  (-790)
 #define XQC_DECRYPT_DATA_ERROR  (-791)
+
+#define XQC_TLS_CLIENT_INITIAL_ERROR (-710)
+#define XQC_TLS_CLIENT_REINTIAL_ERROR (-711)
+
+
 
 #define XQC_NONCE_LEN   32
 #define XQC_UINT32_MAX  (0xffffffff)
@@ -233,6 +238,8 @@ typedef struct {
     xqc_hp_mask_t hp_mask;
 
     xqc_update_key_t update_key;
+
+    xqc_recv_retry recv_retry;
 } xqc_tls_callbacks_t;
 
 /**
@@ -288,6 +295,7 @@ typedef struct {
     xqc_vec_t  tx_hp;
 
     xqc_list_head_t  msg_cb_head;
+    xqc_list_head_t  msg_cb_buffer;
 }xqc_pktns_t;
 
 //for temporary

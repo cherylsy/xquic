@@ -337,9 +337,8 @@ typedef int (*xqc_recv_stateless_reset)(xqc_connection_t *conn,
  * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
-typedef int (*xqc_recv_retry)(xqc_connection_t *conn, const xqc_pkt_hd *hd,
-                                 void *retry,
-                                 void *user_data);
+typedef int (*xqc_recv_retry)(xqc_connection_t *conn,
+                                 xqc_cid_t * dcid);
 
 
 /**
@@ -500,4 +499,5 @@ int xqc_tls_check_tx_key_ready(xqc_connection_t * conn);
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
 int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn);
 int xqc_tls_free_tlsref(xqc_connection_t * conn);
+int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid);
 #endif

@@ -265,17 +265,23 @@ void xqc_msg_cb(int write_p, int version, int content_type, const void *buf,
         case SSL3_RT_ALERT:
             assert(len == 2);
             if (msg[0] != 2 /* FATAL */) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content error|");
                 return;
             }
             //set_tls_alert(msg[1]); //need finish
+            xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content_type error|content_type:%d|", content_type);
             return;
         default:
+            xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content_type error|content_type:%d |", content_type);
             return;
     }
 
     rv = xqc_msg_cb_handshake(conn, buf, len);
 
-    assert(0 == rv);
+    if(rv < 0){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|client do  handshare failed|");
+    }
+    //assert(0 == rv);
 }
 
 /*select aplication layer proto, now only just support XQC_ALPN_V1
@@ -352,6 +358,7 @@ void xqc_transport_params_copy_from_settings(xqc_transport_params_t *dest,
     dest->disable_migration = src->disable_migration;
     dest->max_ack_delay = src->max_ack_delay;
     dest->preferred_address = src->preferred_address;
+    dest->no_crypto = src->no_crypto;
 }
 
 int xqc_decode_transport_params(xqc_transport_params_t *params,
@@ -794,6 +801,13 @@ int xqc_server_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
         xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_conn_set_remote_transport_params | ret code :%d|", rv);
         *al = SSL_AD_ILLEGAL_PARAMETER;
         return -1;
+    }
+
+
+    //save no crypto flag
+    if(params.no_crypto == 1){
+        conn->remote_settings.no_crypto = 1;
+        conn->local_settings.no_crypto = 1;
     }
 
     return 1;

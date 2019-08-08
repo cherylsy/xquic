@@ -63,8 +63,9 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
     }else{
         ssl_config->session_ticket_key_len = 0;
         ssl_config->session_ticket_key_data = NULL;
-        xqc_log(engine->log, XQC_LOG_WARN, "|no session ticket key data|");
-        //printf("no session ticket key data\n");
+        if(engine->eng_type == XQC_ENGINE_SERVER){
+            xqc_log(engine->log, XQC_LOG_WARN, "|no session ticket key data|");
+        }
     }
     return 0;
 }
@@ -145,6 +146,9 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
+    xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.pktns.msg_cb_buffer);
 
     xqc_trans_settings_t * settings = &conn->local_settings;
     if(no_crypto_flag == 1){
@@ -168,6 +172,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     callbacks->in_hp_mask = do_in_hp_mask;
     callbacks->hp_mask = do_hp_mask;
     callbacks->update_key = xqc_update_key;
+    callbacks->recv_retry = xqc_tls_recv_retry_cb;
 
     xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
     if( (config->tp_data_len > 0) && (config->tp_data != NULL)){
@@ -208,7 +213,9 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
-
+    xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.pktns.msg_cb_buffer);
 
     tlsref->aead_overhead = XQC_INITIAL_AEAD_OVERHEAD;
 
@@ -225,6 +232,7 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     callbacks->in_hp_mask = do_in_hp_mask;
     callbacks->hp_mask = do_hp_mask;
     callbacks->update_key = xqc_update_key;   //need finish
+
 
     return 0;
 }
