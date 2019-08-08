@@ -206,7 +206,7 @@ int xqc_client_tls_handshake(xqc_connection_t *conn, int initial)
             }
         }else{
 
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was accepted by server|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
             printf("do early data accept\n");
             if(xqc_conn_early_data_accepted(conn) < 0){
                 printf("error do early data accept action\n");
@@ -228,10 +228,10 @@ int xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
 
         SSL * ssl = conn->xc_ssl;
         if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
             return XQC_TLS_EARLY_DATA_REJECT ;
         }else{
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was accepted by server|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
             return  XQC_TLS_EARLY_DATA_ACCEPT ;
         }
     }else{

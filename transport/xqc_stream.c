@@ -36,7 +36,7 @@ xqc_stream_ready_to_write (xqc_stream_t *stream)
     }
 
     if (!(stream->stream_conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-        if (xqc_conns_pq_push(stream->stream_conn->engine->conns_pq,
+        if (xqc_conns_pq_push(stream->stream_conn->engine->conns_active_pq,
                           stream->stream_conn, stream->stream_conn->last_ticked_time) != 0) {
             return;
         }
@@ -66,7 +66,7 @@ xqc_stream_ready_to_read (xqc_stream_t *stream)
     }
 
     if (!(stream->stream_conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-        if (xqc_conns_pq_push(stream->stream_conn->engine->conns_pq,
+        if (xqc_conns_pq_push(stream->stream_conn->engine->conns_active_pq,
                               stream->stream_conn, stream->stream_conn->last_ticked_time) != 0) {
             return;
         }
@@ -743,7 +743,7 @@ do_buff:
 
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-        if (0 == xqc_conns_pq_push(conn->engine->conns_pq, conn, conn->last_ticked_time)) {
+        if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         }
     }

@@ -212,33 +212,33 @@ xqc_engine_create(xqc_engine_type_t engine_type , xqc_engine_ssl_config_t * ssl_
         goto fail;
     }
 
-    engine->conns_pq = xqc_engine_conns_pq_create(engine->config);
-    if (engine->conns_pq == NULL) {
+    engine->conns_active_pq = xqc_engine_conns_pq_create(engine->config);
+    if (engine->conns_active_pq == NULL) {
         goto fail;
     }
 
-    engine->conns_wakeup_pq = xqc_engine_wakeup_pq_create(engine->config);
-    if (engine->conns_wakeup_pq == NULL) {
+    engine->conns_wait_wakeup_pq = xqc_engine_wakeup_pq_create(engine->config);
+    if (engine->conns_wait_wakeup_pq == NULL) {
         goto fail;
     }
 
-    if(ssl_config != NULL){ //ssl_config null for test
-        if(xqc_ssl_init_engine_config( engine, ssl_config, &engine->session_ticket_key ) < 0){
+    if (ssl_config != NULL) { //ssl_config null for test
+        if (xqc_ssl_init_engine_config(engine, ssl_config, &engine->session_ticket_key) < 0) {
             goto fail;
         }
 
-        if(engine_type == XQC_ENGINE_SERVER){
+        if (engine_type == XQC_ENGINE_SERVER) {
             engine->ssl_ctx = xqc_create_server_ssl_ctx(engine, ssl_config);
-            if(engine -> ssl_ctx == NULL){
+            if (engine->ssl_ctx == NULL) {
                 goto fail;
             }
-        }else{
+        } else {
             engine->ssl_ctx = xqc_create_client_ssl_ctx(engine, ssl_config);
-            if(engine -> ssl_ctx == NULL){
+            if (engine->ssl_ctx == NULL) {
                 goto fail;
             }
         }
-    }else{
+    } else {
         goto fail;
     }
 
@@ -283,24 +283,24 @@ xqc_engine_destroy(xqc_engine_t *engine)
         engine->conns_hash_dcid = NULL;
     }
 
-    while (!xqc_pq_empty(engine->conns_pq)) {
-        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
-        xqc_conns_pq_pop(engine->conns_pq);
+    while (!xqc_pq_empty(engine->conns_active_pq)) {
+        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_active_pq);
+        xqc_conns_pq_pop(engine->conns_active_pq);
         if (el == NULL || el->conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
             continue;
         }
         conn = el->conn;
-        if (conn->conn_flag & XQC_CONN_FLAG_WAKEUP) {
-            xqc_wakeup_pq_remove(engine->conns_wakeup_pq, conn);
-            conn->conn_flag &= ~XQC_CONN_FLAG_WAKEUP;
+        if (conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
+            xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
+            conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
         }
         xqc_destroy_connection(conn);
     }
 
-    while (!xqc_wakeup_pq_empty(engine->conns_wakeup_pq)) {
-        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wakeup_pq);
-        xqc_wakeup_pq_pop(engine->conns_wakeup_pq);
+    while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
+        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
+        xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
         if (el == NULL || el->conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
             continue;
@@ -309,13 +309,13 @@ xqc_engine_destroy(xqc_engine_t *engine)
         xqc_destroy_connection(conn);
     }
 
-    if (engine->conns_pq) {
-        xqc_engine_conns_pq_destroy(engine->conns_pq);
-        engine->conns_pq = NULL;
+    if (engine->conns_active_pq) {
+        xqc_engine_conns_pq_destroy(engine->conns_active_pq);
+        engine->conns_active_pq = NULL;
     }
-    if (engine->conns_wakeup_pq) {
-        xqc_engine_wakeup_pq_destroy(engine->conns_wakeup_pq);
-        engine->conns_wakeup_pq = NULL;
+    if (engine->conns_wait_wakeup_pq) {
+        xqc_engine_wakeup_pq_destroy(engine->conns_wait_wakeup_pq);
+        engine->conns_wait_wakeup_pq = NULL;
     }
     xqc_free(engine);
 }
@@ -346,7 +346,7 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 xqc_msec_t
 xqc_engine_wakeup_after (xqc_engine_t *engine)
 {
-    xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wakeup_pq);
+    xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
     if (el) {
         xqc_msec_t now = xqc_now();
 
@@ -428,20 +428,20 @@ end:
 void
 xqc_engine_main_logic (xqc_engine_t *engine)
 {
+    if (engine->engine_flag & XQC_ENG_FLAG_RUNNING) {
+        xqc_log(engine->log, XQC_LOG_DEBUG, "|engine is running|");
+        return;
+    }
+    engine->engine_flag |= XQC_ENG_FLAG_RUNNING;
+
     xqc_msec_t now = xqc_now();
     xqc_connection_t *conn;
 
-    xqc_list_head_t closed_conns;
-    xqc_list_head_t ticked_conns;
-    xqc_list_head_t *pos, *next;
-    xqc_init_list_head(&closed_conns);
-    xqc_init_list_head(&ticked_conns);
-
-    while (!xqc_wakeup_pq_empty(engine->conns_wakeup_pq)) {
-        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wakeup_pq);
+    while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
+        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
         if (el == NULL || el->conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
-            xqc_wakeup_pq_pop(engine->conns_wakeup_pq);
+            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
             continue;
         }
         conn = el->conn;
@@ -449,11 +449,11 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|wakeup|conn:%p|state:%s|flag:%s|now:%ui|wakeup:%ui|",
                 conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now, el->wakeup_time);
         if (el->wakeup_time <= now) {
-            xqc_wakeup_pq_pop(engine->conns_wakeup_pq);
-            conn->conn_flag &= ~XQC_CONN_FLAG_WAKEUP;
+            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
+            conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
 
             if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-                if (0 == xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time)) {
+                if (0 == xqc_conns_pq_push(engine->conns_active_pq, conn, conn->last_ticked_time)) {
                     conn->conn_flag |= XQC_CONN_FLAG_TICKING;
                 }
             }
@@ -462,11 +462,11 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         }
     }
 
-    while (!xqc_pq_empty(engine->conns_pq)) {
-        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_pq);
+    while (!xqc_pq_empty(engine->conns_active_pq)) {
+        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_active_pq);
         if (el == NULL || el->conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
-            xqc_conns_pq_pop(engine->conns_pq);
+            xqc_conns_pq_pop(engine->conns_active_pq);
             continue;
         }
         conn = el->conn;
@@ -476,58 +476,36 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
         now = xqc_now();
         xqc_engine_process_conn(conn, now);
+
         if (conn->conn_state == XQC_CONN_STATE_CLOSED) {
-            xqc_list_add_tail(&conn->conn_list, &closed_conns);
+            xqc_destroy_connection(conn);
         } else {
             conn->last_ticked_time = now;
 
             xqc_conn_retransmit_lost_packets(conn);
             xqc_conn_send_packets(conn);
 
-            xqc_list_add_tail(&conn->conn_list, &ticked_conns);
-        }
-
-        xqc_conns_pq_pop(engine->conns_pq);
-        conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
-    }
-
-    xqc_list_for_each_safe(pos, next, &closed_conns) {
-        conn = xqc_list_entry(pos, xqc_connection_t, conn_list);
-        xqc_list_del_init(pos);
-        xqc_destroy_connection(conn);
-    }
-
-    xqc_list_for_each_safe(pos, next, &ticked_conns) {
-        conn = xqc_list_entry(pos, xqc_connection_t, conn_list);
-
-        xqc_list_del_init(pos);
-
-        conn->next_tick_time = xqc_conn_next_wakeup_time(conn);
-
-        if (/*tickable*/0) {
-            if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-                if (0 == xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time)) {
-                    conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+            conn->next_tick_time = xqc_conn_next_wakeup_time(conn);
+            if (conn->next_tick_time) {
+                if (!(conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP)) {
+                    xqc_wakeup_pq_push(engine->conns_wait_wakeup_pq, conn->next_tick_time, conn);
+                    conn->conn_flag |= XQC_CONN_FLAG_WAIT_WAKEUP;
                 }
+                else {
+                    //remove from pq then push again, update wakeup time
+                    xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
+                    xqc_wakeup_pq_push(engine->conns_wait_wakeup_pq, conn->next_tick_time, conn);
+                    conn->conn_flag |= XQC_CONN_FLAG_WAIT_WAKEUP;
+                }
+            } else {
+                /* 至少会有idle定时器，这是异常分支 */
+                xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection");
+                xqc_destroy_connection(conn);
             }
         }
 
-        if (conn->next_tick_time) {
-            if (!(conn->conn_flag & XQC_CONN_FLAG_WAKEUP)) {
-                xqc_wakeup_pq_push(engine->conns_wakeup_pq, conn->next_tick_time, conn);
-                conn->conn_flag |= XQC_CONN_FLAG_WAKEUP;
-            }
-            else {
-                //remove from pq then push again, update wakeup time
-                xqc_wakeup_pq_remove(engine->conns_wakeup_pq, conn);
-                xqc_wakeup_pq_push(engine->conns_wakeup_pq, conn->next_tick_time, conn);
-                conn->conn_flag |= XQC_CONN_FLAG_WAKEUP;
-            }
-        } else {
-            /* 至少会有idle定时器，这是异常分支 */
-            xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection");
-            xqc_destroy_connection(conn);
-        }
+        xqc_conns_pq_pop(engine->conns_active_pq);
+        conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
     }
 
     xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
@@ -535,6 +513,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         engine->eng_callback.set_event_timer(engine->event_timer, wake_after);
     }
 
+    engine->engine_flag &= ~XQC_ENG_FLAG_RUNNING;
     return;
 }
 
@@ -660,7 +639,7 @@ process:
 
 after_process:
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-        if (0 == xqc_conns_pq_push(engine->conns_pq, conn, conn->last_ticked_time)) {
+        if (0 == xqc_conns_pq_push(engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         } else {
             xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|");

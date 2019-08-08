@@ -19,7 +19,7 @@
 static char g_conn_flag_buf[128];
 
 static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
-        [XQC_CONN_FLAG_WAKEUP_SHIFT]                = "WAKEUP",
+        [XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT]           = "WAIT_WAKEUP",
         [XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT]   = "HSK_DONE",
         [XQC_CONN_FLAG_CAN_SEND_1RTT_SHIFT]         = "CAN_SEND_1RTT",
         [XQC_CONN_FLAG_TICKING_SHIFT]               = "TICKING",
@@ -263,7 +263,7 @@ xqc_create_connection(xqc_engine_t *engine,
         xc->conn_flag |= XQC_CONN_FLAG_DCID_OK;
     }
 
-    if (xqc_conns_pq_push(engine->conns_pq, xc, 0)) {
+    if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
         goto fail;
     }
     xc->conn_flag |= XQC_CONN_FLAG_TICKING;
@@ -647,7 +647,7 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
     }
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
-        if (0 == xqc_conns_pq_push(conn->engine->conns_pq, conn, conn->last_ticked_time)) {
+        if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         }
     }

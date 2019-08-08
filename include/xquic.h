@@ -121,6 +121,10 @@ struct xqc_conn_settings_s {
     int     pacing_on;
 };
 
+typedef enum {
+    XQC_ENG_FLAG_RUNNING    = 1 << 0,
+} xqc_engine_flag_t;
+
 typedef struct xqc_engine_s {
     xqc_engine_type_t       eng_type;
 
@@ -128,8 +132,8 @@ typedef struct xqc_engine_s {
     xqc_config_t           *config;
     xqc_str_hash_table_t   *conns_hash; /*scid*/
     xqc_str_hash_table_t   *conns_hash_dcid; /*For reset packet*/
-    xqc_pq_t               *conns_pq; /* In process */
-    xqc_wakeup_pq_t        *conns_wakeup_pq; /* Need wakeup after next tick time */
+    xqc_pq_t               *conns_active_pq; /* In process */
+    xqc_wakeup_pq_t        *conns_wait_wakeup_pq; /* Need wakeup after next tick time */
 
     xqc_conn_settings_t    conn_settings;
 
@@ -142,6 +146,7 @@ typedef struct xqc_engine_s {
     xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
     xqc_ssl_session_ticket_key_t  session_ticket_key;
 
+    xqc_engine_flag_t       engine_flag;
 }xqc_engine_t;
 
 
@@ -165,7 +170,11 @@ xqc_engine_init (xqc_engine_t *engine,
                  void *event_timer);
 
 
-xqc_cid_t * xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigned token_len, char *server_host, int no_crypto_flag, uint8_t no_early_data_flag, xqc_conn_ssl_config_t * conn_ssl_config );
+xqc_cid_t * xqc_connect(xqc_engine_t *engine, void *user_data,
+                        unsigned char *token, unsigned token_len,
+                        char *server_host, int no_crypto_flag,
+                        uint8_t no_early_data_flag,
+                        xqc_conn_ssl_config_t * conn_ssl_config );
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
