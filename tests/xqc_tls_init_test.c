@@ -4,6 +4,7 @@
 #include "include/xquic.h"
 #include "transport/xqc_conn.h"
 
+#if 0
 void xqc_ssl_init_config_test(){
 
     xqc_ssl_config_t  xqc;
@@ -70,7 +71,7 @@ void xqc_create_client_ssl_test(){
 
     CU_ASSERT( ssl != NULL);
 }
-
+#endif
 
 
 
