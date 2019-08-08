@@ -712,6 +712,31 @@ int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
 
 }
 
+//0 means not ready, 1 means ready
+int xqc_tls_check_rx_key_ready(xqc_connection_t * conn)
+{
+    xqc_pktns_t * pktns = &conn->tlsref.pktns;
+
+    xqc_crypto_km_t * rx_ckm = & pktns->rx_ckm;
+    xqc_vec_t * rx_hp = & pktns->rx_hp;
+
+    if(rx_ckm->key.base == NULL || rx_ckm->key.len == 0){
+        return 0;
+    }
+
+    if(rx_ckm->iv.base == NULL || rx_ckm->iv.len == 0){
+        return 0;
+    }
+
+    if(rx_hp->base == NULL || rx_hp->len == 0){
+        return 0;
+    }
+
+    return 1;
+
+}
+
+
 
 //0 means not ready, 1 means ready
 int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn)
@@ -734,6 +759,51 @@ int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn)
     }
 
     return 1;
+}
+
+//0 means not ready, 1 means ready
+int xqc_tls_check_hs_rx_key_ready(xqc_connection_t * conn)
+{
+    xqc_pktns_t * pktns = &conn->tlsref.hs_pktns;
+
+    xqc_crypto_km_t * rx_ckm = & pktns->rx_ckm;
+    xqc_vec_t * rx_hp = & pktns->rx_hp;
+
+    if(rx_ckm->key.base == NULL || rx_ckm->key.len == 0){
+        return 0;
+    }
+
+    if(rx_ckm->iv.base == NULL || rx_ckm->iv.len == 0){
+        return 0;
+    }
+
+    if(rx_hp->base == NULL || rx_hp->len == 0){
+        return 0;
+    }
+
+    return 1;
+}
+
+//0 means not ready, 1 means ready
+int xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn)
+{
+    xqc_crypto_km_t *p_ckm = &(conn->tlsref.early_ckm);
+    xqc_vec_t * p_hp = &(conn->tlsref.early_hp);
+
+    if(p_ckm->key.base == NULL || p_ckm->key.len == 0){
+        return 0;
+    }
+
+    if(p_ckm->iv.base == NULL || p_ckm->iv.len == 0){
+        return 0;
+    }
+
+    if(p_hp->base == NULL || p_hp->len == 0){
+        return 0;
+    }
+
+    return 1;
+
 }
 
 int xqc_tls_free_ckm(xqc_crypto_km_t * p_ckm){
