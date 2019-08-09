@@ -5,7 +5,7 @@
 #include "xqc_tls_cb.h"
 #include "include/xquic.h"
 #include "transport/xqc_conn.h"
-
+#if 0
 void xqc_tls_key_cb_test(){
     xqc_engine_t engine;
     xqc_ssl_config_t xsc;
@@ -50,3 +50,4 @@ void xqc_alpn_select_proto_cb_test(){
     CU_ASSERT(rc  == SSL_TLSEXT_ERR_OK);
 
 }
+#endif
