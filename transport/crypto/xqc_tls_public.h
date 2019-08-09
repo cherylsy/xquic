@@ -42,11 +42,6 @@
 #define XQC_TLS_NO_EARLY_DATA   (0)
 
 
-#define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
-#define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
-
-
-
 //xquic tls error code, for call
 #define XQC_EARLY_DATA_REJECT (-701)
 
@@ -329,8 +324,6 @@ typedef struct {
 }xqc_data_buffer_t;
 
 //callback function
-typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
-typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
 typedef int  (*xqc_read_session_cb_t )(char ** data);
 
 typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means early data accept, 0 means early data reject

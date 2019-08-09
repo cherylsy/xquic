@@ -11,10 +11,9 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <arpa/inet.h>
 #include "transport/xqc_engine.h"
 #include "include/xquic_typedef.h"
-#include "transport/crypto/xqc_tls_header.h"
-#include "transport/xqc_conn.h"
 
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
@@ -354,15 +353,7 @@ int read_file_data( char * data, size_t data_len, char *filename){
     return read_len;
 
 }
-int  early_data_cb(xqc_connection_t *conn, int flag){
 
-    if(flag == 0){
-        printf(".....................early data reject\n");
-    }else{
-        printf("---------------------early data accept\n");
-    }
-    return 0;
-}
 
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
@@ -438,7 +429,7 @@ int main(int argc, char *argv[]) {
     };
     xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
 
-    ctx.my_conn = xqc_calloc(1, sizeof(user_conn_t));
+    ctx.my_conn = calloc(1, sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {
         printf("xqc_malloc error\n");
         return 0;
@@ -453,6 +444,7 @@ int main(int argc, char *argv[]) {
     ctx.ev_socket = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_socket, NULL);
 
+#define XQC_MAX_TOKEN_LEN 32
     unsigned char token[XQC_MAX_TOKEN_LEN];
     int token_len = XQC_MAX_TOKEN_LEN;
     token_len = xqc_client_read_token(token, token_len);
@@ -496,9 +488,9 @@ int main(int argc, char *argv[]) {
     }
     memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
 
-    xqc_connection_t * conn = xqc_engine_conns_hash_find(ctx.engine, cid, 's');
-    xqc_set_save_session_cb(conn, (xqc_save_session_cb_t)save_session_cb, conn);
-    xqc_set_save_tp_cb(conn, (xqc_save_tp_cb_t) save_tp_cb, conn);
+    xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
+    xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
+
 
     ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
 

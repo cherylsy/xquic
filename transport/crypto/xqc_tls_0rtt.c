@@ -8,6 +8,7 @@
 #include "include/xquic.h"
 #include "transport/xqc_conn.h"
 #include "include/xquic_typedef.h"
+#include "transport/xqc_engine.h"
 
 xqc_ssl_session_ticket_key_t g_session_ticket_key; // only one session ticket key ,need finish
 
@@ -116,15 +117,17 @@ int xqc_read_session( SSL * ssl, xqc_connection_t *conn, char * filename)
     return -1;
 }
 
-int xqc_set_save_session_cb(xqc_connection_t * conn, xqc_save_session_cb_t  cb, void * user_data)
+int xqc_set_save_session_cb(xqc_engine_t  *engine, xqc_cid_t *cid, xqc_save_session_cb_t  cb, void * user_data)
 {
+    xqc_connection_t * conn = xqc_engine_conns_hash_find(engine, cid, 's');
     conn->tlsref.save_session_cb = cb;
     conn->tlsref.session_user_data = user_data;
     return 0;
 }
 
-int xqc_set_save_tp_cb(xqc_connection_t * conn, xqc_save_tp_cb_t  cb, void * user_data)
+int xqc_set_save_tp_cb(xqc_engine_t *engine, xqc_cid_t * cid, xqc_save_tp_cb_t  cb, void * user_data)
 {
+    xqc_connection_t * conn = xqc_engine_conns_hash_find(engine, cid, 's');
     conn->tlsref.save_tp_cb = cb;
     conn->tlsref.tp_user_data = user_data;
     return 0;

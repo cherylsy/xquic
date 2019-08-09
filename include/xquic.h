@@ -13,6 +13,9 @@
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
 
+#define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+#define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
+
 typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
 typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
 
@@ -22,6 +25,10 @@ typedef int (*xqc_conn_notify_pt)(xqc_cid_t *cid, void *user_data);
 
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_handshake_finished_pt)(xqc_cid_t *cid, void *user_data);
+
+//session save callback
+typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
+typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
 
 struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
@@ -236,6 +243,9 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 int
 xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid);
 
+
+int xqc_set_save_tp_cb(xqc_engine_t *engine, xqc_cid_t * cid, xqc_save_tp_cb_t  cb, void * user_data);
+int xqc_set_save_session_cb(xqc_engine_t  *engine, xqc_cid_t *cid, xqc_save_session_cb_t  cb, void * user_data);
 
 
 #endif /* _XQUIC_H_INCLUDED_ */
