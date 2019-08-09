@@ -7,7 +7,9 @@
 #include "xqc_packet_out.h"
 #include "xqc_send_ctl.h"
 #include "xqc_frame.h"
-#include "../include/xquic_typedef.h"
+#include "xqc_engine.h"
+#include "xqc_packet.h"
+#include "xqc_utils.h"
 
 #define XQC_STREAM_BUFF_MAX 1024*1024
 

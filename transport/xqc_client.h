@@ -1,7 +1,7 @@
 #ifndef _XQC_CLIENT_H_INCLUDED_
 #define _XQC_CLIENT_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
+#include "include/xquic_typedef.h"
 
 xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                                 xqc_cid_t dcid, xqc_cid_t scid,

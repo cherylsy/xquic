@@ -2,16 +2,16 @@
 #include <CUnit/CUnit.h>
 
 #include "xqc_packet_test.h"
-#include "../transport/xqc_packet.h"
-#include "../transport/xqc_packet_parser.h"
-#include "../common/xqc_log.h"
-#include "../transport/xqc_engine.h"
-#include "../transport/xqc_cid.h"
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
-#include "../common/xqc_str.h"
+#include "transport/xqc_packet.h"
+#include "transport/xqc_packet_parser.h"
+#include "common/xqc_log.h"
+#include "transport/xqc_engine.h"
+#include "transport/xqc_cid.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
+#include "common/xqc_str.h"
 #include "xqc_common_test.h"
-#include "../transport/xqc_conn.h"
+#include "transport/xqc_conn.h"
 
 
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"

@@ -2,13 +2,9 @@
 #ifndef _XQC_STREAM_H_INCLUDED_
 #define _XQC_STREAM_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
-#include "../common/xqc_common.h"
-#include "xqc_frame.h"
-#include "../common/xqc_list.h"
-#include "xqc_packet.h"
-#include "xqc_engine.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
+#include "common/xqc_list.h"
 
 typedef enum {
     XQC_CLI_BID = 0,

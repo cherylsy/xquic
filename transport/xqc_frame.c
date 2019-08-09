@@ -2,8 +2,8 @@
 #include <common/xqc_log.h>
 #include <common/xqc_errno.h>
 #include "xqc_frame.h"
-#include "../include/xquic_typedef.h"
-#include "../common/xqc_variable_len_int.h"
+#include "include/xquic_typedef.h"
+#include "common/xqc_variable_len_int.h"
 #include "xqc_transport.h"
 #include "common/xqc_log.h"
 #include "xqc_packet_in.h"

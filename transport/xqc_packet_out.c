@@ -2,11 +2,12 @@
 #include <common/xqc_variable_len_int.h>
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
-#include "../common/xqc_memory_pool.h"
+#include "common/xqc_memory_pool.h"
 #include "xqc_send_ctl.h"
 #include "xqc_frame_parser.h"
-#include "../common/xqc_timer.h"
+#include "common/xqc_timer.h"
 #include "xqc_packet_parser.h"
+#include "xqc_stream.h"
 
 xqc_packet_out_t *
 xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)

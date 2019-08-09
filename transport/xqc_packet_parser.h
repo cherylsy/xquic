@@ -2,7 +2,7 @@
 #ifndef _XQC_PACKET_PARSER_H_INCLUDED_
 #define _XQC_PACKET_PARSER_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
+#include "include/xquic_typedef.h"
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
 

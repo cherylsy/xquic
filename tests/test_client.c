@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include "xqc_cmake_config.h"
-#include "../include/xquic.h"
-#include "../congestion_control/xqc_new_reno.h"
-#include "../congestion_control/xqc_cubic.h"
+#include "include/xquic.h"
+#include "congestion_control/xqc_new_reno.h"
+#include "congestion_control/xqc_cubic.h"
 #include <event2/event.h>
 #include <memory.h>
 #include <sys/socket.h>
@@ -11,9 +11,9 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <transport/xqc_stream.h>
-#include "../include/xquic_typedef.h"
-#include "../transport/crypto/xqc_tls_header.h"
+#include "transport/xqc_engine.h"
+#include "include/xquic_typedef.h"
+#include "transport/crypto/xqc_tls_header.h"
 #include "transport/xqc_conn.h"
 
 

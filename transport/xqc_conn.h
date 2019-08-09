@@ -4,15 +4,13 @@
 #include <openssl/ssl.h>
 #include "xqc_tls_public.h"
 #include "xqc_transport.h"
-#include "xqc_stream.h"
 #include "xqc_cid.h"
-#include "../include/xquic.h"
-#include "../include/xquic_typedef.h"
-#include "../common/xqc_log.h"
+#include "include/xquic.h"
+#include "include/xquic_typedef.h"
+#include "common/xqc_log.h"
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
 #include "xqc_recv_record.h"
-#include "xqc_utils.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 

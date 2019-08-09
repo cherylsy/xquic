@@ -1,7 +1,8 @@
 #ifndef _XQC_UTILS_H_INCLUDED_
 #define _XQC_UTILS_H_INCLUDED_
 
-#include <common/xqc_priority_q.h>
+#include "common/xqc_priority_q.h"
+#include "include/xquic_typedef.h"
 
 typedef struct xqc_conns_pq_elem_s
 {

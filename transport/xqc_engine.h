@@ -2,9 +2,8 @@
 #ifndef _XQC_ENGINE_H_INCLUDED_
 #define _XQC_ENGINE_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
-#include "../common/xqc_priority_q.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
 
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 

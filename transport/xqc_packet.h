@@ -2,8 +2,8 @@
 #ifndef _XQC_PACKET_H_INCLUDED_
 #define _XQC_PACKET_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
-#include "../common/xqc_list.h"
+#include "include/xquic_typedef.h"
+#include "common/xqc_list.h"
 
 #define XQC_MSS 1460 //TODO
 

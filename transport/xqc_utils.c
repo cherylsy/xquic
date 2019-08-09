@@ -1,10 +1,10 @@
 
-#include <common/xqc_errno.h>
-#include <common/xqc_common.h>
-#include <common/xqc_malloc.h>
-#include <common/xqc_str_hash.h>
-#include <common/xqc_hash.h>
-#include <common/xqc_log.h>
+#include "common/xqc_errno.h"
+#include "common/xqc_common.h"
+#include "common/xqc_malloc.h"
+#include "common/xqc_str_hash.h"
+#include "common/xqc_hash.h"
+#include "common/xqc_log.h"
 #include "xqc_utils.h"
 #include "xqc_conn.h"
 

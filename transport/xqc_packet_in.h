@@ -1,9 +1,8 @@
 #ifndef _XQC_PACKET_IN_H_INCLUDED_
 #define _XQC_PACKET_IN_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
+#include "include/xquic_typedef.h"
 #include "xqc_packet.h"
-#include "../common/xqc_memory_pool.h"
 #include "xqc_frame.h"
 
 

@@ -2,13 +2,13 @@
 #include "xqc_engine.h"
 #include "xqc_transport.h"
 #include <common/xqc_errno.h>
-#include "../include/xquic.h"
-#include "../common/xqc_str.h"
-#include "../common/xqc_random.h"
-#include "../common/xqc_priority_q.h"
-#include "../common/xqc_str_hash.h"
-#include "../common/xqc_timer.h"
-#include "../common/xqc_hash.h"
+#include "include/xquic.h"
+#include "common/xqc_str.h"
+#include "common/xqc_random.h"
+#include "common/xqc_priority_q.h"
+#include "common/xqc_str_hash.h"
+#include "common/xqc_timer.h"
+#include "common/xqc_hash.h"
 #include "xqc_conn.h"
 #include "xqc_send_ctl.h"
 #include "xqc_stream.h"
@@ -19,6 +19,7 @@
 #include "xqc_cid.h"
 #include "xqc_wakeup_pq.h"
 #include "crypto/xqc_tls_header.h"
+#include "xqc_utils.h"
 
 
 xqc_config_t *

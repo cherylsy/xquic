@@ -1,8 +1,7 @@
 #ifndef _XQC_FRAME_H_INCLUDED_
 #define _XQC_FRAME_H_INCLUDED_
 
-#include <common/xqc_list.h>
-#include "../include/xquic_typedef.h"
+#include "include/xquic_typedef.h"
 
 typedef enum {
     XQC_FRAME_PADDING,

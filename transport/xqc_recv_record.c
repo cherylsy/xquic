@@ -3,7 +3,7 @@
 #include "xqc_packet.h"
 #include "xqc_conn.h"
 #include "xqc_send_ctl.h"
-#include "../common/xqc_log.h"
+#include "common/xqc_log.h"
 
 void
 xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record)

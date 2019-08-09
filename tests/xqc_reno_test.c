@@ -1,8 +1,8 @@
 
 #include "xqc_reno_test.h"
-#include "../congestion_control/xqc_new_reno.h"
+#include "congestion_control/xqc_new_reno.h"
 #include <stdio.h>
-#include "../common/xqc_time.h"
+#include "common/xqc_time.h"
 void
 print_reno (xqc_new_reno_t *reno)
 {

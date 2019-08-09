@@ -1,7 +1,7 @@
 
 #include <sys/time.h>
 #include "xqc_new_reno.h"
-#include "../include/xquic.h"
+#include "include/xquic.h"
 
 /* https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B */
 

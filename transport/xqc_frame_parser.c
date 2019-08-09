@@ -3,8 +3,8 @@
 #include <sys/types.h>
 #include <common/xqc_errno.h>
 #include "xqc_frame_parser.h"
-#include "../common/xqc_variable_len_int.h"
-#include "../common/xqc_log.h"
+#include "common/xqc_variable_len_int.h"
+#include "common/xqc_log.h"
 #include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "xqc_packet_out.h"

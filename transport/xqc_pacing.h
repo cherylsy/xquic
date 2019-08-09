@@ -1,7 +1,7 @@
 #ifndef _XQC_PACING_H_INCLUDED_
 #define _XQC_PACING_H_INCLUDED_
 
-#include <include/xquic_typedef.h>
+#include "include/xquic_typedef.h"
 
 struct xqc_send_ctl_t;
 

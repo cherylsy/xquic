@@ -1,6 +1,6 @@
 
 #include "xqc_vint_test.h"
-#include "../common/xqc_variable_len_int.h"
+#include "common/xqc_variable_len_int.h"
 #include <string.h>
 #include <CUnit/CUnit.h>
 #include <stdio.h>

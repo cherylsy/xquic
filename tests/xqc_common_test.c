@@ -1,9 +1,9 @@
 #include <CUnit/CUnit.h>
 
 #include "xqc_common_test.h"
-#include "../common/xqc_object_manager.h"
-#include "../common/xqc_rbtree.h"
-#include "../common/xqc_fifo.h"
+#include "common/xqc_object_manager.h"
+#include "common/xqc_rbtree.h"
+#include "common/xqc_fifo.h"
 
 typedef struct person_s
 {

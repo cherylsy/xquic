@@ -1,11 +1,11 @@
 
 #include <common/xqc_errno.h>
-#include "../include/xquic.h"
+#include "include/xquic.h"
 #include "xqc_packet.h"
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
-#include "../common/xqc_algorithm.h"
-#include "../common/xqc_variable_len_int.h"
+#include "common/xqc_algorithm.h"
+#include "common/xqc_variable_len_int.h"
 #include "xqc_send_ctl.h"
 #include "xqc_recv_record.h"
 #include "xqc_packet_parser.h"

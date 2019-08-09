@@ -1,8 +1,8 @@
 #ifndef _XQC_NEW_RENO_H_INCLUDED_
 #define _XQC_NEW_RENO_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
 
 typedef struct {
     unsigned        reno_congestion_window;

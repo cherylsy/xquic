@@ -1,8 +1,8 @@
 #ifndef _XQC_CUBIC_H_INCLUDED_
 #define _XQC_CUBIC_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
 
 typedef struct {
     uint64_t        cwnd;

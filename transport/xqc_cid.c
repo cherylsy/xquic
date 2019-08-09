@@ -1,8 +1,8 @@
 
 #include "xqc_cid.h"
 #include "xqc_transport.h"
-#include "../include/xquic.h"
-#include "../common/xqc_random.h"
+#include "include/xquic.h"
+#include "common/xqc_random.h"
 
 xqc_int_t 
 xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)

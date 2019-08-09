@@ -7,11 +7,11 @@
 #include <event2/event.h>
 #include <arpa/inet.h>
 #include "xqc_cmake_config.h"
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
-#include "../congestion_control/xqc_new_reno.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
+#include "congestion_control/xqc_new_reno.h"
 
-#include "../transport/crypto/xqc_tls_header.h"
+#include "transport/crypto/xqc_tls_header.h"
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
 #define TEST_ADDR "127.0.0.1"

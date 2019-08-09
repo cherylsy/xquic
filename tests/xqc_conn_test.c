@@ -1,12 +1,13 @@
 
 #include <CUnit/CUnit.h>
-#include "../include/xquic.h"
-#include "../transport/xqc_conn.h"
-#include "../transport/xqc_client.h"
-#include "../include/xquic_typedef.h"
-#include "../common/xqc_str.h"
-#include "../congestion_control/xqc_new_reno.h"
+#include "include/xquic.h"
+#include "transport/xqc_conn.h"
+#include "transport/xqc_client.h"
+#include "include/xquic_typedef.h"
+#include "common/xqc_str.h"
+#include "congestion_control/xqc_new_reno.h"
 #include "xqc_common_test.h"
+#include "transport/xqc_engine.h"
 
 int xqc_test_client_conn_notify(xqc_cid_t *cid, void *user_data)
 {
