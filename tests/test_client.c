@@ -235,7 +235,7 @@ void
 xqc_client_write_handler(client_ctx_t *ctx)
 {
     DEBUG
-    xqc_conn_write_handler(ctx->engine, &ctx->my_conn->cid);
+    xqc_conn_continue_send(ctx->engine, &ctx->my_conn->cid);
 }
 
 
@@ -500,7 +500,7 @@ int main(int argc, char *argv[]) {
     xqc_set_save_session_cb(conn, (xqc_save_session_cb_t)save_session_cb, conn);
     xqc_set_save_tp_cb(conn, (xqc_save_tp_cb_t) save_tp_cb, conn);
 
-    ctx.my_conn->stream = xqc_create_stream(ctx.engine, cid, &ctx);
+    ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
 
     xqc_client_write_notify(ctx.my_conn->stream, &ctx);
 

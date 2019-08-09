@@ -130,7 +130,7 @@ xqc_stream_do_flow_ctl(xqc_stream_t *stream)
 }
 
 xqc_stream_t *
-xqc_create_stream (xqc_engine_t *engine,
+xqc_stream_create (xqc_engine_t *engine,
                    xqc_cid_t *cid,
                   void *user_data)
 {
@@ -226,7 +226,7 @@ xqc_server_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
 {
     xqc_stream_t *stream = xqc_create_stream_with_conn(conn, user_data);
     if (stream == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_stream_create error|");
         return NULL;
     }
 

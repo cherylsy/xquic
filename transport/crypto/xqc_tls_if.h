@@ -296,9 +296,9 @@ typedef int (*xqc_stream_open)(xqc_connection_t *conn, uint64_t stream_id,
  * Returning :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library
  * call return immediately.
  */
-typedef int (*xqc_stream_close)(xqc_connection_t *conn, uint64_t stream_id,
+/*typedef int (*xqc_stream_close)(xqc_connection_t *conn, uint64_t stream_id,
                                    uint16_t app_error_code, void *user_data,
-                                   void *stream_user_data);
+                                   void *stream_user_data);*/
 
 /**
  * @functypedef

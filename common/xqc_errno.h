@@ -70,7 +70,7 @@ typedef int               xqc_err_t;
 #define XQC_ESOCKET         615
 #define XQC_EFATAL          616 //致命错误
 #define XQC_ESTREAM_ST      617
-#define XQC_SEND_RETRY      618
+#define XQC_ESEND_RETRY     618
 
 /* For QUIC ssl 7xx */
 

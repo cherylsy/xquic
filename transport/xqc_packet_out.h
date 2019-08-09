@@ -19,7 +19,6 @@
 #define XQC_PACKET_OUT_SIZE 1200    //不含XQC_EXTRA_SPACE XQC_ACK_SPACE
 #define XQC_EXTRA_SPACE 16
 #define XQC_ACK_SPACE 16
-#define XQC_MSS 1460 //TODO
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3
 
@@ -120,6 +119,6 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
                                  xqc_pkt_type_t pkt_type, uint8_t fin,
                                  const unsigned char *payload, size_t payload_size, size_t *send_data_written);
 void
-xqc_process_buff_packets(xqc_connection_t *conn);
+xqc_write_buff_packets(xqc_connection_t *conn);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

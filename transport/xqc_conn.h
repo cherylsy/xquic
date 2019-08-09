@@ -13,6 +13,7 @@
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
 #include "xqc_recv_record.h"
+#include "xqc_utils.h"
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
@@ -224,11 +225,6 @@ typedef struct {
     uint32_t                fc_max_streams_uni;
 } xqc_conn_flow_ctl_t;
 
-typedef struct xqc_conns_pq_elem_s
-{
-    xqc_pq_key_t        time_ms;
-    xqc_connection_t    *conn;
-}xqc_conns_pq_elem_t;
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
@@ -299,34 +295,14 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn);
 
 void xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
-int xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms);
+xqc_connection_t *xqc_conn_create(xqc_engine_t *engine,
+                                  xqc_cid_t *dcid, xqc_cid_t *scid,
+                                  xqc_conn_callbacks_t *callbacks,
+                                  xqc_conn_settings_t *settings,
+                                  void *user_data,
+                                  xqc_conn_type_t type);
 
-void xqc_conns_pq_pop (xqc_pq_t *pq);
-
-xqc_conns_pq_elem_t *xqc_conns_pq_top (xqc_pq_t *pq);
-
-int xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
-
-int xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
-
-xqc_connection_t * xqc_create_connection(xqc_engine_t *engine,
-                                xqc_cid_t *dcid, xqc_cid_t *scid,
-                                xqc_conn_callbacks_t *callbacks,
-                                xqc_conn_settings_t *settings,
-                                void *user_data,
-                                xqc_conn_type_t type);
-
-xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
-                                                xqc_cid_t dcid, xqc_cid_t scid,
-                                                xqc_conn_callbacks_t *callbacks,
-                                                xqc_conn_settings_t *settings,
-                                                char * server_host,
-                                                int no_crypto_flag,
-                                                uint8_t no_early_data_flag,
-                                                xqc_conn_ssl_config_t * conn_ssl_config,
-                                                void *user_data);
-
-void xqc_destroy_connection(xqc_connection_t *xc);
+void xqc_conn_destroy(xqc_connection_t *xc);
 
 void xqc_conn_send_packets (xqc_connection_t *conn);
 
@@ -338,27 +314,30 @@ void xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn);
 
 void xqc_conn_send_probe_packets(xqc_connection_t *conn);
 
-xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
+int xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 
 xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
 int xqc_conn_immediate_close(xqc_connection_t *conn);
 
-int xqc_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
+int xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
 
-int xqc_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
+int xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
+
+int xqc_conn_version_check(xqc_connection_t *c, uint32_t version);
+
+int xqc_conn_send_version_negotiation(xqc_connection_t *c);
 
 int xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
 
 void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
 
-int xqc_conn_early_data_cb(xqc_connection_t *conn, int flag);
-
 int xqc_conn_early_data_reject(xqc_connection_t *conn);
 
 int xqc_conn_early_data_accept(xqc_connection_t *conn);
 
-int
-xqc_conn_process_undecrypt_packet(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
+int xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
+
+int xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

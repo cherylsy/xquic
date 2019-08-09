@@ -1,3 +1,4 @@
+#include <xqc_tls_init.h>
 #include "xqc_client.h"
 #include "../include/xquic.h"
 #include "xqc_transport.h"
@@ -53,7 +54,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
 
     if (xc->conn_callbacks.conn_create_notify) {
         if (xc->conn_callbacks.conn_create_notify(&xc->scid, user_data)) {
-            xqc_destroy_connection(xc);
+            xqc_conn_destroy(xc);
             goto fail;
         }
     }
@@ -68,6 +69,44 @@ fail:
     return NULL;
 }
 
+xqc_connection_t *
+xqc_client_create_connection(xqc_engine_t *engine,
+                             xqc_cid_t dcid, xqc_cid_t scid,
+                             xqc_conn_callbacks_t *callbacks,
+                             xqc_conn_settings_t *settings,
+                             char * server_host,
+                             int no_crypto_flag,
+                             uint8_t no_early_data_flag,
+                             xqc_conn_ssl_config_t * conn_ssl_config,
+                             void *user_data)
+{
+    xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid,
+                                                 callbacks, settings, user_data,
+                                                 XQC_CONN_TYPE_CLIENT);
+
+    if (xc == NULL) {
+        return NULL;
+    }
+
+    if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag, no_early_data_flag) < 0 ){
+        goto fail;
+    }
+
+    xqc_cid_copy(&(xc->ocid), &(xc->dcid));
+
+    xc->cur_stream_id_bidi_local = 0;
+    xc->cur_stream_id_uni_local = 2;
+
+    xc->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(xc, XQC_ENC_LEV_INIT, user_data);
+    if (!xc->crypto_stream[XQC_ENC_LEV_INIT]) {
+        goto fail;
+    }
+    return xc;
+
+    fail:
+    xqc_conn_destroy(xc);
+    return NULL;
+}
 
 
 

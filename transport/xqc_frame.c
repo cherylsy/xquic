@@ -84,7 +84,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
         frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
         if (stream_frame->data_offset >= frame->data_offset + frame->data_length) {
-            xqc_list_add(&stream_frame->sf_list, pos);
+            xqc_list_add(&stream_frame->sf_list, pos); //TODO: 判断是否有重复，和merge后的重复
             inserted = 1;
             break;
         }
@@ -356,8 +356,8 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             unsigned char token[XQC_MAX_TOKEN_LEN];
             unsigned token_len = XQC_MAX_TOKEN_LEN;
             xqc_conn_gen_token(conn, token, &token_len);
-            if (xqc_send_retry(conn, token, token_len) != 0) {
-                return -XQC_SEND_RETRY;
+            if (xqc_conn_send_retry(conn, token, token_len) != 0) {
+                return -XQC_ESEND_RETRY;
             }
             packet_in->pos = packet_in->last;
             return XQC_OK;
@@ -380,13 +380,6 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_parse_crypto_frame error|");
         return ret;
     }
-
-    /* TODO: 0RTT回退 加密层回调 */
-#if 0
-    if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_HSK && conn->conn_type == XQC_CONN_TYPE_CLIENT) {
-        xqc_conn_early_data_reject(conn);
-    }
-#endif
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_in->pi_pkt.pkt_type);
     if(conn->crypto_stream[encrypt_level] == NULL){

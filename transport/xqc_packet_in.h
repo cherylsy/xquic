@@ -27,7 +27,7 @@ struct xqc_packet_in_s
 
 
 void
-xqc_init_packet_in(xqc_packet_in_t *packet_in,
+xqc_packet_in_init(xqc_packet_in_t *packet_in,
                    const unsigned char *packet_in_buf,
                    size_t packet_in_size,
                    const unsigned char *decode_payload,
@@ -35,9 +35,7 @@ xqc_init_packet_in(xqc_packet_in_t *packet_in,
                    xqc_msec_t recv_time);
 
 void
-xqc_destroy_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+xqc_packet_in_destroy(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
 
-void
-xqc_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
 #endif /* _XQC_PACKET_IN_H_INCLUDED_ */

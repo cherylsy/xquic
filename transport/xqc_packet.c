@@ -80,101 +80,12 @@ xqc_state_to_pkt_type(xqc_connection_t *conn)
     }
 }
 
-/*
- * 发送版本协商协议
- * */
-static inline xqc_int_t
-xqc_packet_send_version_negotiation(xqc_connection_t *c)
-{
-    xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_send_ctl, XQC_PTYPE_VERSION_NEGOTIATION);
-    if (packet_out == NULL) {
-        return -XQC_ENULLPTR;
-    }
-    //assert(packet_out->po_buf_size >= 1 + 4 + 1 + c->scid.cid_len + c->dcid.cid_len + 4);
-
-    unsigned char* p = packet_out->po_buf;
-    /*first byte*/
-    *p++ = (1 << 7);
-
-    /*version*/
-    *(uint32_t*)p = 0;
-    p += sizeof(uint32_t);
-
-    /*DCIL(4)|SCIL(4)*/
-    *p = (c->scid.cid_len - 3) << 4;
-    *p |= c->dcid.cid_len - 3;
-    ++p;
-
-    /*dcid*/
-    memcpy(p, c->scid.cid_buf, c->scid.cid_len);
-    p += c->scid.cid_len;
-
-    /*scid*/
-    memcpy(p, c->dcid.cid_buf, c->dcid.cid_len);
-    p += c->dcid.cid_len;
-
-    /*supported version list*/
-    uint32_t* version_list = c->engine->config->support_version_list;
-    uint32_t version_count = c->engine->config->support_version_count;
-
-    unsigned char* end = packet_out->po_buf + packet_out->po_buf_size;
-
-    for (size_t i = 0; i < version_count; ++i) {
-        if (p + sizeof(uint32_t) <= end) {
-            *(uint32_t*)p = version_list[i];
-            p += sizeof(uint32_t);
-        } else {
-            break;
-        }
-    }
-
-    /*填充0*/
-    memset(p, 0, end - p);
-
-    /*设置used size*/
-    packet_out->po_used_size = packet_out->po_buf_size;
-
-    /*push to conns queue*/
-    if (!(c->conn_flag & XQC_CONN_FLAG_TICKING)) {
-        if (0 == xqc_conns_pq_push(c->engine->conns_active_pq, c, c->last_ticked_time)) {
-            c->conn_flag |= XQC_CONN_FLAG_TICKING;
-        }
-    }
-
-    return XQC_OK;
-}
-
-/*
- * 版本检查
- * */
-xqc_int_t
-xqc_packet_version_check(xqc_connection_t *c, uint32_t version)
-{
-    xqc_engine_t* engine = c->engine;
-    if (engine->eng_type == XQC_ENGINE_SERVER) {
-        uint32_t *list = engine->config->support_version_list;
-        uint32_t count = engine->config->support_version_count;
-        if (xqc_uint32_list_find(list, count, version) == -1) {
-            xqc_packet_send_version_negotiation(c); /*发送version negotiation*/
-            return -XQC_EPROTO;
-        }
-
-        /*版本号不匹配*/
-        if (c->version != version) {
-            return -XQC_EPROTO;
-        }
-    }
-
-    return XQC_OK;
-}
-
-int g_c=0;
 
 /**
  * @retval XQC_OK / XQC_ERROR
  */
 xqc_int_t
-xqc_conn_process_single_packet(xqc_connection_t *c,
+xqc_packet_process_single(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
@@ -197,14 +108,12 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
 
         /* check handshake */
         if (!xqc_conn_check_handshake_completed(c)) {
-
-            if (c->undecrypt_count[XQC_ENC_LEV_1RTT] <= XQC_UNDECRYPT_PACKET_MAX) {
-                /* buffer packets */
-                xqc_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_1RTT);
-            }
-
             xqc_log(c->log, XQC_LOG_WARN,
                     "|buff 1RTT packet before handshake completed|");
+
+            /* buffer packets */
+            xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_1RTT);
+
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }
@@ -212,14 +121,12 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
 
         if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
                 && c->conn_type == XQC_CONN_TYPE_SERVER
-                && c->conn_state < XQC_CONN_STATE_SERVER_INITIAL_RECVD) {
-
-            if (c->undecrypt_count[XQC_ENC_LEV_0RTT] <= XQC_UNDECRYPT_PACKET_MAX) {
-                /* buffer packets */
-                xqc_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
-            }
+                && c->conn_state < XQC_CONN_STATE_SERVER_INITIAL_RECVD) { //TODO: tls接口
 
             xqc_log(c->log, XQC_LOG_WARN, "|buff 0RTT before initial received|");
+            /* buffer packets */
+            xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
+
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }
@@ -245,7 +152,7 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
     //printf("recv crypto data :%d\n", packet_in->last - packet_in->pos);
     //hex_print(packet_in->pos, packet_in->last - packet_in->pos);
     ret = xqc_do_decrypt_pkt(c, packet_in);
-    if (ret == 0) {
+    if (ret == XQC_OK) {
         ret = xqc_process_frames(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR, "|xqc_process_frames error|");
@@ -298,10 +205,10 @@ xqc_conn_process_single_packet(xqc_connection_t *c,
  * 1 UDP payload = n QUIC packets
  */
 xqc_int_t
-xqc_conn_process_packets(xqc_connection_t *c,
-                         const unsigned char *packet_in_buf,
-                         size_t packet_in_size,
-                         xqc_msec_t recv_time)
+xqc_packet_process(xqc_connection_t *c,
+                   const unsigned char *packet_in_buf,
+                   size_t packet_in_size,
+                   xqc_msec_t recv_time)
 {
     xqc_int_t ret = XQC_ERROR;
     const unsigned char *last_pos = NULL;
@@ -322,10 +229,10 @@ xqc_conn_process_packets(xqc_connection_t *c,
 
         xqc_packet_in_t *packet_in = &packet;
         memset(packet_in, 0, sizeof(*packet_in));
-        xqc_init_packet_in(packet_in, pos, end - pos, decrypt_payload, MAX_PACKET_LEN, recv_time);
+        xqc_packet_in_init(packet_in, pos, end - pos, decrypt_payload, MAX_PACKET_LEN, recv_time);
 
         /* packet_in->pos will update inside */
-        ret = xqc_conn_process_single_packet(c, packet_in);
+        ret = xqc_packet_process_single(c, packet_in);
 
         /* err in parse packet, don't cause dead loop */
         if (ret != XQC_OK || last_pos == packet_in->pos) {

@@ -182,7 +182,7 @@ int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
-xqc_stream_t* xqc_create_stream (xqc_engine_t *engine,
+xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
                                  xqc_cid_t *cid,
                                  void *user_data);
 
@@ -190,7 +190,7 @@ xqc_stream_t* xqc_create_stream (xqc_engine_t *engine,
  * Close stream.
  * @retval XQC_OK or XQC_ERROR
  */
-int xqc_close_stream (xqc_engine_t *engine,
+int xqc_stream_close (xqc_engine_t *engine,
                      xqc_cid_t *cid,
                      uint64_t stream_id);
 
@@ -231,10 +231,10 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                void *user_data);
 
 /**
- * User should call xqc_conn_write_handler when write event ready
+ * User should call xqc_conn_continue_send when write event ready
  */
 int
-xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid);
+xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid);
 
 
 

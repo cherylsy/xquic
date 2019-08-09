@@ -295,7 +295,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
             xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
             conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
         }
-        xqc_destroy_connection(conn);
+        xqc_conn_destroy(conn);
     }
 
     while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
@@ -306,7 +306,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
             continue;
         }
         conn = el->conn;
-        xqc_destroy_connection(conn);
+        xqc_conn_destroy(conn);
     }
 
     if (engine->conns_active_pq) {
@@ -384,14 +384,14 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     XQC_CHECK_IMMEDIATE_CLOSE();
 
     if (conn->conn_state >= XQC_CONN_STATE_SERVER_INITIAL_RECVD) {
-        xqc_conn_process_undecrypt_packet(conn, XQC_ENC_LEV_0RTT);
+        xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_0RTT);
     }
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
-        xqc_conn_process_undecrypt_packet(conn, XQC_ENC_LEV_1RTT);
+        xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_1RTT);
     }
 
     if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_packets)) {
-        xqc_process_buff_packets(conn);
+        xqc_write_buff_packets(conn);
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
@@ -478,7 +478,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         xqc_engine_process_conn(conn, now);
 
         if (conn->conn_state == XQC_CONN_STATE_CLOSED) {
-            xqc_destroy_connection(conn);
+            xqc_conn_destroy(conn);
         } else {
             conn->last_ticked_time = now;
 
@@ -500,7 +500,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             } else {
                 /* 至少会有idle定时器，这是异常分支 */
                 xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection");
-                xqc_destroy_connection(conn);
+                xqc_conn_destroy(conn);
             }
         }
 
@@ -573,10 +573,10 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             return -XQC_ESYS;
         }
         memset(&new_scid.cid_buf, 0xDD, 4); //TODO: for test
-        conn = xqc_create_connection(engine, &dcid, &new_scid,
-                                     &(engine->eng_callback.conn_callbacks),
-                                     &engine->conn_settings, user_data,
-                                     conn_type);
+        conn = xqc_conn_create(engine, &dcid, &new_scid,
+                               &(engine->eng_callback.conn_callbacks),
+                               &engine->conn_settings, user_data,
+                               conn_type);
 
         if (conn == NULL) {
             xqc_log(engine->log, XQC_LOG_WARN, "|fail to create connection|");
@@ -596,7 +596,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     if (conn == NULL) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
             xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|");
-            ret = xqc_send_reset(engine, &scid, user_data);
+            ret = xqc_conn_send_reset(engine, &scid, user_data);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
             }
@@ -624,7 +624,7 @@ process:
             conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state), recv_time);
 
     /* process packets */
-    ret = (int)xqc_conn_process_packets(conn, packet_in_buf, packet_in_size, recv_time);
+    ret = (int)xqc_packet_process(conn, packet_in_buf, packet_in_size, recv_time);
     if (ret) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to process packets|ret:%d|", ret);
         XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);

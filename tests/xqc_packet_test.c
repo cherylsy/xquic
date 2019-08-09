@@ -10,6 +10,8 @@
 #include "../include/xquic_typedef.h"
 #include "../include/xquic.h"
 #include "../common/xqc_str.h"
+#include "xqc_common_test.h"
+#include "../transport/xqc_conn.h"
 
 
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
@@ -22,7 +24,8 @@ void xqc_test_packet_parse_cid(unsigned char *buf, size_t size, int is_short)
     unsigned char dcid_buf[XQC_MAX_CID_LEN * 2];
     unsigned char scid_buf[XQC_MAX_CID_LEN * 2];
 
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER);
+    def_engine_ssl_config;
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
     CU_ASSERT(engine != NULL);
 
     xqc_cid_t dcid, scid;
