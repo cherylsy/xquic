@@ -165,18 +165,6 @@ error:
 }
 
 int
-xqc_should_generate_ack(xqc_connection_t *conn)
-{
-    //xqc_log(conn->log, XQC_LOG_DEBUG, "|should_generate_ack|flag:%s|", xqc_conn_flag_2_str(conn->conn_flag));
-    if (conn->conn_flag & XQC_CONN_FLAG_SHOULD_ACK) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|should_generate_ack yes|flag:%s|",
-                xqc_conn_flag_2_str(conn->conn_flag));
-        return 1;
-    }
-    return 0;
-}
-
-int
 xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns)
 {
     int ret, has_gap;

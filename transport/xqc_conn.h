@@ -9,7 +9,6 @@
 #include "../include/xquic.h"
 #include "../include/xquic_typedef.h"
 #include "../common/xqc_log.h"
-#include "xqc_engine.h"
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
 #include "xqc_recv_record.h"
@@ -316,8 +315,6 @@ void xqc_conn_send_probe_packets(xqc_connection_t *conn);
 
 int xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 
-xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
-
 int xqc_conn_immediate_close(xqc_connection_t *conn);
 
 int xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
@@ -339,5 +336,33 @@ int xqc_conn_early_data_accept(xqc_connection_t *conn);
 int xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
 int xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
+
+xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
+
+static inline void
+xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
+{
+    if (conn->undecrypt_count[XQC_ENC_LEV_1RTT] > 0 && conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+        xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_1RTT);
+    }
+    if (conn->undecrypt_count[XQC_ENC_LEV_0RTT] > 0 && xqc_tls_check_0rtt_key_ready(conn)) {
+        xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_0RTT);
+    }
+    if (conn->undecrypt_count[XQC_ENC_LEV_HSK] > 0 && xqc_tls_check_hs_rx_key_ready(conn)) {
+        xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_HSK);
+    }
+}
+
+static inline int
+xqc_should_generate_ack(xqc_connection_t *conn)
+{
+    //xqc_log(conn->log, XQC_LOG_DEBUG, "|should_generate_ack|flag:%s|", xqc_conn_flag_2_str(conn->conn_flag));
+    if (conn->conn_flag & XQC_CONN_FLAG_SHOULD_ACK) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|should_generate_ack yes|flag:%s|",
+                xqc_conn_flag_2_str(conn->conn_flag));
+        return 1;
+    }
+    return 0;
+}
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

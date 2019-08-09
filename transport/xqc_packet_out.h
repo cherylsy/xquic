@@ -74,9 +74,6 @@ int
 xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
 int
-xqc_should_generate_ack(xqc_connection_t *conn);
-
-int
 xqc_write_ack_to_packets(xqc_connection_t *conn);
 
 int

@@ -108,7 +108,7 @@ xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_settings_t *trans_param
 int
 xqc_stream_do_flow_ctl(xqc_stream_t *stream)
 {
-    if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {//TODO: 边界值
+    if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {
         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data:%d|",
                 stream->stream_conn->conn_flow_ctl.fc_max_data);
 

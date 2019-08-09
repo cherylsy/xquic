@@ -8,22 +8,6 @@
 #include "../common/xqc_timer.h"
 #include "../congestion_control/xqc_new_reno.h"
 
-static const char * const timer_type_2_str[XQC_TIMER_N] = {
-        [XQC_TIMER_ACK_INIT]    = "ACK_INIT",
-        [XQC_TIMER_ACK_HSK]     = "ACK_HSK",
-        [XQC_TIMER_ACK_01RTT]   = "ACK_01RTT",
-        [XQC_TIMER_LOSS_DETECTION] = "LOSS_DETECTION",
-        [XQC_TIMER_IDLE]        = "IDLE",
-        [XQC_TIMER_DRAINING]    = "DRAINING",
-        [XQC_TIMER_PACING]      = "PACING"
-};
-
-const char *
-xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type)
-{
-    return timer_type_2_str[timer_type];
-}
-
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn)
 {
@@ -160,17 +144,6 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
     return can;
 }
 
-/*
- * 写缓存
- */
-int
-xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
-{
-    if (ctl->ctl_packets_used < ctl->ctl_packets_used_max) {
-        return 1;
-    }
-    return 0;
-}
 
 void
 xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
@@ -289,128 +262,6 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
     }
 }
 
-/* timer callbacks */
-void
-xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
-{
-    xqc_connection_t *conn = ((xqc_send_ctl_t*)ctx)->ctl_conn;
-    xqc_pkt_num_space_t pns = type - XQC_TIMER_ACK_INIT;
-    conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|pns:%d|", pns);
-}
-
-/**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.9
- * OnLossDetectionTimeout
- */
-void
-xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
-{
-    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
-    xqc_connection_t *conn = ctl->ctl_conn;
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|loss_detection_timeout|");
-    xqc_msec_t loss_time;
-    xqc_pkt_num_space_t pns;
-    loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
-    if (loss_time != 0) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_detect_lost|");
-        // Time threshold loss Detection
-        xqc_send_ctl_detect_lost(ctl, pns, now);
-    }
-    // Retransmit crypto data if no packets were lost
-    // and there are still crypto packets in flight.
-    else if (ctl->ctl_crypto_bytes_in_flight) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_retransmit_unacked_crypto|");
-        // Crypto retransmission timeout.
-        xqc_conn_retransmit_unacked_crypto(ctl->ctl_conn);
-        ctl->ctl_crypto_count++;
-    }
-    else {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_send_probe_packets|");
-        // PTO
-        xqc_conn_send_probe_packets(ctl->ctl_conn);
-        ctl->ctl_pto_count++;
-    }
-
-    xqc_send_ctl_set_loss_detection_timer(ctl);
-}
-
-void
-xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
-{
-    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
-    xqc_connection_t *conn = ctl->ctl_conn;
-
-    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
-}
-
-void
-xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
-{
-    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
-    xqc_connection_t *conn = ctl->ctl_conn;
-
-    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
-}
-
-void
-xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
-{
-    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
-    ctl->ctl_pacing.timer_expire = 1;
-}
-/* timer callbacks end */
-
-
-void
-xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
-{
-    memset(ctl->ctl_timer, 0, XQC_TIMER_N * sizeof(xqc_send_ctl_timer_t));
-    xqc_send_ctl_timer_t *timer;
-    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
-        timer = &ctl->ctl_timer[type];
-        if (type == XQC_TIMER_ACK_INIT || type == XQC_TIMER_ACK_HSK || type == XQC_TIMER_ACK_01RTT) {
-            timer->ctl_timer_callback = xqc_send_ctl_ack_timeout;
-            timer->ctl_ctx = ctl;
-        } else if (type == XQC_TIMER_LOSS_DETECTION) {
-            timer->ctl_timer_callback = xqc_send_ctl_loss_detection_timeout;
-            timer->ctl_ctx = ctl;
-        } else if (type == XQC_TIMER_IDLE) {
-            timer->ctl_timer_callback = xqc_send_ctl_idle_timeout;
-            timer->ctl_ctx = ctl;
-        } else if (type == XQC_TIMER_DRAINING) {
-            timer->ctl_timer_callback = xqc_send_ctl_draining_timeout;
-            timer->ctl_ctx = ctl;
-        } else if (type == XQC_TIMER_PACING) {
-            timer->ctl_timer_callback = xqc_send_ctl_pacing_timeout;
-            timer->ctl_ctx = ctl;
-        }
-    }
-}
-
-void
-xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
-{
-    xqc_send_ctl_timer_t *timer;
-    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
-        timer = &ctl->ctl_timer[type];
-        if (timer->ctl_timer_is_set && timer->ctl_expire_time <= now) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
-                    "|timer expired|type:%s|expire_time:%ui|now:%ui|",
-                    xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
-            timer->ctl_timer_callback(type, now, timer->ctl_ctx);
-
-            //unset timer if it is not updated in ctl_timer_callback
-            if (timer->ctl_expire_time <= now) {
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
-                        "|unset|type:%s|expire_time:%ui|now:%ui|",
-                        xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
-                xqc_send_ctl_timer_unset(ctl, type);
-            }
-        }
-    }
-}
 
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.5
@@ -913,3 +764,124 @@ xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl)
         return (float)ctl->ctl_retrans_count / ctl->ctl_send_count * 100;
     }
 }
+
+/*
+ * *****************TIMER*****************
+ */
+static const char * const timer_type_2_str[XQC_TIMER_N] = {
+        [XQC_TIMER_ACK_INIT]    = "ACK_INIT",
+        [XQC_TIMER_ACK_HSK]     = "ACK_HSK",
+        [XQC_TIMER_ACK_01RTT]   = "ACK_01RTT",
+        [XQC_TIMER_LOSS_DETECTION] = "LOSS_DETECTION",
+        [XQC_TIMER_IDLE]        = "IDLE",
+        [XQC_TIMER_DRAINING]    = "DRAINING",
+        [XQC_TIMER_PACING]      = "PACING"
+};
+
+const char *
+xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type)
+{
+    return timer_type_2_str[timer_type];
+}
+
+/* timer callbacks */
+void
+xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_connection_t *conn = ((xqc_send_ctl_t*)ctx)->ctl_conn;
+    xqc_pkt_num_space_t pns = type - XQC_TIMER_ACK_INIT;
+    conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|pns:%d|", pns);
+}
+
+/**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.9
+ * OnLossDetectionTimeout
+ */
+void
+xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|loss_detection_timeout|");
+    xqc_msec_t loss_time;
+    xqc_pkt_num_space_t pns;
+    loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
+    if (loss_time != 0) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_detect_lost|");
+        // Time threshold loss Detection
+        xqc_send_ctl_detect_lost(ctl, pns, now);
+    }
+        // Retransmit crypto data if no packets were lost
+        // and there are still crypto packets in flight.
+    else if (ctl->ctl_crypto_bytes_in_flight) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_retransmit_unacked_crypto|");
+        // Crypto retransmission timeout.
+        xqc_conn_retransmit_unacked_crypto(ctl->ctl_conn);
+        ctl->ctl_crypto_count++;
+    }
+    else {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_send_probe_packets|");
+        // PTO
+        xqc_conn_send_probe_packets(ctl->ctl_conn);
+        ctl->ctl_pto_count++;
+    }
+
+    xqc_send_ctl_set_loss_detection_timer(ctl);
+}
+
+void
+xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
+}
+
+void
+xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
+}
+
+void
+xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    ctl->ctl_pacing.timer_expire = 1;
+}
+/* timer callbacks end */
+
+void
+xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
+{
+    memset(ctl->ctl_timer, 0, XQC_TIMER_N * sizeof(xqc_send_ctl_timer_t));
+    xqc_send_ctl_timer_t *timer;
+    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
+        timer = &ctl->ctl_timer[type];
+        if (type == XQC_TIMER_ACK_INIT || type == XQC_TIMER_ACK_HSK || type == XQC_TIMER_ACK_01RTT) {
+            timer->ctl_timer_callback = xqc_send_ctl_ack_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_LOSS_DETECTION) {
+            timer->ctl_timer_callback = xqc_send_ctl_loss_detection_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_IDLE) {
+            timer->ctl_timer_callback = xqc_send_ctl_idle_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_DRAINING) {
+            timer->ctl_timer_callback = xqc_send_ctl_draining_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_PACING) {
+            timer->ctl_timer_callback = xqc_send_ctl_pacing_timeout;
+            timer->ctl_ctx = ctl;
+        }
+    }
+}
+/*
+ * *****************TIMER END*****************
+ */

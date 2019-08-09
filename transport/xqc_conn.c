@@ -488,27 +488,6 @@ xqc_conn_check_handshake_completed(xqc_connection_t *conn)
     return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) != 0);
 }
 
-xqc_msec_t
-xqc_conn_next_wakeup_time(xqc_connection_t *conn)
-{
-    xqc_msec_t min_time = XQC_MAX_UINT64_VALUE;
-    xqc_msec_t wakeup_time;
-    xqc_send_ctl_timer_t *timer;
-    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
-
-    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
-        timer = &ctl->ctl_timer[type];
-        if (timer->ctl_timer_is_set) {
-            min_time = xqc_min(min_time, timer->ctl_expire_time);
-        }
-    }
-
-    wakeup_time = min_time == XQC_MAX_UINT64_VALUE ? 0 : min_time;
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|wakeup_time:%ui|", wakeup_time);
-
-    return wakeup_time;
-}
 
 int
 xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
@@ -891,6 +870,9 @@ xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *
 int
 xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level)
 {
+    if (conn->undecrypt_count[encrypt_level] == 0) {
+        return XQC_OK;
+    }
     xqc_packet_in_t *packet_in;
     xqc_list_head_t *pos, *next;
     int ret;
@@ -910,4 +892,26 @@ xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t
     }
 
     return XQC_OK;
+}
+
+xqc_msec_t
+xqc_conn_next_wakeup_time(xqc_connection_t *conn)
+{
+    xqc_msec_t min_time = XQC_MAX_UINT64_VALUE;
+    xqc_msec_t wakeup_time;
+    xqc_send_ctl_timer_t *timer;
+    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+
+    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
+        timer = &ctl->ctl_timer[type];
+        if (timer->ctl_timer_is_set) {
+            min_time = xqc_min(min_time, timer->ctl_expire_time);
+        }
+    }
+
+    wakeup_time = min_time == XQC_MAX_UINT64_VALUE ? 0 : min_time;
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|wakeup_time:%ui|", wakeup_time);
+
+    return wakeup_time;
 }

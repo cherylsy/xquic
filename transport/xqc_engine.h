@@ -2,9 +2,11 @@
 #ifndef _XQC_ENGINE_H_INCLUDED_
 #define _XQC_ENGINE_H_INCLUDED_
 
-#include "xqc_transport.h"
+#include "../include/xquic_typedef.h"
 #include "../include/xquic.h"
 #include "../common/xqc_priority_q.h"
+
+xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
 /**
  * Create engine config.
@@ -25,6 +27,7 @@ xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 xqc_connection_t * xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type);
 
 void xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now);
+
 
 #endif
 

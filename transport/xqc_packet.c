@@ -119,13 +119,21 @@ xqc_packet_process_single(xqc_connection_t *c,
         }
     } else {  /* long header */
 
-        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT
-                && c->conn_type == XQC_CONN_TYPE_SERVER
-                && c->conn_state < XQC_CONN_STATE_SERVER_INITIAL_RECVD) { //TODO: tls接口
+        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT &&
+                !xqc_tls_check_0rtt_key_ready(c)) {
 
             xqc_log(c->log, XQC_LOG_WARN, "|buff 0RTT before initial received|");
             /* buffer packets */
             xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
+
+            packet_in->pos = packet_in->last;
+            return XQC_OK;
+        }
+        else if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_HSK &&
+                !xqc_tls_check_hs_rx_key_ready(c)) {
+
+            xqc_log(c->log, XQC_LOG_WARN, "|buff HSK before hs_rx_key_ready|");
+            xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_HSK);
 
             packet_in->pos = packet_in->last;
             return XQC_OK;
@@ -178,7 +186,6 @@ xqc_packet_process_single(xqc_connection_t *c,
     xqc_pkt_range_status range_status;
     int out_of_order = 0;
 
-    //TODO: 放在包解析前，判断是否是重复的包XQC_PKTRANGE_DUP，如果接收过则不需要重复解包
     range_status = xqc_recv_record_add(&c->recv_record[packet_in->pi_pkt.pkt_pns], packet_in->pi_pkt.pkt_num,
                                        packet_in->pkt_recv_time);
     if (range_status == XQC_PKTRANGE_OK) {

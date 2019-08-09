@@ -38,7 +38,7 @@ set(
     transport/xqc_wakeup_pq.c
     transport/xqc_pacing.c
     transport/xqc_utils.c
-    
+
     transport/crypto/xqc_tls_init.c
     transport/crypto/xqc_crypto.c
     transport/crypto/xqc_tls_cb.c

@@ -167,6 +167,20 @@ xqc_engine_wakeup_pq_destroy(xqc_wakeup_pq_t *q)
     xqc_free(q);
 }
 
+xqc_msec_t
+xqc_engine_wakeup_after (xqc_engine_t *engine)
+{
+    xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
+    if (el) {
+        xqc_msec_t now = xqc_now();
+
+        return el->wakeup_time > now ? el->wakeup_time - now : 1;
+    }
+
+
+    return 0;
+}
+
 /**
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
@@ -343,20 +357,6 @@ xqc_engine_set_callback (xqc_engine_t *engine,
     engine->eng_callback = engine_callback;
 }
 
-xqc_msec_t
-xqc_engine_wakeup_after (xqc_engine_t *engine)
-{
-    xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
-    if (el) {
-        xqc_msec_t now = xqc_now();
-
-        return el->wakeup_time > now ? el->wakeup_time - now : 1;
-    }
-
-
-    return 0;
-}
-
 #define XQC_CHECK_IMMEDIATE_CLOSE() do {                        \
     if (conn->conn_flag & XQC_CONN_IMMEDIATE_CLOSE_FLAGS) {     \
         xqc_conn_immediate_close(conn);                         \
@@ -383,14 +383,10 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     xqc_process_crypto_write_streams(conn);
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    if (conn->conn_state >= XQC_CONN_STATE_SERVER_INITIAL_RECVD) {
-        xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_0RTT);
-    }
-    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
-        xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_1RTT);
-    }
+    xqc_conn_process_undecrypt_packets(conn);
+    XQC_CHECK_IMMEDIATE_CLOSE();
 
-    if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_packets)) {
+    if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_packets) && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
         xqc_write_buff_packets(conn);
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
@@ -412,11 +408,6 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    /*if (conn->conn_type == XQC_CONN_TYPE_SERVER && conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
-    {
-        //for test
-        xqc_remove_conns_hash(conn->engine->conns_hash, conn, &conn->scid);
-    }*/
 end:
     return;
 }

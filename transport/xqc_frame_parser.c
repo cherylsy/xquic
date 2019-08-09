@@ -4,6 +4,8 @@
 #include <common/xqc_errno.h>
 #include "xqc_frame_parser.h"
 #include "../common/xqc_variable_len_int.h"
+#include "../common/xqc_log.h"
+#include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "xqc_packet_out.h"
 #include "xqc_packet_parser.h"
@@ -282,7 +284,7 @@ xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn , xqc_
         }
         memcpy(frame->data, p, frame->data_length);
     }
-    //todo: process Crypto Data
+
     p += length;
 
     packet_in->pos = (unsigned char*)p;
