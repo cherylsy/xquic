@@ -325,7 +325,7 @@ xqc_int_t xqc_insert_crypto_frame(xqc_connection_t *conn, xqc_stream_t *stream, 
     xqc_list_for_each_reverse(pos, &stream->stream_data_in.frames_tailq) {
         frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
-        if (stream_frame->data_offset >= frame->data_offset + frame->data_length) {
+        if (stream_frame->data_offset >= frame->data_offset ) {
             xqc_list_add(&stream_frame->sf_list, pos);
             inserted = 1;
             break;
