@@ -35,11 +35,11 @@ int xqc_server_tls_handshake(xqc_connection_t * conn)
 {
     int rv = 0;
     SSL * ssl = conn->xc_ssl;
-    if(conn->tlsref.initial){
+    if(conn->tlsref.initial){//read 0 early data, because 0rtt data use quic standard
         char buf[2048];
         size_t nread;
         conn->tlsref.initial = 0;
-        rv = SSL_read_early_data(ssl, buf, sizeof(buf), &nread);
+        rv = SSL_read_early_data(ssl, buf, sizeof(buf), &nread); //nread always 0, read early data just for ssl status
         switch (rv) {
             case SSL_READ_EARLY_DATA_ERROR:
                 {
@@ -161,7 +161,7 @@ int xqc_client_tls_handshake(xqc_connection_t *conn)
     if(conn->tlsref.initial && conn->tlsref.resumption && SSL_SESSION_get_max_early_data(SSL_get_session(ssl))){
         conn->tlsref.initial = 0;
         size_t nwrite;
-        int rv = SSL_write_early_data(ssl, "", 0, &nwrite);
+        int rv = SSL_write_early_data(ssl, "", 0, &nwrite); //write 0 early data in order to generate early data key
         if(rv == 0){
             int err = SSL_get_error(ssl, rv);
             switch (err) {

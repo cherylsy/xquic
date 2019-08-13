@@ -582,13 +582,16 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     packet_out->po_used_size = packet_out->po_used_size + conn->tlsref.aead_overhead;
     xqc_long_packet_update_length(packet_out); // encrypt may add padding aead bytes, only long packet need update packet len`
 
-    int nwrite = encrypt_func(conn,  payload, payloadlen + conn->tlsref.aead_overhead, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
+    char decrypt_buf[MAX_PACKET_LEN];
+    //int nwrite = encrypt_func(conn,  payload, payloadlen + conn->tlsref.aead_overhead, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
+    int nwrite = encrypt_func(conn,  decrypt_buf, sizeof(decrypt_buf), payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
 
-    if(nwrite < 0){
+    if(nwrite < 0 || nwrite > payloadlen + conn->tlsref.aead_overhead ){
         //printf("encrypt error \n");
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
         return -1;
     }
+    memcpy(payload, decrypt_buf, nwrite);
 
     uint8_t mask[XQC_HP_SAMPLELEN];
 
