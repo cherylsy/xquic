@@ -11,7 +11,7 @@
 #define XQC_HP_SAMPLELEN 16
 #define XQC_HP_MASKLEN 5
 
-#define XQC_INITIAL_AEAD_OVERHEAD 16
+#define XQC_INITIAL_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 
 /* XQC_INITIAL_SALT is a salt value which is used to derive initial
    secret. */

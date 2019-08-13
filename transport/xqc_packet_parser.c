@@ -580,9 +580,9 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     int pktno_len = (packet_out->po_buf[0] & XQC_PKT_NUMLEN_MASK) + 1;
 
     packet_out->po_used_size = packet_out->po_used_size + conn->tlsref.aead_overhead;
-    xqc_long_packet_update_length(packet_out); // encrypt may add padding bytes, only long packet
+    xqc_long_packet_update_length(packet_out); // encrypt may add padding aead bytes, only long packet need update packet len`
 
-    int nwrite = encrypt_func(conn,  payload, packet_out->po_buf_size + XQC_EXTRA_SPACE, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
+    int nwrite = encrypt_func(conn,  payload, payloadlen + conn->tlsref.aead_overhead, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
 
     if(nwrite < 0){
         //printf("encrypt error \n");
@@ -759,19 +759,20 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
     size_t payload_len = packet_in->pi_pkt.len - packet_number_len;
 
 
-    char decrypt_buf[1500];
+    char *decrypt_buf = (char *)(packet_in->decode_payload);
     uint8_t nonce[64];
     xqc_crypto_create_nonce(nonce, ckm->iv.base,  ckm->iv.len,  packet_in->pi_pkt.pkt_num);
 
 
-    nwrite = decrypt_func(conn, decrypt_buf, sizeof(decrypt_buf), payload, payload_len, ckm->key.base, ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, NULL  );
+    //nwrite = decrypt_func(conn, decrypt_buf, sizeof(decrypt_buf), payload, payload_len, ckm->key.base, ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, NULL  );
+    nwrite = decrypt_func(conn, decrypt_buf, packet_in->decode_payload_size, payload, payload_len, ckm->key.base, ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, NULL  );
 
     if(nwrite < 0 || nwrite > payload_len){
         xqc_log(conn->log, XQC_LOG_WARN, "|do_decrypt_pkt| decrypt_func return  error :%d", nwrite);
         return -1;
     }
 
-
+    packet_in->decode_payload_len = nwrite;
     memcpy(payload, decrypt_buf, nwrite);
 
     packet_in->pos = payload;

@@ -115,6 +115,10 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
 
     // TODO Just call this once.
     xqc_conn_set_aead_overhead(conn, xqc_aead_max_overhead(& conn->tlsref.crypto_ctx));
+    if(conn->tlsref.aead_overhead > XQC_INITIAL_AEAD_OVERHEAD){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|aead_overhead set too big| aead_overhead:%d|", conn->tlsref.aead_overhead);
+        return -1;
+    }
 
     switch (name) {
         case SSL_KEY_CLIENT_EARLY_TRAFFIC:
