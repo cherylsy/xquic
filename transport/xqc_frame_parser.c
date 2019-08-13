@@ -3,7 +3,9 @@
 #include <sys/types.h>
 #include <common/xqc_errno.h>
 #include "xqc_frame_parser.h"
-#include "../common/xqc_variable_len_int.h"
+#include "common/xqc_variable_len_int.h"
+#include "common/xqc_log.h"
+#include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "xqc_packet_out.h"
 #include "xqc_packet_parser.h"
@@ -74,8 +76,10 @@ xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
                 fin = 0;
             }
         } else {
-            length_len = 0;
+            //length_len = 0; 预留ACK，必须要有length
             size = n_avail;
+            length_bits = xqc_vint_get_2bit(size);
+            length_len = xqc_vint_len(length_bits);
             fin = 0;
         }
 
@@ -241,7 +245,11 @@ xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_CRYPTO;
 
+
+
     return dst_buf - begin;
+
+
 }
 
 int
@@ -276,7 +284,7 @@ xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn , xqc_
         }
         memcpy(frame->data, p, frame->data_length);
     }
-    //todo: process Crypto Data
+
     p += length;
 
     packet_in->pos = (unsigned char*)p;
@@ -329,7 +337,7 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
                       xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
-    size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size;
+    size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size + XQC_ACK_SPACE;
 
     xqc_packet_number_t lagest_recv;
     xqc_msec_t ack_delay;
@@ -344,9 +352,9 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 
     xqc_list_for_each(pos, &recv_record->list_head) {
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
-        printf("xqc_gen_ack_frame low:%llu, high=%llu\n", range_node->pktno_range.low, range_node->pktno_range.high);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high: %ui, low: %ui|",
-                range_node->pktno_range.high, range_node->pktno_range.low);
+        //printf("xqc_gen_ack_frame low:%llu, high=%llu\n", range_node->pktno_range.low, range_node->pktno_range.high);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",
+                range_node->pktno_range.high, range_node->pktno_range.low, packet_out->po_pkt.pkt_pns);
     }
 
     xqc_pktno_range_node_t *first_range = NULL;
@@ -403,8 +411,8 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         }
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_gen_ack_frame|high: %ui, low: %ui|",
-                range_node->pktno_range.high, range_node->pktno_range.low);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",
+                range_node->pktno_range.high, range_node->pktno_range.low, packet_out->po_pkt.pkt_pns);
 
         gap = prev_low - range_node->pktno_range.high - 2;
         acks = range_node->pktno_range.high - range_node->pktno_range.low;
@@ -439,8 +447,8 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_vint_write(p_range_count, range_count, 0, 1);
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
-
     return dst_buf - begin;
+
 }
 
 /**

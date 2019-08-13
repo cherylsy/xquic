@@ -106,7 +106,7 @@ xqc_log_time(char* buf)
 }
 
 static inline void
-xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
+xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *fmt, ...)
 {
     unsigned char buf[2048];
     unsigned char *p = buf;
@@ -119,6 +119,8 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
 
     /*日志等级*/
     p = xqc_sprintf(p, last, "[%s] ", xqc_log_leveL_str(level));
+
+    p = xqc_sprintf(p, last, "|%s", func);
 
     /*日志内容*/
     va_list args;
@@ -135,42 +137,42 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *fmt, ...)
 #define xqc_log(log, level, ...) \
     do { \
         if ((log)->log_level >= level) { \
-            xqc_log_implement(log, level, __VA_ARGS__); \
+            xqc_log_implement(log, level, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
 
 #define xqc_log_fatal(log, ...) \
     do {\
         if ((log)->log_level >= XQC_LOG_FATAL) { \
-            xqc_log_implement(log, XQC_LOG_FATAL, __VA_ARGS__); \
+            xqc_log_implement(log, XQC_LOG_FATAL, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
 
 #define xqc_log_error(log, ...) \
     do {\
         if ((log)->log_level >= XQC_LOG_ERROR) { \
-            xqc_log_implement(log, XQC_LOG_ERROR, __VA_ARGS__); \
+            xqc_log_implement(log, XQC_LOG_ERROR, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
 
 #define xqc_log_warn(log, ...) \
     do {\
         if ((log)->log_level >= XQC_LOG_WARN) { \
-            xqc_log_implement(log, XQC_LOG_WARN, __VA_ARGS__); \
+            xqc_log_implement(log, XQC_LOG_WARN, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
 
 #define xqc_log_info(log, ...) \
     do {\
         if ((log)->log_level >= XQC_LOG_INFO) { \
-            xqc_log_implement(log, XQC_LOG_INFO, __VA_ARGS__); \
+            xqc_log_implement(log, XQC_LOG_INFO, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
 
 #define xqc_log_debug(log, ...) \
     do {\
         if ((log)->log_level >= XQC_LOG_DEBUG) { \
-            xqc_log_implement(log, XQC_LOG_DEBUG, __VA_ARGS__); \
+            xqc_log_implement(log, XQC_LOG_DEBUG, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
 

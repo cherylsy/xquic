@@ -7,11 +7,10 @@
 #include <event2/event.h>
 #include <arpa/inet.h>
 #include "xqc_cmake_config.h"
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
-#include "../congestion_control/xqc_new_reno.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
+#include "congestion_control/xqc_new_reno.h"
 
-#include "../transport/crypto/xqc_tls_header.h"
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
 #define TEST_ADDR "127.0.0.1"
@@ -100,6 +99,7 @@ ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
     int fd = ctx.fd;
     printf("xqc_server_send size=%zd now=%llu\n",size, now());
     do {
+        errno = 0;
         res = sendto(fd, buf, size, 0, (struct sockaddr*)&ctx.peer_addr, ctx.peer_addrlen);
         printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
@@ -126,23 +126,28 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
     ctx->peer_addrlen = sizeof(ctx->peer_addr);
-    recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr*)&ctx->peer_addr, &ctx->peer_addrlen);
-    if (recv_size < 0) {
-        printf("xqc_server_read_handler: recvmsg = %zd\n", recv_size);
-        return;
-    }
 
-    printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu\n",recv_size, recv_time, now());
-    /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
-    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));
-*/
-    if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
-                            (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen,
-                            (struct sockaddr *)(&ctx->peer_addr), ctx->peer_addrlen, (xqc_msec_t)recv_time, ctx) != 0)
-    {
-        printf("xqc_server_read_handler: packet process err\n");
-    }
+    do {
+        recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &ctx->peer_addr,
+                             &ctx->peer_addrlen);
+        if (recv_size < 0) {
+            printf("xqc_server_read_handler: recvmsg = %zd\n", recv_size);
+            break;
+        }
 
+        printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu\n", recv_size, recv_time, now());
+        /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
+        printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));
+    */
+        if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
+                                      (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
+                                      (struct sockaddr *) (&ctx->peer_addr), ctx->peer_addrlen, (xqc_msec_t) recv_time,
+                                      ctx) != 0) {
+            printf("xqc_server_read_handler: packet process err\n");
+            return;
+        }
+    } while (recv_size > 0);
+    xqc_engine_main_logic(ctx->engine);
 }
 
 

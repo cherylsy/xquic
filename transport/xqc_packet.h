@@ -2,8 +2,13 @@
 #ifndef _XQC_PACKET_H_INCLUDED_
 #define _XQC_PACKET_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
-#include "../common/xqc_list.h"
+#include "include/xquic_typedef.h"
+#include "common/xqc_list.h"
+
+#define XQC_MSS 1460 //TODO
+
+#define XQC_PACKET_0RTT_MAX_COUNT  100
+#define XQC_UNDECRYPT_PACKET_MAX  100
 
 typedef enum xqc_pkt_num_space
 {
@@ -34,8 +39,6 @@ typedef enum xqc_pkt_type
 } xqc_pkt_type_t;
 
 
-#define XQC_PACKET_0RTT_MAX_COUNT  100
-
 struct xqc_packet_s {
     xqc_packet_number_t     pkt_num;
     xqc_pkt_num_space_t     pkt_pns;
@@ -48,9 +51,8 @@ struct xqc_packet_s {
      * len is the sum of pkt_numlen and the length of QUIC packet
      * payload.
      */
-    size_t len;
-    uint8_t flags;
-    uint8_t pkt_num_offset;
+    size_t                  len;
+    uint8_t                 pkt_num_offset;
 
 };
 
@@ -84,13 +86,14 @@ xqc_pkt_type_t
 xqc_state_to_pkt_type(xqc_connection_t *conn);
 
 xqc_int_t
-xqc_packet_version_check(xqc_connection_t *c, uint32_t version);
+xqc_packet_process_single(xqc_connection_t *c,
+                          xqc_packet_in_t *packet_in);
 
 xqc_int_t
-xqc_conn_process_packets(xqc_connection_t *c,
-                         const unsigned char *packet_in_buf,
-                         size_t packet_in_size,
-                         xqc_msec_t recv_time);
+xqc_packet_process(xqc_connection_t *c,
+                   const unsigned char *packet_in_buf,
+                   size_t packet_in_size,
+                   xqc_msec_t recv_time);
 
 
 #endif //_XQC_PACKET_H_INCLUDED_

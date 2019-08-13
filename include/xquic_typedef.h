@@ -29,8 +29,8 @@ typedef uint64_t xqc_msec_t;
 typedef uint64_t xqc_packet_number_t;
 typedef uint64_t xqc_stream_id_t;
 
-typedef intptr_t        xqc_int_t;
-typedef uintptr_t       xqc_uint_t;
+typedef int32_t         xqc_int_t;
+typedef uint32_t        xqc_uint_t;
 typedef intptr_t        xqc_flag_t;
 
 #define XQC_MAX_CID_LEN 18

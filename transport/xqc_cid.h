@@ -2,9 +2,8 @@
 #ifndef _XQC_CID_H_INCLUDED_
 #define _XQC_CID_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
-#include "../common/xqc_common.h"
-#include "../common/xqc_str.h"
+#include "include/xquic_typedef.h"
+
 
 #define XQC_DEFAULT_CID_LEN 8
 

@@ -1,27 +1,29 @@
 
 #include <CUnit/CUnit.h>
-#include "../include/xquic.h"
-#include "../transport/xqc_transport.h"
-#include "../transport/xqc_packet.h"
-#include "../common/xqc_log.h"
-#include "../transport/xqc_engine.h"
-#include "../transport/xqc_cid.h"
-#include "../include/xquic_typedef.h"
-#include "../common/xqc_str.h"
-#include "../common/xqc_timer.h"
-#include "../transport/xqc_conn.h"
-#include "../congestion_control/xqc_new_reno.h"
-#include "../transport/xqc_packet_parser.h"
+#include "include/xquic.h"
+#include "transport/xqc_transport.h"
+#include "transport/xqc_packet.h"
+#include "common/xqc_log.h"
+#include "transport/xqc_engine.h"
+#include "transport/xqc_cid.h"
+#include "include/xquic_typedef.h"
+#include "common/xqc_str.h"
+#include "common/xqc_timer.h"
+#include "transport/xqc_conn.h"
+#include "congestion_control/xqc_new_reno.h"
+#include "transport/xqc_packet_parser.h"
+#include "xqc_common_test.h"
 
 
 void xqc_test_engine_create()
 {
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT);
+    def_engine_ssl_config;
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
     CU_ASSERT(engine != NULL);
     xqc_engine_destroy(engine);
     engine = NULL;
 
-    engine = xqc_engine_create(XQC_ENGINE_SERVER);
+    engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
     CU_ASSERT(engine != NULL);
     xqc_engine_destroy(engine);
     engine = NULL;
@@ -57,7 +59,8 @@ void xqc_test_engine_packet_process()
     const struct sockaddr * peer_addr = NULL;
     socklen_t peer_addrlen = 0;
 
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER);
+    def_engine_ssl_config;
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
     CU_ASSERT(engine != NULL);
     engine->eng_callback.conn_callbacks.conn_create_notify = xqc_test_conn_create_notify;
     engine->eng_callback.conn_callbacks.conn_close_notify = xqc_test_conn_close_notify;    

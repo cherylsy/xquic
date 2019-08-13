@@ -2,12 +2,12 @@
 #include <unistd.h>
 #include <getopt.h>
 #include "xqc_cmake_config.h"
-#include "../include/xquic.h"
+#include "include/xquic.h"
 #include <event2/event.h>
 #include <memory.h>
 #include "xqc_tls_init.h"
 #include "transport/crypto/xqc_tls_public.h"
-#include "../include/xquic_typedef.h"
+#include "include/xquic_typedef.h"
 #include "transport/xqc_conn.h"
 
 static char server_addr[256] = {0};

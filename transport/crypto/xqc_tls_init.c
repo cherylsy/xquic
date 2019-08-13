@@ -14,7 +14,9 @@
  *@return 0 means successful
  */
 
-int xqc_ssl_init_engine_config(xqc_engine_ssl_config_t *ssl_config, xqc_engine_ssl_config_t * src, xqc_ssl_session_ticket_key_t * session_ticket_key){
+int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * src, xqc_ssl_session_ticket_key_t * session_ticket_key)
+{
+    xqc_engine_ssl_config_t *ssl_config = &engine->ssl_config;
     memset(ssl_config, 0, sizeof(xqc_engine_ssl_config_t));
 
     if(src->private_key_file != NULL && strlen(src->private_key_file) > 0 ){
@@ -54,89 +56,101 @@ int xqc_ssl_init_engine_config(xqc_engine_ssl_config_t *ssl_config, xqc_engine_s
         ssl_config->session_ticket_key_data  = (char *)malloc(src->session_ticket_key_len );
         memcpy(ssl_config->session_ticket_key_data, src->session_ticket_key_data, src->session_ticket_key_len);
         if(xqc_init_session_ticket_keys( session_ticket_key, ssl_config->session_ticket_key_data, ssl_config->session_ticket_key_len) < 0){
-            printf("read session ticket key  error\n");
+            //printf("read session ticket key  error\n");
+            xqc_log(engine->log, XQC_LOG_ERROR, "|read session ticket key  error|");
             return -1;
         }
     }else{
         ssl_config->session_ticket_key_len = 0;
         ssl_config->session_ticket_key_data = NULL;
-        printf("no session ticket key data\n");
+        if(engine->eng_type == XQC_ENGINE_SERVER){
+            xqc_log(engine->log, XQC_LOG_WARN, "|no session ticket key data|");
+        }
     }
     return 0;
 }
 
 
-int xqc_ssl_init_conn_config(xqc_conn_ssl_config_t *ssl_config, xqc_conn_ssl_config_t * src){
+int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src)
+{
+    xqc_conn_ssl_config_t * ssl_config = &(conn->tlsref.conn_ssl_config);
     memset(ssl_config, 0, sizeof(xqc_conn_ssl_config_t));
     if(src->session_ticket_len > 0 ){
         ssl_config->session_ticket_len = src->session_ticket_len;
-        ssl_config->session_ticket_data  = (char *)malloc(src->session_ticket_len + 1);
+        ssl_config->session_ticket_data  = (char *)xqc_malloc(src->session_ticket_len + 1);
+        if(ssl_config->session_ticket_data == NULL){
+            xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_malloc error |");
+            return -1;
+        }
         memcpy(ssl_config->session_ticket_data, src->session_ticket_data, src->session_ticket_len);
         ssl_config->session_ticket_data[src->session_ticket_len] = '\0';
     }else{
         ssl_config->session_ticket_len = 0;
         ssl_config->session_ticket_data = NULL;
-        printf("no session ticket data\n");
+        xqc_log(conn->log, XQC_LOG_WARN, "| no session ticket data |");
     }
 
     if(src->tp_data_len > 0){
         ssl_config->tp_data_len = src->tp_data_len;
-        ssl_config->tp_data  = (char *)malloc(src->tp_data_len + 1 );
+        ssl_config->tp_data  = (char *)xqc_malloc(src->tp_data_len + 1 );
+        if(ssl_config->tp_data == NULL){
+            xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_malloc error | ");
+            return -1;
+        }
         memcpy(ssl_config->tp_data, src->tp_data, src->tp_data_len);
         ssl_config->tp_data[src->tp_data_len] = '\0';
     }else{
         ssl_config->tp_data_len = 0;
         ssl_config->tp_data = NULL;
-        printf("no transport parameter data\n");
+        xqc_log(conn->log, XQC_LOG_WARN, "| no no transport parameter data |");
     }
 
     return 0;
 }
 
-int xqc_tlsref_init(xqc_tlsref_t * tlsref){
+int xqc_tlsref_zero(xqc_tlsref_t * tlsref)
+{
     memset(tlsref, 0 , sizeof(xqc_tlsref_t));
     return 0;
 }
 
 // crypto flag 0 means crypto
 //int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag ){
-int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_conn_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag, uint8_t no_early_data){
+int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_conn_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag, uint8_t no_early_data)
+{
     xqc_tlsref_t * tlsref = & conn->tlsref;
-    xqc_tlsref_init(tlsref);
+
+    xqc_tlsref_zero(tlsref);
 
     tlsref->conn = conn;
-    xqc_ssl_init_conn_config(& tlsref->conn_ssl_config, sc);
-    xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
+    tlsref->initial = 1;
 
-    conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc) ;
-    if(conn->xc_ssl == NULL){
-        printf("create ssl error\n");
+    if(no_early_data == 0){
+        tlsref->no_early_data = 0;
+    }else{
+        tlsref->no_early_data = 1;
+        xqc_log(conn->log, XQC_LOG_WARN, "| no early data set |");
+    }
+
+    if( xqc_ssl_init_conn_config(conn, sc) < 0){
+        xqc_log(conn->log, XQC_LOG_ERROR, "| initial conn config error |");
         return -1;
     }
 
-    tlsref->server = 0;
-    if(no_early_data == 0){
-        tlsref->no_early_data = no_early_data;
-    }else{
-        tlsref->no_early_data = 1;
+    conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc);// connection ssl config, early data flag should initial before call xqc_create_client_ssl
+    if(conn->xc_ssl == NULL){
+        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_create_client_ssl error |");
+        return -1;
     }
 
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
-    xqc_settings_t * settings = & tlsref->local_settings ;
+    xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.pktns.msg_cb_buffer);
 
-    settings->max_stream_data_bidi_local = XQC_256_K;
-    settings->max_stream_data_bidi_remote = XQC_256_K;
-    settings->max_stream_data_uni = XQC_256_K;
-    settings->max_data = XQC_1_M;
-    settings->max_streams_bidi = 1;
-    settings->max_streams_uni = 1;
-    settings->idle_timeout = 30;
-    settings->max_packet_size = XQC_MAX_PKT_SIZE;
-    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
-    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-
+    xqc_trans_settings_t * settings = &conn->local_settings;
     if(no_crypto_flag == 1){
         settings->no_crypto = 1;
     }else{
@@ -157,33 +171,25 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     callbacks->decrypt = xqc_do_decrypt;
     callbacks->in_hp_mask = do_in_hp_mask;
     callbacks->hp_mask = do_hp_mask;
-    callbacks->recv_stream_data = NULL;
-    callbacks->acked_crypto_offset = NULL;
-    callbacks->acked_stream_data_offset = NULL;
-    callbacks->stream_open = NULL;
-    callbacks->stream_close = NULL;
-    callbacks->recv_stateless_reset = NULL;
-    callbacks->recv_retry = NULL;
-    callbacks->extend_max_streams_bidi = NULL;
-    callbacks->extend_max_streams_uni = NULL;
-    callbacks->rand = NULL;
-    callbacks->get_new_connection_id = NULL;
-    callbacks->remove_connection_id = NULL;
     callbacks->update_key = xqc_update_key;
-    callbacks->path_validation = NULL;
+    callbacks->recv_retry = xqc_tls_recv_retry_cb;
 
-
+    xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
     if( (config->tp_data_len > 0) && (config->tp_data != NULL)){
         xqc_transport_params_t params ;
+        memset(&params, 0, sizeof(xqc_transport_params_t));
         if( xqc_read_transport_params(config->tp_data, config->tp_data_len, &params) >= 0){
-            xqc_conn_set_early_remote_transport_params(conn, &params);
+            int ret = xqc_conn_set_early_remote_transport_params(conn, &params);
+            if(ret < 0){
+                xqc_log(conn->log, XQC_LOG_DEBUG, "| set early remote transport params failed | error_code:%d |", ret);
+            }
+        }else{
+            xqc_log(conn->log, XQC_LOG_DEBUG, "| read transport params failed |");
         }
     }
 
-
-
     if(xqc_client_setup_initial_crypto_context(conn, dcid) < 0){
-        printf("error setup initial crypto key\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| error setup initial crypto key |");
         return -1;
     }
 
@@ -193,34 +199,23 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 //int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_ssl_config_t *sc){
 int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_engine_ssl_config_t *sc){
     xqc_tlsref_t * tlsref = & conn->tlsref;
-    xqc_tlsref_init(tlsref);
+    xqc_tlsref_zero(tlsref);
 
     tlsref->conn = conn;
+    tlsref->initial = 1;
+    //conn->local_settings.no_crypto = 1;
     conn->xc_ssl = xqc_create_ssl(engine, conn, XQC_SERVER);
     if(conn->xc_ssl == NULL){
-        printf("create ssl error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create ssl error|");
         return -1;
     }
 
-    tlsref->server = 1;
-    tlsref->initial = 1;
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_head);
-
-    xqc_settings_t *settings = & conn->tlsref.local_settings;
-    settings->max_stream_data_bidi_local = XQC_256_K;
-    settings->max_stream_data_bidi_remote = XQC_256_K;
-    settings->max_stream_data_uni = XQC_256_K;
-    settings->max_data = XQC_1_M;
-    settings->max_streams_bidi = 100;
-    settings->max_streams_uni = 0;
-    settings->idle_timeout = 30;
-    settings->max_packet_size = XQC_MAX_PKT_SIZE;
-    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
-    settings->stateless_reset_token_present = 1;
-    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-    settings->no_crypto = 1;
+    xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_buffer);
+    xqc_init_list_head(& conn->tlsref.pktns.msg_cb_buffer);
 
     tlsref->aead_overhead = XQC_INITIAL_AEAD_OVERHEAD;
 
@@ -236,26 +231,15 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     callbacks->decrypt = xqc_do_decrypt;
     callbacks->in_hp_mask = do_in_hp_mask;
     callbacks->hp_mask = do_hp_mask;
-    callbacks->recv_stream_data = NULL;
-    callbacks->acked_crypto_offset = NULL;
-    callbacks->acked_stream_data_offset = NULL;
-    callbacks->stream_open = NULL;
-    callbacks->stream_close = NULL;
-    callbacks->recv_stateless_reset = NULL;
-    callbacks->recv_retry = NULL;
-    callbacks->extend_max_streams_bidi = NULL;
-    callbacks->extend_max_streams_uni = NULL;
-    callbacks->rand = NULL;
-    callbacks->get_new_connection_id = NULL;
-    callbacks->remove_connection_id = NULL;
     callbacks->update_key = xqc_update_key;   //need finish
-    callbacks->path_validation = NULL;
+
 
     return 0;
 }
 
 //need finish session save
-SSL_CTX *xqc_create_client_ssl_ctx(xqc_engine_ssl_config_t *xs_config) {
+SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config_t *xs_config)
+{
     SSL_CTX * ssl_ctx = SSL_CTX_new(TLS_method());
 
     SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_3_VERSION); //todo: get from config file if needed
@@ -267,13 +251,16 @@ SSL_CTX *xqc_create_client_ssl_ctx(xqc_engine_ssl_config_t *xs_config) {
 
 
     if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
-        printf("SSL_CTX_set_ciphersuites:%s\n", ERR_error_string(ERR_get_error(), nullptr));
-        exit(EXIT_FAILURE);
+        xqc_log(engine->log, XQC_LOG_ERROR, "|create ssl error|SSL_CTX_set_ciphersuites:%s|", ERR_error_string(ERR_get_error(), NULL));
+
+        //exit(EXIT_FAILURE);
+        return NULL;
     }
 
     if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
-        printf("SSL_CTX_set1_groups_list failed\n");
-        exit(EXIT_FAILURE);
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
+        //exit(EXIT_FAILURE);
+        return NULL;
     }
 
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_QUIC_HACK);
@@ -284,18 +271,11 @@ SSL_CTX *xqc_create_client_ssl_ctx(xqc_engine_ssl_config_t *xs_config) {
                 SSL_EXT_CLIENT_HELLO | SSL_EXT_TLS1_3_ENCRYPTED_EXTENSIONS,
                 xqc_client_transport_params_add_cb, xqc_transport_params_free_cb, nullptr,
                 xqc_client_transport_params_parse_cb, nullptr) != 1) {
-        printf("SSL_CTX_add_custom_ext(XQC_TLSEXT_QUIC_TRANSPORT_"
-                "PARAMETERS) failed:%s\n", ERR_error_string(ERR_get_error(), nullptr) );
-        exit(EXIT_FAILURE);
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_add_custom_ext| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
+        //exit(EXIT_FAILURE);
+        return NULL;
     }
 
-    /*
-       if (config.session_file) {
-       SSL_CTX_set_session_cache_mode(
-       ssl_ctx, SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
-       SSL_CTX_sess_set_new_cb(ssl_ctx, new_session_cb);
-       }
-       */
     SSL_CTX_set_session_cache_mode(
             ssl_ctx, SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
     SSL_CTX_sess_set_new_cb(ssl_ctx, xqc_new_session_cb);
@@ -306,7 +286,7 @@ SSL_CTX *xqc_create_client_ssl_ctx(xqc_engine_ssl_config_t *xs_config) {
 /*create ssl_ctx for ssl
  *@return SSL_CTX, if error return null
 */
-SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_ssl_config_t *xs_config){
+SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config_t *xs_config){
 
     SSL_CTX * ssl_ctx = SSL_CTX_new(TLS_method());
 
@@ -322,12 +302,12 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_ssl_config_t *xs_config){
     SSL_CTX_clear_options(ssl_ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
 
     if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
-        printf("SSL_CTX_set_ciphersuites:%s\n", ERR_error_string(ERR_get_error(), nullptr));
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set_ciphersuites| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
     if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
-        printf("SSL_CTX_set1_groups_list failed\n");
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
@@ -338,17 +318,17 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_ssl_config_t *xs_config){
 
     if (SSL_CTX_use_PrivateKey_file(ssl_ctx, xs_config->private_key_file,
                 SSL_FILETYPE_PEM) != 1) {
-        printf("SSL_CTX_use_PrivateKey_file:%s\n", ERR_error_string(ERR_get_error(), nullptr));
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_use_PrivateKey_file| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
     if (SSL_CTX_use_certificate_chain_file(ssl_ctx, xs_config->cert_file) != 1) {
-        printf("SSL_CTX_use_certificate_file:%s\n", ERR_error_string(ERR_get_error(), nullptr));
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_use_PrivateKey_file| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
     if (SSL_CTX_check_private_key(ssl_ctx) != 1) {
-        printf("SSL_CTX_check_private_key:%s\n", ERR_error_string(ERR_get_error(), nullptr) );
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_check_private_key| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
@@ -357,15 +337,14 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_ssl_config_t *xs_config){
                 SSL_EXT_CLIENT_HELLO | SSL_EXT_TLS1_3_ENCRYPTED_EXTENSIONS,
                 xqc_server_transport_params_add_cb, xqc_transport_params_free_cb, nullptr,
                 xqc_server_transport_params_parse_cb, nullptr) != 1) {
-        printf("SSL_CTX_add_custom_ext(XQC_TLSEXT_QUIC_TRANSPORT_"
-                "PARAMETERS) failed: %s\n", ERR_error_string(ERR_get_error(), nullptr) );
+        xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_check_private_key| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
     SSL_CTX_set_max_early_data(ssl_ctx, XQC_UINT32_MAX);//The max_early_data parameter specifies the maximum amount of early data in bytes that is permitted to be sent on a single connection
 
     if(xs_config -> session_ticket_key_len == 0 || xs_config -> session_ticket_key_data == NULL){
-        printf("read ssl session ticket key error\n");
+        xqc_log(engine->log, XQC_LOG_WARN, "| read ssl session ticket key error|");
     }else{
         SSL_CTX_set_tlsext_ticket_key_cb(ssl_ctx, xqc_ssl_session_ticket_key_callback);
     }
@@ -378,24 +357,33 @@ fail:
     return NULL;
 }
 
-int xqc_bio_write(BIO *b, const char *buf, int len) { //never called
+int xqc_bio_write(BIO *b, const char *buf, int len)
+{ //never called
     assert(0);
     return -1;
 }
 
-int xqc_bio_read(BIO *b, char *buf, int len) { //read server handshake data
+int xqc_bio_read(BIO *b, char *buf, int len)
+{ //read server handshake data
     BIO_clear_retry_flags(b);
 
     xqc_connection_t * conn = (xqc_connection_t *) BIO_get_data(b);
-    xqc_hs_buffer_t * p_buff = & conn->tlsref.hs_to_tls_buf;
+    xqc_hs_buffer_t * p_buff = conn->tlsref.hs_to_tls_buf;
+    if(p_buff == NULL){
+        BIO_set_retry_read(b);
+        return -1;
+    }
     //int n = xqc_min(p_buff->data_len, len);
-    if(p_buff->data_len > len){
-        printf("bio buf too small\n");
+    if(p_buff->data_len > len){ //len default value:16K
+        //printf("bio buf too small\n");
         return 0;
     }
     memcpy(buf, p_buff->data, p_buff->data_len);
     int ret_len = p_buff->data_len;
-    p_buff->data_len = 0;
+
+    //should free
+    free(conn->tlsref.hs_to_tls_buf);
+    conn->tlsref.hs_to_tls_buf = NULL;
 
     if(ret_len == 0){
         BIO_set_retry_read(b);
@@ -405,12 +393,13 @@ int xqc_bio_read(BIO *b, char *buf, int len) { //read server handshake data
 }
 
 
-int xqc_client_bio_read(BIO *b, char *buf, int len) { //read server handshake data
-
+int xqc_client_bio_read(BIO *b, char *buf, int len)
+{ //read server handshake data
     return xqc_bio_read(b, buf, len);
 }
 
-int xqc_server_bio_read(BIO *b, char *buf, int len){ // read client handshake data
+int xqc_server_bio_read(BIO *b, char *buf, int len)
+{ // read client handshake data
     return xqc_bio_read(b, buf, len);
 
 }
@@ -419,7 +408,8 @@ int xqc_bio_puts(BIO *b, const char *str) { return xqc_bio_write(b, str, strlen(
 
 int xqc_bio_gets(BIO *b, char *buf, int len) { return -1; }//just for callback
 
-long xqc_bio_ctrl(BIO *b, int cmd, long num, void *ptr) { //just for callback ,do nothing
+long xqc_bio_ctrl(BIO *b, int cmd, long num, void *ptr)
+{ //just for callback ,do nothing
     switch (cmd) {
         case BIO_CTRL_FLUSH:
             return 1;
@@ -428,12 +418,14 @@ long xqc_bio_ctrl(BIO *b, int cmd, long num, void *ptr) { //just for callback ,d
     return 0;
 }
 
-int xqc_bio_create(BIO *b) {  //do creat bio, when handle initialed will be called
+int xqc_bio_create(BIO *b)
+{  //do creat bio, when handle initialed will be called
     BIO_set_init(b, 1);
     return 1;
 }
 
-int xqc_bio_destroy(BIO *b) {//do nothing
+int xqc_bio_destroy(BIO *b)
+{//do nothing
     if (b == nullptr) {
         return 0;
     }
@@ -441,7 +433,8 @@ int xqc_bio_destroy(BIO *b) {//do nothing
     return 1;
 }
 
-BIO_METHOD *xqc_create_bio_method() { //just create bio for openssl
+BIO_METHOD *xqc_create_bio_method()
+{ //just create bio for openssl
     BIO_METHOD * meth = BIO_meth_new(BIO_TYPE_FD, "bio");
     BIO_meth_set_write(meth, xqc_bio_write);
     BIO_meth_set_read(meth, xqc_bio_read);
@@ -453,10 +446,12 @@ BIO_METHOD *xqc_create_bio_method() { //just create bio for openssl
     return meth;
 }
 
-SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag){
-
+SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag)
+{
     SSL *ssl = SSL_new((SSL_CTX *)engine->ssl_ctx);
     if(ssl == NULL){
+
+        xqc_log(conn->log, XQC_LOG_ERROR, "| SSL_new return null | ");
         return NULL;
     }
     BIO * bio = BIO_new(xqc_create_bio_method());
@@ -471,60 +466,57 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag){
     SSL_set_msg_callback(ssl, xqc_msg_cb);
     SSL_set_msg_callback_arg(ssl, conn);
     SSL_set_key_callback(ssl, xqc_tls_key_cb, conn);
-
     return ssl;
-
 }
 
 
-int xqc_set_alpn_proto(SSL * ssl){
+int xqc_set_alpn_proto(SSL * ssl)
+{
     const uint8_t *alpn = nullptr;
     size_t alpnlen;
 
-    alpn = (const uint8_t *)(XQC_ALPN_D17);
-    alpnlen = strlen(XQC_ALPN_D17);
+    alpn = (const uint8_t *)(XQC_ALPN_V1);
+    alpnlen = strlen(XQC_ALPN_V1);
     if (alpn) {
         SSL_set_alpn_protos(ssl, alpn, alpnlen);
     }
     return 0;
 }
 
-SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char * hostname,  xqc_conn_ssl_config_t * sc){
-
+SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char * hostname,  xqc_conn_ssl_config_t * sc)
+{
     SSL *ssl = xqc_create_ssl(engine, conn, XQC_CLIENT);
+
+    if(ssl == NULL){
+        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_create_client_ssl | create ssl error");
+        return NULL;
+    }
+
     // If remote host is numeric address, just send "localhost" as SNI
     // for now.
-
-    char * newhostname = hostname;
     if(xqc_numeric_host(hostname) ){
         SSL_set_tlsext_host_name(ssl, "localhost");  //SNI need finish
-        newhostname = "localhost";
     }else{
         SSL_set_tlsext_host_name(ssl, hostname);
     }
 
-    snprintf(conn->tlsref.hostname,  sizeof(conn->tlsref.hostname), newhostname);
-
     xqc_set_alpn_proto(ssl);
 
-
-    //need finish 0-RTT init
-
-    if( conn->tlsref.no_early_data == 0 &&  sc -> session_ticket_data && sc->session_ticket_len > 0 ){
-        if(xqc_read_session_data(ssl, conn, sc -> session_ticket_data, sc->session_ticket_len) == 0){
+    conn->tlsref.resumption = XQC_FALSE;
+    if( conn->tlsref.no_early_data == 0 && sc->session_ticket_data && sc->session_ticket_len > 0 ){
+        if(xqc_read_session_data(ssl, conn, sc->session_ticket_data, sc->session_ticket_len) == 0){
             conn->tlsref.resumption = XQC_TRUE;
         }
     }
 
     return ssl;
-
-
 }
 
 
 
 
-int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *dcid ) {
+int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *dcid )
+{
     int rv;
 
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0}, secret[INITIAL_SECRET_MAX_LEN]={0};
@@ -533,7 +525,7 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
             (const uint8_t *)(XQC_INITIAL_SALT),
             strlen(XQC_INITIAL_SALT));
     if (rv != 0) {
-        printf("derive_initial_secret() failed\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive initial secret failed | ");
         return -1;
     }
 
@@ -544,7 +536,7 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
             initial_secret,
             sizeof(initial_secret));
     if (rv != 0) {
-        printf("derive_client_initial_secret() failed\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive client initial secret failed | ");
         return -1;
     }
 
@@ -553,24 +545,27 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
     size_t keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection key failed | ");
         return -1;
     }
 
     size_t ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection iv failed | ");
         return -1;
     }
 
     size_t hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet header protection key failed | ");
         return -1;
     }
     //need log
 
     if(xqc_conn_install_initial_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
-        printf("install initial key error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| install initial tx  key failed | ");
         return -1;
     }
 
@@ -578,30 +573,33 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
             initial_secret,
             sizeof(initial_secret));
     if (rv != 0) {
-        printf("derive_server_initial_secret() failed\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive server initial secret failed | ");
         return -1;
     }
 
     keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection key failed | ");
         return -1;
     }
 
     ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection iv failed | ");
         return -1;
     }
 
     hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet header protection key failed | ");
         return -1;
     }
 
     if(xqc_conn_install_initial_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
-        printf("install initial key error\n");
+        xqc_log(conn->log, XQC_LOG_ERROR, "| install initial key error | ");
         return -1;
     }
 

@@ -2,12 +2,11 @@
 #ifndef _XQC_FRAME_PARSER_H_INCLUDED_
 #define _XQC_FRAME_PARSER_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
+#include "include/xquic_typedef.h"
 #include "xqc_frame.h"
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
 #include "xqc_recv_record.h"
-#include "xqc_stream.h"
 
 /**
  * generate stream frame

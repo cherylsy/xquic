@@ -2,9 +2,8 @@
 #ifndef _XQC_PACKET_OUT_H_INCLUDED_
 #define _XQC_PACKET_OUT_H_INCLUDED_
 
-#include "../include/xquic_typedef.h"
+#include "include/xquic_typedef.h"
 #include "xqc_packet.h"
-#include "../common/xqc_memory_pool.h"
 #include "xqc_frame.h"
 
 /*
@@ -16,8 +15,9 @@
    in computing the QUIC maximum packet size to allow for unknown tunnel
    overheads or IP header options/extensions.
  */
-#define XQC_PACKET_OUT_SIZE 1200    //TODO 先写死
-#define XQC_MSS 1500 //TODO
+#define XQC_PACKET_OUT_SIZE 1200    //不含XQC_EXTRA_SPACE XQC_ACK_SPACE
+#define XQC_EXTRA_SPACE 16
+#define XQC_ACK_SPACE 16
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3
 
@@ -73,9 +73,6 @@ int
 xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
 int
-xqc_should_generate_ack(xqc_connection_t *conn);
-
-int
 xqc_write_ack_to_packets(xqc_connection_t *conn);
 
 int
@@ -118,6 +115,6 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
                                  xqc_pkt_type_t pkt_type, uint8_t fin,
                                  const unsigned char *payload, size_t payload_size, size_t *send_data_written);
 void
-xqc_process_buff_packets(xqc_connection_t *conn);
+xqc_write_buff_packets(xqc_connection_t *conn);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

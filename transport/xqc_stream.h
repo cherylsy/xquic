@@ -2,12 +2,9 @@
 #ifndef _XQC_STREAM_H_INCLUDED_
 #define _XQC_STREAM_H_INCLUDED_
 
-#include "xqc_conn.h"
-#include "../include/xquic_typedef.h"
-#include "../include/xquic.h"
-#include "xqc_frame.h"
-#include "../common/xqc_list.h"
-#include "xqc_packet.h"
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
+#include "common/xqc_list.h"
 
 typedef enum {
     XQC_CLI_BID = 0,
@@ -21,6 +18,7 @@ typedef enum {
     XQC_SF_READY_TO_WRITE       = 1 << 0,
     XQC_SF_READY_TO_READ        = 1 << 1,
     XQC_SF_STREAM_DATA_BLOCKED  = 1 << 2,
+    XQC_SF_HAS_0RTT             = 1 << 3,
 } xqc_stream_flag_t;
 
 typedef enum {
@@ -86,19 +84,20 @@ struct xqc_stream_s {
     xqc_connection_t        *stream_conn;
     xqc_stream_id_t         stream_id;
     xqc_stream_id_type_t    stream_id_type;
-    uint64_t                stream_send_offset;
+    void                    *user_data;
+    xqc_stream_callbacks_t  *stream_if;
+
+    xqc_stream_flow_ctl_t   stream_flow_ctl;
+    xqc_stream_write_buff_list_t
+                            stream_write_buff_list; /* 0RTT缓存原始数据 */
     xqc_list_head_t         write_stream_list,
                             read_stream_list,
                             all_stream_list;
-    void                    *user_data;
-    xqc_stream_callbacks_t  *stream_if;
+
+    uint64_t                stream_send_offset;
     xqc_stream_flag_t       stream_flag;
     xqc_encrypt_level_t     stream_encrypt_level;
     xqc_stream_data_in_t    stream_data_in;
-    xqc_stream_write_buff_list_t
-                            stream_write_buff_list;
-
-    xqc_stream_flow_ctl_t   stream_flow_ctl;
     unsigned                stream_unacked_pkt;
     xqc_send_stream_state_t stream_state_send;
     xqc_recv_stream_state_t stream_state_recv;
@@ -149,7 +148,9 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
 int
 xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data);
 
-int xqc_read_crypto_stream(xqc_stream_t * stream);
+int
+xqc_read_crypto_stream(xqc_stream_t * stream);
+
 ssize_t
 xqc_stream_write_buff(xqc_stream_t *stream,
                       unsigned char *send_data,

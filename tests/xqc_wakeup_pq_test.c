@@ -1,6 +1,6 @@
 #include <CUnit/CUnit.h>
 #include "xqc_wakeup_pq_test.h"
-#include "../transport/xqc_wakeup_pq.h"
+#include "transport/xqc_wakeup_pq.h"
 
 
 void xqc_test_wakeup_pq()

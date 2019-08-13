@@ -11,6 +11,7 @@
 #include "common/xqc_list.h"
 #include "include/xquic.h"
 #include "transport/xqc_frame.h"
+//#include "transport/xqc_conn.h"
 #include "xqc_tls_if.h"
 
 #ifdef WORDS_BIGENDIAN
@@ -22,7 +23,6 @@
 
 
 #define XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS 0xffa5u
-#define XQC_MAX_PKT_SIZE  65527 //quic protocol define
 
 #define MAX_HOST_LEN 256
 /*XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
@@ -37,16 +37,21 @@
 #define XQC_CLIENT 0
 
 
-#define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
-#define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
+#define XQC_TLS_EARLY_DATA_ACCEPT (1)
+#define XQC_TLS_EARLY_DATA_REJECT (-1)
+#define XQC_TLS_NO_EARLY_DATA   (0)
 
 
-
-//xquic tls error code
+//xquic tls error code, for call
 #define XQC_EARLY_DATA_REJECT (-701)
 
 #define XQC_ENCRYPT_DATA_ERROR  (-790)
 #define XQC_DECRYPT_DATA_ERROR  (-791)
+
+#define XQC_TLS_CLIENT_INITIAL_ERROR (-710)
+#define XQC_TLS_CLIENT_REINTIAL_ERROR (-711)
+
+
 
 #define XQC_NONCE_LEN   32
 #define XQC_UINT32_MAX  (0xffffffff)
@@ -159,51 +164,26 @@ typedef enum {
     XQC_PKT_FLAG_KEY_PHASE = 0x04
 } xqc_pkt_flag;
 
-/*@struct address
- * */
+#if 0
 typedef struct {
-    xqc_cid_t cid;
-    /* ip_addresslen is the length of ip_address. */
-    size_t ip_addresslen;
-    uint16_t port;
-    /* ip_version is the version of IP address.  It should be one of the
-     * defined values in :type:`xqc_ip_version`.
-     *:enum:`XQC_IP_VERSION_NONE` indicates that no preferred
-     *address is set and the other fields are ignored. */
-    uint8_t ip_version;
-    uint8_t ip_address[255];
-    uint8_t stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-} xqc_preferred_addr_t;
-
-typedef struct {
-    union {
-        struct {
-            uint32_t initial_version;
-        } ch;
-        struct {
-            uint32_t negotiated_version;
-            uint32_t supported_versions[63];
-            size_t len;
-        } ee;
-    } v;
-    xqc_preferred_addr_t preferred_address;
-    xqc_cid_t original_connection_id;
-    uint64_t initial_max_stream_data_bidi_local;
-    uint64_t initial_max_stream_data_bidi_remote;
-    uint64_t initial_max_stream_data_uni;
-    uint64_t initial_max_data;
-    uint64_t initial_max_streams_bidi;
-    uint64_t initial_max_streams_uni;
-    uint64_t idle_timeout;
-    uint64_t max_packet_size;
-    uint8_t stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-    uint8_t stateless_reset_token_present;
-    uint64_t ack_delay_exponent;
-    uint8_t disable_migration;
-    uint8_t original_connection_id_present;
-    uint64_t max_ack_delay;
-    uint16_t no_crypto;
+    xqc_cid_t               original_connection_id;
+    xqc_msec_t              idle_timeout;
+    xqc_buf_t               stateless_reset_token;
+    uint32_t                max_packet_size;
+    uint64_t                initial_max_data;
+    uint64_t                initial_max_stream_data_bidi_local;
+    uint64_t                initial_max_stream_data_bidi_remote;
+    uint64_t                initial_max_stream_data_uni;
+    uint64_t                initial_max_streams_bidi;
+    uint64_t                initial_max_streams_uni;
+    uint32_t                ack_delay_exponent;
+    xqc_msec_t              max_ack_delay;
+    xqc_flag_t              disable_migration;
+    xqc_preferred_address_t preferred_addr;
+    uint16_t                no_crypto;
 } xqc_transport_params_t;
+#endif
+
 
 typedef enum {
     XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
@@ -212,24 +192,6 @@ typedef enum {
 
 
 
-typedef struct {
-    xqc_preferred_addr_t preferred_address;
-    //xqc_tstamp initial_ts;
-    uint64_t max_stream_data_bidi_local;
-    uint64_t max_stream_data_bidi_remote;
-    uint64_t max_stream_data_uni;
-    uint64_t max_data;
-    uint64_t max_streams_bidi;
-    uint64_t max_streams_uni;
-    uint64_t idle_timeout;
-    uint64_t max_packet_size;
-    uint8_t stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-    uint8_t stateless_reset_token_present;
-    uint64_t ack_delay_exponent;
-    uint8_t disable_migration;
-    uint64_t max_ack_delay;
-    uint16_t no_crypto;
-} xqc_settings_t;
 
 
 
@@ -270,20 +232,9 @@ typedef struct {
      */
     xqc_hp_mask_t hp_mask;
 
-    xqc_recv_stream_data recv_stream_data;
-    xqc_acked_crypto_offset acked_crypto_offset;
-    xqc_acked_stream_data_offset acked_stream_data_offset;
-    xqc_stream_open stream_open;
-    xqc_stream_close stream_close;
-    xqc_recv_stateless_reset recv_stateless_reset;
-    xqc_recv_retry recv_retry;
-    xqc_extend_max_streams extend_max_streams_bidi;
-    xqc_extend_max_streams extend_max_streams_uni;
-    xqc_rand rand;
-    xqc_get_new_connection_id get_new_connection_id;
-    xqc_remove_connection_id remove_connection_id;
     xqc_update_key_t update_key;
-    xqc_path_validation path_validation;
+
+    xqc_recv_retry recv_retry;
 } xqc_tls_callbacks_t;
 
 /**
@@ -339,6 +290,7 @@ typedef struct {
     xqc_vec_t  tx_hp;
 
     xqc_list_head_t  msg_cb_head;
+    xqc_list_head_t  msg_cb_buffer;
 }xqc_pktns_t;
 
 //for temporary
@@ -346,18 +298,18 @@ typedef struct {
 struct xqc_hs_buffer{
     xqc_list_head_t list_head;
     //uint16_t read_n;
-    uint16_t data_len;
-    char data[MAX_HS_BUFFER];
+    size_t data_len;
+    char data[];
 };
 typedef struct xqc_hs_buffer xqc_hs_buffer_t;
 
 
-static inline xqc_hs_buffer_t * xqc_create_hs_buffer(){
+static inline xqc_hs_buffer_t * xqc_create_hs_buffer(int buf_size){
 
-    xqc_hs_buffer_t * p_buf = malloc(sizeof(xqc_hs_buffer_t));
+    xqc_hs_buffer_t * p_buf = malloc(sizeof(xqc_hs_buffer_t) + buf_size);
     if(p_buf == NULL)return NULL;
     xqc_init_list_head(&p_buf->list_head);
-    p_buf->data_len = 0;
+    p_buf->data_len = buf_size;
     return p_buf;
 }
 
@@ -372,35 +324,27 @@ typedef struct {
 }xqc_data_buffer_t;
 
 //callback function
-typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
-typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
 typedef int  (*xqc_read_session_cb_t )(char ** data);
 
-typedef int (*xqc_early_data_reject_cb_t)(xqc_connection_t *conn);
+typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means early data accept, 0 means early data reject
 
 struct xqc_tlsref{
-    xqc_connection_t       * conn;
-    int server;
-    int initial;
-    char  hostname[MAX_HOST_LEN];
-    uint8_t resumption;
-    uint8_t no_early_data;
-    unsigned int flags;
-    uint64_t max_local_stream_id_bidi;
-    uint64_t max_local_stream_id_uni;
-    xqc_settings_t local_settings;
-    xqc_settings_t remote_settings;
+    xqc_connection_t        *conn;
+    uint8_t                 initial;
+    uint8_t                 resumption;
+    uint8_t                 no_early_data;
+    uint64_t                flags;
 
-    uint32_t aead_overhead;  //aead for gcm or chacha
+    uint32_t                aead_overhead;  //aead for gcm or chacha
 
-    xqc_tls_context_t          crypto_ctx; /* prf and aead */
-    xqc_tls_context_t          hs_crypto_ctx;
-    xqc_pktns_t            initial_pktns; // initial packet space key
-    xqc_pktns_t            hs_pktns; // handshake packet space  key
-    xqc_pktns_t            pktns; //application packet space key
+    xqc_tls_context_t       hs_crypto_ctx;
+    xqc_tls_context_t       crypto_ctx; /* prf and aead */
+    xqc_pktns_t             initial_pktns; // initial packet space key
+    xqc_pktns_t             hs_pktns; // handshake packet space  key
+    xqc_pktns_t             pktns; //application packet space key
 
-    xqc_crypto_km_t        early_ckm;
-    xqc_vec_t              early_hp;
+    xqc_crypto_km_t         early_ckm;
+    xqc_vec_t               early_hp;
 
     xqc_crypto_km_t        new_tx_ckm;
     xqc_crypto_km_t        new_rx_ckm;
@@ -409,9 +353,7 @@ struct xqc_tlsref{
     xqc_vec_t              tx_secret;
     xqc_vec_t              rx_secret;
 
-    //xqc_data_buffer_t      hello_data;
-    xqc_hs_buffer_t        hs_to_tls_buf;
-    xqc_hs_buffer_t        hs_msg_cb_buf;
+    xqc_hs_buffer_t        * hs_to_tls_buf;
 
     xqc_conn_ssl_config_t  conn_ssl_config;
 
@@ -422,7 +364,7 @@ struct xqc_tlsref{
     void *                  tp_user_data;
     void *                  session_user_data;
 
-    xqc_early_data_reject_cb_t  early_data_reject_cb;
+    xqc_early_data_cb_t    early_data_cb;
 
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
@@ -567,7 +509,7 @@ static inline uint64_t xqc_nth_client_uni_id(uint64_t n) {
 static inline int xqc_check_numeric_host(const char *hostname, int family) {
   int rv;
   uint8_t dst[32];
-  rv = inet_pton(family, hostname, dst);
+  rv = inet_pton(family, hostname, dst); // ip transfer success return 1, else return 0 or -1
   return rv == 1;
 }
 
@@ -711,6 +653,7 @@ static inline void hex_print(char *p, size_t n)
         }
     }
 }
+
 
 
 

@@ -13,6 +13,9 @@
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
 
+#define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
+#define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
+
 typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
 typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
 
@@ -22,6 +25,10 @@ typedef int (*xqc_conn_notify_pt)(xqc_cid_t *cid, void *user_data);
 
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_handshake_finished_pt)(xqc_cid_t *cid, void *user_data);
+
+//session save callback
+typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
+typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
 
 struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
@@ -121,6 +128,10 @@ struct xqc_conn_settings_s {
     int     pacing_on;
 };
 
+typedef enum {
+    XQC_ENG_FLAG_RUNNING    = 1 << 0,
+} xqc_engine_flag_t;
+
 typedef struct xqc_engine_s {
     xqc_engine_type_t       eng_type;
 
@@ -128,8 +139,8 @@ typedef struct xqc_engine_s {
     xqc_config_t           *config;
     xqc_str_hash_table_t   *conns_hash; /*scid*/
     xqc_str_hash_table_t   *conns_hash_dcid; /*For reset packet*/
-    xqc_pq_t               *conns_pq; /* In process */
-    xqc_wakeup_pq_t        *conns_wakeup_pq; /* Need wakeup after next tick time */
+    xqc_pq_t               *conns_active_pq; /* In process */
+    xqc_wakeup_pq_t        *conns_wait_wakeup_pq; /* Need wakeup after next tick time */
 
     xqc_conn_settings_t    conn_settings;
 
@@ -142,6 +153,7 @@ typedef struct xqc_engine_s {
     xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
     xqc_ssl_session_ticket_key_t  session_ticket_key;
 
+    xqc_engine_flag_t       engine_flag;
 }xqc_engine_t;
 
 
@@ -165,7 +177,11 @@ xqc_engine_init (xqc_engine_t *engine,
                  void *event_timer);
 
 
-xqc_cid_t * xqc_connect(xqc_engine_t *engine, void *user_data, unsigned char *token, unsigned token_len, char *server_host, int no_crypto_flag, uint8_t no_early_data_flag, xqc_conn_ssl_config_t * conn_ssl_config );
+xqc_cid_t * xqc_connect(xqc_engine_t *engine, void *user_data,
+                        unsigned char *token, unsigned token_len,
+                        char *server_host, int no_crypto_flag,
+                        uint8_t no_early_data_flag,
+                        xqc_conn_ssl_config_t * conn_ssl_config );
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
@@ -173,7 +189,7 @@ int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
-xqc_stream_t* xqc_create_stream (xqc_engine_t *engine,
+xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
                                  xqc_cid_t *cid,
                                  void *user_data);
 
@@ -181,7 +197,7 @@ xqc_stream_t* xqc_create_stream (xqc_engine_t *engine,
  * Close stream.
  * @retval XQC_OK or XQC_ERROR
  */
-int xqc_close_stream (xqc_engine_t *engine,
+int xqc_stream_close (xqc_engine_t *engine,
                      xqc_cid_t *cid,
                      uint64_t stream_id);
 
@@ -222,11 +238,14 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                void *user_data);
 
 /**
- * User should call xqc_conn_write_handler when write event ready
+ * User should call xqc_conn_continue_send when write event ready
  */
 int
-xqc_conn_write_handler(xqc_engine_t *engine, xqc_cid_t *cid);
+xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid);
 
+
+int xqc_set_save_tp_cb(xqc_engine_t *engine, xqc_cid_t * cid, xqc_save_tp_cb_t  cb, void * user_data);
+int xqc_set_save_session_cb(xqc_engine_t  *engine, xqc_cid_t *cid, xqc_save_session_cb_t  cb, void * user_data);
 
 
 #endif /* _XQUIC_H_INCLUDED_ */
