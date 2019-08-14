@@ -6,14 +6,12 @@
 #include "xqc_conn.h"
 #include "xqc_stream.h"
 
-
-
-xqc_cid_t *
-xqc_connect(xqc_engine_t *engine, void *user_data,
-            unsigned char *token, unsigned token_len,
-            char *server_host, int no_crypto_flag,
-            uint8_t no_early_data_flag,
-            xqc_conn_ssl_config_t * conn_ssl_config )
+xqc_connection_t *
+xqc_client_connect(xqc_engine_t *engine, void *user_data,
+                   unsigned char *token, unsigned token_len,
+                   char *server_host, int no_crypto_flag,
+                   uint8_t no_early_data_flag,
+                   xqc_conn_ssl_config_t *conn_ssl_config)
 {
     xqc_cid_t dcid;
     xqc_cid_t scid;
@@ -29,7 +27,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
         || xqc_generate_cid(engine, &dcid) != XQC_OK)
     {
         xqc_log(engine->log, XQC_LOG_WARN,
-                        "|generate dcid or scid error|");
+                "|generate dcid or scid error|");
         goto fail;
     }
 
@@ -38,11 +36,12 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
     memset(dcid.cid_buf, 0xDD, dcid.cid_len);
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
-                    &callbacks, &engine->conn_settings, server_host, no_crypto_flag, no_early_data_flag, conn_ssl_config, user_data);
+                                                        &callbacks, &engine->conn_settings, server_host,
+                                                        no_crypto_flag, no_early_data_flag, conn_ssl_config, user_data);
 
     if (xc == NULL) {
         xqc_log(engine->log, XQC_LOG_WARN,
-                        "|create connection error|");
+                "|create connection error|");
         goto fail;
     }
 
@@ -55,7 +54,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
             "|xqc_connect|");
 
     if (xc->conn_callbacks.conn_create_notify) {
-        if (xc->conn_callbacks.conn_create_notify(&xc->scid, user_data)) {
+        if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
             xqc_conn_destroy(xc);
             goto fail;
         }
@@ -65,9 +64,25 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
         xqc_engine_main_logic(engine);
     }
 
-    return &xc->scid;
+    return xc;
 
 fail:
+    return NULL;
+}
+
+xqc_cid_t *
+xqc_connect(xqc_engine_t *engine, void *user_data,
+            unsigned char *token, unsigned token_len,
+            char *server_host, int no_crypto_flag,
+            uint8_t no_early_data_flag,
+            xqc_conn_ssl_config_t *conn_ssl_config)
+{
+    xqc_connection_t *conn;
+    conn = xqc_client_connect(engine, user_data, token, token_len,
+                       server_host, no_crypto_flag, no_early_data_flag, conn_ssl_config);
+    if (conn) {
+        return &conn->scid;
+    }
     return NULL;
 }
 
