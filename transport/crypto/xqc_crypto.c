@@ -6,7 +6,7 @@
 #include "common/xqc_config.h"
 #include "xqc_tls_cb.h"
 
-#define XQC_FAKE_AEAD_OVERHEAD 16
+#define XQC_FAKE_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 
 /*xqc_negotiated_prf stores the negotiated PRF(pseudo random function) by TLS into ctx.
  *@param
@@ -466,9 +466,11 @@ ssize_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen) {
 
+    if(dest != plaintext){
+        memmove(dest, plaintext, plaintextlen);
+    }
     return (size_t)plaintextlen + XQC_FAKE_AEAD_OVERHEAD;
 }
-
 ssize_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t plaintextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
