@@ -504,4 +504,5 @@ int xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn);
 
 int xqc_tls_free_tlsref(xqc_connection_t * conn);
 int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid);
+int xqc_tls_free_msg_cb_buffer(xqc_connection_t * conn);
 #endif

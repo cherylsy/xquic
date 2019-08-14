@@ -16,6 +16,8 @@
 #define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 #define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
 
+#define XQC_TLS_AEAD_OVERHEAD_MAX_LEN 16
+
 typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
 typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
 

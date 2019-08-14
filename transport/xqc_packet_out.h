@@ -16,7 +16,7 @@
    overheads or IP header options/extensions.
  */
 #define XQC_PACKET_OUT_SIZE 1200    //不含XQC_EXTRA_SPACE XQC_ACK_SPACE
-#define XQC_EXTRA_SPACE 16
+#define XQC_EXTRA_SPACE XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 #define XQC_ACK_SPACE 16
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3
