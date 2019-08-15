@@ -73,7 +73,7 @@ xqc_crypto_frame_header_size (uint64_t offset, size_t length)
 }
 
 xqc_int_t
-xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *stream_frame)
+xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *new_frame)
 {
 
     //insert xqc_stream_frame_t into stream->stream_data_in.frames_tailq in order of offset
@@ -83,20 +83,33 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
     xqc_list_for_each_reverse(pos, &stream->stream_data_in.frames_tailq) {
         frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
-        if (stream_frame->data_offset >= frame->data_offset + frame->data_length) {
-            xqc_list_add(&stream_frame->sf_list, pos); //TODO: 判断是否有重复，和merge后的重复
+        if (xqc_max(frame->data_offset, new_frame->data_offset) <
+                xqc_min(frame->data_offset + frame->data_length, new_frame->data_offset + new_frame->data_length)) {
+            /*
+             *      |-----------|   frame
+             * |-----------|        new_frame
+             *        |------------|new_frame
+             *        |----|        new_frame
+             * |-------------------|new_frame
+             */
+            xqc_log(conn->log, XQC_LOG_ERROR, "|is overlap|");
+            return -XQC_EOFFSET;
+        }
+
+        if (new_frame->data_offset >= frame->data_offset + frame->data_length) {
+            xqc_list_add(&new_frame->sf_list, pos);
             inserted = 1;
             break;
         }
     }
     if (!inserted) {
-        xqc_list_add(&stream_frame->sf_list, &stream->stream_data_in.frames_tailq);
+        xqc_list_add(&new_frame->sf_list, &stream->stream_data_in.frames_tailq);
     }
 
     //merge
-    if (stream->stream_data_in.merged_offset_end == stream_frame->data_offset) {
-        stream->stream_data_in.merged_offset_end = stream_frame->data_offset + stream_frame->data_length;
-        xqc_list_for_each(pos, &stream_frame->sf_list) {
+    if (stream->stream_data_in.merged_offset_end == new_frame->data_offset) {
+        stream->stream_data_in.merged_offset_end = new_frame->data_offset + new_frame->data_length;
+        xqc_list_for_each(pos, &new_frame->sf_list) {
             frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
             if (stream->stream_data_in.merged_offset_end == frame->data_offset) {
                 stream->stream_data_in.merged_offset_end = frame->data_offset + frame->data_length;
@@ -345,7 +358,9 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
 
-    /*  check token */
+    /*  check token
+     *  initial+ack时不校验token，因此在解crypto时校验
+     * */
     if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
             && conn->conn_type == XQC_CONN_TYPE_SERVER
             && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {

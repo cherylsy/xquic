@@ -23,10 +23,10 @@ typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len
 
 typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
-typedef int (*xqc_conn_notify_pt)(xqc_cid_t *cid, void *user_data);
+typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
 
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
-typedef int (*xqc_handshake_finished_pt)(xqc_cid_t *cid, void *user_data);
+typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 //session save callback
 typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
@@ -128,6 +128,7 @@ typedef struct xqc_conn_ssl_config  xqc_conn_ssl_config_t;
 
 struct xqc_conn_settings_s {
     int     pacing_on;
+    int     h3;
 };
 
 typedef enum {
@@ -179,13 +180,19 @@ xqc_engine_init (xqc_engine_t *engine,
                  void *event_timer);
 
 
-xqc_cid_t * xqc_connect(xqc_engine_t *engine, void *user_data,
+xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
                         unsigned char *token, unsigned token_len,
                         char *server_host, int no_crypto_flag,
                         uint8_t no_early_data_flag,
-                        xqc_conn_ssl_config_t * conn_ssl_config );
+                        xqc_conn_ssl_config_t *conn_ssl_config);
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
+
+xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
+                          unsigned char *token, unsigned token_len,
+                          char *server_host, int no_crypto_flag,
+                          uint8_t no_early_data_flag,
+                          xqc_conn_ssl_config_t *conn_ssl_config);
 
 /**
  * Create new stream in quic connection.
@@ -227,7 +234,7 @@ void xqc_engine_main_logic (xqc_engine_t *engine);
 
 /**
  * Pass received UDP packet payload into xquic engine.
- * @param recv_time   UDP packet recieved time in millisecond
+ * @param recv_time   UDP packet recieved time in microsecond
  */
 int xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,

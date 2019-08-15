@@ -141,13 +141,13 @@ xqc_stream_create (xqc_engine_t *engine,
 
     conn = xqc_engine_conns_hash_find(engine, cid, 's');
     if (!conn) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection");
+        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
         return NULL;
     }
 
     stream = xqc_create_stream_with_conn(conn, user_data);
     if (!stream) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection");
+        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
         return NULL;
     }
 
@@ -236,6 +236,7 @@ xqc_server_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
     xqc_id_hash_element_t e = {stream->stream_id, stream};
     if (xqc_id_hash_add(conn->streams_hash, e)) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_id_hash_add error|");
+        xqc_destroy_stream(stream);
         return NULL;
     }
     return stream;

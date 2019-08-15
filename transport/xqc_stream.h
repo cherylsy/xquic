@@ -5,6 +5,7 @@
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
 #include "common/xqc_list.h"
+#include "xqc_packet.h"
 
 typedef enum {
     XQC_CLI_BID = 0,

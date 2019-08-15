@@ -20,6 +20,15 @@ include_directories(
 )
 
 set(
+    HTTP3_SOURCES
+
+    http3/xqc_h3_conn.c
+    http3/xqc_h3_stream.c
+    http3/xqc_h3_request.c
+    http3/xqc_h3_frame.c
+)
+
+set(
     TRANSPORT_SOURCES
 
     transport/xqc_engine.c
@@ -66,6 +75,7 @@ add_library(
 
     STATIC
 
+    ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}

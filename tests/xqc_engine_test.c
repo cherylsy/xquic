@@ -36,12 +36,12 @@ void xqc_test_engine_create()
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
 
-int xqc_test_conn_create_notify(xqc_cid_t *cid, void *user_data)
+int xqc_test_conn_create_notify(xqc_connection_t *conn, void *user_data)
 {
     return XQC_OK;
 }
 
-int xqc_test_conn_close_notify(xqc_cid_t *cid, void *user_data)
+int xqc_test_conn_close_notify(xqc_connection_t *conn, void *user_data)
 {
     return XQC_OK;
 }
