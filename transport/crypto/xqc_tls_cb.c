@@ -29,7 +29,7 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             //update traffic key ,should completed
 
             if(conn->conn_type == XQC_CONN_TYPE_SERVER){
-                if(conn->tlsref.rx_secret.base != NULL){
+                if(conn->tlsref.rx_secret.base != NULL){ // should xqc_vec_free ? if rx_secret already has value, it means connection status error
                     xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
                 }
                 if(xqc_vec_assign(&conn->tlsref.rx_secret, secret, secretlen) < 0){
@@ -89,33 +89,32 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
         }
     }
 
-    uint8_t key[64] = {0}, iv[64] = {0}, hp[64] = {0}; //need check 64 bytes enough?
-    size_t keylen = xqc_derive_packet_protection_key(
+    uint8_t key[64] = {0}, iv[64] = {0}, hp[64] = {0}; //need check 64 bytes enough
+    ssize_t keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, secretlen, & conn->tlsref.crypto_ctx);
     if (keylen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_key failed|ret code:%d|", keylen);
         return -1;
     }
 
-    size_t ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret,
+    ssize_t ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret,
             secretlen, & conn->tlsref.crypto_ctx);
     if (ivlen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed| ret code:%d", ivlen);
-
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
         return -1;
     }
 
-    size_t hplen = xqc_derive_header_protection_key(
+    ssize_t hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, secretlen, & conn->tlsref.crypto_ctx);
 
     if (hplen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed| ret code:%d", hplen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed| ret code:%d|", hplen);
         return -1;
     }
 
     // TODO Just call this once.
     xqc_conn_set_aead_overhead(conn, xqc_aead_max_overhead(& conn->tlsref.crypto_ctx));
-    if(conn->tlsref.aead_overhead > XQC_INITIAL_AEAD_OVERHEAD){
+    if(conn->tlsref.aead_overhead < 0 || conn->tlsref.aead_overhead > XQC_INITIAL_AEAD_OVERHEAD){
         xqc_log(conn->log, XQC_LOG_ERROR, "|aead_overhead set too big| aead_overhead:%d|", conn->tlsref.aead_overhead);
         return -1;
     }
@@ -267,23 +266,23 @@ void xqc_msg_cb(int write_p, int version, int content_type, const void *buf,
         case SSL3_RT_HANDSHAKE:
             break;
         case SSL3_RT_ALERT:
-            assert(len == 2);
+            //assert(len == 2);
             if (msg[0] != 2 /* FATAL */) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content error|");
                 return;
             }
             //set_tls_alert(msg[1]); //need finish
-            xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content_type error|content_type:%d|", content_type);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content_type error, may use error openssl version|content_type:%d|", content_type);
             return;
         default:
-            xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content_type error|content_type:%d |", content_type);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|msg cb content_type error, may use error openssl version |content_type:%d |", content_type);
             return;
     }
 
     rv = xqc_msg_cb_handshake(conn, buf, len);
 
-    if(rv < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|client do  handshare failed|");
+    if(rv != 0){
+        xqc_log(conn->log, XQC_LOG_ERROR, "| do  handshare failed|");
     }
     //assert(0 == rv);
 }
@@ -698,33 +697,6 @@ int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
 }
 
 
-#if 0
-static void conn_sync_stream_id_limit(xqc_connection_t *conn) {
-    if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-        conn->tlsref.max_local_stream_id_bidi =
-            xqc_nth_server_bidi_id(conn->tlsref.remote_settings.max_streams_bidi);
-        conn->tlsref.max_local_stream_id_bidi =
-            xqc_min(conn->tlsref.max_local_stream_id_bidi, XQC_MAX_SERVER_ID_BIDI);
-
-        conn->tlsref.max_local_stream_id_uni =
-            xqc_nth_server_uni_id(conn->tlsref.remote_settings.max_streams_uni);
-        conn->tlsref.max_local_stream_id_uni =
-            xqc_min(conn->tlsref.max_local_stream_id_uni, XQC_MAX_SERVER_ID_UNI);
-    } else {
-        conn->tlsref.max_local_stream_id_bidi =
-            xqc_nth_client_bidi_id(conn->tlsref.remote_settings.max_streams_bidi);
-        conn->tlsref.max_local_stream_id_bidi =
-            xqc_min(conn->tlsref.max_local_stream_id_bidi, XQC_MAX_CLIENT_ID_BIDI);
-
-        conn->tlsref.max_local_stream_id_uni =
-            xqc_nth_client_uni_id(conn->tlsref.remote_settings.max_streams_uni);
-        conn->tlsref.max_local_stream_id_uni =
-            xqc_min(conn->tlsref.max_local_stream_id_uni, XQC_MAX_CLIENT_ID_UNI);
-    }
-}
-#endif
-
-
 int xqc_conn_set_remote_transport_params(
         xqc_connection_t *conn, uint8_t exttype, const xqc_transport_params_t *params)
 {
@@ -876,11 +848,12 @@ ssize_t xqc_encode_transport_params(uint8_t *dest, size_t destlen,
                 len += 20;
             }
             if (params->preferred_address.ip_version != XQC_IP_VERSION_NONE) {
-                assert(params->preferred_address.ip_addresslen >= 4);
-                assert(params->preferred_address.ip_addresslen < 256);
-                assert(params->preferred_address.cid.cid_len == 0 ||
-                        params->preferred_address.cid.cid_len >= XQC_MIN_CID_LEN);
-                assert(params->preferred_address.cid.cid_len <= XQC_MAX_CID_LEN);
+                if(params->preferred_address.ip_addresslen < 4 || params->preferred_address.ip_addresslen >= 256
+                      || ( params->preferred_address.cid.cid_len != 0 && params->preferred_address.cid.cid_len < XQC_MIN_CID_LEN)
+                      || params->preferred_address.cid.cid_len > XQC_MAX_CID_LEN){
+
+                    return -1;
+                }
                 preferred_addrlen =
                     1 /* ip_version */ + 1 +
                     params->preferred_address.ip_addresslen /* ip_address */ +
@@ -1077,23 +1050,12 @@ ssize_t xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     }
 
 
-    assert((size_t)(p - dest) == len);
+    if((size_t)(p - dest) != len){
+        return -1;
+    }
 
-    return (size_t)len;
+    return (ssize_t)len;
 }
-
-
-/*
-   int xqc_client_transport_param_add_cb(SSL *ssl, unsigned int ext_type,
-   unsigned int context, const unsigned char **out,
-   size_t *outlen, X509 *x, size_t chainidx, int *al,
-   void *add_arg) {
-   int rv;
-   xqc_connection_t * conn = (xqc_connection_t *)(SSL_get_app_data(ssl));
-
-   xqc_transport_params_t params;
-   }
-   */
 
 
 #define XQC_TRANSPORT_PARAM_BUF_LEN (512)
@@ -1164,7 +1126,6 @@ int xqc_client_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
         return -1;
     }
 
-    size_t bufsize = 64;
     uint8_t *buf = malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 
     ssize_t nwrite = xqc_encode_transport_params(
@@ -1252,13 +1213,6 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
     return 1;
 }
 
-//need finish
-int xqc_client_handshake_completed(xqc_connection_t * conn)
-{
-
-    return 1;
-}
-
 
 int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params)
 {
@@ -1308,7 +1262,7 @@ int xqc_do_update_key(xqc_connection_t *conn)
     xqc_tlsref_t *tlsref = &conn->tlsref;
     int secretlen = xqc_update_traffic_secret(secret, sizeof(secret), tlsref->tx_secret.base, tlsref->tx_secret.len, & tlsref->crypto_ctx);
     if(secretlen < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_update_traffic_secret  failed |ret code:%d ", secretlen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_update_traffic_secret  failed |ret code:%d |", secretlen);
         return -1;
     }
 
@@ -1393,6 +1347,7 @@ int xqc_update_key(xqc_connection_t *conn, void *user_data){
         xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_do_update_key failed|");
         return -1;
     }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|key update|");
     return 0;
 }
 

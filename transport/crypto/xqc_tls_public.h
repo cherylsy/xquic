@@ -21,6 +21,7 @@
     ((uint64_t)(ntohl((uint32_t)(N))) << 32 | ntohl((uint32_t)((N) >> 32)))
 #endif /* !WORDS_BIGENDIAN */
 
+#define MAX_VALINT_VALUE 4611686018427387904ULL
 
 #define XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS 0xffa5u
 
@@ -335,7 +336,7 @@ struct xqc_tlsref{
     uint8_t                 no_early_data;
     uint64_t                flags;
 
-    uint32_t                aead_overhead;  //aead for gcm or chacha
+    int64_t                aead_overhead;  //aead for gcm or chacha
 
     xqc_tls_context_t       hs_crypto_ctx;
     xqc_tls_context_t       crypto_ctx; /* prf and aead */
@@ -390,7 +391,6 @@ static inline uint32_t xqc_get_uint32(const uint8_t *p) {
 
 
 static inline void xqc_cid_init(xqc_cid_t *cid, const uint8_t *data, size_t datalen) {
-    assert(datalen <= sizeof(cid->cid_buf));
 
     cid->cid_len = datalen;
     if (datalen) {
@@ -414,7 +414,7 @@ static inline size_t xqc_put_varint_len(uint64_t n) {
   if (n < 1073741824) {
     return 4;
   }
-  assert(n < 4611686018427387904ULL);
+  //assert(n < 4611686018427387904ULL);
   return 8;
 }
 
@@ -463,7 +463,7 @@ static inline uint8_t *xqc_put_varint(uint8_t *p, uint64_t n) {
     *p |= 0x80;
     return rv;
   }
-  assert(n < 4611686018427387904ULL);
+  //assert(n < 4611686018427387904ULL);
   rv = xqc_put_uint64be(p, n);
   *p |= 0xc0;
   return rv;
@@ -548,7 +548,6 @@ static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
             return bswap64(n.n64);
     }
 
-    assert(0);
 }
 
 static inline size_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,
