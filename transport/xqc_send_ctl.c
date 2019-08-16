@@ -303,12 +303,12 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
                     stream = packet_out->po_stream_frames[i].ps_stream;
                     if (stream != NULL) {
                         stream->stream_unacked_pkt++;
-                        if (stream->stream_state_send == XQC_SSS_READY) {
-                            stream->stream_state_send = XQC_SSS_SEND;
+                        if (stream->stream_state_send == XQC_SEND_STREAM_ST_READY) {
+                            stream->stream_state_send = XQC_SEND_STREAM_ST_SEND;
                         }
                         if (packet_out->po_stream_frames[i].ps_has_fin
-                                && stream->stream_state_send == XQC_SSS_SEND) {
-                            stream->stream_state_send = XQC_SSS_DATA_SENT;
+                                && stream->stream_state_send == XQC_SEND_STREAM_ST_SEND) {
+                            stream->stream_state_send = XQC_SEND_STREAM_ST_DATA_SENT;
                         }
                     } else {
                         break;
@@ -633,8 +633,8 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
                     break;
                 }
 
-                if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SSS_DATA_SENT) {
-                    stream->stream_state_send = XQC_SSS_DATA_RECVD;
+                if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_SENT) {
+                    stream->stream_state_send = XQC_SEND_STREAM_ST_DATA_RECVD;
                     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream enter DATA RECVD|");
                 }
             }
@@ -643,8 +643,8 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
             for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
                 stream = packet_out->po_stream_frames[i].ps_stream;
                 if (stream != NULL && packet_out->po_stream_frames[i].ps_is_reset) {
-                    if (stream->stream_state_send == XQC_SSS_RESET_SENT) {
-                        stream->stream_state_send = XQC_SSS_RESET_RECVD;
+                    if (stream->stream_state_send == XQC_SEND_STREAM_ST_RESET_SENT) {
+                        stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_RECVD;
                     }
                 }
             }

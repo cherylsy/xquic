@@ -84,6 +84,7 @@ typedef enum {
     XQC_CONN_FLAG_HAS_0RTT_SHIFT,
     XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ_SHIFT,
+    XQC_CONN_FLAG_HAS_H3_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -104,6 +105,7 @@ typedef enum {
     XQC_CONN_FLAG_HAS_0RTT              = 1 << XQC_CONN_FLAG_HAS_0RTT_SHIFT,
     XQC_CONN_FLAG_0RTT_OK               = 1 << XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ              = 1 << XQC_CONN_FLAG_0RTT_REJ_SHIFT,
+    XQC_CONN_FLAG_HAS_H3                = 1 << XQC_CONN_FLAG_HAS_H3_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {

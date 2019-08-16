@@ -75,7 +75,8 @@ typedef int               xqc_err_t;
 
 
 /* For QUIC application 8xx */
-
+#define XQC_H3_EMALLOC      800
+#define XQC_H3_ESTREAM      801
 
 
 

@@ -57,7 +57,7 @@ void xqc_server_set_event_timer(void *timer, xqc_msec_t wake_after)
 
 }
 
-int xqc_server_conn_notify(xqc_cid_t *cid, void *user_data) {
+int xqc_server_conn_notify(xqc_connection_t *conn, void *user_data) {
 
     DEBUG;
     return 0;
@@ -305,6 +305,7 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   1,
+            .h3         =   1,
     };
 
     eb = event_base_new();

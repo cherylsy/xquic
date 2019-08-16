@@ -9,7 +9,7 @@
 #include "xqc_common_test.h"
 #include "transport/xqc_engine.h"
 
-int xqc_test_client_conn_notify(xqc_cid_t *cid, void *user_data)
+int xqc_test_client_conn_notify(xqc_connection_t *conn, void *user_data)
 {
     //printf("%s\n",__FUNCTION__);
     return 0;

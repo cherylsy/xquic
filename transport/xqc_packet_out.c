@@ -313,8 +313,8 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
     /* new packet with index 0 */
     packet_out->po_stream_frames[0].ps_stream = stream;
     packet_out->po_stream_frames[0].ps_is_reset = 1;
-    if (stream->stream_state_send < XQC_SSS_RESET_SENT) {
-        stream->stream_state_send = XQC_SSS_RESET_SENT;
+    if (stream->stream_state_send < XQC_SEND_STREAM_ST_RESET_SENT) {
+        stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_SENT;
     }
 
     return XQC_OK;
@@ -335,7 +335,7 @@ xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
      * A STOP_SENDING frame can be sent for streams in the Recv or Size
         Known states
      */
-    if (stream->stream_state_recv > XQC_RSS_SIZE_KNOWN) {
+    if (stream->stream_state_recv > XQC_RECV_STREAM_ST_SIZE_KNOWN) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|state error|");
         XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
         return -XQC_ESTREAM_ST;
