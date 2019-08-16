@@ -25,7 +25,7 @@ xqc_h3_connect(xqc_engine_t *engine, void *user_data,
 }
 
 xqc_h3_conn_t *
-xqc_h3_conn_create(xqc_connection_t *conn, void *app_user_data)
+xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 {
     xqc_h3_conn_t *h3_conn;
     h3_conn = xqc_calloc(1, sizeof(xqc_h3_conn_t));
@@ -36,8 +36,9 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *app_user_data)
 
     h3_conn->conn = conn;
     h3_conn->log = conn->log;
-    h3_conn->ctx.h3_conn = h3_conn;
-    h3_conn->ctx.app_conn_ctx = app_user_data;
+    h3_conn->user_data = user_data;
+
+    conn->conn_flag |= XQC_CONN_FLAG_HAS_H3;
 
     return h3_conn;
 }
@@ -49,26 +50,37 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 }
 
 int
-xqc_conn_create_notify(xqc_connection_t *conn, void *app_user_data)
+xqc_conn_create_notify(xqc_connection_t *conn, void *user_data)
 {
+    int ret;
     xqc_h3_conn_t *h3_conn;
-    h3_conn = xqc_h3_conn_create(conn, app_user_data);
+    h3_conn = xqc_h3_conn_create(conn, user_data);
     if (!h3_conn) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_create error|");
-        xqc_conn_destroy(conn);
         return -XQC_H3_EMALLOC;
     }
 
-    conn->user_data = &h3_conn->ctx;
+    /* 替换为h3的上下文 */
+    conn->user_data = h3_conn;
     xqc_log(conn->log, XQC_LOG_DEBUG, "|create h3 conn success|");
+
+    ret = xqc_h3_stream_create_control(h3_conn, NULL);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_control error|");
+        return ret;
+    }
     return XQC_OK;
 }
 
 int
 xqc_conn_close_notify(xqc_connection_t *conn, void *user_data)
 {
-    xqc_conn_ctx_t *conn_ctx = (xqc_conn_ctx_t*)user_data;
-    xqc_h3_conn_destroy(conn_ctx->h3_conn);
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HAS_H3)) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|has no h3 conn|");
+        return XQC_OK;
+    }
+    xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
+    xqc_h3_conn_destroy(h3_conn);
     xqc_log(conn->log, XQC_LOG_DEBUG, "|destroy h3 conn success|");
     return XQC_OK;
 }

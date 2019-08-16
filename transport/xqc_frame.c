@@ -84,7 +84,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
         frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
         if (xqc_max(frame->data_offset, new_frame->data_offset) <
-                xqc_min(frame->data_offset + frame->data_length, new_frame->data_offset + new_frame->data_length)) {
+                xqc_min(frame->data_offset + frame->data_length, new_frame->data_offset + new_frame->data_length)) { //TODO: 读时处理
             /*
              *      |-----------|   frame
              * |-----------|        new_frame
@@ -264,7 +264,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto error;
     }
 
-    if (stream->stream_state_recv >= XQC_RSS_RESET_RECVD) {
+    if (stream->stream_state_recv >= XQC_RECV_STREAM_ST_RESET_RECVD) {
         return XQC_OK;
     }
 
@@ -277,8 +277,8 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         }
 
         stream->stream_data_in.stream_length = stream_frame->data_offset + stream_frame->data_length;
-        if (stream->stream_state_recv == XQC_RSS_RECV) {
-            stream->stream_state_recv = XQC_RSS_SIZE_KNOWN;
+        if (stream->stream_state_recv == XQC_RECV_STREAM_ST_RECV) {
+            stream->stream_state_recv = XQC_RECV_STREAM_ST_SIZE_KNOWN;
         }
     }
     if (stream->stream_data_in.stream_length > 0
@@ -306,8 +306,8 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto error;
     }
     if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end) {
-        if (stream->stream_state_recv == XQC_RSS_SIZE_KNOWN) {
-            stream->stream_state_recv = XQC_RSS_DATA_RECVD;
+        if (stream->stream_state_recv == XQC_RECV_STREAM_ST_SIZE_KNOWN) {
+            stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_RECVD;
         }
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_ready_to_read all recvd|");
         xqc_stream_ready_to_read(stream);
@@ -513,8 +513,8 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
         return -XQC_ENULLPTR;
     }
 
-    if (stream->stream_state_recv < XQC_RSS_RESET_RECVD) {
-        stream->stream_state_recv = XQC_RSS_RESET_RECVD;
+    if (stream->stream_state_recv < XQC_RECV_STREAM_ST_RESET_RECVD) {
+        stream->stream_state_recv = XQC_RECV_STREAM_ST_RESET_RECVD;
 
         xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
     }
@@ -687,7 +687,7 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
     }
     if (max_stream_data > stream->stream_flow_ctl.fc_max_stream_data) {
         stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;
-        stream->stream_flag &= ~XQC_SF_STREAM_DATA_BLOCKED;
+        stream->stream_flag &= ~XQC_STREAM_FLAG_DATA_BLOCKED;
         xqc_log(conn->log, XQC_LOG_WARN,
                 "|max_stream_data=%ui|", max_stream_data);
     } else {
