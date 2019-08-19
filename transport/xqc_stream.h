@@ -16,28 +16,29 @@ typedef enum {
 
 
 typedef enum {
-    XQC_SF_READY_TO_WRITE       = 1 << 0,
-    XQC_SF_READY_TO_READ        = 1 << 1,
-    XQC_SF_STREAM_DATA_BLOCKED  = 1 << 2,
-    XQC_SF_HAS_0RTT             = 1 << 3,
+    XQC_STREAM_FLAG_READY_TO_WRITE  = 1 << 0,
+    XQC_STREAM_FLAG_READY_TO_READ   = 1 << 1,
+    XQC_STREAM_FLAG_DATA_BLOCKED    = 1 << 2,
+    XQC_STREAM_FLAG_HAS_0RTT        = 1 << 3,
+    XQC_STREAM_FLAG_HAS_H3          = 1 << 4,
 } xqc_stream_flag_t;
 
 typedef enum {
-    XQC_SSS_READY,
-    XQC_SSS_SEND,
-    XQC_SSS_DATA_SENT,
-    XQC_SSS_DATA_RECVD,
-    XQC_SSS_RESET_SENT,
-    XQC_SSS_RESET_RECVD,
+    XQC_SEND_STREAM_ST_READY,
+    XQC_SEND_STREAM_ST_SEND,
+    XQC_SEND_STREAM_ST_DATA_SENT,
+    XQC_SEND_STREAM_ST_DATA_RECVD,
+    XQC_SEND_STREAM_ST_RESET_SENT,
+    XQC_SEND_STREAM_ST_RESET_RECVD,
 } xqc_send_stream_state_t;
 
 typedef enum {
-    XQC_RSS_RECV,
-    XQC_RSS_SIZE_KNOWN,
-    XQC_RSS_DATA_RECVD,
-    XQC_RSS_DATA_READ,
-    XQC_RSS_RESET_RECVD,
-    XQC_RSS_RESET_READ,
+    XQC_RECV_STREAM_ST_RECV,
+    XQC_RECV_STREAM_ST_SIZE_KNOWN,
+    XQC_RECV_STREAM_ST_DATA_RECVD,
+    XQC_RECV_STREAM_ST_DATA_READ,
+    XQC_RECV_STREAM_ST_RESET_RECVD,
+    XQC_RECV_STREAM_ST_RESET_READ,
 } xqc_recv_stream_state_t;
 
 typedef struct {
@@ -104,8 +105,14 @@ struct xqc_stream_s {
     xqc_recv_stream_state_t stream_state_recv;
 };
 
+static inline xqc_stream_id_type_t
+xqc_get_stream_id_type(xqc_stream_id_t stream_id)
+{
+    return stream_id & 0x03;
+}
+
 xqc_stream_t *
-xqc_create_stream_with_conn (xqc_connection_t *conn,
+xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_id_type_t stream_id_type,
                              void *user_data);
 void
 xqc_destroy_stream(xqc_stream_t *stream);

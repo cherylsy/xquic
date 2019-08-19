@@ -39,6 +39,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_HAS_0RTT_SHIFT]              = "HAS_0RTT",
         [XQC_CONN_FLAG_0RTT_OK_SHIFT]               = "0RTT_OK",
         [XQC_CONN_FLAG_0RTT_REJ_SHIFT]              = "0RTT_REJECT",
+        [XQC_CONN_FLAG_HAS_H3_SHIFT]                = "HAS_H3",
 };
 
 const char*
@@ -216,8 +217,8 @@ xqc_conn_create(xqc_engine_t *engine,
     return xc;
 
 fail:
-    if (pool != NULL) {
-        xqc_destroy_pool(pool);
+    if (xc != NULL) {
+        xqc_conn_destroy(xc);
     }
     return NULL;
 }
@@ -369,7 +370,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     //printf("send encrypto data:%d\n", packet_out->po_used_size);
     //hex_print(packet_out->po_buf, packet_out->po_used_size);
 
-    sent = conn->engine->eng_callback.write_socket(xqc_h3_conn_get_ctx(conn), packet_out->po_buf, packet_out->po_used_size);
+    sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO,
             "|<==|conn:%p|size:%ui|sent:%ui|pkt_type:%s|pkt_num:%ui|frame:%s|now:%ui|",
             conn, packet_out->po_used_size, sent,
@@ -599,7 +600,7 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         return size;
     }
 
-    size = (int)engine->eng_callback.write_socket(xqc_h3_conn_get_ctx(conn), buf, (size_t)size);
+    size = (int)engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), buf, (size_t)size);
     if (size < 0) {
         return size;
     }
@@ -821,7 +822,7 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_all_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
-        if (stream->stream_flag & XQC_SF_HAS_0RTT) {
+        if (stream->stream_flag & XQC_STREAM_FLAG_HAS_0RTT) {
             stream->stream_send_offset = 0;
             stream->stream_unacked_pkt = 0;
             stream->stream_state_send = 0;

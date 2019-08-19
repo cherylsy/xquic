@@ -32,18 +32,20 @@ typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data
 typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
 typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
 
+/* transport layer */
 struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify;
     xqc_conn_notify_pt          conn_close_notify;
 
     /* for handshake done */
-    xqc_handshake_finished_pt   conn_handshake_finished;
+    xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
 };
 
+/* transport layer */
 typedef struct xqc_stream_callbacks_s {
     xqc_stream_notify_pt        stream_read_notify;
     xqc_stream_notify_pt        stream_write_notify;
-    xqc_stream_notify_pt        stream_close;
+    xqc_stream_notify_pt        stream_close;   /* optional */
 } xqc_stream_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
