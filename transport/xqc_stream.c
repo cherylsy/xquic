@@ -14,7 +14,7 @@
 #define XQC_STREAM_BUFF_MAX 1024*1024
 
 static xqc_stream_id_t
-xqc_gen_stream_id (xqc_connection_t *conn, xqc_stream_id_type_t type)
+xqc_gen_stream_id (xqc_connection_t *conn, xqc_stream_type_t type)
 {
     xqc_stream_id_t sid;
     if (type == XQC_CLI_BID || type == XQC_SVR_BID) {
@@ -98,9 +98,9 @@ xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_h
 static void
 xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_settings_t *trans_param)
 {
-    if (stream->stream_id_type == XQC_CLI_BID) {
+    if (stream->stream_type == XQC_CLI_BID) {
         stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_bidi_local;
-    } else if (stream->stream_id_type == XQC_SVR_BID) {
+    } else if (stream->stream_type == XQC_SVR_BID) {
         stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_bidi_remote;
     } else {
         stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_uni;
@@ -155,7 +155,7 @@ xqc_stream_create (xqc_engine_t *engine,
 }
 
 xqc_stream_t *
-xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_id_type_t stream_id_type,
+xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type,
                             void *user_data)
 {
     xqc_log(conn->log, XQC_LOG_DEBUG, "|cur_stream_id_bidi_local:%ui|",
@@ -190,11 +190,11 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     xqc_init_list_head(&stream->stream_write_buff_list.write_buff_list);
 
     if (stream_id == 0) {
-        stream->stream_id_type = stream_id_type;
-        stream->stream_id = xqc_gen_stream_id(conn, stream->stream_id_type);
+        stream->stream_type = stream_type;
+        stream->stream_id = xqc_gen_stream_id(conn, stream->stream_type);
     } else {
         stream->stream_id = stream_id;
-        stream->stream_id_type = xqc_get_stream_id_type(stream_id);
+        stream->stream_type = xqc_get_stream_type(stream_id);
     }
 
     xqc_id_hash_element_t e = {stream->stream_id, stream};
@@ -579,7 +579,7 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
 
     memset(stream, 0 ,sizeof(xqc_stream_t));
 
-    stream->stream_id_type = XQC_CLI_BID;
+    stream->stream_type = conn->conn_type == XQC_CONN_TYPE_CLIENT ? XQC_CLI_BID : XQC_SVR_BID;
     stream->stream_encrypt_level = encrypt_level;
     stream->stream_conn = conn;
     stream->stream_if = &crypto_stream_callback;
@@ -623,6 +623,28 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 
         if (read >= recv_buf_size) {
             break;
+        }
+        /*
+         *     |------------------------|
+         *        |----------|
+         */
+
+        /* already read */
+        if (stream_frame->data_offset + stream_frame->data_length < stream->stream_data_in.next_read_offset) {
+            //free frame
+            xqc_list_del_init(&stream_frame->sf_list);
+            xqc_free(stream_frame->data);
+            xqc_free(stream_frame);
+            continue;
+        }
+
+        /*
+         *        |----------|
+         *             |-------|
+         */
+        if (stream_frame->data_offset < stream->stream_data_in.next_read_offset) {
+            uint64_t offset = stream->stream_data_in.next_read_offset - stream_frame->data_offset;
+            stream_frame->next_read_offset = xqc_max(stream_frame->next_read_offset, offset);
         }
 
         frame_left = stream_frame->data_length - stream_frame->next_read_offset;

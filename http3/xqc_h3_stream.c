@@ -37,7 +37,13 @@ int
 xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
 {
     if (!stream) {
-        stream = xqc_create_stream_with_conn(h3_conn->conn, 0, XQC_CLI_UNI, NULL);
+        xqc_stream_type_t stream_type;
+        if (h3_conn->conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+            stream_type = XQC_CLI_UNI;
+        } else {
+            stream_type = XQC_SVR_UNI;
+        }
+        stream = xqc_create_stream_with_conn(h3_conn->conn, 0, stream_type, NULL);
         if (!stream) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|");
             return -XQC_H3_ESTREAM;

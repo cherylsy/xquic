@@ -12,7 +12,7 @@ typedef enum {
     XQC_SVR_BID = 1,
     XQC_CLI_UNI = 2,
     XQC_SVR_UNI = 3,
-} xqc_stream_id_type_t;
+} xqc_stream_type_t;
 
 
 typedef enum {
@@ -85,7 +85,7 @@ typedef struct xqc_stream_write_buff_list_s {
 struct xqc_stream_s {
     xqc_connection_t        *stream_conn;
     xqc_stream_id_t         stream_id;
-    xqc_stream_id_type_t    stream_id_type;
+    xqc_stream_type_t       stream_type;
     void                    *user_data;
     xqc_stream_callbacks_t  *stream_if;
 
@@ -105,14 +105,14 @@ struct xqc_stream_s {
     xqc_recv_stream_state_t stream_state_recv;
 };
 
-static inline xqc_stream_id_type_t
-xqc_get_stream_id_type(xqc_stream_id_t stream_id)
+static inline xqc_stream_type_t
+xqc_get_stream_type(xqc_stream_id_t stream_id)
 {
     return stream_id & 0x03;
 }
 
 xqc_stream_t *
-xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_id_type_t stream_id_type,
+xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type,
                              void *user_data);
 void
 xqc_destroy_stream(xqc_stream_t *stream);
