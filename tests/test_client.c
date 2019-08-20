@@ -482,7 +482,14 @@ int main(int argc, char *argv[]) {
 
 
 
-    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0 ,&conn_ssl_config );
+    xqc_cid_t *cid;
+    if (conn_settings.h3) {
+        cid = xqc_h3_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0,
+                          &conn_ssl_config);
+    } else {
+        cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0,
+                          &conn_ssl_config);
+    }
     if (cid == NULL) {
         printf("xqc_connect error\n");
         return 0;

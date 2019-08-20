@@ -12,6 +12,7 @@ typedef enum {
     XQC_H3_STREAM_NUM,
 } xqc_h3_stream_type_t;
 
+typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
 typedef struct xqc_h3_stream_s {

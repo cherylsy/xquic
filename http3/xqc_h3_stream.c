@@ -58,16 +58,19 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
 
     stream->user_data = h3_stream;
 
+    h3_conn->control_stream_out = h3_stream;
+
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
     return XQC_OK;
 }
 
 
 int
-xqc_stream_write_notify(xqc_stream_t *stream, void *user_data)
+xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
 {
     /* 服务端h3 stream可能还未创建 */
     if (!user_data) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|user_data empty|");
         return XQC_OK;
     }
     xqc_h3_stream_t *h3_stream = (xqc_h3_stream_t*)user_data;
@@ -77,7 +80,7 @@ xqc_stream_write_notify(xqc_stream_t *stream, void *user_data)
 }
 
 int
-xqc_stream_read_notify(xqc_stream_t *stream, void *user_data)
+xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
 {
     /* 服务端h3 stream可能还未创建 */
     if (!user_data) {
@@ -90,7 +93,7 @@ xqc_stream_read_notify(xqc_stream_t *stream, void *user_data)
 
 
 int
-xqc_stream_close_notify(xqc_stream_t *stream, void *user_data)
+xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
 {
     if (!(stream->stream_flag & XQC_STREAM_FLAG_HAS_H3)) {
         xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|has no h3 stream|");
@@ -103,7 +106,7 @@ xqc_stream_close_notify(xqc_stream_t *stream, void *user_data)
 }
 
 const xqc_stream_callbacks_t stream_callbacks = {
-        .stream_write_notify = xqc_stream_write_notify,
-        .stream_read_notify = xqc_stream_read_notify,
-        .stream_close = xqc_stream_close_notify,
+        .stream_write_notify = xqc_h3_stream_write_notify,
+        .stream_read_notify = xqc_h3_stream_read_notify,
+        .stream_close = xqc_h3_stream_close_notify,
 };

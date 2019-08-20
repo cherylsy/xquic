@@ -3,13 +3,17 @@
 
 #include "include/xquic_typedef.h"
 #include "transport/xqc_conn.h"
+#include "xqc_h3_stream.h"
 
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
+typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
 struct xqc_h3_conn_s {
     xqc_connection_t        *conn;
     xqc_log_t               *log;
     void                    *user_data;
+    xqc_h3_stream_t         *control_stream_out;
+    xqc_h3_stream_t         *control_stream_in;
 };
 
 extern const xqc_conn_callbacks_t conn_callbacks;
@@ -31,9 +35,9 @@ void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn);
 
 int
-xqc_conn_create_notify(xqc_connection_t *conn, void *user_data);
+xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data);
 
 int
-xqc_conn_close_notify(xqc_connection_t *conn, void *user_data);
+xqc_h3_conn_close_notify(xqc_connection_t *conn, void *user_data);
 
 #endif /* _XQC_H3_CONN_H_INCLUDED_ */
