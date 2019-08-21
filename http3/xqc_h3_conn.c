@@ -46,8 +46,6 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 {
-    xqc_h3_stream_destroy(h3_conn->control_stream_in);
-    xqc_h3_stream_destroy(h3_conn->control_stream_out);
     xqc_free(h3_conn);
 }
 

@@ -25,12 +25,18 @@ typedef struct xqc_h3_stream_s {
 extern const xqc_stream_callbacks_t stream_callbacks;
 
 xqc_h3_stream_t *
-xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type_t h3_stream_type);
+xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type_t h3_stream_type, void *user_data);
 
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream);
 
 int
 xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream);
+
+ssize_t
+xqc_h3_stream_send_header(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers);
+
+ssize_t
+xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin);
 
 #endif /* _XQC_H3_STREAM_H_INCLUDED_ */

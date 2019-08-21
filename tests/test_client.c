@@ -12,7 +12,6 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
-#include "transport/xqc_engine.h"
 #include "include/xquic_typedef.h"
 
 
@@ -36,6 +35,7 @@ typedef struct user_conn_s {
     socklen_t           peer_addrlen;
 
     xqc_stream_t       *stream;
+    xqc_h3_request_t   *h3_request;
     unsigned char      *token;
     unsigned            token_len;
 } user_conn_t;
@@ -229,6 +229,38 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
+int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    int ret = 0;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    char buff[5000] = {0};
+    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
+    if (ret < 0) {
+        printf("xqc_h3_request_send_body error %d\n", ret);
+    } else {
+        ctx->send_offset += ret;
+        printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+    }
+    return ret;
+}
+
+int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    char buff[100] = {0};
+
+    char buff_send[5000] = {0};
+    xqc_h3_request_send_body(h3_request, buff_send, sizeof(buff), 1);
+    return 0;
+}
+
+int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    return 0;
+}
 
 void
 xqc_client_write_handler(client_ctx_t *ctx)
@@ -417,6 +449,10 @@ int main(int argc, char *argv[]) {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
             },
+            .h3_request_callbacks = {
+                    .h3_request_write_notify = xqc_client_request_write_notify,
+                    .h3_request_read_notify = xqc_client_request_read_notify,
+            },
             .write_socket = xqc_client_write_socket,
             //.cong_ctrl_callback = xqc_reno_cb,
             .cong_ctrl_callback = xqc_cubic_cb,
@@ -499,10 +535,13 @@ int main(int argc, char *argv[]) {
     xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
     xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
-
-    ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
-
-    xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+    if (conn_settings.h3) {
+        ctx.my_conn->h3_request = xqc_h3_request_create(ctx.engine, cid, &ctx);
+        xqc_client_request_write_notify(ctx.my_conn->h3_request, &ctx);
+    } else {
+        ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
+        xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+    }
 
     event_base_dispatch(eb);
 

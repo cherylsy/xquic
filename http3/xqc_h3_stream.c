@@ -8,7 +8,7 @@
 #include "common/xqc_errno.h"
 
 xqc_h3_stream_t *
-xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type_t h3_stream_type)
+xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type_t h3_stream_type, void *user_data)
 {
     xqc_h3_stream_t *h3_stream;
 
@@ -21,6 +21,9 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
     h3_stream->stream = stream;
     h3_stream->h3_conn = h3_conn;
     h3_stream->h3_stream_type = h3_stream_type;
+    h3_stream->user_data = user_data;
+
+    stream->user_data = h3_stream;
 
     stream->stream_flag |= XQC_STREAM_FLAG_HAS_H3;
 
@@ -50,13 +53,11 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
         }
     }
 
-    xqc_h3_stream_t *h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_CONTROL);
+    xqc_h3_stream_t *h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_CONTROL, NULL);
     if (!h3_stream) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|");
         return -XQC_H3_ESTREAM;
     }
-
-    stream->user_data = h3_stream;
 
     h3_conn->control_stream_out = h3_stream;
 
@@ -64,6 +65,26 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
     return XQC_OK;
 }
 
+ssize_t
+xqc_h3_stream_send_header(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers)
+{
+    ssize_t n_write = 0;
+    //QPACK
+    //gen HEADERS frame
+    return n_write;
+}
+
+ssize_t
+xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin)
+{
+    ssize_t n_write = 0;
+    //gen DATA frame
+    n_write = xqc_stream_send(h3_stream->stream, data, data_size, fin);
+    if (n_write < 0) {
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|%z|", n_write);
+    }
+    return n_write;
+}
 
 int
 xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
@@ -74,6 +95,8 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
         return XQC_OK;
     }
     xqc_h3_stream_t *h3_stream = (xqc_h3_stream_t*)user_data;
+
+    //xqc_stream_send
 
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|success|");
     return XQC_OK;
