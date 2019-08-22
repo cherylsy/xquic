@@ -33,6 +33,7 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
 {
+
     xqc_free(h3_stream);
 }
 
@@ -87,6 +88,11 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
 }
 
 int
+xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin) {
+    return XQC_OK;
+}
+
+int
 xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
 {
     /* 服务端h3 stream可能还未创建 */
@@ -105,11 +111,36 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
 int
 xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
 {
+    xqc_h3_stream_t *h3_stream;
+    xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)stream->stream_conn->user_data;
+    int ret;
+
     /* 服务端h3 stream可能还未创建 */
     if (!user_data) {
-        return XQC_OK;
+        //parse h3 frame
+        h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_NUM, NULL);
+    } else {
+        h3_stream = (xqc_h3_stream_t *) user_data;
     }
-    xqc_h3_stream_t *h3_stream = (xqc_h3_stream_t*)user_data;
+
+    unsigned char buff[1000] = {0};
+    size_t buff_size = 1000;
+
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_stream_recv(stream, buff, buff_size, &fin);
+        if (read < 0) {
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
+            return read;
+        }
+        ret = xqc_h3_stream_process_in(h3_stream, buff, buff_size, fin);
+        if (ret < 0) {
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_in error|%d|", ret);
+            return ret;
+        }
+    } while (read > 0);
+
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|success|");
     return XQC_OK;
 }

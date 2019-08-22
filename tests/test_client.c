@@ -24,6 +24,7 @@
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
 
+#define XQC_MAX_TOKEN_LEN 32
 
 typedef struct user_conn_s {
     int                 fd;
@@ -481,7 +482,6 @@ int main(int argc, char *argv[]) {
     ctx.ev_socket = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_socket, NULL);
 
-#define XQC_MAX_TOKEN_LEN 32
     unsigned char token[XQC_MAX_TOKEN_LEN];
     int token_len = XQC_MAX_TOKEN_LEN;
     token_len = xqc_client_read_token(token, token_len);

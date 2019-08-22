@@ -36,6 +36,12 @@ xqc_h3_request_create(xqc_engine_t *engine,
     return h3_request;
 }
 
+void
+xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
+{
+    xqc_free(h3_request);
+}
+
 xqc_h3_request_t *
 xqc_h3_request_create_2(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data)
 {

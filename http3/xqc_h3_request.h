@@ -8,6 +8,9 @@ typedef struct xqc_h3_request_s {
     void                *user_data;
 } xqc_h3_request_t;
 
+void
+xqc_h3_request_destroy(xqc_h3_request_t *h3_request);
+
 xqc_h3_request_t *
 xqc_h3_request_create_2(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data);
 
