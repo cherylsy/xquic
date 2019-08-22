@@ -50,7 +50,7 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 }
 
 int
-xqc_conn_create_notify(xqc_connection_t *conn, void *user_data)
+xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data)
 {
     int ret;
     xqc_h3_conn_t *h3_conn;
@@ -73,7 +73,7 @@ xqc_conn_create_notify(xqc_connection_t *conn, void *user_data)
 }
 
 int
-xqc_conn_close_notify(xqc_connection_t *conn, void *user_data)
+xqc_h3_conn_close_notify(xqc_connection_t *conn, void *user_data)
 {
     if (!(conn->conn_flag & XQC_CONN_FLAG_HAS_H3)) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|has no h3 conn|");
@@ -86,6 +86,6 @@ xqc_conn_close_notify(xqc_connection_t *conn, void *user_data)
 }
 
 const xqc_conn_callbacks_t conn_callbacks = {
-        .conn_create_notify = xqc_conn_create_notify,
-        .conn_close_notify = xqc_conn_close_notify,
+        .conn_create_notify = xqc_h3_conn_create_notify,
+        .conn_close_notify = xqc_h3_conn_close_notify,
 };
