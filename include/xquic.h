@@ -27,7 +27,7 @@ typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
 
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 
-typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *stream, void *user_data);
+typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
 
 typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
@@ -230,6 +230,14 @@ ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
                                  unsigned char *data,
                                  size_t data_size,
                                  uint8_t fin);
+
+ssize_t
+xqc_h3_request_recv_header(xqc_h3_request_t *h3_request);
+
+ssize_t
+xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
+                         size_t recv_buf_size,
+                         uint8_t *fin);
 
 /**
  * Create new stream in quic connection.

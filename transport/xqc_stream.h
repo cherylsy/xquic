@@ -7,6 +7,8 @@
 #include "common/xqc_list.h"
 #include "xqc_packet.h"
 
+#define XQC_UNDEFINE_STREAM_ID XQC_MAX_UINT64_VALUE
+
 typedef enum {
     XQC_CLI_BID = 0,
     XQC_SVR_BID = 1,

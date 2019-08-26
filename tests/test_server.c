@@ -83,13 +83,46 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
         printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
-    } while (read > 0);
+    } while (read > 0 && !fin);
 
     /*ssize_t sent;
     if (fin) {
         sent = xqc_stream_send(stream, buff, buff_size, fin);
         printf("xqc_stream_send %lld \n", sent);
     }*/
+    return 0;
+}
+
+int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    int ret = 0;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
+    char buff[5000] = {0};
+    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
+    if (ret < 0) {
+        printf("xqc_h3_request_send_body error %d\n", ret);
+    } else {
+        ctx->send_offset += ret;
+        printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+    }
+    return ret;
+}
+
+int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
+    char buff[1000] = {0};
+    size_t buff_size = 1000;
+
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+        printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+    } while (read > 0 && !fin);
+
     return 0;
 }
 
@@ -298,6 +331,10 @@ int main(int argc, char *argv[]) {
                     .stream_write_notify = xqc_server_write_notify,
                     .stream_read_notify = xqc_server_read_notify,
             },
+            .h3_request_callbacks = {
+                    .h3_request_write_notify = xqc_server_request_write_notify,
+                    .h3_request_read_notify = xqc_server_request_read_notify,
+            },
             .write_socket = xqc_server_send,
             .cong_ctrl_callback = xqc_reno_cb,
             .set_event_timer = xqc_server_set_event_timer,
@@ -305,7 +342,7 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   1,
-            .h3         =   1,
+            .h3         =   0,
     };
 
     eb = event_base_new();

@@ -145,7 +145,7 @@ xqc_stream_create (xqc_engine_t *engine,
         return NULL;
     }
 
-    stream = xqc_create_stream_with_conn(conn, 0, XQC_CLI_BID, user_data);
+    stream = xqc_create_stream_with_conn(conn, XQC_UNDEFINE_STREAM_ID, XQC_CLI_BID, user_data);
     if (!stream) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
         return NULL;
@@ -189,7 +189,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
 
     xqc_init_list_head(&stream->stream_write_buff_list.write_buff_list);
 
-    if (stream_id == 0) {
+    if (stream_id == XQC_UNDEFINE_STREAM_ID) {
         stream->stream_type = stream_type;
         stream->stream_id = xqc_gen_stream_id(conn, stream->stream_type);
     } else {
@@ -204,7 +204,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     }
 
     /* 新发起的stream可写 */
-    if (stream_id == 0) {
+    if (stream_id == XQC_UNDEFINE_STREAM_ID) {
         xqc_stream_ready_to_write(stream);
     }
 
@@ -782,8 +782,8 @@ do_buff:
         }
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%ui|"
-                                      "send_data_size:%ui|offset:%ui|fin:%ui|",
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
+                                      "send_data_size:%ui|offset:%ui|fin:%d|",
             stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
             send_data_size, offset, fin);
 
@@ -925,6 +925,7 @@ xqc_process_crypto_write_streams (xqc_connection_t *conn)
     for (int i = XQC_ENC_LEV_INIT; i < XQC_ENC_MAX_LEVEL; i++) {
         stream = conn->crypto_stream[i];
         if (stream && (stream->stream_flag & XQC_STREAM_FLAG_READY_TO_WRITE)) {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "");
             ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify crypto err:%d|", ret);

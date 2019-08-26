@@ -249,11 +249,9 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
 int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
+    int ret;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[100] = {0};
 
-    char buff_send[5000] = {0};
-    xqc_h3_request_send_body(h3_request, buff_send, sizeof(buff), 1);
     return 0;
 }
 

@@ -6,6 +6,8 @@
 typedef struct xqc_h3_request_s {
     xqc_h3_stream_t     *h3_stream;
     void                *user_data;
+    xqc_h3_request_callbacks_t
+                        *request_if;
 } xqc_h3_request_t;
 
 void

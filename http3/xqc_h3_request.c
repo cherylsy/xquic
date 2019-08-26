@@ -54,6 +54,9 @@ xqc_h3_request_create_2(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void
 
     h3_request->h3_stream = h3_stream;
     h3_request->user_data = user_data;
+    h3_request->request_if = &h3_conn->conn->engine->eng_callback.h3_request_callbacks;
+
+    h3_stream->h3_request = h3_request;
 
     return h3_request;
 }
@@ -68,4 +71,18 @@ ssize_t
 xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size_t data_size, uint8_t fin)
 {
     return xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
+}
+
+ssize_t
+xqc_h3_request_recv_header(xqc_h3_request_t *h3_request)
+{
+    return xqc_h3_stream_recv_header(h3_request->h3_stream);
+}
+
+ssize_t
+xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
+                         size_t recv_buf_size,
+                         uint8_t *fin)
+{
+    return xqc_h3_stream_recv_data(h3_request->h3_stream, recv_buf, recv_buf_size, fin);
 }

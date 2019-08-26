@@ -24,7 +24,7 @@ xqc_test_stream_frame()
     conn = xqc_engine_conns_hash_find(engine, cid, 's');
     CU_ASSERT(conn != NULL);
 
-    xqc_stream_t *stream = xqc_create_stream_with_conn(conn, 0, XQC_CLI_BID, NULL);
+    xqc_stream_t *stream = xqc_create_stream_with_conn(conn, XQC_UNDEFINE_STREAM_ID, XQC_CLI_BID, NULL);
     CU_ASSERT(stream != NULL);
 
     char payload[100];
