@@ -464,6 +464,9 @@ static inline uint8_t *xqc_put_varint(uint8_t *p, uint64_t n) {
     return rv;
   }
   //assert(n < 4611686018427387904ULL);
+  if(n >= 4611686018427387904ULL){
+    return NULL;
+  }
   rv = xqc_put_uint64be(p, n);
   *p |= 0xc0;
   return rv;
@@ -520,6 +523,7 @@ static inline int xqc_numeric_host(const char *hostname) {
 
 
 static inline size_t xqc_get_varint_len(const uint8_t *p) { return 1u << (*p >> 6); }
+int64_t xqc_get_varint_fb(const uint8_t *p) { return *p & 0x3f; }
 
 static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
     union {
