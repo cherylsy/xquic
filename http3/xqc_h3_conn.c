@@ -46,6 +46,7 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 {
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|done|");
     xqc_free(h3_conn);
 }
 

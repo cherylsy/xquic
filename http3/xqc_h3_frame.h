@@ -1,6 +1,9 @@
 #ifndef _XQC_H3_FRAME_H_INCLUDED_
 #define _XQC_H3_FRAME_H_INCLUDED_
 
+#include <stdint.h>
+#include <string.h>
+
 typedef enum {
     XQC_HTTP3_FRAME_DATA = 0x00,
     XQC_HTTP3_FRAME_HEADERS = 0x01,

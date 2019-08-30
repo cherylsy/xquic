@@ -523,7 +523,7 @@ static inline int xqc_numeric_host(const char *hostname) {
 
 
 static inline size_t xqc_get_varint_len(const uint8_t *p) { return 1u << (*p >> 6); }
-int64_t xqc_get_varint_fb(const uint8_t *p) { return *p & 0x3f; }
+static inline int64_t xqc_get_varint_fb(const uint8_t *p) { return *p & 0x3f; }
 
 static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
     union {

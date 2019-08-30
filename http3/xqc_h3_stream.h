@@ -4,6 +4,7 @@
 #include "include/xquic.h"
 #include "include/xquic_typedef.h"
 #include "xqc_h3_conn.h"
+#include "xqc_h3_frame.h"
 
 typedef enum {
     XQC_H3_STREAM_REQUEST,
