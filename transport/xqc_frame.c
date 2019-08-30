@@ -283,6 +283,20 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto free;
     }
 
+    if (stream->stream_data_in.merged_offset_end - stream->stream_data_in.next_read_offset > XQC_MAX_DATA_NOT_READ &&
+            stream->stream_data_in.merged_offset_end > stream->stream_data_in.next_read_offset) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|too many data not read|");
+        ret = -XQC_ELIMIT;
+        goto free;
+    }
+
+    if (stream_frame->data_offset - stream->stream_data_in.merged_offset_end > XQC_MAX_GAP_NOT_RECVD &&
+            stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|frame maybe lost|");
+        ret = -XQC_ELIMIT;
+        goto free;
+    }
+
     if (stream_frame->fin) {
         if (stream->stream_data_in.stream_length > 0
                 && stream->stream_data_in.stream_length != stream_frame->data_offset + stream_frame->data_length) {
