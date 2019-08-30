@@ -100,10 +100,6 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream)
             stream->stream_state_recv == XQC_RECV_STREAM_ST_RESET_READ)) {
         xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
         stream->stream_flag |= XQC_STREAM_FLAG_NEED_CLOSE;
-        /* 先通知上层，传输层等一段时间再回收 */
-        /*if (stream->stream_if->stream_close) {
-            stream->stream_if->stream_close(stream, stream->user_data);
-        }*/
 
         xqc_send_ctl_t *ctl = stream->stream_conn->conn_send_ctl;
         xqc_msec_t new_expire = 3 * xqc_send_ctl_calc_pto(ctl) + xqc_now();
@@ -252,6 +248,10 @@ xqc_destroy_stream(xqc_stream_t *stream)
 {
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%ui|recv_state:%ui|stream_id:%ui|stream_type:%d|",
             stream->stream_state_send, stream->stream_state_recv, stream->stream_id, stream->stream_type);
+
+    if (stream->stream_if->stream_close) {
+        stream->stream_if->stream_close(stream, stream->user_data);
+    }
 
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
 

@@ -34,7 +34,11 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
 {
-
+    if (h3_stream->h3_request) {
+        xqc_h3_request_destroy(h3_stream->h3_request);
+    }
+    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|",
+            h3_stream->stream->stream_id, h3_stream->h3_stream_type);
     xqc_free(h3_stream);
 }
 

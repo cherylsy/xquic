@@ -468,6 +468,7 @@ int main(int argc, char *argv[]) {
             .h3_request_callbacks = {
                     .h3_request_write_notify = xqc_client_request_write_notify,
                     .h3_request_read_notify = xqc_client_request_read_notify,
+                    .h3_request_close = xqc_client_request_close_notify,
             },
             .write_socket = xqc_client_write_socket,
             //.cong_ctrl_callback = xqc_reno_cb,

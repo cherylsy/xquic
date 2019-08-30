@@ -39,6 +39,10 @@ xqc_h3_request_create(xqc_engine_t *engine,
 void
 xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
 {
+    xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|");
+    if (h3_request->request_if->h3_request_close) {
+        h3_request->request_if->h3_request_close(h3_request, h3_request->user_data);
+    }
     xqc_free(h3_request);
 }
 
