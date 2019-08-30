@@ -67,15 +67,15 @@ void xqc_aead_aes_128_gcm(xqc_tls_context_t *ctx) ;
 int xqc_derive_client_initial_secret(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen);
 
-size_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
+ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx);
 
-size_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
+ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx);
 
-size_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
+ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx);
 
@@ -96,9 +96,9 @@ int xqc_conn_install_initial_rx_keys(xqc_connection_t *conn, uint8_t *key,
 void xqc_prf_sha256(xqc_tls_context_t *ctx);
 
 
-void xqc_conn_set_aead_overhead(xqc_connection_t *conn, size_t aead_overhead) ;
+void xqc_conn_set_aead_overhead(xqc_connection_t *conn, ssize_t aead_overhead) ;
 
-size_t xqc_aead_max_overhead(const xqc_tls_context_t *ctx);
+ssize_t xqc_aead_max_overhead(const xqc_tls_context_t *ctx);
 
 int xqc_conn_install_early_keys(xqc_connection_t *conn, const uint8_t *key,
                                    size_t keylen, const uint8_t *iv,
@@ -158,7 +158,7 @@ void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
 
 
 int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
-        size_t secretlen, const xqc_tls_context_t *ctx);
+        ssize_t secretlen, const xqc_tls_context_t *ctx);
 
 int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
                                 size_t keylen, const uint8_t *iv, size_t ivlen);

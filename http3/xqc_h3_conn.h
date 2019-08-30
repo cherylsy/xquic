@@ -8,12 +8,26 @@
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
+
+typedef enum {
+    XQC_HTTP3_CONN_FLAG_NONE = 0x0000,
+    XQC_HTTP3_CONN_FLAG_SETTINGS_RECVED = 0x0001,
+    XQC_HTTP3_CONN_FLAG_CONTROL_OPENED = 0x0002,
+    //XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED = 0x0004,
+    //XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED = 0x0008,
+    /* XQC_HTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED indicates that MAX_PUSH_ID
+     *      has been queued to control stream. */
+    //XQC_HTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED = 0x0010,
+} xqc_http3_conn_flag;
+
 struct xqc_h3_conn_s {
     xqc_connection_t        *conn;
     xqc_log_t               *log;
     void                    *user_data;
     xqc_h3_stream_t         *control_stream_out;
     xqc_h3_stream_t         *control_stream_in;
+
+    xqc_http3_conn_flag     flags;
 };
 
 extern const xqc_conn_callbacks_t conn_callbacks;

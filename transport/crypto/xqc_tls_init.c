@@ -359,7 +359,7 @@ fail:
 
 int xqc_bio_write(BIO *b, const char *buf, int len)
 { //never called
-    assert(0);
+    //assert(0);
     return -1;
 }
 
