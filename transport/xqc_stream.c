@@ -88,6 +88,37 @@ xqc_stream_shutdown_read (xqc_stream_t *stream)
     }
 }
 
+void
+xqc_stream_maybe_need_close (xqc_stream_t *stream)
+{
+    if (stream->stream_flag & XQC_STREAM_FLAG_NEED_CLOSE) {
+        return;
+    }
+    if ((stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_RECVD &&
+        stream->stream_state_recv == XQC_RECV_STREAM_ST_DATA_READ) ||
+            (stream->stream_state_send == XQC_SEND_STREAM_ST_RESET_RECVD &&
+            stream->stream_state_recv == XQC_RECV_STREAM_ST_RESET_READ)) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
+        stream->stream_flag |= XQC_STREAM_FLAG_NEED_CLOSE;
+        /* 先通知上层，传输层等一段时间再回收 */
+        /*if (stream->stream_if->stream_close) {
+            stream->stream_if->stream_close(stream, stream->user_data);
+        }*/
+
+        xqc_send_ctl_t *ctl = stream->stream_conn->conn_send_ctl;
+        xqc_msec_t new_expire = 3 * xqc_send_ctl_calc_pto(ctl) + xqc_now();
+        if ((ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set &&
+                new_expire < ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_expire_time) ||
+            !ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set) {
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_STREAM_CLOSE, new_expire);
+        }
+        stream->stream_close_time = new_expire;
+        xqc_list_add_tail(&stream->closing_stream_list, &stream->stream_conn->conn_closing_streams);
+        xqc_stream_shutdown_read(stream);
+        xqc_stream_shutdown_write(stream);
+    }
+}
+
 xqc_stream_t *
 xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash)
 {
@@ -219,16 +250,14 @@ error:
 void
 xqc_destroy_stream(xqc_stream_t *stream)
 {
-    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%ui|recv_state:%ui|",
-            stream->stream_state_send, stream->stream_state_recv);
-
-    if (stream->stream_if->stream_close) {
-        stream->stream_if->stream_close(stream, stream->user_data);
-    }
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%ui|recv_state:%ui|stream_id:%ui|stream_type:%d|",
+            stream->stream_state_send, stream->stream_state_recv, stream->stream_id, stream->stream_type);
 
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
 
     xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
+
+    xqc_id_hash_delete(stream->stream_conn->streams_hash, stream->stream_id);
 
     xqc_free(stream);
 }
@@ -670,9 +699,10 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 
     if (stream->stream_data_in.stream_length > 0 &&
         stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
-        *fin = 1; //TODO: free stream?
+        *fin = 1;
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_DATA_RECVD) {
             stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_READ;
+            xqc_stream_maybe_need_close(stream);
         }
     }
 

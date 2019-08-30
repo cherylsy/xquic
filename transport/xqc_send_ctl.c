@@ -636,6 +636,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
                 if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_SENT) {
                     stream->stream_state_send = XQC_SEND_STREAM_ST_DATA_RECVD;
                     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream enter DATA RECVD|");
+                    xqc_stream_maybe_need_close(stream);
                 }
             }
         }
@@ -645,6 +646,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
                 if (stream != NULL && packet_out->po_stream_frames[i].ps_is_reset) {
                     if (stream->stream_state_send == XQC_SEND_STREAM_ST_RESET_SENT) {
                         stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_RECVD;
+                        xqc_stream_maybe_need_close(stream);
                     }
                 }
             }
@@ -776,7 +778,8 @@ static const char * const timer_type_2_str[XQC_TIMER_N] = {
         [XQC_TIMER_LOSS_DETECTION] = "LOSS_DETECTION",
         [XQC_TIMER_IDLE]        = "IDLE",
         [XQC_TIMER_DRAINING]    = "DRAINING",
-        [XQC_TIMER_PACING]      = "PACING"
+        [XQC_TIMER_PACING]      = "PACING",
+        [XQC_TIMER_STREAM_CLOSE]= "STREAM_CLOSE",
 };
 
 const char *
@@ -856,6 +859,31 @@ xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     ctl->ctl_pacing.timer_expire = 1;
 }
+
+void
+xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    xqc_list_head_t *pos, *next;
+    xqc_stream_t *stream;
+    xqc_msec_t min_expire = XQC_MAX_UINT64_VALUE;
+    xqc_list_for_each_safe(pos, next, &conn->conn_closing_streams) {
+        stream = xqc_list_entry(pos, xqc_stream_t, closing_stream_list);
+        if (stream->stream_close_time <= now) {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
+            xqc_list_del_init(pos);
+            xqc_list_del_init(&stream->all_stream_list);
+            xqc_destroy_stream(stream);
+        } else {
+            min_expire = xqc_min(min_expire, stream->stream_close_time);
+        }
+    }
+    if (min_expire != XQC_MAX_UINT64_VALUE) {
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_STREAM_CLOSE, min_expire);
+    }
+}
 /* timer callbacks end */
 
 void
@@ -879,6 +907,9 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
             timer->ctl_ctx = ctl;
         } else if (type == XQC_TIMER_PACING) {
             timer->ctl_timer_callback = xqc_send_ctl_pacing_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_STREAM_CLOSE) {
+            timer->ctl_timer_callback = xqc_send_ctl_stream_close_timeout;
             timer->ctl_ctx = ctl;
         }
     }

@@ -167,6 +167,7 @@ xqc_conn_create(xqc_engine_t *engine,
 
     xqc_init_list_head(&xc->conn_write_streams);
     xqc_init_list_head(&xc->conn_read_streams);
+    xqc_init_list_head(&xc->conn_closing_streams);
     xqc_init_list_head(&xc->conn_all_streams);
     for (xqc_encrypt_level_t encrypt_level = XQC_ENC_LEV_INIT; encrypt_level < XQC_ENC_MAX_LEVEL; encrypt_level++) {
         xqc_init_list_head(&xc->undecrypt_packet_in[encrypt_level]);
@@ -246,17 +247,17 @@ xqc_conn_destroy(xqc_connection_t *xc)
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
-    /* free streams hash */
-    if (xc->streams_hash) {
-        xqc_id_hash_release(xc->streams_hash);
-        xc->streams_hash = NULL;
-    }
-
     /* destroy streams */
     xqc_list_for_each_safe(pos, next, &xc->conn_all_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
         xqc_list_del_init(pos);
         xqc_destroy_stream(stream);
+    }
+
+    /* free streams hash */
+    if (xc->streams_hash) {
+        xqc_id_hash_release(xc->streams_hash);
+        xc->streams_hash = NULL;
     }
 
     for (xqc_encrypt_level_t encrypt_level = XQC_ENC_LEV_INIT; encrypt_level < XQC_ENC_MAX_LEVEL; encrypt_level++) {
@@ -893,7 +894,7 @@ xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t
         ret = xqc_packet_process(conn, packet_in->buf, packet_in->buf_size, packet_in->pkt_recv_time);
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_process error|ret:%d|", ret);
-            XQC_CONN_ERR(conn, -XQC_EILLPKT);
+            XQC_CONN_ERR(conn, XQC_EILLPKT);
             return ret;
         }
         xqc_list_del_init(pos);

@@ -85,11 +85,11 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
         printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
     } while (read > 0 && !fin);
 
-    /*ssize_t sent;
+    ssize_t sent;
     if (fin) {
         sent = xqc_stream_send(stream, buff, buff_size, fin);
         printf("xqc_stream_send %lld \n", sent);
-    }*/
+    }
     return 0;
 }
 
@@ -112,6 +112,7 @@ int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
 int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
+    int ret;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     char buff[1000] = {0};
     size_t buff_size = 1000;
@@ -123,6 +124,10 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
     } while (read > 0 && !fin);
 
+    if (fin) {
+        ret = xqc_h3_request_send_body(h3_request, buff, sizeof(buff), 1);
+        printf("xqc_h3_request_send_body %lld \n", ret);
+    }
     return 0;
 }
 
@@ -163,8 +168,11 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     do {
         recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &ctx->peer_addr,
                              &ctx->peer_addrlen);
+        if (recv_size < 0 && errno == EAGAIN) {
+            break;
+        }
         if (recv_size < 0) {
-            printf("xqc_server_read_handler: recvmsg = %zd\n", recv_size);
+            printf("xqc_server_read_handler: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
             break;
         }
 
@@ -342,7 +350,7 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   1,
-            .h3         =   0,
+            .h3         =   1,
     };
 
     eb = event_base_new();

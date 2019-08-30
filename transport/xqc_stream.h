@@ -8,6 +8,8 @@
 #include "xqc_packet.h"
 
 #define XQC_UNDEFINE_STREAM_ID XQC_MAX_UINT64_VALUE
+#define XQC_MAX_DATA_NOT_READ 1024000 //TODO:
+#define XQC_MAX_GAP_NOT_RECVD 1024000 //TODO:
 
 typedef enum {
     XQC_CLI_BID = 0,
@@ -23,6 +25,7 @@ typedef enum {
     XQC_STREAM_FLAG_DATA_BLOCKED    = 1 << 2,
     XQC_STREAM_FLAG_HAS_0RTT        = 1 << 3,
     XQC_STREAM_FLAG_HAS_H3          = 1 << 4,
+    XQC_STREAM_FLAG_NEED_CLOSE      = 1 << 5,
 } xqc_stream_flag_t;
 
 typedef enum {
@@ -96,6 +99,7 @@ struct xqc_stream_s {
                             stream_write_buff_list; /* 0RTT缓存原始数据 */
     xqc_list_head_t         write_stream_list,
                             read_stream_list,
+                            closing_stream_list,
                             all_stream_list;
 
     uint64_t                stream_send_offset;
@@ -105,6 +109,7 @@ struct xqc_stream_s {
     unsigned                stream_unacked_pkt;
     xqc_send_stream_state_t stream_state_send;
     xqc_recv_stream_state_t stream_state_recv;
+    xqc_msec_t              stream_close_time;
 };
 
 static inline xqc_stream_type_t
@@ -142,6 +147,9 @@ xqc_stream_ready_to_read (xqc_stream_t *stream);
 
 void
 xqc_stream_shutdown_read (xqc_stream_t *stream);
+
+void
+xqc_stream_maybe_need_close (xqc_stream_t *stream);
 
 xqc_stream_t *
 xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash);

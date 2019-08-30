@@ -119,6 +119,9 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
     }
     xqc_h3_stream_t *h3_stream = (xqc_h3_stream_t*)user_data;
 
+    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|stream_type:%d|stream_id:%ui|",
+            h3_stream->h3_stream_type, h3_stream->stream->stream_id);
+
     if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST) {
         ret = h3_stream->h3_request->request_if->h3_request_write_notify(h3_stream->h3_request,
                                                                          h3_stream->h3_request->user_data);
@@ -126,9 +129,9 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|h3_request_write_notify error|%d|", ret);
             return ret;
         }
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|success|");
     }
 
-    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|success|");
     return XQC_OK;
 }
 
@@ -197,7 +200,8 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
     }
     xqc_h3_stream_t *h3_stream = (xqc_h3_stream_t*)user_data;
     xqc_h3_stream_destroy(h3_stream);
-    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|destroy h3 stream success|");
+    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|destroy h3 stream success|h3_stream_type:%d|",
+            h3_stream->h3_stream_type);
     return XQC_OK;
 }
 

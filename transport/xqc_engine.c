@@ -491,7 +491,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
                 }
             } else {
                 /* 至少会有idle定时器，这是异常分支 */
-                xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection");
+                xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection|");
                 xqc_conn_destroy(conn);
             }
         }
@@ -635,6 +635,7 @@ after_process:
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         } else {
             xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|");
+            xqc_conn_destroy(conn);
             return -XQC_ESYS;
         }
     }

@@ -223,10 +223,16 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
 int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[100] = {0};
+    char buff[1000] = {0};
+    size_t buff_size = 1000;
 
-    char buff_send[5000] = {0};
-    xqc_stream_send(stream, buff_send, sizeof(buff), 1);
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_stream_recv(stream, buff, buff_size, &fin);
+        printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
+    } while (read > 0 && !fin);
+
     return 0;
 }
 
@@ -251,7 +257,15 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     DEBUG;
     int ret;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
+    char buff[1000] = {0};
+    size_t buff_size = 1000;
 
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+        printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+    } while (read > 0 && !fin);
     return 0;
 }
 
@@ -300,6 +314,9 @@ xqc_client_read_handler(client_ctx_t *ctx)
     do {
         recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
 
+        if (recv_size < 0 && errno == EAGAIN) {
+            break;
+        }
         if (recv_size < 0) {
             printf("xqc_client_read_handler: recvmsg = %zd\n", recv_size);
             break;

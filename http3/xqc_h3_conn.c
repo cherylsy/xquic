@@ -69,6 +69,8 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_control error|");
         return ret;
     }
+
+    //TODO: send SETTINGS
     return XQC_OK;
 }
 
