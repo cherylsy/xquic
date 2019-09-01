@@ -142,10 +142,11 @@ typedef struct {
   uint64_t value;
 } xqc_http3_settings_entry;
 
+#define MAX_SETTING_ENTRY 16
 typedef struct {
   xqc_http3_frame_hd hd;
   size_t niv;
-  xqc_http3_settings_entry iv[1];
+  xqc_http3_settings_entry iv[MAX_SETTING_ENTRY];
 } xqc_http3_frame_settings;
 
 typedef struct {
