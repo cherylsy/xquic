@@ -39,7 +39,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_HAS_0RTT_SHIFT]              = "HAS_0RTT",
         [XQC_CONN_FLAG_0RTT_OK_SHIFT]               = "0RTT_OK",
         [XQC_CONN_FLAG_0RTT_REJ_SHIFT]              = "0RTT_REJECT",
-        [XQC_CONN_FLAG_HAS_H3_SHIFT]                = "HAS_H3",
+        [XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT]      = "UPPER_CONN_EXIST",
 };
 
 const char*
@@ -212,6 +212,7 @@ xqc_conn_create(xqc_engine_t *engine,
         if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
             goto fail;
         }
+        xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
 
@@ -232,8 +233,9 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
-    if (xc->conn_callbacks.conn_close_notify) {
+    if (xc->conn_callbacks.conn_close_notify && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
         xc->conn_callbacks.conn_close_notify(xc, xc->user_data);
+        xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
     xqc_list_head_t *pos, *next;

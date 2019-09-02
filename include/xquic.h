@@ -25,6 +25,8 @@ typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
 typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
 
+typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *conn, void *user_data);
+
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
@@ -42,6 +44,12 @@ struct xqc_conn_callbacks_s {
 
     /* for handshake done */
     xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
+};
+
+/* application layer */
+struct xqc_h3_conn_callbacks_s {
+    xqc_h3_conn_notify_pt          h3_conn_create_notify;
+    xqc_h3_conn_notify_pt          h3_conn_close_notify;
 };
 
 /* transport layer */
@@ -104,6 +112,8 @@ typedef struct xqc_engine_callback_s {
 
     /* for connection notify */
     xqc_conn_callbacks_t        conn_callbacks;
+
+    xqc_h3_conn_callbacks_t     h3_conn_callbacks;
 
     /* for stream notify */
     xqc_stream_callbacks_t      stream_callbacks;

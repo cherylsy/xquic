@@ -37,16 +37,29 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->conn = conn;
     h3_conn->log = conn->log;
     h3_conn->user_data = user_data;
+    h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
-    conn->conn_flag |= XQC_CONN_FLAG_HAS_H3;
+    if (h3_conn->h3_conn_callbacks.h3_conn_create_notify) {
+        if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, user_data)) {
+            goto fail;
+        }
+        h3_conn->flags |= XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
+    }
 
     return h3_conn;
+fail:
+    xqc_h3_conn_destroy(h3_conn);
+    return NULL;
 }
 
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 {
-    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|done|");
+    if (h3_conn->h3_conn_callbacks.h3_conn_close_notify && (h3_conn->flags & XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST)) {
+        h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, h3_conn->user_data);
+        h3_conn->flags &= ~XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
+    }
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
     xqc_free(h3_conn);
 }
 
@@ -78,10 +91,6 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data)
 int
 xqc_h3_conn_close_notify(xqc_connection_t *conn, void *user_data)
 {
-    if (!(conn->conn_flag & XQC_CONN_FLAG_HAS_H3)) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|has no h3 conn|");
-        return XQC_OK;
-    }
     xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
     xqc_h3_conn_destroy(h3_conn);
     xqc_log(conn->log, XQC_LOG_DEBUG, "|destroy h3 conn success|");
