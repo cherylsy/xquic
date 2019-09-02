@@ -143,7 +143,7 @@ xqc_stream_do_flow_ctl(xqc_stream_t *stream)
 
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
         xqc_write_data_blocked_to_packet(stream->stream_conn, stream->stream_conn->conn_flow_ctl.fc_max_data);
-        return 1;
+        return -XQC_ECONN_BLOCKED;
     }
 
     if (stream->stream_send_offset >= stream->stream_flow_ctl.fc_max_stream_data) {
@@ -153,7 +153,7 @@ xqc_stream_do_flow_ctl(xqc_stream_t *stream)
         stream->stream_flag |= XQC_STREAM_FLAG_DATA_BLOCKED;
         xqc_write_stream_data_blocked_to_packet(stream->stream_conn, stream->stream_id,
                                                 stream->stream_flow_ctl.fc_max_stream_data);
-        return 1;
+        return -XQC_ESTREAM_BLOCKED;
     }
     return 0;
 }
@@ -752,15 +752,18 @@ xqc_stream_send (xqc_stream_t *stream,
 
     while (offset < send_data_size || fin_only) {
 
-        if (xqc_stream_do_flow_ctl(stream)) {
+        ret = xqc_stream_do_flow_ctl(stream);
+        if (ret) {
             goto do_buff;
         }
 
         if (!xqc_send_ctl_can_write(conn->conn_send_ctl)) {
+            ret = -XQC_EBLOCKED;
             goto do_buff;
         }
 
         if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count > XQC_PACKET_0RTT_MAX_COUNT) {
+            ret = -XQC_EBLOCKED;
             goto do_buff;
         }
 
@@ -826,7 +829,7 @@ do_buff:
     xqc_engine_main_logic(conn->engine);
 
     if (offset == 0 && !fin_only_done) {
-        return -XQC_EBLOCKED;
+        return ret;
     }
     return offset;
 }
