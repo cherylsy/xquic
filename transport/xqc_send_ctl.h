@@ -2,9 +2,12 @@
 #ifndef _XQC_SEND_CTL_H_INCLUDED_
 #define _XQC_SEND_CTL_H_INCLUDED_
 
+#include <congestion_control/xqc_sample.h>
+#include <include/xquic.h>
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 #include "xqc_pacing.h"
+#include "../congestion_control/xqc_sample.h"
 
 #define XQC_kPacketThreshold 3
 #define XQC_kPersistentCongestionThreshold 2
@@ -93,28 +96,16 @@ typedef struct xqc_send_ctl_s {
 
     xqc_pacing_t                ctl_pacing;
 
+    uint64_t                    ctl_delivered;
+    xqc_msec_t                  ctl_delivered_time;
+    xqc_msec_t                  ctl_first_sent_time;
+
+    xqc_sample_t                *sampler;
+
 } xqc_send_ctl_t;
 
-
-static inline xqc_msec_t
-xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
-{
-    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity*1000) +
-           ctl->ctl_conn->local_settings.max_ack_delay*1000;
-}
-
-/*
- * 写缓存
- */
-static inline int
-xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
-{
-    if (ctl->ctl_packets_used < ctl->ctl_packets_used_max) {
-        return 1;
-    }
-    return 0;
-}
-
+const char *
+xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type);
 
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn);
@@ -133,6 +124,9 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
 
 int
 xqc_send_ctl_can_send (xqc_connection_t *conn);
+
+int
+xqc_send_ctl_can_write(xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
@@ -172,6 +166,43 @@ xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl);
+
+void
+xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
+
+void
+xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now);
+
+static inline int
+xqc_send_ctl_timer_is_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
+{
+    return ctl->ctl_timer[type].ctl_timer_is_set;
+}
+
+static inline void
+xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t expire)
+{
+    ctl->ctl_timer[type].ctl_timer_is_set = 1;
+    ctl->ctl_timer[type].ctl_expire_time = expire;
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_set|type=%s|expire=%ui|",
+            xqc_timer_type_2_str(type), expire);
+}
+
+static inline void
+xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
+{
+    ctl->ctl_timer[type].ctl_timer_is_set = 0;
+    ctl->ctl_timer[type].ctl_expire_time = 0;
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_unset|type=%s|",
+            xqc_timer_type_2_str(type));
+}
+
+static inline xqc_msec_t
+xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
+{
+    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity*1000) +
+                     ctl->ctl_conn->trans_param.max_ack_delay*1000;
+}
 
 void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_msec_t now);
@@ -214,65 +245,5 @@ xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
 
 float
 xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
-
-
-/*
- * *****************TIMER*****************
- */
-const char *
-xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type);
-
-void
-xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
-
-static inline int
-xqc_send_ctl_timer_is_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
-{
-    return ctl->ctl_timer[type].ctl_timer_is_set;
-}
-
-static inline void
-xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t expire)
-{
-    ctl->ctl_timer[type].ctl_timer_is_set = 1;
-    ctl->ctl_timer[type].ctl_expire_time = expire;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|expire=%ui|",
-            xqc_timer_type_2_str(type), expire);
-}
-
-static inline void
-xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
-{
-    ctl->ctl_timer[type].ctl_timer_is_set = 0;
-    ctl->ctl_timer[type].ctl_expire_time = 0;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|",
-            xqc_timer_type_2_str(type));
-}
-
-static inline void
-xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
-{
-    xqc_send_ctl_timer_t *timer;
-    for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
-        timer = &ctl->ctl_timer[type];
-        if (timer->ctl_timer_is_set && timer->ctl_expire_time <= now) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
-                    "|timer expired|type:%s|expire_time:%ui|now:%ui|",
-                    xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
-            timer->ctl_timer_callback(type, now, timer->ctl_ctx);
-
-            //unset timer if it is not updated in ctl_timer_callback
-            if (timer->ctl_expire_time <= now) {
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
-                        "|unset|type:%s|expire_time:%ui|now:%ui|",
-                        xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
-                xqc_send_ctl_timer_unset(ctl, type);
-            }
-        }
-    }
-}
-/*
- * *****************TIMER END*****************
- */
 
 #endif //_XQC_SEND_CTL_H_INCLUDED_
