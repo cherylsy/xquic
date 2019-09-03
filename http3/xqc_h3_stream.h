@@ -95,6 +95,24 @@ typedef enum {
     XQC_HTTP3_HTTP_EVENT_MSG_END,
 } xqc_http3_stream_http_event;
 
+
+typedef struct xqc_data_buf{
+
+    xqc_list_head_t list_head;
+    size_t data_len;
+    char data[];
+}xqc_data_buf_t;
+
+
+typedef struct xqc_h3_frame_send_buf{
+    xqc_list_head_t list_head;
+    size_t  buf_len;
+    size_t  data_len;
+    //size_t  data_left;
+    size_t  already_send;
+    char    data[];
+}xqc_h3_frame_send_buf_t;
+
 typedef struct xqc_h3_stream_s {
     xqc_stream_t        *stream;
     xqc_h3_conn_t       *h3_conn;
@@ -108,6 +126,10 @@ typedef struct xqc_h3_stream_s {
 
     xqc_http3_stream_http_state rx_http_state;
     xqc_http3_stream_http_state tx_http_state;
+
+    xqc_list_head_t     header_data_buf;
+    xqc_list_head_t     body_data_buf;
+
 } xqc_h3_stream_t;
 
 extern const xqc_stream_callbacks_t stream_callbacks;
