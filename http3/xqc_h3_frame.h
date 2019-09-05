@@ -34,7 +34,7 @@ typedef enum {
 } xqc_http3_ctrl_stream_state;
 
 typedef enum {
-  XQC_HTTP3_REQ_STREAM_STATE_FRAME_TYPE,
+  XQC_HTTP3_REQ_STREAM_STATE_FRAME_TYPE = 0,
   XQC_HTTP3_REQ_STREAM_STATE_FRAME_LENGTH,
   XQC_HTTP3_REQ_STREAM_STATE_DATA,
   XQC_HTTP3_REQ_STREAM_STATE_HEADERS,
@@ -45,7 +45,7 @@ typedef enum {
 } xqc_http3_req_stream_state;
 
 typedef enum {
-  XQC_HTTP3_PUSH_STREAM_STATE_FRAME_TYPE,
+  XQC_HTTP3_PUSH_STREAM_STATE_FRAME_TYPE = 0,
   XQC_HTTP3_PUSH_STREAM_STATE_FRAME_LENGTH,
   XQC_HTTP3_PUSH_STREAM_STATE_DATA,
   XQC_HTTP3_PUSH_STREAM_STATE_HEADERS,
@@ -53,6 +53,8 @@ typedef enum {
   XQC_HTTP3_PUSH_STREAM_STATE_PUSH_ID,
   XQC_HTTP3_PUSH_STREAM_STATE_IGN_REST,
 } xqc_http3_push_stream_state;
+
+#define XQC_MAX_FRAME_SIZE (4*1024)
 
 typedef struct{
     int64_t type;
@@ -62,7 +64,6 @@ typedef struct{
 typedef struct {
     xqc_http3_frame_hd hd;
 } xqc_http3_frame_data;
-
 
 
 /**
@@ -142,10 +143,11 @@ typedef struct {
   uint64_t value;
 } xqc_http3_settings_entry;
 
+#define MAX_SETTING_ENTRY 16
 typedef struct {
   xqc_http3_frame_hd hd;
   size_t niv;
-  xqc_http3_settings_entry iv[1];
+  xqc_http3_settings_entry iv[MAX_SETTING_ENTRY];
 } xqc_http3_frame_settings;
 
 typedef struct {
@@ -197,5 +199,29 @@ typedef struct {
     int state;
     int64_t left;
 } xqc_http3_stream_read_state;
+
+
+typedef struct {
+  uint64_t max_header_list_size;
+  uint64_t num_placeholders;
+  uint64_t max_pushes;
+  uint64_t qpack_max_table_capacity;
+  uint64_t qpack_blocked_streams;
+} xqc_http3_conn_settings_t;
+
+typedef struct {
+    xqc_http3_frame fr;
+
+    union{
+        struct {
+            xqc_http3_conn_settings *local_settings;
+        }settings;
+        struct {
+            char * data;
+            size_t data_len;
+        }data;
+    }aux;
+}xqc_http3_frame_entry_t;
+
 
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */
