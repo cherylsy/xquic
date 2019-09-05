@@ -27,6 +27,9 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
     xqc_init_http3_stream_read_state(&h3_stream->read_state);
     h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_NONE;
     h3_stream->tx_http_state = XQC_HTTP3_HTTP_STATE_NONE;
+
+    xqc_init_list_head(&h3_stream->send_frame_data_buf);
+    xqc_init_list_head(&h3_stream->send_header_data_buf);
     stream->user_data = h3_stream;
 
     stream->stream_flag |= XQC_STREAM_FLAG_HAS_H3;

@@ -127,8 +127,8 @@ typedef struct xqc_h3_stream_s {
     xqc_http3_stream_http_state rx_http_state;
     xqc_http3_stream_http_state tx_http_state;
 
-    xqc_list_head_t     header_data_buf;
-    xqc_list_head_t     body_data_buf;
+    xqc_list_head_t     send_header_data_buf;
+    xqc_list_head_t     send_frame_data_buf;
 
 } xqc_h3_stream_t;
 

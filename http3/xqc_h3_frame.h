@@ -54,6 +54,8 @@ typedef enum {
   XQC_HTTP3_PUSH_STREAM_STATE_IGN_REST,
 } xqc_http3_push_stream_state;
 
+#define XQC_MAX_FRAME_SIZE (4*1024)
+
 typedef struct{
     int64_t type;
     int64_t length;
@@ -62,7 +64,6 @@ typedef struct{
 typedef struct {
     xqc_http3_frame_hd hd;
 } xqc_http3_frame_data;
-
 
 
 /**
