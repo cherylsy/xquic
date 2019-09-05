@@ -817,9 +817,9 @@ do_buff:
         }
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
                                       "send_data_size:%ui|offset:%ui|fin:%d|",
-            stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
+            stream->stream_id, stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
             send_data_size, offset, fin);
 
 

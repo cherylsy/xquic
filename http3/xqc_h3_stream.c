@@ -79,7 +79,7 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
 
     h3_conn->control_stream_out = h3_stream;
 
-    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|", stream->stream_id);
     return XQC_OK;
 }
 
