@@ -37,17 +37,82 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->conn = conn;
     h3_conn->log = conn->log;
     h3_conn->user_data = user_data;
+    h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
-    conn->conn_flag |= XQC_CONN_FLAG_HAS_H3;
+    if (h3_conn->h3_conn_callbacks.h3_conn_create_notify) {
+        if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, user_data)) {
+            goto fail;
+        }
+        h3_conn->flags |= XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
+    }
 
     return h3_conn;
+fail:
+    xqc_h3_conn_destroy(h3_conn);
+    return NULL;
 }
 
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 {
-    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|done|");
+    if (h3_conn->h3_conn_callbacks.h3_conn_close_notify && (h3_conn->flags & XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST)) {
+        h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, h3_conn->user_data);
+        h3_conn->flags &= ~XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
+    }
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
     xqc_free(h3_conn);
+}
+
+int
+xqc_h3_conn_close(xqc_h3_conn_t *h3_conn)
+{
+    return xqc_conn_close(h3_conn->conn->engine, &h3_conn->conn->scid);
+}
+
+int
+xqc_h3_conn_send_goaway(xqc_h3_conn_t *h3_conn)
+{
+    ssize_t ret;
+    unsigned char *data;
+    size_t data_len;
+    //gen_goaway_frame
+    h3_conn->goaway_stream_id = h3_conn->max_stream_id_recvd + 4;
+    ret = xqc_h3_stream_send(h3_conn->control_stream_out, data, data_len, 0);
+    if (ret < 0) {
+        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_send_data error|");
+        return ret;
+    }
+    h3_conn->flags |= XQC_HTTP3_CONN_FLAG_GOAWAY_SEND;
+    return XQC_OK;
+}
+
+int
+xqc_h3_conn_goaway_recvd(xqc_h3_conn_t *h3_conn, xqc_stream_id_t goaway_stream_id)
+{
+    h3_conn->goaway_stream_id = goaway_stream_id;
+    h3_conn->flags |= XQC_HTTP3_CONN_FLAG_GOAWAY_RECVD;
+    return XQC_OK;
+}
+
+int
+xqc_h3_conn_send_settings(xqc_h3_conn_t *h3_conn)
+{
+    ssize_t ret;
+    unsigned char data[512];
+    size_t data_len = 512;
+    //TODO: gen settings frame
+    ret = xqc_h3_stream_send(h3_conn->control_stream_out, data, data_len, 0);
+    if (ret < 0) {
+        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_send_data error|");
+        return ret;
+    }
+    return XQC_OK;
+}
+
+int
+xqc_h3_conn_setting_recvd(xqc_h3_conn_t *h3_conn)
+{
+    return XQC_OK;
 }
 
 int
@@ -71,17 +136,18 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data)
         return ret;
     }
 
-    //TODO: send SETTINGS
+    //send SETTINGS
+    ret = xqc_h3_conn_send_settings(h3_conn);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_send_settings error|");
+        return ret;
+    }
     return XQC_OK;
 }
 
 int
 xqc_h3_conn_close_notify(xqc_connection_t *conn, void *user_data)
 {
-    if (!(conn->conn_flag & XQC_CONN_FLAG_HAS_H3)) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|has no h3 conn|");
-        return XQC_OK;
-    }
     xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
     xqc_h3_conn_destroy(h3_conn);
     xqc_log(conn->log, XQC_LOG_DEBUG, "|destroy h3 conn success|");

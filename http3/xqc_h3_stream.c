@@ -84,6 +84,25 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
 }
 
 ssize_t
+xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin)
+{
+    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
+    if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST &&
+        (h3_conn->flags & XQC_HTTP3_CONN_FLAG_GOAWAY_RECVD) &&
+        h3_stream->stream->stream_id >= h3_conn->goaway_stream_id) {
+
+        xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|goaway recvd, stop send|");
+        return -XQC_H3_EGOAWAY;
+    }
+    ssize_t n_write = 0;
+    n_write = xqc_stream_send(h3_stream->stream, data, data_size, fin);
+    if (n_write < 0) {
+        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|%z|", n_write);
+    }
+    return n_write;
+}
+
+ssize_t
 xqc_h3_stream_send_header(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers)
 {
     ssize_t n_write = 0;
@@ -97,7 +116,7 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
 {
     ssize_t n_write = 0;
     //gen DATA frame
-    n_write = xqc_stream_send(h3_stream->stream, data, data_size, fin);
+    n_write = xqc_h3_stream_send(h3_stream, data, data_size, fin);
     if (n_write < 0) {
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|%z|", n_write);
     }
@@ -160,10 +179,14 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
 
     /* 服务端h3 stream可能还未创建 */
     if (!user_data) {
-        //parse h3 frame
         h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_NUM, NULL);
     } else {
         h3_stream = (xqc_h3_stream_t *) user_data;
+    }
+
+    if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_GOAWAY_RECVD && stream->stream_id >= h3_conn->goaway_stream_id) {
+        //send stop_sending
+        return xqc_write_stop_sending_to_packet(h3_conn->conn, stream, HTTP_REQUEST_CANCELLED);
     }
 
     unsigned char buff[1000] = {0};

@@ -317,6 +317,7 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
         stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_SENT;
     }
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_send:%d|", stream->stream_id, stream->stream_state_send);
     return XQC_OK;
 
 error:

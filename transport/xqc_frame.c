@@ -538,10 +538,17 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
         return -XQC_ENULLPTR;
     }
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_recv:%d|", stream->stream_id, stream->stream_state_recv);
+
+    if (stream->stream_state_send < XQC_SEND_STREAM_ST_RESET_SENT) {
+        xqc_write_reset_stream_to_packet(conn, stream, err_code, stream->stream_send_offset);
+    }
+
     if (stream->stream_state_recv < XQC_RECV_STREAM_ST_RESET_RECVD) {
         stream->stream_state_recv = XQC_RECV_STREAM_ST_RESET_RECVD;
 
         xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
+        xqc_stream_ready_to_read(stream);
     }
     return XQC_OK;
 }
@@ -577,6 +584,9 @@ xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
    MUST send a RESET_STREAM frame if the stream is in the Ready or Send
    state.
      */
+    if (stream->stream_state_send < XQC_SEND_STREAM_ST_RESET_SENT) {
+        xqc_write_reset_stream_to_packet(conn, stream, HTTP_REQUEST_CANCELLED, stream->stream_send_offset);
+    }
 
     return XQC_OK;
 }

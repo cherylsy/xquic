@@ -58,6 +58,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
             xqc_conn_destroy(xc);
             goto fail;
         }
+        xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
     if (engine->event_timer) {
