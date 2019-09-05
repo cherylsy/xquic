@@ -24,7 +24,7 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
     h3_stream->h3_stream_type = h3_stream_type;
     h3_stream->user_data = user_data;
 
-    xqc_init_http3_stream_read_state(&h3_stream->read_state);
+    xqc_h3_stream_read_state_init(&h3_stream->read_state);
     h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_NONE;
     h3_stream->tx_http_state = XQC_HTTP3_HTTP_STATE_NONE;
 
@@ -37,8 +37,8 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
     return h3_stream;
 }
 
-int xqc_init_http3_stream_read_state(xqc_http3_stream_read_state * read_state){
-    memset(read_state, 0, sizeof(xqc_http3_stream_read_state))
+int xqc_h3_stream_read_state_init(xqc_http3_stream_read_state * read_state){
+    memset(read_state, 0, sizeof(xqc_http3_stream_read_state));
     return 0;
 }
 

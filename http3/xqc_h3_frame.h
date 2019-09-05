@@ -207,7 +207,7 @@ typedef struct {
   uint64_t max_pushes;
   uint64_t qpack_max_table_capacity;
   uint64_t qpack_blocked_streams;
-} xqc_http3_conn_settings_t;
+} xqc_http3_conn_settings;
 
 typedef struct {
     xqc_http3_frame fr;

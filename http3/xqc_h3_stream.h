@@ -141,6 +141,9 @@ void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream);
 
 int
+xqc_h3_stream_read_state_init(xqc_http3_stream_read_state * read_state);
+
+int
 xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream);
 
 ssize_t
