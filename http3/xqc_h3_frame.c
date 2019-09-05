@@ -527,6 +527,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
             case XQC_HTTP3_CTRL_STREAM_STATE_SETTINGS:
                 //need finish
 
+
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_SETTING_ID:
                 //need finish
