@@ -127,7 +127,14 @@ xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, siz
 int
 xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin)
 {
-    h3_stream->h3_stream_type = XQC_H3_STREAM_REQUEST;
+    if (XQC_H3_STREAM_NUM == h3_stream->h3_stream_type) {
+        if (h3_stream->stream->stream_type == XQC_SVR_BID || h3_stream->stream->stream_type == XQC_CLI_BID) {
+            h3_stream->h3_stream_type = XQC_H3_STREAM_REQUEST;
+        } else {
+            h3_stream->h3_stream_type = XQC_H3_STREAM_CONTROL;
+            h3_stream->h3_conn->control_stream_in = h3_stream;
+        }
+    }
     return XQC_OK;
 }
 
@@ -177,8 +184,8 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
         return xqc_write_stop_sending_to_packet(h3_conn->conn, stream, HTTP_REQUEST_CANCELLED);
     }
 
-    unsigned char buff[1000] = {0};
-    size_t buff_size = 1000;
+    unsigned char buff[4096] = {0};
+    size_t buff_size = 4096;
 
     ssize_t read;
     unsigned char fin;

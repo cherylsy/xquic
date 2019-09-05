@@ -263,7 +263,7 @@ xqc_destroy_stream(xqc_stream_t *stream)
 }
 
 xqc_stream_t *
-xqc_server_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
+xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
                    void *user_data)
 {
     xqc_stream_t *stream = xqc_create_stream_with_conn(conn, stream_id, 0, user_data);

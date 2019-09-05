@@ -137,11 +137,11 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data)
     }
 
     //send SETTINGS
-    ret = xqc_h3_conn_send_settings(h3_conn);
+   /* ret = xqc_h3_conn_send_settings(h3_conn);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_send_settings error|");
         return ret;
-    }
+    }*/
     return XQC_OK;
 }
 
