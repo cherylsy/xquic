@@ -1348,9 +1348,9 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_settings(xqc_h3_stream_t * h3_stre
     }
 
 
-    int hd_len = xqc_http3_frame_write_settings_len(&hd->length, &fr_setting);
+    int total_len = xqc_http3_frame_write_settings_len(&hd->length, &fr_setting);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd -> length);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( total_len);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1389,9 +1389,9 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_cancel_push(xqc_h3_stream_t * h3_s
     xqc_http3_frame_hd * hd = &fr->hd;
     hd->type =  XQC_HTTP3_FRAME_CANCEL_PUSH;
 
-    int hd_len = xqc_http3_frame_write_cancel_push_len(&hd->length, fr);
+    int total_len = xqc_http3_frame_write_cancel_push_len(&hd->length, fr);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd -> length);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf(total_len);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1427,9 +1427,9 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_max_push_id(xqc_h3_stream_t * h3_s
     xqc_http3_frame_hd * hd = &fr->hd;
     hd->type =  XQC_HTTP3_FRAME_CANCEL_PUSH;
 
-    int hd_len = xqc_http3_frame_write_max_push_id_len(&hd->length, fr);
+    int total_len = xqc_http3_frame_write_max_push_id_len(&hd->length, fr);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd -> length);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf(total_len);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1468,9 +1468,9 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_priority(xqc_h3_stream_t * h3_stre
     xqc_http3_frame_hd * hd = &fr_priority->hd;
     hd->type =  XQC_HTTP3_FRAME_PRIORITY;
 
-    int hd_len = xqc_http3_frame_write_priority_len(&hd->length, fr_priority);
+    int total_len = xqc_http3_frame_write_priority_len(&hd->length, fr_priority);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd -> length);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf(total_len);
     if(send_buf == NULL){
         return send_buf;
     }
