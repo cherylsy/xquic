@@ -637,6 +637,8 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     *fin = 0;
 
     if (stream->stream_state_recv >= XQC_RECV_STREAM_ST_RESET_RECVD) {
+        stream->stream_state_recv = XQC_RECV_STREAM_ST_RESET_READ;
+        xqc_stream_maybe_need_close(stream);
         return -XQC_ESTREAM_ST;
     }
 

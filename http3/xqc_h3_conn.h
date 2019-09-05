@@ -13,6 +13,8 @@ typedef enum {
     XQC_HTTP3_CONN_FLAG_SETTINGS_RECVED     = 1 << 0,
     XQC_HTTP3_CONN_FLAG_CONTROL_OPENED      = 1 << 1,
     XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST    = 1 << 2,
+    XQC_HTTP3_CONN_FLAG_GOAWAY_SEND         = 1 << 3,
+    XQC_HTTP3_CONN_FLAG_GOAWAY_RECVD        = 1 << 4,
     //XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED = 0x0004,
     //XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED = 0x0008,
     /* XQC_HTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED indicates that MAX_PUSH_ID
@@ -29,7 +31,10 @@ struct xqc_h3_conn_s {
 
     xqc_http3_conn_flag     flags;
     xqc_h3_conn_callbacks_t h3_conn_callbacks;
+    uint64_t                max_stream_id_recvd;
+    uint64_t                goaway_stream_id;
 };
+
 
 extern const xqc_conn_callbacks_t conn_callbacks;
 

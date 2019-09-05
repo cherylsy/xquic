@@ -5,6 +5,26 @@
 
 #include <errno.h>
 
+typedef enum xqc_h3_err_code {
+    HTTP_NO_ERROR                   = 0x00,
+    HTTP_GENERAL_PROTOCOL_ERROR     = 0x01,
+    HTTP_INTERNAL_ERROR             = 0x03,
+    HTTP_REQUEST_CANCELLED          = 0x05,
+    HTTP_INCOMPLETE_REQUEST         = 0x06,
+    HTTP_CONNECT_ERROR              = 0x07,
+    HTTP_EXCESSIVE_LOAD             = 0x08,
+    HTTP_VERSION_FALLBACK           = 0x09,
+    HTTP_WRONG_STREAM               = 0x0A,
+    HTTP_ID_ERROR                   = 0x0B,
+    HTTP_STREAM_CREATION_ERROR      = 0x0D,
+    HTTP_CLOSED_CRITICAL_STREAM     = 0x0F,
+    HTTP_EARLY_RESPONSE             = 0x0011,
+    HTTP_MISSING_SETTINGS           = 0x0012,
+    HTTP_UNEXPECTED_FRAME           = 0x0013,
+    HTTP_REQUEST_REJECTED           = 0x0014,
+    HTTP_SETTINGS_ERROR             = 0x00FF,
+    HTTP_MALFORMED_FRAME            = 0x0100,
+} xqc_h3_err_code_t;
 
 typedef int               xqc_err_t;
 
@@ -80,6 +100,7 @@ typedef int               xqc_err_t;
 #define XQC_H3_EMALLOC      800
 #define XQC_H3_ESTREAM      801
 #define XQC_H3_EREQUEST     802
+#define XQC_H3_EGOAWAY      803
 
 
 
