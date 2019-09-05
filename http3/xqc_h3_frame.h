@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <string.h>
 
+typedef struct xqc_h3_stream_s xqc_h3_stream_t;
+
 typedef enum {
     XQC_HTTP3_FRAME_DATA = 0x00,
     XQC_HTTP3_FRAME_HEADERS = 0x01,
@@ -223,5 +225,6 @@ typedef struct {
     }aux;
 }xqc_http3_frame_entry_t;
 
+int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_settings * settings );
 
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

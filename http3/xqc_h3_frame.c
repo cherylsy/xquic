@@ -1244,6 +1244,10 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
         send_buf = xqc_list_entry(pos, xqc_h3_frame_send_buf_t, list_head);
 
         ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data + send_buf->already_consume, send_buf->data_len - send_buf->already_consume, fin);
+        if (send_success < 0) {
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|ret:%i|", send_success);
+            return send_success;
+        }
 
         if(send_success + send_buf->already_consume != send_buf->data_len){
             send_buf->already_consume += send_success;
@@ -1367,6 +1371,7 @@ int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_
     xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_settings( h3_stream, settings);
 
     if(send_buf == 0){
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_settings error|");
         return -1;
     }
 
