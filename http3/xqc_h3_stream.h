@@ -104,14 +104,16 @@ typedef struct xqc_data_buf{
 }xqc_data_buf_t;
 
 
-typedef struct xqc_h3_frame_send_buf{
+typedef struct xqc_h3_data_buf{
     xqc_list_head_t list_head;
     size_t  buf_len;
     size_t  data_len;
     //size_t  data_left;
-    size_t  already_send;
+    size_t  already_consume;
     char    data[];
-}xqc_h3_frame_send_buf_t;
+}xqc_h3_data_buf_t;
+
+typedef xqc_h3_data_buf_t xqc_h3_frame_send_buf_t;
 
 typedef struct xqc_h3_stream_s {
     xqc_stream_t        *stream;
@@ -129,6 +131,9 @@ typedef struct xqc_h3_stream_s {
 
     xqc_list_head_t     send_header_data_buf;
     xqc_list_head_t     send_frame_data_buf;
+
+    xqc_list_head_t     recv_header_data_buf;
+    xqc_list_head_t     recv_body_data_buf;
 
 } xqc_h3_stream_t;
 
