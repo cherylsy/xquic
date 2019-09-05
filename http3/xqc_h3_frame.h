@@ -18,7 +18,7 @@ typedef enum {
 
 
 typedef enum {
-  XQC_HTTP3_CTRL_STREAM_STATE_FRAME_TYPE,
+  XQC_HTTP3_CTRL_STREAM_STATE_FRAME_TYPE = 0,
   XQC_HTTP3_CTRL_STREAM_STATE_FRAME_LENGTH,
   XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY,
   XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY_PRI_ELEM_ID,
@@ -207,7 +207,7 @@ typedef struct {
   uint64_t max_pushes;
   uint64_t qpack_max_table_capacity;
   uint64_t qpack_blocked_streams;
-} xqc_http3_conn_settings_t;
+} xqc_http3_conn_settings;
 
 typedef struct {
     xqc_http3_frame fr;
