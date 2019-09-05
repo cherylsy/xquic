@@ -25,7 +25,7 @@ set(
     http3/xqc_h3_conn.c
     http3/xqc_h3_stream.c
     http3/xqc_h3_request.c
-    #http3/xqc_h3_frame.c
+    http3/xqc_h3_frame.c
 )
 
 set(
