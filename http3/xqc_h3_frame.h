@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 #include <string.h>
+#include <sys/types.h>
 
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
+typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 
 typedef enum {
     XQC_HTTP3_FRAME_DATA = 0x00,
@@ -226,5 +228,7 @@ typedef struct {
 }xqc_http3_frame_entry_t;
 
 int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_settings * settings );
+
+ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen);
 
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

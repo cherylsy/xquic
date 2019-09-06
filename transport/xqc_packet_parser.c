@@ -229,7 +229,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
     pos += 1;
 
-    xqc_log(c->log, XQC_LOG_DEBUG, "|parse short header|spin_bit:%ui|reserved_bits:%ui|key_phase:%ui|packet_number_len:%ui|",
+    xqc_log(c->log, XQC_LOG_DEBUG, "|parse short header|spin_bit:%ud|reserved_bits:%ud|key_phase:%ud|packet_number_len:%ud|",
             spin_bit, reserved_bits,
             key_phase, packet_number_len);
 

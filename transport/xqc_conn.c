@@ -233,21 +233,9 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
-    if (xc->conn_callbacks.conn_close_notify && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
-        xc->conn_callbacks.conn_close_notify(xc, xc->user_data);
-        xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
-    }
-
     xqc_list_head_t *pos, *next;
     xqc_stream_t *stream;
     xqc_packet_in_t *packet_in;
-
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|%p|", xc);
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|srtt:%ui|retrans rate:%.2f|send_count:%ud|retrans_count:%ud|",
-            xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count);
-
-    xqc_send_ctl_destroy(xc->conn_send_ctl);
 
     /* destroy streams */
     xqc_list_for_each_safe(pos, next, &xc->conn_all_streams) {
@@ -255,6 +243,18 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_list_del_init(pos);
         xqc_destroy_stream(stream);
     }
+
+    if (xc->conn_callbacks.conn_close_notify && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
+        xc->conn_callbacks.conn_close_notify(xc, xc->user_data);
+        xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
+    }
+
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|%p|", xc);
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|srtt:%ui|retrans rate:%.2f|send_count:%ud|retrans_count:%ud|",
+            xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count);
+
+    xqc_send_ctl_destroy(xc->conn_send_ctl);
 
     /* free streams hash */
     if (xc->streams_hash) {
