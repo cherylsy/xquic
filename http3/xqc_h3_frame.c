@@ -55,7 +55,7 @@ int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len){
 /*fill h3 frame header,return bytes that length and type need
  * return -1 if error
  */
-int xqc_http3_fill_frame_header(char * buf, uint64_t length, uint64_t type){
+int xqc_http3_fill_frame_header(char * buf, uint64_t type, uint64_t length){
 
     char * pos = xqc_put_varint(buf, type);
     if(pos == NULL){
