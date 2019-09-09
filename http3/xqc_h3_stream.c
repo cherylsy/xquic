@@ -117,7 +117,8 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     //QPACK
     //gen HEADERS frame
     unsigned char buf[200]; ssize_t len=200;
-    n_write = xqc_http3_write_frame_header(h3_stream, buf, len);
+    uint8_t fin = 0;
+    n_write = xqc_http3_write_frame_header(h3_stream, buf, len, fin);
     if (n_write < 0) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_header error|%z|", n_write);
         return n_write;

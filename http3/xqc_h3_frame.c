@@ -1683,7 +1683,7 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
 }
 
 
-ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len){
+ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
     if(data_len <= 0){
         return data_len;
@@ -1692,7 +1692,6 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
     ssize_t send_len; // send bytes every time
     ssize_t send_sum = 0; // means data send or buffer success
     ssize_t offset = 0; // means read data offset
-    uint8_t fin = 0;
 
 
     if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
@@ -1714,8 +1713,12 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
             return send_sum;
         }
 
+        if(fin && data_len == 0){
+            send_buf->fin = fin;
+        }
+
         send_sum += send_len; //means data already buffer  total
-        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, fin);
+        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
 
         if(send_success == send_buf->data_len){
             free(send_buf);
