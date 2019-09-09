@@ -173,6 +173,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_control error|%z|", processed);
             return -1;
         }
+        xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_control|%z|", processed);
     } else if (XQC_H3_STREAM_REQUEST == h3_stream->h3_stream_type) {
         size_t nproc;
         processed = xqc_http3_conn_read_bidi(h3_conn, &nproc, h3_stream, data, data_size);
@@ -242,13 +243,15 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
             return read;
         }
+        xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%d|", read, fin);
+
         ret = xqc_h3_stream_process_in(h3_stream, buff, read, fin);
         if (ret < 0) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_in error|%d|", ret);
             return ret;
         }
-        xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%d|", read, fin);
-    } while (read > 0 && !fin);
+
+    } while (read == buff_size && !fin);
 
     if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST) {
         xqc_h3_request_t *h3_request;

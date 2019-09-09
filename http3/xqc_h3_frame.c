@@ -1690,7 +1690,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
     ssize_t send_len; // send bytes every time
     ssize_t send_sum = 0; // means data send or buffer success
     ssize_t offset = 0; // means read data offset
-    uint8_t fin = 1;
+    uint8_t fin = 0;
 
 
     if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
