@@ -66,9 +66,9 @@ xqc_h3_request_create_2(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void
 }
 
 ssize_t
-xqc_h3_request_send_header(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers)
+xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers)
 {
-    return xqc_h3_stream_send_header(h3_request->h3_stream, headers);
+    return xqc_h3_stream_send_headers(h3_request->h3_stream, headers);
 }
 
 ssize_t

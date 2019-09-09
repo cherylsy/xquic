@@ -255,9 +255,28 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
 int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
-    int ret = 0;
+    ssize_t ret = 0;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[5000] = {0};
+
+    xqc_http_header_t header[] = {
+        {
+            .name   = {.iov_base = ":method", .iov_len = 7},
+            .value  = {.iov_base = "post", .iov_len = 4}
+        },
+    };
+    xqc_http_headers_t headers = {
+        .headers = header,
+        .count  = 1,
+    };
+
+    ret = xqc_h3_request_send_headers(h3_request, &headers);
+    if (ret < 0) {
+        printf("xqc_h3_request_send_headers error %d\n", ret);
+    } else {
+        printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+    }
+
+    char buff[3000] = {0};
     ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
     if (ret < 0) {
         printf("xqc_h3_request_send_body error %d\n", ret);
@@ -334,7 +353,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
             break;
         }
         if (recv_size < 0) {
-            printf("xqc_client_read_handler: recvmsg = %zd\n", recv_size);
+            printf("xqc_client_read_handler: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
         }
 
