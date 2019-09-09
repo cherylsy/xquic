@@ -983,6 +983,7 @@ ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                     return rv;
                 }
                 p += len;
+                nconsumed += len;
                 rstate->left -=(int64_t)len;
 
                 if(rstate->left){
@@ -1249,6 +1250,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                     return rv;
                 }
                 p += len;
+                nconsumed += len;
                 rstate->left -=(int64_t)len;
 
                 if(rstate->left){
