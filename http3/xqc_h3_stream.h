@@ -95,14 +95,14 @@ typedef enum {
     XQC_HTTP3_HTTP_EVENT_MSG_END,
 } xqc_http3_stream_http_event;
 
-
+#if 0
 typedef struct xqc_data_buf{
 
     xqc_list_head_t list_head;
     size_t data_len;
     char data[];
 }xqc_data_buf_t;
-
+#endif
 
 typedef struct xqc_h3_data_buf{
     xqc_list_head_t list_head;
@@ -114,6 +114,7 @@ typedef struct xqc_h3_data_buf{
 }xqc_h3_data_buf_t;
 
 typedef xqc_h3_data_buf_t xqc_h3_frame_send_buf_t;
+typedef xqc_h3_data_buf_t xqc_data_buf_t;
 
 typedef struct xqc_h3_stream_s {
     xqc_stream_t        *stream;
