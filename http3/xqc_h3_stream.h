@@ -110,7 +110,9 @@ typedef struct xqc_h3_data_buf{
     size_t  data_len;
     //size_t  data_left;
     size_t  already_consume;
+    uint8_t fin;
     char    data[];
+
 }xqc_h3_data_buf_t;
 
 typedef xqc_h3_data_buf_t xqc_h3_frame_send_buf_t;

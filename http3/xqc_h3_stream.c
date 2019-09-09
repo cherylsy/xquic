@@ -116,7 +116,7 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
 {
     ssize_t n_write = 0;
 
-    n_write = xqc_http3_write_frame_data(h3_stream, data, data_size); //TODO:fin
+    n_write = xqc_http3_write_frame_data(h3_stream, data, data_size, fin); //TODO:fin
     if (n_write < 0) {
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_data error|%z|", n_write);
         return n_write;
