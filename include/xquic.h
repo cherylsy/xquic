@@ -233,7 +233,7 @@ xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         xqc_cid_t *cid,
                                         void *user_data);
 
-ssize_t xqc_h3_request_send_header(xqc_h3_request_t *h3_request,
+ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
                                    xqc_http_headers_t *headers);
 
 ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,

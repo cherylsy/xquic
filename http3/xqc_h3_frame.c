@@ -1802,6 +1802,7 @@ int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_p
 
 int xqc_http3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv){
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|id:%ui|value:%ui|", iv->id, iv->value);
     return 0;
 }
 
