@@ -3,6 +3,9 @@
 #include "xqc_window_filter.h"
 #include "xqc_sample.h"
 
+#define max(a,b) a>b?a:b
+#define min(a,b) a<b?a:b
+
 #define XQC_kMaxDatagramSize 1200
 #define XQC_kMinimumWindow (4 * XQC_kMaxDatagramSize)
 /*The RECOMMENDED value is the minimum of 10 *
@@ -38,8 +41,11 @@ const uint32_t xqc_bbr_kMinCongestionWindow = 4 * XQC_kMaxDatagramSize;
 const float xqc_bbr_kFullBandWithThresh = 1.25;
 /*After 3 rounds bandwidth less than (1.25x), estimate the pipe is full */
 const uint32_t xqc_bbr_kFullBandwidthCnt = 3;
-
-
+const float xqc_bbr_probe_rtt_gain = 0.75;
+const uint32_t xqc_bbr_extra_ack_win_rtt = 10;
+const uint32_t xqc_bbr_extra_ack_gain = 1;
+const float xqc_bbr_max_extra_ack_time = 0.1;
+const uint32_t  xqc_bbr_ack_epoch_acked_reset_thresh = 1<<20;
 
 size_t xqc_bbr_size()
 {
@@ -53,7 +59,7 @@ static void xqc_bbr_enter_startup(xqc_bbr_t *bbr)
     bbr->cwnd_gain = xqc_bbr_kHighGain;
 }
 
-static void xqc_init_pacing_rate(xqc_bbr_t *bbr,xqc_sample_t *sampler)
+static void xqc_bbr_init_pacing_rate(xqc_bbr_t *bbr,xqc_sample_t *sampler)
 {
     uint32_t bandwidth;
     bandwidth = XQC_kInitialWindow / (sampler->srtt ? sampler->srtt : 0.001);
@@ -63,8 +69,8 @@ static void xqc_init_pacing_rate(xqc_bbr_t *bbr,xqc_sample_t *sampler)
 static void xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
-    xqc_win_filter_reset(*bbr->bandwith,0,0);
-    bbr->min_rtt = sampler->srtt ? sampler->srtt : INF;
+    xqc_win_filter_reset(&bbr->bandwidth,0,0);
+    bbr->min_rtt = sampler->srtt ? sampler->srtt : 0x7fffffff;
     bbr->min_rtt_stamp = sampler->now;
     bbr->round_start = 0;
     bbr->round_cnt = 0;
@@ -73,19 +79,24 @@ static void xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler)
     bbr->probe_rtt_round_done_stamp = 0;
     bbr->packet_conservation = false;
     bbr->prior_cwnd = 0;
-    bbr->idle_restart = false;
+
     bbr->full_bandwidth_cnt = 0;
     bbr->full_bandwidth_reached = false;
     
     xqc_bbr_enter_startup(bbr);
-    xqc_bbr_init_pacing_rate(bbr);
+    xqc_bbr_init_pacing_rate(bbr,sampler);
 
 }
 
-static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t sampler)
+static uint32_t xqc_bbr_max_bw(xqc_bbr_t *bbr)
+{
+    return xqc_win_filter_get(&bbr->bandwidth);
+}
+
+static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     /*Check whether the data is legal */
-    if(sampler->dilivered < 0 || sampler->interval <= 0)
+    if(sampler->delivered < 0 || sampler->interval <= 0)
         return;
     
     /**
@@ -93,7 +104,7 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t sampler)
      * 条件语句表示：周期开始的时候，发送完毕的packet数量小于等于当前ack的包在发送时
      * 已经发送完毕的packet最大数量
      */
-    if(bbr->next_round_delivered <= sampler->prior_dilivered)
+    if(bbr->next_round_delivered <= sampler->prior_delivered)
     {
         bbr->next_round_delivered = sampler->total_acked;
         bbr->round_cnt++;
@@ -106,11 +117,11 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t sampler)
     
     uint32_t bandwidth;
     /*Calculate the new bandwidth, bytes per second */
-    bandwidth = sampler->dilivered / sampler->interval * msec2sec;
+    bandwidth = sampler->delivered / sampler->interval * msec2sec;
 
     if(!sampler->is_app_limited || bandwidth >= xqc_bbr_max_bw(bbr))
     {
-        xqc_win_filter_max(bbr->bandwidth, xqc_bbr_kBandwidthWindowSize, bbr->rtt_cnt, bandwidth);
+        xqc_win_filter_max(&bbr->bandwidth, xqc_bbr_kBandwidthWindowSize, bbr->round_cnt, bandwidth);
     }
 }
 
@@ -119,12 +130,12 @@ static void xqc_bbr_update_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     bool advnce_gain_cycle = (sampler->now - bbr->cycle_start_stamp) > bbr->min_rtt;
     uint32_t inflight = sampler->bytes_inflight;
 
-    if(bbr->pacing_gain >1 && !sampler->loss
-       && inflight < xqc_bbr_get_congestion_window(bbr)){
+    if(bbr->pacing_gain > 1 && !sampler->loss
+       && inflight < bbr->congestion_window){
            advnce_gain_cycle = false;
        }
     if(bbr->pacing_gain < 1
-       &&inflight < xqc_bbr_get_congestion_window(bbr)){
+       && inflight < bbr->congestion_window){
            advnce_gain_cycle = true;
        }
     if(bbr->mode == BBR_PROBE_BW && advnce_gain_cycle){
@@ -133,10 +144,72 @@ static void xqc_bbr_update_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     }
 }
 
-static uint32_t xqc_bbr_max_bw(xqc_bbr_t *bbr)
+
+
+static uint32_t xqc_bbr_extra_ack(xqc_bbr_t *bbr)
 {
-    return xqc_win_filter_get(&bbr->bandwidth);
+    return max(bbr->extra_ack[0], bbr->extra_ack[1]);
 }
+
+
+static uint32_t xqc_bbr_ack_aggregation_cwnd(xqc_bbr_t *bbr)
+{
+    uint32_t max_aggr_cwnd, aggr_cwnd = 0;
+    if(xqc_bbr_extra_ack_gain && bbr->full_bandwidth_reached)
+    {
+        max_aggr_cwnd = xqc_bbr_max_bw(bbr) * xqc_bbr_max_extra_ack_time;
+        aggr_cwnd = xqc_bbr_extra_ack_gain * xqc_bbr_extra_ack(bbr);
+        aggr_cwnd = min(aggr_cwnd, max_aggr_cwnd);
+    }
+    return aggr_cwnd;
+}
+
+static void xqc_update_ack_aggregation(xqc_bbr_t *bbr, xqc_sample_t *sampler)
+{
+    uint32_t epoch, expected_ack, extra_ack;
+    if (!xqc_bbr_extra_ack_gain|| sampler->delivered <= 0
+        || sampler->interval <= 0)
+        return;
+    if (bbr->round_start) {
+        bbr->extra_ack_round_rtt += 1;
+        // 每10个rtt作为一轮参与计算。
+        if (bbr->extra_ack_round_rtt >= xqc_bbr_extra_ack_win_rtt) {
+            bbr->extra_ack_round_rtt = 0;
+            // 交错使用extra_acked倒换数组容器
+            bbr->extra_ack_idx = bbr->extra_ack_idx ?0 : 1;
+            bbr->extra_ack[bbr->extra_ack_idx] = 0;
+        }
+    }
+    /* Compute how many packets we expected to be delivered over epoch. */
+    // epoch_us表示自从收到“比预期过量的ACK”开始到现在的时间间隔！
+    epoch = sampler->now - bbr->extra_ack_stamp;
+    // 很显然的预期公式，bw*t = acked。
+    expected_ack = ((uint64_t )xqc_bbr_max_bw(bbr) * epoch) / msec2sec;
+    /* Reset the aggregation epoch if ACK rate is below expected rate or
+     * significantly large no. of ack received since epoch (potentially
+     * quite old epoch).
+     */
+    // 只有从开始收到比预期多的ACK，SACK时才开始计时。另外，太多也不行。
+    if (bbr->epoch_ack <= expected_ack ||
+        (bbr->epoch_ack + sampler->delivered >=
+         xqc_bbr_ack_epoch_acked_reset_thresh)) {
+        bbr->epoch_ack = 0;
+        bbr->extra_ack_stamp = sampler->now;
+        expected_ack = 0;
+    }
+    /* Compute excess data delivered, beyond what was expected. */
+    bbr->epoch_ack = min(0xFFFFFU,
+                               bbr->epoch_ack + sampler->delivered);
+    // 用实际的ACK，SACK数量减去预期的，就是extra。
+    extra_ack = bbr->epoch_ack - expected_ack;
+    extra_ack = min(extra_ack, bbr->congestion_window);
+    // 加入到容器以供set cwnd逻辑来取值。
+    if (extra_ack > bbr->extra_ack[bbr->extra_ack_idx])
+        bbr->extra_ack[bbr->extra_ack_idx] = extra_ack;
+}
+
+
+
 
 static void xqc_bbr_check_full_bw_reached(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
@@ -163,12 +236,12 @@ static void xqc_bbr_enter_drain(xqc_bbr_t *bbr)
 
 static uint32_t xqc_bbr_target_cwnd(xqc_bbr_t *bbr, float gain)
 {
-    if(bbr->min_rtt == INF){
+    if(bbr->min_rtt == 0x7fffffff){
         return bbr->initial_congestion_window;
     }
 
     uint32_t bdp,cwnd;
-    bdp = bbr-> min_rtt * xqc_win_filter_get(bbr->bandwidth) / msec2sec;
+    bdp = bbr-> min_rtt * xqc_win_filter_get(&bbr->bandwidth) / msec2sec;
     cwnd = gain * bdp;
     return max(cwnd, XQC_kMinimumWindow);
 }
@@ -187,12 +260,12 @@ static void xqc_bbr_enter_probe_bw(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     bbr->cycle_start_stamp = sampler->now;
 }
 
-static void xqc_bbr_check_drain(xqc_bbr_t *bbr，xqc_sample_t *sampler)
+static void xqc_bbr_check_drain(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     if(bbr->mode == BBR_STARTUP && bbr->full_bandwidth_reached)
         xqc_bbr_enter_drain(bbr);
     
-    if(bbr->mode == BBR_DRAIN && sampler->bytes_inflight <= xqc_bbr_target_cwnd(1.0))
+    if(bbr->mode == BBR_DRAIN && sampler->bytes_inflight <= xqc_bbr_target_cwnd(bbr, 1.0))
         xqc_bbr_enter_probe_bw(bbr,sampler);
 }
 
@@ -215,7 +288,7 @@ static void xqc_bbr_enter_probe_rtt(xqc_bbr_t *bbr)
     bbr->cwnd_gain = 1;
 }
 
-static void xqc_bbr_save_cwnd(xqc_bbr_t *bbr,xqc_sample_t sampler)
+static void xqc_bbr_save_cwnd(xqc_bbr_t *bbr,xqc_sample_t *sampler)
 {
     if(!sampler->loss && bbr->mode != BBR_PROBE_RTT)
         bbr->prior_cwnd = bbr->congestion_window;
@@ -228,24 +301,27 @@ static void xqc_bbr_restore_cwnd(xqc_bbr_t *bbr)
     bbr->congestion_window = max(bbr->congestion_window, bbr->prior_cwnd);
 }
 
-static void xqc_bbr_exit_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t sampler)
+static void xqc_bbr_exit_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
-    if(bbr->full_bandwidth_reached)
+    if(bbr->full_bandwidth_reached){
         xqc_bbr_enter_probe_bw(bbr,sampler);
-    else 
+
+    }else {
         xqc_bbr_enter_startup(bbr);
+    }
 }
 
 static void xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     if(bbr->min_rtt_expired && bbr->mode != BBR_PROBE_RTT){
-        xqc_enter_probe_rtt(bbr);
-        xqc_bbr_save_cwnd(bbr);
+        xqc_bbr_enter_probe_rtt(bbr);
+        xqc_bbr_save_cwnd(bbr,sampler);
         bbr->probe_rtt_round_done_stamp = 0;
     }
     if(bbr->mode == BBR_PROBE_RTT){
         if(!bbr->probe_rtt_round_done_stamp 
-           && sampler->bytes_inflight <= xqc_bbr_kMinCongestionWindow){
+           && (sampler->bytes_inflight <= xqc_bbr_kMinCongestionWindow
+               || sampler->bytes_inflight <= xqc_bbr_max_bw(bbr) * xqc_bbr_probe_rtt_gain)){
                bbr->probe_rtt_round_done_stamp = sampler->now + xqc_bbr_kProbeRttTime * 1000;
                bbr->probe_rtt_round_done = false;
                bbr->next_round_delivered = sampler->total_acked;
@@ -256,20 +332,26 @@ static void xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
             if(bbr->probe_rtt_round_done && bbr->probe_rtt_round_done_stamp < sampler->now){
                 bbr->min_rtt_stamp = sampler->now;
                 xqc_bbr_restore_cwnd(bbr);
-                xqc_exit_probe_rtt(bbr, sampler);
+                xqc_bbr_exit_probe_rtt(bbr, sampler);
             }
                 
         }
     }
 }
 
+static uint64_t xqc_bbr_get_min_rtt(xqc_bbr_t *bbr)
+{
+
+    return bbr->min_rtt == 0 ? xqc_bbr_kInitialRtt : bbr->min_rtt;
+}
+
 static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr)
 {
     uint32_t bandwidth,rate;
-    bandwidth = xqc_win_filter_max(bbr->bandwidth);
+    bandwidth = xqc_bbr_max_bw(bbr);
     rate = bandwidth * bbr->pacing_gain;
     if(bbr->pacing_rate == 0){
-        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window/xqc_bbr_get_min_rtt(bbr));
+        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr));
     }
         
 
@@ -278,10 +360,10 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr)
 }
 
 
-static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t sampler)
+static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     uint32_t target_cwnd;
-    target_cwnd = xqc_bbr_get_target_cwnd(bbr,bbr->cwnd_gain);
+    target_cwnd = xqc_bbr_target_cwnd(bbr,bbr->cwnd_gain);
     if(bbr->full_bandwidth_reached)
         bbr->congestion_window = min(target_cwnd,bbr->congestion_window + sampler->delivered);
     else if(bbr->congestion_window < target_cwnd)
@@ -310,13 +392,15 @@ static void xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
 
 }
 
-static uint32_t xqc_bbr_get_cwnd(xqc_bbr_t *bbr)
+static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
 {
+    xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
     return bbr->congestion_window;
 }
 
-static uint32_t  xqc_bbr_set_pacing(xqc_bbr_t *bbr)
+static uint32_t  xqc_bbr_set_pacing(void *cong_ctl)
 {
+    xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
     return bbr->pacing_rate;
 }
 

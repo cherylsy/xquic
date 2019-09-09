@@ -36,6 +36,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     send_ctl->ctl_conn = conn;
     send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
+    send_ctl->ctl_delivered = 0;
 
     xqc_init_list_head(&send_ctl->ctl_send_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
@@ -562,8 +563,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
 
-    if(xqc_generate_sample(sampler, ctl))
-        //bbr
+    if(xqc_generate_sample(ctl->sampler, ctl))
+        ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, ctl->sampler);
     return XQC_OK;
 }
 

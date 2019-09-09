@@ -23,7 +23,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
     return true;
 }
 
-void xqc_update_sample(xqc_sample_t *sample, xqc_packet_out_t *packet, xqc_send_ctl_t *send_ctl)
+void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send_ctl_t *send_ctl)
 {
     if(packet->po_delivered_time == 0)
         return;
@@ -31,11 +31,11 @@ void xqc_update_sample(xqc_sample_t *sample, xqc_packet_out_t *packet, xqc_send_
     send_ctl->ctl_delivered += packet->po_used_size;
     sned_ctl->ctl_delivered_time = xqc_now();
 
-    if(packet->po_delivered > sample->prior_dilivered){
-        sample->prior_dilivered = packet->po_delivered;
-        sample->prior_time = packet->po_delivered_time;
-        sample->sned_elapse = packet->po_sent_time - packet->po_first_sent_time;
-        sample->ack_time = send_ctl->ctl_delivered_time - packet->po_delivered_time;
+    if(packet->po_delivered > sampler->prior_dilivered){
+        sampler->prior_dilivered = packet->po_delivered;
+        sampler->prior_time = packet->po_delivered_time;
+        sampler->sned_elapse = packet->po_sent_time - packet->po_first_sent_time;
+        sampler->ack_time = send_ctl->ctl_delivered_time - packet->po_delivered_time;
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
     }
 

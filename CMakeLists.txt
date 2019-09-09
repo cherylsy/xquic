@@ -20,15 +20,6 @@ include_directories(
 )
 
 set(
-    HTTP3_SOURCES
-
-    http3/xqc_h3_conn.c
-    http3/xqc_h3_stream.c
-    http3/xqc_h3_request.c
-    http3/xqc_h3_frame.c
-)
-
-set(
     TRANSPORT_SOURCES
 
     transport/xqc_engine.c
@@ -46,8 +37,7 @@ set(
     transport/xqc_recv_record.c
     transport/xqc_wakeup_pq.c
     transport/xqc_pacing.c
-    transport/xqc_utils.c
-
+    
     transport/crypto/xqc_tls_init.c
     transport/crypto/xqc_crypto.c
     transport/crypto/xqc_tls_cb.c
@@ -67,7 +57,9 @@ set(
     CONGESTION_CONTROL_SOURCES
 
     congestion_control/xqc_new_reno.c
-    congestion_control/xqc_cubic.c
+    congestion_control/xqc_bbr.c
+    congestion_control/xqc_window_filter.c
+    congestion_control/xqc_sample.c
 )
 
 add_library(
@@ -75,7 +67,6 @@ add_library(
 
     STATIC
 
-    ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
@@ -96,6 +87,8 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
+add_executable(tls_server tests/tls_server.c)
+add_executable(tls_client tests/tls_client.c)
 add_executable(test        tests/main.c)
 
 include_directories( /usr/local/include )
@@ -105,8 +98,10 @@ include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories( /usr/local/lib )
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 
-target_link_libraries(test_server xquic -levent -lm)
-target_link_libraries(test_client xquic -levent -lm)
+target_link_libraries(test_server xquic -levent)
+target_link_libraries(test_client xquic -levent)
+target_link_libraries(tls_server xquic )
+target_link_libraries(tls_client xquic )
 target_link_libraries(test xquic -lssl )
 target_link_libraries(test xquic -lcrypto)
 

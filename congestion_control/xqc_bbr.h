@@ -20,7 +20,7 @@ typedef enum {
             BBR_PROBE_RTT,
 }xqc_bbr_mode;
 
-typedef struct{
+typedef struct xqc_bbr_s{
     /*Current mode */
     xqc_bbr_mode        mode;
     /*State of the sender */
@@ -47,12 +47,14 @@ typedef struct{
     uint32_t            aggregation_epoch_bytes;
     /*The maximum allowed number of bytes in flight */
     uint32_t            congestion_window;
+    uint32_t            prior_cwnd;
     /*Initial congestion window of connection */
     uint32_t            initial_congestion_window;
     /*Current pacing rate */
     uint32_t            pacing_rate;
     /*Gain currently applied to pacing rate */
     float               pacing_gain;
+    xqc_msec_t          last_cycle_start;
     /*Gain currently applied to congestion window */
     float               cwnd_gain;
     /*If packet loss in STARTUP without bandwidth increase, exit STARTUP and
@@ -86,6 +88,12 @@ typedef struct{
     enough data inflight to see more bandwidth when necessary. */
     bool                flexible_app_lmited;
     bool                probe_rtt_disabled_if_app_limited;
+    /* record extra acks in 2 cycles, a cycle contain 10 rtts*/
+    uint32_t            extra_ack[2];
+    xqc_msec_t          extra_ack_stamp;
+    uint32_t            extra_ack_round_rtt;
+    uint32_t            extra_ack_idx;
+    uint32_t            epoch_ack;
 
 }xqc_bbr_t;
 extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
