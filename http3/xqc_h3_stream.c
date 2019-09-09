@@ -30,6 +30,10 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
 
     xqc_init_list_head(&h3_stream->send_frame_data_buf);
     xqc_init_list_head(&h3_stream->send_header_data_buf);
+
+    xqc_init_list_head(&recv_header_data_buf);
+    xqc_init_list_head(&recv_body_data_buf);
+
     stream->user_data = h3_stream;
 
     stream->stream_flag |= XQC_STREAM_FLAG_HAS_H3;
