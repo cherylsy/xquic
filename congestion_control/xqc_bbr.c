@@ -79,6 +79,14 @@ static void xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler)
     bbr->probe_rtt_round_done_stamp = 0;
     bbr->packet_conservation = false;
     bbr->prior_cwnd = 0;
+    bbr->initial_congestion_window = 10 * XQC_kMaxDatagramSize;
+
+    bbr->extra_ack_stamp = sampler->now;
+    bbr->epoch_ack = 0;
+    bbr->extra_ack_round_rtt= 0;
+    bbr->extra_ack_idx = 0;
+    bbr->extra_ack[0] = 0;
+    bbr->extra_ack[1] = 0;
 
     bbr->full_bandwidth_cnt = 0;
     bbr->full_bandwidth_reached = false;
@@ -175,35 +183,25 @@ static void xqc_update_ack_aggregation(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         // 每10个rtt作为一轮参与计算。
         if (bbr->extra_ack_round_rtt >= xqc_bbr_extra_ack_win_rtt) {
             bbr->extra_ack_round_rtt = 0;
-            // 交错使用extra_acked倒换数组容器
             bbr->extra_ack_idx = bbr->extra_ack_idx ?0 : 1;
             bbr->extra_ack[bbr->extra_ack_idx] = 0;
         }
     }
-    /* Compute how many packets we expected to be delivered over epoch. */
-    // epoch_us表示自从收到“比预期过量的ACK”开始到现在的时间间隔！
+
     epoch = sampler->now - bbr->extra_ack_stamp;
-    // 很显然的预期公式，bw*t = acked。
     expected_ack = ((uint64_t )xqc_bbr_max_bw(bbr) * epoch) / msec2sec;
-    /* Reset the aggregation epoch if ACK rate is below expected rate or
-     * significantly large no. of ack received since epoch (potentially
-     * quite old epoch).
-     */
-    // 只有从开始收到比预期多的ACK，SACK时才开始计时。另外，太多也不行。
-    if (bbr->epoch_ack <= expected_ack ||
-        (bbr->epoch_ack + sampler->delivered >=
-         xqc_bbr_ack_epoch_acked_reset_thresh)) {
+
+    if (bbr->epoch_ack <= expected_ack
+        || (bbr->epoch_ack + sampler->delivered >= xqc_bbr_ack_epoch_acked_reset_thresh)) {
         bbr->epoch_ack = 0;
         bbr->extra_ack_stamp = sampler->now;
         expected_ack = 0;
     }
     /* Compute excess data delivered, beyond what was expected. */
-    bbr->epoch_ack = min(0xFFFFFU,
-                               bbr->epoch_ack + sampler->delivered);
-    // 用实际的ACK，SACK数量减去预期的，就是extra。
+    bbr->epoch_ack = min(0xFFFFFU, bbr->epoch_ack + sampler->delivered);
     extra_ack = bbr->epoch_ack - expected_ack;
     extra_ack = min(extra_ack, bbr->congestion_window);
-    // 加入到容器以供set cwnd逻辑来取值。
+
     if (extra_ack > bbr->extra_ack[bbr->extra_ack_idx])
         bbr->extra_ack[bbr->extra_ack_idx] = extra_ack;
 }
@@ -351,7 +349,7 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr)
     bandwidth = xqc_bbr_max_bw(bbr);
     rate = bandwidth * bbr->pacing_gain;
     if(bbr->pacing_rate == 0){
-        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr));
+        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
     }
         
 
@@ -364,6 +362,8 @@ static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     uint32_t target_cwnd;
     target_cwnd = xqc_bbr_target_cwnd(bbr,bbr->cwnd_gain);
+    target_cwnd += xqc_bbr_ack_aggregation_cwnd(bbr);
+
     if(bbr->full_bandwidth_reached)
         bbr->congestion_window = min(target_cwnd,bbr->congestion_window + sampler->delivered);
     else if(bbr->congestion_window < target_cwnd)
@@ -398,7 +398,7 @@ static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
     return bbr->congestion_window;
 }
 
-static uint32_t  xqc_bbr_set_pacing(void *cong_ctl)
+static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
     return bbr->pacing_rate;
