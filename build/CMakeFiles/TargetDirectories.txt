@@ -1,6 +1,0 @@
-/home/vincent.xmx/xquic/build/CMakeFiles/check.dir
-/home/vincent.xmx/xquic/build/tests/CMakeFiles/run_tests.dir
-/home/vincent.xmx/xquic/build/CMakeFiles/test.dir
-/home/vincent.xmx/xquic/build/CMakeFiles/test_client.dir
-/home/vincent.xmx/xquic/build/CMakeFiles/test_server.dir
-/home/vincent.xmx/xquic/build/CMakeFiles/xquic.dir

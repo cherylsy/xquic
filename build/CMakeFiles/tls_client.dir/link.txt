@@ -1,1 +1,0 @@
-/usr/bin/cc   -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT    CMakeFiles/tls_client.dir/tests/tls_client.c.o  -o tls_client  -L/home/vincent.xmx/xquic/libs/openssl -rdynamic ../libs/openssl/libssl.so.3 ../libs/openssl/libcrypto.so.3 libxquic.a -Wl,-rpath,/home/vincent.xmx/xquic/libs/openssl 
