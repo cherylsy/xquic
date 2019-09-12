@@ -23,7 +23,7 @@ static uint32_t xqc_win_filter_get(const xqc_win_filter_t *w)
     return w->s[0].val;
 }
 
-static uint32_t xqc_win_filter_reset(const xqc_win_filter_t *w, uint32_t t, uint32_t nval)
+static uint32_t xqc_win_filter_reset(xqc_win_filter_t *w, uint32_t t, uint32_t nval)
 {
     struct xqc_win_sample nsample = {.t = t, .val = nval };
     w->s[0] = w->s[1] = w->s[2] = nsample;

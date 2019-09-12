@@ -52,6 +52,10 @@ typedef struct xqc_packet_out_s
     xqc_frame_type_bit_t    po_frame_types;
     /* stream frame 关联的stream */
     xqc_po_stream_frame_t   po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO];
+
+    uint64_t                po_delivered;
+    xqc_msec_t              po_delivered_time;
+    xqc_msec_t              po_first_sent_time;
 } xqc_packet_out_t;
 
 xqc_packet_out_t *

@@ -161,6 +161,8 @@ xqc_packet_process_single(xqc_connection_t *c,
     //hex_print(packet_in->pos, packet_in->last - packet_in->pos);
     ret = xqc_do_decrypt_pkt(c, packet_in);
     if (ret == XQC_OK) {
+        xqc_log(c->log, XQC_LOG_DEBUG, "|pkt_type:%s|pkt_num:%ui|",
+                xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num);
         ret = xqc_process_frames(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR, "|xqc_process_frames error|");
@@ -243,7 +245,7 @@ xqc_packet_process(xqc_connection_t *c,
 
         /* err in parse packet, don't cause dead loop */
         if (ret != XQC_OK || last_pos == packet_in->pos) {
-            xqc_log(c->log, XQC_LOG_WARN, "|process packets err|ret:%z|pos:%p|buf:%p|buf_size:%z|",
+            xqc_log(c->log, XQC_LOG_WARN, "|process packets err|ret:%d|pos:%p|buf:%p|buf_size:%z|",
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);
             return ret != XQC_OK ? ret : -XQC_ESYS;

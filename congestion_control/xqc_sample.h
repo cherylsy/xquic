@@ -1,10 +1,11 @@
 #ifndef _XQC_SAMPLE_H_INCLUDED_
 #define _XQC_SAMPLE_H_INCLUDED_
 
+#include "include/xquic_typedef.h"
 
-#include "../include/xquic.h"
-#include "../transport/xqc_packet_out.h"
-
+typedef char bool;
+#define true 1
+#define false 0
 
 typedef struct xqc_sample_s{
     /*采样时间点 */

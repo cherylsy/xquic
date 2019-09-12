@@ -1,0 +1,11 @@
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/test.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/xquic.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/tls_client.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/test_client.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/tls_server.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/CMakeFiles/test_server.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/tests/CMakeFiles/rebuild_cache.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/tests/CMakeFiles/edit_cache.dir
+/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/tests/CMakeFiles/test.dir

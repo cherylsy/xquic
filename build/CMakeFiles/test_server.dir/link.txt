@@ -1,0 +1,1 @@
+/usr/bin/cc   -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT    CMakeFiles/test_server.dir/tests/test_server.c.o  -o test_server  -L/home/vincent.xmx/xquic/libs/openssl -rdynamic ../libs/openssl/libssl.so.3 ../libs/openssl/libcrypto.so.3 libxquic.a -levent -lm -Wl,-rpath,/home/vincent.xmx/xquic/libs/openssl 

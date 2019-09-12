@@ -272,20 +272,20 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
 
     char key[16], iv[16], hp[16];
 
-    size_t keylen = xqc_derive_packet_protection_key(
+    ssize_t keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
         return -1;
     }
 
-    size_t ivlen = xqc_derive_packet_protection_iv(
+    ssize_t ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed|");
         return -1;
     }
 
-    size_t hplen = xqc_derive_header_protection_key(
+    ssize_t hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed|");
@@ -564,7 +564,7 @@ ssize_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 {
 
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
-    size_t nwrite;
+    ssize_t nwrite;
 #if 0
     if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_hp_mask(dest, destlen, ctx, key, keylen, sample,
@@ -587,7 +587,7 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 {
 
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
-    size_t nwrite;
+    ssize_t nwrite;
     if(conn -> local_settings.no_crypto == 1){
         nwrite = xqc_no_hp_mask(dest, destlen, ctx, key, keylen, sample,
                          samplelen);

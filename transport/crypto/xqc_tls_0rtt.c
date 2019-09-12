@@ -86,7 +86,7 @@ int xqc_read_session_data( SSL * ssl, xqc_connection_t *conn, char * session_dat
 
 end:
     if(m_f)BIO_free(m_f);
-    if(session)SSL_SESSION_free(session);
+    if(session)SSL_SESSION_free(session); //free by referrence count
     return ret;
 }
 
@@ -168,12 +168,12 @@ int xqc_new_session_cb(SSL *ssl, SSL_SESSION *session)
         BIO_free(m_f); //free
         return ret;
     }
+    return ret;
 }
 
 int xqc_init_session_ticket_keys(xqc_ssl_session_ticket_key_t * key, char * session_key_data, size_t session_key_len)
 {
     if(session_key_len != 48 && session_key_len != 80){
-        //xqc_log(conn->log, XQC_LOG_ERROR, "|session key len is not 48 or 80|");
         return -1;
     }
     memset(key, 0, sizeof(xqc_ssl_session_ticket_key_t));

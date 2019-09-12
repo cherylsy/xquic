@@ -94,6 +94,7 @@ typedef struct xqc_bbr_s{
     uint32_t            extra_ack_round_rtt;
     uint32_t            extra_ack_idx;
     uint32_t            epoch_ack;
+    uint8_t             has_srtt;
 
 }xqc_bbr_t;
 extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;

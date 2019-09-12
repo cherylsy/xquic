@@ -34,7 +34,7 @@ uint32_t xqc_win_filter_max(xqc_win_filter_t *w,
                             uint32_t t,
                             uint32_t nval)
 {
-    struct xqc_win_sample *nsample = {.t = t, .val = nval};
+    struct xqc_win_sample nsample = {.t = t, .val = nval};
 
     if((nval >= w->s[0].val) || (t - w->s[2].t > win)){
         return xqc_win_filter_reset(w, t, nval);
@@ -43,7 +43,7 @@ uint32_t xqc_win_filter_max(xqc_win_filter_t *w,
     if(nval >= w->s[1].val){
         w->s[2] = w->s[1] = nsample;
     
-    } else if(nval >= m->s[2].val){
+    } else if(nval >= w->s[2].val){
         w->s[2] = nsample;
     }
 
@@ -55,7 +55,7 @@ uint32_t xqc_win_filter_min(xqc_win_filter_t *w,
                             uint32_t t,
                             uint32_t nval)
 {
-    struct xqc_win_sample *nsample = {.t = t, .val = nval};
+    struct xqc_win_sample nsample = {.t = t, .val = nval};
 
     if((nval <= w->s[0].val) || (t - w->s[2].t > win)){
         return xqc_win_filter_reset(w, t, nval);
@@ -64,7 +64,7 @@ uint32_t xqc_win_filter_min(xqc_win_filter_t *w,
     if(nval <= w->s[1].val){
         w->s[2] = w->s[1] = nsample;
     
-    } else if(nval <= m->s[2].val){
+    } else if(nval <= w->s[2].val){
         w->s[2] = nsample;
     }
 

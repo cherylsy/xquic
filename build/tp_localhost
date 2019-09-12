@@ -1,0 +1,6 @@
+initial_max_streams_bidi=3
+initial_max_streams_uni=3
+initial_max_stream_data_bidi_local=102400
+initial_max_stream_data_bidi_remote=102400
+initial_max_stream_data_uni=102400
+initial_max_data=1048576

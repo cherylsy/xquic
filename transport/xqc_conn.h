@@ -84,7 +84,7 @@ typedef enum {
     XQC_CONN_FLAG_HAS_0RTT_SHIFT,
     XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ_SHIFT,
-    XQC_CONN_FLAG_HAS_H3_SHIFT,
+    XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -105,7 +105,7 @@ typedef enum {
     XQC_CONN_FLAG_HAS_0RTT              = 1 << XQC_CONN_FLAG_HAS_0RTT_SHIFT,
     XQC_CONN_FLAG_0RTT_OK               = 1 << XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ              = 1 << XQC_CONN_FLAG_0RTT_REJ_SHIFT,
-    XQC_CONN_FLAG_HAS_H3                = 1 << XQC_CONN_FLAG_HAS_H3_SHIFT,
+    XQC_CONN_FLAG_UPPER_CONN_EXIST      = 1 << XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -251,6 +251,7 @@ struct xqc_connection_s{
     xqc_id_hash_table_t    *streams_hash;
     xqc_list_head_t         conn_write_streams,
                             conn_read_streams, /* xqc_stream_t */
+                            conn_closing_streams,
                             conn_all_streams;
     xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
     uint64_t                cur_stream_id_bidi_local;

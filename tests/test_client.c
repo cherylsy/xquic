@@ -3,6 +3,7 @@
 #include "include/xquic.h"
 #include "congestion_control/xqc_new_reno.h"
 #include "congestion_control/xqc_cubic.h"
+#include "congestion_control/xqc_bbr.h"
 #include <event2/event.h>
 #include <memory.h>
 #include <sys/socket.h>
@@ -12,7 +13,6 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
-#include "transport/xqc_engine.h"
 #include "include/xquic_typedef.h"
 
 
@@ -25,6 +25,7 @@
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
 
+#define XQC_MAX_TOKEN_LEN 32
 
 typedef struct user_conn_s {
     int                 fd;
@@ -36,6 +37,7 @@ typedef struct user_conn_s {
     socklen_t           peer_addrlen;
 
     xqc_stream_t       *stream;
+    xqc_h3_request_t   *h3_request;
     unsigned char      *token;
     unsigned            token_len;
 } user_conn_t;
@@ -204,6 +206,22 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, void *user_data) {
     return 0;
 }
 
+int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, void *user_data) {
+    DEBUG;
+
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    return 0;
+}
+
+int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, void *user_data) {
+    DEBUG;
+
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    return 0;
+}
+
 int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     int ret = 0;
@@ -222,13 +240,76 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
 int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[100] = {0};
+    char buff[1000] = {0};
+    size_t buff_size = 1000;
 
-    char buff_send[5000] = {0};
-    xqc_stream_send(stream, buff_send, sizeof(buff), 1);
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_stream_recv(stream, buff, buff_size, &fin);
+        printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
+    } while (read > 0 && !fin);
+
     return 0;
 }
 
+int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    ssize_t ret = 0;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    xqc_http_header_t header[] = {
+        {
+            .name   = {.iov_base = ":method", .iov_len = 7},
+            .value  = {.iov_base = "post", .iov_len = 4}
+        },
+    };
+    xqc_http_headers_t headers = {
+        .headers = header,
+        .count  = 1,
+    };
+
+    ret = xqc_h3_request_send_headers(h3_request, &headers);
+    if (ret < 0) {
+        printf("xqc_h3_request_send_headers error %d\n", ret);
+    } else {
+        printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+    }
+
+    char buff[3000] = {0};
+    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
+    if (ret < 0) {
+        printf("xqc_h3_request_send_body error %d\n", ret);
+    } else {
+        ctx->send_offset += ret;
+        printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+    }
+    return ret;
+}
+
+int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    int ret;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    char buff[1000] = {0};
+    size_t buff_size = 1000;
+
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+        printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+    } while (read > 0 && !fin);
+    return 0;
+}
+
+int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    return 0;
+}
 
 void
 xqc_client_write_handler(client_ctx_t *ctx)
@@ -269,8 +350,11 @@ xqc_client_read_handler(client_ctx_t *ctx)
     do {
         recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
 
+        if (recv_size < 0 && errno == EAGAIN) {
+            break;
+        }
         if (recv_size < 0) {
-            printf("xqc_client_read_handler: recvmsg = %zd\n", recv_size);
+            printf("xqc_client_read_handler: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
         }
 
@@ -413,13 +497,23 @@ int main(int argc, char *argv[]) {
                     .conn_create_notify = xqc_client_conn_create_notify,
                     .conn_close_notify = xqc_client_conn_close_notify,
             },
+            .h3_conn_callbacks = {
+                    .h3_conn_create_notify = xqc_client_h3_conn_create_notify,
+                    .h3_conn_close_notify = xqc_client_h3_conn_close_notify,
+            },
             .stream_callbacks = {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
             },
+            .h3_request_callbacks = {
+                    .h3_request_write_notify = xqc_client_request_write_notify,
+                    .h3_request_read_notify = xqc_client_request_read_notify,
+                    .h3_request_close = xqc_client_request_close_notify,
+            },
             .write_socket = xqc_client_write_socket,
             //.cong_ctrl_callback = xqc_reno_cb,
-            .cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_cubic_cb,
+            .cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer,
             .save_token = xqc_client_save_token,
     };
@@ -445,7 +539,6 @@ int main(int argc, char *argv[]) {
     ctx.ev_socket = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_socket, NULL);
 
-#define XQC_MAX_TOKEN_LEN 32
     unsigned char token[XQC_MAX_TOKEN_LEN];
     int token_len = XQC_MAX_TOKEN_LEN;
     token_len = xqc_client_read_token(token, token_len);
@@ -482,7 +575,14 @@ int main(int argc, char *argv[]) {
 
 
 
-    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0 ,&conn_ssl_config );
+    xqc_cid_t *cid;
+    if (conn_settings.h3) {
+        cid = xqc_h3_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0,
+                          &conn_ssl_config);
+    } else {
+        cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0,
+                          &conn_ssl_config);
+    }
     if (cid == NULL) {
         printf("xqc_connect error\n");
         return 0;
@@ -492,10 +592,13 @@ int main(int argc, char *argv[]) {
     xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
     xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
-
-    ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
-
-    xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+    if (conn_settings.h3) {
+        ctx.my_conn->h3_request = xqc_h3_request_create(ctx.engine, cid, &ctx);
+        xqc_client_request_write_notify(ctx.my_conn->h3_request, &ctx);
+    } else {
+        ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
+        xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+    }
 
     event_base_dispatch(eb);
 

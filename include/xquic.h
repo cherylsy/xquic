@@ -25,7 +25,12 @@ typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
 typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
 
+typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *conn, void *user_data);
+
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
+
+typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
+
 typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 //session save callback
@@ -41,12 +46,25 @@ struct xqc_conn_callbacks_s {
     xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
 };
 
+/* application layer */
+struct xqc_h3_conn_callbacks_s {
+    xqc_h3_conn_notify_pt          h3_conn_create_notify;
+    xqc_h3_conn_notify_pt          h3_conn_close_notify;
+};
+
 /* transport layer */
 typedef struct xqc_stream_callbacks_s {
     xqc_stream_notify_pt        stream_read_notify;
     xqc_stream_notify_pt        stream_write_notify;
     xqc_stream_notify_pt        stream_close;   /* optional */
 } xqc_stream_callbacks_t;
+
+/* application layer */
+typedef struct xqc_h3_request_callbacks_s {
+    xqc_h3_request_notify_pt    h3_request_read_notify;
+    xqc_h3_request_notify_pt    h3_request_write_notify;
+    xqc_h3_request_notify_pt    h3_request_close;
+} xqc_h3_request_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
     size_t (*xqc_cong_ctl_size) ();
@@ -56,6 +74,11 @@ typedef struct xqc_congestion_control_callback_s {
     uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
+
+    //For BBR
+    void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+    void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+    uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
 
 
@@ -95,8 +118,14 @@ typedef struct xqc_engine_callback_s {
     /* for connection notify */
     xqc_conn_callbacks_t        conn_callbacks;
 
+    xqc_h3_conn_callbacks_t     h3_conn_callbacks;
+
     /* for stream notify */
     xqc_stream_callbacks_t      stream_callbacks;
+
+    /* for request notify */
+    xqc_h3_request_callbacks_t  h3_request_callbacks;
+
 }xqc_engine_callback_t;
 
 
@@ -127,6 +156,15 @@ typedef struct {
 typedef struct xqc_engine_ssl_config xqc_engine_ssl_config_t;
 typedef struct xqc_conn_ssl_config  xqc_conn_ssl_config_t;
 
+typedef struct xqc_http_header_s {
+    struct iovec        name;
+    struct iovec        value;
+} xqc_http_header_t;
+
+typedef struct xqc_http_headers_s {
+    xqc_http_header_t       *headers;
+    size_t                  count;
+} xqc_http_headers_t;
 
 struct xqc_conn_settings_s {
     int     pacing_on;
@@ -195,6 +233,26 @@ xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           char *server_host, int no_crypto_flag,
                           uint8_t no_early_data_flag,
                           xqc_conn_ssl_config_t *conn_ssl_config);
+
+xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
+                                        xqc_cid_t *cid,
+                                        void *user_data);
+
+ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
+                                   xqc_http_headers_t *headers);
+
+ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
+                                 unsigned char *data,
+                                 size_t data_size,
+                                 uint8_t fin);
+
+ssize_t
+xqc_h3_request_recv_header(xqc_h3_request_t *h3_request);
+
+ssize_t
+xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
+                         size_t recv_buf_size,
+                         uint8_t *fin);
 
 /**
  * Create new stream in quic connection.

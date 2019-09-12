@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6"/>
+	<Project>
+		<Option title="xquic"/>
+		<Option makefile_is_custom="1"/>
+		<Option compiler="clang"/>
+		<Option virtualFolders="CMake Files\;CMake Files\cmake\;CMake Files\tests\;"/>
+		<Build>
+			<Target title="all">
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 all"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 test"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test/fast">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 test/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="xquic">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/libxquic.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 xquic"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="xquic/fast">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/libxquic.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 xquic/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tls_client">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/tls_client" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 tls_client"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tls_client/fast">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/tls_client" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 tls_client/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="edit_cache">
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 edit_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_client">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/test_client" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 test_client"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_client/fast">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/test_client" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 test_client/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tls_server">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/tls_server" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 tls_server"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tls_server/fast">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/tls_server" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 tls_server/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="rebuild_cache">
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option type="4"/>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 rebuild_cache"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_server">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/test_server" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 test_server"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="test_server/fast">
+				<Option output="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/test_server" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="clang"/>
+				<Compiler>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/libs/openssl/include"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic/./transport/crypto"/>
+					<Add directory="/Users/xumengxin/Desktop/xmx/xquic"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include/c++/v1"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/lib/clang/10.0.0/include"/>
+					<Add directory="/Library/Developer/CommandLineTools/usr/include"/>
+					<Add directory="/usr/include"/>
+					<Add directory="/System/Library/Frameworks"/>
+					<Add directory="/Library/Frameworks"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 test_server/fast"/>
+					<CompileFile command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j4 -f &quot;/Users/xumengxin/Desktop/xmx/xquic/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+		</Build>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/common/xqc_random.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/common/xqc_random.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/common/xqc_str.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/common/xqc_str.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/common/xqc_variable_len_int.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/common/xqc_variable_len_int.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_bbr.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_bbr.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_new_reno.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_new_reno.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_sample.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_sample.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_window_filter.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/congestion_control/xqc_window_filter.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/tests/main.c">
+			<Option target="test"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/tests/test_client.c">
+			<Option target="test_client"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/tests/test_server.c">
+			<Option target="test_server"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/tests/tls_client.c">
+			<Option target="tls_client"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/tests/tls_server.c">
+			<Option target="tls_server"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_crypto.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_crypto.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_0rtt.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_0rtt.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_cb.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_cb.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_if.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_if.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_init.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/crypto/xqc_tls_init.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_cid.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_cid.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_client.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_client.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_conn.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_conn.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_engine.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_engine.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_frame.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_frame.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_frame_parser.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_frame_parser.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_pacing.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_pacing.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet_in.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet_in.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet_out.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet_out.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet_parser.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_packet_parser.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_recv_record.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_recv_record.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_send_ctl.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_send_ctl.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_stream.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_stream.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_wakeup_pq.c">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/transport/xqc_wakeup_pq.h">
+			<Option target="xquic"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/CMakeOptions.txt">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/xqc_cmake_config.h.in">
+			<Option virtualFolder="CMake Files\"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/cmake/FindCUnit.cmake">
+			<Option virtualFolder="CMake Files\cmake\"/>
+		</Unit>
+		<Unit filename="/Users/xumengxin/Desktop/xmx/xquic/tests/CMakeLists.txt">
+			<Option virtualFolder="CMake Files\tests\"/>
+		</Unit>
+	</Project>
+</CodeBlocks_project_file>

@@ -1,11 +1,9 @@
-#include "../include/xquic.h"
+#include "include/xquic.h"
 #include"xqc_bbr.h"
 #include "xqc_window_filter.h"
 #include "xqc_sample.h"
-
-#define max(a,b) a>b?a:b
-#define min(a,b) a<b?a:b
-
+#include "common/xqc_config.h"
+#include <stdio.h>
 #define XQC_kMaxDatagramSize 1200
 #define XQC_kMinimumWindow (4 * XQC_kMaxDatagramSize)
 /*The RECOMMENDED value is the minimum of 10 *
@@ -18,7 +16,7 @@ kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
  * Constants of BBR
  */
 /*Pacing gain cycle rounds */
-const uint32_t xqc_bbr_kCycleLength = 8;
+#define xqc_bbr_kCycleLength 8
 /*Size of window of bandwidth filter, in rtts */
 const uint32_t xqc_bbr_kBandwidthWindowSize = xqc_bbr_kCycleLength + 2;
 /*Window of min rtt filter, in sec */
@@ -30,7 +28,7 @@ const uint64_t xqc_bbr_kInitialRtt = 100;
 /*The gain of pacing rate for STRAT_UP, 2/(ln2) */
 const float xqc_bbr_kHighGain = 2.885;
 /*Gain in BBR_DRAIN */
-const float xqc_bbr_kDrainGain = 1.0 / xqc_bbr_kHighGain;
+const float xqc_bbr_kDrainGain = 1.0 / 2.885;
 /* Gain for cwnd in probe_bw, like slow start*/
 const float xqc_bbr_kCwndGain = 2.0;
 /*Cycle of gains in PROBE_BW for pacing rate */
@@ -61,8 +59,10 @@ static void xqc_bbr_enter_startup(xqc_bbr_t *bbr)
 
 static void xqc_bbr_init_pacing_rate(xqc_bbr_t *bbr,xqc_sample_t *sampler)
 {
-    uint32_t bandwidth;
-    bandwidth = XQC_kInitialWindow / (sampler->srtt ? sampler->srtt : 0.001);
+    uint64_t bandwidth;
+    if(sampler->srtt)
+        bbr->has_srtt = 1;
+    bandwidth = XQC_kInitialWindow * (uint64_t)msec2sec / (sampler->srtt ? sampler->srtt : 1000);
     bbr->pacing_rate = bbr->pacing_gain * bandwidth;
 }
 
@@ -80,6 +80,8 @@ static void xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler)
     bbr->packet_conservation = false;
     bbr->prior_cwnd = 0;
     bbr->initial_congestion_window = 10 * XQC_kMaxDatagramSize;
+    bbr->congestion_window = bbr->initial_congestion_window;
+    bbr->has_srtt = 0;
 
     bbr->extra_ack_stamp = sampler->now;
     bbr->epoch_ack = 0;
@@ -156,7 +158,7 @@ static void xqc_bbr_update_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 
 static uint32_t xqc_bbr_extra_ack(xqc_bbr_t *bbr)
 {
-    return max(bbr->extra_ack[0], bbr->extra_ack[1]);
+    return xqc_max(bbr->extra_ack[0], bbr->extra_ack[1]);
 }
 
 
@@ -167,7 +169,7 @@ static uint32_t xqc_bbr_ack_aggregation_cwnd(xqc_bbr_t *bbr)
     {
         max_aggr_cwnd = xqc_bbr_max_bw(bbr) * xqc_bbr_max_extra_ack_time;
         aggr_cwnd = xqc_bbr_extra_ack_gain * xqc_bbr_extra_ack(bbr);
-        aggr_cwnd = min(aggr_cwnd, max_aggr_cwnd);
+        aggr_cwnd = xqc_min(aggr_cwnd, max_aggr_cwnd);
     }
     return aggr_cwnd;
 }
@@ -198,9 +200,9 @@ static void xqc_update_ack_aggregation(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         expected_ack = 0;
     }
     /* Compute excess data delivered, beyond what was expected. */
-    bbr->epoch_ack = min(0xFFFFFU, bbr->epoch_ack + sampler->delivered);
+    bbr->epoch_ack = xqc_min(0xFFFFFU, bbr->epoch_ack + sampler->delivered);
     extra_ack = bbr->epoch_ack - expected_ack;
-    extra_ack = min(extra_ack, bbr->congestion_window);
+    extra_ack = xqc_min(extra_ack, bbr->congestion_window);
 
     if (extra_ack > bbr->extra_ack[bbr->extra_ack_idx])
         bbr->extra_ack[bbr->extra_ack_idx] = extra_ack;
@@ -241,7 +243,7 @@ static uint32_t xqc_bbr_target_cwnd(xqc_bbr_t *bbr, float gain)
     uint32_t bdp,cwnd;
     bdp = bbr-> min_rtt * xqc_win_filter_get(&bbr->bandwidth) / msec2sec;
     cwnd = gain * bdp;
-    return max(cwnd, XQC_kMinimumWindow);
+    return xqc_max(cwnd, XQC_kMinimumWindow);
 }
 
 static void xqc_bbr_enter_probe_bw(xqc_bbr_t *bbr, xqc_sample_t *sampler)
@@ -291,12 +293,12 @@ static void xqc_bbr_save_cwnd(xqc_bbr_t *bbr,xqc_sample_t *sampler)
     if(!sampler->loss && bbr->mode != BBR_PROBE_RTT)
         bbr->prior_cwnd = bbr->congestion_window;
     else
-        bbr->prior_cwnd = max(bbr->congestion_window, bbr->prior_cwnd);
+        bbr->prior_cwnd = xqc_max(bbr->congestion_window, bbr->prior_cwnd);
     
 }
 static void xqc_bbr_restore_cwnd(xqc_bbr_t *bbr)
 {
-    bbr->congestion_window = max(bbr->congestion_window, bbr->prior_cwnd);
+    bbr->congestion_window = xqc_max(bbr->congestion_window, bbr->prior_cwnd);
 }
 
 static void xqc_bbr_exit_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
@@ -343,15 +345,17 @@ static uint64_t xqc_bbr_get_min_rtt(xqc_bbr_t *bbr)
     return bbr->min_rtt == 0 ? xqc_bbr_kInitialRtt : bbr->min_rtt;
 }
 
-static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr)
+static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     uint32_t bandwidth,rate;
     bandwidth = xqc_bbr_max_bw(bbr);
     rate = bandwidth * bbr->pacing_gain;
+    if(!bbr->has_srtt && sampler->srtt)
+        xqc_bbr_init_pacing_rate(bbr, sampler);
+
     if(bbr->pacing_rate == 0){
         bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
     }
-        
 
     if(bbr->full_bandwidth_reached || rate > bbr->pacing_rate)
         bbr->pacing_rate = rate;
@@ -365,13 +369,13 @@ static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     target_cwnd += xqc_bbr_ack_aggregation_cwnd(bbr);
 
     if(bbr->full_bandwidth_reached)
-        bbr->congestion_window = min(target_cwnd,bbr->congestion_window + sampler->delivered);
+        bbr->congestion_window = xqc_min(target_cwnd,bbr->congestion_window + sampler->delivered);
     else if(bbr->congestion_window < target_cwnd)
         bbr->congestion_window += sampler->delivered;
 
-    bbr->congestion_window = max(bbr->congestion_window, xqc_bbr_kMinCongestionWindow);
+    bbr->congestion_window = xqc_max(bbr->congestion_window, xqc_bbr_kMinCongestionWindow);
     if(bbr->mode == BBR_PROBE_RTT)
-        bbr->congestion_window = min(bbr->congestion_window, xqc_bbr_kMinCongestionWindow);
+        bbr->congestion_window = xqc_min(bbr->congestion_window, xqc_bbr_kMinCongestionWindow);
 }
 
 static void xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
@@ -387,14 +391,20 @@ static void xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     xqc_bbr_check_probe_rtt(bbr,sampler);
 
     /*Update control parameter */
-    xqc_bbr_set_pacing_rate(bbr);
+    xqc_bbr_set_pacing_rate(bbr, sampler);
     xqc_bbr_set_cwnd(bbr,sampler);
+
+    printf("==========pacing rate %u\n",bbr->pacing_rate);
 
 }
 
 static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
+    printf("==========%u\n",bbr->congestion_window);
+    printf("==========bandwidth %u\n",xqc_bbr_max_bw(bbr));
+    printf("==========rtt %llu\n",bbr->min_rtt);
+
     return bbr->congestion_window;
 }
 
@@ -406,7 +416,8 @@ static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)
 
 const xqc_cong_ctrl_callback_t xqc_bbr_cb = {
     .xqc_cong_ctl_size          = xqc_bbr_size,
-    .xqc_cong_ctl_bbr_init      = xqc_bbr_init,
+    .xqc_cong_ctl_init_bbr      = xqc_bbr_init,
     .xqc_cong_ctl_bbr           = xqc_bbr_on_ack,
     .xqc_cong_ctl_get_cwnd      = xqc_bbr_get_cwnd,
+    .xqc_cong_ctl_get_pacing_rate = xqc_bbr_get_pacing_rate,
 };
