@@ -439,6 +439,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
 
     printf("==========sam2 %u\n",ctl->sampler.prior_delivered);
+    printf("==========sam2 %llu\n",ctl->ctl_delivered);
     printf("==========sam2 %u\n",ctl->sampler.delivered);
     printf("==========sam2 %llu\n",ctl->sampler.rtt);
     return XQC_OK;
