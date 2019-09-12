@@ -1682,6 +1682,76 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
 
 }
 
+xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_push_promise(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint64_t push_id){
+
+    xqc_http3_frame_hd hd;
+    hd.type = XQC_HTTP3_FRAME_PUSH_PROMISE;
+    uint64_t push_idlen = xqc_put_varint_len(push_id);
+    hd.length = data_len + push_idlen;
+
+    int hd_len = xqc_http3_frame_write_hd_len(&hd);
+
+    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd.length);
+    if(send_buf == NULL){
+        return send_buf;
+    }
+
+    int offset = xqc_http3_fill_frame_header(send_buf->data, hd.type, hd.length);
+
+    if(offset < 0){
+        free(send_buf);
+        return NULL;
+    }
+
+    char * pos = xqc_put_varint(send_buf->data + offset, push_id);
+    memcpy(pos, data, data_len);
+
+
+    return send_buf;
+
+}
+
+ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_t push_id, char * data, ssize_t data_len, uint8_t fin){
+
+    if(data_len <= 0){
+        return data_len;
+    }
+
+    ssize_t send_sum = 0; // means data send or buffer success
+    ssize_t offset = 0; // means read data offset
+
+
+    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
+        return send_sum; //means buffer data not send completely
+    }
+
+    xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_push_promise( h3_stream, data, data_len,  push_id);
+    if(send_buf == NULL){
+        //log
+        return send_sum;
+    }
+
+    if(fin){
+        send_buf->fin = fin;
+    }
+    send_sum = data_len;
+
+    ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
+
+    if(send_success == send_buf->data_len){
+        free(send_buf);
+    }else{
+        send_buf->already_consume += send_success;
+        xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
+    }
+
+
+    return send_sum;
+
+
+
+
+}
 
 ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
