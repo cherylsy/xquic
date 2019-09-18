@@ -281,6 +281,7 @@ static void
 xqc_server_engine_callback(int fd, short what, void *arg)
 {
     DEBUG;
+    printf("timer wakeup now=%lld\n", now());
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
 
     xqc_engine_main_logic(ctx->engine);
