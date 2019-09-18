@@ -11,7 +11,6 @@ uint32_t xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
         return false;
     sampler->interval = xqc_max(sampler->ack_elapse, sampler->send_elapse);
     sampler->delivered = send_ctl->ctl_delivered - sampler->prior_delivered;
-    sampler->prior_delivered = send_ctl->ctl_delivered;
 
     if (sampler->interval < send_ctl->ctl_minrtt){
         sampler->interval = -1;
@@ -39,7 +38,7 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
     send_ctl->ctl_delivered_time = xqc_now();
 
     if(packet->po_delivered > sampler->prior_delivered){
-
+        sampler->prior_delivered = packet->po_delivered;
         sampler->prior_time = packet->po_delivered_time;
         sampler->send_elapse = packet->po_sent_time - packet->po_first_sent_time;
         sampler->ack_elapse = send_ctl->ctl_delivered_time - packet->po_delivered_time;
