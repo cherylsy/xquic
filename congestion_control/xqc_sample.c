@@ -3,6 +3,7 @@
 #include "transport/xqc_send_ctl.h"
 #include "transport/xqc_packet_out.h"
 
+//TODO: bool
 uint32_t xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
 

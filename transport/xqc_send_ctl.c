@@ -285,8 +285,9 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
     }
 
+    //TODO: 放在sample结构体中
     if (ctl->ctl_bytes_in_flight == 0)
-        ctl->ctl_delivered_time = ctl->ctl_first_sent_time = xqc_now();
+        ctl->ctl_delivered_time = ctl->ctl_first_sent_time = now;
 
     ctl->ctl_bytes_send += packet_out->po_used_size;
 
