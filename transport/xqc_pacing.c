@@ -5,12 +5,15 @@
 #define XQC_MAX_BURST_NUM 1
 
 void
-xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on)
+xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
 {
     pacing->burst_num = 0;
     pacing->next_send_time = 0;
     pacing->timer_expire = 0;
     pacing->on = pacing_on;
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
+        pacing->on = 1;
+    }
 }
 
 /**
@@ -30,6 +33,12 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
 {
     /* see linux kernel tcp_update_pacing_rate(struct sock *sk) */
     uint64_t pacing_rate;
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
+        pacing_rate = ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|bbr|pacing_rate:%ui|", pacing_rate);
+        return pacing_rate;
+    }
+
     uint64_t cwnd = ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
 
     xqc_msec_t srtt = ctl->ctl_srtt;

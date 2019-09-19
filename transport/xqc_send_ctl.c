@@ -53,7 +53,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
         send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
     }
 
-    xqc_pacing_init(&send_ctl->ctl_pacing, 1);
+    xqc_pacing_init(&send_ctl->ctl_pacing, conn->conn_settings.pacing_on, send_ctl);
     return send_ctl;
 }
 

@@ -518,7 +518,7 @@ int main(int argc, char *argv[]) {
     };
 
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   0,
+            .pacing_on  =   1,
             .h3         =   1,
     };
     xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);

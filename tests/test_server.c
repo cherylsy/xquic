@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <event2/event.h>
 #include <arpa/inet.h>
+#include "congestion_control/xqc_bbr.h"
 #include "xqc_cmake_config.h"
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
@@ -363,7 +364,8 @@ int main(int argc, char *argv[]) {
                     .h3_request_read_notify = xqc_server_request_read_notify,
             },
             .write_socket = xqc_server_send,
-            .cong_ctrl_callback = xqc_reno_cb,
+            //.cong_ctrl_callback = xqc_reno_cb,
+            .cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_server_set_event_timer,
     };
 

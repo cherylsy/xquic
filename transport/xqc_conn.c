@@ -306,7 +306,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             /* 优先级高的包一定在前面 */
             if (!xqc_send_ctl_can_send(conn)) {
                 break;
-            } else if (conn->conn_settings.pacing_on) {
+            } else if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
                 if (pacing_blocked == 0) {
                     xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
                     if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
