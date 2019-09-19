@@ -426,7 +426,8 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 need = ((buf->data_len - offset + header_size) > XQC_PACKET_OUT_SIZE) ? (header_size +
                                                                                          MIN_CRYPTO_FRAME_SIZE) : (
                                buf->data_len - offset + header_size);
-                packet_out = xqc_write_new_packet(c, pkt_type/*, need*/); //TODO: 打开有问题
+                packet_out = xqc_write_new_packet(c, pkt_type);
+                //packet_out = xqc_write_packet(c, pkt_type, need);//TODO: 打开有问题
                 if (packet_out == NULL) {
                     return -XQC_ENULLPTR;
                 }

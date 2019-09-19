@@ -177,7 +177,6 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
     DEBUG
 
     ssize_t recv_size = 0;
-    uint64_t recv_time = now();
 
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
@@ -194,6 +193,7 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
             break;
         }
 
+        uint64_t recv_time = now();
         printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu\n", recv_size, recv_time, now());
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));

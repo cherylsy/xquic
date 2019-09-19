@@ -47,6 +47,8 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
         pacing_rate = pacing_rate * 12 / 10;
     }
 
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|cwnd:%ui|srtt:%ui|pacing_rate:%ui|", cwnd, srtt, pacing_rate);
+
     return pacing_rate;
 }
 
@@ -79,8 +81,9 @@ xqc_pacing_schedule(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
     if (pacing->burst_num < XQC_MAX_BURST_NUM) {
         ++pacing->burst_num;
     } else {
-        pacing->burst_num = XQC_MAX_BURST_NUM + 1;
-        pacing->next_send_time = xqc_now() + xqc_pacing_time_cost(pacing, ctl);
+        ++pacing->burst_num;
+        //pacing->burst_num = XQC_MAX_BURST_NUM + 1;
+        pacing->next_send_time = xqc_now() + xqc_pacing_time_cost(pacing, ctl) * (pacing->burst_num - 1);
     }
 }
 
@@ -94,6 +97,11 @@ xqc_pacing_can_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
     }
 
     if (pacing->next_send_time <= now) {
+        can = 1;
+    }
+
+    /* 定时器精度只有1ms */
+    if (pacing->next_send_time - now < 1000) {
         can = 1;
     }
 

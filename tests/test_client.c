@@ -325,7 +325,6 @@ xqc_client_read_handler(client_ctx_t *ctx)
     DEBUG
 
     ssize_t recv_size = 0;
-    uint64_t recv_time = now();
 
     /* recv udp packet */
     ssize_t  n;
@@ -357,7 +356,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
             printf("xqc_client_read_handler: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
         }
-
+        uint64_t recv_time = now();
         printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
