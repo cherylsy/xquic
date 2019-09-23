@@ -39,6 +39,21 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->user_data = user_data;
     h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
+    if(xqc_tnode_hash_create(&h3_conn->tnode_hash, XQC_TNODE_HASH_SIZE) < 0){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode hash table failed|");
+        goto final;
+    }
+
+    xqc_http3_tnode_t nid;
+    xqc_http3_node_id_init(&nid, XQC_HTTP3_NODE_ID_TYPE_ROOT, 0);
+    h3_conn->tnode_root = xqc_http3_create_tnode(&h3_conn->tnode_hash, &nid, 0, XQC_HTTP3_DEFAULT_WEIGHT, NULL );
+    if(h3_conn->tnode_root == NULL){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode root failed|");
+        goto final;
+    }
+#endif
+
     if (h3_conn->h3_conn_callbacks.h3_conn_create_notify) {
         if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, user_data)) {
             goto fail;
@@ -59,6 +74,11 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
         h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, h3_conn->user_data);
         h3_conn->flags &= ~XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
+    xqc_tnode_free_hash_table(&h3_conn->tnode_hash);
+#endif
+
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
     xqc_free(h3_conn);
 }

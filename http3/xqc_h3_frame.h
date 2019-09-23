@@ -227,6 +227,8 @@ typedef struct {
     }aux;
 }xqc_http3_frame_entry_t;
 
+
+
 int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_settings * settings );
 
 ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin);

@@ -2080,8 +2080,68 @@ ssize_t xqc_h3_fill_outq(xqc_h3_stream_t * h3_stream, xqc_http3_frame_entry_t *f
 
 }
 
+xqc_h3_stream_t * xqc_http3_find_stream(xqc_h3_conn_t * h3_conn, uint64_t stream_id){
+
+    xqc_connection_t * conn = h3_conn->conn;
+    xqc_id_hash_table_t *streams_hash = conn->streams_hash;
+
+    xqc_stream_t *stream = xqc_id_hash_find(streams_hash, stream_id);
+    if(stream == NULL){
+        return NULL;
+    }
+
+    return stream->userdata;
+}
+
+xqc_http3_node_t * xqc_http3_tnode_find_ascendant(xqc_http3_node_t * tnode, xqc_http3_node_id_t * nid){
+    for(tnode = tnode->parent; tnode && !xqc_http3_node_id_eq(nid, &tnode->nid); tnode = tnode->parent);
+    return tnode;
+}
+
+
+xqc_http3_tnode_t * xqc_http3_find_tnode(xqc_h3_conn_t * conn, xqc_http3_node_id_t *nid){
+
+    xqc_http3_tnode_t * tnode = xqc_tnode_hash_find_by_id(&conn->tnode_hash, nid);
+    if(tnode == NULL){
+        tnode = xqc_http3_create_tnode(&conn->tnode_hash, &nid, 0, XQC_HTTP3_DEFAULT_WEIGHT, conn->root);
+    }
+    return tnode;
+}
+
 int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_priority *fr){
-    //need finish
+    xqc_http3_node_id_t nid, dep_nid;
+    xqc_http3_tnode_t * dep_tnode = NULL, *tnode = NULL;
+    int rv = 0;
+
+    xqc_http3_node_id_init(&nid, fr->pt, fr->pri_elem_id);
+    xqc_http3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
+
+    if(xqc_http3_node_id_eq(&nid, &dep_nid)){
+        return -1;
+    }
+
+    tnode = xqc_http3_find_tnode(conn, &nid);
+    if(tnode == NULL){
+        return -1;
+    }
+    tnode->weight = fr->weight;
+
+    dep_tnode = xqc_http3_find_tnode(conn, &dep_nid);
+    if(dep_tnode == NULL){
+        return -1;
+    }
+
+    xqc_http3_tnode_remove_tree(tnode);
+
+    if(fr->exclusive){
+        rv = xqc_http3_tnode_insert_exclusive(tnode, dep_tnode);
+        if(rv != 0){
+            return -1;
+        }
+    }else{
+        xqc_http3_tnode_insert(tnode, dep_tnode);
+    }
+
     return 0;
 }
 

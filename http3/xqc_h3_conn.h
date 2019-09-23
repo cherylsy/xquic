@@ -33,6 +33,10 @@ struct xqc_h3_conn_s {
     xqc_h3_conn_callbacks_t h3_conn_callbacks;
     uint64_t                max_stream_id_recvd;
     uint64_t                goaway_stream_id;
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
+    xqc_http3_tnode_t       *tnode_root;
+    xqc_tnode_hash_table_t  tnode_hash;
+#endif
 };
 
 
