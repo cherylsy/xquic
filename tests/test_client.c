@@ -565,22 +565,22 @@ int main(int argc, char *argv[]) {
     if(session_len < 0 || tp_len < 0){
         printf("sessoin data read error");
         conn_ssl_config.session_ticket_data = NULL;
-        conn_ssl_config.tp_data  = NULL;
+        conn_ssl_config.transport_parameter_data  = NULL;
     }else{
         conn_ssl_config.session_ticket_data = session_ticket_data;
         conn_ssl_config.session_ticket_len = session_len;
-        conn_ssl_config.tp_data = tp_data;
-        conn_ssl_config.tp_data_len = tp_len;
+        conn_ssl_config.transport_parameter_data = tp_data;
+        conn_ssl_config.transport_parameter_data_len = tp_len;
     }
 
 
 
     xqc_cid_t *cid;
     if (conn_settings.h3) {
-        cid = xqc_h3_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0,
+        cid = xqc_h3_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config);
     } else {
-        cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0,
+        cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config);
     }
     if (cid == NULL) {

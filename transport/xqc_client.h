@@ -6,7 +6,6 @@
 xqc_connection_t *xqc_client_connect(xqc_engine_t *engine, void *user_data,
                                      unsigned char *token, unsigned token_len,
                                      char *server_host, int no_crypto_flag,
-                                     uint8_t no_early_data_flag,
                                      xqc_conn_ssl_config_t *conn_ssl_config);
 
 xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
@@ -15,7 +14,6 @@ xqc_connection_t * xqc_client_create_connection(xqc_engine_t *engine,
                                                 xqc_conn_settings_t *settings,
                                                 char * server_host,
                                                 int no_crypto_flag,
-                                                uint8_t no_early_data_flag,
                                                 xqc_conn_ssl_config_t * conn_ssl_config,
                                                 void *user_data);
 

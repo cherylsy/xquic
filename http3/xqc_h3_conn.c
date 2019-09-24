@@ -10,12 +10,11 @@ xqc_cid_t *
 xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                unsigned char *token, unsigned token_len,
                char *server_host, int no_crypto_flag,
-               uint8_t no_early_data_flag,
                xqc_conn_ssl_config_t *conn_ssl_config)
 {
     xqc_connection_t *conn;
     conn = xqc_client_connect(engine, user_data, token, token_len, server_host,
-            no_crypto_flag, no_early_data_flag, conn_ssl_config);
+            no_crypto_flag, conn_ssl_config);
     if (!conn) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_client_connect error|");
         return NULL;

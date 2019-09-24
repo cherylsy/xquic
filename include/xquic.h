@@ -142,8 +142,8 @@ struct xqc_engine_ssl_config {
 struct xqc_conn_ssl_config {
     char       *session_ticket_data;
     size_t     session_ticket_len;
-    char       *tp_data;
-    size_t     tp_data_len;
+    char       *transport_parameter_data;
+    size_t     transport_parameter_data_len;
 };
 
 typedef struct {
@@ -223,7 +223,6 @@ xqc_engine_init (xqc_engine_t *engine,
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
                         unsigned char *token, unsigned token_len,
                         char *server_host, int no_crypto_flag,
-                        uint8_t no_early_data_flag,
                         xqc_conn_ssl_config_t *conn_ssl_config);
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
@@ -231,7 +230,6 @@ int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           unsigned char *token, unsigned token_len,
                           char *server_host, int no_crypto_flag,
-                          uint8_t no_early_data_flag,
                           xqc_conn_ssl_config_t *conn_ssl_config);
 
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,

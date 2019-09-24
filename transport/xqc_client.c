@@ -10,7 +10,6 @@ xqc_connection_t *
 xqc_client_connect(xqc_engine_t *engine, void *user_data,
                    unsigned char *token, unsigned token_len,
                    char *server_host, int no_crypto_flag,
-                   uint8_t no_early_data_flag,
                    xqc_conn_ssl_config_t *conn_ssl_config)
 {
     xqc_cid_t dcid;
@@ -37,7 +36,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
                                                         &callbacks, &engine->conn_settings, server_host,
-                                                        no_crypto_flag, no_early_data_flag, conn_ssl_config, user_data);
+                                                        no_crypto_flag, conn_ssl_config, user_data);
 
     if (xc == NULL) {
         xqc_log(engine->log, XQC_LOG_WARN,
@@ -75,12 +74,11 @@ xqc_cid_t *
 xqc_connect(xqc_engine_t *engine, void *user_data,
             unsigned char *token, unsigned token_len,
             char *server_host, int no_crypto_flag,
-            uint8_t no_early_data_flag,
             xqc_conn_ssl_config_t *conn_ssl_config)
 {
     xqc_connection_t *conn;
     conn = xqc_client_connect(engine, user_data, token, token_len,
-                       server_host, no_crypto_flag, no_early_data_flag, conn_ssl_config);
+                       server_host, no_crypto_flag, conn_ssl_config);
     if (conn) {
         return &conn->scid;
     }
@@ -94,7 +92,6 @@ xqc_client_create_connection(xqc_engine_t *engine,
                              xqc_conn_settings_t *settings,
                              char * server_host,
                              int no_crypto_flag,
-                             uint8_t no_early_data_flag,
                              xqc_conn_ssl_config_t * conn_ssl_config,
                              void *user_data)
 {
@@ -106,7 +103,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
         return NULL;
     }
 
-    if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag, no_early_data_flag) < 0 ){
+    if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag) < 0 ){
         goto fail;
     }
 
