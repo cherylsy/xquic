@@ -3,6 +3,7 @@
 #include "include/xquic.h"
 #include "congestion_control/xqc_new_reno.h"
 #include "congestion_control/xqc_cubic.h"
+#include "congestion_control/xqc_bbr.h"
 #include <event2/event.h>
 #include <memory.h>
 #include <sys/socket.h>
@@ -511,7 +512,8 @@ int main(int argc, char *argv[]) {
             },
             .write_socket = xqc_client_write_socket,
             //.cong_ctrl_callback = xqc_reno_cb,
-            .cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_cubic_cb,
+            .cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer,
             .save_token = xqc_client_save_token,
     };

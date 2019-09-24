@@ -8,6 +8,7 @@
 #include "xqc_stream.h"
 #include "common/xqc_timer.h"
 #include "congestion_control/xqc_new_reno.h"
+#include "congestion_control/xqc_sample.h"
 
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn)
@@ -20,6 +21,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     send_ctl->ctl_conn = conn;
     send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
+    send_ctl->ctl_delivered = 0;
 
     xqc_init_list_head(&send_ctl->ctl_send_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
@@ -36,13 +38,20 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
                            xqc_now() + send_ctl->ctl_conn->local_settings.idle_timeout * 1000);
 
-    if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
+    if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
+        send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
+    } else if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
         send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
     } else {
         send_ctl->ctl_cong_callback = &xqc_reno_cb;
     }
     send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
-    send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
+
+    if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
+        send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr(send_ctl->ctl_cong, &send_ctl->sampler);
+    } else {
+        send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
+    }
 
     xqc_pacing_init(&send_ctl->ctl_pacing, 1);
     return send_ctl;
@@ -276,6 +285,10 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
     }
 
+    //TODO: 放在sample结构体中
+    if (ctl->ctl_bytes_in_flight == 0)
+        ctl->ctl_delivered_time = ctl->ctl_first_sent_time = now;
+
     ctl->ctl_bytes_send += packet_out->po_used_size;
 
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
@@ -328,6 +341,12 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         ctl->ctl_send_count++;
         packet_out->po_flag &= ~XQC_POF_RETRANS;
     }
+
+
+    packet_out->po_delivered_time = ctl->ctl_delivered_time;
+    packet_out->po_first_sent_time = ctl->ctl_first_sent_time;
+    packet_out->po_delivered = ctl->ctl_delivered;
+
 }
 
 /**
@@ -337,6 +356,10 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
 int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
 {
+    printf("==========sam %u\n",ctl->sampler.prior_delivered);
+    printf("==========sam %u\n",ctl->sampler.delivered);
+    printf("==========sam %llu\n",ctl->sampler.rtt);
+
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     unsigned char update_rtt = 0;
@@ -375,6 +398,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 need_del_record = 1;
             }
 
+            xqc_update_sample(&ctl->sampler, packet_out, ctl);
+
             xqc_send_ctl_on_packet_acked(ctl, packet_out);
 
             //remove from unacked list
@@ -411,6 +436,13 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
 
+    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl))
+        ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
+
+    printf("==========sam2 %u\n",ctl->sampler.prior_delivered);
+    printf("==========sam2 %llu\n",ctl->ctl_delivered);
+    printf("==========sam2 %u\n",ctl->sampler.delivered);
+    printf("==========sam2 %llu\n",ctl->sampler.rtt);
     return XQC_OK;
 }
 
@@ -470,6 +502,8 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 
     ctl->ctl_loss_time[pns] = 0;
 
+    ctl->sampler.loss = 0;
+
     /* loss_delay = 9/8 * max(latest_rtt, smoothed_rtt) */
     xqc_msec_t loss_delay = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
     loss_delay += loss_delay >> 3;
@@ -504,6 +538,8 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
             } else {
                 largest_lost = po->po_pkt.pkt_num > largest_lost->po_pkt.pkt_num ? po : largest_lost;
             }
+            ctl->sampler.loss = 1;
+
         } else {
             if (ctl->ctl_loss_time[pns] == 0) {
                 ctl->ctl_loss_time[pns] = po->po_sent_time + loss_delay;
@@ -522,7 +558,8 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
         xqc_send_ctl_congestion_event(ctl, largest_lost->po_sent_time);
 
         // Collapse congestion window if persistent congestion
-        if (xqc_send_ctl_in_persistent_congestion(ctl, largest_lost)) {
+        if (ctl->ctl_cong_callback->xqc_cong_ctl_reset_cwnd &&
+            xqc_send_ctl_in_persistent_congestion(ctl, largest_lost)) {
             ctl->ctl_cong_callback->xqc_cong_ctl_reset_cwnd(ctl->ctl_cong);
         }
     }
@@ -583,8 +620,9 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
 void
 xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_msec_t sent_time)
 {
-
-    ctl->ctl_cong_callback->xqc_cong_ctl_on_lost(ctl->ctl_cong, sent_time);
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_on_lost) {
+        ctl->ctl_cong_callback->xqc_cong_ctl_on_lost(ctl->ctl_cong, sent_time);
+    }
 }
 
 
@@ -661,7 +699,10 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
         return;
     }
 
-    ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet->po_sent_time, acked_packet->po_used_size);
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_on_ack) {
+        ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet->po_sent_time,
+                                                    acked_packet->po_used_size);
+    }
 }
 
 

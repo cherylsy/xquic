@@ -5,6 +5,7 @@
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 #include "xqc_pacing.h"
+#include "congestion_control/xqc_sample.h"
 
 #define XQC_kPacketThreshold 3
 #define XQC_kPersistentCongestionThreshold 2
@@ -93,6 +94,12 @@ typedef struct xqc_send_ctl_s {
     void                        *ctl_cong;
 
     xqc_pacing_t                ctl_pacing;
+
+    uint64_t                    ctl_delivered;
+    xqc_msec_t                  ctl_delivered_time;
+    xqc_msec_t                  ctl_first_sent_time;
+
+    xqc_sample_t                sampler;
 
 } xqc_send_ctl_t;
 
@@ -237,8 +244,8 @@ xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_ms
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|expire=%ui|",
-            xqc_timer_type_2_str(type), expire);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|expire=%ui|now=%ui|",
+            xqc_timer_type_2_str(type), expire, xqc_now());
 }
 
 static inline void

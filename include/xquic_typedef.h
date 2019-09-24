@@ -21,10 +21,12 @@ typedef struct xqc_log_s xqc_log_t;
 typedef struct xqc_send_ctl_s xqc_send_ctl_t;
 typedef struct xqc_packet_s xqc_packet_t;
 typedef struct xqc_packet_in_s xqc_packet_in_t;
+typedef struct xqc_packet_out_s xqc_packet_out_t;
 typedef struct xqc_stream_frame_s xqc_stream_frame_t;
 typedef struct xqc_ssl_config xqc_ssl_config_t;
 typedef struct xqc_h3_request_s xqc_h3_request_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
+typedef struct xqc_sample_s xqc_sample_t;
 
 typedef uint64_t xqc_msec_t;
 

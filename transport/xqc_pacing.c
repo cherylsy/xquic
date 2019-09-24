@@ -40,7 +40,8 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
     /* 每秒可发字节数 */
     pacing_rate = cwnd * 1000000 / srtt;
 
-    if (ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start(ctl->ctl_cong)) {
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start &&
+        ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start(ctl->ctl_cong)) {
         pacing_rate *= 2;
     } else {
         pacing_rate = pacing_rate * 12 / 10;

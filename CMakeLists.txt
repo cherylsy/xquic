@@ -70,6 +70,9 @@ set(
 
     congestion_control/xqc_new_reno.c
     congestion_control/xqc_cubic.c
+    congestion_control/xqc_bbr.c
+    congestion_control/xqc_window_filter.c
+    congestion_control/xqc_sample.c
 )
 
 add_library(

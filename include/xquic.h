@@ -74,6 +74,11 @@ typedef struct xqc_congestion_control_callback_s {
     uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
+
+    //For BBR
+    void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+    void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+    uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
 
 
