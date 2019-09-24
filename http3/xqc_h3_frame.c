@@ -1,8 +1,12 @@
 #include "xqc_h3_frame.h"
 #include "xqc_h3_stream.h"
 #include "transport/xqc_conn.h"
+#include "transport/xqc_stream.h"
 #include "common/xqc_list.h"
 #include "transport/crypto/xqc_tls_public.h"
+#include "xqc_h3_tnode.h"
+
+
 
 int xqc_http3_conn_on_max_push_id(xqc_h3_conn_t * conn, uint64_t push_id);
 int xqc_http3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv);
@@ -10,7 +14,10 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
 
 ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen);
 int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_push * fr);
+
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
 int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_priority *fr);
+#endif
 
 int xqc_http3_conn_call_begin_headers(xqc_h3_conn_t * h3_conn,xqc_h3_stream_t * h3_stream);
 int xqc_http3_conn_call_begin_trailers(xqc_h3_conn_t * h3_conn,xqc_h3_stream_t * h3_stream);
@@ -626,11 +633,14 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 ++p;
                 ++nconsumed;
 
+
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
                 rv = xqc_http3_conn_on_control_priority(h3_conn, &rstate->fr.priority);
                 if(rv != 0){
 
                     return rv;
                 }
+#endif
 
                 xqc_http3_stream_read_state_clear(rstate);
                 break;
@@ -2090,10 +2100,11 @@ xqc_h3_stream_t * xqc_http3_find_stream(xqc_h3_conn_t * h3_conn, uint64_t stream
         return NULL;
     }
 
-    return stream->userdata;
+    return (xqc_h3_stream_t *)(stream->user_data);
 }
 
-xqc_http3_node_t * xqc_http3_tnode_find_ascendant(xqc_http3_node_t * tnode, xqc_http3_node_id_t * nid){
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
+xqc_http3_tnode_t * xqc_http3_tnode_find_ascendant(xqc_http3_tnode_t * tnode, xqc_http3_node_id_t * nid){
     for(tnode = tnode->parent; tnode && !xqc_http3_node_id_eq(nid, &tnode->nid); tnode = tnode->parent);
     return tnode;
 }
@@ -2103,7 +2114,7 @@ xqc_http3_tnode_t * xqc_http3_find_tnode(xqc_h3_conn_t * conn, xqc_http3_node_id
 
     xqc_http3_tnode_t * tnode = xqc_tnode_hash_find_by_id(&conn->tnode_hash, nid);
     if(tnode == NULL){
-        tnode = xqc_http3_create_tnode(&conn->tnode_hash, &nid, 0, XQC_HTTP3_DEFAULT_WEIGHT, conn->root);
+        tnode = xqc_http3_create_tnode(&conn->tnode_hash, nid, XQC_HTTP3_DEFAULT_WEIGHT, conn->tnode_root);
     }
     return tnode;
 }
@@ -2144,6 +2155,7 @@ int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_pri
 
     return 0;
 }
+#endif
 
 int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_push * fr){
 

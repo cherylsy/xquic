@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/types.h>
+#include "xqc_h3_tnode.h"
 
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
@@ -106,6 +107,7 @@ typedef struct {
   size_t nvlen;
 } xqc_http3_frame_headers;
 
+#if 0
 typedef enum {
     XQC_HTTP3_PRI_ELEM_TYPE_REQUEST = 0x00,
     XQC_HTTP3_PRI_ELEM_TYPE_PUSH = 0x01,
@@ -119,6 +121,7 @@ typedef enum {
   XQC_HTTP3_ELEM_DEP_TYPE_PLACEHOLDER = 0x02,
   XQC_HTTP3_ELEM_DEP_TYPE_ROOT = 0x03
 } xqc_http3_elem_dep_type;
+#endif
 
 typedef struct {
   xqc_http3_frame_hd hd;

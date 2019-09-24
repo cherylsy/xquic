@@ -11,6 +11,7 @@
 
 int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
+    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
     xqc_h3_stream_type_t h3_stream_type = h3_stream->h3_stream_type;
     if(h3_stream_type == XQC_H3_STREAM_CONTROL || h3_stream_type == XQC_H3_STREAM_NUM){
         h3_stream->tnode = NULL;
@@ -18,7 +19,7 @@ int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
     }else{
         xqc_stream_t * stream = h3_stream->stream;
         xqc_http3_node_id_t nid;
-        nid.stream_id = stream->stream_id;
+        nid.id = stream->stream_id;
         if(h3_stream_type == XQC_H3_STREAM_REQUEST){
             nid.type = XQC_HTTP3_PRI_ELEM_TYPE_REQUEST;
         }else if (h3_stream_type == XQC_H3_STREAM_PUSH){
@@ -27,14 +28,14 @@ int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
             return -1;
         }
 
-        h3_stream->tnode = xqc_tnode_hash_find_by_id(h3_conn->tnode_hash, &nid);
+        h3_stream->tnode = xqc_tnode_hash_find_by_id(&h3_conn->tnode_hash, &nid);
         if(h3_stream->tnode == NULL){
-            h3_stream->tnode = xqc_http3_create_tnode(&nid, 0, XQC_HTTP3_DEFAULT_WEIGHT, h3_conn->root);
+            h3_stream->tnode = xqc_http3_create_tnode(&h3_conn->tnode_hash, &nid, XQC_HTTP3_DEFAULT_WEIGHT, h3_conn->tnode_root);
         }
         if (h3_stream->tnode == NULL){
             return -1;
         }else{
-            h3_stream->tnode->h3_stream = h3_stream;
+            //h3_stream->tnode->h3_stream = h3_stream;
         }
 
     }

@@ -4,6 +4,7 @@
 #include "include/xquic_typedef.h"
 #include "transport/xqc_conn.h"
 #include "xqc_h3_stream.h"
+#include "xqc_h3_tnode.h"
 
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;

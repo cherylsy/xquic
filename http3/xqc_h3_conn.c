@@ -42,15 +42,15 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     if(xqc_tnode_hash_create(&h3_conn->tnode_hash, XQC_TNODE_HASH_SIZE) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode hash table failed|");
-        goto final;
+        goto fail;
     }
 
-    xqc_http3_tnode_t nid;
+    xqc_http3_node_id_t nid;
     xqc_http3_node_id_init(&nid, XQC_HTTP3_NODE_ID_TYPE_ROOT, 0);
-    h3_conn->tnode_root = xqc_http3_create_tnode(&h3_conn->tnode_hash, &nid, 0, XQC_HTTP3_DEFAULT_WEIGHT, NULL );
+    h3_conn->tnode_root = xqc_http3_create_tnode(&h3_conn->tnode_hash, &nid, XQC_HTTP3_DEFAULT_WEIGHT, NULL );
     if(h3_conn->tnode_root == NULL){
         xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode root failed|");
-        goto final;
+        goto fail;
     }
 #endif
 
