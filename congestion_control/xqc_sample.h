@@ -11,7 +11,7 @@ typedef struct xqc_sample_s{
     /*采样时间点 */
     xqc_msec_t  now;
     /*当前ack的packet在发送的时候传输完成的packet数目 */
-    uint32_t    prior_delivered;
+    uint64_t    prior_delivered;
     /*两次采样的时间间隔 */
     xqc_msec_t  interval;
     /*两次采样之间传输完成(ack)的数据量 */
@@ -23,7 +23,7 @@ typedef struct xqc_sample_s{
     uint32_t    is_app_limited;
     /*是否出现丢包情况 */
     uint32_t    loss;
-    uint32_t    total_acked;
+    uint64_t    total_acked;
     xqc_msec_t  srtt;
     xqc_msec_t  prior_time;
     xqc_msec_t  ack_elapse;
@@ -31,7 +31,9 @@ typedef struct xqc_sample_s{
     uint32_t    delivery_rate;
 } xqc_sample_t;
 
-uint32_t xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl);
-void xqc_update_sample(xqc_sample_t *sample, xqc_packet_out_t *packet, xqc_send_ctl_t *send_ctl);
+bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_msec_t now);
+void xqc_update_sample(xqc_sample_t *sample, xqc_packet_out_t *packet, xqc_send_ctl_t *send_ctl, xqc_msec_t now);
+void xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl);
+void xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, xqc_msec_t now);
 
 #endif
