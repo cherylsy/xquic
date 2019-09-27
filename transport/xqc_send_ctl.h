@@ -95,9 +95,12 @@ typedef struct xqc_send_ctl_s {
 
     xqc_pacing_t                ctl_pacing;
 
-    uint64_t                    ctl_delivered;
-    xqc_msec_t                  ctl_delivered_time;
-    xqc_msec_t                  ctl_first_sent_time;
+    uint64_t                    ctl_delivered; /* 表示当前ack时刻已经标记为发送完毕的数据量 */
+    uint64_t                    ctl_app_limited; /* The index of the last transmitted packet marked as
+   application-limited, or 0 if the connection is not currently
+   application-limited. */
+    xqc_msec_t                  ctl_delivered_time; /* 当前packet P被ack的时间 */
+    xqc_msec_t                  ctl_first_sent_time; /* 最近一次被标记为发送完毕的packet的发送时间 */
 
     xqc_sample_t                sampler;
 

@@ -281,13 +281,12 @@ void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_msec_t now)
 {
     //printf("send packet_out: %p\n", packet_out);
+
+    xqc_sample_on_sent(packet_out, ctl, now);
+
     if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent) {
         ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
     }
-
-    //TODO: 放在sample结构体中
-    if (ctl->ctl_bytes_in_flight == 0)
-        ctl->ctl_delivered_time = ctl->ctl_first_sent_time = now;
 
     ctl->ctl_bytes_send += packet_out->po_used_size;
 
@@ -342,11 +341,6 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         packet_out->po_flag &= ~XQC_POF_RETRANS;
     }
 
-
-    packet_out->po_delivered_time = ctl->ctl_delivered_time;
-    packet_out->po_first_sent_time = ctl->ctl_first_sent_time;
-    packet_out->po_delivered = ctl->ctl_delivered;
-
 }
 
 /**
@@ -356,9 +350,9 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
 int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
 {
-    printf("==========sam %u\n",ctl->sampler.prior_delivered);
-    printf("==========sam %u\n",ctl->sampler.delivered);
-    printf("==========sam %llu\n",ctl->sampler.rtt);
+    printf("==========on_ack_received sampler.prior_delivered %u\n",ctl->sampler.prior_delivered);
+    printf("==========on_ack_received sampler.delivered %u\n",ctl->sampler.delivered);
+    printf("==========on_ack_received sampler.rtt%llu\n",ctl->sampler.rtt);
 
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
@@ -398,7 +392,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 need_del_record = 1;
             }
 
-            xqc_update_sample(&ctl->sampler, packet_out, ctl);
+            xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out);
 
@@ -436,13 +430,15 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
 
-    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl))
+    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
         ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
+        ctl->sampler.prior_time = 0;
+    }
 
-    printf("==========sam2 %u\n",ctl->sampler.prior_delivered);
-    printf("==========sam2 %llu\n",ctl->ctl_delivered);
-    printf("==========sam2 %u\n",ctl->sampler.delivered);
-    printf("==========sam2 %llu\n",ctl->sampler.rtt);
+    printf("==========after on_ack_received sampler.prior_delivered %u\n",ctl->sampler.prior_delivered);
+    printf("==========after on_ack_received ctl_delivered %llu\n",ctl->ctl_delivered);
+    printf("==========after on_ack_received sampler.delivered %u\n",ctl->sampler.delivered);
+    printf("==========after on_ack_received sampler.rtt %llu\n",ctl->sampler.rtt);
     return XQC_OK;
 }
 
