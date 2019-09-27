@@ -18,6 +18,7 @@
 #define XQC_PACKET_OUT_SIZE 1200    //不含XQC_EXTRA_SPACE XQC_ACK_SPACE
 #define XQC_EXTRA_SPACE XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 #define XQC_ACK_SPACE 16
+#define XQC_PACKET_OUT_SIZE_EXT (XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE)
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3
 
@@ -53,9 +54,10 @@ typedef struct xqc_packet_out_s
     /* stream frame 关联的stream */
     xqc_po_stream_frame_t   po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO];
 
-    uint64_t                po_delivered;
-    xqc_msec_t              po_delivered_time;
-    xqc_msec_t              po_first_sent_time;
+    uint64_t                po_delivered; /* 在发送packet P之前已经标记为发送完毕的数据量 */
+    xqc_msec_t              po_delivered_time; /* 在发送packet P之前最后一个被ack的包的时间 */
+    xqc_msec_t              po_first_sent_time; /* inflight中第一个packet的发送时间 */
+    unsigned char           po_is_app_limited;
 } xqc_packet_out_t;
 
 xqc_packet_out_t *

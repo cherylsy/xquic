@@ -86,7 +86,7 @@ typedef struct xqc_bbr_s{
     bool                probe_rtt_skipped_if_similar_rtt;
     /*Indicates app-limited calls should be ignored as long as there's
     enough data inflight to see more bandwidth when necessary. */
-    bool                flexible_app_lmited;
+    bool                flexible_app_limited;
     bool                probe_rtt_disabled_if_app_limited;
     /* record extra acks in 2 cycles, a cycle contain 10 rtts*/
     uint32_t            extra_ack[2];
@@ -95,6 +95,7 @@ typedef struct xqc_bbr_s{
     uint32_t            extra_ack_idx;
     uint32_t            epoch_ack;
     uint8_t             has_srtt;
+    uint8_t             idle_restart;
 
 }xqc_bbr_t;
 extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
