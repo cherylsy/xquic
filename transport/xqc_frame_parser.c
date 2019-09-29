@@ -185,8 +185,9 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
         }
         memcpy(frame->data, p, frame->data_length);
     }
+    p += frame->data_length;
 
-    packet_in->pos += (p - packet_in->buf + frame->data_length);
+    packet_in->pos = (unsigned char *)p;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAM;
     return XQC_OK;
 }
