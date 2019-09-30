@@ -613,20 +613,22 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 }
 
 void
-xqc_write_buff_packets(xqc_connection_t *conn)
+xqc_write_buffed_1rtt_packets(xqc_connection_t *conn)
 {
     if (conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
         xqc_send_ctl_t *ctl = conn->conn_send_ctl;
         xqc_list_head_t *pos, *next;
         xqc_packet_out_t *packet_out;
-        xqc_list_for_each_safe(pos, next, &ctl->ctl_buff_packets) {
+        unsigned total = 0;
+        xqc_list_for_each_safe(pos, next, &ctl->ctl_buff_1rtt_packets) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_buff_packets|");
             xqc_send_ctl_remove_buff(pos, ctl);
             xqc_send_ctl_insert_send(pos, &ctl->ctl_send_packets, ctl);
             if (packet_out->po_flag & XQC_POF_DCID_NOT_DONE) {
                 xqc_short_packet_update_dcid(packet_out, conn);
             }
+            ++total;
         }
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|total:%ui|", total);
     }
 }

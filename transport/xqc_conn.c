@@ -375,9 +375,9 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO,
-            "|<==|conn:%p|size:%ui|sent:%ui|pkt_type:%s|pkt_num:%ui|frame:%s|now:%ui|",
-            conn, packet_out->po_used_size, sent,
-            xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
+            "|<==|conn:%p|pkt_num:%ui|size:%ui|sent:%ui|pkt_type:%s|frame:%s|now:%ui|",
+            conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
+            xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
             xqc_frame_type_2_str(packet_out->po_frame_types), now);
     if (sent != packet_out->po_used_size) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|write_socket error|"
@@ -482,7 +482,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-
+                packet_out->po_flag |= XQC_POF_RETRANS;
                 ret = xqc_conn_send_one_packet(conn, packet_out);
                 if (ret < 0) {
                     return;

@@ -45,7 +45,7 @@ typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
     xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
-    xqc_list_head_t             ctl_buff_packets; //xqc_packet_out_t buff 1RTT before handshake complete
+    xqc_list_head_t             ctl_buff_1rtt_packets; //xqc_packet_out_t buff 1RTT before handshake complete
     unsigned                    ctl_packets_used;
     unsigned                    ctl_packets_free;
     unsigned                    ctl_packets_used_max;

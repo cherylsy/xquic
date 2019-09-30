@@ -93,11 +93,13 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
              *        |----|        new_frame  do not insert
              * |-------------------|new_frame
              */
-            xqc_log(conn->log, XQC_LOG_WARN, "|is overlap|");
+            xqc_log(conn->log, XQC_LOG_WARN, "|is overlap|offset:%ui|new_offset:%ui|len:%ui|new_len:%ui|",
+                    frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
         }
         if (new_frame->data_offset >= frame->data_offset &&
             new_frame->data_offset + new_frame->data_length <= frame->data_offset + frame->data_length) {
-            xqc_log(conn->log, XQC_LOG_WARN, "|already recvd|");
+            xqc_log(conn->log, XQC_LOG_WARN, "|already recvd|offset:%ui|new_offset:%ui|len:%ui|new_len:%ui|",
+                    frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
             xqc_free(new_frame->data);
             xqc_free(new_frame);
             return XQC_OK;

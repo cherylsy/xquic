@@ -387,8 +387,8 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     xqc_conn_process_undecrypt_packets(conn);
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_packets) && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
-        xqc_write_buff_packets(conn);
+    if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_1rtt_packets) && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
+        xqc_write_buffed_1rtt_packets(conn);
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
@@ -512,7 +512,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
 /**
  * Pass received UDP packet payload into xquic engine.
- * @param recv_time   UDP packet recieved time in millisecond
+ * @param recv_time   UDP packet recieved time in microsecond
  */
 int xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,
@@ -587,7 +587,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     }
     if (conn == NULL) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|");
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%ui|", packet_in_size);
             ret = xqc_conn_send_reset(engine, &scid, user_data);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
@@ -606,7 +606,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                 }
                 goto after_process;
             }
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|");
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|size:%ui|", packet_in_size);
         }
         return -XQC_ECONN_NFOUND;
     }

@@ -26,7 +26,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_init_list_head(&send_ctl->ctl_send_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
     xqc_init_list_head(&send_ctl->ctl_free_packets);
-    xqc_init_list_head(&send_ctl->ctl_buff_packets);
+    xqc_init_list_head(&send_ctl->ctl_buff_1rtt_packets);
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_init_list_head(&send_ctl->ctl_unacked_packets[pns]);
     }
@@ -106,7 +106,7 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_send_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_lost_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_free_packets);
-    xqc_send_ctl_destroy_packets_list(&ctl->ctl_buff_packets);
+    xqc_send_ctl_destroy_packets_list(&ctl->ctl_buff_1rtt_packets);
 
     for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
         xqc_send_ctl_destroy_packets_list(&ctl->ctl_unacked_packets[pns]);
@@ -150,7 +150,8 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
           && conn->conn_send_ctl->ctl_bytes_send > 3 * conn->conn_send_ctl->ctl_bytes_recv) {
         can = 0;
     }
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|can:%i|", can);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|can:%i|inflight:%ui|cwnd:%ui|",
+            can, conn->conn_send_ctl->ctl_bytes_in_flight, congestion_window);
     return can;
 }
 
@@ -510,11 +511,13 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
     // Packets with packet numbers before this are deemed lost.
     xqc_packet_number_t  lost_pn = ctl->ctl_largest_acked[pns] - XQC_kPacketThreshold;
 
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|ctl_largest_acked:%ui|pns:%ui|", ctl->ctl_largest_acked[pns], pns);
+
     xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
         po = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (po->po_pkt.pkt_num > ctl->ctl_largest_acked[pns]) {
             continue;
-        }
+        } //TODO: RFC有误？
 
         // Mark packet as lost, or set time when it should be marked.
         if (po->po_sent_time <= lost_send_time || po->po_pkt.pkt_num <= lost_pn) {
