@@ -344,11 +344,11 @@ void
 xqc_engine_init (xqc_engine_t *engine,
                  xqc_engine_callback_t engine_callback,
                  xqc_conn_settings_t conn_settings,
-                 void *event_timer)
+                 void *user_data)
 {
     xqc_engine_set_callback(engine, engine_callback);
     engine->conn_settings = conn_settings;
-    engine->event_timer = event_timer;
+    engine->user_data = user_data;
 }
 
 void
@@ -501,8 +501,8 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     }
 
     xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
-    if (wake_after > 0 && engine->event_timer) {
-        engine->eng_callback.set_event_timer(engine->event_timer, wake_after);
+    if (wake_after > 0) {
+        engine->eng_callback.set_event_timer(engine->user_data, wake_after);
     }
 
     engine->engine_flag &= ~XQC_ENG_FLAG_RUNNING;

@@ -60,9 +60,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    if (engine->event_timer) {
-        xqc_engine_main_logic(engine);
-    }
+    xqc_engine_main_logic(engine);
 
     return xc;
 

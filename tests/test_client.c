@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "xqc_cmake_config.h"
+//#include "xqc_cmake_config.h"
 #include "include/xquic.h"
 #include "congestion_control/xqc_new_reno.h"
 #include "congestion_control/xqc_cubic.h"
@@ -63,14 +63,15 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_client_set_event_timer(void *timer, xqc_msec_t wake_after)
+void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 {
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
     printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
     tv.tv_usec = wake_after % 1000000;
-    event_add((struct event *) timer, &tv);
+    event_add(ctx->ev_engine, &tv);
 
 }
 
@@ -482,6 +483,7 @@ int main(int argc, char *argv[]) {
     //size_t session_data_len = read_file_data(session_data, sizeof(session_data), session_path );
 
     xqc_engine_ssl_config_t  engine_ssl_config;
+    /* private_key_file cert_file 客户端不用填 */
     engine_ssl_config.private_key_file = "./server.key";
     engine_ssl_config.cert_file = "./server.crt";
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
@@ -499,6 +501,7 @@ int main(int argc, char *argv[]) {
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
 
     xqc_engine_callback_t callback = {
+            /* HTTP3不用设置这个回调 */
             .conn_callbacks = {
                     .conn_create_notify = xqc_client_conn_create_notify,
                     .conn_close_notify = xqc_client_conn_close_notify,
@@ -507,6 +510,7 @@ int main(int argc, char *argv[]) {
                     .h3_conn_create_notify = xqc_client_h3_conn_create_notify,
                     .h3_conn_close_notify = xqc_client_h3_conn_close_notify,
             },
+            /* HTTP3不用设置这个回调 */
             .stream_callbacks = {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
@@ -528,7 +532,7 @@ int main(int argc, char *argv[]) {
             .pacing_on  =   0,
             .h3         =   1,
     };
-    xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
+    xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
 
     ctx.my_conn = calloc(1, sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {

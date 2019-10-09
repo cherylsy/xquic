@@ -190,7 +190,7 @@ typedef struct xqc_engine_s {
     xqc_log_t              *log;
     xqc_random_generator_t *rand_generator;
 
-    void                   *event_timer;
+    void                   *user_data;
 
     SSL_CTX                *ssl_ctx;  //for ssl
     xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
@@ -217,7 +217,7 @@ void
 xqc_engine_init (xqc_engine_t *engine,
                  xqc_engine_callback_t engine_callback,
                  xqc_conn_settings_t conn_settings,
-                 void *event_timer);
+                 void *user_data);
 
 
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
