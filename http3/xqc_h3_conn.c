@@ -10,12 +10,11 @@ xqc_cid_t *
 xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                unsigned char *token, unsigned token_len,
                char *server_host, int no_crypto_flag,
-               uint8_t no_early_data_flag,
                xqc_conn_ssl_config_t *conn_ssl_config)
 {
     xqc_connection_t *conn;
     conn = xqc_client_connect(engine, user_data, token, token_len, server_host,
-            no_crypto_flag, no_early_data_flag, conn_ssl_config);
+            no_crypto_flag, conn_ssl_config);
     if (!conn) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_client_connect error|");
         return NULL;
@@ -39,6 +38,21 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->user_data = user_data;
     h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
+    if(xqc_tnode_hash_create(&h3_conn->tnode_hash, XQC_TNODE_HASH_SIZE) < 0){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode hash table failed|");
+        goto fail;
+    }
+
+    xqc_http3_node_id_t nid;
+    xqc_http3_node_id_init(&nid, XQC_HTTP3_NODE_ID_TYPE_ROOT, 0);
+    h3_conn->tnode_root = xqc_http3_create_tnode(&h3_conn->tnode_hash, &nid, XQC_HTTP3_DEFAULT_WEIGHT, NULL );
+    if(h3_conn->tnode_root == NULL){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode root failed|");
+        goto fail;
+    }
+#endif
+
     if (h3_conn->h3_conn_callbacks.h3_conn_create_notify) {
         if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, user_data)) {
             goto fail;
@@ -59,6 +73,11 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
         h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, h3_conn->user_data);
         h3_conn->flags &= ~XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
+    xqc_tnode_free_hash_table(&h3_conn->tnode_hash);
+#endif
+
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
     xqc_free(h3_conn);
 }

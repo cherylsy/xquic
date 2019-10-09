@@ -51,10 +51,10 @@ int xqc_server_tls_handshake(xqc_connection_t * conn)
                                 return 0;
                             }
                         case SSL_ERROR_SSL:
-                            xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+                            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                             return XQC_ERR_CRYPTO;
                         default:
-                            xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+                            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                             return XQC_ERR_CRYPTO;
                     }
                     break;
@@ -78,10 +78,10 @@ int xqc_server_tls_handshake(xqc_connection_t * conn)
             case SSL_ERROR_WANT_WRITE:
                 return 0;
             case SSL_ERROR_SSL:
-                xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+                xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 return -1;
             default:
-                xqc_log(conn->log, XQC_LOG_ERROR, "TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+                xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 return -1;
         }
     }
@@ -197,19 +197,19 @@ int xqc_client_tls_handshake(xqc_connection_t *conn)
         //for early data reject callbacks
         conn->tlsref.resumption = 0;
         if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
             printf("Early data was rejected by server\n");
             if(xqc_conn_early_data_rejected(conn) < 0){
                 printf("Error do early data rejected action\n");
-                xqc_log(conn->log, XQC_LOG_DEBUG, "Error do early data rejected action|");
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|Error do early data rejected action|");
                 return -1;
             }
         }else{
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was accepted by server|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
             printf("do early data accept\n");
             if(xqc_conn_early_data_accepted(conn) < 0){
                 printf("error do early data accept action\n");
-                xqc_log(conn->log, XQC_LOG_DEBUG, "Error do early data accept action|");
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|Error do early data accept action|");
             }
         }
 #endif
@@ -227,10 +227,10 @@ int xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
 
         SSL * ssl = conn->xc_ssl;
         if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was rejected by server|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
             return XQC_TLS_EARLY_DATA_REJECT ;
         }else{
-            xqc_log(conn->log, XQC_LOG_DEBUG, "Early data was accepted by server|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
             return  XQC_TLS_EARLY_DATA_ACCEPT ;
         }
     }else{
@@ -399,7 +399,7 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
 {
 
     if( xqc_to_tls_handshake(conn, data, datalen) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "save crypto data to tls buffer error");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|save crypto data to tls buffer error|");
         return -1;
     }
     if (!xqc_conn_get_handshake_completed(conn)) {
@@ -846,8 +846,8 @@ int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
     if(ssl_config->session_ticket_data){
         xqc_free(ssl_config->session_ticket_data);
     }
-    if(ssl_config->tp_data){
-        xqc_free(ssl_config->tp_data);
+    if(ssl_config->transport_parameter_data){
+        xqc_free(ssl_config->transport_parameter_data);
     }
     return 0;
 }
@@ -884,7 +884,7 @@ int xqc_tls_free_tlsref(xqc_connection_t * conn)
 int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid )
 {
     if( (conn->conn_type == XQC_CONN_TYPE_SERVER) || ( conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY)){
-        xqc_log(conn->log, XQC_LOG_ERROR, "server recv retry or client recv retry two or more times");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|server recv retry or client recv retry two or more times|");
         return -1;
     }
     conn->tlsref.flags  |= XQC_CONN_FLAG_RECV_RETRY;

@@ -26,6 +26,7 @@ set(
     http3/xqc_h3_stream.c
     http3/xqc_h3_request.c
     http3/xqc_h3_frame.c
+    http3/xqc_h3_tnode.c
 )
 
 set(
@@ -53,6 +54,7 @@ set(
     transport/crypto/xqc_tls_cb.c
     transport/crypto/xqc_tls_0rtt.c
     transport/crypto/xqc_tls_if.c
+    
     )
 
 set(

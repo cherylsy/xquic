@@ -276,11 +276,6 @@ typedef enum {
  * every packet number space has its own key,iv and hpkey,
  * */
 typedef struct {
-    /* crypto_rx_offset_base is the offset of crypto stream in the
-     global TLS stream and it specifies the offset where this local
-     crypto stream starts. */
-    uint64_t crypto_rx_offset_base;
-
     /* last_tx_pkt_num is the packet number which the local endpoint
      sent last time.*/
     uint64_t last_tx_pkt_num;
@@ -333,10 +328,9 @@ struct xqc_tlsref{
     xqc_connection_t        *conn;
     uint8_t                 initial;
     uint8_t                 resumption;
-    uint8_t                 no_early_data;
-    uint64_t                flags;
+    uint64_t                flags; //record handshake completed or recv retry packet
 
-    int64_t                aead_overhead;  //aead for gcm or chacha
+    int64_t                 aead_overhead;  //aead for gcm or chacha
 
     xqc_tls_context_t       hs_crypto_ctx;
     xqc_tls_context_t       crypto_ctx; /* prf and aead */

@@ -90,18 +90,18 @@ int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * sr
         xqc_log(conn->log, XQC_LOG_WARN, "| no session ticket data |");
     }
 
-    if(src->tp_data_len > 0){
-        ssl_config->tp_data_len = src->tp_data_len;
-        ssl_config->tp_data  = (char *)xqc_malloc(src->tp_data_len + 1 );
-        if(ssl_config->tp_data == NULL){
+    if(src->transport_parameter_data_len > 0){
+        ssl_config->transport_parameter_data_len = src->transport_parameter_data_len;
+        ssl_config->transport_parameter_data  = (char *)xqc_malloc(src->transport_parameter_data_len + 1 );
+        if(ssl_config->transport_parameter_data == NULL){
             xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_malloc error | ");
             return -1;
         }
-        memcpy(ssl_config->tp_data, src->tp_data, src->tp_data_len);
-        ssl_config->tp_data[src->tp_data_len] = '\0';
+        memcpy(ssl_config->transport_parameter_data, src->transport_parameter_data, src->transport_parameter_data_len);
+        ssl_config->transport_parameter_data[src->transport_parameter_data_len] = '\0';
     }else{
-        ssl_config->tp_data_len = 0;
-        ssl_config->tp_data = NULL;
+        ssl_config->transport_parameter_data_len = 0;
+        ssl_config->transport_parameter_data = NULL;
         xqc_log(conn->log, XQC_LOG_WARN, "| no no transport parameter data |");
     }
 
@@ -116,7 +116,7 @@ int xqc_tlsref_zero(xqc_tlsref_t * tlsref)
 
 // crypto flag 0 means crypto
 //int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag ){
-int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_conn_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag, uint8_t no_early_data)
+int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname, xqc_conn_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag)
 {
     xqc_tlsref_t * tlsref = & conn->tlsref;
 
@@ -124,13 +124,6 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
     tlsref->conn = conn;
     tlsref->initial = 1;
-
-    if(no_early_data == 0){
-        tlsref->no_early_data = 0;
-    }else{
-        tlsref->no_early_data = 1;
-        xqc_log(conn->log, XQC_LOG_WARN, "| no early data set |");
-    }
 
     if( xqc_ssl_init_conn_config(conn, sc) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "| initial conn config error |");
@@ -175,10 +168,10 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     callbacks->recv_retry = xqc_tls_recv_retry_cb;
 
     xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
-    if( (config->tp_data_len > 0) && (config->tp_data != NULL)){
+    if( (config->transport_parameter_data_len > 0) && (config->transport_parameter_data != NULL)){
         xqc_transport_params_t params ;
         memset(&params, 0, sizeof(xqc_transport_params_t));
-        if( xqc_read_transport_params(config->tp_data, config->tp_data_len, &params) >= 0){
+        if( xqc_read_transport_params(config->transport_parameter_data, config->transport_parameter_data_len, &params) >= 0){
             int ret = xqc_conn_set_early_remote_transport_params(conn, &params);
             if(ret < 0){
                 xqc_log(conn->log, XQC_LOG_DEBUG, "| set early remote transport params failed | error_code:%d |", ret);
@@ -488,7 +481,7 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
     SSL *ssl = xqc_create_ssl(engine, conn, XQC_CLIENT);
 
     if(ssl == NULL){
-        xqc_log(conn->log, XQC_LOG_ERROR, "xqc_create_client_ssl | create ssl error");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_client_ssl | create ssl error|");
         return NULL;
     }
 
@@ -503,7 +496,7 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
     xqc_set_alpn_proto(ssl);
 
     conn->tlsref.resumption = XQC_FALSE;
-    if( conn->tlsref.no_early_data == 0 && sc->session_ticket_data && sc->session_ticket_len > 0 ){
+    if(sc->session_ticket_data && sc->session_ticket_len > 0 ){
         if(xqc_read_session_data(ssl, conn, sc->session_ticket_data, sc->session_ticket_len) == 0){
             conn->tlsref.resumption = XQC_TRUE;
         }

@@ -1,8 +1,12 @@
 #include "xqc_h3_frame.h"
 #include "xqc_h3_stream.h"
 #include "transport/xqc_conn.h"
+#include "transport/xqc_stream.h"
 #include "common/xqc_list.h"
 #include "transport/crypto/xqc_tls_public.h"
+#include "xqc_h3_tnode.h"
+
+
 
 int xqc_http3_conn_on_max_push_id(xqc_h3_conn_t * conn, uint64_t push_id);
 int xqc_http3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv);
@@ -10,7 +14,10 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
 
 ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen);
 int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_push * fr);
+
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
 int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_priority *fr);
+#endif
 
 int xqc_http3_conn_call_begin_headers(xqc_h3_conn_t * h3_conn,xqc_h3_stream_t * h3_stream);
 int xqc_http3_conn_call_begin_trailers(xqc_h3_conn_t * h3_conn,xqc_h3_stream_t * h3_stream);
@@ -626,11 +633,14 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 ++p;
                 ++nconsumed;
 
+
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
                 rv = xqc_http3_conn_on_control_priority(h3_conn, &rstate->fr.priority);
                 if(rv != 0){
 
                     return rv;
                 }
+#endif
 
                 xqc_http3_stream_read_state_clear(rstate);
                 break;
@@ -2080,10 +2090,72 @@ ssize_t xqc_h3_fill_outq(xqc_h3_stream_t * h3_stream, xqc_http3_frame_entry_t *f
 
 }
 
+xqc_h3_stream_t * xqc_http3_find_stream(xqc_h3_conn_t * h3_conn, uint64_t stream_id){
+
+    xqc_connection_t * conn = h3_conn->conn;
+    xqc_id_hash_table_t *streams_hash = conn->streams_hash;
+
+    xqc_stream_t *stream = xqc_id_hash_find(streams_hash, stream_id);
+    if(stream == NULL){
+        return NULL;
+    }
+
+    return (xqc_h3_stream_t *)(stream->user_data);
+}
+
+#ifdef XQC_HTTP3_PRIORITY_ENABLE
+xqc_http3_tnode_t * xqc_http3_tnode_find_ascendant(xqc_http3_tnode_t * tnode, xqc_http3_node_id_t * nid){
+    for(tnode = tnode->parent; tnode && !xqc_http3_node_id_eq(nid, &tnode->nid); tnode = tnode->parent);
+    return tnode;
+}
+
+
+xqc_http3_tnode_t * xqc_http3_find_tnode(xqc_h3_conn_t * conn, xqc_http3_node_id_t *nid){
+
+    xqc_http3_tnode_t * tnode = xqc_tnode_hash_find_by_id(&conn->tnode_hash, nid);
+    if(tnode == NULL){
+        tnode = xqc_http3_create_tnode(&conn->tnode_hash, nid, XQC_HTTP3_DEFAULT_WEIGHT, conn->tnode_root);
+    }
+    return tnode;
+}
+
 int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_priority *fr){
-    //need finish
+    xqc_http3_node_id_t nid, dep_nid;
+    xqc_http3_tnode_t * dep_tnode = NULL, *tnode = NULL;
+    int rv = 0;
+
+    xqc_http3_node_id_init(&nid, fr->pt, fr->pri_elem_id);
+    xqc_http3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
+
+    if(xqc_http3_node_id_eq(&nid, &dep_nid)){
+        return -1;
+    }
+
+    tnode = xqc_http3_find_tnode(conn, &nid);
+    if(tnode == NULL){
+        return -1;
+    }
+    tnode->weight = fr->weight;
+
+    dep_tnode = xqc_http3_find_tnode(conn, &dep_nid);
+    if(dep_tnode == NULL){
+        return -1;
+    }
+
+    xqc_http3_tnode_remove_tree(tnode);
+
+    if(fr->exclusive){
+        rv = xqc_http3_tnode_insert_exclusive(tnode, dep_tnode);
+        if(rv != 0){
+            return -1;
+        }
+    }else{
+        xqc_http3_tnode_insert(tnode, dep_tnode);
+    }
+
     return 0;
 }
+#endif
 
 int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_push * fr){
 
