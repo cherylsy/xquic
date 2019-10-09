@@ -171,7 +171,7 @@ xqc_server_write_handler(xqc_server_ctx_t *ctx)
     DEBUG
 }
 
-
+int g_recv_total = 0;
 void
 xqc_server_read_handler(xqc_server_ctx_t *ctx)
 {
@@ -187,15 +187,16 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
         recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &ctx->peer_addr,
                              &ctx->peer_addrlen);
         if (recv_size < 0 && errno == EAGAIN) {
+            //printf("!!!!!!!!!errno EAGAIN\n");
             break;
         }
         if (recv_size < 0) {
-            printf("xqc_server_read_handler: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
+            printf("!!!!!!!!!xqc_server_read_handler: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
             break;
         }
 
         uint64_t recv_time = now();
-        printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu\n", recv_size, recv_time, now());
+        printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu, recv_total=%d\n", recv_size, recv_time, now(), ++g_recv_total);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));
     */
@@ -254,6 +255,12 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
 
     optval = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) < 0) {
+        printf("setsockopt failed, errno: %d\n", errno);
+        goto err;
+    }
+
+    int size = 2 * 1024 * 1024;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
     }

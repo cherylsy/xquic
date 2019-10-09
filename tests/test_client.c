@@ -126,16 +126,21 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     return n;
 }
 
+int g_send_total = 0;
 ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
 {
     client_ctx_t *ctx = (client_ctx_t *) user;
     ssize_t res;
     int fd = ctx->my_conn->fd;
-    printf("xqc_client_write_socket size=%zd, now=%llu\n",size, now());
+    printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
-        res = write(fd, buf, size);
+        //res = write(fd, buf, size);
+        res = sendto(fd, buf, size, 0, (struct sockaddr*)&ctx->my_conn->peer_addr, ctx->my_conn->peer_addrlen);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
+        if (res < 0) {
+            printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
+        }
     } while ((res < 0) && (errno == EINTR));
     return res;
 }
@@ -144,6 +149,7 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
 {
     int fd;
     struct sockaddr_in *saddr = &ctx.my_conn->peer_addr;
+    ctx.my_conn->peer_addrlen = sizeof(*saddr);
     struct hostent *remote;
 
     remote = gethostbyname(addr);
@@ -169,10 +175,10 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
     saddr->sin_port = htons(port);
     saddr->sin_addr = *((struct in_addr *)remote->h_addr);
 
-    if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
+    /*if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
-    }
+    }*/
 
     socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&ctx.my_conn->local_addr, &tmp);
@@ -277,8 +283,9 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
         printf("xqc_h3_request_send_headers success size=%lld\n", ret);
     }
 
-    char buff[3000] = {0};
-    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
+    unsigned buff_size = 1000*1024;
+    char *buff = malloc(buff_size);
+    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
     if (ret < 0) {
         printf("xqc_h3_request_send_body error %d\n", ret);
     } else {
@@ -518,7 +525,7 @@ int main(int argc, char *argv[]) {
     };
 
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   1,
+            .pacing_on  =   0,
             .h3         =   1,
     };
     xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);

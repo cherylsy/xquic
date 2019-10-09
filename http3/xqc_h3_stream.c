@@ -123,6 +123,8 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_header error|%z|", n_write);
         return n_write;
     }
+    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|n_write:%i|", n_write);
+    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);
     return n_write;
 }
 
@@ -137,6 +139,7 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
         return n_write;
     }
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|n_write:%i|", n_write);
+    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);
     return n_write;
 }
 

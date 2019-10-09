@@ -15,6 +15,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
     }
 
     if(sampler->prior_time == 0) {
+        printf("bbr=================== xqc_generate_sample false sampler->prior_time == 0\n");
         return false; /* nothing delivered on this ACK */
     }
 
@@ -32,8 +33,9 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
         */
     if (sampler->interval < send_ctl->ctl_minrtt){
         sampler->interval = 0;
+        printf("bbr==================== xqc_generate_sample false sampler->interval < send_ctl->ctl_minrtt\n");
         return false;
-    } 
+    }
     if(sampler->interval != 0) {
         sampler->delivery_rate = sampler->delivered / sampler->interval;
     }
@@ -49,11 +51,11 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
 void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send_ctl_t *send_ctl, xqc_msec_t now)
 {
     if(packet->po_delivered_time == 0) {
-        printf("======update sample fialed\n");
+        printf("bbr======update sample failed\n");
         return; /* P already SACKed */
     }
     send_ctl->ctl_delivered += packet->po_used_size;
-    printf("++++++++++xqc_update_sample ctl_delivered %llu\n",send_ctl->ctl_delivered);
+    //printf("bbr++++++++++xqc_update_sample ctl_delivered %llu\n",send_ctl->ctl_delivered);
     send_ctl->ctl_delivered_time = now;
 
     /* Update info using the newest packet: */

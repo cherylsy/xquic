@@ -709,6 +709,9 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
         }
     }
 
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|read:%i|recv_buf_size:%ui|fin:%i|stream_length:%ui|next_read_offset:%ui|",
+            read, recv_buf_size, *fin, stream->stream_data_in.stream_length, stream->stream_data_in.next_read_offset);
+
     xqc_stream_shutdown_read(stream);
     return read;
 }
@@ -731,7 +734,7 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
     int support_0rtt = xqc_is_ready_to_send_early_data(conn);
 
-    //support_0rtt = 0;
+    support_0rtt = 0;
     int buff_1rtt = 0;
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
@@ -755,17 +758,21 @@ xqc_stream_send (xqc_stream_t *stream,
 
     while (offset < send_data_size || fin_only) {
 
-        ret = xqc_stream_do_flow_ctl(stream);
-        if (ret) {
-            goto do_buff;
-        }
+        /*if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
+            ret = xqc_stream_do_flow_ctl(stream);
+            if (ret) {
+                goto do_buff;
+            }
+        }*/
 
         if (!xqc_send_ctl_can_write(conn->conn_send_ctl)) {
+            xqc_log(conn->log, XQC_LOG_WARN, "|too many packets used|ctl_packets_used:%ui|", conn->conn_send_ctl->ctl_packets_used);
             ret = -XQC_EBLOCKED;
             goto do_buff;
         }
 
         if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count > XQC_PACKET_0RTT_MAX_COUNT) {
+            xqc_log(conn->log, XQC_LOG_WARN, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
             ret = -XQC_EBLOCKED;
             goto do_buff;
         }
@@ -797,7 +804,7 @@ do_buff:
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER) {
                 xqc_send_ctl_remove_send(&packet_out->po_list);
-                xqc_send_ctl_insert_buff(&packet_out->po_list, &conn->conn_send_ctl->ctl_buff_packets);
+                xqc_send_ctl_insert_buff(&packet_out->po_list, &conn->conn_send_ctl->ctl_buff_1rtt_packets);
                 if (!(conn->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
                     packet_out->po_flag |= XQC_POF_DCID_NOT_DONE;
                 }
@@ -818,18 +825,23 @@ do_buff:
         }
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|ret:%d|stream_id:%ui|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
                                       "send_data_size:%ui|offset:%ui|fin:%d|",
-            stream->stream_id, stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
+            ret, stream->stream_id, stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
             send_data_size, offset, fin);
 
+    xqc_sample_check_app_limited(&conn->conn_send_ctl->sampler, conn->conn_send_ctl);
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         }
     }
-    xqc_engine_main_logic(conn->engine);
+
+    /* 有应用层的由应用层调用主循环 */
+    if (!(conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
+        xqc_engine_main_logic(conn->engine);
+    }
 
     if (offset == 0 && !fin_only_done) {
         return ret;
@@ -861,6 +873,7 @@ xqc_stream_write_buff(xqc_stream_t *stream,
     buff_list->total_len += send_data_size;
     xqc_list_add_tail(&write_buff->sw_list, &buff_list->write_buff_list);
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|size:%ui|", send_data_size);
     return send_data_size;
 }
 
@@ -907,6 +920,7 @@ xqc_stream_write_buff_to_packets(xqc_stream_t *stream)
         xqc_list_del_init(&write_buff->sw_list);
         xqc_destroy_write_buff(write_buff);
     }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|write 1RTT packets|");
     return XQC_OK;
 }
 

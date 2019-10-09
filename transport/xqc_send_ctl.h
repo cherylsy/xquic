@@ -100,7 +100,7 @@ typedef struct xqc_send_ctl_s {
    application-limited, or 0 if the connection is not currently
    application-limited. */
     xqc_msec_t                  ctl_delivered_time; /* 当前packet P被ack的时间 */
-    xqc_msec_t                  ctl_first_sent_time; /* 最近一次被标记为发送完毕的packet的发送时间 */
+    xqc_msec_t                  ctl_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
 
     xqc_sample_t                sampler;
 

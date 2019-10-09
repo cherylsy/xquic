@@ -7,7 +7,7 @@
 typedef char bool;
 #define true 1
 #define false 0
-#define msec2sec 10000000
+#define msec2sec 1000000
 
 typedef enum {
     /* Start phase quickly to fill pipe */

@@ -25,6 +25,7 @@ typedef struct xqc_sample_s{
     uint32_t    loss;
     uint64_t    total_acked;
     xqc_msec_t  srtt;
+    /* 用来判断是否需要调用generate_sample */
     xqc_msec_t  prior_time;
     xqc_msec_t  ack_elapse;
     xqc_msec_t  send_elapse;

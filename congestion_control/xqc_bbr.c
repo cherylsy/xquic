@@ -135,7 +135,9 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 
     if(!sampler->is_app_limited || bandwidth >= xqc_bbr_max_bw(bbr))
     {
+        printf("bbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
         xqc_win_filter_max(&bbr->bandwidth, xqc_bbr_kBandwidthWindowSize, bbr->round_cnt, bandwidth);
+        printf("bbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
     }
 }
 
@@ -382,7 +384,7 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if(!bbr->has_srtt && sampler->srtt)
         xqc_bbr_init_pacing_rate(bbr, sampler);
 
-    if(bbr->pacing_rate == 0){
+    if(bbr->pacing_rate == 0){//TODO:放后面
         bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
     }
 
@@ -410,7 +412,8 @@ static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 static void xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
-
+    printf("bbr=============before xqc_bbr_on_ack pacing_rate:%u cwnd:%u bandwidth %u applimit:%u mode:%u\n",
+           bbr->pacing_rate, bbr->congestion_window, xqc_bbr_max_bw(bbr), sampler->is_app_limited, bbr->mode);
     /*Update model and state*/
     xqc_bbr_update_bandwidth(bbr,sampler);
     xqc_update_ack_aggregation(bbr, sampler);
@@ -424,17 +427,15 @@ static void xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     xqc_bbr_set_pacing_rate(bbr, sampler);
     xqc_bbr_set_cwnd(bbr,sampler);
 
-    printf("==========xqc_bbr_on_ack pacing_rate:%u cwnd:%u applimit:%u mode:%u\n",
-           bbr->pacing_rate, bbr->congestion_window, sampler->is_app_limited, bbr->mode);
+    printf("bbr=============after  xqc_bbr_on_ack pacing_rate:%u cwnd:%u bandwidth %u applimit:%u mode:%u\n",
+           bbr->pacing_rate, bbr->congestion_window, xqc_bbr_max_bw(bbr), sampler->is_app_limited, bbr->mode);
 
 }
 
 static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
-    printf("==========xqc_bbr_get_cwnd cwnd %u\n",bbr->congestion_window);
-    printf("==========xqc_bbr_get_cwnd bandwidth %u\n",xqc_bbr_max_bw(bbr));
-    printf("==========xqc_bbr_get_cwnd rtt %llu\n",bbr->min_rtt);
+    //printf("==========xqc_bbr_get_cwnd cwnd %u, bandwidth %u, min_rtt %llu\n",bbr->congestion_window, xqc_bbr_max_bw(bbr), bbr->min_rtt);
 
     return bbr->congestion_window;
 }
