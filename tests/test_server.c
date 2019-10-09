@@ -125,6 +125,9 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
     } while (read > 0 && !fin);
 
+    if (!fin) {
+        return 0;
+    }
     xqc_http_header_t header[] = {
             {
                     .name   = {.iov_base = ":method", .iov_len = 7},
