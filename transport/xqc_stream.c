@@ -975,11 +975,12 @@ xqc_process_crypto_write_streams (xqc_connection_t *conn)
     for (int i = XQC_ENC_LEV_INIT; i < XQC_ENC_MAX_LEVEL; i++) {
         stream = conn->crypto_stream[i];
         if (stream && (stream->stream_flag & XQC_STREAM_FLAG_READY_TO_WRITE)) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|");
             ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify crypto err:%d|", ret);
                 xqc_stream_shutdown_write(stream);
+                XQC_CONN_ERR(conn, ret);
             }
         }
     }
