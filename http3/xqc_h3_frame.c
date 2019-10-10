@@ -49,6 +49,7 @@ static inline xqc_data_buf_t * xqc_create_data_buf(int buf_size){
     xqc_init_list_head(&p_buf->list_head);
     p_buf->buf_len = p_buf->data_len = buf_size;
     p_buf->already_consume = 0;
+    p_buf->fin = 0;
     return p_buf;
 }
 

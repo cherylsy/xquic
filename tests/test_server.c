@@ -129,7 +129,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     if (!fin) {
         return 0;
     }
-    xqc_http_header_t header[] = {
+    /*xqc_http_header_t header[] = {
             {
                     .name   = {.iov_base = ":method", .iov_len = 7},
                     .value  = {.iov_base = "post", .iov_len = 4}
@@ -150,7 +150,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     if (fin) {
         ret = xqc_h3_request_send_body(h3_request, buff, sizeof(buff), 1);
         printf("xqc_h3_request_send_body %lld \n", ret);
-    }
+    }*/
     return 0;
 }
 

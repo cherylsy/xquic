@@ -49,6 +49,7 @@ typedef struct client_ctx_s {
     struct event  *ev_engine;
     struct event  *ev_timeout;
     uint64_t       send_offset;
+    int            header_sent;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -277,21 +278,26 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
         .count  = 1,
     };
 
-    ret = xqc_h3_request_send_headers(h3_request, &headers);
-    if (ret < 0) {
-        printf("xqc_h3_request_send_headers error %d\n", ret);
-    } else {
-        printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+    if (ctx->header_sent == 0) {
+        ret = xqc_h3_request_send_headers(h3_request, &headers);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_headers error %d\n", ret);
+        } else {
+            printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+            ctx->header_sent = 1;
+        }
     }
 
     unsigned buff_size = 1000*1024;
     char *buff = malloc(buff_size);
-    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
-    if (ret < 0) {
-        printf("xqc_h3_request_send_body error %d\n", ret);
-    } else {
-        ctx->send_offset += ret;
-        printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+    if (ctx->send_offset < buff_size) {
+        ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_body error %d\n", ret);
+        } else {
+            ctx->send_offset += ret;
+            printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+        }
     }
     return ret;
 }

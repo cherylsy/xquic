@@ -66,7 +66,6 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
     h3_stream->tx_http_state = XQC_HTTP3_HTTP_STATE_NONE;
 
     xqc_init_list_head(&h3_stream->send_frame_data_buf);
-    xqc_init_list_head(&h3_stream->send_header_data_buf);
 
     xqc_init_list_head(&h3_stream->recv_header_data_buf);
     xqc_init_list_head(&h3_stream->recv_body_data_buf);
@@ -205,7 +204,38 @@ ssize_t
 xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, size_t recv_buf_size, uint8_t *fin)
 {
     //TODO: 从h3 stream的队列里读
-    return xqc_stream_recv(h3_stream->stream, recv_buf, recv_buf_size, fin);
+    /*return xqc_stream_recv(h3_stream->stream, recv_buf, recv_buf_size, fin);*/
+
+    xqc_list_head_t *pos, *next;
+    xqc_h3_data_buf_t *h3_data_buf;
+    size_t recv_buf_left = recv_buf_size;
+    size_t h3_data_buf_left;
+    size_t n_recved = 0;
+    xqc_list_for_each_safe(pos, next, &h3_stream->recv_body_data_buf) {
+        h3_data_buf = xqc_list_entry(pos, xqc_h3_data_buf_t, list_head);
+        h3_data_buf_left = h3_data_buf->data_len - h3_data_buf->already_consume;
+        if (recv_buf_left < h3_data_buf_left) {
+            memcpy(recv_buf + n_recved, h3_data_buf->data + h3_data_buf->already_consume, recv_buf_left);
+            n_recved += recv_buf_left;
+            h3_data_buf->already_consume += recv_buf_left;
+            recv_buf_left = 0;
+            return n_recved;
+        } else {
+            memcpy(recv_buf + n_recved, h3_data_buf->data + h3_data_buf->already_consume, h3_data_buf_left);
+            n_recved += h3_data_buf_left;
+            h3_data_buf->already_consume += h3_data_buf_left;
+            recv_buf_left -= h3_data_buf_left;
+            if (h3_data_buf->fin) {
+                *fin = 1;
+            }
+            xqc_list_del_init(pos);
+            xqc_free(pos);
+            if (0 == recv_buf_left) {
+                return n_recved;
+            }
+        }
+    }
+    return n_recved;
 }
 
 int
@@ -265,6 +295,8 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
             h3_stream->h3_stream_type, h3_stream->stream->stream_id);
 
     if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST) {
+        xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+
         ret = h3_stream->h3_request->request_if->h3_request_write_notify(h3_stream->h3_request,
                                                                          h3_stream->h3_request->user_data);
         if (ret) {
@@ -321,9 +353,9 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
         xqc_h3_request_t *h3_request;
         h3_request = h3_stream->h3_request;
         if (!h3_stream->h3_request) {
-            h3_request = xqc_h3_request_create_2(h3_conn, h3_stream, NULL);
+            h3_request = xqc_h3_request_create_inner(h3_conn, h3_stream, NULL);
             if (!h3_request) {
-                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_request_create_2 error|");
+                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_request_create_inner error|");
                 return -XQC_H3_EREQUEST;
             }
         }
