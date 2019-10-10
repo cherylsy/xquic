@@ -240,7 +240,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
         xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_control|%z|", processed);
     } else if (XQC_H3_STREAM_REQUEST == h3_stream->h3_stream_type) {
         size_t nproc;
-        processed = xqc_http3_conn_read_bidi(h3_conn, &nproc, h3_stream, data, data_size);
+        processed = xqc_http3_conn_read_bidi(h3_conn, &nproc, h3_stream, data, data_size, fin);
         if (processed < 0) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_bidi error|%z|", processed);
             return -1;
