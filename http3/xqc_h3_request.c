@@ -77,10 +77,10 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
     return xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
 }
 
-ssize_t
+xqc_http_headers_t *
 xqc_h3_request_recv_header(xqc_h3_request_t *h3_request)
 {
-    return xqc_h3_stream_recv_header(h3_request->h3_stream);
+    return NULL;
 }
 
 ssize_t

@@ -507,8 +507,8 @@ int main(int argc, char *argv[]) {
                     .conn_close_notify = xqc_client_conn_close_notify,
             },
             .h3_conn_callbacks = {
-                    .h3_conn_create_notify = xqc_client_h3_conn_create_notify,
-                    .h3_conn_close_notify = xqc_client_h3_conn_close_notify,
+                    .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+                    .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
             },
             /* HTTP3不用设置这个回调 */
             .stream_callbacks = {
@@ -516,16 +516,16 @@ int main(int argc, char *argv[]) {
                     .stream_read_notify = xqc_client_read_notify,
             },
             .h3_request_callbacks = {
-                    .h3_request_write_notify = xqc_client_request_write_notify,
-                    .h3_request_read_notify = xqc_client_request_read_notify,
-                    .h3_request_close = xqc_client_request_close_notify,
+                    .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
+                    .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+                    .h3_request_close = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
-            .write_socket = xqc_client_write_socket,
+            .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
             //.cong_ctrl_callback = xqc_reno_cb,
             //.cong_ctrl_callback = xqc_cubic_cb,
             .cong_ctrl_callback = xqc_bbr_cb,
-            .set_event_timer = xqc_client_set_event_timer,
-            .save_token = xqc_client_save_token,
+            .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
+            .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
     };
 
     xqc_conn_settings_t conn_settings = {
