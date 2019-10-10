@@ -41,8 +41,7 @@ int xqc_http3_stream_empty_headers_allowed(xqc_h3_stream_t *stream) {
     }
 }
 
-
-static inline xqc_data_buf_t * xqc_create_data_buf(int buf_size){
+xqc_data_buf_t * xqc_create_data_buf(int buf_size){
 
     xqc_data_buf_t * p_buf = malloc(sizeof(xqc_data_buf_t) + buf_size);
     if(p_buf == NULL)return NULL;
@@ -51,6 +50,26 @@ static inline xqc_data_buf_t * xqc_create_data_buf(int buf_size){
     p_buf->already_consume = 0;
     p_buf->fin = 0;
     return p_buf;
+}
+
+
+int xqc_free_data_buf( xqc_list_head_t * head_list){
+    xqc_list_head_t *pos, *next;
+    xqc_list_for_each_safe(pos, next, head_list){
+        xqc_list_del(pos);
+        free(pos);
+    }
+    return 0;
+}
+
+
+int xqc_h3_stream_free_data_buf(xqc_h3_stream_t *h3_stream){
+
+    xqc_free_data_buf(&h3_stream->send_frame_data_buf);
+    xqc_free_data_buf(&h3_stream->recv_header_data_buf);
+    xqc_free_data_buf(&h3_stream->recv_body_data_buf);
+
+    return 0;
 }
 
 int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint8_t fin){
@@ -1606,6 +1625,7 @@ xqc_h3_frame_send_buf_t * xqc_create_h3_frame_send_buf(size_t buf_len){
 
     return p_buf;
 }
+
 
 
 xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len){

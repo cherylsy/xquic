@@ -101,6 +101,8 @@ xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
     if (h3_stream->h3_request) {
         xqc_h3_request_destroy(h3_stream->h3_request);
     }
+    xqc_h3_stream_free_data_buf(h3_stream);
+
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     if(h3_stream->tnode){
         xqc_http3_tnode_free(h3_stream->tnode);

@@ -244,4 +244,5 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
 
 int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head);
 
+int xqc_h3_stream_free_data_buf(xqc_h3_stream_t *h3_stream);
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */
