@@ -47,14 +47,15 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_server_set_event_timer(void *timer, xqc_msec_t wake_after)
+void xqc_server_set_event_timer(void *user_data, xqc_msec_t wake_after)
 {
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
     tv.tv_usec = wake_after % 1000000;
-    event_add((struct event *) timer, &tv);
+    event_add(ctx->ev_engine, &tv);
 
 }
 
@@ -128,7 +129,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     if (!fin) {
         return 0;
     }
-    xqc_http_header_t header[] = {
+    /*xqc_http_header_t header[] = {
             {
                     .name   = {.iov_base = ":method", .iov_len = 7},
                     .value  = {.iov_base = "post", .iov_len = 4}
@@ -149,7 +150,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     if (fin) {
         ret = xqc_h3_request_send_body(h3_request, buff, sizeof(buff), 1);
         printf("xqc_h3_request_send_body %lld \n", ret);
-    }
+    }*/
     return 0;
 }
 
@@ -388,7 +389,7 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
-    xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
+    xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
     if (ctx.fd < 0) {

@@ -26,9 +26,9 @@ xqc_h3_request_create(xqc_engine_t *engine,
         return NULL;
     }
 
-    h3_request = xqc_h3_request_create_2(h3_conn, h3_stream, user_data);
+    h3_request = xqc_h3_request_create_inner(h3_conn, h3_stream, user_data);
     if (!h3_request) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_h3_request_create_2 error|");
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_h3_request_create_inner error|");
         return NULL;
     }
 
@@ -47,7 +47,7 @@ xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
 }
 
 xqc_h3_request_t *
-xqc_h3_request_create_2(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data)
+xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data)
 {
     xqc_h3_request_t *h3_request;
     h3_request = xqc_calloc(1, sizeof(xqc_h3_request_t));
@@ -77,10 +77,10 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
     return xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
 }
 
-ssize_t
+xqc_http_headers_t *
 xqc_h3_request_recv_header(xqc_h3_request_t *h3_request)
 {
-    return xqc_h3_stream_recv_header(h3_request->h3_stream);
+    return NULL;
 }
 
 ssize_t

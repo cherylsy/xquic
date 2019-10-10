@@ -709,7 +709,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
         }
     }
 
-    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|read:%i|recv_buf_size:%ui|fin:%i|stream_length:%ui|next_read_offset:%ui|",
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|read:%i|recv_buf_size:%ui|fin:%d|stream_length:%ui|next_read_offset:%ui|",
             read, recv_buf_size, *fin, stream->stream_data_in.stream_length, stream->stream_data_in.next_read_offset);
 
     xqc_stream_shutdown_read(stream);
@@ -725,6 +725,7 @@ xqc_stream_send (xqc_stream_t *stream,
                  uint8_t fin)
 {
     int ret;
+    xqc_stream_ready_to_write(stream);
     size_t send_data_written = 0;
     size_t offset = 0; //本次send_data中的已写offset
     xqc_connection_t *conn = stream->stream_conn;
@@ -826,9 +827,9 @@ do_buff:
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|ret:%d|stream_id:%ui|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
-                                      "send_data_size:%ui|offset:%ui|fin:%d|",
+                                      "send_data_size:%ui|offset:%ui|fin:%d|flag:%d|",
             ret, stream->stream_id, stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
-            send_data_size, offset, fin);
+            send_data_size, offset, fin, stream->stream_flag);
 
     xqc_sample_check_app_limited(&conn->conn_send_ctl->sampler, conn->conn_send_ctl);
 
@@ -975,11 +976,12 @@ xqc_process_crypto_write_streams (xqc_connection_t *conn)
     for (int i = XQC_ENC_LEV_INIT; i < XQC_ENC_MAX_LEVEL; i++) {
         stream = conn->crypto_stream[i];
         if (stream && (stream->stream_flag & XQC_STREAM_FLAG_READY_TO_WRITE)) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|");
             ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify crypto err:%d|", ret);
                 xqc_stream_shutdown_write(stream);
+                XQC_CONN_ERR(conn, ret);
             }
         }
     }

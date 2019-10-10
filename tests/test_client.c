@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "xqc_cmake_config.h"
+//#include "xqc_cmake_config.h"
 #include "include/xquic.h"
 #include "congestion_control/xqc_new_reno.h"
 #include "congestion_control/xqc_cubic.h"
@@ -49,6 +49,7 @@ typedef struct client_ctx_s {
     struct event  *ev_engine;
     struct event  *ev_timeout;
     uint64_t       send_offset;
+    int            header_sent;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -63,14 +64,15 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_client_set_event_timer(void *timer, xqc_msec_t wake_after)
+void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 {
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
     printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
     tv.tv_usec = wake_after % 1000000;
-    event_add((struct event *) timer, &tv);
+    event_add(ctx->ev_engine, &tv);
 
 }
 
@@ -276,21 +278,26 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
         .count  = 1,
     };
 
-    ret = xqc_h3_request_send_headers(h3_request, &headers);
-    if (ret < 0) {
-        printf("xqc_h3_request_send_headers error %d\n", ret);
-    } else {
-        printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+    if (ctx->header_sent == 0) {
+        ret = xqc_h3_request_send_headers(h3_request, &headers);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_headers error %d\n", ret);
+        } else {
+            printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+            ctx->header_sent = 1;
+        }
     }
 
     unsigned buff_size = 1000*1024;
     char *buff = malloc(buff_size);
-    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
-    if (ret < 0) {
-        printf("xqc_h3_request_send_body error %d\n", ret);
-    } else {
-        ctx->send_offset += ret;
-        printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+    if (ctx->send_offset < buff_size) {
+        ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_body error %d\n", ret);
+        } else {
+            ctx->send_offset += ret;
+            printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+        }
     }
     return ret;
 }
@@ -482,6 +489,7 @@ int main(int argc, char *argv[]) {
     //size_t session_data_len = read_file_data(session_data, sizeof(session_data), session_path );
 
     xqc_engine_ssl_config_t  engine_ssl_config;
+    /* private_key_file cert_file 客户端不用填 */
     engine_ssl_config.private_key_file = "./server.key";
     engine_ssl_config.cert_file = "./server.crt";
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
@@ -499,36 +507,38 @@ int main(int argc, char *argv[]) {
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
 
     xqc_engine_callback_t callback = {
+            /* HTTP3不用设置这个回调 */
             .conn_callbacks = {
                     .conn_create_notify = xqc_client_conn_create_notify,
                     .conn_close_notify = xqc_client_conn_close_notify,
             },
             .h3_conn_callbacks = {
-                    .h3_conn_create_notify = xqc_client_h3_conn_create_notify,
-                    .h3_conn_close_notify = xqc_client_h3_conn_close_notify,
+                    .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+                    .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
             },
+            /* HTTP3不用设置这个回调 */
             .stream_callbacks = {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
             },
             .h3_request_callbacks = {
-                    .h3_request_write_notify = xqc_client_request_write_notify,
-                    .h3_request_read_notify = xqc_client_request_read_notify,
-                    .h3_request_close = xqc_client_request_close_notify,
+                    .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
+                    .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+                    .h3_request_close = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
-            .write_socket = xqc_client_write_socket,
+            .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
             //.cong_ctrl_callback = xqc_reno_cb,
             //.cong_ctrl_callback = xqc_cubic_cb,
             .cong_ctrl_callback = xqc_bbr_cb,
-            .set_event_timer = xqc_client_set_event_timer,
-            .save_token = xqc_client_save_token,
+            .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
+            .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
     };
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
             .h3         =   1,
     };
-    xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
+    xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
 
     ctx.my_conn = calloc(1, sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {
