@@ -1,8 +1,9 @@
 #include <stdio.h>
-#include "xqc_cmake_config.h"
+//#include "xqc_cmake_config.h"
 #include "include/xquic.h"
 #include "congestion_control/xqc_new_reno.h"
 #include "congestion_control/xqc_cubic.h"
+#include "congestion_control/xqc_bbr.h"
 #include <event2/event.h>
 #include <memory.h>
 #include <sys/socket.h>
@@ -12,7 +13,6 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
-#include "transport/xqc_engine.h"
 #include "include/xquic_typedef.h"
 
 
@@ -25,6 +25,7 @@
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
 
+#define XQC_MAX_TOKEN_LEN 32
 
 typedef struct user_conn_s {
     int                 fd;
@@ -36,6 +37,7 @@ typedef struct user_conn_s {
     socklen_t           peer_addrlen;
 
     xqc_stream_t       *stream;
+    xqc_h3_request_t   *h3_request;
     unsigned char      *token;
     unsigned            token_len;
 } user_conn_t;
@@ -47,6 +49,7 @@ typedef struct client_ctx_s {
     struct event  *ev_engine;
     struct event  *ev_timeout;
     uint64_t       send_offset;
+    int            header_sent;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -61,14 +64,15 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_client_set_event_timer(void *timer, xqc_msec_t wake_after)
+void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 {
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
     printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
     tv.tv_usec = wake_after % 1000000;
-    event_add((struct event *) timer, &tv);
+    event_add(ctx->ev_engine, &tv);
 
 }
 
@@ -124,16 +128,21 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     return n;
 }
 
+int g_send_total = 0;
 ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
 {
     client_ctx_t *ctx = (client_ctx_t *) user;
     ssize_t res;
     int fd = ctx->my_conn->fd;
-    printf("xqc_client_write_socket size=%zd, now=%llu\n",size, now());
+    printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
-        res = write(fd, buf, size);
+        //res = write(fd, buf, size);
+        res = sendto(fd, buf, size, 0, (struct sockaddr*)&ctx->my_conn->peer_addr, ctx->my_conn->peer_addrlen);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
+        if (res < 0) {
+            printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
+        }
     } while ((res < 0) && (errno == EINTR));
     return res;
 }
@@ -142,6 +151,7 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
 {
     int fd;
     struct sockaddr_in *saddr = &ctx.my_conn->peer_addr;
+    ctx.my_conn->peer_addrlen = sizeof(*saddr);
     struct hostent *remote;
 
     remote = gethostbyname(addr);
@@ -167,10 +177,10 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
     saddr->sin_port = htons(port);
     saddr->sin_addr = *((struct in_addr *)remote->h_addr);
 
-    if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
+    /*if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
-    }
+    }*/
 
     socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&ctx.my_conn->local_addr, &tmp);
@@ -204,6 +214,22 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, void *user_data) {
     return 0;
 }
 
+int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, void *user_data) {
+    DEBUG;
+
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    return 0;
+}
+
+int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, void *user_data) {
+    DEBUG;
+
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    return 0;
+}
+
 int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     int ret = 0;
@@ -222,13 +248,89 @@ int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
 int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[100] = {0};
+    char buff[1000] = {0};
+    size_t buff_size = 1000;
 
-    char buff_send[5000] = {0};
-    xqc_stream_send(stream, buff_send, sizeof(buff), 1);
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_stream_recv(stream, buff, buff_size, &fin);
+        printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
+    } while (read > 0 && !fin);
+
     return 0;
 }
 
+int xqc_client_request_send(xqc_h3_request_t *h3_request, client_ctx_t *ctx)
+{
+    ssize_t ret = 0;
+    xqc_http_header_t header[] = {
+            {
+                    .name   = {.iov_base = ":method", .iov_len = 7},
+                    .value  = {.iov_base = "post", .iov_len = 4}
+            },
+    };
+    xqc_http_headers_t headers = {
+            .headers = header,
+            .count  = 1,
+    };
+
+    if (ctx->header_sent == 0) {
+        ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_headers error %d\n", ret);
+        } else {
+            printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+            ctx->header_sent = 1;
+        }
+    }
+
+    unsigned buff_size = 1000*1024;
+    char *buff = malloc(buff_size);
+    if (ctx->send_offset < buff_size) {
+        ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_body error %d\n", ret);
+        } else {
+            ctx->send_offset += ret;
+            printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+        }
+    }
+    return 0;
+}
+
+int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    ssize_t ret = 0;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    ret = xqc_client_request_send(h3_request, ctx);
+    return ret;
+}
+
+int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    int ret;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    char buff[1000] = {0};
+    size_t buff_size = 1000;
+
+    ssize_t read;
+    unsigned char fin;
+    do {
+        read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+        printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+    } while (read > 0 && !fin);
+    return 0;
+}
+
+int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    return 0;
+}
 
 void
 xqc_client_write_handler(client_ctx_t *ctx)
@@ -244,7 +346,6 @@ xqc_client_read_handler(client_ctx_t *ctx)
     DEBUG
 
     ssize_t recv_size = 0;
-    uint64_t recv_time = now();
 
     /* recv udp packet */
     ssize_t  n;
@@ -269,11 +370,14 @@ xqc_client_read_handler(client_ctx_t *ctx)
     do {
         recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
 
-        if (recv_size < 0) {
-            printf("xqc_client_read_handler: recvmsg = %zd\n", recv_size);
+        if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
-
+        if (recv_size < 0) {
+            printf("xqc_client_read_handler: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
+            break;
+        }
+        uint64_t recv_time = now();
         printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
@@ -286,7 +390,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
             return;
         }
     } while (recv_size > 0);
-    xqc_engine_main_logic(ctx->engine);
+    xqc_engine_finish_recv(ctx->engine);
 }
 
 
@@ -392,6 +496,7 @@ int main(int argc, char *argv[]) {
     //size_t session_data_len = read_file_data(session_data, sizeof(session_data), session_path );
 
     xqc_engine_ssl_config_t  engine_ssl_config;
+    /* private_key_file cert_file 客户端不用填 */
     engine_ssl_config.private_key_file = "./server.key";
     engine_ssl_config.cert_file = "./server.crt";
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
@@ -409,26 +514,38 @@ int main(int argc, char *argv[]) {
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
 
     xqc_engine_callback_t callback = {
+            /* HTTP3不用设置这个回调 */
             .conn_callbacks = {
                     .conn_create_notify = xqc_client_conn_create_notify,
                     .conn_close_notify = xqc_client_conn_close_notify,
             },
+            .h3_conn_callbacks = {
+                    .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+                    .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
+            },
+            /* HTTP3不用设置这个回调 */
             .stream_callbacks = {
                     .stream_write_notify = xqc_client_write_notify,
                     .stream_read_notify = xqc_client_read_notify,
             },
-            .write_socket = xqc_client_write_socket,
-            //.cong_ctrl_callback = xqc_reno_cb,
-            .cong_ctrl_callback = xqc_cubic_cb,
-            .set_event_timer = xqc_client_set_event_timer,
-            .save_token = xqc_client_save_token,
+            .h3_request_callbacks = {
+                    .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
+                    .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+                    .h3_request_close = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
+            },
+            .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
+            .cong_ctrl_callback = xqc_reno_cb,
+            //.cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_bbr_cb,
+            .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
+            .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
     };
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
             .h3         =   1,
     };
-    xqc_engine_init(ctx.engine, callback, conn_settings, ctx.ev_engine);
+    xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
 
     ctx.my_conn = calloc(1, sizeof(user_conn_t));
     if (ctx.my_conn == NULL) {
@@ -445,7 +562,6 @@ int main(int argc, char *argv[]) {
     ctx.ev_socket = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
     event_add(ctx.ev_socket, NULL);
 
-#define XQC_MAX_TOKEN_LEN 32
     unsigned char token[XQC_MAX_TOKEN_LEN];
     int token_len = XQC_MAX_TOKEN_LEN;
     token_len = xqc_client_read_token(token, token_len);
@@ -472,17 +588,24 @@ int main(int argc, char *argv[]) {
     if(session_len < 0 || tp_len < 0){
         printf("sessoin data read error");
         conn_ssl_config.session_ticket_data = NULL;
-        conn_ssl_config.tp_data  = NULL;
+        conn_ssl_config.transport_parameter_data  = NULL;
     }else{
         conn_ssl_config.session_ticket_data = session_ticket_data;
         conn_ssl_config.session_ticket_len = session_len;
-        conn_ssl_config.tp_data = tp_data;
-        conn_ssl_config.tp_data_len = tp_len;
+        conn_ssl_config.transport_parameter_data = tp_data;
+        conn_ssl_config.transport_parameter_data_len = tp_len;
     }
 
 
 
-    xqc_cid_t *cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0, 0 ,&conn_ssl_config );
+    xqc_cid_t *cid;
+    if (conn_settings.h3) {
+        cid = xqc_h3_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0,
+                          &conn_ssl_config);
+    } else {
+        cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0,
+                          &conn_ssl_config);
+    }
     if (cid == NULL) {
         printf("xqc_connect error\n");
         return 0;
@@ -492,10 +615,13 @@ int main(int argc, char *argv[]) {
     xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
     xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
-
-    ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
-
-    xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+    if (conn_settings.h3) {
+        ctx.my_conn->h3_request = xqc_h3_request_create(ctx.engine, cid, &ctx);
+        xqc_client_request_send(ctx.my_conn->h3_request, &ctx);
+    } else {
+        ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
+        xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+    }
 
     event_base_dispatch(eb);
 

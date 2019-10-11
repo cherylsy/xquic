@@ -344,11 +344,11 @@ void
 xqc_engine_init (xqc_engine_t *engine,
                  xqc_engine_callback_t engine_callback,
                  xqc_conn_settings_t conn_settings,
-                 void *event_timer)
+                 void *user_data)
 {
     xqc_engine_set_callback(engine, engine_callback);
     engine->conn_settings = conn_settings;
-    engine->event_timer = event_timer;
+    engine->user_data = user_data;
 }
 
 void
@@ -387,8 +387,8 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     xqc_conn_process_undecrypt_packets(conn);
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_packets) && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
-        xqc_write_buff_packets(conn);
+    if (!xqc_list_empty(&conn->conn_send_ctl->ctl_buff_1rtt_packets) && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
+        xqc_write_buffed_1rtt_packets(conn);
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
@@ -409,10 +409,17 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
+    conn->packet_need_process_count = 0;
+
 end:
     return;
 }
 
+void
+xqc_engine_finish_recv (xqc_engine_t *engine)
+{
+    xqc_engine_main_logic(engine);
+}
 
 /**
  * Process all connections
@@ -491,7 +498,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
                 }
             } else {
                 /* 至少会有idle定时器，这是异常分支 */
-                xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection");
+                xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection|");
                 xqc_conn_destroy(conn);
             }
         }
@@ -501,8 +508,8 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     }
 
     xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
-    if (wake_after > 0 && engine->event_timer) {
-        engine->eng_callback.set_event_timer(engine->event_timer, wake_after);
+    if (wake_after > 0) {
+        engine->eng_callback.set_event_timer(engine->user_data, wake_after);
     }
 
     engine->engine_flag &= ~XQC_ENG_FLAG_RUNNING;
@@ -512,7 +519,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
 /**
  * Pass received UDP packet payload into xquic engine.
- * @param recv_time   UDP packet recieved time in millisecond
+ * @param recv_time   UDP packet recieved time in microsecond
  */
 int xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,
@@ -564,7 +571,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return -XQC_ESYS;
         }
-        memset(&new_scid.cid_buf, 0xDD, 4); //TODO: for test
+        /*memset(&new_scid.cid_buf, 0xDD, 4);*/ //TODO: for test
         conn = xqc_conn_create(engine, &dcid, &new_scid,
                                &(engine->eng_callback.conn_callbacks),
                                &engine->conn_settings, user_data,
@@ -587,7 +594,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     }
     if (conn == NULL) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|");
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%ui|", packet_in_size);
             ret = xqc_conn_send_reset(engine, &scid, user_data);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
@@ -606,7 +613,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                 }
                 goto after_process;
             }
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|");
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|size:%ui|", packet_in_size);
         }
         return -XQC_ECONN_NFOUND;
     }
@@ -635,12 +642,15 @@ after_process:
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         } else {
             xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|");
+            xqc_conn_destroy(conn);
             return -XQC_ESYS;
         }
     }
 
     /* main logic */
-    /*xqc_engine_main_logic(engine);*/
+    if (++conn->packet_need_process_count >= XQC_MAX_PACKET_PROCESS_BATCH || conn->conn_err != 0) {
+        xqc_engine_main_logic(engine);
+    }
 
     return ret;
 }

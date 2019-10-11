@@ -17,7 +17,7 @@ struct xqc_packet_in_s
     size_t                  decode_payload_len;
     unsigned char          *pos;
     unsigned char          *last;
-    xqc_msec_t              pkt_recv_time;  /* millisecond */
+    xqc_msec_t              pkt_recv_time;  /* microsecond */
     xqc_frame_type_bit_t    pi_frame_types;
 };
 

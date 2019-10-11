@@ -19,6 +19,8 @@
 #define XQC_TOKEN_EXPIRE_DELTA 7*24*60*60   //N秒后过期
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA - 10) //提前N秒更新
 
+#define XQC_MAX_PACKET_PROCESS_BATCH 100 //xqc_engine_packet_process最多积累个数
+
 /* 调试时候用，会删掉 */
 #ifdef DEBUG_PRINT
 #define XQC_DEBUG_PRINT printf("%s:%d (%s)\n", __FILE__, __LINE__, __FUNCTION__);
@@ -84,7 +86,7 @@ typedef enum {
     XQC_CONN_FLAG_HAS_0RTT_SHIFT,
     XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ_SHIFT,
-    XQC_CONN_FLAG_HAS_H3_SHIFT,
+    XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -105,7 +107,7 @@ typedef enum {
     XQC_CONN_FLAG_HAS_0RTT              = 1 << XQC_CONN_FLAG_HAS_0RTT_SHIFT,
     XQC_CONN_FLAG_0RTT_OK               = 1 << XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ              = 1 << XQC_CONN_FLAG_0RTT_REJ_SHIFT,
-    XQC_CONN_FLAG_HAS_H3                = 1 << XQC_CONN_FLAG_HAS_H3_SHIFT,
+    XQC_CONN_FLAG_UPPER_CONN_EXIST      = 1 << XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -244,6 +246,7 @@ struct xqc_connection_s{
     uint32_t                conn_token_len;
     uint32_t                zero_rtt_count;
     uint32_t                retry_count;
+    uint32_t                packet_need_process_count; /* xqc_engine_packet_process积累个数 */
 
     xqc_conn_state_t        conn_state;
     xqc_memory_pool_t      *conn_pool;
@@ -251,6 +254,7 @@ struct xqc_connection_s{
     xqc_id_hash_table_t    *streams_hash;
     xqc_list_head_t         conn_write_streams,
                             conn_read_streams, /* xqc_stream_t */
+                            conn_closing_streams,
                             conn_all_streams;
     xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
     uint64_t                cur_stream_id_bidi_local;

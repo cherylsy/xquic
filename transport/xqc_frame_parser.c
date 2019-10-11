@@ -185,8 +185,9 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
         }
         memcpy(frame->data, p, frame->data_length);
     }
+    p += frame->data_length;
 
-    packet_in->pos += (p - packet_in->buf + frame->data_length);
+    packet_in->pos = (unsigned char *)p;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAM;
     return XQC_OK;
 }
@@ -330,6 +331,16 @@ xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 
                         Figure 17: ACK Frame Format
+
+    FOR EXAMPLE:
+    110 109 108 107 106 105 104 103 102 101 100   //pkt num
+    1   1   1   0   1   1   0   0   1   1   1     //1 means received
+
+    Largest Acknowledged 110
+    ACK Range Count 2
+    First ACK Range 2
+    Gap 0 Ack Range 1
+    Gap 1 Ack Range 2
  */
 int
 xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
@@ -339,23 +350,23 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size + XQC_ACK_SPACE;
 
-    xqc_packet_number_t lagest_recv;
+    xqc_packet_number_t lagest_recv, prev_low;
     xqc_msec_t ack_delay;
 
     const unsigned char *begin = dst_buf;
     const unsigned char *end = dst_buf + dst_buf_len;
     unsigned char *p_range_count;
-    unsigned range_count = 0, first_ack_range, gap, acks, prev_low, gap_bits, acks_bits, need;
+    unsigned range_count = 0, first_ack_range, gap, acks, gap_bits, acks_bits, need;
 
     xqc_list_head_t* pos;
     xqc_pktno_range_node_t *range_node;
 
-    xqc_list_for_each(pos, &recv_record->list_head) {
+    /*xqc_list_for_each(pos, &recv_record->list_head) {
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
         //printf("xqc_gen_ack_frame low:%llu, high=%llu\n", range_node->pktno_range.low, range_node->pktno_range.high);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",
                 range_node->pktno_range.high, range_node->pktno_range.low, packet_out->po_pkt.pkt_pns);
-    }
+    }*/
 
     xqc_pktno_range_node_t *first_range = NULL;
     xqc_list_for_each(pos, &recv_record->list_head) {
@@ -403,19 +414,23 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_vint_write(dst_buf, first_ack_range, first_ack_range_bits, xqc_vint_len(first_ack_range_bits));
     dst_buf += xqc_vint_len(first_ack_range_bits);
 
+    //xqc_log(conn->log, XQC_LOG_DEBUG, "|lagest_recv:%ui|first_ack_range:%ud|", lagest_recv, first_ack_range);
+
     int is_first = 1;
     xqc_list_for_each(pos, &recv_record->list_head) { //from second node
-        if (is_first) {
-            is_first = 0;
-            continue;
-        }
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
 
         xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",
                 range_node->pktno_range.high, range_node->pktno_range.low, packet_out->po_pkt.pkt_pns);
+        if (is_first) {
+            is_first = 0;
+            continue;
+        }
 
         gap = prev_low - range_node->pktno_range.high - 2;
         acks = range_node->pktno_range.high - range_node->pktno_range.low;
+
+        //xqc_log(conn->log, XQC_LOG_DEBUG, "|gap:%ud|acks:%ud|", gap, acks);
 
         gap_bits = xqc_vint_get_2bit(gap);
         acks_bits = xqc_vint_get_2bit(acks);
@@ -431,6 +446,8 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         xqc_vint_write(dst_buf, acks, acks_bits, xqc_vint_len(acks_bits));
         dst_buf += xqc_vint_len(acks_bits);
 
+        prev_low = range_node->pktno_range.low;
+
         ++range_count;
 
         if (range_count >= 63) {
@@ -445,6 +462,7 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         *has_gap = 0;
     }
     xqc_vint_write(p_range_count, range_count, 0, 1);
+    //xqc_log(conn->log, XQC_LOG_DEBUG, "|range_count:%ud|", range_count);
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
     return dst_buf - begin;
@@ -477,6 +495,8 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
     }
     p += vlen;
 
+    //xqc_log(conn->log, XQC_LOG_DEBUG, "|largest_acked:%ui|", largest_acked);
+
     vlen = xqc_vint_read(p, end, &ack_info->ack_delay);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
@@ -495,6 +515,8 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
     }
     p += vlen;
 
+    //xqc_log(conn->log, XQC_LOG_DEBUG, "|first_ack_range:%ui|", first_ack_range);
+
     ack_info->ranges[n_ranges].high = largest_acked;
     ack_info->ranges[n_ranges].low = largest_acked - first_ack_range;
     n_ranges++;
@@ -511,6 +533,8 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
             return -XQC_EVINTREAD;
         }
         p += vlen;
+
+        //xqc_log(conn->log, XQC_LOG_DEBUG, "|gap:%ui|range:%ui|", gap, range);
 
         ack_info->ranges[n_ranges].high = ack_info->ranges[n_ranges - 1].low - gap - 2;
         ack_info->ranges[n_ranges].low = ack_info->ranges[n_ranges].high - range;

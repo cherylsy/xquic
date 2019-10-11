@@ -6,7 +6,7 @@
 #include "common/xqc_config.h"
 #include "xqc_tls_cb.h"
 
-#define XQC_FAKE_AEAD_OVERHEAD 16
+#define XQC_FAKE_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 
 /*xqc_negotiated_prf stores the negotiated PRF(pseudo random function) by TLS into ctx.
  *@param
@@ -49,7 +49,7 @@ int xqc_negotiated_aead(xqc_tls_context_t *ctx, SSL *ssl) {
     return -1;
 }
 
-uint64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen) {
+int64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen) {
     switch (pkt_numlen) {
         case 1:
             return *p;
@@ -60,25 +60,27 @@ uint64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen) {
         case 4:
             return xqc_get_uint32(p);
         default:
-            assert(0);
+            //assert(0);
+            return -1;
     }
 }
 
-void xqc_conn_set_aead_overhead(xqc_connection_t *conn, size_t aead_overhead) {
+void xqc_conn_set_aead_overhead(xqc_connection_t *conn, ssize_t aead_overhead) {
     conn->tlsref.aead_overhead = aead_overhead;
 }
 
-static size_t xqc_aead_tag_length(const xqc_tls_context_t *ctx) {
+static ssize_t xqc_aead_tag_length(const xqc_tls_context_t *ctx) {
     if (ctx->aead == EVP_aes_128_gcm() || ctx->aead == EVP_aes_256_gcm()) {
         return EVP_GCM_TLS_TAG_LEN;
     }
     if (ctx->aead == EVP_chacha20_poly1305()) {
         return EVP_CHACHAPOLY_TLS_TAG_LEN;
     }
-    assert(0);
+    return -1;
+    //assert(0);
 }
 
-size_t xqc_aead_max_overhead(const xqc_tls_context_t *ctx) { return xqc_aead_tag_length(ctx); }
+ssize_t xqc_aead_max_overhead(const xqc_tls_context_t *ctx) { return xqc_aead_tag_length(ctx); }
 
 int xqc_hkdf_extract(uint8_t *dest, size_t destlen, const uint8_t *secret,
         size_t secretlen, const uint8_t *salt, size_t saltlen,
@@ -190,11 +192,11 @@ void xqc_aead_aes_128_gcm(xqc_tls_context_t *ctx) {
     ctx->hp = EVP_aes_128_ctr();
 }
 
-size_t xqc_aead_key_length(const xqc_tls_context_t *ctx) {
+ssize_t xqc_aead_key_length(const xqc_tls_context_t *ctx) {
     return EVP_CIPHER_key_length(ctx->aead);
 }
 
-size_t xqc_aead_nonce_length(const xqc_tls_context_t *ctx) {
+ssize_t xqc_aead_nonce_length(const xqc_tls_context_t *ctx) {
     return EVP_CIPHER_iv_length(ctx->aead);
 }
 
@@ -227,13 +229,13 @@ int xqc_derive_server_initial_secret(uint8_t *dest, size_t destlen,
 }
 
 
-size_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
+ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx) {
     int rv;
     static   uint8_t LABEL[] = "quic key";
 
-    size_t keylen = xqc_aead_key_length(ctx);
+    ssize_t keylen = xqc_aead_key_length(ctx);
     if (keylen > destlen) {
         return -1;
     }
@@ -249,13 +251,13 @@ size_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
 
 
 
-size_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
+ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx) {
     int rv;
     static   uint8_t LABEL[] = "quic iv";
 
-    size_t ivlen = xqc_max(8, xqc_aead_nonce_length(ctx));
+    ssize_t ivlen = xqc_max(8, xqc_aead_nonce_length(ctx));
     if (ivlen > destlen) {
         return -1;
     }
@@ -270,13 +272,13 @@ size_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
 }
 
 
-size_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
+ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen,
         const xqc_tls_context_t *ctx) {
     int rv;
     static   uint8_t LABEL[] = "quic hp";
 
-    size_t keylen = xqc_aead_key_length(ctx);
+    ssize_t keylen = xqc_aead_key_length(ctx);
     if (keylen > destlen) {
         return -1;
     }
@@ -323,7 +325,10 @@ ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx
         goto err;
     }
 
-    assert(len == 5);
+    //assert(len == 5);
+    if(len != 5){
+        goto err;
+    }
 
     outlen = len;
 
@@ -331,7 +336,10 @@ ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_tls_context_t  *ctx
         goto err;
     }
 
-    assert(len == 0);
+    //assert(len == 0);
+    if(len != 0){
+        goto err;
+    }
 
     EVP_CIPHER_CTX_free(actx);
     return outlen;
@@ -341,7 +349,7 @@ err:
 }
 
 //need finish : conn_decrypt_hp only decrypt header protect , not do anything else
-static size_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
+static ssize_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
         uint8_t *dest, size_t destlen,
         const uint8_t *pkt, size_t pktlen,
         size_t pkt_num_offset, unsigned char * hpkey, int hpkey_len,
@@ -381,7 +389,12 @@ static size_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
         *p++ = *(pkt + pkt_num_offset + i) ^ mask[i + 1];
     }
 
-    hd->pkt_num = xqc_get_pkt_num(p - hd->pkt_numlen, hd->pkt_numlen);
+    int64_t pkt_num = xqc_get_pkt_num(p - hd->pkt_numlen, hd->pkt_numlen);
+    if(pkt_num < 0){
+        xqc_log(conn->log, XQC_LOG_ERROR, "|error packet num|");
+        return -1;
+    }
+    hd->pkt_num = pkt_num;
 
     return p - dest;
 }
@@ -399,7 +412,10 @@ ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         size_t ciphertextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen){
-    size_t taglen = xqc_aead_tag_length(ctx);
+    ssize_t taglen = xqc_aead_tag_length(ctx);
+    if(taglen < 0){
+        return -1;
+    }
 
     if (taglen > ciphertextlen || destlen + taglen < ciphertextlen) {
         return -1;
@@ -466,15 +482,20 @@ ssize_t xqc_no_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen) {
 
+    if(dest != plaintext){
+        memmove(dest, plaintext, plaintextlen);
+    }
     return (size_t)plaintextlen + XQC_FAKE_AEAD_OVERHEAD;
 }
-
 ssize_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         size_t plaintextlen, const xqc_tls_context_t *ctx, const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen) {
     int taglen = xqc_aead_tag_length(ctx);
 
+    if(taglen < 0){
+        return -1;
+    }
     if (destlen < plaintextlen + taglen) {
         return -1;
     }
@@ -517,7 +538,10 @@ ssize_t xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
 
     outlen += len;
 
-    assert(outlen + taglen <= destlen);
+    //assert(outlen + taglen <= destlen);
+    if(outlen + taglen > destlen){
+        goto err;
+    }
 
     if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != 1) {
         goto err;
@@ -795,7 +819,7 @@ int xqc_conn_install_tx_keys(xqc_connection_t *conn, const uint8_t *key,
 }
 
 int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
-        size_t secretlen, const xqc_tls_context_t *ctx){
+        ssize_t secretlen, const xqc_tls_context_t *ctx){
 
     uint8_t LABEL[] = "traffic upd";
     int rv;

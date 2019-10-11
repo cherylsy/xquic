@@ -46,7 +46,6 @@ struct xqc_packet_s {
     xqc_cid_t               pkt_dcid;
     xqc_cid_t               pkt_scid;
 
-    size_t                  pkt_numlen;
     /*
      * len is the sum of pkt_numlen and the length of QUIC packet
      * payload.

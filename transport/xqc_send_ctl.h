@@ -5,18 +5,19 @@
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"
 #include "xqc_pacing.h"
+#include "congestion_control/xqc_sample.h"
 
 #define XQC_kPacketThreshold 3
 #define XQC_kPersistentCongestionThreshold 2
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
-#define XQC_kGranularity 1
+#define XQC_kGranularity 2
 #define XQC_kInitialRtt 500
 
 //2^n
 #define xqc_send_ctl_pow(n) (1 << n)
 
-#define XQC_CTL_PACKETS_USED_MAX 1000
+#define XQC_CTL_PACKETS_USED_MAX 10000
 
 typedef enum {
     XQC_TIMER_ACK_INIT,
@@ -26,6 +27,7 @@ typedef enum {
     XQC_TIMER_IDLE,
     XQC_TIMER_DRAINING,
     XQC_TIMER_PACING,
+    XQC_TIMER_STREAM_CLOSE,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 
@@ -43,7 +45,7 @@ typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
     xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
-    xqc_list_head_t             ctl_buff_packets; //xqc_packet_out_t buff 1RTT before handshake complete
+    xqc_list_head_t             ctl_buff_1rtt_packets; //xqc_packet_out_t buff 1RTT before handshake complete
     unsigned                    ctl_packets_used;
     unsigned                    ctl_packets_free;
     unsigned                    ctl_packets_used_max;
@@ -92,6 +94,15 @@ typedef struct xqc_send_ctl_s {
     void                        *ctl_cong;
 
     xqc_pacing_t                ctl_pacing;
+
+    uint64_t                    ctl_delivered; /* 表示当前ack时刻已经标记为发送完毕的数据量 */
+    uint64_t                    ctl_app_limited; /* The index of the last transmitted packet marked as
+   application-limited, or 0 if the connection is not currently
+   application-limited. */
+    xqc_msec_t                  ctl_delivered_time; /* 当前packet P被ack的时间 */
+    xqc_msec_t                  ctl_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
+
+    xqc_sample_t                sampler;
 
 } xqc_send_ctl_t;
 
@@ -236,8 +247,8 @@ xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_ms
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|expire=%ui|",
-            xqc_timer_type_2_str(type), expire);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|expire=%ui|now=%ui|",
+            xqc_timer_type_2_str(type), expire, xqc_now());
 }
 
 static inline void

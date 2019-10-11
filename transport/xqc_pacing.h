@@ -14,7 +14,7 @@ typedef struct xqc_pacing_s {
 } xqc_pacing_t;
 
 void
-xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on);
+xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl);
 
 int
 xqc_pacing_is_on(xqc_pacing_t *pacing);

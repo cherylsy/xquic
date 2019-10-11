@@ -18,6 +18,7 @@
 #define XQC_PACKET_OUT_SIZE 1200    //不含XQC_EXTRA_SPACE XQC_ACK_SPACE
 #define XQC_EXTRA_SPACE XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 #define XQC_ACK_SPACE 16
+#define XQC_PACKET_OUT_SIZE_EXT (XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE)
 
 #define XQC_MAX_STREAM_FRAME_IN_PO 3
 
@@ -52,6 +53,11 @@ typedef struct xqc_packet_out_s
     xqc_frame_type_bit_t    po_frame_types;
     /* stream frame 关联的stream */
     xqc_po_stream_frame_t   po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO];
+
+    uint64_t                po_delivered; /* 在发送packet P之前已经标记为发送完毕的数据量 */
+    xqc_msec_t              po_delivered_time; /* 在发送packet P之前最后一个被ack的包的时间 */
+    xqc_msec_t              po_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
+    unsigned char           po_is_app_limited;
 } xqc_packet_out_t;
 
 xqc_packet_out_t *
@@ -115,6 +121,6 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
                                  xqc_pkt_type_t pkt_type, uint8_t fin,
                                  const unsigned char *payload, size_t payload_size, size_t *send_data_written);
 void
-xqc_write_buff_packets(xqc_connection_t *conn);
+xqc_write_buffed_1rtt_packets(xqc_connection_t *conn);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_
