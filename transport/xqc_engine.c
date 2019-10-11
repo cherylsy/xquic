@@ -413,6 +413,11 @@ end:
     return;
 }
 
+void
+xqc_engine_finish_recv (xqc_engine_t *engine)
+{
+    xqc_engine_main_logic(engine);
+}
 
 /**
  * Process all connections
@@ -564,7 +569,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return -XQC_ESYS;
         }
-        memset(&new_scid.cid_buf, 0xDD, 4); //TODO: for test
+        /*memset(&new_scid.cid_buf, 0xDD, 4);*/ //TODO: for test
         conn = xqc_conn_create(engine, &dcid, &new_scid,
                                &(engine->eng_callback.conn_callbacks),
                                &engine->conn_settings, user_data,

@@ -17,7 +17,7 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
 //2^n
 #define xqc_send_ctl_pow(n) (1 << n)
 
-#define XQC_CTL_PACKETS_USED_MAX 1000
+#define XQC_CTL_PACKETS_USED_MAX 10000
 
 typedef enum {
     XQC_TIMER_ACK_INIT,

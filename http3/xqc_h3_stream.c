@@ -163,14 +163,14 @@ xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_
 }
 
 ssize_t
-xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers)
+xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin)
 {
     ssize_t n_write = 0;
     xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
     //QPACK
     //gen HEADERS frame
     unsigned char buf[200]; ssize_t len=200;
-    uint8_t fin = 0;
+
     n_write = xqc_http3_write_frame_header(h3_stream, buf, len, fin);
     if (n_write < 0) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_header error|%z|", n_write);
@@ -186,7 +186,7 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
 {
     ssize_t n_write = 0;
 
-    n_write = xqc_http3_write_frame_data(h3_stream, data, data_size, fin); //TODO:fin
+    n_write = xqc_http3_write_frame_data(h3_stream, data, data_size, fin);
     if (n_write < 0) {
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_data error|%z|", n_write);
         return n_write;

@@ -119,7 +119,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, xqc_server_ctx_t *ctx)
     };
 
     if (ctx->header_sent == 0) {
-        ret = xqc_h3_request_send_headers(h3_request, &headers);
+        ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %d\n", ret);
         } else {
@@ -180,7 +180,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         return 0;
     }
 
-    xqc_server_request_send(h3_request, ctx);
+    //xqc_server_request_send(h3_request, ctx);
 
 
     return 0;
@@ -417,7 +417,7 @@ int main(int argc, char *argv[]) {
     };
 
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   1,
+            .pacing_on  =   0,
             .h3         =   1,
     };
 

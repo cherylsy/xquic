@@ -276,7 +276,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, client_ctx_t *ctx)
     };
 
     if (ctx->header_sent == 0) {
-        ret = xqc_h3_request_send_headers(h3_request, &headers);
+        ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %d\n", ret);
         } else {
@@ -285,7 +285,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, client_ctx_t *ctx)
         }
     }
 
-    unsigned buff_size = 1000*1024;
+    unsigned buff_size = 10000*1024;
     char *buff = malloc(buff_size);
     if (ctx->send_offset < buff_size) {
         ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
@@ -390,7 +390,7 @@ xqc_client_read_handler(client_ctx_t *ctx)
             return;
         }
     } while (recv_size > 0);
-    xqc_engine_main_logic(ctx->engine);
+    xqc_engine_finish_recv(ctx->engine);
 }
 
 
@@ -534,9 +534,9 @@ int main(int argc, char *argv[]) {
                     .h3_request_close = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
             .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
-            //.cong_ctrl_callback = xqc_reno_cb,
+            .cong_ctrl_callback = xqc_reno_cb,
             //.cong_ctrl_callback = xqc_cubic_cb,
-            .cong_ctrl_callback = xqc_bbr_cb,
+            //.cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
     };

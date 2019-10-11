@@ -253,12 +253,15 @@ void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                                   void *user_data);
 
 /**
+ * @param fin 1:without body
  * @return 发送成功的字节数，<0 出错
  */
 ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
-                                   xqc_http_headers_t *headers);
+                                    xqc_http_headers_t *headers,
+                                    uint8_t fin);
 
 /**
+ * @param fin 1:没有多余的body需要发送
  * @return 发送成功的字节数，<0 出错
  */
 ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
@@ -267,10 +270,12 @@ ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
                                  uint8_t fin);
 
 /**
+ * @param fin 1:without body
  * @return 用户应该拷贝到自己的内存
  */
 xqc_http_headers_t *
-xqc_h3_request_recv_header(xqc_h3_request_t *h3_request);
+xqc_h3_request_recv_header(xqc_h3_request_t *h3_request,
+                           uint8_t *fin);
 
 
 /**
@@ -330,10 +335,6 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
  * transport layer APIs end
  */
 
-/**
- * Process all connections
- */
-void xqc_engine_main_logic (xqc_engine_t *engine);
 
 /**
  * Pass received UDP packet payload into xquic engine.
@@ -348,6 +349,17 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                socklen_t peer_addrlen,
                                xqc_msec_t recv_time,
                                void *user_data);
+
+/**
+ * user should call after a number of packet processed in xqc_engine_packet_process
+ */
+void xqc_engine_finish_recv (xqc_engine_t *engine);
+
+/**
+ * Process all connections, user should call when timer expire
+ */
+void xqc_engine_main_logic (xqc_engine_t *engine);
+
 
 /**
  * User should call xqc_conn_continue_send when write event ready
