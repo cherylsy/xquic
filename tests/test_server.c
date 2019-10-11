@@ -33,6 +33,7 @@ typedef struct xqc_server_ctx_s {
     xqc_stream_t *stream;
     struct event *ev_socket;
     struct event *ev_engine;
+    int header_sent;
 } xqc_server_ctx_t;
 
 xqc_server_ctx_t ctx;
@@ -62,6 +63,7 @@ void xqc_server_set_event_timer(void *user_data, xqc_msec_t wake_after)
 int xqc_server_conn_notify(xqc_connection_t *conn, void *user_data) {
 
     DEBUG;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     return 0;
 }
 
@@ -95,19 +97,67 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
+int xqc_server_h3_conn_notify(xqc_h3_conn_t *conn, void *user_data) {
+
+    DEBUG;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
+    return 0;
+}
+
+int xqc_server_request_send(xqc_h3_request_t *h3_request, xqc_server_ctx_t *ctx)
+{
+    ssize_t ret = 0;
+    xqc_http_header_t header[] = {
+            {
+                    .name   = {.iov_base = ":method", .iov_len = 7},
+                    .value  = {.iov_base = "post", .iov_len = 4}
+            },
+    };
+    xqc_http_headers_t headers = {
+            .headers = header,
+            .count  = 1,
+    };
+
+    if (ctx->header_sent == 0) {
+        ret = xqc_h3_request_send_headers(h3_request, &headers);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_headers error %d\n", ret);
+        } else {
+            printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+            ctx->header_sent = 1;
+        }
+    }
+
+    unsigned buff_size = 500*1024;
+    char *buff = malloc(buff_size);
+    if (ctx->send_offset < buff_size) {
+        ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_body error %d\n", ret);
+        } else {
+            ctx->send_offset += ret;
+            printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+        }
+    }
+    return 0;
+}
+
+int xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    int ret = 0;
+
+    xqc_h3_request_set_user_data(h3_request, &ctx);
+
+    return 0;
+}
+
 int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
     int ret = 0;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
-    char buff[5000] = {0};
-    ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
-    if (ret < 0) {
-        printf("xqc_h3_request_send_body error %d\n", ret);
-    } else {
-        ctx->send_offset += ret;
-        printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
-    }
+    ret = xqc_server_request_send(h3_request, ctx);
     return ret;
 }
 
@@ -116,8 +166,8 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     DEBUG;
     int ret;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
-    char buff[1000] = {0};
-    size_t buff_size = 1000;
+    char buff[5000] = {0};
+    size_t buff_size = 5000;
 
     ssize_t read;
     unsigned char fin;
@@ -129,28 +179,10 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     if (!fin) {
         return 0;
     }
-    /*xqc_http_header_t header[] = {
-            {
-                    .name   = {.iov_base = ":method", .iov_len = 7},
-                    .value  = {.iov_base = "post", .iov_len = 4}
-            },
-    };
-    xqc_http_headers_t headers = {
-            .headers = header,
-            .count  = 1,
-    };
 
-    ret = xqc_h3_request_send_headers(h3_request, &headers);
-    if (ret < 0) {
-        printf("xqc_h3_request_send_headers error %d\n", ret);
-    } else {
-        printf("xqc_h3_request_send_headers success size=%lld\n", ret);
-    }
+    xqc_server_request_send(h3_request, ctx);
 
-    if (fin) {
-        ret = xqc_h3_request_send_body(h3_request, buff, sizeof(buff), 1);
-        printf("xqc_h3_request_send_body %lld \n", ret);
-    }*/
+
     return 0;
 }
 
@@ -366,6 +398,9 @@ int main(int argc, char *argv[]) {
             .conn_callbacks = {
                     .conn_create_notify = xqc_server_conn_notify,
             },
+            .h3_conn_callbacks = {
+                    .h3_conn_create_notify = xqc_server_h3_conn_notify,
+            },
             .stream_callbacks = {
                     .stream_write_notify = xqc_server_write_notify,
                     .stream_read_notify = xqc_server_read_notify,
@@ -373,6 +408,7 @@ int main(int argc, char *argv[]) {
             .h3_request_callbacks = {
                     .h3_request_write_notify = xqc_server_request_write_notify,
                     .h3_request_read_notify = xqc_server_request_read_notify,
+                    .h3_request_create = xqc_server_request_create_notify,
             },
             .write_socket = xqc_server_send,
             //.cong_ctrl_callback = xqc_reno_cb,

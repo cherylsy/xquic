@@ -261,21 +261,18 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
+int xqc_client_request_send(xqc_h3_request_t *h3_request, client_ctx_t *ctx)
 {
-    DEBUG;
     ssize_t ret = 0;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
-
     xqc_http_header_t header[] = {
-        {
-            .name   = {.iov_base = ":method", .iov_len = 7},
-            .value  = {.iov_base = "post", .iov_len = 4}
-        },
+            {
+                    .name   = {.iov_base = ":method", .iov_len = 7},
+                    .value  = {.iov_base = "post", .iov_len = 4}
+            },
     };
     xqc_http_headers_t headers = {
-        .headers = header,
-        .count  = 1,
+            .headers = header,
+            .count  = 1,
     };
 
     if (ctx->header_sent == 0) {
@@ -299,6 +296,16 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
             printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
         }
     }
+    return 0;
+}
+
+int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
+{
+    DEBUG;
+    ssize_t ret = 0;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    ret = xqc_client_request_send(h3_request, ctx);
     return ret;
 }
 
@@ -610,7 +617,7 @@ int main(int argc, char *argv[]) {
 
     if (conn_settings.h3) {
         ctx.my_conn->h3_request = xqc_h3_request_create(ctx.engine, cid, &ctx);
-        xqc_client_request_write_notify(ctx.my_conn->h3_request, &ctx);
+        xqc_client_request_send(ctx.my_conn->h3_request, &ctx);
     } else {
         ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
         xqc_client_write_notify(ctx.my_conn->stream, &ctx);

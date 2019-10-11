@@ -8,6 +8,9 @@ typedef struct xqc_h3_request_s {
     void                *user_data;
     xqc_h3_request_callbacks_t
                         *request_if;
+    size_t              body_recvd;
+    size_t              body_len;
+    size_t              header_len;
 } xqc_h3_request_t;
 
 void

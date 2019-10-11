@@ -23,6 +23,12 @@ xqc_h3_connect(xqc_engine_t *engine, void *user_data,
     return &conn->scid;
 }
 
+int
+xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
+{
+    return xqc_conn_close(engine, cid);
+}
+
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 {
@@ -82,11 +88,6 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
     xqc_free(h3_conn);
 }
 
-int
-xqc_h3_conn_close(xqc_h3_conn_t *h3_conn)
-{
-    return xqc_conn_close(h3_conn->conn->engine, &h3_conn->conn->scid);
-}
 
 int
 xqc_h3_conn_send_goaway(xqc_h3_conn_t *h3_conn)

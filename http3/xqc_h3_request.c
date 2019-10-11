@@ -62,7 +62,17 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
 
     h3_stream->h3_request = h3_request;
 
+    if (h3_request->request_if->h3_request_create) {
+        h3_request->request_if->h3_request_create(h3_request, h3_request->user_data);
+    }
     return h3_request;
+}
+
+void
+xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
+                             void *user_data)
+{
+    h3_request->user_data = user_data;
 }
 
 ssize_t
@@ -72,7 +82,10 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
 }
 
 ssize_t
-xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size_t data_size, uint8_t fin)
+xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
+                         unsigned char *data,
+                         size_t data_size,
+                         uint8_t fin)
 {
     return xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
 }
@@ -84,9 +97,25 @@ xqc_h3_request_recv_header(xqc_h3_request_t *h3_request)
 }
 
 ssize_t
-xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
+xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
+                         unsigned char *recv_buf,
                          size_t recv_buf_size,
                          uint8_t *fin)
 {
-    return xqc_h3_stream_recv_data(h3_request->h3_stream, recv_buf, recv_buf_size, fin);
+    ssize_t n_recv;
+    n_recv = xqc_h3_stream_recv_data(h3_request->h3_stream, recv_buf, recv_buf_size, fin);
+    if (n_recv < 0) {
+        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
+                "|xqc_h3_stream_recv_data error|ret:%z|", n_recv);
+        return n_recv;
+    }
+
+    h3_request->body_recvd += n_recv;
+    if (*fin) {
+        h3_request->body_len = h3_request->body_recvd;
+    }
+    xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
+            "|body_recvd:%uz|body_len:%uz|n_recv:%z|",
+            h3_request->body_recvd, h3_request->body_len, n_recv);
+    return n_recv;
 }

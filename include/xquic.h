@@ -19,6 +19,7 @@
 #define XQC_TLS_AEAD_OVERHEAD_MAX_LEN 16
 
 typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
+
 typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
 
 typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
@@ -39,17 +40,17 @@ typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data
 
 /* transport layer */
 struct xqc_conn_callbacks_s {
-    xqc_conn_notify_pt          conn_create_notify; /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_conn_notify_pt          conn_close_notify; /* 连接关闭时回调,用户可以回收资源 */
+    xqc_conn_notify_pt          conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
+    xqc_conn_notify_pt          conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
 
     /* for handshake done */
-    xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
+    //xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
 };
 
 /* application layer */
 struct xqc_h3_conn_callbacks_s {
-    xqc_h3_conn_notify_pt          h3_conn_create_notify; /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_h3_conn_notify_pt          h3_conn_close_notify; /* 连接关闭时回调,用户可以回收资源 */
+    xqc_h3_conn_notify_pt          h3_conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
+    xqc_h3_conn_notify_pt          h3_conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
 };
 
 /* transport layer */
@@ -61,8 +62,9 @@ typedef struct xqc_stream_callbacks_s {
 
 /* application layer */
 typedef struct xqc_h3_request_callbacks_s {
-    xqc_h3_request_notify_pt    h3_request_read_notify; /* 可读时回调，用户可以继续调用读接口 */
-    xqc_h3_request_notify_pt    h3_request_write_notify; /* 可写时回调，用户可以继续调用写接口 */
+    xqc_h3_request_notify_pt    h3_request_read_notify; /* 可读时回调，用户可以继续调用读接口，读headers或body */
+    xqc_h3_request_notify_pt    h3_request_write_notify; /* 可写时回调，用户可以继续调用写接口,写headers或body */
+    xqc_h3_request_notify_pt    h3_request_create; /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
     xqc_h3_request_notify_pt    h3_request_close; /* optional 关闭时回调，用户可以回收资源 */
 } xqc_h3_request_callbacks_t;
 
@@ -206,7 +208,8 @@ typedef struct xqc_engine_s {
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
-xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * xc_config);
+xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
+                                xqc_engine_ssl_config_t * xc_config);
 
 void xqc_engine_destroy(xqc_engine_t *engine);
 
@@ -220,13 +223,6 @@ xqc_engine_init (xqc_engine_t *engine,
                  xqc_conn_settings_t conn_settings,
                  void *user_data);
 
-
-xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
-                        unsigned char *token, unsigned token_len,
-                        char *server_host, int no_crypto_flag,
-                        xqc_conn_ssl_config_t *conn_ssl_config);
-
-int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * Client connect with http3
@@ -244,9 +240,17 @@ xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           char *server_host, int no_crypto_flag,
                           xqc_conn_ssl_config_t *conn_ssl_config);
 
+int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
+
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         xqc_cid_t *cid,
                                         void *user_data);
+
+/**
+ * Server should set user_data when h3_request_create callbacks
+ */
+void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
+                                  void *user_data);
 
 /**
  * @return 发送成功的字节数，<0 出错
@@ -274,9 +278,20 @@ xqc_h3_request_recv_header(xqc_h3_request_t *h3_request);
  * @return 读取到的长度，<0 出错
  */
 ssize_t
-xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
+xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
+                         unsigned char *recv_buf,
                          size_t recv_buf_size,
                          uint8_t *fin);
+
+/*
+ *  transport layer APIs, if you don't need application layer
+ */
+xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
+                       unsigned char *token, unsigned token_len,
+                       char *server_host, int no_crypto_flag,
+                       xqc_conn_ssl_config_t *conn_ssl_config);
+
+int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * Create new stream in quic connection.
@@ -290,9 +305,9 @@ xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
  * Close stream.
  * @retval XQC_OK or XQC_ERROR
  */
-int xqc_stream_close (xqc_engine_t *engine,
+/*int xqc_stream_close (xqc_engine_t *engine,
                      xqc_cid_t *cid,
-                     uint64_t stream_id);
+                     uint64_t stream_id);*/
 
 /**
  * Recv data in stream.
@@ -310,6 +325,10 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
                          unsigned char *send_data,
                          size_t send_data_size,
                          uint8_t fin);
+
+/*
+ * transport layer APIs end
+ */
 
 /**
  * Process all connections
@@ -333,12 +352,19 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 /**
  * User should call xqc_conn_continue_send when write event ready
  */
-int
-xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid);
+int xqc_conn_continue_send(xqc_engine_t *engine,
+                           xqc_cid_t *cid);
 
 
-int xqc_set_save_tp_cb(xqc_engine_t *engine, xqc_cid_t * cid, xqc_save_tp_cb_t  cb, void * user_data);
-int xqc_set_save_session_cb(xqc_engine_t  *engine, xqc_cid_t *cid, xqc_save_session_cb_t  cb, void * user_data);
+int xqc_set_save_tp_cb(xqc_engine_t *engine,
+                       xqc_cid_t * cid,
+                       xqc_save_tp_cb_t  cb,
+                       void * user_data);
+
+int xqc_set_save_session_cb(xqc_engine_t  *engine,
+                            xqc_cid_t *cid,
+                            xqc_save_session_cb_t  cb,
+                            void * user_data);
 
 
 #endif /* _XQUIC_H_INCLUDED_ */
