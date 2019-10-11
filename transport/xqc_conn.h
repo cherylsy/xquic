@@ -19,6 +19,8 @@
 #define XQC_TOKEN_EXPIRE_DELTA 7*24*60*60   //N秒后过期
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA - 10) //提前N秒更新
 
+#define XQC_MAX_PACKET_PROCESS_BATCH 100 //xqc_engine_packet_process最多积累个数
+
 /* 调试时候用，会删掉 */
 #ifdef DEBUG_PRINT
 #define XQC_DEBUG_PRINT printf("%s:%d (%s)\n", __FILE__, __LINE__, __FUNCTION__);
@@ -244,6 +246,7 @@ struct xqc_connection_s{
     uint32_t                conn_token_len;
     uint32_t                zero_rtt_count;
     uint32_t                retry_count;
+    uint32_t                packet_need_process_count; /* xqc_engine_packet_process积累个数 */
 
     xqc_conn_state_t        conn_state;
     xqc_memory_pool_t      *conn_pool;

@@ -409,6 +409,8 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
+    conn->packet_need_process_count = 0;
+
 end:
     return;
 }
@@ -646,7 +648,9 @@ after_process:
     }
 
     /* main logic */
-    /*xqc_engine_main_logic(engine);*/
+    if (++conn->packet_need_process_count >= XQC_MAX_PACKET_PROCESS_BATCH || conn->conn_err != 0) {
+        xqc_engine_main_logic(engine);
+    }
 
     return ret;
 }
