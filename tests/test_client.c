@@ -285,7 +285,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, client_ctx_t *ctx)
         }
     }
 
-    unsigned buff_size = 1000*1024;
+    unsigned buff_size = 10000*1024;
     char *buff = malloc(buff_size);
     if (ctx->send_offset < buff_size) {
         ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);

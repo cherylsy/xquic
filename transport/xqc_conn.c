@@ -375,7 +375,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO,
-            "|<==|conn:%p|pkt_num:%ui|size:%ui|sent:%ui|pkt_type:%s|frame:%s|now:%ui|",
+            "|<==|conn:%p|pkt_num:%ui|size:%ud|sent:%uz|pkt_type:%s|frame:%s|now:%ui|",
             conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
             xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
             xqc_frame_type_2_str(packet_out->po_frame_types), now);
@@ -536,6 +536,9 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
 int
 xqc_conn_immediate_close(xqc_connection_t *conn)
 {
+    if (conn->conn_state >= XQC_CONN_STATE_DRAINING) {
+        return XQC_OK;
+    }
     int ret;
     xqc_send_ctl_t *ctl;
     xqc_msec_t now;

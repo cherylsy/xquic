@@ -17,7 +17,7 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
 //2^n
 #define xqc_send_ctl_pow(n) (1 << n)
 
-#define XQC_CTL_PACKETS_USED_MAX 10000
+#define XQC_CTL_PACKETS_USED_MAX 100
 
 typedef enum {
     XQC_TIMER_ACK_INIT,
@@ -247,7 +247,7 @@ xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_ms
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|expire=%ui|now=%ui|",
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|",
             xqc_timer_type_2_str(type), expire, xqc_now());
 }
 
@@ -256,7 +256,7 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 0;
     ctl->ctl_timer[type].ctl_expire_time = 0;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type=%s|",
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|",
             xqc_timer_type_2_str(type));
 }
 

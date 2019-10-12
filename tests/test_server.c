@@ -295,7 +295,7 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
         goto err;
     }
 
-    int size = 2 * 1024 * 1024;
+    int size = 10 * 1024 * 1024;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
