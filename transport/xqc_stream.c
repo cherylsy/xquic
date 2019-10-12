@@ -772,6 +772,7 @@ xqc_stream_send (xqc_stream_t *stream,
             goto do_buff;
         }
 
+
         if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count > XQC_PACKET_0RTT_MAX_COUNT) {
             xqc_log(conn->log, XQC_LOG_WARN, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
             ret = -XQC_EBLOCKED;
@@ -845,7 +846,11 @@ do_buff:
     }
 
     if (offset == 0 && !fin_only_done) {
-        return ret;
+        if(ret == -XQC_EBLOCKED){
+            return 0; // -XQC_EBLOCKED not means error to close connection
+        }else{
+            return ret;
+        }
     }
     return offset;
 }
