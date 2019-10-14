@@ -379,6 +379,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
         conn->conn_state = XQC_CONN_STATE_CLOSED;
         return;
     }
+    XQC_CHECK_IMMEDIATE_CLOSE();
 
     xqc_process_crypto_read_streams(conn);
     xqc_process_crypto_write_streams(conn);

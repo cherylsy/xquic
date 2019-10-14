@@ -393,6 +393,9 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
 
+    /* token校验失败也要回ack */
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
+
     /*  check token
      *  initial+ack时不校验token，因此在解crypto时校验
      * */

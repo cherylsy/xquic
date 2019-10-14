@@ -735,7 +735,7 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
     int support_0rtt = xqc_is_ready_to_send_early_data(conn);
 
-    support_0rtt = 0;
+    //support_0rtt = 0;
     int buff_1rtt = 0;
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
