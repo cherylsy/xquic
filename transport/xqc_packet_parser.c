@@ -602,6 +602,7 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         return -1;
     }
 #if 0
+
     printf("hp base : %d\n", tx_hp->len);
     hex_print(tx_hp->base, tx_hp->len);
     printf("hp_mask mask:%d, sample offset = %d\n", nwrite, packet_out->ppktno + 4 - packet_out->po_buf);
@@ -622,6 +623,7 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         *(p + i) ^= mask[i + 1];
     }
     return 0;
+
 
 }
 
@@ -696,12 +698,12 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
 
 
 
-
-    //printf("recv %d bytes, encrypt_level :%d, key len:%d, iv len:%d, hp len:%d\n", packet_in->buf_size ,encrypt_level, ckm->key.len, ckm->iv.len, hp->len);
-    //hex_print(ckm->key.base, ckm->key.len);
-    //hex_print(ckm->iv.base, ckm->iv.len);
-    //hex_print(hp->base, hp->len);
-
+#if 0
+    printf("recv %d bytes, encrypt_level :%d, key len:%d, iv len:%d, hp len:%d\n", packet_in->buf_size ,encrypt_level, ckm->key.len, ckm->iv.len, hp->len);
+    hex_print(ckm->key.base, ckm->key.len);
+    hex_print(ckm->iv.base, ckm->iv.len);
+    hex_print(hp->base, hp->len);
+#endif
 
     char * pkt = packet_in->pos;
     size_t pkt_num_offset = packet_in->pi_pkt.pkt_num_offset;
@@ -714,7 +716,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
     memcpy(p, pkt, pkt_num_offset);
     p = p + pkt_num_offset;
 
-    size_t nwrite = hp_mask(conn, mask ,sizeof(mask), hp->base, hp->len, pkt+sample_offset,  XQC_HP_SAMPLELEN, NULL);
+    int nwrite = hp_mask(conn, mask ,sizeof(mask), hp->base, hp->len, pkt+sample_offset,  XQC_HP_SAMPLELEN, NULL);
     if(nwrite < XQC_HP_MASKLEN){
         xqc_log(conn->log, XQC_LOG_WARN, "|do_decrypt_pkt| hp_mask return  error :%d", nwrite);
         return -1;
@@ -1205,7 +1207,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     switch (type)
     {
         case XQC_PTYPE_INIT:
-            if((c->conn_type == XQC_CONN_TYPE_SERVER) && (c->conn_state == XQC_CONN_STATE_SERVER_INIT) ){
+            if((c->conn_type == XQC_CONN_TYPE_SERVER) && (c->conn_state == XQC_CONN_STATE_SERVER_INIT) && ((c->tlsref.flags & XQC_CONN_FLAG_RETRY_SENT) == 0) ){
                 ret = c->tlsref.callbacks.recv_client_initial(c, dcid, NULL); //
                 if(ret < 0){
                     return ret;

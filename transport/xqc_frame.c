@@ -412,6 +412,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             if (xqc_conn_send_retry(conn, token, token_len) != 0) {
                 return -XQC_ESEND_RETRY;
             }
+            conn->tlsref.flags |= XQC_CONN_FLAG_RETRY_SENT;
             packet_in->pos = packet_in->last;
             return XQC_OK;
         }

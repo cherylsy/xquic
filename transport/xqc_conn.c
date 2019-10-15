@@ -364,14 +364,15 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
             return XQC_ENCRYPT_DATA_ERROR;
         }
 
+
         packet_out->po_flag |= XQC_POF_ENCRYPTED;
+        //printf("packet_out: send data:%d, pkt_type=%d\n", packet_out->po_used_size,packet_out->po_pkt.pkt_type);
+        //hex_print(packet_out->po_buf, packet_out->po_used_size);
     }
 
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
 
-    //printf("send encrypto data:%d\n", packet_out->po_used_size);
-    //hex_print(packet_out->po_buf, packet_out->po_used_size);
 
     sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO,

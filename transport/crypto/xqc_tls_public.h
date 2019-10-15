@@ -120,6 +120,8 @@ typedef enum {
      endpoint has initiated key update and waits for the remote
      endpoint to update key. */
   XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE = 0x0800,
+  /*XQC_CONN_FLAG_RETRY_SENT means server already send retry packet */
+  XQC_CONN_FLAG_RETRY_SENT = 0x1000,
 }xqc_conn_flag;
 
 

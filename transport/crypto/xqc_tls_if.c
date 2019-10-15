@@ -888,7 +888,8 @@ int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid )
         return -1;
     }
     conn->tlsref.flags  |= XQC_CONN_FLAG_RECV_RETRY;
-    int ret = xqc_client_setup_initial_crypto_context(conn, dcid);
+    int ret = 0;
+    //int ret = xqc_client_setup_initial_crypto_context(conn, dcid);
 
     xqc_pktns_t  * p_pktns = &conn->tlsref.initial_pktns;
     xqc_list_head_t *head = &p_pktns->msg_cb_buffer;
