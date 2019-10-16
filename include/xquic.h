@@ -57,6 +57,7 @@ struct xqc_h3_conn_callbacks_s {
 typedef struct xqc_stream_callbacks_s {
     xqc_stream_notify_pt        stream_read_notify; /* 可读时回调，用户可以继续调用读接口 */
     xqc_stream_notify_pt        stream_write_notify; /* 可写时回调，用户可以继续调用写接口 */
+    xqc_stream_notify_pt        stream_create;  /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
     xqc_stream_notify_pt        stream_close;   /* optional 关闭时回调，用户可以回收资源 */
 } xqc_stream_callbacks_t;
 
@@ -308,6 +309,12 @@ int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
                                  xqc_cid_t *cid,
                                  void *user_data);
+
+/**
+ * Server should set user_data when stream_create callbacks
+ */
+void xqc_stream_set_user_data(xqc_stream_t *stream,
+                              void *user_data);
 
 /**
  * Close stream.

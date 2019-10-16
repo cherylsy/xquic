@@ -246,6 +246,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
             printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
         }
     }
+    return 0;
 }
 
 int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
@@ -555,7 +556,7 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
-            .h3         =   1,
+            .h3         =   0,
     };
     xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
 
