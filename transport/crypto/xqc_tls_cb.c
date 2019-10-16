@@ -295,9 +295,27 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
         unsigned int inlen, void *arg)
 {
     xqc_connection_t * conn = (xqc_connection_t *) SSL_get_app_data(ssl) ;
-    const uint8_t *alpn;
-    size_t alpnlen;
+    xqc_engine_ssl_config_t *xs_config = (xqc_engine_ssl_config_t *)arg;
+    uint8_t *alpn_list = xs_config->alpn_list;
+    size_t alpn_list_len = xs_config->alpn_list_len;
 
+    if(SSL_select_next_proto((unsigned char **)out, outlen, alpn_list, alpn_list_len, in, inlen ) != OPENSSL_NPN_NEGOTIATED){
+        return SSL_TLSEXT_ERR_NOACK;
+    }
+
+    uint8_t * alpn = (uint8_t *)(*out);
+    uint8_t alpn_len = *outlen;
+
+    if(alpn_len == strlen(XQC_ALPN_HTTP3) && memcmp(alpn, XQC_ALPN_HTTP3, alpn_len) == 0){
+
+        conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+    }else{
+        conn->tlsref.alpn_num = XQC_ALPN_DEFAULT_NUM;
+    }
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|select apln number:%d|", conn->tlsref.alpn_num);
+
+#if 0
     int version = conn->version ;
     // Just select alpn for now.
     switch (version) {
@@ -310,6 +328,8 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
     }
     *out = (const uint8_t *)(alpn + 1);
     *outlen = alpn[0];
+#endif
+
 
     return SSL_TLSEXT_ERR_OK;
 }
