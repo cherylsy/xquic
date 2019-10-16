@@ -846,9 +846,9 @@ do_buff:
     }
 
     if (offset == 0 && !fin_only_done) {
-        if(ret == -XQC_EBLOCKED){
-            return 0; // -XQC_EBLOCKED not means error to close connection
-        }else{
+        if (ret == -XQC_EBLOCKED) {
+            return 0; // -XQC_EBLOCKED not means error
+        } else {
             return ret;
         }
     }

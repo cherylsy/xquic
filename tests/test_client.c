@@ -230,18 +230,29 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, void *user_data) {
     return 0;
 }
 
+int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
+{
+    ssize_t ret;
+    client_ctx_t *ctx = (client_ctx_t *) user_data;
+
+    unsigned buff_size = 10000*1024;
+    char *buff = malloc(buff_size);
+    if (ctx->send_offset < buff_size) {
+        ret = xqc_stream_send(stream, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+        if (ret < 0) {
+            printf("xqc_stream_send error %d\n", ret);
+        } else {
+            ctx->send_offset += ret;
+            printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
+        }
+    }
+}
+
 int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     int ret = 0;
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    char buff[5000] = {0};
-    ret = xqc_stream_send(stream, buff + ctx->send_offset, sizeof(buff) - ctx->send_offset, 1);
-    if (ret < 0) {
-        printf("xqc_stream_send error %d\n", ret);
-    } else {
-        ctx->send_offset += ret;
-        printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
-    }
+    ret = xqc_client_stream_send(stream, user_data);
     return ret;
 }
 
@@ -523,11 +534,12 @@ int main(int argc, char *argv[]) {
                     .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
                     .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
             },
-            /* HTTP3不用设置这个回调 */
+            /* 仅使用传输层时实现 */
             .stream_callbacks = {
-                    .stream_write_notify = xqc_client_write_notify,
-                    .stream_read_notify = xqc_client_read_notify,
+                    .stream_write_notify = xqc_client_write_notify, /* 可写时回调，用户可以继续调用写接口 */
+                    .stream_read_notify = xqc_client_read_notify, /* 可读时回调，用户可以继续调用读接口 */
             },
+            /* 使用应用层时实现 */
             .h3_request_callbacks = {
                     .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
                     .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
@@ -620,7 +632,7 @@ int main(int argc, char *argv[]) {
         xqc_client_request_send(ctx.my_conn->h3_request, &ctx);
     } else {
         ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
-        xqc_client_write_notify(ctx.my_conn->stream, &ctx);
+        xqc_client_stream_send(ctx.my_conn->stream, &ctx);
     }
 
     event_base_dispatch(eb);

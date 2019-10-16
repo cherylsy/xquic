@@ -319,6 +319,7 @@ xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
 
 /**
  * Recv data in stream.
+ * @return bytes read, -1 for error
  */
 ssize_t xqc_stream_recv (xqc_stream_t *stream,
                          unsigned char *recv_buf,
@@ -328,6 +329,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 /**
  * Send data in stream.
  * @param fin  0 or 1,  1 - final data block send in this stream.
+ * @return bytes sent, -1 for error
  */
 ssize_t xqc_stream_send (xqc_stream_t *stream,
                          unsigned char *send_data,
