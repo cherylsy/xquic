@@ -235,12 +235,23 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
         xqc_stream_ready_to_write(stream);
     }
 
+    if (stream->stream_if->stream_create) {
+        stream->stream_if->stream_create(stream, stream->user_data);
+    }
+
     return stream;
 
 error:
     xqc_list_del_init(&stream->all_stream_list);
     xqc_destroy_stream(stream);
     return NULL;
+}
+
+void
+xqc_stream_set_user_data(xqc_stream_t *stream,
+                            void *user_data)
+{
+    stream->user_data = user_data;
 }
 
 void

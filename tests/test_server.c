@@ -67,11 +67,30 @@ int xqc_server_conn_notify(xqc_connection_t *conn, void *user_data) {
     return 0;
 }
 
+int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
+{
+    ssize_t ret;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
+
+    unsigned buff_size = 10000*1024;
+    char *buff = malloc(buff_size);
+    if (ctx->send_offset < buff_size) {
+        ret = xqc_stream_send(stream, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+        if (ret < 0) {
+            printf("xqc_stream_send error %d\n", ret);
+        } else {
+            ctx->send_offset += ret;
+            printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
+        }
+    }
+    return 0;
+}
+
 int xqc_server_write_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
-    char buff[1000] = {0};
-    xqc_stream_send(stream, buff, sizeof(buff), 1);
+
+    xqc_server_stream_send(stream, user_data);
 
     return 0;
 }
@@ -79,8 +98,8 @@ int xqc_server_write_notify(xqc_stream_t *stream, void *user_data) {
 int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
-    char buff[1000] = {0};
-    size_t buff_size = 1000;
+    char buff[5000] = {0};
+    size_t buff_size = 5000;
 
     ssize_t read;
     unsigned char fin;
@@ -89,11 +108,9 @@ int xqc_server_read_notify(xqc_stream_t *stream, void *user_data) {
         printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
     } while (read > 0 && !fin);
 
-    ssize_t sent;
-    if (fin) {
-        sent = xqc_stream_send(stream, buff, buff_size, fin);
-        printf("xqc_stream_send %lld \n", sent);
-    }
+    /*if (fin) {
+        xqc_server_stream_send(stream, user_data);
+    }*/
     return 0;
 }
 
@@ -200,6 +217,15 @@ ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
     return res;
 }
 
+int xqc_server_stream_create_notify(xqc_stream_t *stream, void *user_data)
+{
+    DEBUG;
+    int ret = 0;
+
+    xqc_stream_set_user_data(stream, &ctx);
+
+    return 0;
+}
 
 void
 xqc_server_write_handler(xqc_server_ctx_t *ctx)
@@ -404,6 +430,7 @@ int main(int argc, char *argv[]) {
             .stream_callbacks = {
                     .stream_write_notify = xqc_server_write_notify,
                     .stream_read_notify = xqc_server_read_notify,
+                    .stream_create = xqc_server_stream_create_notify,
             },
             .h3_request_callbacks = {
                     .h3_request_write_notify = xqc_server_request_write_notify,
@@ -418,7 +445,7 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
-            .h3         =   1,
+            .h3         =   0,
     };
 
     eb = event_base_new();
