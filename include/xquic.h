@@ -141,6 +141,9 @@ struct xqc_engine_ssl_config {
     //uint32_t   timeout;
     char       *session_ticket_key_data;
     size_t     session_ticket_key_len;
+
+    char       *alpn_list;
+    int        alpn_list_len;
 };
 
 struct xqc_conn_ssl_config {
