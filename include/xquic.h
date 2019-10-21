@@ -22,16 +22,18 @@ typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
 
 typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
 
+/*
+ * return bytes sent, <0 for error
+ */
 typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 
+/*
+ * return 0 for success, <0 for error
+ */
 typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
-
 typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *conn, void *user_data);
-
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
-
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
-
 typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 //session save callback
@@ -381,14 +383,14 @@ int xqc_conn_continue_send(xqc_engine_t *engine,
 
 
 int xqc_set_save_tp_cb(xqc_engine_t *engine,
-                       xqc_cid_t * cid,
-                       xqc_save_tp_cb_t  cb,
-                       void * user_data);
+                       xqc_cid_t *cid,
+                       xqc_save_tp_cb_t cb,
+                       void *user_data);
 
-int xqc_set_save_session_cb(xqc_engine_t  *engine,
+int xqc_set_save_session_cb(xqc_engine_t *engine,
                             xqc_cid_t *cid,
-                            xqc_save_session_cb_t  cb,
-                            void * user_data);
+                            xqc_save_session_cb_t cb,
+                            void *user_data);
 
 
 #endif /* _XQUIC_H_INCLUDED_ */

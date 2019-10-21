@@ -784,7 +784,7 @@ xqc_stream_send (xqc_stream_t *stream,
         }
 
 
-        if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count > XQC_PACKET_0RTT_MAX_COUNT) {
+        if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count >= XQC_PACKET_0RTT_MAX_COUNT) {
             xqc_log(conn->log, XQC_LOG_WARN, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
             ret = -XQC_EBLOCKED;
             goto do_buff;

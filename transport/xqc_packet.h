@@ -7,7 +7,7 @@
 
 #define XQC_MSS 1460 //TODO
 
-#define XQC_PACKET_0RTT_MAX_COUNT  100
+#define XQC_PACKET_0RTT_MAX_COUNT  5
 #define XQC_UNDECRYPT_PACKET_MAX  100
 
 typedef enum xqc_pkt_num_space
