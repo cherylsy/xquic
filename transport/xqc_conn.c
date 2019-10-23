@@ -298,6 +298,32 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     ssize_t ret;
     int pacing_blocked = 0;
 
+    /* 高优先级队列不受拥塞控制 */
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets_high_pri) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+
+        if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
+            && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
+            xqc_gen_padding_frame(packet_out);
+        }
+
+        ret = xqc_conn_send_one_packet(conn, packet_out);
+        if (ret < 0) {
+            return;
+        }
+
+        /* move send list to unacked list */
+        xqc_send_ctl_remove_send(&packet_out->po_list);
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            xqc_send_ctl_insert_unacked(packet_out,
+                                        &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                        conn->conn_send_ctl);
+        } else {
+            xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
+        }
+
+    }
+
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
@@ -337,8 +363,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             xqc_send_ctl_insert_unacked(packet_out,
                                         &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
                                         conn->conn_send_ctl);
-        }
-        else {
+        } else {
             xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
         }
 

@@ -42,6 +42,7 @@ typedef struct {
 
 typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_send_packets; //xqc_packet_out_t to send
+    xqc_list_head_t             ctl_send_packets_high_pri; //xqc_packet_out_t to send with high priority
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
     xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
@@ -177,6 +178,9 @@ xqc_send_ctl_insert_buff(xqc_list_head_t *pos, xqc_list_head_t *head);
 
 void
 xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head);
+
+void
+xqc_send_ctl_move_to_high_pri(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl);

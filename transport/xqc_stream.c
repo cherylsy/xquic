@@ -448,6 +448,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                                                  buf->data_len - offset,
                                                  &send_data_written);
                 if (n_written < 0) {
+                    xqc_maybe_recycle_packet_out(packet_out, stream->stream_conn);
                     return n_written;
                 }
                 //printf("crypto packet_out: %p\n", packet_out);
@@ -459,6 +460,8 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 packet_out->po_used_size += n_written;
 
                 xqc_long_packet_update_length(packet_out);
+
+                xqc_send_ctl_move_to_high_pri(&packet_out->po_list, stream->stream_conn->conn_send_ctl);
             }
         }
         xqc_list_del(pos);
