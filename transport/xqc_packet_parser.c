@@ -413,8 +413,12 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|token length exceed XQC_MAX_TOKEN_LEN|");
         return -XQC_ELIMIT;
     }
-    memcpy(c->conn_token, pos, token_len);
-    c->conn_token_len = token_len;
+
+    /* 服务端保存token，解crypto frame时校验token */
+    if (c->conn_type == XQC_CONN_TYPE_SERVER) {
+        memcpy(c->conn_token, pos, token_len);
+        c->conn_token_len = token_len;
+    }
 
     pos += token_len;
     //packet_in->pos = pos;
@@ -932,6 +936,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     if (++c->retry_count > 1) {
         packet_in->pos = packet_in->last;
+        xqc_log(c->log, XQC_LOG_DEBUG, "|retry_count exceed 1 return|");
         return XQC_OK;
     }
 
@@ -959,6 +964,9 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_memcpy(c->conn_token, pos, packet_in->last - pos);
     c->conn_token_len = packet_in->last - pos;
+
+    /*printf("xqc_packet_parse_retry token:\n");
+    hex_print(c->conn_token,c->conn_token_len);*/
 
     //存储token
     c->engine->eng_callback.save_token(c->conn_token, c->conn_token_len);

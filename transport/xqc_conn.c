@@ -753,6 +753,8 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
         xqc_log(conn->log, XQC_LOG_ERROR, "|exceed XQC_MAX_TOKEN_LEN|");
         return 0;
     }
+    /*printf("xqc_conn_check_token token:\n");
+    hex_print((char *)token,token_len);*/
 
     struct sockaddr *sa = (struct sockaddr *)conn->peer_addr;
     const unsigned char *pos = token;
