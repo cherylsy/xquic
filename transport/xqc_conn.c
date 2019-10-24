@@ -156,6 +156,7 @@ xqc_conn_create(xqc_engine_t *engine,
     xc->conn_flag = 0;
     xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;
     xc->zero_rtt_count = 0;
+    xc->conn_create_time = xqc_now();
     for (xqc_encrypt_level_t encrypt_level = XQC_ENC_LEV_INIT; encrypt_level < XQC_ENC_MAX_LEVEL; encrypt_level++) {
         xc->undecrypt_count[encrypt_level] = 0;
     }
