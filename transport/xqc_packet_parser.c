@@ -485,7 +485,7 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
 
     if ((++c->zero_rtt_count) > XQC_PACKET_0RTT_MAX_COUNT) {
-        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_zero_rtt|too many 0-RTT packets|");
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_zero_rtt|too many 0-RTT packets|%ud|", c->zero_rtt_count);
         return -XQC_ESYS;
     }
 

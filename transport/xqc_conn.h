@@ -243,6 +243,8 @@ struct xqc_connection_s{
                             local_addr[sizeof(struct sockaddr_in6)];
 
     unsigned char           conn_token[XQC_MAX_TOKEN_LEN];
+    unsigned char           enc_pkt[XQC_PACKET_OUT_SIZE_EXT];
+    uint32_t                enc_pkt_len;
     uint32_t                conn_token_len;
     uint32_t                zero_rtt_count;
     uint32_t                retry_count;
@@ -279,6 +281,7 @@ struct xqc_connection_s{
 
     xqc_msec_t              last_ticked_time;
     xqc_msec_t              next_tick_time;
+    xqc_msec_t              conn_create_time;
 
     SSL                     *xc_ssl;   /*ssl for connection*/
     xqc_tlsref_t            tlsref;   //all tls reference

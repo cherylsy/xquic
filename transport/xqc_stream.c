@@ -448,6 +448,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                                                  buf->data_len - offset,
                                                  &send_data_written);
                 if (n_written < 0) {
+                    xqc_maybe_recycle_packet_out(packet_out, stream->stream_conn);
                     return n_written;
                 }
                 //printf("crypto packet_out: %p\n", packet_out);
@@ -465,6 +466,8 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                     packet_out->po_pkt.pkt_num, packet_out->po_used_size, n_written,
                     xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                     xqc_frame_type_2_str(packet_out->po_frame_types), now);
+
+                xqc_send_ctl_move_to_high_pri(&packet_out->po_list, stream->stream_conn->conn_send_ctl);
             }
         }
         xqc_list_del(pos);
@@ -790,7 +793,7 @@ xqc_stream_send (xqc_stream_t *stream,
         }
 
 
-        if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count > XQC_PACKET_0RTT_MAX_COUNT) {
+        if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count >= XQC_PACKET_0RTT_MAX_COUNT) {
             xqc_log(conn->log, XQC_LOG_WARN, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
             ret = -XQC_EBLOCKED;
             goto do_buff;
