@@ -377,36 +377,33 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
 
-    if (!(packet_out->po_flag & XQC_POF_ENCRYPTED)) {
-        //do encrypt
-        /* generate packet number */
-        packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
-        xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
-        xqc_long_packet_update_length(packet_out);
+    //do encrypt
+    /* generate packet number */
+    packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
+    xqc_write_packet_number(packet_out->ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
+    xqc_long_packet_update_length(packet_out);
 
-        if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
+    if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
 
-            xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
-            return XQC_ENCRYPT_DATA_ERROR;
-        }
-
-
-        packet_out->po_flag |= XQC_POF_ENCRYPTED;
-        //printf("packet_out: send data:%d, pkt_type=%d\n", packet_out->po_used_size,packet_out->po_pkt.pkt_type);
-        //hex_print(packet_out->po_buf, packet_out->po_used_size);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
+        return XQC_ENCRYPT_DATA_ERROR;
     }
+
+
+    //printf("packet_out: send data:%d, pkt_type=%d\n", packet_out->po_used_size,packet_out->po_pkt.pkt_type);
+    //hex_print(packet_out->po_buf, packet_out->po_used_size);
 
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
 
 
-    sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), packet_out->po_buf, packet_out->po_used_size);
+    sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), conn->enc_pkt, conn->enc_pkt_len);
     xqc_log(conn->log, XQC_LOG_INFO,
             "|<==|conn:%p|pkt_num:%ui|size:%ud|sent:%uz|pkt_type:%s|frame:%s|now:%ui|",
             conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
             xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
             xqc_frame_type_2_str(packet_out->po_frame_types), now);
-    if (sent != packet_out->po_used_size) {
+    if (sent != conn->enc_pkt_len) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|write_socket error|"
                                           "conn:%p|size:%ui|sent:%ui|pkt_type:%s|pkt_num:%ui|frame:%s|",
                 conn, packet_out->po_used_size, sent,
