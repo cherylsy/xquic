@@ -8,6 +8,8 @@
 
 #include "xqc_tls_cb.h"
 
+int xqc_conn_handshake_completed_handled(xqc_connection_t *conn);
+
 
 static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn)
 {
@@ -15,9 +17,14 @@ static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn)
         (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED);
 }
 
-void xqc_conn_handshake_completed(xqc_connection_t *conn)
+int xqc_conn_handshake_completed(xqc_connection_t *conn)
 {
     conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX;
+
+    if((conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED) == 0){
+        return xqc_conn_handshake_completed_handled(conn);
+    }
+    return 0;
 }
 
 
@@ -86,7 +93,10 @@ int xqc_server_tls_handshake(xqc_connection_t * conn)
         }
     }
 
-    xqc_conn_handshake_completed(conn);
+    if(xqc_conn_handshake_completed(conn) < 0){
+
+        xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error: handshake completed callback return error|");
+    }
     return 0;
 }
 
@@ -354,8 +364,12 @@ int xqc_read_tls(SSL *ssl)
     for (;;) {
         int rv = SSL_read_ex(ssl, buf, sizeof(buf), &nread);
         if (rv == 1) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|Read  bytes from TLS crypto stream|");
-            return XQC_ERR_PROTO;
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
+                xqc_log(conn->log, XQC_LOG_ERROR, "|Read  bytes from TLS crypto stream|");
+                return XQC_ERR_PROTO;
+            }else{
+                continue;
+            }
         }
         int err = SSL_get_error(ssl, 0);
         switch (err) {
@@ -451,6 +465,7 @@ int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data)
     //clear
     xqc_tls_free_msg_cb_buffer(conn);
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "handshake completed callback\n");
     return 0;
 }
 
@@ -602,8 +617,7 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
     return nwrite;
 }
 
-
-static int xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
+int xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
 {
   int rv;
 

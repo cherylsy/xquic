@@ -459,7 +459,13 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 stream->stream_send_offset += send_data_written;
                 packet_out->po_used_size += n_written;
 
+                xqc_msec_t now = xqc_now();
+                packet_out->po_sent_time = now;
                 xqc_long_packet_update_length(packet_out);
+                xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data: pkt_num:%ui|size:%ud|sent:%uz|pkt_type:%s|frame:%s|now:%ui|",
+                    packet_out->po_pkt.pkt_num, packet_out->po_used_size, n_written,
+                    xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
+                    xqc_frame_type_2_str(packet_out->po_frame_types), now);
 
                 xqc_send_ctl_move_to_high_pri(&packet_out->po_list, stream->stream_conn->conn_send_ctl);
             }
