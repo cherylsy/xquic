@@ -381,10 +381,14 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
+    xqc_conn_process_undecrypt_packets(conn);
+    XQC_CHECK_IMMEDIATE_CLOSE();
     xqc_process_crypto_read_streams(conn);
+    XQC_CHECK_IMMEDIATE_CLOSE();
+    xqc_conn_process_undecrypt_packets(conn);
+    XQC_CHECK_IMMEDIATE_CLOSE();
     xqc_process_crypto_write_streams(conn);
     XQC_CHECK_IMMEDIATE_CLOSE();
-
     xqc_conn_process_undecrypt_packets(conn);
     XQC_CHECK_IMMEDIATE_CLOSE();
 
@@ -433,6 +437,8 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         return;
     }
     engine->engine_flag |= XQC_ENG_FLAG_RUNNING;
+
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|");
 
     xqc_msec_t now = xqc_now();
     xqc_connection_t *conn;
