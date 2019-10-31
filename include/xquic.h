@@ -30,11 +30,11 @@ typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
 /*
  * return 0 for success, <0 for error
  */
-typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, void *user_data);
-typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *conn, void *user_data);
+typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
+typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data);
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
-typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
+//typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 //session save callback
 typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
@@ -248,6 +248,12 @@ xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
 
 int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
+/**
+ * Server should set user_data when h3_conn_create_notify callbacks
+ */
+void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
+                               void *user_data);
+
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         xqc_cid_t *cid,
                                         void *user_data);
@@ -294,15 +300,21 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
                          size_t recv_buf_size,
                          uint8_t *fin);
 
-/*
+/* ************************************************************
  *  transport layer APIs, if you don't need application layer
- */
+ *************************************************************/
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
                        unsigned char *token, unsigned token_len,
                        char *server_host, int no_crypto_flag,
                        xqc_conn_ssl_config_t *conn_ssl_config);
 
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
+
+/**
+ * Server should set user_data when conn_create_notify callbacks
+ */
+void xqc_conn_set_user_data(xqc_connection_t *conn,
+                           void *user_data);
 
 /**
  * Create new stream in quic connection.
@@ -328,7 +340,7 @@ void xqc_stream_set_user_data(xqc_stream_t *stream,
 
 /**
  * Recv data in stream.
- * @return bytes read, -1 for error
+ * @return bytes read, <0 for error
  */
 ssize_t xqc_stream_recv (xqc_stream_t *stream,
                          unsigned char *recv_buf,
@@ -338,16 +350,16 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 /**
  * Send data in stream.
  * @param fin  0 or 1,  1 - final data block send in this stream.
- * @return bytes sent, -1 for error
+ * @return bytes sent, <0 for error
  */
 ssize_t xqc_stream_send (xqc_stream_t *stream,
                          unsigned char *send_data,
                          size_t send_data_size,
                          uint8_t fin);
 
-/*
+/* ************************************************************
  * transport layer APIs end
- */
+ *************************************************************/
 
 
 /**

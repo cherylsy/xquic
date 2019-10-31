@@ -27,6 +27,13 @@
 
 #define XQC_MAX_TOKEN_LEN 32
 
+typedef struct user_stream_s {
+    xqc_stream_t       *stream;
+    xqc_h3_request_t   *h3_request;
+    uint64_t            send_offset;
+    int                 header_sent;
+} user_stream_t;
+
 typedef struct user_conn_s {
     int                 fd;
     xqc_cid_t           cid;
@@ -36,20 +43,17 @@ typedef struct user_conn_s {
     struct sockaddr_in  peer_addr;
     socklen_t           peer_addrlen;
 
-    xqc_stream_t       *stream;
-    xqc_h3_request_t   *h3_request;
     unsigned char      *token;
     unsigned            token_len;
+
+    struct event       *ev_socket;
+    struct event       *ev_timeout;
+
 } user_conn_t;
 
 typedef struct client_ctx_s {
-    xqc_engine_t  *engine;
-    user_conn_t   *my_conn;
-    struct event  *ev_socket;
-    struct event  *ev_engine;
-    struct event  *ev_timeout;
-    uint64_t       send_offset;
-    int            header_sent;
+    xqc_engine_t    *engine;
+    struct event    *ev_engine;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -76,7 +80,8 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 }
 
-int save_session_cb( char * data, size_t data_len, void *user_data){
+int save_session_cb( char * data, size_t data_len, void *user_data)
+{
     FILE * fp  = fopen("test_session", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
@@ -88,7 +93,8 @@ int save_session_cb( char * data, size_t data_len, void *user_data){
 }
 
 
-int save_tp_cb(char * data, size_t data_len, void * user_data){
+int save_tp_cb(char * data, size_t data_len, void * user_data)
+{
     FILE * fp = fopen("tp_localhost", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
@@ -131,27 +137,29 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
 int g_send_total = 0;
 ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
 {
-    client_ctx_t *ctx = (client_ctx_t *) user;
+    user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res;
-    int fd = ctx->my_conn->fd;
+    int fd = user_conn->fd;
     printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
         //res = write(fd, buf, size);
-        res = sendto(fd, buf, size, 0, (struct sockaddr*)&ctx->my_conn->peer_addr, ctx->my_conn->peer_addrlen);
+        res = sendto(fd, buf, size, 0, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
         }
     } while ((res < 0) && (errno == EINTR));
+    /*socklen_t tmp = sizeof(struct sockaddr_in);
+    getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);*/
     return res;
 }
 
-static int xqc_client_create_socket(const char *addr, unsigned int port)
+static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, unsigned int port)
 {
     int fd;
-    struct sockaddr_in *saddr = &ctx.my_conn->peer_addr;
-    ctx.my_conn->peer_addrlen = sizeof(*saddr);
+    struct sockaddr_in *saddr = &user_conn->peer_addr;
+    user_conn->peer_addrlen = sizeof(*saddr);
     struct hostent *remote;
 
     remote = gethostbyname(addr);
@@ -182,13 +190,11 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
         goto err;
     }*/
 
-    socklen_t tmp = sizeof(struct sockaddr_in);
-    getsockname(fd, (struct sockaddr *)&ctx.my_conn->local_addr, &tmp);
+    /*socklen_t tmp = sizeof(struct sockaddr_in);
+    getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);
 
-    printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx.my_conn->peer_addr.sin_addr), ntohs(ctx.my_conn->peer_addr.sin_port));
-    printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx.my_conn->local_addr.sin_addr), ntohs(ctx.my_conn->local_addr.sin_port));
-
-
+    printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
+    printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
     return fd;
 
@@ -196,70 +202,77 @@ static int xqc_client_create_socket(const char *addr, unsigned int port)
     close(fd);
     return -1;
 }
-int xqc_client_write_notify(xqc_stream_t *stream, void *user_data);
 
-int xqc_client_conn_create_notify(xqc_connection_t *conn, void *user_data) {
+int xqc_client_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+{
     DEBUG;
 
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    user_conn_t *user_conn = (user_conn_t *) user_data;
 
     return 0;
 }
 
-int xqc_client_conn_close_notify(xqc_connection_t *conn, void *user_data) {
+int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+{
     DEBUG;
 
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+    free(user_conn);
+    event_base_loopbreak(eb);
+    return 0;
+}
+
+int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+{
+    DEBUG;
+
+    user_conn_t *user_conn = (user_conn_t *) user_data;
 
     return 0;
 }
 
-int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, void *user_data) {
+int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+{
     DEBUG;
 
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
-
-    return 0;
-}
-
-int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, void *user_data) {
-    DEBUG;
-
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
-
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+    free(user_conn);
+    event_base_loopbreak(eb);
     return 0;
 }
 
 int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
 {
     ssize_t ret;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    user_stream_t *user_stream = (user_stream_t *) user_data;
 
     unsigned buff_size = 10000*1024;
     char *buff = malloc(buff_size);
-    if (ctx->send_offset < buff_size) {
-        ret = xqc_stream_send(stream, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+    if (user_stream->send_offset < buff_size) {
+        ret = xqc_stream_send(stream, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %d\n", ret);
         } else {
-            ctx->send_offset += ret;
-            printf("xqc_stream_send offset=%lld\n", ctx->send_offset);
+            user_stream->send_offset += ret;
+            printf("xqc_stream_send offset=%lld\n", user_stream->send_offset);
         }
     }
     return 0;
 }
 
-int xqc_client_write_notify(xqc_stream_t *stream, void *user_data) {
+int xqc_client_stream_write_notify(xqc_stream_t *stream, void *user_data)
+{
     DEBUG;
     int ret = 0;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
-    ret = xqc_client_stream_send(stream, user_data);
+    user_stream_t *user_stream = (user_stream_t *) user_data;
+    ret = xqc_client_stream_send(stream, user_stream);
     return ret;
 }
 
-int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
+int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
+{
     DEBUG;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    user_stream_t *user_stream = (user_stream_t *) user_data;
     char buff[1000] = {0};
     size_t buff_size = 1000;
 
@@ -273,7 +286,15 @@ int xqc_client_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-int xqc_client_request_send(xqc_h3_request_t *h3_request, client_ctx_t *ctx)
+int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
+{
+    DEBUG;
+    user_stream_t *user_stream = (user_stream_t*)user_data;
+    free(user_stream);
+    return 0;
+}
+
+int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
 {
     ssize_t ret = 0;
     xqc_http_header_t header[] = {
@@ -287,25 +308,25 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, client_ctx_t *ctx)
             .count  = 1,
     };
 
-    if (ctx->header_sent == 0) {
+    if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %d\n", ret);
         } else {
             printf("xqc_h3_request_send_headers success size=%lld\n", ret);
-            ctx->header_sent = 1;
+            user_stream->header_sent = 1;
         }
     }
 
     unsigned buff_size = 10000*1024;
     char *buff = malloc(buff_size);
-    if (ctx->send_offset < buff_size) {
-        ret = xqc_h3_request_send_body(h3_request, buff + ctx->send_offset, buff_size - ctx->send_offset, 1);
+    if (user_stream->send_offset < buff_size) {
+        ret = xqc_h3_request_send_body(h3_request, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_h3_request_send_body error %d\n", ret);
         } else {
-            ctx->send_offset += ret;
-            printf("xqc_h3_request_send_body offset=%lld\n", ctx->send_offset);
+            user_stream->send_offset += ret;
+            printf("xqc_h3_request_send_body offset=%lld\n", user_stream->send_offset);
         }
     }
     return 0;
@@ -315,9 +336,9 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
 {
     DEBUG;
     ssize_t ret = 0;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    ret = xqc_client_request_send(h3_request, ctx);
+    ret = xqc_client_request_send(h3_request, user_stream);
     return ret;
 }
 
@@ -325,7 +346,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 {
     DEBUG;
     int ret;
-    client_ctx_t *ctx = (client_ctx_t *) user_data;
+    user_stream_t *ctx = (user_stream_t *) user_data;
     char buff[1000] = {0};
     size_t buff_size = 1000;
 
@@ -341,47 +362,31 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
+    user_stream_t *user_stream = (user_stream_t *)user_data;
+    free(user_stream);
     return 0;
 }
 
 void
-xqc_client_write_handler(client_ctx_t *ctx)
+xqc_client_write_handler(user_conn_t *user_conn)
 {
     DEBUG
-    xqc_conn_continue_send(ctx->engine, &ctx->my_conn->cid);
+    xqc_conn_continue_send(ctx.engine, &user_conn->cid);
 }
 
 
 void
-xqc_client_read_handler(client_ctx_t *ctx)
+xqc_client_read_handler(user_conn_t *user_conn)
 {
     DEBUG
 
     ssize_t recv_size = 0;
-
-    /* recv udp packet */
-    ssize_t  n;
-    struct iovec  iov[1];
-    struct msghdr msg;
-    unsigned char msg_control[CMSG_SPACE(sizeof(struct in_pktinfo))];
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
-
-    iov[0].iov_base = (void *) packet_buf;
-    iov[0].iov_len = XQC_PACKET_TMP_BUF_LEN;
-
-    msg.msg_name = &ctx->my_conn->local_addr;
-    msg.msg_namelen = ctx->my_conn->local_addrlen;
-    msg.msg_iov = iov;
-    msg.msg_iovlen = 1;
-
-    if (ctx->my_conn->local_addr.sin_family == AF_INET) {
-        msg.msg_control = &msg_control;
-        msg.msg_controllen = sizeof(msg_control);
-    }
+    user_conn->peer_addrlen = sizeof(user_conn->peer_addr);
 
     do {
-        recv_size = recvmsg(ctx->my_conn->fd, &msg, 0);
-
+        recv_size = recvfrom(user_conn->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &user_conn->peer_addr,
+                             &user_conn->peer_addrlen);
         if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
@@ -391,18 +396,18 @@ xqc_client_read_handler(client_ctx_t *ctx)
         }
         uint64_t recv_time = now();
         printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
-        /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->my_conn->peer_addr.sin_addr), ntohs(ctx->my_conn->peer_addr.sin_port));
-        printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->my_conn->local_addr.sin_addr), ntohs(ctx->my_conn->local_addr.sin_port));
-    */
-        if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
-                                      (struct sockaddr *) (&ctx->my_conn->local_addr), ctx->my_conn->local_addrlen,
-                                      (struct sockaddr *) (&ctx->my_conn->peer_addr), ctx->my_conn->peer_addrlen,
-                                      (xqc_msec_t) recv_time, ctx) != 0) {
+        /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
+        printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
+
+        if (xqc_engine_packet_process(ctx.engine, packet_buf, recv_size,
+                                      (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
+                                      (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
+                                      (xqc_msec_t) recv_time, user_conn) != 0) {
             printf("xqc_client_read_handler: packet process err\n");
             return;
         }
     } while (recv_size > 0);
-    xqc_engine_finish_recv(ctx->engine);
+    xqc_engine_finish_recv(ctx.engine);
 }
 
 
@@ -410,12 +415,12 @@ static void
 xqc_client_event_callback(int fd, short what, void *arg)
 {
     //DEBUG;
-    client_ctx_t *ctx = (client_ctx_t *) arg;
+    user_conn_t *user_conn = (user_conn_t *) arg;
 
     if (what & EV_WRITE) {
-        xqc_client_write_handler(ctx);
+        xqc_client_write_handler(user_conn);
     } else if (what & EV_READ) {
-        xqc_client_read_handler(ctx);
+        xqc_client_read_handler(user_conn);
     } else {
         printf("event callback: what=%d\n", what);
         exit(1);
@@ -436,9 +441,9 @@ static void
 xqc_client_timeout_callback(int fd, short what, void *arg)
 {
     printf("xqc_client_timeout_callback now %llu\n", now());
-    client_ctx_t *ctx = (client_ctx_t *) arg;
+    user_conn_t *user_conn = (user_conn_t *) arg;
     int rc;
-    rc = xqc_conn_close(ctx->engine, &ctx->my_conn->cid);
+    rc = xqc_conn_close(ctx.engine, &user_conn->cid);
     if (rc) {
         printf("xqc_conn_close error\n");
         return;
@@ -502,10 +507,6 @@ int main(int argc, char *argv[]) {
 
     memset(&ctx, 0, sizeof(ctx));
 
-    char  session_path[256] = "./test_session";
-    char  tp_path[256] = "./tp_localhost";
-    char session_data[2048] = {0};
-    //size_t session_data_len = read_file_data(session_data, sizeof(session_data), session_path );
 
     xqc_engine_ssl_config_t  engine_ssl_config;
     /* private_key_file cert_file 客户端不用填 */
@@ -521,7 +522,6 @@ int main(int argc, char *argv[]) {
     eb = event_base_new();
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
-    ctx.ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, &ctx);
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
 
@@ -537,8 +537,9 @@ int main(int argc, char *argv[]) {
             },
             /* 仅使用传输层时实现 */
             .stream_callbacks = {
-                    .stream_write_notify = xqc_client_write_notify, /* 可写时回调，用户可以继续调用写接口 */
-                    .stream_read_notify = xqc_client_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+                    .stream_write_notify = xqc_client_stream_write_notify, /* 可写时回调，用户可以继续调用写接口 */
+                    .stream_read_notify = xqc_client_stream_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+                    .stream_close = xqc_client_stream_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
             /* 使用应用层时实现 */
             .h3_request_callbacks = {
@@ -556,37 +557,36 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
-            .h3         =   0,
+            .h3         =   1,
     };
     xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
 
-    ctx.my_conn = calloc(1, sizeof(user_conn_t));
-    if (ctx.my_conn == NULL) {
-        printf("xqc_malloc error\n");
-        return 0;
-    }
+    user_conn_t *user_conn;
+    user_conn = calloc(1, sizeof(user_conn_t));
 
-    ctx.my_conn->fd = xqc_client_create_socket(server_addr, server_port);
-    if (ctx.my_conn->fd < 0) {
+    user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
+    /* 设置连接超时 */
+    struct timeval tv;
+    tv.tv_sec = 3;
+    tv.tv_usec = 0;
+    event_add(user_conn->ev_timeout, &tv);
+
+    user_conn->fd = xqc_client_create_socket(user_conn, server_addr, server_port);
+    if (user_conn->fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;
     }
 
-    ctx.ev_socket = event_new(eb, ctx.my_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, &ctx);
-    event_add(ctx.ev_socket, NULL);
+    user_conn->ev_socket = event_new(eb, user_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, user_conn);
+    event_add(user_conn->ev_socket, NULL);
 
     unsigned char token[XQC_MAX_TOKEN_LEN];
     int token_len = XQC_MAX_TOKEN_LEN;
     token_len = xqc_client_read_token(token, token_len);
     if (token_len > 0) {
-        ctx.my_conn->token = token;
-        ctx.my_conn->token_len = token_len;
+        user_conn->token = token;
+        user_conn->token_len = token_len;
     }
-
-    struct timeval tv;
-    tv.tv_sec = 3;
-    tv.tv_usec = 0;
-    event_add(ctx.ev_timeout, &tv);
 
 
     xqc_conn_ssl_config_t conn_ssl_config;
@@ -598,11 +598,11 @@ int main(int argc, char *argv[]) {
     int session_len = read_file_data(session_ticket_data, sizeof(session_ticket_data), "test_session");
     int tp_len = read_file_data(tp_data, sizeof(tp_data), "tp_localhost");
 
-    if(session_len < 0 || tp_len < 0){
+    if (session_len < 0 || tp_len < 0) {
         printf("sessoin data read error");
         conn_ssl_config.session_ticket_data = NULL;
-        conn_ssl_config.transport_parameter_data  = NULL;
-    }else{
+        conn_ssl_config.transport_parameter_data = NULL;
+    } else {
         conn_ssl_config.session_ticket_data = session_ticket_data;
         conn_ssl_config.session_ticket_len = session_len;
         conn_ssl_config.transport_parameter_data = tp_data;
@@ -610,30 +610,31 @@ int main(int argc, char *argv[]) {
     }
 
 
-
     xqc_cid_t *cid;
     if (conn_settings.h3) {
-        cid = xqc_h3_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_h3_connect(ctx.engine, user_conn, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config);
     } else {
-        cid = xqc_connect(ctx.engine, &ctx, ctx.my_conn->token, ctx.my_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_connect(ctx.engine, user_conn, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config);
     }
     if (cid == NULL) {
         printf("xqc_connect error\n");
         return 0;
     }
-    memcpy(&ctx.my_conn->cid, cid, sizeof(*cid));
+    /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
+    memcpy(&user_conn->cid, cid, sizeof(*cid));
 
     xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
     xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
+    user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
     if (conn_settings.h3) {
-        ctx.my_conn->h3_request = xqc_h3_request_create(ctx.engine, cid, &ctx);
-        xqc_client_request_send(ctx.my_conn->h3_request, &ctx);
+        user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
+        xqc_client_request_send(user_stream->h3_request, user_stream);
     } else {
-        ctx.my_conn->stream = xqc_stream_create(ctx.engine, cid, &ctx);
-        xqc_client_stream_send(ctx.my_conn->stream, &ctx);
+        user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
+        xqc_client_stream_send(user_stream->stream, user_stream);
     }
 
     event_base_dispatch(eb);

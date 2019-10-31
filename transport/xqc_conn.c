@@ -210,7 +210,7 @@ xqc_conn_create(xqc_engine_t *engine,
 
     /* Do callback */
     if (xc->conn_type == XQC_CONN_TYPE_SERVER && xc->conn_callbacks.conn_create_notify) {
-        if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
+        if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid, user_data)) {
             goto fail;
         }
         xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
@@ -246,7 +246,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
     }
 
     if (xc->conn_callbacks.conn_close_notify && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
-        xc->conn_callbacks.conn_close_notify(xc, xc->user_data);
+        xc->conn_callbacks.conn_close_notify(xc, &xc->scid, xc->user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
@@ -288,6 +288,11 @@ xqc_conn_destroy(xqc_connection_t *xc)
     xqc_tls_free_tlsref(xc);
 }
 
+void xqc_conn_set_user_data(xqc_connection_t *conn,
+                            void *user_data)
+{
+    conn->user_data = user_data;
+}
 
 void
 xqc_conn_send_packets (xqc_connection_t *conn)

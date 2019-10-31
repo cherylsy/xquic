@@ -53,7 +53,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
             "|xqc_connect|");
 
     if (xc->conn_callbacks.conn_create_notify) {
-        if (xc->conn_callbacks.conn_create_notify(xc, user_data)) {
+        if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid, user_data)) {
             xqc_conn_destroy(xc);
             goto fail;
         }

@@ -36,16 +36,6 @@ void xqc_test_engine_create()
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
 
-int xqc_test_conn_create_notify(xqc_connection_t *conn, void *user_data)
-{
-    return XQC_OK;
-}
-
-int xqc_test_conn_close_notify(xqc_connection_t *conn, void *user_data)
-{
-    return XQC_OK;
-}
-
 ssize_t xqc_client_send(void *user_data, unsigned char *buf, size_t size)
 {
     return 0;
@@ -62,10 +52,7 @@ void xqc_test_engine_packet_process()
     def_engine_ssl_config;
     xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
     CU_ASSERT(engine != NULL);
-    engine->eng_callback.conn_callbacks.conn_create_notify = xqc_test_conn_create_notify;
-    engine->eng_callback.conn_callbacks.conn_close_notify = xqc_test_conn_close_notify;    
     engine->eng_callback.write_socket = xqc_client_send;
-    engine->eng_callback.cong_ctrl_callback = xqc_reno_cb;
 
     xqc_msec_t recv_time = xqc_now();
 

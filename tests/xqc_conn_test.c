@@ -9,22 +9,12 @@
 #include "xqc_common_test.h"
 #include "transport/xqc_engine.h"
 
-int xqc_test_client_conn_notify(xqc_connection_t *conn, void *user_data)
-{
-    //printf("%s\n",__FUNCTION__);
-    return 0;
-}
-
 void xqc_test_conn_create()
 {
     def_engine_ssl_config;
     xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
 
     xqc_engine_callback_t callback = {
-        .conn_callbacks = {
-            .conn_create_notify = xqc_test_client_conn_notify,
-        },
-        .cong_ctrl_callback = xqc_reno_cb,
     };
     xqc_engine_set_callback(engine, callback);
 

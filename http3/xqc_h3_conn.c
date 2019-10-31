@@ -23,6 +23,13 @@ xqc_h3_connect(xqc_engine_t *engine, void *user_data,
     return &conn->scid;
 }
 
+void
+xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
+                          void *user_data)
+{
+    h3_conn->user_data = user_data;
+}
+
 int
 xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
 {
@@ -60,7 +67,7 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 #endif
 
     if (h3_conn->h3_conn_callbacks.h3_conn_create_notify) {
-        if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, user_data)) {
+        if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, &h3_conn->conn->scid, user_data)) {
             goto fail;
         }
         h3_conn->flags |= XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
@@ -76,7 +83,7 @@ void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 {
     if (h3_conn->h3_conn_callbacks.h3_conn_close_notify && (h3_conn->flags & XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST)) {
-        h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, h3_conn->user_data);
+        h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, &h3_conn->conn->scid, h3_conn->user_data);
         h3_conn->flags &= ~XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
@@ -136,7 +143,7 @@ xqc_h3_conn_setting_recvd(xqc_h3_conn_t *h3_conn)
 }
 
 int
-xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data)
+xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
 {
     int ret;
     xqc_h3_conn_t *h3_conn;
@@ -166,7 +173,7 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, void *user_data)
 }
 
 int
-xqc_h3_conn_close_notify(xqc_connection_t *conn, void *user_data)
+xqc_h3_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
 {
     xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
     xqc_h3_conn_destroy(h3_conn);
