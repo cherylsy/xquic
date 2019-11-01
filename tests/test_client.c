@@ -13,8 +13,15 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
+#include <http3/xqc_h3_request.h>
 #include "include/xquic_typedef.h"
 
+int printf_null(const char *format, ...)
+{
+    return 0;
+}
+
+//#define printf printf_null
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -337,7 +344,7 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     DEBUG;
     ssize_t ret = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
-
+//xqc_h3_request_close(h3_request);
     ret = xqc_client_request_send(h3_request, user_stream);
     return ret;
 }
@@ -539,13 +546,13 @@ int main(int argc, char *argv[]) {
             .stream_callbacks = {
                     .stream_write_notify = xqc_client_stream_write_notify, /* 可写时回调，用户可以继续调用写接口 */
                     .stream_read_notify = xqc_client_stream_read_notify, /* 可读时回调，用户可以继续调用读接口 */
-                    .stream_close = xqc_client_stream_close_notify, /* 关闭时回调，用户可以回收资源 */
+                    .stream_close_notify = xqc_client_stream_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
             /* 使用应用层时实现 */
             .h3_request_callbacks = {
                     .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
                     .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
-                    .h3_request_close = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
+                    .h3_request_close_notify = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
             .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
             .cong_ctrl_callback = xqc_reno_cb,

@@ -235,8 +235,8 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
         xqc_stream_ready_to_write(stream);
     }
 
-    if (stream->stream_if->stream_create) {
-        stream->stream_if->stream_create(stream, stream->user_data);
+    if (stream->stream_if->stream_create_notify) {
+        stream->stream_if->stream_create_notify(stream, stream->user_data);
     }
 
     return stream;
@@ -260,8 +260,8 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%ui|recv_state:%ui|stream_id:%ui|stream_type:%d|",
             stream->stream_state_send, stream->stream_state_recv, stream->stream_id, stream->stream_type);
 
-    if (stream->stream_if->stream_close) {
-        stream->stream_if->stream_close(stream, stream->user_data);
+    if (stream->stream_if->stream_close_notify) {
+        stream->stream_if->stream_close_notify(stream, stream->user_data);
     }
 
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
@@ -271,6 +271,30 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_id_hash_delete(stream->stream_conn->streams_hash, stream->stream_id);
 
     xqc_free(stream);
+}
+
+int
+xqc_stream_close (xqc_stream_t *stream)
+{
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send RESET_STREAM|");
+    if (stream->stream_state_send >= XQC_SEND_STREAM_ST_RESET_SENT) {
+        return XQC_OK;
+    }
+    xqc_connection_t *conn = stream->stream_conn;
+    int ret;
+    ret = xqc_write_reset_stream_to_packet(stream->stream_conn, stream, HTTP_REQUEST_CANCELLED, stream->stream_send_offset);
+    if (ret < 0) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_write_reset_stream_to_packet error|%d|", ret);
+        XQC_CONN_ERR(stream->stream_conn, TRA_INTERNAL_ERROR);
+    }
+
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
+        if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
+            conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+        }
+    }
+    xqc_engine_main_logic(stream->stream_conn->engine);
+    return XQC_OK;
 }
 
 xqc_stream_t *

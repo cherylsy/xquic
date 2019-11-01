@@ -59,16 +59,16 @@ struct xqc_h3_conn_callbacks_s {
 typedef struct xqc_stream_callbacks_s {
     xqc_stream_notify_pt        stream_read_notify; /* 可读时回调，用户可以继续调用读接口 */
     xqc_stream_notify_pt        stream_write_notify; /* 可写时回调，用户可以继续调用写接口 */
-    xqc_stream_notify_pt        stream_create;  /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_stream_notify_pt        stream_close;   /* optional 关闭时回调，用户可以回收资源 */
+    xqc_stream_notify_pt        stream_create_notify;  /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
+    xqc_stream_notify_pt        stream_close_notify;   /* optional 关闭时回调，用户可以回收资源 */
 } xqc_stream_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_request_callbacks_s {
     xqc_h3_request_notify_pt    h3_request_read_notify; /* 可读时回调，用户可以继续调用读接口，读headers或body */
     xqc_h3_request_notify_pt    h3_request_write_notify; /* 可写时回调，用户可以继续调用写接口,写headers或body */
-    xqc_h3_request_notify_pt    h3_request_create; /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_h3_request_notify_pt    h3_request_close; /* optional 关闭时回调，用户可以回收资源 */
+    xqc_h3_request_notify_pt    h3_request_create_notify; /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
+    xqc_h3_request_notify_pt    h3_request_close_notify; /* optional 关闭时回调，用户可以回收资源 */
 } xqc_h3_request_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
@@ -239,7 +239,7 @@ xqc_engine_init (xqc_engine_t *engine,
  * @param server_host server domain
  * @param no_crypto_flag 1:without crypto
  * @param conn_ssl_config For handshake
- * @return
+ * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           unsigned char *token, unsigned token_len,
@@ -259,10 +259,16 @@ xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         void *user_data);
 
 /**
- * Server should set user_data when h3_request_create callbacks
+ * Server should set user_data when h3_request_create_notify callbacks
  */
 void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                                   void *user_data);
+
+/**
+ * Send RESET_STREAM to peer, h3_request_close_notify will callback when request destroyed
+ * @retval XQC_OK or XQC_ERROR
+ */
+int xqc_h3_request_close (xqc_h3_request_t *h3_request);
 
 /**
  * @param fin 1:without body
@@ -308,6 +314,10 @@ xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
                        char *server_host, int no_crypto_flag,
                        xqc_conn_ssl_config_t *conn_ssl_config);
 
+/**
+ * Send CONNECTION_CLOSE to peer, conn_close_notify will callback when connection destroyed
+ * @return 0 for success, <0 for error
+ */
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
@@ -325,18 +335,16 @@ xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
                                  void *user_data);
 
 /**
- * Server should set user_data when stream_create callbacks
+ * Server should set user_data when stream_create_notify callbacks
  */
 void xqc_stream_set_user_data(xqc_stream_t *stream,
                               void *user_data);
 
 /**
- * Close stream.
+ * Send RESET_STREAM to peer, stream_close_notify will callback when stream destroyed
  * @retval XQC_OK or XQC_ERROR
  */
-/*int xqc_stream_close (xqc_engine_t *engine,
-                     xqc_cid_t *cid,
-                     uint64_t stream_id);*/
+int xqc_stream_close (xqc_stream_t *stream);
 
 /**
  * Recv data in stream.

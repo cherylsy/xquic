@@ -114,6 +114,6 @@ xqc_pacing_can_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
         can = 1;
     }
 
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_pacing_can_send|%ui", can);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_pacing_can_send|%ui|", can);
     return can;
 }

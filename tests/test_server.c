@@ -12,6 +12,13 @@
 #include "include/xquic.h"
 #include "congestion_control/xqc_new_reno.h"
 
+int printf_null(const char *format, ...)
+{
+    return 0;
+}
+
+//#define printf printf_null
+
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
 #define TEST_ADDR "127.0.0.1"
@@ -477,14 +484,14 @@ int main(int argc, char *argv[]) {
             .stream_callbacks = {
                     .stream_write_notify = xqc_server_stream_write_notify,
                     .stream_read_notify = xqc_server_stream_read_notify,
-                    .stream_create = xqc_server_stream_create_notify,
-                    .stream_close = xqc_server_stream_close_notify,
+                    .stream_create_notify = xqc_server_stream_create_notify,
+                    .stream_close_notify = xqc_server_stream_close_notify,
             },
             .h3_request_callbacks = {
                     .h3_request_write_notify = xqc_server_request_write_notify,
                     .h3_request_read_notify = xqc_server_request_read_notify,
-                    .h3_request_create = xqc_server_request_create_notify,
-                    .h3_request_close = xqc_server_request_close_notify,
+                    .h3_request_create_notify = xqc_server_request_create_notify,
+                    .h3_request_close_notify = xqc_server_request_close_notify,
             },
             .write_socket = xqc_server_send,
             //.cong_ctrl_callback = xqc_reno_cb,

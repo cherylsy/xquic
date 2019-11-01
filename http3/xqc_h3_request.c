@@ -40,10 +40,15 @@ void
 xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
 {
     xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|");
-    if (h3_request->request_if->h3_request_close) {
-        h3_request->request_if->h3_request_close(h3_request, h3_request->user_data);
+    if (h3_request->request_if->h3_request_close_notify) {
+        h3_request->request_if->h3_request_close_notify(h3_request, h3_request->user_data);
     }
     xqc_free(h3_request);
+}
+
+int xqc_h3_request_close (xqc_h3_request_t *h3_request)
+{
+    return xqc_stream_close(h3_request->h3_stream->stream);
 }
 
 xqc_h3_request_t *
@@ -62,8 +67,8 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
 
     h3_stream->h3_request = h3_request;
 
-    if (h3_request->request_if->h3_request_create) {
-        h3_request->request_if->h3_request_create(h3_request, h3_request->user_data);
+    if (h3_request->request_if->h3_request_create_notify) {
+        h3_request->request_if->h3_request_create_notify(h3_request, h3_request->user_data);
     }
     return h3_request;
 }
