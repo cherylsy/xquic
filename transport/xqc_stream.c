@@ -614,10 +614,10 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 
     /* 0RTT rejected, send in 1RTT again */
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED &&
-        conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT &&
+        ((conn->conn_type == XQC_CONN_TYPE_CLIENT && conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT)
+            || conn->conn_type == XQC_CONN_TYPE_SERVER) &&
         !(conn->conn_flag & XQC_CONN_FLAG_0RTT_OK) &&
-        !(conn->conn_flag & XQC_CONN_FLAG_0RTT_REJ) &&
-        conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+        !(conn->conn_flag & XQC_CONN_FLAG_0RTT_REJ)) {
 
         int accept = xqc_tls_is_early_data_accepted(conn);
         if (accept == XQC_TLS_EARLY_DATA_REJECT) {
