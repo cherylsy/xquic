@@ -2,6 +2,7 @@
 #define _XQC_MALLOC_H_INCLUDED_
 
 #include <stdlib.h>
+#include <stdio.h>
 
 /*
  * 收口动态内存分配和回收、以便日后可以做一些控制和统计
@@ -10,11 +11,21 @@
 
 static inline void* xqc_malloc(size_t size)
 {
+#ifdef PRINT_MALLOC
+    void *p = malloc(size);
+    printf("PRINT_MALLOC %p %zu\n", p, size);
+    return p;
+#endif
     return malloc(size);
 }
 
 static inline void* xqc_calloc(size_t count, size_t size)
 {
+#ifdef PRINT_MALLOC
+    void *p = calloc(count, size);
+    printf("PRINT_MALLOC %p %zu\n", p, size);
+    return p;
+#endif
     return calloc(count, size);
 }
 
@@ -25,6 +36,11 @@ static inline void* xqc_realloc(void* ptr, size_t size)
 
 static inline void xqc_free(void* ptr)
 {
+#ifdef PRINT_MALLOC
+    printf("PRINT_FREE %p\n", ptr);
+    free(ptr);
+    return;
+#endif
     free(ptr);
 }
 

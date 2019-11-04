@@ -13,6 +13,7 @@
 #include "transport/xqc_frame.h"
 //#include "transport/xqc_conn.h"
 #include "xqc_tls_if.h"
+#include "common/xqc_malloc.h"
 
 #ifdef WORDS_BIGENDIAN
 #  define bswap64(N) (N)
@@ -309,7 +310,7 @@ typedef struct xqc_hs_buffer xqc_hs_buffer_t;
 
 static inline xqc_hs_buffer_t * xqc_create_hs_buffer(int buf_size){
 
-    xqc_hs_buffer_t * p_buf = malloc(sizeof(xqc_hs_buffer_t) + buf_size);
+    xqc_hs_buffer_t * p_buf = xqc_malloc(sizeof(xqc_hs_buffer_t) + buf_size);
     if(p_buf == NULL)return NULL;
     xqc_init_list_head(&p_buf->list_head);
     p_buf->data_len = buf_size;
@@ -594,13 +595,13 @@ static inline void xqc_vec_init(xqc_vec_t * vec){
 }
 
 static inline void xqc_vec_free(xqc_vec_t *vec) {
-    if(vec->base)free(vec->base);
+    if(vec->base)xqc_free(vec->base);
     vec->base = NULL;
     vec->len = 0;
 }
 
 static inline int xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len){
-    vec->base = malloc(data_len);
+    vec->base = xqc_malloc(data_len);
     if(vec->base == NULL){
         return -1;
     }

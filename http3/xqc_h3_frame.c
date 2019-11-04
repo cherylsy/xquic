@@ -43,7 +43,7 @@ int xqc_http3_stream_empty_headers_allowed(xqc_h3_stream_t *stream) {
 
 xqc_data_buf_t * xqc_create_data_buf(int buf_size){
 
-    xqc_data_buf_t * p_buf = malloc(sizeof(xqc_data_buf_t) + buf_size);
+    xqc_data_buf_t * p_buf = xqc_malloc(sizeof(xqc_data_buf_t) + buf_size);
     if(p_buf == NULL)return NULL;
     xqc_init_list_head(&p_buf->list_head);
     p_buf->buf_len = p_buf->data_len = buf_size;
@@ -57,7 +57,7 @@ int xqc_free_data_buf( xqc_list_head_t * head_list){
     xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, head_list){
         xqc_list_del(pos);
-        free(pos);
+        xqc_free(pos);
     }
     return 0;
 }
@@ -1633,7 +1633,7 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
 
 xqc_h3_frame_send_buf_t * xqc_create_h3_frame_send_buf(size_t buf_len){
 
-    xqc_h3_frame_send_buf_t * p_buf = malloc(sizeof(xqc_h3_frame_send_buf_t) + buf_len);
+    xqc_h3_frame_send_buf_t * p_buf = xqc_malloc(sizeof(xqc_h3_frame_send_buf_t) + buf_len);
     if(p_buf == NULL){
         return NULL;
     }
@@ -1666,7 +1666,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_header(xqc_h3_stream_t * h3_
     int offset = xqc_http3_fill_frame_header(send_buf->data, hd.type, hd.length);
 
     if(offset < 0){
-        free(send_buf);
+        xqc_free(send_buf);
         return NULL;
     }
 
@@ -1696,7 +1696,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_data(xqc_h3_stream_t * h3_st
     int offset = xqc_http3_fill_frame_header(send_buf->data, hd.type, hd.length);
 
     if(offset < 0){
-        free(send_buf);
+        xqc_free(send_buf);
         return NULL;
     }
 
@@ -1728,7 +1728,7 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
             break;
         }else{
             xqc_list_del(pos);
-            free(pos);
+            xqc_free(pos);
         }
 
     }
@@ -1753,7 +1753,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_push_promise(xqc_h3_stream_t * h3_
     int offset = xqc_http3_fill_frame_header(send_buf->data, hd.type, hd.length);
 
     if(offset < 0){
-        free(send_buf);
+        xqc_free(send_buf);
         return NULL;
     }
 
@@ -1798,7 +1798,7 @@ ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_
     }
 
     if(send_success == send_buf->data_len){
-        free(send_buf);
+        xqc_free(send_buf);
     }else{
         send_buf->already_consume += send_success;
         xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
@@ -1855,7 +1855,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
         }
 
         if(send_success == send_buf->data_len){
-            free(send_buf);
+            xqc_free(send_buf);
         }else{
             send_buf->already_consume += send_success;
             xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
@@ -1913,7 +1913,7 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
             return send_success;
         }
         if(send_success == send_buf->data_len){
-            free(send_buf);
+            xqc_free(send_buf);
         }else{
             send_buf->already_consume += send_success;
             xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
@@ -1974,7 +1974,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_settings(xqc_h3_stream_t * h3_stre
     int ret = xqc_http3_frame_write_settings(send_buf->data, &fr_setting);
 
     if(ret != send_buf->data_len){
-        free(send_buf);
+        xqc_free(send_buf);
         return NULL;
     }
 
@@ -2015,7 +2015,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_cancel_push(xqc_h3_stream_t * h3_s
     int ret = xqc_http3_frame_write_cancel_push(send_buf->data, fr);
 
     if(ret != send_buf->data_len){
-        free(send_buf);
+        xqc_free(send_buf);
         return NULL;
     }
 
@@ -2053,7 +2053,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_max_push_id(xqc_h3_stream_t * h3_s
     int ret = xqc_http3_frame_write_max_push_id(send_buf->data, fr);
 
     if(ret != send_buf->data_len){
-        free(send_buf);
+        xqc_free(send_buf);
         return NULL;
     }
 
@@ -2094,7 +2094,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_priority(xqc_h3_stream_t * h3_stre
     int ret = xqc_http3_frame_write_priority(send_buf->data, fr_priority);
 
     if(ret != send_buf->data_len){
-        free(send_buf);
+        xqc_free(send_buf);
         return NULL;
     }
 

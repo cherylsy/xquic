@@ -1099,7 +1099,7 @@ int xqc_server_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
     params.v.ee.len = 1;
     params.v.ee.supported_versions[0] = XQC_QUIC_VERSION; // just use XQC VERSION
 
-    uint8_t *buf = malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
+    uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 
     ssize_t nwrite = xqc_encode_transport_params(
             buf, XQC_TRANSPORT_PARAM_BUF_LEN, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
@@ -1117,13 +1117,13 @@ int xqc_server_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
     return 1;
 }
 
-//need finish , need test for malloc free
+//need finish , need test for malloc xqc_free
 void xqc_transport_params_free_cb(SSL *ssl, unsigned int ext_type,
         unsigned int context, const unsigned char *out,
         void *add_arg)
 {
     if(out != NULL){
-        free((void *)out);
+        xqc_free((void *)out);
     }
     return;
 }
@@ -1146,7 +1146,7 @@ int xqc_client_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
         return -1;
     }
 
-    uint8_t *buf = malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
+    uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 
     ssize_t nwrite = xqc_encode_transport_params(
             buf, XQC_TRANSPORT_PARAM_BUF_LEN, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &params);

@@ -21,7 +21,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
 
     if(src->private_key_file != NULL && strlen(src->private_key_file) > 0 ){
         int len = strlen(src->private_key_file) + 1;
-        ssl_config->private_key_file = (char *)malloc(len);
+        ssl_config->private_key_file = (char *)xqc_malloc(len);
         strncpy(ssl_config->private_key_file, (const char *)(src->private_key_file), len);
     }else{
         ssl_config->private_key_file = NULL;
@@ -29,7 +29,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
 
     if(src->cert_file != NULL &&  strlen(src->cert_file) > 0 ){
         int len = strlen(src->cert_file) + 1;
-        ssl_config->cert_file = (char *)malloc(len);
+        ssl_config->cert_file = (char *)xqc_malloc(len);
         strncpy(ssl_config->cert_file, ( char *)(src->cert_file), len);
     }else{
         ssl_config->cert_file = NULL;
@@ -37,7 +37,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
 
     if(src->ciphers != NULL && strlen(src->ciphers) > 0 ){
         int len = strlen(src->ciphers) + 1;
-        ssl_config->ciphers = (char *)malloc(len);
+        ssl_config->ciphers = (char *)xqc_malloc(len);
         strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len);
     }else{
         ssl_config->ciphers = XQC_TLS_CIPHERS;
@@ -45,7 +45,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
 
     if(src->groups != NULL && strlen(src->groups) > 0 ){
         int len = strlen(src->groups) + 1;
-        ssl_config->groups = (char *)malloc(len);
+        ssl_config->groups = (char *)xqc_malloc(len);
         strncpy(ssl_config->groups, (const char *)(src->groups), len);
     }else{
         ssl_config->groups = XQC_TLS_GROUPS;
@@ -53,7 +53,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
 
     if(src->session_ticket_key_len > 0 ){
         ssl_config->session_ticket_key_len = src->session_ticket_key_len;
-        ssl_config->session_ticket_key_data  = (char *)malloc(src->session_ticket_key_len );
+        ssl_config->session_ticket_key_data  = (char *)xqc_malloc(src->session_ticket_key_len );
         memcpy(ssl_config->session_ticket_key_data, src->session_ticket_key_data, src->session_ticket_key_len);
         if(xqc_init_session_ticket_keys( session_ticket_key, ssl_config->session_ticket_key_data, ssl_config->session_ticket_key_len) < 0){
             //printf("read session ticket key  error\n");
@@ -73,7 +73,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
         ssl_config->alpn_list_len = strlen(XQC_ALPN_LIST);
     }else{
         ssl_config->alpn_list_len = src->alpn_list_len;
-        ssl_config->alpn_list = (char *)malloc(src->alpn_list_len + 1);
+        ssl_config->alpn_list = (char *)xqc_malloc(src->alpn_list_len + 1);
         memcpy(ssl_config->alpn_list, src->alpn_list, src->alpn_list_len);
         ssl_config->alpn_list[ssl_config->alpn_list_len] = '\0';
     }
@@ -385,8 +385,8 @@ int xqc_bio_read(BIO *b, char *buf, int len)
     memcpy(buf, p_buff->data, p_buff->data_len);
     int ret_len = p_buff->data_len;
 
-    //should free
-    free(conn->tlsref.hs_to_tls_buf);
+    //should xqc_free
+    xqc_free(conn->tlsref.hs_to_tls_buf);
     conn->tlsref.hs_to_tls_buf = NULL;
 
     if(ret_len == 0){
@@ -481,7 +481,7 @@ int xqc_set_alpn_proto(SSL * ssl, char * alpn)
     if(strlen(alpn) >= 128){
         return -1;
     }
-    uint8_t * p_alpn = malloc(strlen(alpn) + 2);
+    uint8_t * p_alpn = xqc_malloc(strlen(alpn) + 2);
     if (alpn == NULL) {
         return -1;
     }
@@ -493,7 +493,7 @@ int xqc_set_alpn_proto(SSL * ssl, char * alpn)
     p_alpn[1+strlen(alpn)] = '\0';
     SSL_set_alpn_protos(ssl, p_alpn, alpnlen);
 
-    free(p_alpn);
+    xqc_free(p_alpn);
     return 0;
 }
 

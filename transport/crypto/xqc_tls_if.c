@@ -391,7 +391,7 @@ int xqc_read_tls(SSL *ssl)
 
 int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
 {
-    if(conn->tlsref.hs_to_tls_buf)free(conn->tlsref.hs_to_tls_buf);
+    if(conn->tlsref.hs_to_tls_buf)xqc_free(conn->tlsref.hs_to_tls_buf);
     conn->tlsref.hs_to_tls_buf = xqc_create_hs_buffer(buf_len);
     if(conn->tlsref.hs_to_tls_buf == NULL){
         xqc_log(conn->log, XQC_LOG_ERROR, "|malloc %d bytes failed|", buf_len);
@@ -445,7 +445,7 @@ int xqc_free_pktns_list_buffer(xqc_pktns_t * p_pktns){
     xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, head) {
         xqc_list_del(pos);
-        free(pos);
+        xqc_free(pos);
     }
 
     return 0;
@@ -842,13 +842,13 @@ int xqc_tls_free_pktns(xqc_pktns_t * p_pktns){
     xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, head) {
         xqc_list_del(pos);
-        free(pos);
+        xqc_free(pos);
     }
 
     head = &p_pktns->msg_cb_buffer;
     xqc_list_for_each_safe(pos, next, head) {
         xqc_list_del(pos);
-        free(pos);
+        xqc_free(pos);
     }
     return 0;
 
@@ -886,7 +886,7 @@ int xqc_tls_free_tlsref(xqc_connection_t * conn)
     xqc_vec_free(&tlsref->rx_secret);
 
     if(tlsref->hs_to_tls_buf){
-        free(tlsref->hs_to_tls_buf);
+        xqc_free(tlsref->hs_to_tls_buf);
     }
 
     xqc_tls_free_ssl_config(&tlsref->conn_ssl_config);
