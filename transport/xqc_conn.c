@@ -854,6 +854,12 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
     xqc_log(conn->log, XQC_LOG_DEBUG, "|reject|");
 
     if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
+        xqc_packet_in_t *packet_in;
+        xqc_list_for_each_safe(pos, next, &conn->undecrypt_packet_in[XQC_ENC_LEV_0RTT]) {
+            packet_in = xqc_list_entry(pos, xqc_packet_in_t, pi_list);
+            xqc_list_del_init(pos);
+            xqc_packet_in_destroy(packet_in, conn);
+        }
         return XQC_OK;
     }
 
@@ -912,7 +918,7 @@ xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *
 
     xqc_list_add_tail(&new_packet->pi_list, &conn->undecrypt_packet_in[encrypt_level]);
     conn->undecrypt_count[encrypt_level]++;
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|undecrypt_count:%ud|encrypt_level:%d|", conn->undecrypt_count[encrypt_level], encrypt_level);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|====>|undecrypt_count:%ud|encrypt_level:%d|", conn->undecrypt_count[encrypt_level], encrypt_level);
     return XQC_OK;
 }
 
