@@ -232,19 +232,34 @@ int xqc_client_tls_handshake(xqc_connection_t *conn)
 //return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
 {
-
-    if(conn->tlsref.resumption){
-
-        SSL * ssl = conn->xc_ssl;
-        if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
-            return XQC_TLS_EARLY_DATA_REJECT ;
+    if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
+        if(conn->conn_type == XQC_CONN_TYPE_SERVER){
+            SSL * ssl = conn->xc_ssl;
+            if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
+                return XQC_TLS_EARLY_DATA_REJECT ;
+            }else{
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
+                return  XQC_TLS_EARLY_DATA_ACCEPT ;
+            }
         }else{
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
-            return  XQC_TLS_EARLY_DATA_ACCEPT ;
+            if(conn->tlsref.resumption){
+
+                SSL * ssl = conn->xc_ssl;
+                if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
+                    return XQC_TLS_EARLY_DATA_REJECT ;
+                }else{
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
+                    return  XQC_TLS_EARLY_DATA_ACCEPT ;
+                }
+            }else{
+                return XQC_TLS_NO_EARLY_DATA ;
+            }
         }
     }else{
-        return XQC_TLS_NO_EARLY_DATA ;
+
+        return XQC_TLS_EARLY_DATA_UNKNOWN;
     }
 
 }
