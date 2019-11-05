@@ -42,6 +42,7 @@
 #define XQC_TLS_EARLY_DATA_ACCEPT (1)
 #define XQC_TLS_EARLY_DATA_REJECT (-1)
 #define XQC_TLS_NO_EARLY_DATA   (0)
+#define XQC_TLS_EARLY_DATA_UNKNOWN (-2)  //early data status can read only after handshake completed
 
 
 //xquic tls error code, for call
