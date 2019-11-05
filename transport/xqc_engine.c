@@ -298,30 +298,34 @@ xqc_engine_destroy(xqc_engine_t *engine)
         engine->conns_hash_dcid = NULL;
     }
 
-    while (!xqc_pq_empty(engine->conns_active_pq)) {
-        xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_active_pq);
-        xqc_conns_pq_pop(engine->conns_active_pq);
-        if (el == NULL || el->conn == NULL) {
-            xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
-            continue;
+    if (engine->conns_active_pq) {
+        while (!xqc_pq_empty(engine->conns_active_pq)) {
+            xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_active_pq);
+            xqc_conns_pq_pop(engine->conns_active_pq);
+            if (el == NULL || el->conn == NULL) {
+                xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
+                continue;
+            }
+            conn = el->conn;
+            if (conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
+                xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
+                conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
+            }
+            xqc_conn_destroy(conn);
         }
-        conn = el->conn;
-        if (conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
-            xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
-            conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
-        }
-        xqc_conn_destroy(conn);
     }
 
-    while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
-        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
-        xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
-        if (el == NULL || el->conn == NULL) {
-            xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
-            continue;
+    if (engine->conns_wait_wakeup_pq) {
+        while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
+            xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
+            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
+            if (el == NULL || el->conn == NULL) {
+                xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
+                continue;
+            }
+            conn = el->conn;
+            xqc_conn_destroy(conn);
         }
-        conn = el->conn;
-        xqc_conn_destroy(conn);
     }
 
     if (engine->conns_active_pq) {
@@ -332,6 +336,9 @@ xqc_engine_destroy(xqc_engine_t *engine)
         xqc_engine_wakeup_pq_destroy(engine->conns_wait_wakeup_pq);
         engine->conns_wait_wakeup_pq = NULL;
     }
+
+    xqc_tls_free_engine_config(&engine->ssl_config);
+
     xqc_free(engine);
 }
 

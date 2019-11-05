@@ -108,11 +108,13 @@ static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_
 static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 {
     uint64_t index = hash % hash_tab->count;
+    xqc_allocator_t* a = &hash_tab->allocator;
     xqc_str_hash_node_t** pp = &hash_tab->list[index];
     xqc_str_hash_node_t* node = hash_tab->list[index];
     while (node) {
         if (node->element.hash == hash && xqc_str_equal(str, node->element.str)) {
             *pp = node->next; /*从冲突链删除*/
+            a->free(a->opaque, node);
             return XQC_OK;
         }
 

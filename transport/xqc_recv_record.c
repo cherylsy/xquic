@@ -128,6 +128,18 @@ xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_fro
     }
 }
 
+void
+xqc_recv_record_destroy(xqc_recv_record_t *recv_record)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_pktno_range_node_t *pnode;
+    xqc_list_for_each_safe(pos, next, &recv_record->list_head) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+            xqc_list_del_init(pos);
+            xqc_free(pnode);
+    }
+}
+
 xqc_packet_number_t
 xqc_recv_record_largest(xqc_recv_record_t *recv_record)
 {

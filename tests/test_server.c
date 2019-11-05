@@ -169,6 +169,7 @@ int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
     free(user_conn);
+    //event_base_loopbreak(eb);
     return 0;
 }
 

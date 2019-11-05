@@ -38,6 +38,9 @@ xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record);
 void
 xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from);
 
+void
+xqc_recv_record_destroy(xqc_recv_record_t *recv_record);
+
 xqc_pkt_range_status
 xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number,
                                           xqc_msec_t recv_time);

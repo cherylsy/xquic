@@ -257,6 +257,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
+    for (xqc_pkt_num_space_t pns = XQC_PNS_INIT; pns < XQC_PNS_N; pns++) {
+        xqc_recv_record_destroy(&xc->recv_record[pns]);
+    }
+
     /* free streams hash */
     if (xc->streams_hash) {
         xqc_id_hash_release(xc->streams_hash);

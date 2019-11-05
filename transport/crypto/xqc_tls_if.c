@@ -391,7 +391,10 @@ int xqc_read_tls(SSL *ssl)
 
 int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
 {
-    if(conn->tlsref.hs_to_tls_buf)xqc_free(conn->tlsref.hs_to_tls_buf);
+    if(conn->tlsref.hs_to_tls_buf) {
+        xqc_free(conn->tlsref.hs_to_tls_buf);
+        conn->tlsref.hs_to_tls_buf = NULL;
+    }
     conn->tlsref.hs_to_tls_buf = xqc_create_hs_buffer(buf_len);
     if(conn->tlsref.hs_to_tls_buf == NULL){
         xqc_log(conn->log, XQC_LOG_ERROR, "|malloc %d bytes failed|", buf_len);
@@ -852,6 +855,15 @@ int xqc_tls_free_pktns(xqc_pktns_t * p_pktns){
     }
     return 0;
 
+}
+
+int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config)
+{
+    xqc_free(ssl_config->private_key_file);
+    xqc_free(ssl_config->cert_file);
+    xqc_free(ssl_config->ciphers);
+    xqc_free(ssl_config->groups);
+    xqc_free(ssl_config->session_ticket_key_data);
 }
 
 
