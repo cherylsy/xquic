@@ -46,18 +46,19 @@ xqc_log_leveL_str(xqc_log_level_t level)
 typedef struct xqc_log_s
 {
     unsigned log_level; /*日志级别*/
-    void *file_handle; /*文件句柄*/
     xqc_log_callbacks_t *log_callbacks;
+    void *user_data;
 } xqc_log_t;
 
 static inline xqc_log_t *
-xqc_log_init(xqc_log_callbacks_t *log_callbacks)
+xqc_log_init(xqc_log_callbacks_t *log_callbacks, void *user_data)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
     log->log_level = log_callbacks->log_level;
+    log->user_data = user_data;
 
-    log->file_handle = log_callbacks->xqc_open_log_file();
-    if (log->file_handle == NULL) {
+    int ret = log_callbacks->xqc_open_log_file(user_data);
+    if (ret < 0) {
         printf("open file failed\n");
         xqc_free(log);
         return NULL;
@@ -69,7 +70,7 @@ xqc_log_init(xqc_log_callbacks_t *log_callbacks)
 static inline void 
 xqc_log_release(xqc_log_t* log)
 {
-    log->log_callbacks->xqc_close_log_file(log->file_handle);
+    log->log_callbacks->xqc_close_log_file(log->user_data);
     xqc_free(log);
     log = NULL;
 }
@@ -117,7 +118,7 @@ xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *f
     /*换行*/
     *p++ = '\n';
 
-    log->log_callbacks->xqc_write_log_file(log->file_handle, buf, p - buf);
+    log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
 }
 
 #define xqc_log(log, level, ...) \
@@ -162,7 +163,7 @@ xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *f
         } \
     } while (0)
 
-extern xqc_log_callbacks_t default_log_cb;
+extern xqc_log_callbacks_t null_log_cb;
 
 #endif /*_XQC_H_LOG_INCLUDED_*/
 

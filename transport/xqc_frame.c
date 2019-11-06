@@ -791,7 +791,7 @@ xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         return ret;
     }
 
-    conn->engine->eng_callback.save_token(conn->conn_token, conn->conn_token_len);
+    conn->engine->eng_callback.save_token(conn->engine->user_data, conn->conn_token, conn->conn_token_len);
 
     return XQC_OK;
 }

@@ -212,7 +212,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     engine->conn_settings = conn_settings;
     engine->user_data = user_data;
 
-    engine->log = xqc_log_init(&engine->eng_callback.log_callbacks);
+    engine->log = xqc_log_init(&engine->eng_callback.log_callbacks, engine->user_data);
     if (engine->log == NULL) {
         goto fail;
     }

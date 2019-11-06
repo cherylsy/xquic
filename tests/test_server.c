@@ -48,6 +48,7 @@ typedef struct xqc_server_ctx_s {
     socklen_t           peer_addrlen;
     struct event        *ev_socket;
     struct event        *ev_engine;
+    int                 log_fd;
 } xqc_server_ctx_t;
 
 xqc_server_ctx_t ctx;
@@ -435,6 +436,34 @@ int read_file_data( char * data, size_t data_len, char *filename){
 
 }
 
+int xqc_server_open_log_file(void *engine_user_data)
+{
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
+    ctx->log_fd = open("./slog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int xqc_server_close_log_file(void *engine_user_data)
+{
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    close(ctx->log_fd);
+    return 0;
+}
+
+ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_t count)
+{
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    return write(ctx->log_fd, buf, count);
+}
 
 int main(int argc, char *argv[]) {
     printf("Usage: %s\n", argv[0], XQC_QUIC_VERSION);
@@ -491,7 +520,12 @@ int main(int argc, char *argv[]) {
             //.cong_ctrl_callback = xqc_reno_cb,
             .cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_server_set_event_timer,
-            .log_callbacks = default_log_cb,
+            .log_callbacks = {
+                    .log_level = XQC_LOG_DEBUG,
+                    .xqc_open_log_file = xqc_server_open_log_file,
+                    .xqc_close_log_file = xqc_server_close_log_file,
+                    .xqc_write_log_file = xqc_server_write_log_file,
+            },
     };
 
     xqc_conn_settings_t conn_settings = {

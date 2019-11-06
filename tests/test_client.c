@@ -61,6 +61,8 @@ typedef struct user_conn_s {
 typedef struct client_ctx_s {
     xqc_engine_t    *engine;
     struct event    *ev_engine;
+    int             save_token_fd;
+    int             log_fd;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -112,15 +114,19 @@ int save_tp_cb(char * data, size_t data_len, void * user_data)
     return 0;
 }
 
-void xqc_client_save_token(const unsigned char *token, unsigned token_len)
+void xqc_client_save_token(void *engine_user_data, const unsigned char *token, unsigned token_len)
 {
-    int fd = open("./xqc_token",O_TRUNC|O_CREAT|O_WRONLY, S_IRWXU);
-    if (fd < 0) {
-        printf("save token error %s\n", strerror(errno));
-        return;
+    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+
+    if (ctx->save_token_fd <= 0) {
+        ctx->save_token_fd = open("./xqc_token", O_TRUNC | O_CREAT | O_WRONLY, S_IRWXU);
+        if (ctx->save_token_fd < 0) {
+            printf("save token error %s\n", strerror(errno));
+            return;
+        }
     }
 
-    ssize_t n = write(fd, token, token_len);
+    ssize_t n = write(ctx->save_token_fd, token, token_len);
     if (n < token_len) {
         printf("save token error %s\n", strerror(errno));
         return;
@@ -482,6 +488,36 @@ int read_file_data( char * data, size_t data_len, char *filename){
 
 }
 
+int xqc_client_open_log_file(void *engine_user_data)
+{
+    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    ctx->log_fd = open("./clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int xqc_client_close_log_file(void *engine_user_data)
+{
+    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    close(ctx->log_fd);
+    return 0;
+}
+
+ssize_t xqc_client_write_log_file(void *engine_user_data, const void *buf, size_t count)
+{
+    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    return write(ctx->log_fd, buf, count);
+}
+
+
 
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
@@ -553,7 +589,12 @@ int main(int argc, char *argv[]) {
             //.cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
-            .log_callbacks = default_log_cb,
+            .log_callbacks = {
+                    .log_level = XQC_LOG_DEBUG,
+                    .xqc_open_log_file = xqc_client_open_log_file,
+                    .xqc_close_log_file = xqc_client_close_log_file,
+                    .xqc_write_log_file = xqc_client_write_log_file,
+            },
     };
 
     xqc_conn_settings_t conn_settings = {

@@ -18,14 +18,14 @@
 
 #define XQC_TLS_AEAD_OVERHEAD_MAX_LEN 16
 
-typedef void (*xqc_set_event_timer_pt)(void *timer, xqc_msec_t wake_after);
+typedef void (*xqc_set_event_timer_pt)(void *engine_user_data, xqc_msec_t wake_after);
 
-typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len);
+typedef void (*xqc_save_token_pt)(void *engine_user_data, const unsigned char *token, uint32_t token_len);
 
 /*
  * return bytes sent, <0 for error
  */
-typedef ssize_t (*xqc_send_pt)(void *user, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_socket_write_pt)(void *user_data, unsigned char *buf, size_t size);
 
 /*
  * return 0 for success, <0 for error
@@ -37,14 +37,15 @@ typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user
 //typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 //session save callback
-typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
-typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
+typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, char *user_data);
+//transport parameters save callback
+typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, char *user_data);
 
 /* log interface */
 struct xqc_log_callbacks_s {
-    void* (*xqc_open_log_file)(); /* return handler */
-    int (*xqc_close_log_file)(void *handler);
-    ssize_t (*xqc_write_log_file)(void *handler, const void *buf, size_t count);
+    int (*xqc_open_log_file)(void *engine_user_data);
+    int (*xqc_close_log_file)(void *engine_user_data);
+    ssize_t (*xqc_write_log_file)(void *engine_user_data, const void *buf, size_t count);
     xqc_log_level_t log_level;
 };
 
@@ -123,10 +124,11 @@ typedef struct xqc_engine_callback_s {
     /* for event loop */
     xqc_set_event_timer_pt      set_event_timer; /* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
 
+    /* for client only */
     xqc_save_token_pt           save_token; /* 保存token到本地，connect时带上token */
 
     /* for socket write */
-    xqc_send_pt                 write_socket; /* 用户实现socket写接口 */
+    xqc_socket_write_pt         write_socket; /* 用户实现socket写接口 */
 
     /* for connection notify */
     xqc_conn_callbacks_t        conn_callbacks;
@@ -140,12 +142,13 @@ typedef struct xqc_engine_callback_s {
     /* for request notify */
     xqc_h3_request_callbacks_t  h3_request_callbacks;
 
+    /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
 
 }xqc_engine_callback_t;
 
 
-struct xqc_engine_ssl_config {
+typedef struct xqc_engine_ssl_config_s {
     char       *private_key_file;
     char       *cert_file;
     char       *ciphers;
@@ -156,14 +159,14 @@ struct xqc_engine_ssl_config {
 
     char       *alpn_list;
     int        alpn_list_len;
-};
+} xqc_engine_ssl_config_t;
 
-struct xqc_conn_ssl_config {
+typedef struct xqc_conn_ssl_config_s {
     char       *session_ticket_data;
     size_t     session_ticket_len;
     char       *transport_parameter_data;
     size_t     transport_parameter_data_len;
-};
+} xqc_conn_ssl_config_t;
 
 typedef struct {
     size_t                      size;
@@ -171,9 +174,6 @@ typedef struct {
     uint8_t                     hmac_key[32];
     uint8_t                     aes_key[32];
 } xqc_ssl_session_ticket_key_t;
-
-typedef struct xqc_engine_ssl_config xqc_engine_ssl_config_t;
-typedef struct xqc_conn_ssl_config  xqc_conn_ssl_config_t;
 
 typedef struct xqc_http_header_s {
     struct iovec        name;
