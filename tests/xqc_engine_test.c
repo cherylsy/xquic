@@ -17,13 +17,7 @@
 
 void xqc_test_engine_create()
 {
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
-    CU_ASSERT(engine != NULL);
-    xqc_engine_destroy(engine);
-    engine = NULL;
-
-    engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
     xqc_engine_destroy(engine);
     engine = NULL;
@@ -49,8 +43,7 @@ void xqc_test_engine_packet_process()
     const struct sockaddr * peer_addr = NULL;
     socklen_t peer_addrlen = 0;
 
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
     engine->eng_callback.write_socket = xqc_client_send;
 

@@ -13,7 +13,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <arpa/inet.h>
-#include <http3/xqc_h3_request.h>
+#include <common/xqc_log.h>
 #include "include/xquic_typedef.h"
 
 int printf_null(const char *format, ...)
@@ -525,13 +525,6 @@ int main(int argc, char *argv[]) {
     engine_ssl_config.session_ticket_key_data = NULL;
 
 
-
-    eb = event_base_new();
-
-    ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
-
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
-
     xqc_engine_callback_t callback = {
             /* HTTP3不用设置这个回调 */
             .conn_callbacks = {
@@ -560,13 +553,19 @@ int main(int argc, char *argv[]) {
             //.cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
+            .log_callbacks = default_log_cb,
     };
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
             .h3         =   1,
     };
-    xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
+
+    eb = event_base_new();
+
+    ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
+
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, conn_settings, &ctx);
 
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));

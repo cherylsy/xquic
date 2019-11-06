@@ -13,8 +13,7 @@ xqc_test_stream_frame()
 {
     xqc_int_t ret;
 
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
     xqc_connection_t *conn;

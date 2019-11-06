@@ -24,8 +24,7 @@ void xqc_test_packet_parse_cid(unsigned char *buf, size_t size, int is_short)
     unsigned char dcid_buf[XQC_MAX_CID_LEN * 2];
     unsigned char scid_buf[XQC_MAX_CID_LEN * 2];
 
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
     xqc_cid_t dcid, scid;

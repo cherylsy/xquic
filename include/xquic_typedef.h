@@ -9,6 +9,7 @@ typedef struct xqc_stream_s xqc_stream_t;
 typedef struct xqc_connection_s xqc_connection_t;
 typedef struct xqc_conn_settings_s xqc_conn_settings_t;
 typedef struct xqc_engine_s xqc_engine_t;
+typedef struct xqc_log_callbacks_s xqc_log_callbacks_t;
 typedef struct xqc_conn_callbacks_s xqc_conn_callbacks_t;
 typedef struct xqc_h3_conn_callbacks_s xqc_h3_conn_callbacks_t;
 typedef struct xqc_random_generator_s xqc_random_generator_t;
@@ -45,5 +46,13 @@ typedef struct xqc_cid_s
     uint8_t    cid_buf[XQC_MAX_CID_LEN];
 } xqc_cid_t;
 
+typedef enum xqc_log_level_s
+{
+    XQC_LOG_FATAL,
+    XQC_LOG_ERROR,
+    XQC_LOG_WARN,
+    XQC_LOG_INFO,
+    XQC_LOG_DEBUG,
+} xqc_log_level_t;
 
 #endif /*_XQUIC_TYPEDEF_H_INCLUDED_*/

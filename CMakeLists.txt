@@ -6,7 +6,7 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT -DNPRINT_MALLOC")
 
 configure_file (
     xqc_cmake_config.h.in
@@ -63,6 +63,7 @@ set(
     common/xqc_random.c
     common/xqc_variable_len_int.c
     common/xqc_str.c
+    common/xqc_log.c
 )
 
 set(
@@ -78,13 +79,21 @@ set(
 add_library(
     xquic
 
-    STATIC
+    #STATIC
+    SHARED
 
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )
+
+# Strip binary for release builds
+if (CMAKE_BUILD_TYPE STREQUAL Release)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_STRIP} libxquic.so)
+endif ()
+
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
 link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
@@ -101,7 +110,7 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
-add_executable(test        tests/main.c)
+#add_executable(test        tests/main.c)
 
 include_directories( /usr/local/include )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
@@ -112,7 +121,7 @@ link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
 
 target_link_libraries(test_server xquic -levent -lm)
 target_link_libraries(test_client xquic -levent -lm)
-target_link_libraries(test xquic -lssl )
-target_link_libraries(test xquic -lcrypto)
+#target_link_libraries(test xquic -lssl )
+#target_link_libraries(test xquic -lcrypto)
 
 

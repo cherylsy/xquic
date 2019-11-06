@@ -187,7 +187,11 @@ xqc_engine_wakeup_after (xqc_engine_t *engine)
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 xqc_engine_t *
-xqc_engine_create(xqc_engine_type_t engine_type , xqc_engine_ssl_config_t * ssl_config)
+xqc_engine_create(xqc_engine_type_t engine_type,
+                  xqc_engine_ssl_config_t * ssl_config,
+                  xqc_engine_callback_t engine_callback,
+                  xqc_conn_settings_t conn_settings,
+                  void *user_data)
 {
     xqc_engine_t *engine = NULL;
 
@@ -204,11 +208,11 @@ xqc_engine_create(xqc_engine_type_t engine_type , xqc_engine_ssl_config_t * ssl_
         goto fail;
     }
 
-    if (engine_type == XQC_ENGINE_SERVER) {
-        engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "slog");
-    } else {
-        engine->log = xqc_log_init(XQC_LOG_DEBUG, "./", "clog");
-    }
+    xqc_engine_set_callback(engine, engine_callback);
+    engine->conn_settings = conn_settings;
+    engine->user_data = user_data;
+
+    engine->log = xqc_log_init(&engine->eng_callback.log_callbacks);
     if (engine->log == NULL) {
         goto fail;
     }
@@ -279,11 +283,6 @@ xqc_engine_destroy(xqc_engine_t *engine)
         engine->config = NULL;
     }
 
-    if (engine->log) {
-        xqc_free(engine->log);
-        engine->log = NULL;
-    }
-
     if (engine->rand_generator) {
         xqc_random_generator_destroy(engine->rand_generator);
         engine->rand_generator = NULL;
@@ -338,6 +337,10 @@ xqc_engine_destroy(xqc_engine_t *engine)
     }
 
     xqc_tls_free_engine_config(&engine->ssl_config);
+
+    if (engine->log) {
+        xqc_log_release(engine->log);
+    }
 
     xqc_free(engine);
 }

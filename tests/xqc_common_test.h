@@ -3,6 +3,8 @@
 
 #include "common/xqc_queue.h"
 #include "common/xqc_hash.h"
+#include "include/xquic.h"
+#include "common/xqc_log.h"
 
 void xqc_test_common();
 
@@ -17,5 +19,15 @@ engine_ssl_config.session_ticket_key_data = NULL;       \
 engine_ssl_config.alpn_list_len = 0;                    \
 engine_ssl_config.alpn_list = NULL;
 
+static inline xqc_engine_t* test_create_engine()
+{
+    def_engine_ssl_config;
+    xqc_engine_callback_t callback = {
+            .log_callbacks = default_log_cb,
+    };
+
+    xqc_conn_settings_t conn_settings;
+    return xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, conn_settings, NULL);
+}
 
 #endif

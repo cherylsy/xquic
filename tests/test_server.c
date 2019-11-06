@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <event2/event.h>
 #include <arpa/inet.h>
+#include <common/xqc_log.h>
 #include "congestion_control/xqc_bbr.h"
 #include "xqc_cmake_config.h"
 #include "include/xquic_typedef.h"
@@ -465,14 +466,6 @@ int main(int argc, char *argv[]) {
         engine_ssl_config.session_ticket_key_len = ticket_key_len;
     }
 
-
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
-
-    if(ctx.engine == NULL){
-        printf("error create engine\n");
-        return -1;
-    }
-
     xqc_engine_callback_t callback = {
             .conn_callbacks = {
                     .conn_create_notify = xqc_server_conn_create_notify,
@@ -498,6 +491,7 @@ int main(int argc, char *argv[]) {
             //.cong_ctrl_callback = xqc_reno_cb,
             .cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_server_set_event_timer,
+            .log_callbacks = default_log_cb,
     };
 
     xqc_conn_settings_t conn_settings = {
@@ -509,7 +503,12 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
-    xqc_engine_init(ctx.engine, callback, conn_settings, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, conn_settings, &ctx);
+
+    if(ctx.engine == NULL){
+        printf("error create engine\n");
+        return -1;
+    }
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
     if (ctx.fd < 0) {

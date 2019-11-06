@@ -40,6 +40,14 @@ typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user
 typedef int  (*xqc_save_session_cb_t )(char * data, size_t data_len, char * user_data);
 typedef int  (*xqc_save_tp_cb_t )(char * data, size_t data_len, char * user_data) ;
 
+/* log interface */
+struct xqc_log_callbacks_s {
+    void* (*xqc_open_log_file)(); /* return handler */
+    int (*xqc_close_log_file)(void *handler);
+    ssize_t (*xqc_write_log_file)(void *handler, const void *buf, size_t count);
+    xqc_log_level_t log_level;
+};
+
 /* transport layer */
 struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
@@ -132,6 +140,8 @@ typedef struct xqc_engine_callback_s {
     /* for request notify */
     xqc_h3_request_callbacks_t  h3_request_callbacks;
 
+    xqc_log_callbacks_t         log_callbacks;
+
 }xqc_engine_callback_t;
 
 
@@ -215,19 +225,12 @@ typedef struct xqc_engine_s {
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
-                                xqc_engine_ssl_config_t * xc_config);
+                                xqc_engine_ssl_config_t * ssl_config,
+                                xqc_engine_callback_t engine_callback,
+                                xqc_conn_settings_t conn_settings,
+                                void *user_data);
 
 void xqc_engine_destroy(xqc_engine_t *engine);
-
-
-/**
- * Init engine after engine created.
- */
-void
-xqc_engine_init (xqc_engine_t *engine,
-                 xqc_engine_callback_t engine_callback,
-                 xqc_conn_settings_t conn_settings,
-                 void *user_data);
 
 
 /**

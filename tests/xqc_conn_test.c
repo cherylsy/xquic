@@ -11,13 +11,7 @@
 
 void xqc_test_conn_create()
 {
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
-
-    xqc_engine_callback_t callback = {
-    };
-    xqc_engine_set_callback(engine, callback);
-
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
     xqc_conn_ssl_config_t conn_ssl_config;
