@@ -23,9 +23,12 @@ typedef void (*xqc_set_event_timer_pt)(void *engine_user_data, xqc_msec_t wake_a
 typedef void (*xqc_save_token_pt)(void *engine_user_data, const unsigned char *token, uint32_t token_len);
 
 /*
+ * warning: server's user_data is NULL when send a reset packet
  * return bytes sent, <0 for error
  */
-typedef ssize_t (*xqc_socket_write_pt)(void *user_data, unsigned char *buf, size_t size);
+typedef ssize_t (*xqc_socket_write_pt)(void *user_data, unsigned char *buf, size_t size,
+                                       const struct sockaddr *peer_addr,
+                                       socklen_t peer_addrlen);
 
 /*
  * return 0 for success, <0 for error
@@ -43,8 +46,10 @@ typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, char *user_data);
 
 /* log interface */
 struct xqc_log_callbacks_s {
+    /* return 0 for success, <0 for error */
     int (*xqc_open_log_file)(void *engine_user_data);
     int (*xqc_close_log_file)(void *engine_user_data);
+    /* return bytes write, <0 for error*/
     ssize_t (*xqc_write_log_file)(void *engine_user_data, const void *buf, size_t count);
     xqc_log_level_t log_level;
 };
@@ -247,7 +252,9 @@ void xqc_engine_destroy(xqc_engine_t *engine);
 xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           unsigned char *token, unsigned token_len,
                           char *server_host, int no_crypto_flag,
-                          xqc_conn_ssl_config_t *conn_ssl_config);
+                          xqc_conn_ssl_config_t *conn_ssl_config,
+                          const struct sockaddr *peer_addr,
+                          socklen_t peer_addrlen);
 
 int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
@@ -256,6 +263,14 @@ int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
  */
 void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
                                void *user_data);
+
+/**
+ * Server should get peer addr when h3_conn_create_notify callbacks
+ * @param peer_addr_len is a return value
+ * @return peer addr
+ */
+struct sockaddr* xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
+                                           socklen_t *peer_addr_len);
 
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         xqc_cid_t *cid,
@@ -315,7 +330,9 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
                        unsigned char *token, unsigned token_len,
                        char *server_host, int no_crypto_flag,
-                       xqc_conn_ssl_config_t *conn_ssl_config);
+                       xqc_conn_ssl_config_t *conn_ssl_config,
+                       const struct sockaddr *peer_addr,
+                       socklen_t peer_addrlen);
 
 /**
  * Send CONNECTION_CLOSE to peer, conn_close_notify will callback when connection destroyed
@@ -328,6 +345,14 @@ int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
  */
 void xqc_conn_set_user_data(xqc_connection_t *conn,
                            void *user_data);
+
+/**
+ * Server should get peer addr when conn_create_notify callbacks
+ * @param peer_addr_len is a return value
+ * @return peer addr
+ */
+struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
+                                       socklen_t *peer_addr_len);
 
 /**
  * Create new stream in quic connection.
@@ -376,6 +401,7 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
 /**
  * Pass received UDP packet payload into xquic engine.
  * @param recv_time   UDP packet recieved time in microsecond
+ * @param user_data   connection user_data, server is NULL
  */
 int xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,

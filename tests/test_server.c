@@ -36,7 +36,8 @@ typedef struct user_stream_s {
 
 typedef struct user_conn_s {
     struct event       *ev_timeout;
-
+    struct sockaddr_in  peer_addr;
+    socklen_t           peer_addrlen;
 } user_conn_t;
 
 typedef struct xqc_server_ctx_s {
@@ -44,8 +45,6 @@ typedef struct xqc_server_ctx_s {
     xqc_engine_t        *engine;
     struct sockaddr_in  local_addr;
     socklen_t           local_addrlen;
-    struct sockaddr_in  peer_addr;
-    socklen_t           peer_addrlen;
     struct event        *ev_socket;
     struct event        *ev_engine;
     int                 log_fd;
@@ -80,6 +79,11 @@ int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
     xqc_conn_set_user_data(conn, user_conn);
+
+    socklen_t peer_addrlen;
+    struct sockaddr* peer_addr = xqc_conn_get_peer_addr(conn, &peer_addrlen);
+    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
+    user_conn->peer_addrlen = peer_addrlen;
     return 0;
 }
 
@@ -163,6 +167,11 @@ int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, voi
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
+
+    socklen_t peer_addrlen;
+    struct sockaddr* peer_addr = xqc_h3_conn_get_peer_addr(h3_conn, &peer_addrlen);
+    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
+    user_conn->peer_addrlen = peer_addrlen;
     return 0;
 }
 
@@ -268,14 +277,17 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     return 0;
 }
 
-ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size) {
+ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size,
+                        const struct sockaddr *peer_addr,
+                        socklen_t peer_addrlen) {
     DEBUG;
+    user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
     ssize_t res;
     int fd = ctx.fd;
     printf("xqc_server_send size=%zd now=%llu\n",size, now());
     do {
         errno = 0;
-        res = sendto(fd, buf, size, 0, (struct sockaddr*)&ctx.peer_addr, ctx.peer_addrlen);
+        res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
 
@@ -299,11 +311,12 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
 
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
-    ctx->peer_addrlen = sizeof(ctx->peer_addr);
+    struct sockaddr_in peer_addr;
+    socklen_t peer_addrlen = sizeof(peer_addr);
 
     do {
-        recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &ctx->peer_addr,
-                             &ctx->peer_addrlen);
+        recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &peer_addr,
+                             &peer_addrlen);
         if (recv_size < 0 && errno == EAGAIN) {
             //printf("!!!!!!!!!errno EAGAIN\n");
             break;
@@ -319,8 +332,8 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));*/
         if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
-                                      (struct sockaddr *) (&ctx->peer_addr), ctx->peer_addrlen, (xqc_msec_t) recv_time,
-                                      ctx) != 0) {
+                                      (struct sockaddr *) (&peer_addr), peer_addrlen, (xqc_msec_t) recv_time,
+                                      NULL) != 0) {
             printf("xqc_server_read_handler: packet process err\n");
             return;
         }

@@ -241,6 +241,8 @@ struct xqc_connection_s{
 
     unsigned char           peer_addr[sizeof(struct sockaddr_in6)],
                             local_addr[sizeof(struct sockaddr_in6)];
+    socklen_t               peer_addrlen,
+                            local_addrlen;
 
     unsigned char           conn_token[XQC_MAX_TOKEN_LEN];
     unsigned char           enc_pkt[XQC_PACKET_OUT_SIZE_EXT];
@@ -308,6 +310,17 @@ xqc_connection_t *xqc_conn_create(xqc_engine_t *engine,
                                   void *user_data,
                                   xqc_conn_type_t type);
 
+xqc_connection_t *
+xqc_conn_server_create(xqc_engine_t *engine,
+                       const struct sockaddr *local_addr,
+                       socklen_t local_addrlen,
+                       const struct sockaddr *peer_addr,
+                       socklen_t peer_addrlen,
+                       xqc_cid_t *dcid, xqc_cid_t *scid,
+                       xqc_conn_callbacks_t *callbacks,
+                       xqc_conn_settings_t *settings,
+                       void *user_data);
+
 void xqc_conn_destroy(xqc_connection_t *xc);
 
 void xqc_conn_send_packets (xqc_connection_t *conn);
@@ -324,7 +337,9 @@ int xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 
 int xqc_conn_immediate_close(xqc_connection_t *conn);
 
-int xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data);
+int xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
+                        const struct sockaddr *peer_addr,
+                        socklen_t peer_addrlen);
 
 int xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
 

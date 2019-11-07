@@ -579,40 +579,22 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             goto process;
         }
 
-        xqc_conn_type_t conn_type = (engine->eng_type == XQC_ENGINE_SERVER) ?
-                                     XQC_CONN_TYPE_SERVER : XQC_CONN_TYPE_CLIENT;
-
-        xqc_cid_t new_scid;
-        /* server generates it's own cid */
-        if (xqc_generate_cid(engine, &new_scid) != XQC_OK) {
-            xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
-            return -XQC_ESYS;
-        }
-        /*memset(&new_scid.cid_buf, 0xDD, 4);*/ //TODO: for test
-        conn = xqc_conn_create(engine, &dcid, &new_scid,
-                               &(engine->eng_callback.conn_callbacks),
-                               &engine->conn_settings, user_data,
-                               conn_type);
-
+        conn = xqc_conn_server_create(engine,
+                                      local_addr, local_addrlen,
+                                      peer_addr, peer_addrlen,
+                                      &dcid, &scid,
+                                      &(engine->eng_callback.conn_callbacks),
+                                      &engine->conn_settings,
+                                      user_data);
         if (conn == NULL) {
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to create connection|");
+            xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
             return -XQC_ENULLPTR;
         }
-
-        if(xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0){
-            return XQC_ERROR;
-        }
-
-        xqc_cid_copy(&conn->ocid, &scid);
-        xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
-        xqc_memcpy(conn->peer_addr, peer_addr, peer_addrlen);
-
-        xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
     }
     if (conn == NULL) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
             xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%ui|", packet_in_size);
-            ret = xqc_conn_send_reset(engine, &scid, user_data);
+            ret = xqc_conn_send_reset(engine, &scid, user_data, peer_addr, peer_addrlen);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
             }

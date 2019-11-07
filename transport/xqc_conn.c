@@ -208,15 +208,6 @@ xqc_conn_create(xqc_engine_t *engine,
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
-    /* Do callback */
-    if (xc->conn_type == XQC_CONN_TYPE_SERVER && xc->conn_callbacks.conn_create_notify) {
-        if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid, user_data)) {
-            goto fail;
-        }
-        xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
-    }
-
-
     return xc;
 
 fail:
@@ -226,6 +217,64 @@ fail:
     return NULL;
 }
 
+
+xqc_connection_t *
+xqc_conn_server_create(xqc_engine_t *engine,
+                       const struct sockaddr *local_addr,
+                       socklen_t local_addrlen,
+                       const struct sockaddr *peer_addr,
+                       socklen_t peer_addrlen,
+                       xqc_cid_t *dcid, xqc_cid_t *scid,
+                       xqc_conn_callbacks_t *callbacks,
+                       xqc_conn_settings_t *settings,
+                       void *user_data)
+{
+    xqc_connection_t *conn;
+    xqc_cid_t new_scid;
+    /* server generates it's own cid */
+    if (xqc_generate_cid(engine, &new_scid) != XQC_OK) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
+        return NULL;
+    }
+    /*memset(&new_scid.cid_buf, 0xDD, 4);*/ //TODO: for test
+    conn = xqc_conn_create(engine, dcid, &new_scid,
+                           callbacks,
+                           settings,
+                           user_data,
+                           XQC_CONN_TYPE_SERVER);
+
+    if (conn == NULL) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
+        return NULL;
+    }
+
+    if(xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0){
+        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to tls_initial|");
+        goto fail;
+    }
+
+    xqc_cid_copy(&conn->ocid, scid);
+    xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
+    xqc_memcpy(conn->peer_addr, peer_addr, peer_addrlen);
+    conn->local_addrlen = local_addrlen;
+    conn->peer_addrlen = peer_addrlen;
+
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
+
+    /* Do callback */
+    if (conn->conn_callbacks.conn_create_notify) {
+        if (conn->conn_callbacks.conn_create_notify(conn, &conn->scid, user_data)) {
+            goto fail;
+        }
+        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
+    }
+
+    return conn;
+
+fail:
+    xqc_conn_destroy(conn);
+    return NULL;
+}
 
 void
 xqc_conn_destroy(xqc_connection_t *xc)
@@ -296,6 +345,14 @@ void xqc_conn_set_user_data(xqc_connection_t *conn,
                             void *user_data)
 {
     conn->user_data = user_data;
+}
+
+struct sockaddr*
+xqc_conn_get_peer_addr(xqc_connection_t *conn,
+                          socklen_t *peer_addr_len)
+{
+    *peer_addr_len = conn->peer_addrlen;
+    return (struct sockaddr*)conn->peer_addr;
 }
 
 void
@@ -406,7 +463,8 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     packet_out->po_sent_time = now;
 
 
-    sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), conn->enc_pkt, conn->enc_pkt_len);
+    sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), conn->enc_pkt, conn->enc_pkt_len, 
+            (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
     xqc_log(conn->log, XQC_LOG_INFO,
             "|<==|conn:%p|pkt_num:%ui|size:%ud|sent:%uz|pkt_type:%s|frame:%s|now:%ui|",
             conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
@@ -604,7 +662,9 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 }
 
 int
-xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data)
+xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data, 
+                    const struct sockaddr *peer_addr,
+                    socklen_t peer_addrlen)
 {
     unsigned char buf[XQC_PACKET_OUT_SIZE];
     int size;
@@ -614,7 +674,8 @@ xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data)
         return size;
     }
 
-    size = (int)engine->eng_callback.write_socket(user_data, buf, (size_t)size);
+    size = (int)engine->eng_callback.write_socket(user_data, buf, (size_t)size, 
+            peer_addr, peer_addrlen);
     if (size < 0) {
         return size;
     }
@@ -639,7 +700,8 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         return size;
     }
 
-    size = (int)engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), buf, (size_t)size);
+    size = (int)engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), buf, (size_t)size, 
+            (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
     if (size < 0) {
         return size;
     }

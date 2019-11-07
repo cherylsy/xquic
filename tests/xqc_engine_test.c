@@ -30,7 +30,9 @@ void xqc_test_engine_create()
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
 
-ssize_t xqc_client_send(void *user_data, unsigned char *buf, size_t size)
+ssize_t xqc_client_send(void *user_data, unsigned char *buf, size_t size,
+                        const struct sockaddr *peer_addr,
+                        socklen_t peer_addrlen)
 {
     return 0;
 }

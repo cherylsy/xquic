@@ -10,11 +10,13 @@ xqc_cid_t *
 xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                unsigned char *token, unsigned token_len,
                char *server_host, int no_crypto_flag,
-               xqc_conn_ssl_config_t *conn_ssl_config)
+               xqc_conn_ssl_config_t *conn_ssl_config,
+               const struct sockaddr *peer_addr,
+               socklen_t peer_addrlen)
 {
     xqc_connection_t *conn;
     conn = xqc_client_connect(engine, user_data, token, token_len, server_host,
-            no_crypto_flag, conn_ssl_config);
+            no_crypto_flag, conn_ssl_config, peer_addr, peer_addrlen);
     if (!conn) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_client_connect error|");
         return NULL;
@@ -28,6 +30,14 @@ xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
                           void *user_data)
 {
     h3_conn->user_data = user_data;
+}
+
+
+struct sockaddr*
+xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
+                          socklen_t *peer_addr_len)
+{
+    return xqc_conn_get_peer_addr(h3_conn->conn, peer_addr_len);
 }
 
 int

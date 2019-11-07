@@ -148,7 +148,9 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
 }
 
 int g_send_total = 0;
-ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
+ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
+                                const struct sockaddr *peer_addr,
+                                socklen_t peer_addrlen)
 {
     user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res;
@@ -157,7 +159,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size)
     do {
         errno = 0;
         //res = write(fd, buf, size);
-        res = sendto(fd, buf, size, 0, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
+        res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
@@ -552,6 +554,7 @@ int main(int argc, char *argv[]) {
 
 
     xqc_engine_ssl_config_t  engine_ssl_config;
+    memset(&engine_ssl_config, 0 ,sizeof(engine_ssl_config));
     /* private_key_file cert_file 客户端不用填 */
     engine_ssl_config.private_key_file = "./server.key";
     engine_ssl_config.cert_file = "./server.crt";
@@ -660,10 +663,10 @@ int main(int argc, char *argv[]) {
     xqc_cid_t *cid;
     if (conn_settings.h3) {
         cid = xqc_h3_connect(ctx.engine, user_conn, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
-                          &conn_ssl_config);
+                          &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
         cid = xqc_connect(ctx.engine, user_conn, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
-                          &conn_ssl_config);
+                          &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
     if (cid == NULL) {
         printf("xqc_connect error\n");
