@@ -391,6 +391,10 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
+    if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
+        goto end;
+    }
+
     xqc_conn_process_undecrypt_packets(conn);
     XQC_CHECK_IMMEDIATE_CLOSE();
     xqc_process_crypto_read_streams(conn);
@@ -424,9 +428,8 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    conn->packet_need_process_count = 0;
-
 end:
+    conn->packet_need_process_count = 0;
     return;
 }
 
@@ -605,6 +608,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                 xqc_log(engine->log, XQC_LOG_WARN, "|receive reset, enter draining|");
                 if (conn->conn_state < XQC_CONN_STATE_DRAINING) {
                     conn->conn_state = XQC_CONN_STATE_DRAINING;
+                    xqc_send_ctl_drop_packets(conn->conn_send_ctl);
                     xqc_msec_t pto = xqc_send_ctl_calc_pto(conn->conn_send_ctl);
                     if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
                         xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_DRAINING, 3 * pto + recv_time);
