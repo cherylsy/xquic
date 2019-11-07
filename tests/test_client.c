@@ -556,13 +556,8 @@ int main(int argc, char *argv[]) {
     xqc_engine_ssl_config_t  engine_ssl_config;
     memset(&engine_ssl_config, 0 ,sizeof(engine_ssl_config));
     /* private_key_file cert_file 客户端不用填 */
-    engine_ssl_config.private_key_file = "./server.key";
-    engine_ssl_config.cert_file = "./server.crt";
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
     engine_ssl_config.groups = XQC_TLS_GROUPS;
-    engine_ssl_config.session_ticket_key_len = 0;
-    engine_ssl_config.session_ticket_key_data = NULL;
-
 
     xqc_engine_callback_t callback = {
             /* HTTP3不用设置这个回调 */

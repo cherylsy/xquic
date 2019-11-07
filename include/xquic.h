@@ -153,23 +153,23 @@ typedef struct xqc_engine_callback_s {
 
 
 typedef struct xqc_engine_ssl_config_s {
-    char       *private_key_file;
-    char       *cert_file;
+    char       *private_key_file; /* For server */
+    char       *cert_file; /* For server */
     char       *ciphers;
     char       *groups;
     //uint32_t   timeout;
-    char       *session_ticket_key_data;
-    size_t     session_ticket_key_len;
+    char       *session_ticket_key_data; /* For server */
+    size_t     session_ticket_key_len; /* For server */
 
-    char       *alpn_list;
-    int        alpn_list_len;
+    char       *alpn_list; /* optional */
+    int        alpn_list_len; /* optional */
 } xqc_engine_ssl_config_t;
 
 typedef struct xqc_conn_ssl_config_s {
-    char       *session_ticket_data;
-    size_t     session_ticket_len;
-    char       *transport_parameter_data;
-    size_t     transport_parameter_data_len;
+    char       *session_ticket_data; /* For client, client should Use the domain as the key to save */
+    size_t     session_ticket_len;  /* For client */
+    char       *transport_parameter_data; /* For client, client should Use the domain as the key to save */
+    size_t     transport_parameter_data_len; /* For client */
 } xqc_conn_ssl_config_t;
 
 typedef struct {
