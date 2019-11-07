@@ -1,4 +1,5 @@
 
+#include "transport/xqc_engine.h"
 #include "transport/xqc_conn.h"
 #include "transport/xqc_client.h"
 #include "xqc_h3_conn.h"

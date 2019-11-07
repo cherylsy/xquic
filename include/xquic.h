@@ -45,29 +45,29 @@ typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, char *user_da
 typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, char *user_data);
 
 /* log interface */
-struct xqc_log_callbacks_s {
+typedef struct xqc_log_callbacks_s {
     /* return 0 for success, <0 for error */
     int (*xqc_open_log_file)(void *engine_user_data);
     int (*xqc_close_log_file)(void *engine_user_data);
     /* return bytes write, <0 for error*/
     ssize_t (*xqc_write_log_file)(void *engine_user_data, const void *buf, size_t count);
     xqc_log_level_t log_level;
-};
+} xqc_log_callbacks_t;
 
 /* transport layer */
-struct xqc_conn_callbacks_s {
+typedef struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
     xqc_conn_notify_pt          conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
 
     /* for handshake done */
     //xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
-};
+} xqc_conn_callbacks_t;
 
 /* application layer */
-struct xqc_h3_conn_callbacks_s {
+typedef struct xqc_h3_conn_callbacks_s {
     xqc_h3_conn_notify_pt          h3_conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
     xqc_h3_conn_notify_pt          h3_conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
-};
+} xqc_h3_conn_callbacks_t;
 
 /* transport layer */
 typedef struct xqc_stream_callbacks_s {
@@ -106,20 +106,19 @@ typedef struct xqc_congestion_control_callback_s {
  * QUIC config parameters
  */
 typedef struct xqc_config_s {
-
     size_t  conn_pool_size;
     size_t  streams_hash_bucket_size;
     size_t  conns_hash_bucket_size;
     size_t  conns_pq_capacity;
     uint32_t  support_version_list[XQC_SUPPORT_VERSION_MAX]; /*支持的版本列表*/
     uint32_t  support_version_count; /*版本列表数量*/
-}xqc_config_t;
+} xqc_config_t;
 
 
 typedef enum {
     XQC_ENGINE_SERVER,
     XQC_ENGINE_CLIENT
-}xqc_engine_type_t;
+} xqc_engine_type_t;
 
 
 typedef struct xqc_engine_callback_s {
@@ -150,7 +149,7 @@ typedef struct xqc_engine_callback_s {
     /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
 
-}xqc_engine_callback_t;
+} xqc_engine_callback_t;
 
 
 typedef struct xqc_engine_ssl_config_s {
@@ -190,40 +189,10 @@ typedef struct xqc_http_headers_s {
     size_t                  count;
 } xqc_http_headers_t;
 
-struct xqc_conn_settings_s {
+typedef struct xqc_conn_settings_s {
     int     pacing_on;
     int     h3;
-};
-
-typedef enum {
-    XQC_ENG_FLAG_RUNNING    = 1 << 0,
-} xqc_engine_flag_t;
-
-typedef struct xqc_engine_s {
-    xqc_engine_type_t       eng_type;
-
-    xqc_engine_callback_t   eng_callback;
-    xqc_config_t           *config;
-    xqc_str_hash_table_t   *conns_hash; /*scid*/
-    xqc_str_hash_table_t   *conns_hash_dcid; /*For reset packet*/
-    xqc_pq_t               *conns_active_pq; /* In process */
-    xqc_wakeup_pq_t        *conns_wait_wakeup_pq; /* Need wakeup after next tick time */
-
-    xqc_conn_settings_t    conn_settings;
-
-    xqc_log_t              *log;
-    xqc_random_generator_t *rand_generator;
-
-    void                   *user_data;
-
-    SSL_CTX                *ssl_ctx;  //for ssl
-    xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
-    xqc_ssl_session_ticket_key_t  session_ticket_key;
-
-    xqc_engine_flag_t       engine_flag;
-}xqc_engine_t;
-
-
+} xqc_conn_settings_t;
 
 /**
  * Create new xquic engine.

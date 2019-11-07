@@ -1,4 +1,5 @@
 #include "xqc_tls_init.h"
+#include "xqc_engine.h"
 #include "xqc_client.h"
 #include "include/xquic.h"
 #include "xqc_transport.h"

@@ -7,6 +7,7 @@
 #include <common/xqc_algorithm.h>
 #include <common/xqc_errno.h>
 #include "common/xqc_log.h"
+#include "xqc_engine.h"
 #include "xqc_conn.h"
 #include "xqc_packet.h"
 #include "xqc_stream.h"

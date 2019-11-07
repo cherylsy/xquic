@@ -1,5 +1,6 @@
 
-#include <transport/xqc_stream.h>
+#include "transport/xqc_stream.h"
+#include "transport/xqc_engine.h"
 #include "xqc_h3_request.h"
 #include "include/xquic.h"
 

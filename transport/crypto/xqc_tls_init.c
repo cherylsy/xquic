@@ -5,6 +5,7 @@
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
 #include "transport/xqc_conn.h"
+#include "transport/xqc_engine.h"
 #include "include/xquic_typedef.h"
 #include "xqc_tls_0rtt.h"
 #include "xqc_tls_if.h"
