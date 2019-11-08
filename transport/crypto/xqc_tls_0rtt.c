@@ -163,7 +163,7 @@ int xqc_new_session_cb(SSL *ssl, SSL_SESSION *session)
             xqc_log(conn->log, XQC_LOG_ERROR, "|save new session  error|");
             ret = -1;
         }else{
-            ret = conn->tlsref.save_session_cb(p_data, data_len, conn->tlsref.session_user_data);
+            ret = conn->tlsref.save_session_cb(p_data, data_len, conn->user_data);
         }
         BIO_free(m_f); //free
         return ret;

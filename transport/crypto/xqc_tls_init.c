@@ -178,6 +178,9 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
     callbacks->update_key = xqc_update_key;
     callbacks->recv_retry = xqc_tls_recv_retry_cb;
 
+    tlsref->save_session_cb = engine->eng_callback.save_session_cb;
+    tlsref->save_tp_cb = engine->eng_callback.save_tp_cb;
+
     xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
     if( (config->transport_parameter_data_len > 0) && (config->transport_parameter_data != NULL)){
         xqc_transport_params_t params ;

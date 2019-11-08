@@ -149,6 +149,10 @@ typedef struct xqc_engine_callback_s {
     /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
 
+    /*for client save session data*/
+    xqc_save_session_cb_t       save_session_cb;
+    /*for client save transport parameter data*/
+    xqc_save_tp_cb_t            save_tp_cb;
 } xqc_engine_callback_t;
 
 
