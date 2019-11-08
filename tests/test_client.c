@@ -593,6 +593,8 @@ int main(int argc, char *argv[]) {
                     .xqc_close_log_file = xqc_client_close_log_file,
                     .xqc_write_log_file = xqc_client_write_log_file,
             },
+            .save_session_cb = save_session_cb,
+            .save_tp_cb = save_tp_cb,
     };
 
     xqc_conn_settings_t conn_settings = {
@@ -670,8 +672,8 @@ int main(int argc, char *argv[]) {
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
-    xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
-    xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
+    //xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
+    //xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
     user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
     if (conn_settings.h3) {

@@ -40,9 +40,9 @@ typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user
 //typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 //session save callback
-typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, char *user_data);
+typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *user_data);
 //transport parameters save callback
-typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, char *user_data);
+typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, void *user_data);
 
 /* log interface */
 typedef struct xqc_log_callbacks_s {
@@ -149,6 +149,10 @@ typedef struct xqc_engine_callback_s {
     /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
 
+    /*for client save session data*/
+    xqc_save_session_cb_t       save_session_cb;
+    /*for client save transport parameter data*/
+    xqc_save_tp_cb_t            save_tp_cb;
 } xqc_engine_callback_t;
 
 
