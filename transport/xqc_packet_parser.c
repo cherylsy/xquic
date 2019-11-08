@@ -12,6 +12,7 @@
 #include "xqc_packet.h"
 #include "xqc_stream.h"
 #include "xqc_utils.h"
+#include <openssl/hmac.h>
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
 
@@ -1255,10 +1256,26 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
 
 
 void
-xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token)
+xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len)
 {
-    //TODO: HMAC or HKDF with static key
-    memcpy(token, cid->cid_buf, cid->cid_len);
+    // HMAC or HKDF with static key
+    //memcpy(token, cid->cid_buf, cid->cid_len);
+    char key[] = ".@34dshj+={}";
+    unsigned char *input = cid->cid_buf;
+    int input_len = cid->cid_len;
+    unsigned char output[EVP_MAX_MD_SIZE];
+    int output_len = EVP_MAX_MD_SIZE;
+    const EVP_MD * engine = NULL;
+    engine = EVP_md5();
+    HMAC_CTX *ctx = HMAC_CTX_new();
+    HMAC_CTX_reset(ctx);
+    HMAC_Init_ex(ctx, key, strlen(key), engine, NULL);
+    HMAC_Update(ctx, input, input_len);
+
+    HMAC_Final(ctx, output, &output_len);
+    HMAC_CTX_free(ctx);
+
+    memcpy(token, output, output_len < token_len ? : token_len);
 }
 
 /*
@@ -1304,7 +1321,7 @@ xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf)
     memset(dst_buf, 0, padding_len);
     dst_buf += padding_len;
 
-    xqc_gen_reset_token(cid, token);
+    xqc_gen_reset_token(cid, token, XQC_RESET_TOKEN_LEN);
     memcpy(dst_buf, token, sizeof(token));
     dst_buf += sizeof(token);
 
@@ -1326,7 +1343,7 @@ xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size)
     token = buf + (buf_size - XQC_RESET_TOKEN_LEN);
 
     unsigned char calc_token[XQC_RESET_TOKEN_LEN] = {0};
-    xqc_gen_reset_token(cid, calc_token);
+    xqc_gen_reset_token(cid, calc_token, XQC_RESET_TOKEN_LEN);
 
     if (memcmp(token,calc_token, XQC_RESET_TOKEN_LEN) == 0) {
         return 1;

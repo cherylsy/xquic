@@ -7,6 +7,9 @@
 #include <event2/event.h>
 #include <arpa/inet.h>
 #include <common/xqc_log.h>
+//#include <transport/xqc_stream.h>
+//#include <transport/xqc_conn.h>
+//#include <http3/xqc_h3_request.h>
 #include "congestion_control/xqc_bbr.h"
 #include "xqc_cmake_config.h"
 #include "include/xquic_typedef.h"
@@ -266,6 +269,9 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
     } while (read > 0 && !fin);
+
+    // 打开注释，服务端收到包后测试发送reset
+    // h3_request->h3_stream->h3_conn->conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
 
     if (!fin) {
         return 0;

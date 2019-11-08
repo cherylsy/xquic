@@ -463,7 +463,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     packet_out->po_sent_time = now;
 
 
-    sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), conn->enc_pkt, conn->enc_pkt_len, 
+    sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), conn->enc_pkt, conn->enc_pkt_len,
             (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
     xqc_log(conn->log, XQC_LOG_INFO,
             "|<==|conn:%p|pkt_num:%ui|size:%ud|sent:%uz|pkt_type:%s|frame:%s|now:%ui|",
@@ -662,7 +662,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 }
 
 int
-xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data, 
+xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
                     const struct sockaddr *peer_addr,
                     socklen_t peer_addrlen)
 {
@@ -674,13 +674,13 @@ xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
         return size;
     }
 
-    size = (int)engine->eng_callback.write_socket(user_data, buf, (size_t)size, 
+    size = (int)engine->eng_callback.write_socket(user_data, buf, (size_t)size,
             peer_addr, peer_addrlen);
     if (size < 0) {
         return size;
     }
 
-    xqc_log(engine->log, XQC_LOG_WARN, "|xqc_conn_send_reset ok|size:%d|", size);
+    xqc_log(engine->log, XQC_LOG_WARN, "|<==|xqc_conn_send_reset ok|size:%d|", size);
     return XQC_OK;
 }
 
@@ -700,13 +700,13 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         return size;
     }
 
-    size = (int)engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), buf, (size_t)size, 
+    size = (int)engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), buf, (size_t)size,
             (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
     if (size < 0) {
         return size;
     }
 
-    xqc_log(engine->log, XQC_LOG_WARN, "|xqc_conn_send_retry ok|size:%d|", size);
+    xqc_log(engine->log, XQC_LOG_WARN, "|<==|xqc_conn_send_retry ok|size:%d|", size);
     return XQC_OK;
 }
 
