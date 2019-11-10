@@ -24,6 +24,7 @@
 extern "C" {
 #endif
 
+#define XQC_MAX_SENDBUF_SIZE (4*1024*1024)
 typedef struct {
     xqc_set_event_timer_pt      set_event_timer;
     xqc_save_token_pt           save_token;
@@ -58,8 +59,10 @@ typedef struct{
 
     xqc_cid_t               *cid;
     xqc_stream_t            *stream;
-    xqc_list_head_t              send_frame_data_buf;
+    xqc_list_head_t         send_frame_data_buf;
 
+    uint64_t                buf_size;
+    uint64_t                max_buf_size;
 }axquic_client_stream_t;
 
 

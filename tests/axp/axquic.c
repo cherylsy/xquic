@@ -111,9 +111,14 @@ xqc_cid_t * axquic_connect(xqc_engine_t *engine, void * user_data, char * server
 axquic_client_stream_t * axquic_open_stream(xqc_engine_t * engine, xqc_cid_t * cid){
 
     axquic_client_stream_t * c_stream = malloc(sizeof(axquic_client_stream_t));
+    if(c_stream == NULL){
+        return NULL;
+    }
     c_stream->cid = cid;
     c_stream->stream = xqc_stream_create(engine, cid, c_stream);
     xqc_init_list_head(&c_stream->send_frame_data_buf);
+    c_stream->buf_size = 0;
+    c_stream->max_buf_size = XQC_MAX_SENDBUF_SIZE;
     return c_stream;
 }
 
@@ -134,9 +139,11 @@ int axquic_send_stream_buf(axquic_client_stream_t * client_stream){
 
         if(send_success + send_buf->already_consume != send_buf->data_len){
             send_buf->already_consume += send_success;
+            client_stream->buf_size -= send_success;
             ret = 0; // means send data not completely
             break;
         }else{
+            client_stream->buf_size -= send_success;
             xqc_list_del(pos);
             free(pos);
         }
@@ -151,10 +158,18 @@ int axquic_send(axquic_client_stream_t * client_stream, char * data, int data_le
 
     int ret = 0;
 
-    axquic_buf_to_tail(&client_stream->send_frame_data_buf, data, data_len, fin);
+    if(client_stream->buf_size + data_len < client_stream->max_buf_size){
+        if(axquic_buf_to_tail(&client_stream->send_frame_data_buf, data, data_len, fin) == 0){
+            client_stream->buf_size += data_len;
+        }
+        ret = data_len;
+    }else{
+
+        ret = 0;
+    }
     axquic_send_stream_buf(client_stream);
 
-    return data_len;
+    return ret;
 }
 
 
