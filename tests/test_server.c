@@ -490,6 +490,23 @@ int main(int argc, char *argv[]) {
 
     int rc;
 
+    int server_port = TEST_PORT;
+    int ch = 0;
+    while((ch = getopt(argc, argv, "a:p:")) != -1){
+        switch(ch)
+        {
+            case 'p':
+                printf("option port :%s\n", optarg);
+                server_port = atoi(optarg);
+                break;
+
+            default:
+                printf("other option :%c\n", ch);
+                exit(0);
+        }
+
+    }
+
     memset(&ctx, 0, sizeof(ctx));
 
     char g_session_ticket_file[] = "session_ticket.key";
@@ -565,7 +582,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    ctx.fd = xqc_server_create_socket(TEST_ADDR, TEST_PORT);
+    ctx.fd = xqc_server_create_socket(TEST_ADDR, server_port);
     if (ctx.fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;
