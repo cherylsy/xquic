@@ -261,6 +261,11 @@ void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                                   void *user_data);
 
 /**
+ * Get stream ID by request
+ */
+xqc_stream_id_t xqc_h3_stream_id(xqc_h3_request_t *h3_request);
+
+/**
  * Send RESET_STREAM to peer, h3_request_close_notify will callback when request destroyed
  * @retval 0 for success, <0 for error
  */
@@ -356,6 +361,11 @@ xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
  */
 void xqc_stream_set_user_data(xqc_stream_t *stream,
                               void *user_data);
+
+/**
+ * Get stream ID
+ */
+xqc_stream_id_t xqc_stream_id(xqc_stream_t *stream);
 
 /**
  * Send RESET_STREAM to peer, stream_close_notify will callback when stream destroyed

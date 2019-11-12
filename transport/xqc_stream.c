@@ -254,6 +254,12 @@ xqc_stream_set_user_data(xqc_stream_t *stream,
     stream->user_data = user_data;
 }
 
+xqc_stream_id_t
+xqc_stream_id(xqc_stream_t *stream)
+{
+    return stream->stream_id;
+}
+
 void
 xqc_destroy_stream(xqc_stream_t *stream)
 {
