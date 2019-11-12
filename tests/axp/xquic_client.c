@@ -94,7 +94,7 @@ int save_tp_cb(char * data, size_t data_len, void * user_data)
     return 0;
 }
 
-void xqc_client_save_token(void * engine_user_data, const unsigned char *token, uint32_t token_len)
+void xqc_client_save_token(void * user_data, const unsigned char *token, uint32_t token_len)
 {
     int fd = open("./xqc_token",O_TRUNC|O_CREAT|O_WRONLY, S_IRWXU);
     if (fd < 0) {
@@ -105,8 +105,10 @@ void xqc_client_save_token(void * engine_user_data, const unsigned char *token, 
     ssize_t n = write(fd, token, token_len);
     if (n < token_len) {
         printf("save token error %s\n", strerror(errno));
+        close(fd);
         return;
     }
+    close(fd);
 }
 
 int xqc_client_read_token(unsigned char *token, unsigned token_len)
@@ -120,6 +122,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     ssize_t n = read(fd, token, token_len);
     printf("read token size %lld\n", n);
     printf("0x%x\n", token[0]);
+    close(fd);
     return n;
 }
 
