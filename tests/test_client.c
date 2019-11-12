@@ -21,6 +21,7 @@ int printf_null(const char *format, ...)
     return 0;
 }
 
+//打开注释 不打印printf
 //#define printf printf_null
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
@@ -61,7 +62,6 @@ typedef struct user_conn_s {
 typedef struct client_ctx_s {
     xqc_engine_t    *engine;
     struct event    *ev_engine;
-    int             save_token_fd;
     int             log_fd;
 } client_ctx_t;
 
@@ -95,6 +95,7 @@ int save_session_cb( char * data, size_t data_len, void *user_data)
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
         printf("save _session_cb error\n");
+        fclose(fp);
         return -1;
     }
     fclose(fp);
@@ -108,29 +109,30 @@ int save_tp_cb(char * data, size_t data_len, void * user_data)
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
         printf("save _tp_cb error\n");
+        fclose(fp);
         return -1;
     }
     fclose(fp);
     return 0;
 }
 
-void xqc_client_save_token(void *engine_user_data, const unsigned char *token, unsigned token_len)
+void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
 {
-    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    user_conn_t *user_conn = (user_conn_t*)user_data;
 
-    if (ctx->save_token_fd <= 0) {
-        ctx->save_token_fd = open("./xqc_token", O_TRUNC | O_CREAT | O_WRONLY, S_IRWXU);
-        if (ctx->save_token_fd < 0) {
-            printf("save token error %s\n", strerror(errno));
-            return;
-        }
-    }
-
-    ssize_t n = write(ctx->save_token_fd, token, token_len);
-    if (n < token_len) {
+    int fd = open("./xqc_token", O_TRUNC | O_CREAT | O_WRONLY, S_IRWXU);
+    if (fd < 0) {
         printf("save token error %s\n", strerror(errno));
         return;
     }
+
+    ssize_t n = write(fd, token, token_len);
+    if (n < token_len) {
+        printf("save token error %s\n", strerror(errno));
+        close(fd);
+        return;
+    }
+    close(fd);
 }
 
 int xqc_client_read_token(unsigned char *token, unsigned token_len)
@@ -144,6 +146,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     ssize_t n = read(fd, token, token_len);
     printf("read token size %lld\n", n);
     printf("0x%x\n", token[0]);
+    close(fd);
     return n;
 }
 
@@ -582,13 +585,14 @@ int main(int argc, char *argv[]) {
                     .h3_request_close_notify = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
             .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
-            .cong_ctrl_callback = xqc_reno_cb,
-            //.cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_reno_cb,
+            .cong_ctrl_callback = xqc_cubic_cb,
             //.cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
                     .log_level = XQC_LOG_DEBUG,
+                    //.log_level = XQC_LOG_ERROR,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
                     .xqc_write_log_file = xqc_client_write_log_file,

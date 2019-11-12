@@ -20,13 +20,13 @@
 
 typedef void (*xqc_set_event_timer_pt)(void *engine_user_data, xqc_msec_t wake_after);
 
-typedef void (*xqc_save_token_pt)(void *engine_user_data, const unsigned char *token, uint32_t token_len);
+typedef void (*xqc_save_token_pt)(void *conn_user_data, const unsigned char *token, uint32_t token_len);
 
 /*
  * warning: server's user_data is NULL when send a reset packet
  * return bytes sent, <0 for error
  */
-typedef ssize_t (*xqc_socket_write_pt)(void *user_data, unsigned char *buf, size_t size,
+typedef ssize_t (*xqc_socket_write_pt)(void *conn_user_data, unsigned char *buf, size_t size,
                                        const struct sockaddr *peer_addr,
                                        socklen_t peer_addrlen);
 
@@ -40,9 +40,9 @@ typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user
 //typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 
 //session save callback
-typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *user_data);
+typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_user_data);
 //transport parameters save callback
-typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, void *user_data);
+typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, void *conn_user_data);
 
 /* log interface */
 typedef struct xqc_log_callbacks_s {
@@ -129,7 +129,7 @@ typedef struct xqc_engine_callback_s {
     xqc_set_event_timer_pt      set_event_timer; /* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
 
     /* for client only */
-    xqc_save_token_pt           save_token; /* 保存token到本地，connect时带上token */
+    xqc_save_token_pt           save_token; /* 保存token到本地，connect时带上token, 用于验证客户端地址是否真实 */
 
     /* for socket write */
     xqc_socket_write_pt         write_socket; /* 用户实现socket写接口 */
@@ -149,9 +149,10 @@ typedef struct xqc_engine_callback_s {
     /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
 
-    /*for client save session data*/
+    /* for client save session data, Use the domain as the key to save */
     xqc_save_session_cb_t       save_session_cb;
-    /*for client save transport parameter data*/
+
+    /* for client save transport parameter data, Use the domain as the key to save */
     xqc_save_tp_cb_t            save_tp_cb;
 } xqc_engine_callback_t;
 
@@ -245,6 +246,9 @@ void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
 struct sockaddr* xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
                                            socklen_t *peer_addr_len);
 
+/**
+ * @param user_data For request
+ */
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         xqc_cid_t *cid,
                                         void *user_data);
@@ -257,7 +261,7 @@ void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
 
 /**
  * Send RESET_STREAM to peer, h3_request_close_notify will callback when request destroyed
- * @retval XQC_OK or XQC_ERROR
+ * @retval 0 for success, <0 for error
  */
 int xqc_h3_request_close (xqc_h3_request_t *h3_request);
 
@@ -300,6 +304,17 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
 /* ************************************************************
  *  transport layer APIs, if you don't need application layer
  *************************************************************/
+/**
+ * Client connect without http3
+ * @param engine return from xqc_engine_create
+ * @param user_data For connection
+ * @param token token receive from server, xqc_save_token_pt callback
+ * @param token_len
+ * @param server_host server domain
+ * @param no_crypto_flag 1:without crypto
+ * @param conn_ssl_config For handshake
+ * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
+ */
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
                        unsigned char *token, unsigned token_len,
                        char *server_host, int no_crypto_flag,
@@ -343,7 +358,7 @@ void xqc_stream_set_user_data(xqc_stream_t *stream,
 
 /**
  * Send RESET_STREAM to peer, stream_close_notify will callback when stream destroyed
- * @retval XQC_OK or XQC_ERROR
+ * @retval 0 for success, <0 for error
  */
 int xqc_stream_close (xqc_stream_t *stream);
 
@@ -403,16 +418,6 @@ void xqc_engine_main_logic (xqc_engine_t *engine);
 int xqc_conn_continue_send(xqc_engine_t *engine,
                            xqc_cid_t *cid);
 
-
-int xqc_set_save_tp_cb(xqc_engine_t *engine,
-                       xqc_cid_t *cid,
-                       xqc_save_tp_cb_t cb,
-                       void *user_data);
-
-int xqc_set_save_session_cb(xqc_engine_t *engine,
-                            xqc_cid_t *cid,
-                            xqc_save_session_cb_t cb,
-                            void *user_data);
 
 
 #endif /* _XQUIC_H_INCLUDED_ */

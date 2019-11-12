@@ -21,6 +21,7 @@ int printf_null(const char *format, ...)
     return 0;
 }
 
+//打开注释不打印printf
 //#define printf printf_null
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
@@ -541,6 +542,7 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
                     .log_level = XQC_LOG_DEBUG,
+                    //.log_level = XQC_LOG_ERROR,
                     .xqc_open_log_file = xqc_server_open_log_file,
                     .xqc_close_log_file = xqc_server_close_log_file,
                     .xqc_write_log_file = xqc_server_write_log_file,

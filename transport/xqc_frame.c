@@ -340,7 +340,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|already read|data_offset:%ui|data_length:%ui|merged_offset_end:%ui|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|already recvd|data_offset:%ui|data_length:%ui|merged_offset_end:%ui|",
                 stream_frame->data_offset, stream_frame->data_length, stream->stream_data_in.merged_offset_end);
         goto free;
     }
@@ -350,7 +350,8 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_insert_stream_frame error|");
         goto error;
     }
-    if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end) {
+    if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end &&
+            stream->stream_data_in.stream_length > 0) {
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_SIZE_KNOWN) {
             stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_RECVD;
         }
@@ -792,7 +793,7 @@ xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         return ret;
     }
 
-    conn->engine->eng_callback.save_token(conn->engine->user_data, conn->conn_token, conn->conn_token_len);
+    conn->engine->eng_callback.save_token(conn->user_data, conn->conn_token, conn->conn_token_len);
 
     return XQC_OK;
 }
