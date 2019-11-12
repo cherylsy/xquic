@@ -129,7 +129,8 @@ typedef struct xqc_engine_callback_s {
     xqc_set_event_timer_pt      set_event_timer; /* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
 
     /* for client only */
-    xqc_save_token_pt           save_token; /* 保存token到本地，connect时带上token, 用于验证客户端地址是否真实 */
+    /* 保存token到本地，connect时带上token, token包含客户端ip信息，用于验证客户端ip是否真实 */
+    xqc_save_token_pt           save_token;
 
     /* for socket write */
     xqc_socket_write_pt         write_socket; /* 用户实现socket写接口 */
