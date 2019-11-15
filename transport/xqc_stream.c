@@ -299,6 +299,7 @@ xqc_stream_close (xqc_stream_t *stream)
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         }
     }
+    xqc_stream_shutdown_write(stream);
     xqc_engine_main_logic(stream->stream_conn->engine);
     return XQC_OK;
 }
