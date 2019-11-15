@@ -936,8 +936,13 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
         if (stream->stream_flag & XQC_STREAM_FLAG_HAS_0RTT) {
             stream->stream_send_offset = 0;
             stream->stream_unacked_pkt = 0;
-            stream->stream_state_send = 0;
-            stream->stream_state_recv = 0;
+            if (stream->stream_state_send >= XQC_SEND_STREAM_ST_RESET_SENT ||
+                stream->stream_state_recv >= XQC_RECV_STREAM_ST_RESET_RECVD) {
+                xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
+                return XQC_OK;
+            }
+            stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
+            stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
             xqc_stream_write_buff_to_packets(stream);
         }
     }
