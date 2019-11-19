@@ -1,8 +1,4 @@
 #include <stdio.h>
-#include "include/xquic.h"
-#include "congestion_control/xqc_new_reno.h"
-#include "congestion_control/xqc_cubic.h"
-#include "congestion_control/xqc_bbr.h"
 #include <event2/event.h>
 #include <memory.h>
 #include <sys/socket.h>
@@ -11,7 +7,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <common/xqc_log.h>
+#include "include/xquic.h"
 #include "include/xquic_typedef.h"
 
 int printf_null(const char *format, ...)

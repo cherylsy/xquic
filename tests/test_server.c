@@ -5,15 +5,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <event2/event.h>
-#include <common/xqc_log.h>
-//#include <transport/xqc_stream.h>
-//#include <transport/xqc_conn.h>
-//#include <http3/xqc_h3_request.h>
-#include "congestion_control/xqc_bbr.h"
-#include "xqc_cmake_config.h"
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
-#include "congestion_control/xqc_new_reno.h"
 
 int printf_null(const char *format, ...)
 {

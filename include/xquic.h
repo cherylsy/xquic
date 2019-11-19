@@ -105,6 +105,9 @@ typedef struct xqc_congestion_control_callback_s {
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
 
+extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
+extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;
+extern const xqc_cong_ctrl_callback_t xqc_reno_cb;
 
 /**
  * @struct xqc_config_t
