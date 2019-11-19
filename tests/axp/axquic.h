@@ -75,16 +75,18 @@ static inline uint64_t now()
 }
 
 
-xqc_engine_t *  axquic_client_initial_engine(xqc_engine_callback_t callbacks, xqc_conn_settings_t conn_setting, void * user_data);
+xqc_engine_t *  axquic_client_initial_engine(xqc_engine_callback_t callbacks, void * user_data);
 
-xqc_engine_t * axquic_server_initial_engine( xqc_engine_callback_t callback, xqc_conn_settings_t conn_settings,
+xqc_engine_t * axquic_server_initial_engine( xqc_engine_callback_t callback,
         char * session_ticket_key, int ticket_key_len, char * private_key_file, char * cert_file, void * user_data);
 
-xqc_cid_t * axquic_connect(xqc_engine_t *engine, void * user_data, char * server_addr,
-        uint16_t server_port, uint8_t * token, int token_len,
-        uint8_t * session_ticket_data, int session_ticket_len,
-        uint8_t * transport_parameter_data, int transport_parameter_data_len,
-        struct sockaddr *peer_addr, socklen_t peer_addrlen);
+xqc_cid_t * axquic_connect(xqc_engine_t *engine, void * user_data,
+                           xqc_conn_settings_t conn_setting,
+                           char * server_addr, uint16_t server_port,
+                           uint8_t * token, int token_len,
+                           uint8_t * session_ticket_data, int session_ticket_len,
+                           uint8_t * transport_parameter_data, int transport_parameter_data_len,
+                           struct sockaddr *peer_addr, socklen_t peer_addrlen);
 
 axquic_client_stream_t * axquic_open_stream(xqc_engine_t * engine, xqc_cid_t * cid);
 int axquic_send_stream_buf(axquic_client_stream_t * client_stream);

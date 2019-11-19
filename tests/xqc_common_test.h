@@ -27,7 +27,7 @@ static inline xqc_engine_t* test_create_engine()
     };
 
     xqc_conn_settings_t conn_settings;
-    return xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, conn_settings, NULL);
+    return xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, NULL);
 }
 
 #endif

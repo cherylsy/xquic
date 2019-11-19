@@ -567,7 +567,7 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, conn_settings, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, &ctx);
 
     if(ctx.engine == NULL){
         printf("error create engine\n");

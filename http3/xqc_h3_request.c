@@ -124,10 +124,10 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
 
     h3_request->body_recvd += n_recv;
     if (*fin) {
-        h3_request->body_len = h3_request->body_recvd;
+        h3_request->body_recvd_final_size = h3_request->body_recvd;
     }
     xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|body_recvd:%uz|body_len:%uz|n_recv:%z|",
-            h3_request->body_recvd, h3_request->body_len, n_recv);
+            "|body_recvd:%uz|body_recvd_final_size:%uz|n_recv:%z|",
+            h3_request->body_recvd, h3_request->body_recvd_final_size, n_recv);
     return n_recv;
 }

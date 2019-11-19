@@ -19,8 +19,6 @@ typedef struct xqc_engine_s {
     xqc_pq_t               *conns_active_pq; /* In process */
     xqc_wakeup_pq_t        *conns_wait_wakeup_pq; /* Need wakeup after next tick time */
 
-    xqc_conn_settings_t    conn_settings;
-
     xqc_log_t              *log;
     xqc_random_generator_t *rand_generator;
 

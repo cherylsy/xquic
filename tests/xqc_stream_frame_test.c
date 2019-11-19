@@ -17,7 +17,8 @@ xqc_test_stream_frame()
     CU_ASSERT(engine != NULL);
 
     xqc_connection_t *conn;
-    xqc_cid_t *cid = xqc_connect(engine, NULL, NULL, 0, "", 0, NULL, NULL, 0);
+    xqc_conn_settings_t conn_settings;
+    xqc_cid_t *cid = xqc_connect(engine, NULL, conn_settings, NULL, 0, "", 0, NULL, NULL, 0);
     CU_ASSERT(cid != NULL);
 
     conn = xqc_engine_conns_hash_find(engine, cid, 's');

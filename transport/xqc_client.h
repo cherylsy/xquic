@@ -4,6 +4,7 @@
 #include "include/xquic_typedef.h"
 
 xqc_connection_t *xqc_client_connect(xqc_engine_t *engine, void *user_data,
+                                     xqc_conn_settings_t conn_settings,
                                      unsigned char *token, unsigned token_len,
                                      char *server_host, int no_crypto_flag,
                                      xqc_conn_ssl_config_t *conn_ssl_config,

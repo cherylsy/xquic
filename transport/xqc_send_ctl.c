@@ -39,16 +39,16 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
                            xqc_now() + send_ctl->ctl_conn->local_settings.idle_timeout * 1000);
 
-    if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
-        send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
-    } else if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init) {
-        send_ctl->ctl_cong_callback = &conn->engine->eng_callback.cong_ctrl_callback;
+    if (conn->conn_settings.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
+        send_ctl->ctl_cong_callback = &conn->conn_settings.cong_ctrl_callback;
+    } else if (conn->conn_settings.cong_ctrl_callback.xqc_cong_ctl_init) {
+        send_ctl->ctl_cong_callback = &conn->conn_settings.cong_ctrl_callback;
     } else {
         send_ctl->ctl_cong_callback = &xqc_reno_cb;
     }
     send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
 
-    if (conn->engine->eng_callback.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
+    if (conn->conn_settings.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
         send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr(send_ctl->ctl_cong, &send_ctl->sampler);
     } else {
         send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);

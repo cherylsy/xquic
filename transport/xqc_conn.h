@@ -35,6 +35,8 @@
     }                                       \
 } while(0)                                  \
 
+extern xqc_conn_settings_t default_conn_settings;
+
 /* 添加state请更新conn_state_2_str */
 typedef enum {
     /* server */

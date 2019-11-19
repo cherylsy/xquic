@@ -34,7 +34,7 @@ int axquic_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint
     return 0;
 }
 
-xqc_engine_t *  axquic_client_initial_engine(xqc_engine_callback_t callback, xqc_conn_settings_t conn_setting, void * user_data){
+xqc_engine_t *  axquic_client_initial_engine(xqc_engine_callback_t callback, void * user_data){
 
     xqc_engine_ssl_config_t  engine_ssl_config;
     engine_ssl_config.private_key_file = NULL;
@@ -44,7 +44,7 @@ xqc_engine_t *  axquic_client_initial_engine(xqc_engine_callback_t callback, xqc
     engine_ssl_config.session_ticket_key_len = 0;
     engine_ssl_config.session_ticket_key_data = NULL;
 
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, conn_setting, user_data);
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, user_data);
 
     if(engine == NULL){
         return NULL;
@@ -53,7 +53,7 @@ xqc_engine_t *  axquic_client_initial_engine(xqc_engine_callback_t callback, xqc
 }
 
 
-xqc_engine_t * axquic_server_initial_engine( xqc_engine_callback_t callback, xqc_conn_settings_t conn_setting,
+xqc_engine_t * axquic_server_initial_engine( xqc_engine_callback_t callback,
         char * session_ticket_key, int ticket_key_len, char * private_key_file, char * cert_file, void * user_data){
 
     xqc_engine_ssl_config_t engine_ssl_config;
@@ -70,7 +70,7 @@ xqc_engine_t * axquic_server_initial_engine( xqc_engine_callback_t callback, xqc
         engine_ssl_config.session_ticket_key_data = session_ticket_key;
     }
 
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, conn_setting, user_data);
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, user_data);
 
     if(engine == NULL){
         return NULL;
@@ -80,8 +80,10 @@ xqc_engine_t * axquic_server_initial_engine( xqc_engine_callback_t callback, xqc
 
 }
 
-xqc_cid_t * axquic_connect(xqc_engine_t *engine, void * user_data, char * server_addr,
-        uint16_t server_port, uint8_t * token, int token_len,
+xqc_cid_t * axquic_connect(xqc_engine_t *engine, void * user_data,
+        xqc_conn_settings_t conn_setting,
+        char * server_addr, uint16_t server_port,
+        uint8_t * token, int token_len,
         uint8_t * session_ticket_data, int session_ticket_len,
         uint8_t * transport_parameter_data, int transport_parameter_data_len,
         struct sockaddr *peer_addr, socklen_t peer_addrlen){
@@ -98,7 +100,7 @@ xqc_cid_t * axquic_connect(xqc_engine_t *engine, void * user_data, char * server
     }
 
     uint8_t no_crypto_flag = 0;
-    xqc_cid_t *cid = xqc_connect(engine, user_data, token, token_len, server_addr, no_crypto_flag, &conn_ssl_config, peer_addr, peer_addrlen);
+    xqc_cid_t *cid = xqc_connect(engine, user_data, conn_setting, token, token_len, server_addr, no_crypto_flag, &conn_ssl_config, peer_addr, peer_addrlen);
     if(cid == NULL){
         return NULL;
     }

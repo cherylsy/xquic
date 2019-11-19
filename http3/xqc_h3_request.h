@@ -9,8 +9,7 @@ typedef struct xqc_h3_request_s {
     xqc_h3_request_callbacks_t
                         *request_if;
     size_t              body_recvd;
-    size_t              body_len;
-    size_t              header_len;
+    size_t              body_recvd_final_size;
 } xqc_h3_request_t;
 
 void

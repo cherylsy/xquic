@@ -190,7 +190,6 @@ xqc_engine_t *
 xqc_engine_create(xqc_engine_type_t engine_type,
                   xqc_engine_ssl_config_t * ssl_config,
                   xqc_engine_callback_t engine_callback,
-                  xqc_conn_settings_t conn_settings,
                   void *user_data)
 {
     xqc_engine_t *engine = NULL;
@@ -209,7 +208,6 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     }
 
     xqc_engine_set_callback(engine, engine_callback);
-    engine->conn_settings = conn_settings;
     engine->user_data = user_data;
 
     engine->log = xqc_log_init(&engine->eng_callback.log_callbacks, engine->user_data);
@@ -353,11 +351,9 @@ xqc_engine_destroy(xqc_engine_t *engine)
 void
 xqc_engine_init (xqc_engine_t *engine,
                  xqc_engine_callback_t engine_callback,
-                 xqc_conn_settings_t conn_settings,
                  void *user_data)
 {
     xqc_engine_set_callback(engine, engine_callback);
-    engine->conn_settings = conn_settings;
     engine->user_data = user_data;
 }
 
@@ -587,7 +583,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                       peer_addr, peer_addrlen,
                                       &dcid, &scid,
                                       &(engine->eng_callback.conn_callbacks),
-                                      &engine->conn_settings,
+                                      &default_conn_settings,
                                       user_data);
         if (conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");

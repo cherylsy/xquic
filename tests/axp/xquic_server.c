@@ -39,6 +39,7 @@ typedef struct xqc_server_ctx_s {
     socklen_t           local_addrlen;
     struct event        *ev_engine;
     struct event        *ev_socket;
+    int                 log_fd;
 } xqc_server_ctx_t;
 
 xqc_server_ctx_t g_ctx;
@@ -291,6 +292,35 @@ xqc_server_engine_callback(int fd, short what, void *arg)
     xqc_engine_main_logic(ctx->engine);
 }
 
+int xqc_server_open_log_file(void *engine_user_data)
+{
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
+    ctx->log_fd = open("./slog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    return 0;
+}
+
+int xqc_server_close_log_file(void *engine_user_data)
+{
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    close(ctx->log_fd);
+    return 0;
+}
+
+ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_t count)
+{
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    return write(ctx->log_fd, buf, count);
+}
+
 int main(int argc, char *argv[]) {
 
     char session_ticket_file[] = "session_ticket.key";
@@ -326,6 +356,13 @@ int main(int argc, char *argv[]) {
             //.cong_ctrl_callback = xqc_reno_cb,
             .cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_server_set_event_timer,
+            .log_callbacks = {
+                    .log_level = XQC_LOG_DEBUG,
+                    //.log_level = XQC_LOG_ERROR,
+                    .xqc_open_log_file = xqc_server_open_log_file,
+                    .xqc_close_log_file = xqc_server_close_log_file,
+                    .xqc_write_log_file = xqc_server_write_log_file,
+            },
     };
 
     xqc_conn_settings_t conn_settings = {
@@ -334,7 +371,7 @@ int main(int argc, char *argv[]) {
     };
 
 
-    g_ctx.engine = axquic_server_initial_engine(callback, conn_settings, session_ticket_key, ticket_key_len,
+    g_ctx.engine = axquic_server_initial_engine(callback, session_ticket_key, ticket_key_len,
             private_key_file, cert_file, &g_ctx);
 
     struct event_base *eb = event_base_new();

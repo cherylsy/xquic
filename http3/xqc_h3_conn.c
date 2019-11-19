@@ -9,6 +9,7 @@
 
 xqc_cid_t *
 xqc_h3_connect(xqc_engine_t *engine, void *user_data,
+               xqc_conn_settings_t conn_settings,
                unsigned char *token, unsigned token_len,
                char *server_host, int no_crypto_flag,
                xqc_conn_ssl_config_t *conn_ssl_config,
@@ -16,7 +17,7 @@ xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                socklen_t peer_addrlen)
 {
     xqc_connection_t *conn;
-    conn = xqc_client_connect(engine, user_data, token, token_len, server_host,
+    conn = xqc_client_connect(engine, user_data, conn_settings, token, token_len, server_host,
             no_crypto_flag, conn_ssl_config, peer_addr, peer_addrlen);
     if (!conn) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_client_connect error|");

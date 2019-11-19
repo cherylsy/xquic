@@ -9,6 +9,7 @@
 
 xqc_connection_t *
 xqc_client_connect(xqc_engine_t *engine, void *user_data,
+                   xqc_conn_settings_t conn_settings,
                    unsigned char *token, unsigned token_len,
                    char *server_host, int no_crypto_flag,
                    xqc_conn_ssl_config_t *conn_ssl_config,
@@ -38,7 +39,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     memset(dcid.cid_buf, 0xDD, dcid.cid_len);*/
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
-                                                        &callbacks, &engine->conn_settings, server_host,
+                                                        &callbacks, &conn_settings, server_host,
                                                         no_crypto_flag, conn_ssl_config, user_data);
 
     if (xc == NULL) {
@@ -78,6 +79,7 @@ fail:
 
 xqc_cid_t *
 xqc_connect(xqc_engine_t *engine, void *user_data,
+            xqc_conn_settings_t conn_settings,
             unsigned char *token, unsigned token_len,
             char *server_host, int no_crypto_flag,
             xqc_conn_ssl_config_t *conn_ssl_config,
@@ -85,7 +87,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
             socklen_t peer_addrlen)
 {
     xqc_connection_t *conn;
-    conn = xqc_client_connect(engine, user_data, token, token_len,
+    conn = xqc_client_connect(engine, user_data, conn_settings, token, token_len,
                               server_host, no_crypto_flag, conn_ssl_config,
                               peer_addr, peer_addrlen);
     if (conn) {

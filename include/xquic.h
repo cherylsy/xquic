@@ -206,6 +206,7 @@ typedef struct xqc_http_headers_s {
 typedef struct xqc_conn_settings_s {
     int     pacing_on;
     int     h3;
+    xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 } xqc_conn_settings_t;
 
 /**
@@ -215,7 +216,6 @@ typedef struct xqc_conn_settings_s {
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
                                 xqc_engine_ssl_config_t * ssl_config,
                                 xqc_engine_callback_t engine_callback,
-                                xqc_conn_settings_t conn_settings,
                                 void *user_data);
 
 void xqc_engine_destroy(xqc_engine_t *engine);
@@ -233,6 +233,7 @@ void xqc_engine_destroy(xqc_engine_t *engine);
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
+                          xqc_conn_settings_t conn_settings,
                           unsigned char *token, unsigned token_len,
                           char *server_host, int no_crypto_flag,
                           xqc_conn_ssl_config_t *conn_ssl_config,
@@ -330,6 +331,7 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
+                       xqc_conn_settings_t conn_settings,
                        unsigned char *token, unsigned token_len,
                        char *server_host, int no_crypto_flag,
                        xqc_conn_ssl_config_t *conn_ssl_config,

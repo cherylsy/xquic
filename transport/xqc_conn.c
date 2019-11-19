@@ -20,6 +20,11 @@
 #include "crypto/xqc_tls_header.h"
 #include "xqc_utils.h"
 
+xqc_conn_settings_t default_conn_settings = {
+        .pacing_on  =   0,
+        .h3         =   1,
+};
+
 static char g_conn_flag_buf[128];
 
 static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
