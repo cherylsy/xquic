@@ -1,7 +1,7 @@
 
-#include <sys/time.h>
 #include "xqc_new_reno.h"
 #include "include/xquic.h"
+#include "common/xqc_time.h"
 
 /* https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B */
 
@@ -12,17 +12,7 @@ kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 #define XQC_kInitialWindow (10 * XQC_kMaxDatagramSize)
 #define XQC_kLossReductionFactor (0.5f)
 
-
-#define max(a, b) ((a) > (b) ? (a) : (b))
-
-static inline uint64_t now()
-{
-    /*获取微秒单位时间*/
-    struct timeval tv;
-    gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * 1000000 + tv.tv_usec;
-    return  ul;
-}
+#define xqc_max(a, b) ((a) > (b) ? (a) : (b))
 
 size_t
 xqc_reno_size ()
@@ -58,9 +48,9 @@ xqc_reno_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
     // Start a new congestion event if the sent time is larger
     // than the start time of the previous recovery epoch.
     if (!xqc_reno_in_recovery(cong_ctl, lost_sent_time)) {
-        reno->reno_recovery_start_time = now();
+        reno->reno_recovery_start_time = xqc_now();
         reno->reno_congestion_window *= XQC_kLossReductionFactor;
-        reno->reno_congestion_window = max(reno->reno_congestion_window, XQC_kMinimumWindow);
+        reno->reno_congestion_window = xqc_max(reno->reno_congestion_window, XQC_kMinimumWindow);
         reno->reno_ssthresh = reno->reno_congestion_window;
     }
 

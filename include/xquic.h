@@ -6,8 +6,13 @@
  * @file
  * Public API for using libxquic
  */
-
+#ifdef WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <sys/socket.h>
+#include <arpa/inet.h>
+#endif
 #include <openssl/ssl.h>
 #include "xquic_typedef.h"
 #define XQC_QUIC_VERSION 1

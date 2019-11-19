@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <event2/event.h>
-#include <arpa/inet.h>
 #include "congestion_control/xqc_bbr.h"
 #include "xqc_cmake_config.h"
 #include "include/xquic_typedef.h"

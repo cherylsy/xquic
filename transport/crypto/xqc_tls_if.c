@@ -1,5 +1,4 @@
 #include <openssl/ssl.h>
-#include <arpa/inet.h>
 #include <openssl/err.h>
 #include <assert.h>
 #include "transport/xqc_conn.h"

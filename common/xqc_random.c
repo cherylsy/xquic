@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "xqc_random.h"
 #include "xqc_str.h"
@@ -28,13 +29,20 @@ xqc_random_generator_create(xqc_log_t *log)
     rand_gen->rand_buf_size = XQC_RANDOM_BUFFER_SIZE;
     rand_gen->rand_fd = -1;
     rand_gen->log = log;
-
+#ifdef WIN32
+    rand_gen->hProvider = 0;
+    int res = CryptAcquireContextW(&rand_gen->hProvider, 0, 0, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT | CRYPT_SILENT);
+    assert(res);
+#endif
     return rand_gen;
 }
 
 void 
 xqc_random_generator_destroy(xqc_random_generator_t *rand_gen)
 {
+#ifdef WIN32
+    CryptReleaseContext(rand_gen->hProvider, 0);
+#endif
     xqc_free(rand_gen->rand_buf.data);
     xqc_free(rand_gen);
 }
@@ -42,6 +50,7 @@ xqc_random_generator_destroy(xqc_random_generator_t *rand_gen)
 xqc_int_t
 xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
 {
+#ifndef WIN32
     size_t total_read = 0;
     ssize_t bytes_read = 0;
 
@@ -100,10 +109,13 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
 	    rand_gen->rand_buf.len = total_read;   
     }
 
-    xqc_memcpy(buf, rand_gen->rand_buf.data + rand_gen->rand_buf_offset, need_len);
+    xqc_memcpy(buf, rand_gen->rand_buf.data + rand_gen->rand_buf_offset, need_len);//TODO: 优化不用memcpy
 
     rand_gen->rand_buf_offset += need_len;
-
+#else
+    DWORD result = CryptGenRandom(rand_gen->hProvider, need_len, buf);
+    assert(result);
+#endif
     return XQC_OK;
 }
 

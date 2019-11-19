@@ -5,7 +5,7 @@
 #include "common/xqc_config.h"
 #include <stdio.h>
 #include <string.h>
-#include <common/xqc_time.h>
+#include "common/xqc_time.h"
 
 #define XQC_kMaxDatagramSize 1200
 #define XQC_kMinimumWindow (4 * XQC_kMaxDatagramSize)

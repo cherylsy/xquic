@@ -2,7 +2,6 @@
 #define _XQC_TLS_PUBLIC_H_INCLUDED_
 
 #include <openssl/ssl.h>
-#include <arpa/inet.h>
 #include <assert.h>
 #include <ctype.h>
 #include "xqc_crypto.h"

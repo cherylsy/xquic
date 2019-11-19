@@ -8,7 +8,6 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <arpa/inet.h>
 #include <stdio.h>
 #include <sys/time.h>
 #include "xqc_cmake_config.h"

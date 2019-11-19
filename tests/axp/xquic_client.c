@@ -12,7 +12,6 @@
 #include <signal.h>
 #include <string.h>
 #include <openssl/bio.h>
-#include <arpa/inet.h>
 #include <openssl/err.h>
 #include <event2/event.h>
 #include <event2/util.h>

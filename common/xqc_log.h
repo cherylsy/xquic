@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -16,6 +15,7 @@
 #include "xqc_malloc.h"
 #include "xqc_str.h"
 #include "include/xquic.h"
+#include "xqc_time.h"
 
 /*
  * 目前只是标准输出
@@ -82,7 +82,18 @@ xqc_log_time(char* buf)
     gettimeofday(&tv, NULL);
 
     struct tm tm;
+
+#ifdef WIN32
+    time_t t = tv.tv_sec;
+#ifdef _USE_32BIT_TIME_T
+	_localtime32_s(&tm, &t);
+#else
+	_localtime64_s(&tm, &t);
+#endif
+
+#else
     localtime_r(&tv.tv_sec, &tm);
+#endif
     tm.tm_mon++;
     tm.tm_year += 1900;
 

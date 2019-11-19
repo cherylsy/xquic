@@ -55,4 +55,11 @@ typedef enum xqc_log_level_s
     XQC_LOG_DEBUG,
 } xqc_log_level_t;
 
+#ifdef WIN32
+struct iovec {
+	void *   iov_base;	/* [XSI] Base address of I/O memory region */
+	size_t	 iov_len;	/* [XSI] Size of region iov_base points to */
+};
+#endif
+
 #endif /*_XQUIC_TYPEDEF_H_INCLUDED_*/

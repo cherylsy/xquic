@@ -3,7 +3,6 @@
 #include "xqc_cid.h"
 #include "common/xqc_variable_len_int.h"
 #include "xqc_packet_out.h"
-#include <arpa/inet.h>
 #include <common/xqc_algorithm.h>
 #include <common/xqc_errno.h>
 #include "common/xqc_log.h"

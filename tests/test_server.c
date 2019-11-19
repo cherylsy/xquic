@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <event2/event.h>
-#include <arpa/inet.h>
 #include <common/xqc_log.h>
 //#include <transport/xqc_stream.h>
 //#include <transport/xqc_conn.h>

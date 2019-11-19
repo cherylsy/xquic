@@ -5,7 +5,9 @@
 #include <stdint.h>
 #include <stdarg.h>
 #include <time.h>
+#ifndef WIN32
 #include <sys/resource.h>
+#endif
 #include <stddef.h>
 #include <sys/types.h>
 
@@ -295,12 +297,12 @@ xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list a
                 fmt++;
 
                 continue;
-
+#ifndef WIN32
             case 'r':
                 i64 = (int64_t) va_arg(args, rlim_t);
                 sign = 1;
                 break;
-
+#endif
             case 'p':
                 ui64 = (uintptr_t) va_arg(args, void *);
                 hex = 2;

@@ -2,8 +2,7 @@
 #define _XQC_H_TIMER_INCLUED_
 
 #include <stdint.h>
-#include <sys/time.h>
-
+#include "xqc_time.h"
 #include "xqc_list.h"
 
 /*

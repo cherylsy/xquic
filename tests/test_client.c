@@ -1,5 +1,4 @@
 #include <stdio.h>
-//#include "xqc_cmake_config.h"
 #include "include/xquic.h"
 #include "congestion_control/xqc_new_reno.h"
 #include "congestion_control/xqc_cubic.h"
@@ -12,7 +11,6 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <arpa/inet.h>
 #include <common/xqc_log.h>
 #include "include/xquic_typedef.h"
 
