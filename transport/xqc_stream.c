@@ -205,7 +205,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     stream->stream_encrypt_level = XQC_ENC_LEV_1RTT;
 
     stream->stream_conn = conn;
-    stream->stream_if = &conn->engine->eng_callback.stream_callbacks;
+    stream->stream_if = &conn->stream_callbacks;
     stream->user_data = user_data;
     stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
     stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
@@ -892,7 +892,7 @@ do_buff:
     }
 
     /* 有应用层的由应用层调用主循环 */
-    if (!(conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
+    if (!(stream->stream_flag & XQC_STREAM_FLAG_HAS_H3)) {
         xqc_engine_main_logic(conn->engine);
     }
 

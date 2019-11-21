@@ -22,7 +22,6 @@
 
 xqc_conn_settings_t default_conn_settings = {
         .pacing_on  =   0,
-        .h3         =   1,
 };
 
 static char g_conn_flag_buf[128];
@@ -45,6 +44,8 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_0RTT_OK_SHIFT]               = "0RTT_OK",
         [XQC_CONN_FLAG_0RTT_REJ_SHIFT]              = "0RTT_REJECT",
         [XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT]      = "UPPER_CONN_EXIST",
+        [XQC_CONN_FLAG_SVR_INIT_RECVD_SHIFT]        = "INIT_RECVD",
+        [XQC_CONN_FLAG_NEED_RUN_SHIFT]              = "NEED_RUN",
 };
 
 const char*
@@ -147,11 +148,6 @@ xqc_conn_create(xqc_engine_t *engine,
     xc->engine = engine;
     xc->log = engine->log;
     xc->conn_callbacks = *callbacks;
-    if (settings->h3) {
-        /* 接管传输层回调 */
-        engine->eng_callback.stream_callbacks = stream_callbacks;
-        xc->conn_callbacks = conn_callbacks;
-    }
 
     xc->conn_settings = *settings;
     xc->user_data = user_data;
@@ -266,19 +262,32 @@ xqc_conn_server_create(xqc_engine_t *engine,
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
-    /* Do callback */
-    if (conn->conn_callbacks.conn_create_notify) {
-        if (conn->conn_callbacks.conn_create_notify(conn, &conn->scid, user_data)) {
-            goto fail;
-        }
-        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
-    }
+    /* Do callback on alpn */
 
     return conn;
 
 fail:
     xqc_conn_destroy(conn);
     return NULL;
+}
+
+void
+xqc_conn_server_on_alpn(xqc_connection_t *conn)
+{
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|alpn_num:%d|", conn->tlsref.alpn_num);
+    if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
+        /* 接管传输层回调 */
+        conn->stream_callbacks = h3_stream_callbacks;
+        conn->conn_callbacks = h3_conn_callbacks;
+    }
+    /* Do callback */
+    if (conn->conn_callbacks.conn_create_notify) {
+        if (conn->conn_callbacks.conn_create_notify(conn, &conn->scid, conn->user_data)) {
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return;
+        }
+        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
+    }
 }
 
 void

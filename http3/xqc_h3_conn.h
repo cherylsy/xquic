@@ -41,12 +41,12 @@ struct xqc_h3_conn_s {
 };
 
 
-extern const xqc_conn_callbacks_t conn_callbacks;
+extern const xqc_conn_callbacks_t h3_conn_callbacks;
 
 static inline void *
 xqc_conn_get_user_data(xqc_connection_t *conn)
 {
-    if (conn->conn_settings.h3) {
+    if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
         return ((xqc_h3_conn_t*)conn->user_data)->user_data;
     } else {
         return conn->user_data;

@@ -142,7 +142,7 @@ typedef struct xqc_h3_stream_s {
 
 } xqc_h3_stream_t;
 
-extern const xqc_stream_callbacks_t stream_callbacks;
+extern const xqc_stream_callbacks_t h3_stream_callbacks;
 
 xqc_h3_stream_t *
 xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type_t h3_stream_type, void *user_data);

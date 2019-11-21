@@ -367,7 +367,6 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
         .pacing_on  =   0,
-        .h3         =   1,
     };
 
 

@@ -151,6 +151,11 @@ xqc_packet_process_single(xqc_connection_t *c,
                     xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pkt_recv_time);
             return XQC_OK;
         }
+
+        /* 需要立即跑main_logic */
+        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) != XQC_PTYPE_0RTT) {
+            c->conn_flag |= XQC_CONN_FLAG_NEED_RUN;
+        }
     }
     unsigned char *last = packet_in->last;
 

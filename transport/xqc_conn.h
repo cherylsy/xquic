@@ -89,6 +89,8 @@ typedef enum {
     XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ_SHIFT,
     XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT,
+    XQC_CONN_FLAG_SVR_INIT_RECVD_SHIFT,
+    XQC_CONN_FLAG_NEED_RUN_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -110,6 +112,8 @@ typedef enum {
     XQC_CONN_FLAG_0RTT_OK               = 1 << XQC_CONN_FLAG_0RTT_OK_SHIFT,
     XQC_CONN_FLAG_0RTT_REJ              = 1 << XQC_CONN_FLAG_0RTT_REJ_SHIFT,
     XQC_CONN_FLAG_UPPER_CONN_EXIST      = 1 << XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT,
+    XQC_CONN_FLAG_SVR_INIT_RECVD        = 1 << XQC_CONN_FLAG_SVR_INIT_RECVD_SHIFT,
+    XQC_CONN_FLAG_NEED_RUN              = 1 << XQC_CONN_FLAG_NEED_RUN_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {
@@ -231,6 +235,7 @@ typedef struct {
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
+    xqc_stream_callbacks_t  stream_callbacks;
     xqc_conn_settings_t     conn_settings;
     xqc_engine_t           *engine;
 
@@ -322,6 +327,8 @@ xqc_conn_server_create(xqc_engine_t *engine,
                        xqc_conn_callbacks_t *callbacks,
                        xqc_conn_settings_t *settings,
                        void *user_data);
+
+void xqc_conn_server_on_alpn(xqc_connection_t *conn);
 
 void xqc_conn_destroy(xqc_connection_t *xc);
 

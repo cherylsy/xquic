@@ -51,6 +51,7 @@ typedef struct user_conn_s {
     struct event       *ev_socket;
     struct event       *ev_timeout;
 
+    int                 h3;
 } user_conn_t;
 
 typedef struct client_ctx_s {
@@ -580,7 +581,7 @@ int main(int argc, char *argv[]) {
             },
             .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
             //.cong_ctrl_callback = xqc_reno_cb,
-            .cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_cubic_cb,
             //.cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
@@ -597,7 +598,9 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
-            .h3         =   1,
+            //.cong_ctrl_callback = xqc_reno_cb,
+            //.cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_bbr_cb,
     };
 
     eb = event_base_new();
@@ -608,6 +611,10 @@ int main(int argc, char *argv[]) {
 
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));
+
+    //是否使用http3
+    user_conn->h3 = 0;
+    //user_conn->h3 = 0;
 
     user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
     /* 设置连接超时 */
@@ -635,8 +642,8 @@ int main(int argc, char *argv[]) {
 
 
     xqc_conn_ssl_config_t conn_ssl_config;
-
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
+
     char session_ticket_data[8192]={0};
     char tp_data[8192] = {0};
 
@@ -656,7 +663,7 @@ int main(int argc, char *argv[]) {
 
 
     xqc_cid_t *cid;
-    if (conn_settings.h3) {
+    if (user_conn->h3) {
         cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
@@ -674,7 +681,7 @@ int main(int argc, char *argv[]) {
     //xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
     user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
-    if (conn_settings.h3) {
+    if (user_conn->h3) {
         user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
         xqc_client_request_send(user_stream->h3_request, user_stream);
     } else {

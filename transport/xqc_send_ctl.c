@@ -44,7 +44,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     } else if (conn->conn_settings.cong_ctrl_callback.xqc_cong_ctl_init) {
         send_ctl->ctl_cong_callback = &conn->conn_settings.cong_ctrl_callback;
     } else {
-        send_ctl->ctl_cong_callback = &xqc_reno_cb;
+        send_ctl->ctl_cong_callback = &xqc_cubic_cb;
     }
     send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
 
@@ -235,7 +235,7 @@ void
 xqc_send_ctl_move_to_high_pri(xqc_list_head_t *pos, xqc_send_ctl_t *ctl)
 {
     xqc_list_del_init(pos);
-    xqc_list_add(pos, &ctl->ctl_send_packets_high_pri);
+    xqc_list_add_tail(pos, &ctl->ctl_send_packets_high_pri);
 }
 
 void

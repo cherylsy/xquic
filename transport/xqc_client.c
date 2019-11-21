@@ -1,3 +1,4 @@
+#include "http3/xqc_h3_stream.h"
 #include "xqc_tls_init.h"
 #include "xqc_engine.h"
 #include "xqc_client.h"
@@ -18,7 +19,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
 {
     xqc_cid_t dcid;
     xqc_cid_t scid;
-    xqc_conn_callbacks_t callbacks = engine->eng_callback.conn_callbacks;
+    xqc_conn_callbacks_t *callbacks = &engine->eng_callback.conn_callbacks;
 
     if (token_len > XQC_MAX_TOKEN_LEN) {
         xqc_log(engine->log, XQC_LOG_ERROR,
@@ -39,7 +40,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     memset(dcid.cid_buf, 0xDD, dcid.cid_len);*/
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
-                                                        &callbacks, &conn_settings, server_host,
+                                                        callbacks, &conn_settings, server_host,
                                                         no_crypto_flag, conn_ssl_config, user_data);
 
     if (xc == NULL) {
@@ -60,6 +61,12 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
 
     xqc_log(engine->log, XQC_LOG_DEBUG,
             "|xqc_connect|");
+
+    if (xc->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
+        /* 接管传输层回调 */
+        xc->stream_callbacks = h3_stream_callbacks;
+        xc->conn_callbacks = h3_conn_callbacks;
+    }
 
     if (xc->conn_callbacks.conn_create_notify) {
         if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid, user_data)) {
@@ -86,6 +93,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
             const struct sockaddr *peer_addr,
             socklen_t peer_addrlen)
 {
+    conn_ssl_config->alpn = XQC_ALPN_TRANSPORT;
     xqc_connection_t *conn;
     conn = xqc_client_connect(engine, user_data, conn_settings, token, token_len,
                               server_host, no_crypto_flag, conn_ssl_config,

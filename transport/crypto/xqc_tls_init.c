@@ -41,7 +41,9 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
         ssl_config->ciphers = (char *)xqc_malloc(len);
         strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len);
     }else{
-        ssl_config->ciphers = XQC_TLS_CIPHERS;
+        ssl_config->ciphers = xqc_malloc(strlen(XQC_TLS_CIPHERS) + 1);
+
+        strncpy(ssl_config->ciphers, XQC_TLS_CIPHERS, strlen(XQC_TLS_CIPHERS));
     }
 
     if(src->groups != NULL && strlen(src->groups) > 0 ){
@@ -49,7 +51,9 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
         ssl_config->groups = (char *)xqc_malloc(len);
         strncpy(ssl_config->groups, (const char *)(src->groups), len);
     }else{
-        ssl_config->groups = XQC_TLS_GROUPS;
+        ssl_config->groups = xqc_malloc(strlen(XQC_TLS_GROUPS) + 1);
+
+        strncpy(ssl_config->groups, XQC_TLS_GROUPS, strlen(XQC_TLS_GROUPS)) ;
     }
 
     if(src->session_ticket_key_len > 0 ){
@@ -70,7 +74,9 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
     }
 
     if(src->alpn_list == NULL){
-        ssl_config->alpn_list = XQC_ALPN_LIST;
+        ssl_config->alpn_list = xqc_malloc(strlen(XQC_ALPN_LIST) + 1);
+
+        strncpy(ssl_config->alpn_list, XQC_ALPN_LIST, strlen(XQC_ALPN_LIST));
         ssl_config->alpn_list_len = strlen(XQC_ALPN_LIST);
     }else{
         ssl_config->alpn_list_len = src->alpn_list_len;
@@ -116,6 +122,20 @@ int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * sr
         xqc_log(conn->log, XQC_LOG_WARN, "| no no transport parameter data |");
     }
 
+    if (src->alpn == NULL) {
+        ssl_config->alpn = xqc_malloc(strlen(XQC_ALPN_HTTP3) + 1);
+        strncpy(ssl_config->alpn, XQC_ALPN_HTTP3, strlen(XQC_ALPN_HTTP3));
+    } else {
+        ssl_config->alpn = xqc_malloc(strlen(src->alpn) + 1);
+        strncpy(ssl_config->alpn, src->alpn, strlen(src->alpn));
+    }
+
+    size_t alpn_len = strlen(ssl_config->alpn);
+    if(alpn_len == strlen(XQC_ALPN_HTTP3) && memcmp(ssl_config->alpn, XQC_ALPN_HTTP3, alpn_len) == 0){
+        conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+    }else{
+        conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
+    }
     return 0;
 }
 
@@ -518,7 +538,7 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
         SSL_set_tlsext_host_name(ssl, hostname);
     }
 
-    if(xqc_set_alpn_proto(ssl, XQC_ALPN_HTTP3) < 0){
+    if(xqc_set_alpn_proto(ssl, sc->alpn) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_client_ssl | set alpn error|");
         return NULL;
     }

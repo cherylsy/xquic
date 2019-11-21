@@ -426,6 +426,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
 
 end:
     conn->packet_need_process_count = 0;
+    conn->conn_flag &= ~XQC_CONN_FLAG_NEED_RUN;
     return;
 }
 
@@ -647,7 +648,9 @@ after_process:
     }
 
     /* main logic */
-    if (++conn->packet_need_process_count >= XQC_MAX_PACKET_PROCESS_BATCH || conn->conn_err != 0) {
+    if (++conn->packet_need_process_count >= XQC_MAX_PACKET_PROCESS_BATCH ||
+        conn->conn_err != 0 ||
+        conn->conn_flag & XQC_CONN_FLAG_NEED_RUN) {
         xqc_engine_main_logic(engine);
     }
 

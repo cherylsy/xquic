@@ -389,7 +389,7 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
     return XQC_OK;
 }
 
-const xqc_stream_callbacks_t stream_callbacks = {
+const xqc_stream_callbacks_t h3_stream_callbacks = {
         .stream_write_notify = xqc_h3_stream_write_notify,
         .stream_read_notify = xqc_h3_stream_read_notify,
         .stream_close_notify = xqc_h3_stream_close_notify,

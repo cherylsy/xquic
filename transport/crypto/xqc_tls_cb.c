@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <openssl/ssl.h>
+#include "include/xquic.h"
 #include "xqc_tls_cb.h"
 #include "xqc_tls_public.h"
 #include "common/xqc_log.h"
@@ -306,12 +307,13 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
     uint8_t * alpn = (uint8_t *)(*out);
     uint8_t alpn_len = *outlen;
 
-    if(alpn_len == strlen(XQC_ALPN_HTTP3) && memcmp(alpn, XQC_ALPN_HTTP3, alpn_len) == 0){
-
-        conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+    if(alpn_len == strlen(XQC_ALPN_TRANSPORT) && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0){
+        conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
     }else{
-        conn->tlsref.alpn_num = XQC_ALPN_DEFAULT_NUM;
+        conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
     }
+
+    xqc_conn_server_on_alpn(conn);
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|select apln number:%d|", conn->tlsref.alpn_num);
 

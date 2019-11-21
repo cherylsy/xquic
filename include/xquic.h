@@ -131,7 +131,7 @@ typedef enum {
 
 typedef struct xqc_engine_callback_s {
     /* for congestion control */
-    xqc_cong_ctrl_callback_t    cong_ctrl_callback;
+    //xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 
     /* for event loop */
     xqc_set_event_timer_pt      set_event_timer; /* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
@@ -165,6 +165,8 @@ typedef struct xqc_engine_callback_s {
     xqc_save_tp_cb_t            save_tp_cb;
 } xqc_engine_callback_t;
 
+#define XQC_ALPN_HTTP3 "http3-1"
+#define XQC_ALPN_TRANSPORT "transport"
 
 typedef struct xqc_engine_ssl_config_s {
     char       *private_key_file; /* For server */
@@ -175,8 +177,8 @@ typedef struct xqc_engine_ssl_config_s {
     char       *session_ticket_key_data; /* For server */
     size_t     session_ticket_key_len; /* For server */
 
-    char       *alpn_list; /* optional */
-    int        alpn_list_len; /* optional */
+    char       *alpn_list; /* For server */
+    int        alpn_list_len; /* For server */
 } xqc_engine_ssl_config_t;
 
 typedef struct xqc_conn_ssl_config_s {
@@ -184,6 +186,8 @@ typedef struct xqc_conn_ssl_config_s {
     size_t     session_ticket_len;  /* For client */
     char       *transport_parameter_data; /* For client, client should Use the domain as the key to save */
     size_t     transport_parameter_data_len; /* For client */
+
+    char       *alpn; /* User does't care */
 } xqc_conn_ssl_config_t;
 
 typedef struct {
@@ -205,7 +209,6 @@ typedef struct xqc_http_headers_s {
 
 typedef struct xqc_conn_settings_s {
     int     pacing_on;
-    int     h3;
     xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 } xqc_conn_settings_t;
 
