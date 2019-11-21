@@ -66,6 +66,8 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         /* 接管传输层回调 */
         xc->stream_callbacks = h3_stream_callbacks;
         xc->conn_callbacks = h3_conn_callbacks;
+    } else {
+        xc->stream_callbacks = engine->eng_callback.stream_callbacks;
     }
 
     if (xc->conn_callbacks.conn_create_notify) {

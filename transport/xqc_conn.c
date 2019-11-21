@@ -279,6 +279,8 @@ xqc_conn_server_on_alpn(xqc_connection_t *conn)
         /* 接管传输层回调 */
         conn->stream_callbacks = h3_stream_callbacks;
         conn->conn_callbacks = h3_conn_callbacks;
+    } else {
+        conn->stream_callbacks = conn->engine->eng_callback.stream_callbacks;
     }
     /* Do callback */
     if (conn->conn_callbacks.conn_create_notify) {
