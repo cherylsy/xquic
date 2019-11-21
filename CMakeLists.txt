@@ -110,8 +110,8 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
-add_executable(xquic_client tests/axp/xquic_client.c tests/axp/axquic.c)
-add_executable(xquic_server tests/axp/xquic_server.c tests/axp/axquic.c)
+#add_executable(xquic_client tests/axp/xquic_client.c tests/axp/axquic.c)
+#add_executable(xquic_server tests/axp/xquic_server.c tests/axp/axquic.c)
 #add_executable(test        tests/main.c)
 
 include_directories( /usr/local/include )
@@ -123,8 +123,8 @@ link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
 
 target_link_libraries(test_server xquic -levent -lm)
 target_link_libraries(test_client xquic -levent -lm)
-target_link_libraries(xquic_client xquic -levent -lm)
-target_link_libraries(xquic_server xquic -levent -lm)
+#target_link_libraries(xquic_client xquic -levent -lm)
+#target_link_libraries(xquic_server xquic -levent -lm)
 #target_link_libraries(test xquic -lssl )
 #target_link_libraries(test xquic -lcrypto)
 

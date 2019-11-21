@@ -43,7 +43,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
     }else{
         ssl_config->ciphers = xqc_malloc(strlen(XQC_TLS_CIPHERS) + 1);
 
-        strncpy(ssl_config->ciphers, XQC_TLS_CIPHERS, strlen(XQC_TLS_CIPHERS));
+        strncpy(ssl_config->ciphers, XQC_TLS_CIPHERS, strlen(XQC_TLS_CIPHERS) + 1);
     }
 
     if(src->groups != NULL && strlen(src->groups) > 0 ){
@@ -53,7 +53,7 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
     }else{
         ssl_config->groups = xqc_malloc(strlen(XQC_TLS_GROUPS) + 1);
 
-        strncpy(ssl_config->groups, XQC_TLS_GROUPS, strlen(XQC_TLS_GROUPS)) ;
+        strncpy(ssl_config->groups, XQC_TLS_GROUPS, strlen(XQC_TLS_GROUPS) + 1) ;
     }
 
     if(src->session_ticket_key_len > 0 ){
@@ -76,12 +76,12 @@ int xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * 
     if(src->alpn_list == NULL){
         ssl_config->alpn_list = xqc_malloc(strlen(XQC_ALPN_LIST) + 1);
 
-        strncpy(ssl_config->alpn_list, XQC_ALPN_LIST, strlen(XQC_ALPN_LIST));
+        strncpy(ssl_config->alpn_list, XQC_ALPN_LIST, strlen(XQC_ALPN_LIST) + 1);
         ssl_config->alpn_list_len = strlen(XQC_ALPN_LIST);
     }else{
         ssl_config->alpn_list_len = src->alpn_list_len;
         ssl_config->alpn_list = (char *)xqc_malloc(src->alpn_list_len + 1);
-        memcpy(ssl_config->alpn_list, src->alpn_list, src->alpn_list_len);
+        memcpy(ssl_config->alpn_list, src->alpn_list, src->alpn_list_len + 1);
         ssl_config->alpn_list[ssl_config->alpn_list_len] = '\0';
     }
     return 0;
@@ -124,10 +124,11 @@ int xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * sr
 
     if (src->alpn == NULL) {
         ssl_config->alpn = xqc_malloc(strlen(XQC_ALPN_HTTP3) + 1);
-        strncpy(ssl_config->alpn, XQC_ALPN_HTTP3, strlen(XQC_ALPN_HTTP3));
+        strncpy(ssl_config->alpn, XQC_ALPN_HTTP3, strlen(XQC_ALPN_HTTP3) + 1);
+
     } else {
         ssl_config->alpn = xqc_malloc(strlen(src->alpn) + 1);
-        strncpy(ssl_config->alpn, src->alpn, strlen(src->alpn));
+        strncpy(ssl_config->alpn, src->alpn, strlen(src->alpn) + 1);
     }
 
     size_t alpn_len = strlen(ssl_config->alpn);
@@ -512,7 +513,7 @@ int xqc_set_alpn_proto(SSL * ssl, char * alpn)
     alpnlen = strlen(alpn) + 1;
 
     p_alpn[0] = strlen(alpn);
-    strncpy(&p_alpn[1], alpn, strlen(alpn));
+    strncpy(&p_alpn[1], alpn, strlen(alpn) + 1);
 
     p_alpn[1+strlen(alpn)] = '\0';
     SSL_set_alpn_protos(ssl, p_alpn, alpnlen);
