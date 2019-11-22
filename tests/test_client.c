@@ -580,9 +580,6 @@ int main(int argc, char *argv[]) {
                     .h3_request_close_notify = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
             .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
-            //.cong_ctrl_callback = xqc_reno_cb,
-            //.cong_ctrl_callback = xqc_cubic_cb,
-            //.cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
@@ -598,7 +595,7 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
-            //.cong_ctrl_callback = xqc_reno_cb,
+            .cong_ctrl_callback = xqc_reno_cb,
             //.cong_ctrl_callback = xqc_cubic_cb,
             //.cong_ctrl_callback = xqc_bbr_cb,
     };

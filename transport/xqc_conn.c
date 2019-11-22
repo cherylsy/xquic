@@ -24,6 +24,13 @@ xqc_conn_settings_t default_conn_settings = {
         .pacing_on  =   0,
 };
 
+void
+xqc_server_set_conn_settings(xqc_conn_settings_t settings)
+{
+    default_conn_settings.cong_ctrl_callback = settings.cong_ctrl_callback;
+    default_conn_settings.pacing_on = settings.pacing_on;
+}
+
 static char g_conn_flag_buf[128];
 
 static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
@@ -379,7 +386,6 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_head_t *pos, *next;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
     ssize_t ret;
-    int pacing_blocked = 0;
 
     /* 高优先级队列不受拥塞控制 */
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets_high_pri) {
@@ -416,14 +422,9 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             if (!xqc_send_ctl_can_send(conn)) {
                 break;
             } else if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
-                if (pacing_blocked == 0) {
-                    xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
-                    if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
-                        pacing_blocked = 1;
-                        xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
-                        break;
-                    }
-                } else {
+                xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
+                if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
+                    xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
                     break;
                 }

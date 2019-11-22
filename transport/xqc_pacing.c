@@ -17,15 +17,6 @@ xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
 }
 
 /**
- * @return 是否启用pacing
- */
-int
-xqc_pacing_is_on(xqc_pacing_t *pacing)
-{
-    return pacing->on;
-}
-
-/**
  * @return 每秒可发字节数
  */
 uint64_t

@@ -130,9 +130,6 @@ typedef enum {
 
 
 typedef struct xqc_engine_callback_s {
-    /* for congestion control */
-    //xqc_cong_ctrl_callback_t    cong_ctrl_callback;
-
     /* for event loop */
     xqc_set_event_timer_pt      set_event_timer; /* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
 
@@ -190,13 +187,6 @@ typedef struct xqc_conn_ssl_config_s {
     char       *alpn; /* User does't care */
 } xqc_conn_ssl_config_t;
 
-typedef struct {
-    size_t                      size;
-    uint8_t                     name[16];
-    uint8_t                     hmac_key[32];
-    uint8_t                     aes_key[32];
-} xqc_ssl_session_ticket_key_t;
-
 typedef struct xqc_http_header_s {
     struct iovec        name;
     struct iovec        value;
@@ -207,10 +197,16 @@ typedef struct xqc_http_headers_s {
     size_t                  count;
 } xqc_http_headers_t;
 
+/* For client */
 typedef struct xqc_conn_settings_s {
     int     pacing_on;
     xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 } xqc_conn_settings_t;
+
+/**
+ * For server, it can be called anytime. settings will take effect on new connections
+ */
+void xqc_server_set_conn_settings(xqc_conn_settings_t settings);
 
 /**
  * Create new xquic engine.

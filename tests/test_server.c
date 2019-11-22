@@ -546,8 +546,6 @@ int main(int argc, char *argv[]) {
                     .h3_request_close_notify = xqc_server_request_close_notify,
             },
             .write_socket = xqc_server_send,
-            //.cong_ctrl_callback = xqc_reno_cb,
-            //.cong_ctrl_callback = xqc_bbr_cb,
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
                     .log_level = XQC_LOG_DEBUG,
@@ -560,7 +558,11 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
+            //.cong_ctrl_callback = xqc_reno_cb,
+            .cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_bbr_cb,
     };
+    xqc_server_set_conn_settings(conn_settings);
 
     eb = event_base_new();
 
