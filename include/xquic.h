@@ -42,7 +42,9 @@ typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *
 typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data);
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
-//typedef int (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
+
+typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
+typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
 
 //session save callback
 typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_user_data);
@@ -65,13 +67,16 @@ typedef struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
 
     /* for handshake done */
-    //xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
+    xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
 } xqc_conn_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_conn_callbacks_s {
     xqc_h3_conn_notify_pt          h3_conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
     xqc_h3_conn_notify_pt          h3_conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
+
+    /* for handshake done */
+    xqc_h3_handshake_finished_pt   h3_conn_handshake_finished;  /* optional */
 } xqc_h3_conn_callbacks_t;
 
 /* transport layer */

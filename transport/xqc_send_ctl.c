@@ -152,7 +152,7 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
           && conn->conn_send_ctl->ctl_bytes_send > 3 * conn->conn_send_ctl->ctl_bytes_recv) {
         can = 0;
     }
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|can:%i|inflight:%ui|cwnd:%ui|",
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|can:%i|inflight:%ui|cwnd:%ud|",
             can, conn->conn_send_ctl->ctl_bytes_in_flight, congestion_window);
     return can;
 }

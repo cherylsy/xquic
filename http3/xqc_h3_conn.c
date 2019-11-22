@@ -201,7 +201,19 @@ xqc_h3_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data
     return XQC_OK;
 }
 
+void
+xqc_h3_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
+{
+    xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
+    if (h3_conn->h3_conn_callbacks.h3_conn_handshake_finished) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED notify|");
+        h3_conn->h3_conn_callbacks.h3_conn_handshake_finished(h3_conn, h3_conn->user_data);
+    }
+}
+
+
 const xqc_conn_callbacks_t h3_conn_callbacks = {
         .conn_create_notify = xqc_h3_conn_create_notify,
         .conn_close_notify = xqc_h3_conn_close_notify,
+        .conn_handshake_finished = xqc_h3_conn_handshake_finished,
 };

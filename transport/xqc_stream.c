@@ -366,8 +366,6 @@ int xqc_read_crypto_stream(xqc_stream_t * stream){
 int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 {
     XQC_DEBUG_PRINT
-    xqc_pkt_num_space_t pns;
-    xqc_pkt_type_t pkt_type;
     xqc_encrypt_level_t encrypt_level = stream->stream_encrypt_level;
     xqc_conn_state_t cur_state = stream->stream_conn->conn_state;
     xqc_conn_state_t next_state;
@@ -427,17 +425,20 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
         return -XQC_ELEVEL;
     }
 
-    stream->stream_conn->conn_state = next_state;
+    conn->conn_state = next_state;
 
     if (xqc_tls_check_tx_key_ready(conn)) {
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
     }
-    if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) {
-        stream->stream_conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
-    }
-
-    if(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED){
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
+        conn->conn_state == XQC_CONN_STATE_ESTABED &&
+        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) {
+        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
         xqc_tls_free_msg_cb_buffer(conn);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
+        if (conn->conn_callbacks.conn_handshake_finished) {
+            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
+        }
     }
 
     xqc_stream_shutdown_read(stream);
@@ -612,17 +613,22 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 
     xqc_stream_shutdown_write(stream);
 
-    stream->stream_conn->conn_state = next_state;
+    conn->conn_state = next_state;
 
     if (xqc_tls_check_tx_key_ready(conn)) {
         conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
     }
 
-    if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) {
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
+        conn->conn_state == XQC_CONN_STATE_ESTABED &&
+        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) {
+
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
-    }
-    if(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED){
         xqc_tls_free_msg_cb_buffer(conn);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
+        if (conn->conn_callbacks.conn_handshake_finished) {
+            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
+        }
     }
 
     /* 0RTT rejected, send in 1RTT again */

@@ -59,10 +59,5 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn);
 
-int
-xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
-
-int
-xqc_h3_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
 
 #endif /* _XQC_H3_CONN_H_INCLUDED_ */

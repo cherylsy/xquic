@@ -91,6 +91,13 @@ int xqc_server_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
+void xqc_server_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
+{
+    DEBUG;
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+
+}
+
 int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
 {
     ssize_t ret;
@@ -179,6 +186,14 @@ int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void
     //event_base_loopbreak(eb);
     return 0;
 }
+
+void xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
+{
+    DEBUG;
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+
+}
+
 
 int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
 {
@@ -528,10 +543,12 @@ int main(int argc, char *argv[]) {
             .conn_callbacks = {
                     .conn_create_notify = xqc_server_conn_create_notify,
                     .conn_close_notify = xqc_server_conn_close_notify,
+                    .conn_handshake_finished = xqc_server_conn_handshake_finished,
             },
             .h3_conn_callbacks = {
                     .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
                     .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
+                    .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
             },
             .stream_callbacks = {
                     .stream_write_notify = xqc_server_stream_write_notify,
