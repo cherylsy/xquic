@@ -152,9 +152,9 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
         printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
     } while (read > 0 && !fin);
 
-    /*if (fin) {
+    if (fin) {
         xqc_server_stream_send(stream, user_data);
-    }*/
+    }
     return 0;
 }
 
@@ -204,7 +204,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         }
     }
 
-    unsigned buff_size = 500*1024;
+    unsigned buff_size = 10000*1024;
     char *buff = malloc(buff_size);
     if (user_stream->send_offset < buff_size) {
         ret = xqc_h3_request_send_body(h3_request, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
@@ -270,7 +270,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         return 0;
     }
 
-    //xqc_server_request_send(h3_request, user_stream);
+    xqc_server_request_send(h3_request, user_stream);
 
 
     return 0;

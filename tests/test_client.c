@@ -192,6 +192,12 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
         goto err;
     }
 
+    int size = 10 * 1024 * 1024;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
+        printf("setsockopt failed, errno: %d\n", errno);
+        goto err;
+    }
+
     memset(saddr, 0, sizeof(struct sockaddr_in));
 
     saddr->sin_family = AF_INET;
@@ -259,7 +265,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     ssize_t ret;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    unsigned buff_size = 10000*1024;
+    unsigned buff_size = 1*1024*1024;
     char *buff = malloc(buff_size);
     if (user_stream->send_offset < buff_size) {
         ret = xqc_stream_send(stream, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
@@ -331,7 +337,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         }
     }
 
-    unsigned buff_size = 10000*1024;
+    unsigned buff_size = 1*1024*1024;
     char *buff = malloc(buff_size);
     if (user_stream->send_offset < buff_size) {
         ret = xqc_h3_request_send_body(h3_request, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
@@ -595,9 +601,9 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
-            .cong_ctrl_callback = xqc_reno_cb,
+            //.cong_ctrl_callback = xqc_reno_cb,
             //.cong_ctrl_callback = xqc_cubic_cb,
-            //.cong_ctrl_callback = xqc_bbr_cb,
+            .cong_ctrl_callback = xqc_bbr_cb,
     };
 
     eb = event_base_new();
@@ -610,7 +616,7 @@ int main(int argc, char *argv[]) {
     user_conn = calloc(1, sizeof(user_conn_t));
 
     //是否使用http3
-    user_conn->h3 = 0;
+    user_conn->h3 = 1;
     //user_conn->h3 = 0;
 
     user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);

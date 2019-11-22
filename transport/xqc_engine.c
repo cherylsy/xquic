@@ -36,13 +36,13 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
     config->conn_pool_size = 4096;
 
     if (engine_type == XQC_ENGINE_SERVER) {
-        config->streams_hash_bucket_size = 8;
-        config->conns_hash_bucket_size = 1024; //不能扩展，连接多了查找性能？
-        config->conns_pq_capacity = 127;
-    } else if (engine_type == XQC_ENGINE_CLIENT) { //TODO: confirm the value
-        config->streams_hash_bucket_size = 8;
-        config->conns_hash_bucket_size = 16;
-        config->conns_pq_capacity = 8;
+        config->streams_hash_bucket_size = 1024;
+        config->conns_hash_bucket_size = 1024*1024; //不能扩展，连接多了查找性能？
+        config->conns_pq_capacity = 1024;
+    } else if (engine_type == XQC_ENGINE_CLIENT) {
+        config->streams_hash_bucket_size = 1024;
+        config->conns_hash_bucket_size = 1024;
+        config->conns_pq_capacity = 128;
     }
 
     config->support_version_count = 1;
