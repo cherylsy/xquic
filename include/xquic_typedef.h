@@ -5,6 +5,14 @@
 #include <stdint.h>
 #include <stddef.h>
 
+#if __GNUC__
+#   define XQC_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
+#   define XQC_LIKELY(cond) __builtin_expect(!!(cond), 1)
+#else
+#   define XQC_UNLIKELY(cond) cond
+#   define XQC_LIKELY(cond) cond
+#endif
+
 typedef struct xqc_stream_s xqc_stream_t;
 typedef struct xqc_connection_s xqc_connection_t;
 typedef struct xqc_conn_settings_s xqc_conn_settings_t;
