@@ -277,6 +277,11 @@ void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                                   void *user_data);
 
 /**
+ * Get connection's user_data by request
+ */
+void* xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request);
+
+/**
  * Get stream ID by request
  */
 xqc_stream_id_t xqc_h3_stream_id(xqc_h3_request_t *h3_request);
@@ -386,6 +391,11 @@ xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
  */
 void xqc_stream_set_user_data(xqc_stream_t *stream,
                               void *user_data);
+
+/**
+ * Get connection's user_data by stream
+ */
+void* xqc_get_conn_user_data_by_stream(xqc_stream_t *stream);
 
 /**
  * Get stream ID

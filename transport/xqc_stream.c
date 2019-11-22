@@ -254,6 +254,12 @@ xqc_stream_set_user_data(xqc_stream_t *stream,
     stream->user_data = user_data;
 }
 
+void*
+xqc_get_conn_user_data_by_stream(xqc_stream_t *stream)
+{
+    return stream->stream_conn->user_data;
+}
+
 xqc_stream_id_t
 xqc_stream_id(xqc_stream_t *stream)
 {

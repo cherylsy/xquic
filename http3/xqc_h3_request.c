@@ -81,6 +81,12 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
     h3_request->user_data = user_data;
 }
 
+void*
+xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request)
+{
+    return h3_request->h3_stream->h3_conn->user_data;
+}
+
 xqc_stream_id_t
 xqc_h3_stream_id(xqc_h3_request_t *h3_request)
 {
