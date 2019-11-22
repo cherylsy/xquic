@@ -43,6 +43,13 @@ xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
     return xqc_conn_get_peer_addr(h3_conn->conn, peer_addr_len);
 }
 
+struct sockaddr *
+xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
+                           socklen_t *local_addr_len)
+{
+    return xqc_conn_get_peer_addr(h3_conn->conn, local_addr_len);
+}
+
 int
 xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
 {

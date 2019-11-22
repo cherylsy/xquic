@@ -256,6 +256,14 @@ struct sockaddr* xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
                                            socklen_t *peer_addr_len);
 
 /**
+ * Server should get local addr when h3_conn_create_notify callbacks
+ * @param local_addr_len is a return value
+ * @return local addr
+ */
+struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
+                                           socklen_t *local_addr_len);
+
+/**
  * @param user_data For request
  */
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
@@ -356,6 +364,14 @@ void xqc_conn_set_user_data(xqc_connection_t *conn,
  */
 struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
                                        socklen_t *peer_addr_len);
+
+/**
+ * Server should get local addr when conn_create_notify callbacks
+ * @param local_addr_len is a return value
+ * @return local addr
+ */
+struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
+                                        socklen_t *local_addr_len);
 
 /**
  * Create new stream in quic connection.

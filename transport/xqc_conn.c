@@ -378,6 +378,14 @@ xqc_conn_get_peer_addr(xqc_connection_t *conn,
     return (struct sockaddr*)conn->peer_addr;
 }
 
+struct sockaddr *
+xqc_conn_get_local_addr(xqc_connection_t *conn,
+                        socklen_t *local_addr_len)
+{
+    *local_addr_len = conn->local_addrlen;
+    return (struct sockaddr*)conn->local_addr;
+}
+
 void
 xqc_conn_send_packets (xqc_connection_t *conn)
 {
