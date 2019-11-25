@@ -289,7 +289,7 @@ error:
 }
 
 int
-xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code)
+xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code)
 {
     int ret;
     xqc_packet_out_t *packet_out;
@@ -319,7 +319,7 @@ error:
 
 int
 xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 unsigned short err_code, uint64_t final_size)
+                                 uint64_t err_code, uint64_t final_size)
 {
     int ret;
     xqc_packet_out_t *packet_out;
@@ -355,7 +355,7 @@ error:
 
 int
 xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 unsigned short err_code)
+                                 uint64_t err_code)
 {
     int ret;
     xqc_packet_out_t *packet_out;

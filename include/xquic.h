@@ -205,6 +205,7 @@ typedef struct xqc_http_headers_s {
 /* For client */
 typedef struct xqc_conn_settings_s {
     int     pacing_on;
+    int     user_ping;
     xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 } xqc_conn_settings_t;
 
@@ -245,6 +246,11 @@ xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           socklen_t peer_addrlen);
 
 int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
+
+/**
+ * Get errno when h3_conn_close_notify, 0 For no-error
+ */
+int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);
 
 /**
  * Server should set user_data when h3_conn_create_notify callbacks
@@ -360,6 +366,11 @@ xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
  * @return 0 for success, <0 for error
  */
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
+
+/**
+ * Get errno when h3_conn_close_notify, 0 For no-error
+ */
+int xqc_conn_get_errno(xqc_connection_t *conn);
 
 /**
  * Server should set user_data when conn_create_notify callbacks

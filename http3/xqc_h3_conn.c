@@ -56,6 +56,11 @@ xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
     return xqc_conn_close(engine, cid);
 }
 
+int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
+{
+    return xqc_conn_get_errno(h3_conn->conn);
+}
+
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 {

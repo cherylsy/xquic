@@ -205,8 +205,6 @@ xqc_h3_stream_recv_header(xqc_h3_stream_t *h3_stream)
 ssize_t
 xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, size_t recv_buf_size, uint8_t *fin)
 {
-    //TODO: 从h3 stream的队列里读
-    /*return xqc_stream_recv(h3_stream->stream, recv_buf, recv_buf_size, fin);*/
 
     xqc_list_head_t *pos, *next;
     xqc_h3_data_buf_t *h3_data_buf;

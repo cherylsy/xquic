@@ -581,7 +581,9 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
     0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |           Error Code (16)     |      [ Frame Type (i) ]     ...
+   |                         Error Code (i)                      ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                       [ Frame Type (i) ]                    ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                    Reason Phrase Length (i)                 ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -589,7 +591,7 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 int
-xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, unsigned short err_code, int is_app, int frame_type)
+xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, uint64_t err_code, int is_app, int frame_type)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     const unsigned char *begin = dst_buf;
@@ -599,9 +601,10 @@ xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, unsigned short err_code, 
 
     unsigned frame_type_bits = xqc_vint_get_2bit(frame_type);
     unsigned reason_len_bits = xqc_vint_get_2bit(reason_len);
+    unsigned err_code_len_bits = xqc_vint_get_2bit(err_code);
 
     unsigned need = 1
-                    + 2
+                    + xqc_vint_len(err_code_len_bits)
                     + xqc_vint_len(frame_type_bits)
                     + xqc_vint_len(reason_len_bits)
                     + reason_len;
@@ -615,9 +618,8 @@ xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, unsigned short err_code, 
         *dst_buf++ = 0x1c;
     }
 
-    err_code = htons(err_code);
-    memcpy(dst_buf, (unsigned char*)&err_code, 2);
-    dst_buf += 2;
+    xqc_vint_write(dst_buf, err_code, err_code_len_bits, xqc_vint_len(err_code_len_bits));
+    dst_buf += xqc_vint_len(err_code_len_bits);
 
     if (!is_app) {
         xqc_vint_write(dst_buf, frame_type, frame_type_bits, xqc_vint_len(frame_type_bits));
@@ -638,7 +640,7 @@ xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, unsigned short err_code, 
 }
 
 int
-xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, unsigned short *err_code)
+xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -648,9 +650,11 @@ xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, unsigned short *err_code)
     uint64_t reason_len;
     uint64_t frame_type;
 
-    *err_code = *(unsigned short*)p;
-    *err_code = ntohs(*err_code);
-    p += 2;
+    vlen = xqc_vint_read(p, end, err_code);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
 
     if (first_byte == 0x1c) {
         vlen = xqc_vint_read(p, end, &frame_type);
@@ -677,29 +681,31 @@ xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, unsigned short *err_code)
 }
 
 /*
- *     0                   1                   2                   3
+    0                   1                   2                   3
     0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                        Stream ID (i)                        ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |  Application Error Code (16)  |
+   |                  Application Error Code (i)                 ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                        Final Size (i)                       ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+
  */
 int
 xqc_gen_reset_stream_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id,
-                           unsigned short err_code, uint64_t final_size)
+                           uint64_t err_code, uint64_t final_size)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     const unsigned char *begin = dst_buf;
 
     unsigned final_size_bits = xqc_vint_get_2bit(final_size);
     unsigned stream_id_bits = xqc_vint_get_2bit(stream_id);
+    unsigned err_code_bits = xqc_vint_get_2bit(err_code);
 
     unsigned need = 1
                     + xqc_vint_len(stream_id_bits)
-                    + 2
+                    + xqc_vint_len(err_code_bits)
                     + xqc_vint_len(final_size_bits)
                     ;
     if (need > packet_out->po_buf_size - packet_out->po_used_size) {
@@ -711,9 +717,8 @@ xqc_gen_reset_stream_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_
     xqc_vint_write(dst_buf, stream_id, stream_id_bits, xqc_vint_len(stream_id_bits));
     dst_buf += xqc_vint_len(stream_id_bits);
 
-    err_code = htons(err_code);
-    memcpy(dst_buf, (unsigned char*)&err_code, 2);
-    dst_buf += 2;
+    xqc_vint_write(dst_buf, err_code, err_code_bits, xqc_vint_len(err_code_bits));
+    dst_buf += xqc_vint_len(err_code_bits);
 
     xqc_vint_write(dst_buf, final_size, final_size_bits, xqc_vint_len(final_size_bits));
     dst_buf += xqc_vint_len(final_size_bits);
@@ -725,7 +730,7 @@ xqc_gen_reset_stream_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_
 
 int
 xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
-                             unsigned short *err_code, uint64_t *final_size)
+                             uint64_t *err_code, uint64_t *final_size)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -739,9 +744,11 @@ xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream
     }
     p += vlen;
 
-    *err_code = *(unsigned short*)p;
-    *err_code = ntohs(*err_code);
-    p += 2;
+    vlen = xqc_vint_read(p, end, err_code);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
 
     vlen = xqc_vint_read(p, end, final_size);
     if (vlen < 0) {
@@ -763,21 +770,22 @@ xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
    |                        Stream ID (i)                        ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-   |  Application Error Code (16)  |
-   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+   |                  Application Error Code (i)                 ...
+   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
 int
 xqc_gen_stop_sending_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id,
-                           unsigned short err_code)
+                           uint64_t err_code)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     const unsigned char *begin = dst_buf;
 
     unsigned stream_id_bits = xqc_vint_get_2bit(stream_id);
+    unsigned err_code_bits = xqc_vint_get_2bit(err_code);
 
     unsigned need = 1
                     + xqc_vint_len(stream_id_bits)
-                    + 2
+                    + xqc_vint_len(err_code_bits)
                     ;
     if (need > packet_out->po_buf_size - packet_out->po_used_size) {
         return -XQC_ENOBUF;
@@ -788,9 +796,8 @@ xqc_gen_stop_sending_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_
     xqc_vint_write(dst_buf, stream_id, stream_id_bits, xqc_vint_len(stream_id_bits));
     dst_buf += xqc_vint_len(stream_id_bits);
 
-    err_code = htons(err_code);
-    memcpy(dst_buf, (unsigned char*)&err_code, 2);
-    dst_buf += 2;
+    xqc_vint_write(dst_buf, err_code, err_code_bits, xqc_vint_len(err_code_bits));
+    dst_buf += xqc_vint_len(err_code_bits);
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_STOP_SENDING;
 
@@ -799,7 +806,7 @@ xqc_gen_stop_sending_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_
 
 int
 xqc_parse_stop_sending_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
-                             unsigned short *err_code)
+                             uint64_t *err_code)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -813,9 +820,11 @@ xqc_parse_stop_sending_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream
     }
     p += vlen;
 
-    *err_code = *(unsigned short*)p;
-    *err_code = ntohs(*err_code);
-    p += 2;
+    vlen = xqc_vint_read(p, end, err_code);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
 
     packet_in->pos = p;
 

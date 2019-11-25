@@ -1049,7 +1049,7 @@ xqc_process_crypto_write_streams (xqc_connection_t *conn)
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify crypto err:%d|", ret);
                 xqc_stream_shutdown_write(stream);
-                XQC_CONN_ERR(conn, ret);
+                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             }
         }
     }

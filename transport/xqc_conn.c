@@ -22,6 +22,7 @@
 
 xqc_conn_settings_t default_conn_settings = {
         .pacing_on  =   0,
+        .user_ping  =   0,
 };
 
 void
@@ -650,6 +651,11 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
     return XQC_OK;
 }
 
+int xqc_conn_get_errno(xqc_connection_t *conn)
+{
+    return conn->conn_err;
+}
+
 int
 xqc_conn_immediate_close(xqc_connection_t *conn)
 {
@@ -1035,7 +1041,7 @@ xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t
         ret = xqc_packet_process(conn, packet_in->buf, packet_in->buf_size, packet_in->pkt_recv_time);
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_process error|ret:%d|", ret);
-            XQC_CONN_ERR(conn, XQC_EILLPKT);
+            XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);
             return ret;
         }
         xqc_list_del_init(pos);

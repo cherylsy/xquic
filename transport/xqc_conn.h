@@ -301,7 +301,7 @@ struct xqc_connection_s{
 
     uint32_t                wakeup_pq_index;
 
-    xqc_trans_error_code    conn_err;
+    uint64_t                conn_err;
 };
 
 const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);

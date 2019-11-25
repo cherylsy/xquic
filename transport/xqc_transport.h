@@ -23,6 +23,7 @@ typedef enum
     TRA_VERSION_NEGOTIATION_ERROR  =  0x9,
     TRA_PROTOCOL_VIOLATION         =  0xA,
     TRA_INVALID_MIGRATION          =  0xC,
+    TRA_CRYPTO_BUFFER_EXCEEDED     =  0xD,
 } xqc_trans_error_code;
 
 

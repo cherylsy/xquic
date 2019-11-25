@@ -535,13 +535,19 @@ xqc_int_t
 xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
-    unsigned short err_code;
+    uint64_t err_code;
 
     ret = xqc_parse_conn_close_frame(packet_in, &err_code);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_parse_conn_close_frame error|");
         return ret;
+    }
+
+    if (err_code) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|with err:%ui|", err_code);
+        XQC_CONN_ERR(conn, err_code);
     }
 
     if (conn->conn_state < XQC_CONN_STATE_CLOSING) {
@@ -561,7 +567,7 @@ xqc_int_t
 xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
-    unsigned short err_code;
+    uint64_t err_code;
     xqc_stream_id_t stream_id;
     uint64_t final_size;
     xqc_stream_t *stream;
@@ -603,7 +609,7 @@ xqc_int_t
 xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
-    unsigned short err_code;
+    uint64_t err_code;
     xqc_stream_id_t stream_id;
     xqc_stream_t *stream;
 
