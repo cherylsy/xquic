@@ -13,6 +13,7 @@
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn)
 {
+    uint64_t now = xqc_now();
     xqc_send_ctl_t *send_ctl;
     send_ctl = xqc_pcalloc(conn->conn_pool, sizeof(xqc_send_ctl_t));
     if (send_ctl == NULL) {
@@ -37,7 +38,11 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_init(send_ctl);
 
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
-                           xqc_now() + send_ctl->ctl_conn->local_settings.idle_timeout * 1000);
+                           now + send_ctl->ctl_conn->local_settings.idle_timeout * 1000);
+
+    if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+        xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_PING, now + XQC_PING_TIMEOUT * 1000);
+    }
 
     if (conn->conn_settings.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
         send_ctl->ctl_cong_callback = &conn->conn_settings.cong_ctrl_callback;
@@ -829,6 +834,7 @@ static const char * const timer_type_2_str[XQC_TIMER_N] = {
         [XQC_TIMER_DRAINING]    = "DRAINING",
         [XQC_TIMER_PACING]      = "PACING",
         [XQC_TIMER_STREAM_CLOSE]= "STREAM_CLOSE",
+        [XQC_TIMER_PING]        = "PING",
 };
 
 const char *
@@ -933,6 +939,19 @@ xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, 
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_STREAM_CLOSE, min_expire);
     }
 }
+
+void
+xqc_send_ctl_ping_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t *) ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+
+    conn->conn_flag |= XQC_CONN_FLAG_PING;
+
+    if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_PING, now + XQC_PING_TIMEOUT * 1000);
+    }
+}
 /* timer callbacks end */
 
 void
@@ -959,6 +978,9 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
             timer->ctl_ctx = ctl;
         } else if (type == XQC_TIMER_STREAM_CLOSE) {
             timer->ctl_timer_callback = xqc_send_ctl_stream_close_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_PING) {
+            timer->ctl_timer_callback = xqc_send_ctl_ping_timeout;
             timer->ctl_ctx = ctl;
         }
     }

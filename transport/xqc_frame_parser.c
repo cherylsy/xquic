@@ -312,6 +312,31 @@ xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
     return XQC_OK;
 }
 
+int
+xqc_gen_ping_frame(xqc_packet_out_t *packet_out)
+{
+    /* Client send ping, server respond ack */
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+    unsigned need = 1;
+    if (need > packet_out->po_buf_size - packet_out->po_used_size) {
+        return -XQC_ENOBUF;
+    }
+    *dst_buf++ = 0x01;
+    packet_out->po_frame_types |= XQC_FRAME_BIT_PING;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_ping_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
+{
+    ++packet_in->pos;
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_PING;
+    return XQC_OK;
+}
+
+
 /*
  *
     0                   1                   2                   3

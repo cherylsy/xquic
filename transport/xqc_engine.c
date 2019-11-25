@@ -365,7 +365,7 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 }
 
 #define XQC_CHECK_IMMEDIATE_CLOSE() do {                        \
-    if (conn->conn_flag & XQC_CONN_IMMEDIATE_CLOSE_FLAGS) {     \
+    if (XQC_UNLIKELY(conn->conn_flag & XQC_CONN_IMMEDIATE_CLOSE_FLAGS)) {     \
         xqc_conn_immediate_close(conn);                         \
         goto end;                                               \
     }                                                           \
@@ -419,6 +419,15 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
         ret = xqc_write_ack_to_packets(conn);
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_ack_to_packets error|");
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+        }
+    }
+    XQC_CHECK_IMMEDIATE_CLOSE();
+
+    if (conn->conn_flag & XQC_CONN_FLAG_PING) {
+        ret = xqc_write_ping_to_packet(conn);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_ping_to_packet error|");
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
         }
     }

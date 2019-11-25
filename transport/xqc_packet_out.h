@@ -85,6 +85,9 @@ int
 xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
 
 int
+xqc_write_ping_to_packet(xqc_connection_t *conn);
+
+int
 xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code);
 
 int

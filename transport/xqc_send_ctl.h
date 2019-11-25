@@ -19,6 +19,18 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
 
 #define XQC_CTL_PACKETS_USED_MAX 1000
 
+/*
+ * A connection will time out if no packets are sent or received for a
+   period longer than the time specified in the idle_timeout transport
+   parameter (see Section 10).  However, state in middleboxes might time
+   out earlier than that.  Though REQ-5 in [RFC4787] recommends a 2
+   minute timeout interval, experience shows that sending packets every
+   15 to 30 seconds is necessary to prevent the majority of middleboxes
+   from losing state for UDP flows.
+ */
+#define XQC_PING_TIMEOUT 15000
+
+/* !!warning add to timer_type_2_str */
 typedef enum {
     XQC_TIMER_ACK_INIT,
     XQC_TIMER_ACK_HSK = XQC_TIMER_ACK_INIT + XQC_PNS_HSK,
@@ -28,6 +40,7 @@ typedef enum {
     XQC_TIMER_DRAINING,
     XQC_TIMER_PACING,
     XQC_TIMER_STREAM_CLOSE,
+    XQC_TIMER_PING,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 

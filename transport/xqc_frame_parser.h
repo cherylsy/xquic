@@ -29,6 +29,10 @@ void xqc_gen_padding_frame(xqc_packet_out_t *packet_out);
 
 int xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
 
+int xqc_gen_ping_frame(xqc_packet_out_t *packet_out);
+
+int xqc_parse_ping_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+
 int xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_msec_t now, int ack_delay_exponent,
                       xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack);
 

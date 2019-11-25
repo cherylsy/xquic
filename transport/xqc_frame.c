@@ -181,6 +181,10 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                 //padding frame
                 ret = xqc_process_padding_frame(conn, packet_in);
                 break;
+            case 0x01:
+                //ping frame
+                ret = xqc_process_ping_frame(conn, packet_in);
+                break;
             case 0x02 ... 0x03:
                 //ack frame
                 ret = xqc_process_ack_frame(conn, packet_in);
@@ -506,6 +510,21 @@ xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_send_ctl_on_ack_received(conn->conn_send_ctl, &ack_info, packet_in->pkt_recv_time);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_send_ctl_on_ack_received error|");
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_ping_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    xqc_int_t ret;
+
+    ret = xqc_parse_ping_frame(packet_in, conn);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_parse_ping_frame error|");
         return ret;
     }
 

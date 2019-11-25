@@ -53,6 +53,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT]      = "UPPER_CONN_EXIST",
         [XQC_CONN_FLAG_SVR_INIT_RECVD_SHIFT]        = "INIT_RECVD",
         [XQC_CONN_FLAG_NEED_RUN_SHIFT]              = "NEED_RUN",
+        [XQC_CONN_FLAG_PING_SHIFT]                  = "PING",
 };
 
 const char*

@@ -53,7 +53,7 @@ typedef enum {
 
 
 
-#define XQC_IS_ACK_ELICITING(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_CONNECTION_CLOSE))
+#define XQC_IS_ACK_ELICITING(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_CONNECTION_CLOSE | XQC_FRAME_BIT_PING))
 
 /*
  * Connection close signals, including packets that contain
@@ -91,6 +91,9 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t
 xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_ping_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t
 xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);

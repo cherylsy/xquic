@@ -259,6 +259,34 @@ done:
     return XQC_OK;
 }
 
+int
+xqc_write_ping_to_packet(xqc_connection_t *conn)
+{
+    int ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
+        return -XQC_ENULLPTR;
+    }
+
+    ret = xqc_gen_ping_frame(packet_out);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_ping_frame error|");
+        goto error;
+    }
+
+    packet_out->po_used_size += ret;
+
+    conn->conn_flag &= ~XQC_CONN_FLAG_PING;
+
+    return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
+}
 
 int
 xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code)
