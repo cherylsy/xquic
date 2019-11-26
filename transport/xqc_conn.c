@@ -10,6 +10,8 @@
 #include "common/xqc_timer.h"
 #include "common/xqc_hash.h"
 #include "common/xqc_priority_q.h"
+#include "common/xqc_memory_pool.h"
+#include "common/xqc_id_hash.h"
 #include "xqc_conn.h"
 #include "xqc_send_ctl.h"
 #include "xqc_engine.h"
@@ -479,7 +481,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
 
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
-        return XQC_ENCRYPT_DATA_ERROR;
+        return -XQC_EENCRYPT;
     }
 
 

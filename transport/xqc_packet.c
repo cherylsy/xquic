@@ -93,7 +93,7 @@ xqc_packet_process_single(xqc_connection_t *c,
     xqc_int_t ret = XQC_ERROR;
 
     if (XQC_PACKET_IN_LEFT_SIZE(packet_in) == 0) {
-        return -XQC_ENOBUF;
+        return -XQC_EILLPKT;
     }
 
     /* short header */
@@ -180,7 +180,7 @@ xqc_packet_process_single(xqc_connection_t *c,
             return XQC_OK;
         } else {
             xqc_log(c->log, XQC_LOG_ERROR, "|decrypt data error, return|");
-            return ret;
+            return -XQC_EDECRYPT;
         }
     }
 

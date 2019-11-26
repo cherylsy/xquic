@@ -1,9 +1,10 @@
-#include <common/xqc_errno.h>
+#include "common/xqc_errno.h"
+#include "common/xqc_memory_pool.h"
+#include "common/xqc_id_hash.h"
 #include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "xqc_packet_parser.h"
 #include "xqc_frame_parser.h"
-#include "xqc_transport.h"
 #include "xqc_packet_out.h"
 #include "xqc_send_ctl.h"
 #include "xqc_frame.h"
@@ -1049,7 +1050,7 @@ xqc_process_crypto_write_streams (xqc_connection_t *conn)
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify crypto err:%d|", ret);
                 xqc_stream_shutdown_write(stream);
-                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+                XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR);
             }
         }
     }
@@ -1067,6 +1068,7 @@ xqc_process_crypto_read_streams (xqc_connection_t *conn)
             ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify crypto err:%d|", ret);
+                XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR);
                 xqc_stream_shutdown_read(stream);
             }
         }

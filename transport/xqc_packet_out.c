@@ -641,7 +641,7 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 }
 
 void
-xqc_write_buffed_1rtt_packets(xqc_connection_t *conn)
+xqc_send_buffed_1rtt_packets(xqc_connection_t *conn)
 {
     if (conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
         xqc_send_ctl_t *ctl = conn->conn_send_ctl;

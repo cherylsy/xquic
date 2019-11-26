@@ -262,6 +262,7 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
+    printf("conn errno:%d\n", xqc_h3_conn_get_errno(conn));
     free(user_conn);
     event_base_loopbreak(eb);
     return 0;

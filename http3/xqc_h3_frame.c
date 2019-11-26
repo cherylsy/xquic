@@ -3,6 +3,7 @@
 #include "transport/xqc_conn.h"
 #include "transport/xqc_stream.h"
 #include "common/xqc_list.h"
+#include "common/xqc_id_hash.h"
 #include "transport/crypto/xqc_tls_public.h"
 #include "xqc_h3_tnode.h"
 

@@ -1,7 +1,6 @@
 
 #include <CUnit/CUnit.h>
 #include "include/xquic.h"
-#include "transport/xqc_transport.h"
 #include "transport/xqc_packet.h"
 #include "common/xqc_log.h"
 #include "transport/xqc_engine.h"

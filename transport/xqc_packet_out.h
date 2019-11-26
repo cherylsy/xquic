@@ -124,6 +124,6 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
                                  xqc_pkt_type_t pkt_type, uint8_t fin,
                                  const unsigned char *payload, size_t payload_size, size_t *send_data_written);
 void
-xqc_write_buffed_1rtt_packets(xqc_connection_t *conn);
+xqc_send_buffed_1rtt_packets(xqc_connection_t *conn);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

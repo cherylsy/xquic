@@ -3,11 +3,11 @@
 
 #include <openssl/ssl.h>
 #include "xqc_tls_public.h"
-#include "xqc_transport.h"
 #include "xqc_cid.h"
 #include "include/xquic.h"
 #include "include/xquic_typedef.h"
 #include "common/xqc_log.h"
+#include "common/xqc_common.h"
 #include "xqc_packet_in.h"
 #include "xqc_packet_out.h"
 #include "xqc_recv_record.h"
@@ -384,6 +384,14 @@ xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
     if (conn->undecrypt_count[XQC_ENC_LEV_HSK] > 0 && xqc_tls_check_hs_rx_key_ready(conn)) {
         xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_HSK);
     }
+}
+
+static inline int
+xqc_conn_has_undecrypt_packets(xqc_connection_t *conn)
+{
+    return conn->undecrypt_count[XQC_ENC_LEV_1RTT] ||
+           conn->undecrypt_count[XQC_ENC_LEV_0RTT] ||
+            conn->undecrypt_count[XQC_ENC_LEV_HSK];
 }
 
 static inline int

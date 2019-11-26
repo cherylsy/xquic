@@ -8,6 +8,7 @@
 #include "xqc_conn.h"
 #include "xqc_stream.h"
 #include "common/xqc_timer.h"
+#include "common/xqc_memory_pool.h"
 #include "congestion_control/xqc_sample.h"
 
 xqc_send_ctl_t *

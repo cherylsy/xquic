@@ -28,7 +28,7 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
    15 to 30 seconds is necessary to prevent the majority of middleboxes
    from losing state for UDP flows.
  */
-#define XQC_PING_TIMEOUT 1000
+#define XQC_PING_TIMEOUT 15000
 
 /* !!warning add to timer_type_2_str */
 typedef enum {
