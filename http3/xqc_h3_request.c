@@ -33,7 +33,7 @@ xqc_h3_request_create(xqc_engine_t *engine,
         return NULL;
     }
 
-    xqc_log(engine->log, XQC_LOG_DEBUG, "|success|");
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|", stream->stream_id);
     return h3_request;
 }
 
@@ -105,7 +105,23 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
                          size_t data_size,
                          uint8_t fin)
 {
-    return xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
+    ssize_t sent;
+    sent = xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
+    if (sent < 0) {
+        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
+                "|xqc_h3_stream_send_data error|stream_id:%ui|ret:%z|",
+                h3_request->h3_stream->stream->stream_id, sent);
+    }
+
+    h3_request->body_sent += sent;
+    if (fin && sent == data_size) {
+        h3_request->body_sent_final_size = h3_request->body_sent;
+    }
+    xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
+            "|stream_id:%ui|data_size:%z|sent:%z|body_sent:%uz|body_sent_final_size:%uz|fin:%d|",
+            h3_request->h3_stream->stream->stream_id,
+            data_size, sent, h3_request->body_sent, h3_request->body_sent_final_size, fin);
+    return sent;
 }
 
 xqc_http_headers_t *
@@ -124,7 +140,8 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
     n_recv = xqc_h3_stream_recv_data(h3_request->h3_stream, recv_buf, recv_buf_size, fin);
     if (n_recv < 0) {
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
-                "|xqc_h3_stream_recv_data error|ret:%z|", n_recv);
+                "|xqc_h3_stream_recv_data error|stream_id:%ui|ret:%z|",
+                h3_request->h3_stream->stream->stream_id, n_recv);
         return n_recv;
     }
 
@@ -133,7 +150,8 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
         h3_request->body_recvd_final_size = h3_request->body_recvd;
     }
     xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|body_recvd:%uz|body_recvd_final_size:%uz|n_recv:%z|",
-            h3_request->body_recvd, h3_request->body_recvd_final_size, n_recv);
+            "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|fin:%d|",
+            h3_request->h3_stream->stream->stream_id,
+            recv_buf_size, n_recv, h3_request->body_recvd, h3_request->body_recvd_final_size, *fin);
     return n_recv;
 }

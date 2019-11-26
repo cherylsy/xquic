@@ -108,7 +108,7 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_ack_delay = 25;
     settings->ack_delay_exponent = 3;
     //TODO: 临时值
-    settings->idle_timeout = 5000;
+    settings->idle_timeout = 30000; //must > XQC_PING_TIMEOUT
     settings->max_data = 1*1024*1024;
     settings->max_stream_data_bidi_local = 100*1024;
     settings->max_stream_data_bidi_remote = 100*1024;
@@ -327,9 +327,9 @@ xqc_conn_destroy(xqc_connection_t *xc)
     }
 
     xqc_log(xc->log, XQC_LOG_DEBUG, "|%p|", xc);
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|srtt:%ui|retrans rate:%.2f|send_count:%ud|retrans_count:%ud|",
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|",
             xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count);
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count, xc->conn_send_ctl->ctl_tlp_count);
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
@@ -545,7 +545,7 @@ xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     xqc_pkt_num_space_t pns;
-    int ret;
+    ssize_t ret;
 
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
@@ -575,7 +575,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
     xqc_pkt_num_space_t pns;
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
-    int ret;
+    ssize_t ret;
 
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
@@ -602,7 +602,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-                packet_out->po_flag |= XQC_POF_RETRANS;
+                packet_out->po_flag |= XQC_POF_TLP;
                 ret = xqc_conn_send_one_packet(conn, packet_out);
                 if (ret < 0) {
                     return;

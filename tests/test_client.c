@@ -280,7 +280,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     ssize_t ret;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    unsigned buff_size = 1*1024*1024;
+    unsigned buff_size = 1000*1024;
     char *buff = malloc(buff_size);
     if (user_stream->send_offset < buff_size) {
         ret = xqc_stream_send(stream, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
@@ -352,7 +352,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         }
     }
 
-    unsigned buff_size = 1*1024*1024;
+    unsigned buff_size = 1000*1024;
     char *buff = malloc(buff_size);
     if (user_stream->send_offset < buff_size) {
         ret = xqc_h3_request_send_body(h3_request, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
@@ -535,6 +535,7 @@ ssize_t xqc_client_write_log_file(void *engine_user_data, const void *buf, size_
     if (ctx->log_fd <= 0) {
         return -1;
     }
+    //printf("%s",(char*)buf);
     return write(ctx->log_fd, buf, count);
 }
 

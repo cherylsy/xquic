@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <assert.h>
+#include <errno.h>
 
 #include "xqc_random.h"
 #include "xqc_str.h"

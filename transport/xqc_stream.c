@@ -510,7 +510,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
             }
         }
         xqc_list_del(pos);
-        xqc_list_add_tail(pos, & p_pktns->msg_cb_buffer);
+        xqc_list_add_tail(pos, &p_pktns->msg_cb_buffer);
     }
 
     return 0;
@@ -595,17 +595,15 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                         encrypt_level);
                 return -XQC_ELEVEL;
         }
-    }
-
-    else {
+    } else {
         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|illegal encrypt_level:%d|",
                 encrypt_level);
         return -XQC_ELEVEL;
     }
 
-    if(p_pktns != NULL){
-        int ret =xqc_crypto_stream_send(stream, p_pktns, NULL, pkt_type );
-        if(ret < 0){
+    if (p_pktns != NULL) {
+        int ret = xqc_crypto_stream_send(stream, p_pktns, NULL, pkt_type);
+        if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_crypto_stream_send error|");
             return ret;
         }
@@ -682,7 +680,7 @@ xqc_create_crypto_stream (xqc_connection_t *conn,
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
     xqc_init_list_head(&stream->stream_write_buff_list.write_buff_list);
 
-    if(!(conn->conn_type == XQC_CONN_TYPE_SERVER)){
+    if (!(conn->conn_type == XQC_CONN_TYPE_SERVER)) {
         xqc_stream_ready_to_write(stream);
     }
 
@@ -832,14 +830,14 @@ xqc_stream_send (xqc_stream_t *stream,
 
         if (!xqc_send_ctl_can_write(conn->conn_send_ctl)) {
             xqc_log(conn->log, XQC_LOG_WARN, "|too many packets used|ctl_packets_used:%ui|", conn->conn_send_ctl->ctl_packets_used);
-            ret = -XQC_EBLOCKED;
+            ret = -XQC_EAGAIN;
             goto do_buff;
         }
 
 
         if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count >= XQC_PACKET_0RTT_MAX_COUNT) {
             xqc_log(conn->log, XQC_LOG_WARN, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
-            ret = -XQC_EBLOCKED;
+            ret = -XQC_EAGAIN;
             goto do_buff;
         }
 
@@ -910,8 +908,8 @@ do_buff:
     }
 
     if (offset == 0 && !fin_only_done) {
-        if (ret == -XQC_EBLOCKED) {
-            return 0; // -XQC_EBLOCKED not means error
+        if (ret == -XQC_EAGAIN) {
+            return 0; // -XQC_EAGAIN not means error
         } else {
             return ret;
         }

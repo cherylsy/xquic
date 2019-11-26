@@ -159,6 +159,7 @@ xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|%z|", n_write);
         return n_write;
     }
+    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);
     return n_write;
 }
 
@@ -191,8 +192,8 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_data error|%z|", n_write);
         return n_write;
     }
-    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|n_write:%i|", n_write);
-    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);
+    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|data_size:%uz|n_write:%z|fin:%d|", data_size, n_write, fin);
+    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);//TODO:不用main，直接发包
     return n_write;
 }
 
@@ -303,7 +304,7 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|h3_request_write_notify error|%d|", ret);
             return ret;
         }
-        xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|success|");
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|h3_request_write_notify|success|");
     }
 
     return XQC_OK;

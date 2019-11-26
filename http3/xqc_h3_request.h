@@ -10,6 +10,8 @@ typedef struct xqc_h3_request_s {
                         *request_if;
     size_t              body_recvd;
     size_t              body_recvd_final_size;
+    size_t              body_sent;
+    size_t              body_sent_final_size;
 } xqc_h3_request_t;
 
 void

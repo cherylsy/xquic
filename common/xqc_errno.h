@@ -2,9 +2,7 @@
 #ifndef _XQC_ERRNO_H_INCLUDED_
 #define _XQC_ERRNO_H_INCLUDED_
 
-
-#include <errno.h>
-
+/* https://tools.ietf.org/html/draft-ietf-quic-transport-23#section-20 */
 typedef enum
 {
     TRA_NO_ERROR                   =  0x0,
@@ -20,32 +18,31 @@ typedef enum
     TRA_PROTOCOL_VIOLATION         =  0xA,
     TRA_INVALID_MIGRATION          =  0xC,
     TRA_CRYPTO_BUFFER_EXCEEDED     =  0xD,
-    TRA_CRYPTO_ERROR               =  0x100,
+    TRA_CRYPTO_ERROR               =  0x1FF,//0x1XX
 } xqc_trans_err_code_t;
 
+/* https://tools.ietf.org/html/draft-ietf-quic-http-23#section-8.1 */
 typedef enum
 {
-    HTTP_NO_ERROR                   = 0x00,
-    HTTP_GENERAL_PROTOCOL_ERROR     = 0x01,
-    HTTP_INTERNAL_ERROR             = 0x03,
-    HTTP_REQUEST_CANCELLED          = 0x05,
-    HTTP_INCOMPLETE_REQUEST         = 0x06,
-    HTTP_CONNECT_ERROR              = 0x07,
-    HTTP_EXCESSIVE_LOAD             = 0x08,
-    HTTP_VERSION_FALLBACK           = 0x09,
-    HTTP_WRONG_STREAM               = 0x0A,
-    HTTP_ID_ERROR                   = 0x0B,
-    HTTP_STREAM_CREATION_ERROR      = 0x0D,
-    HTTP_CLOSED_CRITICAL_STREAM     = 0x0F,
-    HTTP_EARLY_RESPONSE             = 0x0011,
-    HTTP_MISSING_SETTINGS           = 0x0012,
-    HTTP_UNEXPECTED_FRAME           = 0x0013,
-    HTTP_REQUEST_REJECTED           = 0x0014,
-    HTTP_SETTINGS_ERROR             = 0x00FF,
-    HTTP_MALFORMED_FRAME            = 0x0100,
+    HTTP_NO_ERROR                   = 0x100,
+    HTTP_GENERAL_PROTOCOL_ERROR     = 0x101,
+    HTTP_INTERNAL_ERROR             = 0x102,
+    HTTP_STREAM_CREATION_ERROR      = 0x103,
+    HTTP_CLOSED_CRITICAL_STREAM     = 0x104,
+    HTTP_FRAME_UNEXPECTED           = 0x105,
+    HTTP_FRAME_ERROR                = 0x106,
+    HTTP_EXCESSIVE_LOAD             = 0x107,
+    HTTP_ID_ERROR                   = 0x108,
+    HTTP_SETTINGS_ERROR             = 0x109,
+    HTTP_MISSING_SETTINGS           = 0x10A,
+    HTTP_REQUEST_REJECTED           = 0x10B,
+    HTTP_REQUEST_CANCELLED          = 0x10C,
+    HTTP_REQUEST_INCOMPLETE         = 0x10D,
+    HTTP_EARLY_RESPONSE             = 0x10E,
+    HTTP_CONNECT_ERROR              = 0x10F,
+    HTTP_VERSION_FALLBACK           = 0x110,
 } xqc_h3_err_code_t;
 
-#define XQC_EAGAIN        EAGAIN
 
 /* For QUIC transport 6xx */
 #define XQC_ENOBUF          600 //buf空间不足
@@ -58,7 +55,7 @@ typedef enum
 #define XQC_CLOSING         607 //连接正在关闭，拒绝操作
 #define XQC_ECONN_NFOUND    608 //找不到对应连接
 #define XQC_ESYS            609 //系统错误，一般是公共库接口失败
-#define XQC_EBLOCKED        610 //写阻塞，类似EAGAIN
+#define XQC_EAGAIN          610 //写阻塞，类似EAGAIN
 #define XQC_EPARAM          611 //参数错误
 #define XQC_ESTATE          612 //连接状态异常
 #define XQC_ELIMIT          613 //超过缓存限制
@@ -71,8 +68,6 @@ typedef enum
 #define XQC_ESTREAM_BLOCKED 620 //流级流控
 #define XQC_EENCRYPT        621 //加密失败
 #define XQC_EDECRYPT        622 //解密失败
-
-/* For QUIC ssl 7xx */
 
 
 /* For QUIC application 8xx */
