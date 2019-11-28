@@ -1,0 +1,274 @@
+#ifndef __XQC_H3_QPACK_H__
+#define __XQC_H3_QPACK_H__
+
+#include "include/xquic_typedef.h"
+#include "include/xquic.h"
+#include "common/xqc_list.h"
+#include "common/xqc_config.h"
+#include "common/xqc_str.h"
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define XQC_HTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
+#define XQC_HTTP3_QPACK_ENTRY_OVERHEAD 32
+
+#define XQC_VAR_BUF_INIT_SIZE 256
+#define XQC_VAR_INT_LEN 16
+#define XQC_MAX_SIZE_T (0xFFFFFFFF)
+#define XQC_HTTP3_QPACK_MAX_VALUELEN 65536
+typedef enum {
+  XQC_HTTP3_QPACK_ES_STATE_OPCODE,
+  XQC_HTTP3_QPACK_ES_STATE_READ_INDEX,
+  XQC_HTTP3_QPACK_ES_STATE_CHECK_NAME_HUFFMAN,
+  XQC_HTTP3_QPACK_ES_STATE_READ_NAMELEN,
+  XQC_HTTP3_QPACK_ES_STATE_READ_NAME_HUFFMAN,
+  XQC_HTTP3_QPACK_ES_STATE_READ_NAME,
+  XQC_HTTP3_QPACK_ES_STATE_CHECK_VALUE_HUFFMAN,
+  XQC_HTTP3_QPACK_ES_STATE_READ_VALUELEN,
+  XQC_HTTP3_QPACK_ES_STATE_READ_VALUE_HUFFMAN,
+  XQC_HTTP3_QPACK_ES_STATE_READ_VALUE,
+}xqc_http3_qpack_encoder_stream_state;
+
+typedef enum{
+    XQC_HTTP3_QPACK_DS_STATE_OPCODE,
+    XQC_HTTP3_QPACK_DS_STATE_READ_NUMBER,
+}xqc_http3_qpack_decoder_stream_state;
+
+typedef enum{
+    XQC_HTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT,
+    XQC_HTTP3_QPACK_DS_OPCODE_HEADER_ACK,
+    XQC_HTTP3_QPACK_DS_OPCODE_STREAM_CANCEL
+}xqc_http3_qpack_decoder_stream_opcode;
+
+
+
+/* xqc_http3_qpack_encoder_stream_opcode is a set of opcodes used in
+   encoder stream. */
+typedef enum {
+  XQC_HTTP3_QPACK_ES_OPCODE_INSERT_INDEXED,
+  XQC_HTTP3_QPACK_ES_OPCODE_INSERT,
+  XQC_HTTP3_QPACK_ES_OPCODE_DUPLICATE,
+  XQC_HTTP3_QPACK_ES_OPCODE_SET_DTABLE_CAP,
+} xqc_http3_qpack_encoder_stream_opcode;
+
+typedef enum {
+    XQC_HTTP3_NV_FLAG_NONE = 0, // indicates no flag set.
+    XQC_HTTP3_NV_FLAG_NEVER_INDEX = 0x01, //indicates that this name/value pair must not be indexed.  Other implementation calls this bit as "sensitive".
+
+    XQC_HTTP3_NV_FLAG_NO_COPY_NAME = 0x02, // is set solely by application.  If this flag is set, the library does not make a copy of header field name.  This could improve performance.
+    XQC_HTTP3_NV_FLAG_NO_COPY_VALUE = 0x04, //is set solely by application.  If this flag is set, the library does not make a copy of header field value
+}xqc_http3_nv_flag_t;
+
+typedef enum{
+
+    //XQC_HTTP3_QPACK_INDEXING_MODE_LITERAL means that header field should not be inserted into dynamic table
+    XQC_HTTP3_QPACK_INDEXING_MODE_LITERAL = 0,
+    //XQC_HTTP3_QPACK_INDEXING_MODE_STORE means header field can be inserted into dynamic table
+    XQC_HTTP3_QPACK_INDEXING_MODE_STORE,
+    //XQc_HTTP3_QPACK_INDEXING_MODE_NEVER means that header field should not be inserted into dynamic table and this must be true for all forwarding paths
+    XQC_HTTP3_QPACK_INDEXING_MODE_NEVER,
+
+}xqc_http3_qpack_indexing_mode_t;
+
+
+/* xqc_http3_qpack_request_stream_state is a set of states for request
+   stream decoding. */
+typedef enum {
+  XQC_HTTP3_QPACK_RS_STATE_RICNT,
+  XQC_HTTP3_QPACK_RS_STATE_DBASE_SIGN,
+  XQC_HTTP3_QPACK_RS_STATE_DBASE,
+  XQC_HTTP3_QPACK_RS_STATE_OPCODE,
+  XQC_HTTP3_QPACK_RS_STATE_READ_INDEX,
+  XQC_HTTP3_QPACK_RS_STATE_CHECK_NAME_HUFFMAN,
+  XQC_HTTP3_QPACK_RS_STATE_READ_NAMELEN,
+  XQC_HTTP3_QPACK_RS_STATE_READ_NAME_HUFFMAN,
+  XQC_HTTP3_QPACK_RS_STATE_READ_NAME,
+  XQC_HTTP3_QPACK_RS_STATE_CHECK_VALUE_HUFFMAN,
+  XQC_HTTP3_QPACK_RS_STATE_READ_VALUELEN,
+  XQC_HTTP3_QPACK_RS_STATE_READ_VALUE_HUFFMAN,
+  XQC_HTTP3_QPACK_RS_STATE_READ_VALUE,
+  XQC_HTTP3_QPACK_RS_STATE_BLOCKED,
+} xqc_http3_qpack_request_stream_state;
+
+/* xqc_http3_qpack_request_stream_opcode is a set of opcodes used in
+   request stream. */
+typedef enum {
+    XQC_HTTP3_QPACK_RS_OPCODE_INDEXED,
+    XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_PB,
+    XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME,
+    XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB,
+    XQC_HTTP3_QPACK_RS_OPCODE_LITERAL,
+} xqc_http3_qpack_request_stream_opcode;
+
+typedef struct xqc_var_buf{
+    size_t  capacity;
+    size_t  used_len;
+    char    data[];
+}xqc_var_buf_t;
+
+typedef struct {
+    //char * name;//?
+    //char * value;//?
+    //xqc_var_string_t * name;
+   // xqc_var_string_t * value;
+
+    xqc_var_buf_t *name;
+    xqc_var_buf_t *value;
+    uint64_t left;
+    size_t prefix;
+    size_t shift;
+    size_t absidx;
+    uint8_t never;
+    uint8_t dynamic;
+    uint8_t huffman_encoded;
+}xqc_http3_qpack_read_state;
+
+
+
+typedef struct xqc_http3_qpack_stream_context {
+    xqc_list_head_t block_list;
+    /* state is a current state of reading request stream. */
+    xqc_http3_qpack_request_stream_state state;
+    /* rstate is a set of intermediate state which are used to process
+       request stream. */
+    xqc_http3_qpack_read_state rstate;
+    /* opcode is a request stream opcode being processed. */
+    xqc_http3_qpack_request_stream_opcode opcode;
+    int64_t stream_id;
+    /* ricnt is Required Insert Count to decode this header block. */
+    size_t ricnt;
+    /* base is Base in Header Block Prefix. */
+    size_t base;
+    /* dbase_sign is the delta base sign in Header Block Prefix. */
+    int dbase_sign;
+}xqc_http3_qpack_stream_context;
+
+typedef struct xqc_http3_qpack_entry{
+    xqc_list_head_t head_list;
+    //xqc_qpack_ring_nv_t nv;
+    xqc_http3_nv_flag_t flag;
+    size_t absidx;
+    uint64_t hash;
+    uint64_t name_hash;
+    uint64_t sum;
+    uint8_t draining;
+    uint8_t ack_flag;
+}xqc_http3_qpack_entry;
+
+typedef struct xqc_qpack_hash_table{
+    xqc_list_head_t * list;
+    size_t element_count;
+}xqc_qpack_hash_table_t;
+
+
+typedef struct {
+    //xqc_http3_ringbuf   dtable;
+    //xqc_http3_ringdata  dtable_data;
+    size_t hard_max_dtable_size;
+    size_t max_dtable_size; // max_dtable_size is the effective maximum size of dynamic table.
+    size_t max_blocked;
+    size_t next_absidx;
+
+    size_t dtable_size;
+    size_t dtable_sum;
+
+}xqc_http3_qpack_context;
+
+typedef struct xqc_http3_qpack_decoder{
+
+    xqc_http3_qpack_context ctx;
+
+    //state is a current state of reading encoder stream
+    xqc_http3_qpack_encoder_stream_state state;
+    xqc_http3_qpack_encoder_stream_opcode opcode;
+    xqc_http3_qpack_read_state rstate;
+}xqc_http3_qpack_decoder;
+
+
+
+typedef struct xqc_http3_qpack_encoder{
+
+    xqc_http3_qpack_context ctx;
+    xqc_http3_qpack_decoder_stream_state state;
+    xqc_http3_qpack_decoder_stream_opcode opcode;
+    xqc_http3_qpack_read_state rstate;
+
+    size_t krcnt;
+
+    xqc_qpack_hash_table_t dtable_hash;
+    xqc_qpack_hash_table_t stable_hash;
+
+    size_t min_dtable_update;// min_dtable_update is the minimum dynamic table size required.
+    size_t last_max_dtable_update; //last_max_dtable_update is the dynamic table size last requested.
+
+    uint8_t flags;
+}xqc_http3_qpack_encoder;
+
+
+
+typedef struct xqc_var_string{
+    size_t strlen; //
+    char data[];
+}xqc_var_string_t;
+
+
+typedef struct xqc_qpack_name_value{
+    xqc_var_string_t * name;
+    xqc_var_string_t * value;
+    uint8_t  flag;
+}xqc_qpack_name_value_t;
+
+
+
+
+
+/* xqc_http3_qpack_encoder_flag is a set of flags used by
+   xqc_http3_qpack_encoder. */
+typedef enum {
+  XQC_HTTP3_QPACK_ENCODER_FLAG_NONE = 0x00,
+  /* XQC_HTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP indicates that
+     Set Dynamic Table Capacity is required. */
+  XQC_HTTP3_QPACK_ENCODER_FLAG_PENDING_SET_DTABLE_CAP = 0x01,
+} xqc_http3_qpack_encoder_flag;
+
+
+/**
+ * @enum
+ *
+ * :type:`xqc_http3_qpack_decode_flag` is a set of flags for decoder.
+ */
+typedef enum {
+  /**
+   * :enum:`XQC_HTTP3_QPACK_DECODE_FLAG_NONE` indicates that no flag
+   * set.
+   */
+  XQC_HTTP3_QPACK_DECODE_FLAG_NONE,
+  /**
+   * :enum:`XQC_HTTP3_QPACK_DECODE_FLAG_EMIT` indicates that a header
+   * field is successfully decoded.
+   */
+  XQC_HTTP3_QPACK_DECODE_FLAG_EMIT = 0x01,
+  /**
+   * :enum:`XQC_HTTP3_QPACK_DECODE_FLAG_FINAL` indicates that all header
+   * fields have been decoded.
+   */
+  XQC_HTTP3_QPACK_DECODE_FLAG_FINAL = 0x02,
+  /**
+   * :enum:`XQC_HTTP3_QPACK_DECODE_FLAG_BLOCKED` indicates that decoding
+   * has been blocked.
+   */
+  XQC_HTTP3_QPACK_DECODE_FLAG_BLOCKED = 0x04
+} xqc_http3_qpack_decode_flag;
+
+typedef struct xqc_h3_stream_s xqc_h3_stream_t;
+
+ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
+     xqc_http_headers_t * headers, int fin);
+ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xqc_http3_qpack_stream_context *sctx,
+        xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin);
+
+int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, int64_t stream_id);
+
+#endif

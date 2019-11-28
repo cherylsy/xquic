@@ -5,6 +5,7 @@
 #include "include/xquic_typedef.h"
 #include "xqc_h3_conn.h"
 #include "xqc_h3_frame.h"
+#include "xqc_h3_qpack.h"
 
 typedef enum {
     XQC_H3_STREAM_REQUEST,
@@ -136,6 +137,8 @@ typedef struct xqc_h3_stream_s {
 
     xqc_list_head_t     recv_header_data_buf;
     xqc_list_head_t     recv_body_data_buf;
+    xqc_http3_qpack_stream_context  qpack_sctx;
+
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_http3_tnode_t     *tnode;
 #endif

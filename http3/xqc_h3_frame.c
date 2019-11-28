@@ -6,7 +6,7 @@
 #include "common/xqc_id_hash.h"
 #include "transport/crypto/xqc_tls_public.h"
 #include "xqc_h3_tnode.h"
-
+#include "xqc_h3_request.h"
 
 
 int xqc_http3_conn_on_max_push_id(xqc_h3_conn_t * conn, uint64_t push_id);
@@ -1077,10 +1077,118 @@ ssize_t xqc_http3_conn_read_uni_frame(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t *
 }
 #endif
 
-int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream){
 
+//int xqc_http3_read_header_data(
+
+
+int xqc_http_headers_create_buf(xqc_http_headers_t *headers, size_t capacity){
+
+    headers->headers = malloc(sizeof(xqc_http_header_t) * capacity);
+    memset(headers->headers, 0, sizeof(xqc_http_header_t) * capacity);
+    headers->count = 0;
+    headers->capacity = capacity;
+    return 0;
+}
+
+int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity){
+
+    if(headers->count > capacity){
+        return -1;
+    }
+    xqc_http_header_t * old = headers->headers;
+
+    headers->headers = malloc(sizeof(xqc_http_header_t) * capacity);
+
+    if(headers->headers == NULL){
+        free(old);
+        headers->count = 0;
+        headers->capacity = 0;
+        return -1;
+    }
+    headers->capacity = capacity;
+
+    memcpy(headers->headers, old, headers->count * sizeof(xqc_http_headers_t));
+
+    free(old);
+    return 0;
+}
+
+
+#define XQC_HEADERS_INIT_CAPACITY  32
+int xqc_http3_http_headers_save_nv(xqc_http_headers_t * headers, xqc_qpack_name_value_t * nv){
+
+    if(headers->capacity == 0){
+        xqc_http_headers_create_buf(headers, XQC_HEADERS_INIT_CAPACITY);
+    }
+    if(headers->count >= headers->capacity){
+        size_t capacity = xqc_min(headers->capacity * 2, headers->capacity + 128);
+        if(xqc_http_headers_realloc_buf(headers, capacity) < 0){
+            return -1;
+        }
+    }
+    xqc_http_header_t * header  = &headers->headers[headers->count++];
+
+    header->name.iov_base = malloc(nv->name->strlen + 1);
+    header->name.iov_len = nv->name->strlen;
+    header->value.iov_base = malloc(nv->value->strlen + 1);
+    header->value.iov_len = nv->value->strlen;
+    strncpy(header->name.iov_base, nv->name->data, header->name.iov_len + 1);
+    strncpy(header->value.iov_base, nv->value->data, header->value.iov_len + 1);
 
     return 0;
+}
+
+int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream){
+
+    xqc_list_head_t * head = &h3_stream->recv_header_data_buf;
+    xqc_list_head_t *pos, *next;
+    xqc_data_buf_t * data_buf = NULL;
+    int ret = 1;
+    xqc_http3_qpack_decoder * decoder = &h3_conn->qdec;
+    xqc_http3_qpack_stream_context *sctx = &h3_stream->qpack_sctx;
+
+    xqc_qpack_name_value_t nv;
+
+    xqc_h3_request_t * h3_request = h3_stream ->h3_request ;
+    xqc_http_headers_t * headers = &h3_request->headers;
+
+    xqc_list_for_each_safe(pos, next, head){
+        data_buf = xqc_list_entry(pos, xqc_data_buf_t, list_head);
+
+
+        uint8_t flags = 0;
+        char * start = data_buf->data;
+        char * end = data_buf->data + data_buf->data_len;
+        while(start < end){
+
+            int nread = xqc_http3_qpack_decoder_read_request_header(decoder, sctx, &nv, &flags,  start, end - start, data_buf->fin);
+
+            if(nread <= 0){
+                goto fail;
+            }
+
+            start += nread;
+            if(flags & XQC_HTTP3_QPACK_DECODE_FLAG_EMIT){
+                //save nv
+                if(xqc_http3_http_headers_save_nv(headers, &nv) < 0){
+                    return -1;
+                }
+            }else{
+                if(start < end){
+                    return -1;
+                }
+            }
+            //printf("recv header, name:%s, value:%s \n", nv.name->data, nv.value->data);
+            xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|name:%s, value:%s|", nv.name->data, nv.value->data);
+        }
+    }
+
+    h3_request->flag |= XQC_H3_REQUEST_HEADER_COMPLETE_RECV;
+
+    return 0;
+
+fail:
+    return -1;
 }
 
 int xqc_http3_handle_body_data_completed(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream){
@@ -1812,6 +1920,24 @@ ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_
 
 
 }
+
+ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin){
+
+    ssize_t n_write = 0;
+    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
+
+    xqc_http3_qpack_encoder * encoder = &h3_conn->qenc;
+
+
+    n_write = xqc_http3_stream_write_header_block(h3_stream, encoder, headers, fin);
+
+    if(n_write < 0){
+        return -1;
+    }
+
+    return n_write;
+}
+
 
 ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 

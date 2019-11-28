@@ -192,14 +192,17 @@ typedef struct xqc_conn_ssl_config_s {
     char       *alpn; /* User does't care */
 } xqc_conn_ssl_config_t;
 
+
 typedef struct xqc_http_header_s {
     struct iovec        name;
     struct iovec        value;
+    uint8_t             flags;
 } xqc_http_header_t;
 
 typedef struct xqc_http_headers_s {
     xqc_http_header_t       *headers;
     size_t                  count;
+    size_t                  capacity;
 } xqc_http_headers_t;
 
 /* For client */

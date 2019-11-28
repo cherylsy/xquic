@@ -37,6 +37,27 @@ xqc_h3_request_create(xqc_engine_t *engine,
     return h3_request;
 }
 
+int xqc_http_headers_free(xqc_http_headers_t *headers){
+
+    int i = 0;
+    xqc_http_header_t * header;
+    if(headers->headers == NULL){
+        return 0;
+    }
+    for(i = 0; i < headers->count; i++){
+        header = & headers->headers[i];
+        if(header->name.iov_base)free(header->name.iov_base);
+        if(header->value.iov_base)free(header->value.iov_base);
+    }
+
+    free(headers->headers);
+    headers->headers = NULL;
+    headers->count = 0;
+    headers->capacity = 0;
+
+    return 0;
+}
+
 void
 xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
 {
@@ -44,12 +65,21 @@ xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
     if (h3_request->request_if->h3_request_close_notify) {
         h3_request->request_if->h3_request_close_notify(h3_request, h3_request->user_data);
     }
+    xqc_http_headers_free(&h3_request->headers);
     xqc_free(h3_request);
 }
 
 int xqc_h3_request_close (xqc_h3_request_t *h3_request)
 {
     return xqc_stream_close(h3_request->h3_stream->stream);
+}
+
+int xqc_http_headers_initial(xqc_http_headers_t *headers){
+
+    headers->headers = NULL;
+    headers->count = 0;
+    headers->capacity = 0;
+    return 0;
 }
 
 xqc_h3_request_t *
@@ -65,8 +95,11 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
     h3_request->h3_stream = h3_stream;
     h3_request->user_data = user_data;
     h3_request->request_if = &h3_conn->conn->engine->eng_callback.h3_request_callbacks;
+    h3_request->flag = 0;
+    xqc_http_headers_initial(&h3_request->headers);
 
     h3_stream->h3_request = h3_request;
+
 
     if (h3_request->request_if->h3_request_create_notify) {
         h3_request->request_if->h3_request_create_notify(h3_request, h3_request->user_data);
@@ -127,6 +160,10 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
 xqc_http_headers_t *
 xqc_h3_request_recv_header(xqc_h3_request_t *h3_request, uint8_t *fin)
 {
+    if(!(h3_request->flag & XQC_H3_REQUEST_HEADER_ALREADY_READ)){
+        h3_request->flag |= XQC_H3_REQUEST_HEADER_ALREADY_READ;
+        return &h3_request->headers;
+    }
     return NULL;
 }
 

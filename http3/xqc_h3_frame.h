@@ -5,7 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include "xqc_h3_tnode.h"
-
+#include "include/xquic.h"
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 
@@ -245,4 +245,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
 int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head);
 
 int xqc_h3_stream_free_data_buf(xqc_h3_stream_t *h3_stream);
+
+ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin);
+
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */
