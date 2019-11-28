@@ -6,7 +6,7 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT -DNPRINT_MALLOC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT -DNPRINT_MALLOC -lpthread ")
 
 configure_file (
     xqc_cmake_config.h.in
@@ -27,6 +27,7 @@ set(
     http3/xqc_h3_request.c
     http3/xqc_h3_frame.c
     http3/xqc_h3_tnode.c
+    http3/xqc_h3_qpack.c
 )
 
 set(
