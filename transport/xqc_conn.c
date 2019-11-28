@@ -210,16 +210,16 @@ xqc_conn_create(xqc_engine_t *engine,
         xc->conn_flag |= XQC_CONN_FLAG_DCID_OK;
     }
 
-    if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
-        goto fail;
-    }
-    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
-
     for (xqc_pkt_num_space_t i = 0; i < XQC_PNS_N; i++) {
         memset(&xc->recv_record[i], 0, sizeof(xqc_recv_record_t));
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
+    /* 必须放到最后 */
+    if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
+        goto fail;
+    }
+    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
     return xc;
 
 fail:
@@ -314,7 +314,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
     xqc_stream_t *stream;
     xqc_packet_in_t *packet_in;
 
-    /* destroy streams */
+    /* destroy streams, must before conn_close_notify */
     xqc_list_for_each_safe(pos, next, &xc->conn_all_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
         xqc_list_del_init(pos);
@@ -326,9 +326,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|%p|", xc);
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|",
-            xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|",
+            xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
             xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count, xc->conn_send_ctl->ctl_tlp_count);
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
@@ -842,6 +841,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
         xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
         return -XQC_ECONN_NFOUND;
     }
+    xqc_log(conn->log, XQC_LOG_WARN, "|conn:%p|", conn);
     xqc_conn_send_packets(conn);
     xqc_engine_main_logic(conn->engine);
 

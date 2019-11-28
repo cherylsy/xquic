@@ -1004,12 +1004,14 @@ xqc_process_write_streams (xqc_connection_t *conn)
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
         if (stream->stream_flag & XQC_STREAM_FLAG_DATA_BLOCKED
             || conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|DATA_BLOCKED|stream_id:%ui|", stream->stream_id);
             continue;
         }
         ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_write_notify|flag:%d", stream->stream_flag);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_write_notify|flag:%d|stream_id:%ui|",
+                stream->stream_flag, stream->stream_id);
         if (ret < 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|", ret);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|stream_id:%ui|", ret, stream->stream_id);
             xqc_stream_shutdown_write(stream);
         }
     }
@@ -1026,9 +1028,11 @@ xqc_process_read_streams (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_read_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
         ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|", stream->stream_flag);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|stream_id:%ui|",
+                stream->stream_flag, stream->stream_id);
         if (ret < 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|", ret);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|stream_id:%ui|",
+                    ret, stream->stream_id);
             xqc_stream_shutdown_read(stream);
         }
     }
