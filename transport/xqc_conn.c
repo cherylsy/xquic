@@ -109,12 +109,12 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->ack_delay_exponent = 3;
     //TODO: 临时值
     settings->idle_timeout = 30000; //must > XQC_PING_TIMEOUT
-    settings->max_data = 1*1024*1024;
-    settings->max_stream_data_bidi_local = 100*1024;
-    settings->max_stream_data_bidi_remote = 100*1024;
+    settings->max_data = 1*1024*1024*1024;
+    settings->max_stream_data_bidi_local = 100*1024*1024;
+    settings->max_stream_data_bidi_remote = 100*1024*1024;
     settings->max_stream_data_uni = 100*1024;
-    settings->max_streams_bidi = 3;
-    settings->max_streams_uni = 3;
+    settings->max_streams_bidi = 100*1024;
+    settings->max_streams_uni = 100*1024;
     settings->max_packet_size = XQC_MAX_PKT_SIZE;
 }
 
