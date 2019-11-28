@@ -6,6 +6,7 @@
 #include "xqc_cid.h"
 #include "xqc_conn.h"
 #include "xqc_stream.h"
+#include "xqc_utils.h"
 
 xqc_connection_t *
 xqc_client_connect(xqc_engine_t *engine, void *user_data,
@@ -76,6 +77,12 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         }
         xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+    /* 必须放到最后，xqc_conn_destroy必须在插入到conns_active_pq之前调用 */
+    if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
+        goto fail;
+    }
+    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     xqc_engine_main_logic(engine);
 

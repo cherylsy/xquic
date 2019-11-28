@@ -122,7 +122,8 @@ typedef struct xqc_config_s {
     size_t  conn_pool_size;
     size_t  streams_hash_bucket_size;
     size_t  conns_hash_bucket_size;
-    size_t  conns_pq_capacity;
+    size_t  conns_active_pq_capacity;
+    size_t  conns_wakeup_pq_capacity;
     uint32_t  support_version_list[XQC_SUPPORT_VERSION_MAX]; /*支持的版本列表*/
     uint32_t  support_version_count; /*版本列表数量*/
 } xqc_config_t;

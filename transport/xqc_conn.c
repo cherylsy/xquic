@@ -21,6 +21,7 @@
 #include "xqc_packet_parser.h"
 #include "crypto/xqc_tls_header.h"
 #include "xqc_utils.h"
+#include "xqc_wakeup_pq.h"
 
 xqc_conn_settings_t default_conn_settings = {
         .pacing_on  =   0,
@@ -215,11 +216,6 @@ xqc_conn_create(xqc_engine_t *engine,
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
-    /* 必须放到最后 */
-    if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
-        goto fail;
-    }
-    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
     return xc;
 
 fail:
@@ -308,6 +304,17 @@ xqc_conn_destroy(xqc_connection_t *xc)
 {
     if (!xc) {
         return;
+    }
+
+    if (xc->conn_flag & XQC_CONN_FLAG_TICKING) {
+        xqc_log(xc->log, XQC_LOG_ERROR, "|in XQC_CONN_FLAG_TICKING|%p|", xc);
+        xc->conn_state = XQC_CONN_STATE_CLOSED;
+        return;
+    }
+
+    if (xc->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
+        xqc_wakeup_pq_remove(xc->engine->conns_wait_wakeup_pq, xc);
+        xc->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
     }
 
     xqc_list_head_t *pos, *next;

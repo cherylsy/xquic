@@ -37,11 +37,13 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
     if (engine_type == XQC_ENGINE_SERVER) {
         config->streams_hash_bucket_size = 1024;
         config->conns_hash_bucket_size = 1024*1024; //不能扩展，连接多了查找性能？
-        config->conns_pq_capacity = 1024;
+        config->conns_active_pq_capacity = 1024;
+        config->conns_wakeup_pq_capacity = 16*1024;
     } else if (engine_type == XQC_ENGINE_CLIENT) {
         config->streams_hash_bucket_size = 1024;
         config->conns_hash_bucket_size = 1024;
-        config->conns_pq_capacity = 128;
+        config->conns_active_pq_capacity = 128;
+        config->conns_wakeup_pq_capacity = 128;
     }
 
     config->support_version_count = 1;
@@ -93,7 +95,7 @@ xqc_engine_conns_pq_create(xqc_config_t *config)
 
     xqc_memzero(q, sizeof(xqc_pq_t));
 
-    if (xqc_pq_init(q, sizeof(xqc_conns_pq_elem_t), config->conns_pq_capacity,
+    if (xqc_pq_init(q, sizeof(xqc_conns_pq_elem_t), config->conns_active_pq_capacity,
                     xqc_default_allocator, xqc_pq_revert_cmp)) {
         goto fail;
     }
@@ -116,7 +118,7 @@ xqc_engine_wakeup_pq_create(xqc_config_t *config)
 
     xqc_memzero(q, sizeof(xqc_wakeup_pq_t));
 
-    if (xqc_wakeup_pq_init(q, config->conns_pq_capacity,
+    if (xqc_wakeup_pq_init(q, config->conns_wakeup_pq_capacity,
                     xqc_default_allocator, xqc_wakeup_pq_revert_cmp)) {
         goto fail;
     }
@@ -469,7 +471,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
     while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
         xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
-        if (el == NULL || el->conn == NULL) {
+        if (XQC_UNLIKELY(el == NULL || el->conn == NULL)) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
             xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
             continue;
@@ -485,6 +487,8 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
                 if (0 == xqc_conns_pq_push(engine->conns_active_pq, conn, conn->last_ticked_time)) {
                     conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+                } else {
+                    xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|");
                 }
             }
         } else {
@@ -494,7 +498,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
     while (!xqc_pq_empty(engine->conns_active_pq)) {
         xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_active_pq);
-        if (el == NULL || el->conn == NULL) {
+        if (XQC_UNLIKELY(el == NULL || el->conn == NULL)) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
             xqc_conns_pq_pop(engine->conns_active_pq);
             continue;
@@ -507,8 +511,11 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         now = xqc_now();
         xqc_engine_process_conn(conn, now);
 
-        if (conn->conn_state == XQC_CONN_STATE_CLOSED) {
+        if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
+            xqc_conns_pq_pop(engine->conns_active_pq);
+            conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
             xqc_conn_destroy(conn);
+            continue;
         } else {
             conn->last_ticked_time = now;
 
@@ -530,10 +537,15 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             } else {
                 /* 至少会有idle定时器，这是异常分支 */
                 xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection|");
+                xqc_conns_pq_pop(engine->conns_active_pq);
+                conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
                 xqc_conn_destroy(conn);
+                continue;
             }
         }
 
+        /* xqc_engine_process_conn有可能会插入conns_active_pq，XQC_CONN_FLAG_TICKING防止重复插入，
+         * 必须放在xqc_engine_process_conn后 */
         xqc_conns_pq_pop(engine->conns_active_pq);
         conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
     }
