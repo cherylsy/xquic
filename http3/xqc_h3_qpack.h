@@ -270,5 +270,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
         xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin);
 
 int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, int64_t stream_id);
+int xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx);
+int xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv);
 
 #endif

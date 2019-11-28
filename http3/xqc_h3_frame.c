@@ -1164,6 +1164,7 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
             int nread = xqc_http3_qpack_decoder_read_request_header(decoder, sctx, &nv, &flags,  start, end - start, data_buf->fin);
 
             if(nread <= 0){
+
                 goto fail;
             }
 
@@ -1171,8 +1172,10 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
             if(flags & XQC_HTTP3_QPACK_DECODE_FLAG_EMIT){
                 //save nv
                 if(xqc_http3_http_headers_save_nv(headers, &nv) < 0){
+                    xqc_qpack_name_value_free(&nv);
                     return -1;
                 }
+                xqc_qpack_name_value_free(&nv);
             }else{
                 if(start < end){
                     return -1;

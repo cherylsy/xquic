@@ -15,6 +15,20 @@ xqc_var_string_t * xqc_create_var_string(uint8_t * value, size_t strlen){
     return v_str;
 }
 
+int xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv){
+
+    if(nv == NULL){
+        return 0;
+    }
+    if(nv->name){
+        free(nv->name);
+    }
+    if(nv->value){
+        free(nv->value);
+    }
+    return 0;
+}
+
 xqc_var_buf_t * xqc_var_buf_create(size_t capacity){
 
     xqc_var_buf_t * p = malloc(sizeof(xqc_var_buf_t) + capacity);
@@ -24,6 +38,14 @@ xqc_var_buf_t * xqc_var_buf_create(size_t capacity){
     p->capacity = capacity;
     p->used_len = 0;
     return p;
+}
+
+int xqc_var_buf_free(xqc_var_buf_t * vbuf){
+
+    if(vbuf){
+        free(vbuf);
+    }
+    return 0;
 }
 
 xqc_var_buf_t * xqc_var_buf_realloc( xqc_var_buf_t * src){
@@ -127,8 +149,14 @@ uint8_t *xqc_http3_qpack_put_varint(uint8_t *buf, uint64_t n, size_t prefix) {
 
 
 void xqc_http3_qpack_read_state_clear(xqc_http3_qpack_read_state *rstate) {
-    rstate->name = NULL;
-    rstate->value = NULL;
+    if(rstate->name){
+        xqc_var_buf_free(rstate->name);
+        rstate->name = NULL;
+    }
+    if(rstate->value){
+        xqc_var_buf_free(rstate->value);
+        rstate->value = NULL;
+    }
     rstate->left = 0;
     rstate->prefix = 0;
     rstate->shift = 0;
@@ -643,7 +671,7 @@ fail:
 
 int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, int64_t stream_id){
 
-    xqc_http3_qpack_read_state_clear(&sctx->rstate);
+    memset(sctx, 0, sizeof(xqc_http3_qpack_stream_context));
 
     sctx->rstate.prefix = 8;
     sctx->state = XQC_HTTP3_QPACK_RS_STATE_RICNT;
@@ -657,4 +685,23 @@ int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, in
 }
 
 
+int xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx){
+
+    if(sctx == NULL){
+        return 0;
+    }
+    //free block_list
+    if(sctx->rstate.name){
+        xqc_var_buf_free(sctx->rstate.name);
+        sctx->rstate.name = NULL;
+    }
+
+    if(sctx->rstate.value){
+        xqc_var_buf_free(sctx->rstate.value);
+        sctx->rstate.value = NULL;
+    }
+
+    return 0;
+
+}
 
