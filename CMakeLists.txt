@@ -78,8 +78,8 @@ set(
 add_library(
     xquic
 
-    #STATIC
-    SHARED
+    STATIC
+    #SHARED
 
 
     ${HTTP3_SOURCES}
@@ -88,6 +88,7 @@ add_library(
     ${CONGESTION_CONTROL_SOURCES}
 )
 
+if(FALSE)
 target_link_libraries(
     xquic
     "-ldl -Wl,--whole-archive"
@@ -95,12 +96,17 @@ target_link_libraries(
     ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
     "-Wl,--no-whole-archive"
 )
+endif()
 
 # Strip binary for release builds
 if (CMAKE_BUILD_TYPE STREQUAL Release)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_STRIP} libxquic.so)
 endif ()
+
+link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
 
 ##### for unit test #########
 find_package(CUnit 2.1)
