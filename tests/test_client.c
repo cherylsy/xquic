@@ -34,6 +34,12 @@ typedef struct user_stream_s {
     xqc_h3_request_t   *h3_request;
     uint64_t            send_offset;
     int                 header_sent;
+    char               *send_body;
+    size_t              send_body_len;
+    size_t              send_body_max;
+    char               *recv_body;
+    size_t              recv_body_len;
+    FILE               *recv_body_fp;
 } user_stream_t;
 
 typedef struct user_conn_s {
@@ -143,6 +149,29 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     printf("0x%x\n", token[0]);
     close(fd);
     return n;
+}
+
+int read_file_data( char * data, size_t data_len, char *filename){
+    FILE * fp = fopen( filename, "rb");
+
+    if(fp == NULL){
+        return -1;
+    }
+    fseek(fp, 0 , SEEK_END);
+    size_t total_len  = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if(total_len > data_len){
+        return -1;
+    }
+
+    size_t read_len = fread(data, 1, total_len, fp);
+    if (read_len != total_len){
+
+        return -1;
+    }
+
+    return read_len;
+
 }
 
 int g_send_total = 0;
@@ -263,6 +292,10 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
     printf("conn errno:%d\n", xqc_h3_conn_get_errno(conn));
+
+    xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
+    printf("send_count:%u, retrans_count:%u, tlp_count:%u\n", stats.send_count, stats.retrans_count, stats.tlp_count);
+
     free(user_conn);
     event_base_loopbreak(eb);
     return 0;
@@ -352,12 +385,24 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         }
     }
 
-    unsigned buff_size = 1000*1024;
-    char *buff = malloc(buff_size);
-    if (user_stream->send_offset < buff_size) {
-        ret = xqc_h3_request_send_body(h3_request, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
+    if (user_stream->send_body == NULL) {
+        user_stream->send_body_max = 10000*1024;
+        user_stream->send_body = malloc(user_stream->send_body_max);
+        ret = read_file_data(user_stream->send_body, user_stream->send_body_max, "client_send_body");
+        if (ret < 0) {
+            printf("read body error\n");
+            /*文件不存在则发内存数据*/
+            user_stream->send_body_len = 4097;
+        } else {
+            user_stream->send_body_len = ret;
+        }
+    }
+
+    if (user_stream->send_offset < user_stream->send_body_len) {
+        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_h3_request_send_body error %d\n", ret);
+            return ret;
         } else {
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body offset=%lld\n", user_stream->send_offset);
@@ -380,15 +425,30 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 {
     DEBUG;
     int ret;
-    user_stream_t *ctx = (user_stream_t *) user_data;
-    char buff[1000] = {0};
-    size_t buff_size = 1000;
+    user_stream_t *user_stream = (user_stream_t *) user_data;
+    char buff[4000] = {0};
+    size_t buff_size = 4000;
+
+    int save = 1;
+
+    if (save && user_stream->recv_body_fp == NULL) {
+        user_stream->recv_body_fp = fopen("client_recv_body", "wb");
+        if (user_stream->recv_body_fp == NULL) {
+            printf("open error\n");
+            return -1;
+        }
+    }
 
     ssize_t read;
     unsigned char fin;
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+            printf("fwrite error\n");
+            return -1;
+        }
+        if(save) fflush(user_stream->recv_body_fp);
     } while (read > 0 && !fin);
     return 0;
 }
@@ -397,6 +457,11 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t *)user_data;
+
+    xqc_request_stats_t stats;
+    stats = xqc_h3_request_get_stats(h3_request);
+    printf("send_body_size:%zu, recv_body_size:%zu\n", stats.send_body_size, stats.recv_body_size);
+
     free(user_stream);
     return 0;
 }
@@ -486,28 +551,6 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
     //event_base_loopbreak(eb);
 }
 
-int read_file_data( char * data, size_t data_len, char *filename){
-    FILE * fp = fopen( filename, "rb");
-
-    if(fp == NULL){
-        return -1;
-    }
-    fseek(fp, 0 , SEEK_END);
-    size_t total_len  = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    if(total_len > data_len){
-        return -1;
-    }
-
-    size_t read_len = fread(data, 1, total_len, fp);
-    if (read_len != total_len){
-
-        return -1;
-    }
-
-    return read_len;
-
-}
 
 int xqc_client_open_log_file(void *engine_user_data)
 {

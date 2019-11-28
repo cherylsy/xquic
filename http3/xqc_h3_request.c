@@ -107,6 +107,15 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
     return h3_request;
 }
 
+xqc_request_stats_t
+xqc_h3_request_get_stats(xqc_h3_request_t *h3_request)
+{
+    xqc_request_stats_t stats;
+    stats.recv_body_size = h3_request->body_recvd;
+    stats.send_body_size = h3_request->body_sent;
+    return stats;
+}
+
 void
 xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                              void *user_data)
@@ -144,6 +153,7 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
                 "|xqc_h3_stream_send_data error|stream_id:%ui|ret:%z|",
                 h3_request->h3_stream->stream->stream_id, sent);
+        return sent;
     }
 
     h3_request->body_sent += sent;
@@ -151,9 +161,10 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
         h3_request->body_sent_final_size = h3_request->body_sent;
     }
     xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|stream_id:%ui|data_size:%z|sent:%z|body_sent:%uz|body_sent_final_size:%uz|fin:%d|",
+            "|stream_id:%ui|data_size:%z|sent:%z|body_sent:%uz|body_sent_final_size:%uz|fin:%d|flag:%d|",
             h3_request->h3_stream->stream->stream_id,
-            data_size, sent, h3_request->body_sent, h3_request->body_sent_final_size, fin);
+            data_size, sent, h3_request->body_sent, h3_request->body_sent_final_size, fin,
+            h3_request->h3_stream->stream->stream_flag);
     return sent;
 }
 
@@ -187,8 +198,9 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
         h3_request->body_recvd_final_size = h3_request->body_recvd;
     }
     xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|fin:%d|",
+            "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|fin:%d|flag:%d|",
             h3_request->h3_stream->stream->stream_id,
-            recv_buf_size, n_recv, h3_request->body_recvd, h3_request->body_recvd_final_size, *fin);
+            recv_buf_size, n_recv, h3_request->body_recvd, h3_request->body_recvd_final_size, *fin,
+            h3_request->h3_stream->stream->stream_flag);
     return n_recv;
 }
