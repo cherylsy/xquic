@@ -74,6 +74,15 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
     return h3_request;
 }
 
+xqc_request_stats_t
+xqc_h3_request_get_stats(xqc_h3_request_t *h3_request)
+{
+    xqc_request_stats_t stats;
+    stats.recv_body_size = h3_request->body_recvd;
+    stats.send_body_size = h3_request->body_sent;
+    return stats;
+}
+
 void
 xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                              void *user_data)

@@ -209,6 +209,18 @@ typedef struct xqc_conn_settings_s {
     xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 } xqc_conn_settings_t;
 
+typedef struct xqc_conn_stats_s {
+    uint32_t    send_count;
+    uint32_t    retrans_count;
+    uint32_t    tlp_count;
+    xqc_msec_t  srtt;
+} xqc_conn_stats_t;
+
+typedef struct xqc_request_stats_s {
+    size_t      send_body_size;
+    size_t      recv_body_size;
+} xqc_request_stats_t;
+
 /**
  * For server, it can be called anytime. settings will take effect on new connections
  */
@@ -280,6 +292,11 @@ struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         xqc_cid_t *cid,
                                         void *user_data);
+
+/**
+ * User can get xqc_request_stats_t before request destroyed
+ */
+xqc_request_stats_t xqc_h3_request_get_stats(xqc_h3_request_t *h3_request);
 
 /**
  * Server should set user_data when h3_request_create_notify callbacks
@@ -480,7 +497,11 @@ void xqc_engine_main_logic (xqc_engine_t *engine);
 int xqc_conn_continue_send(xqc_engine_t *engine,
                            xqc_cid_t *cid);
 
-
+/**
+ * User can get xqc_conn_stats_t by cid
+ */
+xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
+                                    xqc_cid_t *cid);
 
 #endif /* _XQUIC_H_INCLUDED_ */
 

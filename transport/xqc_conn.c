@@ -848,6 +848,26 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
     return XQC_OK;
 }
 
+xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
+                                    xqc_cid_t *cid)
+{
+    xqc_connection_t *conn;
+    xqc_send_ctl_t *ctl;
+    xqc_conn_stats_t conn_stats;
+    xqc_memzero(&conn_stats, sizeof(conn_stats));
+    conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (!conn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
+        return conn_stats;
+    }
+    ctl = conn->conn_send_ctl;
+    conn_stats.retrans_count = ctl->ctl_retrans_count;
+    conn_stats.send_count = ctl->ctl_send_count;
+    conn_stats.tlp_count = ctl->ctl_tlp_count;
+    conn_stats.srtt = ctl->ctl_srtt;
+    return conn_stats;
+}
+
 int
 xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len)
 {

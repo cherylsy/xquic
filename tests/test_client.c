@@ -292,6 +292,10 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
     printf("conn errno:%d\n", xqc_h3_conn_get_errno(conn));
+
+    xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
+    printf("send_count:%u, retrans_count:%u, tlp_count:%u\n", stats.send_count, stats.retrans_count, stats.tlp_count);
+
     free(user_conn);
     event_base_loopbreak(eb);
     return 0;
@@ -453,6 +457,11 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t *)user_data;
+
+    xqc_request_stats_t stats;
+    stats = xqc_h3_request_get_stats(h3_request);
+    printf("send_body_size:%zu, recv_body_size:%zu\n", stats.send_body_size, stats.recv_body_size);
+
     free(user_stream);
     return 0;
 }
