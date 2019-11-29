@@ -873,11 +873,14 @@ int xqc_tls_free_pktns(xqc_pktns_t * p_pktns){
 
 int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config)
 {
-    xqc_free(ssl_config->private_key_file);
-    xqc_free(ssl_config->cert_file);
-    xqc_free(ssl_config->ciphers);
-    xqc_free(ssl_config->groups);
-    xqc_free(ssl_config->session_ticket_key_data);
+
+    if(ssl_config->private_key_file)xqc_free(ssl_config->private_key_file);
+    if(ssl_config->cert_file)xqc_free(ssl_config->cert_file);
+    if(ssl_config->ciphers)xqc_free(ssl_config->ciphers);
+    if(ssl_config->groups)xqc_free(ssl_config->groups);
+    if(ssl_config->session_ticket_key_data)xqc_free(ssl_config->session_ticket_key_data);
+    if(ssl_config->alpn_list)xqc_free(ssl_config->alpn_list);
+    memset(ssl_config, 0, sizeof(xqc_engine_ssl_config_t));
 }
 
 
