@@ -169,7 +169,7 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
 }
 
 xqc_http_headers_t *
-xqc_h3_request_recv_header(xqc_h3_request_t *h3_request, uint8_t *fin)
+xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
 {
     if(!(h3_request->flag & XQC_H3_REQUEST_HEADER_ALREADY_READ)){
         h3_request->flag |= XQC_H3_REQUEST_HEADER_ALREADY_READ;
