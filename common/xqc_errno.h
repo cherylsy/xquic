@@ -68,13 +68,17 @@ typedef enum
 #define XQC_ESTREAM_BLOCKED 620 //流级流控
 #define XQC_EENCRYPT        621 //加密失败
 #define XQC_EDECRYPT        622 //解密失败
+#define XQC_ESTREAM_NFOUND  623 //找不到对应流
+#define XQC_EWRITE_PKT      624 //创建包或写包头失败
+#define XQC_ECREATE_STREAM  625 //创建流失败
 
 
 /* For QUIC application 8xx */
-#define XQC_H3_EMALLOC      800
-#define XQC_H3_ESTREAM      801
-#define XQC_H3_EREQUEST     802
-#define XQC_H3_EGOAWAY      803
+#define XQC_H3_EMALLOC          800 //申请内存失败
+#define XQC_H3_ECREATE_STREAM   801 //创建流失败
+#define XQC_H3_ECREATE_REQUEST  802 //创建请求失败
+#define XQC_H3_EGOAWAY_RECVD    803 //接收到GOAWAY，拒绝操作
+#define XQC_H3_ECREATE_CONN     804 //创建连接失败
 
 
 

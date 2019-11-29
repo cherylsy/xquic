@@ -479,7 +479,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 packet_out = xqc_write_new_packet(c, pkt_type);
                 //packet_out = xqc_write_packet(c, pkt_type, need);//TODO: 打开有问题
                 if (packet_out == NULL) {
-                    return -XQC_ENULLPTR;
+                    return -XQC_EWRITE_PKT;
                 }
                 n_written = xqc_gen_crypto_frame(packet_out,
                                                  stream->stream_send_offset,

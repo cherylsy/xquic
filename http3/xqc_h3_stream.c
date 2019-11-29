@@ -128,14 +128,14 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
         stream = xqc_create_stream_with_conn(h3_conn->conn, XQC_UNDEFINE_STREAM_ID, stream_type, NULL);
         if (!stream) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|");
-            return -XQC_H3_ESTREAM;
+            return -XQC_ECREATE_STREAM;
         }
     }
 
     xqc_h3_stream_t *h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_CONTROL, NULL);
     if (!h3_stream) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|");
-        return -XQC_H3_ESTREAM;
+        return -XQC_H3_ECREATE_STREAM;
     }
 
     h3_conn->control_stream_out = h3_stream;
@@ -153,7 +153,7 @@ xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_
         h3_stream->stream->stream_id >= h3_conn->goaway_stream_id) {
 
         xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|goaway recvd, stop send|");
-        return -XQC_H3_EGOAWAY;
+        return -XQC_H3_EGOAWAY_RECVD;
     }
     ssize_t n_write = 0;
     n_write = xqc_stream_send(h3_stream->stream, data, data_size, fin);
@@ -263,7 +263,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
                 h3_stream->h3_request = xqc_h3_request_create_inner(h3_conn, h3_stream, NULL);
                 if (!h3_stream->h3_request) {
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_request_create_inner error|");
-                    return -XQC_H3_EREQUEST;
+                    return -XQC_H3_ECREATE_REQUEST;
                 }
             }
         } else {

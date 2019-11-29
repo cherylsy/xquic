@@ -93,6 +93,7 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 
     if (h3_conn->h3_conn_callbacks.h3_conn_create_notify) {
         if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, &h3_conn->conn->scid, user_data)) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|h3_conn_create_notify failed|");
             goto fail;
         }
         h3_conn->flags |= XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
@@ -175,7 +176,7 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_dat
     h3_conn = xqc_h3_conn_create(conn, user_data);
     if (!h3_conn) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_create error|");
-        return -XQC_H3_EMALLOC;
+        return -XQC_H3_ECREATE_CONN;
     }
 
     /* 替换为h3的上下文 */
