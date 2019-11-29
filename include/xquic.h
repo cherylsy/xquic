@@ -63,18 +63,20 @@ typedef struct xqc_log_callbacks_s {
 
 /* transport layer */
 typedef struct xqc_conn_callbacks_s {
-    xqc_conn_notify_pt          conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_conn_notify_pt          conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
-
+    /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+    xqc_conn_notify_pt          conn_create_notify; /* required for server, optional for client */
+    /* 连接关闭时回调,用户可以回收资源 */
+    xqc_conn_notify_pt          conn_close_notify;
     /* for handshake done */
     xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
 } xqc_conn_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_conn_callbacks_s {
-    xqc_h3_conn_notify_pt          h3_conn_create_notify; /* optional 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_h3_conn_notify_pt          h3_conn_close_notify; /* optional 连接关闭时回调,用户可以回收资源 */
-
+    /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+    xqc_h3_conn_notify_pt          h3_conn_create_notify; /* required for server, optional for client */
+    /* 连接关闭时回调,用户可以回收资源 */
+    xqc_h3_conn_notify_pt          h3_conn_close_notify;
     /* for handshake done */
     xqc_h3_handshake_finished_pt   h3_conn_handshake_finished;  /* optional */
 } xqc_h3_conn_callbacks_t;
@@ -83,16 +85,18 @@ typedef struct xqc_h3_conn_callbacks_s {
 typedef struct xqc_stream_callbacks_s {
     xqc_stream_notify_pt        stream_read_notify; /* 可读时回调，用户可以继续调用读接口 */
     xqc_stream_notify_pt        stream_write_notify; /* 可写时回调，用户可以继续调用写接口 */
-    xqc_stream_notify_pt        stream_create_notify;  /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_stream_notify_pt        stream_close_notify;   /* optional 关闭时回调，用户可以回收资源 */
+    xqc_stream_notify_pt        stream_create_notify;  /* required for server, optional for client，
+                                                         * 请求创建完成后回调，用户可以创建自己的请求上下文 */
+    xqc_stream_notify_pt        stream_close_notify;   /* 关闭时回调，用户可以回收资源 */
 } xqc_stream_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_request_callbacks_s {
     xqc_h3_request_notify_pt    h3_request_read_notify; /* 可读时回调，用户可以继续调用读接口，读headers或body */
     xqc_h3_request_notify_pt    h3_request_write_notify; /* 可写时回调，用户可以继续调用写接口,写headers或body */
-    xqc_h3_request_notify_pt    h3_request_create_notify; /* optional 服务端使用，请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_h3_request_notify_pt    h3_request_close_notify; /* optional 关闭时回调，用户可以回收资源 */
+    xqc_h3_request_notify_pt    h3_request_create_notify; /* required for server, optional for client，
+                                                            * 请求创建完成后回调，用户可以创建自己的请求上下文 */
+    xqc_h3_request_notify_pt    h3_request_close_notify; /* 关闭时回调，用户可以回收资源 */
 } xqc_h3_request_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
@@ -134,14 +138,12 @@ typedef enum {
     XQC_ENGINE_CLIENT
 } xqc_engine_type_t;
 
-
+/**
+ * User should implement following callbacks.
+ */
 typedef struct xqc_engine_callback_s {
     /* for event loop */
     xqc_set_event_timer_pt      set_event_timer; /* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
-
-    /* for client only */
-    /* 保存token到本地，connect时带上token, token包含客户端ip信息，用于验证客户端ip是否真实 */
-    xqc_save_token_pt           save_token;
 
     /* for socket write */
     xqc_socket_write_pt         write_socket; /* 用户实现socket写接口 */
@@ -161,10 +163,13 @@ typedef struct xqc_engine_callback_s {
     /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
 
-    /* for client save session data, Use the domain as the key to save */
+    /* for client, 保存token到本地，connect时带上token, token包含客户端ip信息，用于验证客户端ip是否真实 */
+    xqc_save_token_pt           save_token;
+
+    /* for client, save session data, Use the domain as the key to save */
     xqc_save_session_cb_t       save_session_cb;
 
-    /* for client save transport parameter data, Use the domain as the key to save */
+    /* for client, save transport parameter data, Use the domain as the key to save */
     xqc_save_tp_cb_t            save_tp_cb;
 } xqc_engine_callback_t;
 
