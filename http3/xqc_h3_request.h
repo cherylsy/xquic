@@ -6,6 +6,7 @@
 typedef enum{
     XQC_H3_REQUEST_HEADER_COMPLETE_RECV = 1 << 0,
     XQC_H3_REQUEST_HEADER_ALREADY_READ  = 1 << 1,
+    XQC_H3_REQUEST_HEADER_FIN           = 1 << 2,
 }xqc_h3_request_flag;
 
 typedef struct xqc_h3_request_s {

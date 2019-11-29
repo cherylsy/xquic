@@ -634,15 +634,15 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 //xqc_qpack_read_state_terminate_value(&sctx->rstate);
 
                 switch(sctx->opcode){
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
-                        //xqc_http3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
-                        break;
                     case XQC_HTTP3_QPACK_RS_OPCODE_LITERAL:
                         if(xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv) < 0){
                             goto fail;
                         }
                         break;
+
+                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
+                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
+                        //xqc_http3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
                     default:
                         /* Unreachable */
                         goto fail;
