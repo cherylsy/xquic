@@ -698,8 +698,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in )
         default:
             xqc_log(conn->log, XQC_LOG_WARN, "|do_decrypt_pkt|invalid packet type|%ui|", type);
             //printf("|do_decrypt_pkt|invalid packet type|%ui|", type);
-            int ret = -XQC_EILLPKT;
-            return ret;
+            return -XQC_EILLPKT;
 
     }
 
@@ -1113,7 +1112,7 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
     /*TODO:zuo 用新的版本号重新连接服务器*/
     xqc_stream_t *stream = c->crypto_stream[XQC_ENC_LEV_INIT];
     if (stream == NULL) {
-        return -XQC_ENULLPTR;
+        return -XQC_ESTREAM_NFOUND;
     }
     xqc_stream_ready_to_write(stream);
 

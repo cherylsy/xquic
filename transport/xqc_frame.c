@@ -296,7 +296,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     if (!stream) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
-        ret = -XQC_ENULLPTR;
+        ret = -XQC_ESTREAM_NFOUND;
         goto error;
     }
 
@@ -455,7 +455,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         conn->crypto_stream[encrypt_level] = xqc_create_crypto_stream(conn, encrypt_level, NULL);
         if (conn->crypto_stream[encrypt_level] == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_crypto_stream error|");
-            return -XQC_ENULLPTR;
+            return -XQC_EMALLOC;
         }
     }
 
@@ -585,7 +585,7 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
 
     if (!stream) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
-        return -XQC_ENULLPTR;
+        return -XQC_ESTREAM_NFOUND;
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_recv:%d|stream_state_send:%d|",
@@ -627,7 +627,7 @@ xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
     if (!stream) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
         XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-        return -XQC_ENULLPTR;
+        return -XQC_ESTREAM_NFOUND;
     }
 
     /*
@@ -686,7 +686,7 @@ xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *p
 
     if (!stream) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
-        return -XQC_ENULLPTR;
+        return -XQC_ESTREAM_NFOUND;
     }
 
     ret = xqc_write_max_stream_data_to_packet(conn, stream_id, stream_data_limit * 2);
@@ -769,7 +769,7 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
     if (!stream) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
         XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-        return -XQC_ENULLPTR;
+        return -XQC_ESTREAM_NFOUND;
     }
     if (max_stream_data > stream->stream_flow_ctl.fc_max_stream_data) {
         stream->stream_flow_ctl.fc_max_stream_data = max_stream_data;

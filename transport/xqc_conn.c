@@ -781,7 +781,7 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
 {
     xqc_packet_out_t *packet_out = xqc_create_packet_out(c->conn_send_ctl, XQC_PTYPE_VERSION_NEGOTIATION);
     if (packet_out == NULL) {
-        return -XQC_ENULLPTR;
+        return -XQC_EWRITE_PKT;
     }
     //assert(packet_out->po_buf_size >= 1 + 4 + 1 + c->scid.cid_len + c->dcid.cid_len + 4);
 
