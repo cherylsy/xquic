@@ -25,7 +25,6 @@
 
 xqc_conn_settings_t default_conn_settings = {
         .pacing_on  =   0,
-        .user_ping  =   0,
 };
 
 void

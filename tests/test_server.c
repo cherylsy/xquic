@@ -28,6 +28,7 @@ typedef struct user_stream_s {
     xqc_h3_request_t   *h3_request;
     uint64_t            send_offset;
     int                 header_sent;
+    int                 header_recvd;
     char               *send_body;
     size_t              send_body_len;
     size_t              send_body_max;
@@ -229,13 +230,24 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     ssize_t ret = 0;
     xqc_http_header_t header[] = {
             {
-                    .name   = {.iov_base = ":method", .iov_len = 7},
-                    .value  = {.iov_base = "post", .iov_len = 4}
+                    .name   = {.iov_base = "method", .iov_len = 7},
+                    .value  = {.iov_base = "post", .iov_len = 4},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "content-type", .iov_len = 12},
+                    .value  = {.iov_base = "text/p", .iov_len = 6},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "path", .iov_len = 4},
+                    .value  = {.iov_base = "/", .iov_len = 1},
+                    .flags  = 0,
             },
     };
     xqc_http_headers_t headers = {
             .headers = header,
-            .count  = 1,
+            .count  = sizeof(header) / sizeof(header[0]),
     };
 
     if (user_stream->header_sent == 0) {
@@ -308,7 +320,29 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 {
     DEBUG;
     int ret;
+    unsigned char fin;
     user_stream_t *user_stream = (user_stream_t *) user_data;
+
+    if (user_stream->header_recvd == 0) {
+        xqc_http_headers_t *headers;
+        headers = xqc_h3_request_recv_headers(h3_request, &fin);
+        if (headers == NULL) {
+            printf("xqc_h3_request_recv_headers error\n");
+            return -1;
+        }
+        for (int i = 0; i < headers->count; i++) {
+            printf("header name:%s value:%s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
+        }
+
+        user_stream->header_recvd = 1;
+
+        if (fin) {
+            /* 只有header，请求接收完成，处理业务逻辑 */
+        }
+        return 0;
+    }
+
+
     char buff[4000] = {0};
     size_t buff_size = 4000;
 
@@ -322,7 +356,6 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         }
     }
     ssize_t read;
-    unsigned char fin;
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);

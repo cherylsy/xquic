@@ -197,19 +197,18 @@ typedef struct xqc_conn_ssl_config_s {
 typedef struct xqc_http_header_s {
     struct iovec        name;
     struct iovec        value;
-    uint8_t             flags;
+    uint8_t             flags; /* 1:do not compress this header */
 } xqc_http_header_t;
 
 typedef struct xqc_http_headers_s {
     xqc_http_header_t       *headers;
     size_t                  count;
-    size_t                  capacity;
+    size_t                  capacity; /* User does't care */
 } xqc_http_headers_t;
 
 /* For client */
 typedef struct xqc_conn_settings_s {
     int     pacing_on;
-    int     user_ping;
     xqc_cong_ctrl_callback_t    cong_ctrl_callback;
 } xqc_conn_settings_t;
 
@@ -346,8 +345,8 @@ ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
  * @return 用户应该拷贝到自己的内存
  */
 xqc_http_headers_t *
-xqc_h3_request_recv_header(xqc_h3_request_t *h3_request,
-                           uint8_t *fin);
+xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request,
+                            uint8_t *fin);
 
 
 /**
