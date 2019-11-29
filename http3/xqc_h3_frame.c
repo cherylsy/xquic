@@ -1189,9 +1189,10 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                 }
             }
 
-            if(start == end && data_buf->fin){
-                h3_request->flag |= XQC_H3_REQUEST_HEADER_FIN;
-            }
+        }
+        if( data_buf->fin){
+            h3_request->flag |= XQC_H3_REQUEST_HEADER_FIN;
+            break;
         }
     }
 
