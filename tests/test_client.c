@@ -442,7 +442,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 {
     DEBUG;
     int ret;
-    unsigned char fin;
+    unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
     if (user_stream->header_recvd == 0) {
@@ -460,12 +460,13 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         if (fin) {
             /* 只有header，请求接收完成，处理业务逻辑 */
+            return 0;
         }
-        return 0;
+        //继续收body
     }
 
-    char buff[4000] = {0};
-    size_t buff_size = 4000;
+    char buff[4096] = {0};
+    size_t buff_size = 4096;
 
     int save = 1;
 
