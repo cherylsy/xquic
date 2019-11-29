@@ -1147,7 +1147,7 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
     xqc_http3_qpack_decoder * decoder = &h3_conn->qdec;
     xqc_http3_qpack_stream_context *sctx = &h3_stream->qpack_sctx;
 
-    xqc_qpack_name_value_t nv;
+    xqc_qpack_name_value_t nv={NULL,NULL,0};
 
     xqc_h3_request_t * h3_request = h3_stream ->h3_request ;
     xqc_http_headers_t * headers = &h3_request->headers;
@@ -1156,11 +1156,11 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
         data_buf = xqc_list_entry(pos, xqc_data_buf_t, list_head);
 
 
-        uint8_t flags = 0;
         char * start = data_buf->data;
         char * end = data_buf->data + data_buf->data_len;
         while(start < end){
 
+            uint8_t flags = 0;
             int nread = xqc_http3_qpack_decoder_read_request_header(decoder, sctx, &nv, &flags,  start, end - start, data_buf->fin);
 
             if(nread <= 0){
@@ -1175,6 +1175,7 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                     xqc_qpack_name_value_free(&nv);
                     return -1;
                 }
+                xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|name:%s, value:%s|", nv.name->data, nv.value->data);
                 xqc_qpack_name_value_free(&nv);
             }else{
                 if(start < end){
@@ -1182,7 +1183,6 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                 }
             }
             //printf("recv header, name:%s, value:%s \n", nv.name->data, nv.value->data);
-            xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|name:%s, value:%s|", nv.name->data, nv.value->data);
         }
     }
 

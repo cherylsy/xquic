@@ -189,7 +189,7 @@ int xqc_qpack_encoder_write_literal(xqc_http3_qpack_encoder * encoder, xqc_var_b
     p = xqc_cpymem(p, nv->name.iov_base, nv->name.iov_len);
 
     *p = 0;
-    p = xqc_http3_qpack_put_varint(p, nv->value.iov_len, prefix);
+    p = xqc_http3_qpack_put_varint(p, nv->value.iov_len, 7);
     p = xqc_cpymem(p, nv->value.iov_base, nv->value.iov_len);
 
     (*pp_buf)->used_len += len;
@@ -419,7 +419,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
         xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin) {
 
     uint8_t *p = src, *end = src + srclen;
-    int ret, rv = 0;
+    int ret, rv = -1;
 
     int rfin;
     ssize_t nread;
@@ -639,7 +639,9 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                         //xqc_http3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
                         break;
                     case XQC_HTTP3_QPACK_RS_OPCODE_LITERAL:
-                        xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv);
+                        if(xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv) < 0){
+                            goto fail;
+                        }
                         break;
                     default:
                         /* Unreachable */
