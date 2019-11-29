@@ -236,12 +236,17 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             },
             {
                     .name   = {.iov_base = "content-type", .iov_len = 12},
-                    .value  = {.iov_base = "text/p", .iov_len = 6},
+                    .value  = {.iov_base = "text/plain", .iov_len = 10},
                     .flags  = 0,
             },
             {
                     .name   = {.iov_base = "path", .iov_len = 4},
                     .value  = {.iov_base = "/", .iov_len = 1},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
+                    .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
                     .flags  = 0,
             },
     };
