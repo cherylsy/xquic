@@ -392,13 +392,18 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             .count  = sizeof(header) / sizeof(header[0]),
     };
 
+    int header_only = 0;
     if (user_stream->header_sent == 0) {
-        ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
+        ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %d\n", ret);
         } else {
             printf("xqc_h3_request_send_headers success size=%lld\n", ret);
             user_stream->header_sent = 1;
+        }
+
+        if (header_only) {
+            return 0;
         }
     }
 

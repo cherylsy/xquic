@@ -255,13 +255,18 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             .count  = sizeof(header) / sizeof(header[0]),
     };
 
+    int header_only = 0;
     if (user_stream->header_sent == 0) {
-        ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
+        ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %d\n", ret);
         } else {
             printf("xqc_h3_request_send_headers success size=%lld\n", ret);
             user_stream->header_sent = 1;
+        }
+
+        if (header_only) {
+            return 0;
         }
     }
 
@@ -343,6 +348,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         if (fin) {
             /* 只有header，请求接收完成，处理业务逻辑 */
+            xqc_server_request_send(h3_request, user_stream);
             return 0;
         }
 
@@ -376,12 +382,9 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     // 打开注释，服务端收到包后测试发送reset
     // h3_request->h3_stream->h3_conn->conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
 
-    if (!fin) {
-        return 0;
+    if (fin) {
+        xqc_server_request_send(h3_request, user_stream);
     }
-
-    xqc_server_request_send(h3_request, user_stream);
-
 
     return 0;
 }
