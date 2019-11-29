@@ -872,7 +872,7 @@ ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
 
     int len = 0;
 
-    int rv = 0;
+    int rv = 0, fin_flag = 0;
     int64_t push_id;
     for(; p != end ;){
 
@@ -1010,6 +1010,12 @@ ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
             case XQC_HTTP3_PUSH_STREAM_STATE_DATA:
                 len = xqc_min(rstate->left, (int64_t)(end - p));
                 //rv = xqc_http3_conn_on_data(conn, h3_stream, p , len);
+                if(fin && len == (end - p)){
+                    fin_flag = fin;
+                }else{
+                    fin_flag = 0;
+                }
+
                 rv = xqc_buf_to_tail(&h3_stream->recv_body_data_buf, p, len, fin);
                 if(rv != 0){
                     return rv;
@@ -1245,6 +1251,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
     int len = 0;
 
     int rv = 0;
+    int fin_flag = 0;
     for(; p != end ;){
 
         switch(rstate -> state){
@@ -1379,7 +1386,12 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
             case XQC_HTTP3_REQ_STREAM_STATE_HEADERS:
                 len = xqc_min(rstate->left, (int64_t)(end - p));
 
-                rv = xqc_buf_to_tail(&h3_stream->recv_header_data_buf, p, len, fin);
+                if(fin && len == (end - p)){
+                    fin_flag = fin;
+                }else{
+                    fin_flag = 0;
+                }
+                rv = xqc_buf_to_tail(&h3_stream->recv_header_data_buf, p, len, fin_flag);
                 if(rv < 0){
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
                     return rv;
@@ -1403,7 +1415,13 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
             case XQC_HTTP3_REQ_STREAM_STATE_DATA:
                 len = xqc_min(rstate->left, (int64_t)(end - p));
                 //rv = xqc_http3_conn_on_data(conn, h3_stream, p , len);
-                rv = xqc_buf_to_tail(&h3_stream->recv_body_data_buf, p, len, fin);
+                if(fin && len == (end - p)){
+                    fin_flag = fin;
+                }else{
+                    fin_flag = 0;
+                }
+
+                rv = xqc_buf_to_tail(&h3_stream->recv_body_data_buf, p, len, fin_flag);
                 if(rv != 0){
                     return rv;
                 }
@@ -1462,6 +1480,14 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                 break;
             case XQC_HTTP3_REQ_STREAM_STATE_PUSH_PROMISE:
                 //need finish
+                #if 0
+                if(fin && len == (end - p)){
+                    fin_flag = fin;
+                }else{
+                    fin_flag = 0;
+                }
+                #endif
+
                 rv = xqc_buf_to_tail(&h3_stream->recv_header_data_buf, p, len, fin);
                 if(rv < 0){
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
