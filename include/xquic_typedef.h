@@ -5,7 +5,8 @@
 #include <stdint.h>
 #include <stddef.h>
 
-#if __GNUC__
+//TODO: 安卓平台下-o2可能有问题
+#if defined(__GNUC__) && !defined(ANDROID)
 #   define XQC_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
 #   define XQC_LIKELY(cond) __builtin_expect(!!(cond), 1)
 #else

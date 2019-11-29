@@ -6,7 +6,7 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT -DNPRINT_MALLOC -lpthread ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT -DNPRINT_MALLOC")
 
 configure_file (
     xqc_cmake_config.h.in
@@ -79,8 +79,8 @@ set(
 add_library(
     xquic
 
-    STATIC
-    #SHARED
+    #STATIC
+    SHARED
 
 
     ${HTTP3_SOURCES}
@@ -89,14 +89,26 @@ add_library(
     ${CONGESTION_CONTROL_SOURCES}
 )
 
-if(FALSE)
-target_link_libraries(
-    xquic
-    "-ldl -Wl,--whole-archive"
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
-    ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
-    "-Wl,--no-whole-archive"
-)
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    target_link_libraries(
+        xquic
+        "-ldl -Wl,--whole-archive"
+        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
+        "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+else()
+    target_link_libraries(
+        xquic
+        "-ldl -Wl,--whole-archive"
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        "-Wl,--no-whole-archive"
+        -lpthread
+    )
 endif()
 
 # Strip binary for release builds
@@ -104,10 +116,6 @@ if (CMAKE_BUILD_TYPE STREQUAL Release)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_STRIP} libxquic.so)
 endif ()
-
-link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
-link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
-link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
 
 ##### for unit test #########
 find_package(CUnit 2.1)
