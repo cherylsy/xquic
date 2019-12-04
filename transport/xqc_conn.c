@@ -923,12 +923,11 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
 
     xqc_msec_t now = xqc_now() / 1000000;
     if (*expire < now) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|token_expire|expire:%ui|", *expire);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|token_expire|expire:%ud|now:%ui|", *expire, now);
         return 0;
     }
-
-    if (*expire < now + XQC_TOKEN_UPDATE_DELTA) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|new token|expire:%ui|", *expire);
+    else if (*expire - now <= XQC_TOKEN_UPDATE_DELTA) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|new token|expire:%ud|now:%ui|delta:%ud|", *expire, now, XQC_TOKEN_UPDATE_DELTA);
         xqc_write_new_token_to_packet(conn);
     }
 
@@ -967,9 +966,9 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
     }
 
     uint32_t expire = xqc_now() / 1000000 + XQC_TOKEN_EXPIRE_DELTA;
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|expire:%ud|", expire);
     expire = htonl(expire);
     memcpy(token, &expire, sizeof(expire));
-
 }
 
 int

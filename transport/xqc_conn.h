@@ -16,8 +16,8 @@
 
 
 #define XQC_MAX_TOKEN_LEN 32
-#define XQC_TOKEN_EXPIRE_DELTA 7*24*60*60   //N秒后过期
-#define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA - 10) //提前N秒更新
+#define XQC_TOKEN_EXPIRE_DELTA 60/*7*24*60*60*/   //N秒后过期
+#define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) //提前更新
 
 #define XQC_MAX_PACKET_PROCESS_BATCH 100 //xqc_engine_packet_process最多积累个数
 

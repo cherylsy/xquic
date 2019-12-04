@@ -240,8 +240,18 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .flags  = 0,
             },
             {
-                    .name   = {.iov_base = "path", .iov_len = 4},
-                    .value  = {.iov_base = "/", .iov_len = 1},
+                    .name   = {.iov_base = "content-encoding", .iov_len = 16},
+                    .value  = {.iov_base = "plain", .iov_len = 5},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "content-length", .iov_len = 14},
+                    .value  = {.iov_base = "512", .iov_len = 3},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "status", .iov_len = 6},
+                    .value  = {.iov_base = "200", .iov_len = 3},
                     .flags  = 0,
             },
             {
