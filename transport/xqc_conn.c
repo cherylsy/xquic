@@ -103,18 +103,18 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
     memset(&conn->remote_settings, 0, sizeof(xqc_trans_settings_t));
 
-    xqc_trans_settings_t * settings = & conn->local_settings;
+    xqc_trans_settings_t *settings = &conn->local_settings;
 
     settings->max_ack_delay = 25;
     settings->ack_delay_exponent = 3;
     //TODO: 临时值
     settings->idle_timeout = 30000; //must > XQC_PING_TIMEOUT
-    settings->max_data = 1*1024*1024*1024;
-    settings->max_stream_data_bidi_local = 100*1024*1024;
-    settings->max_stream_data_bidi_remote = 100*1024*1024;
-    settings->max_stream_data_uni = 100*1024;
-    settings->max_streams_bidi = 100*1024;
-    settings->max_streams_uni = 100*1024;
+    settings->max_data = 1*1024*1024;
+    settings->max_stream_data_bidi_local = 1024*1024;
+    settings->max_stream_data_bidi_remote = 1024*1024;
+    settings->max_stream_data_uni = 1024*1024;
+    settings->max_streams_bidi = 1024;
+    settings->max_streams_uni = 1024;
     settings->max_packet_size = XQC_MAX_PKT_SIZE;
 }
 
@@ -122,11 +122,14 @@ void xqc_conn_init_flow_ctl(xqc_connection_t *conn)
 {
     xqc_conn_flow_ctl_t *flow_ctl = &conn->conn_flow_ctl;
     xqc_trans_settings_t * settings = & conn->local_settings;
-    flow_ctl->fc_max_data = settings->max_data;
-    flow_ctl->fc_max_streams_bidi = settings->max_streams_bidi;
-    flow_ctl->fc_max_streams_uni = settings->max_streams_uni;
+    flow_ctl->fc_max_data_can_send = settings->max_data; //握手后替换为对端指定的值
+    flow_ctl->fc_max_data_can_recv = settings->max_data;
+    flow_ctl->fc_max_streams_bidi_can_send = settings->max_streams_bidi; //握手后替换为对端指定的值
+    flow_ctl->fc_max_streams_bidi_can_recv = settings->max_streams_bidi;
+    flow_ctl->fc_max_streams_uni_can_send = settings->max_streams_uni; //握手后替换为对端指定的值
+    flow_ctl->fc_max_streams_uni_can_recv = settings->max_streams_uni;
     flow_ctl->fc_data_sent = 0;
-    flow_ctl->fc_date_recved = 0;
+    flow_ctl->fc_data_recved = 0;
 }
 
 xqc_connection_t *
@@ -332,7 +335,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|",
+    xqc_log(xc->log, XQC_LOG_INFO, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
             xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count, xc->conn_send_ctl->ctl_tlp_count);
 
@@ -506,7 +509,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
             xqc_frame_type_2_str(packet_out->po_frame_types), now);
     if (sent != conn->enc_pkt_len) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|write_socket error|"
-                                          "conn:%p|size:%ui|sent:%ui|pkt_type:%s|pkt_num:%ui|frame:%s|",
+                                          "conn:%p|size:%ui|sent:%z|pkt_type:%s|pkt_num:%ui|frame:%s|",
                 conn, packet_out->po_used_size, sent,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
                 xqc_frame_type_2_str(packet_out->po_frame_types));
@@ -1026,6 +1029,23 @@ xqc_conn_early_data_accept(xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_all_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
         xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
+    }
+    return XQC_OK;
+}
+
+int
+xqc_conn_handshake_complete(xqc_connection_t *conn)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_stream_t *stream;
+    /* update flow control */
+    conn->conn_flow_ctl.fc_max_data_can_send = conn->remote_settings.max_data;
+    conn->conn_flow_ctl.fc_max_streams_bidi_can_send = conn->remote_settings.max_streams_bidi;
+    conn->conn_flow_ctl.fc_max_streams_uni_can_send = conn->remote_settings.max_streams_uni;
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_all_streams) {
+        stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
+        xqc_stream_set_flow_ctl(stream);
     }
     return XQC_OK;
 }

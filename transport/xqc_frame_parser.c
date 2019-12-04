@@ -296,6 +296,11 @@ xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn , xqc_
 void
 xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
 {
+    /*
+     * Clients MUST ensure that UDP datagrams containing Initial packets have UDP payloads of at least 1200 bytes,
+     * adding padding to packets in the datagram as necessary.
+     * Sending padded datagrams ensures that the server is not overly constrained by the amplification restriction.
+     */
     if (packet_out->po_used_size < XQC_PACKET_INITIAL_MIN_LENGTH) {
         memset(packet_out->po_buf + packet_out->po_used_size, 0, XQC_PACKET_INITIAL_MIN_LENGTH - packet_out->po_used_size);
         packet_out->po_used_size = XQC_PACKET_INITIAL_MIN_LENGTH;

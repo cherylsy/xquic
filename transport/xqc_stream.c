@@ -12,7 +12,6 @@
 #include "xqc_packet.h"
 #include "xqc_utils.h"
 
-#define XQC_STREAM_BUFF_MAX 1024*1024
 
 static xqc_stream_id_t
 xqc_gen_stream_id (xqc_connection_t *conn, xqc_stream_type_t type)
@@ -123,40 +122,204 @@ xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_h
     return stream;
 }
 
-static void
-xqc_stream_set_flow_ctl (xqc_stream_t *stream, xqc_trans_settings_t *trans_param)
+void
+xqc_stream_set_flow_ctl (xqc_stream_t *stream)
 {
-    if (stream->stream_type == XQC_CLI_BID) {
-        stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_bidi_local;
-    } else if (stream->stream_type == XQC_SVR_BID) {
-        stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_bidi_remote;
+    xqc_trans_settings_t *local_settings = &stream->stream_conn->local_settings;
+    xqc_trans_settings_t *remote_settings = &stream->stream_conn->remote_settings;
+    xqc_connection_t *conn = stream->stream_conn;
+
+    if ((remote_settings->max_stream_data_bidi_remote
+        & remote_settings->max_stream_data_bidi_local
+        & remote_settings->max_stream_data_uni) == 0) {
+        remote_settings = &stream->stream_conn->local_settings;
+    }
+    /*
+     * initial_max_stream_data_bidi_local (0x0005):  This parameter is an
+      integer value specifying the initial flow control limit for
+      locally-initiated bidirectional streams.  This limit applies to
+      newly created bidirectional streams opened by the endpoint that
+      sends the transport parameter.  In client transport parameters,
+      this applies to streams with an identifier with the least
+      significant two bits set to 0x0; in server transport parameters,
+      this applies to streams with the least significant two bits set to
+      0x1.
+
+      initial_max_stream_data_bidi_remote (0x0006):  This parameter is an
+      integer value specifying the initial flow control limit for peer-
+      initiated bidirectional streams.  This limit applies to newly
+      created bidirectional streams opened by the endpoint that receives
+      the transport parameter.  In client transport parameters, this
+      applies to streams with an identifier with the least significant
+      two bits set to 0x1; in server transport parameters, this applies
+      to streams with the least significant two bits set to 0x0.
+     */
+    if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+        if (stream->stream_type == XQC_CLI_BID) {
+            stream->stream_flow_ctl.fc_max_stream_data_can_send = remote_settings->max_stream_data_bidi_remote;
+            stream->stream_flow_ctl.fc_max_stream_data_can_recv = local_settings->max_stream_data_bidi_local;
+        } else if (stream->stream_type == XQC_SVR_BID) {
+            /* in server transport parameters,
+            this applies to streams with the least significant two bits set to
+            0x1 */
+            stream->stream_flow_ctl.fc_max_stream_data_can_send = remote_settings->max_stream_data_bidi_local;
+            stream->stream_flow_ctl.fc_max_stream_data_can_recv = local_settings->max_stream_data_bidi_remote;
+        } else {
+            stream->stream_flow_ctl.fc_max_stream_data_can_send = remote_settings->max_stream_data_uni;
+            stream->stream_flow_ctl.fc_max_stream_data_can_recv = remote_settings->max_stream_data_uni;
+        }
     } else {
-        stream->stream_flow_ctl.fc_max_stream_data = trans_param->max_stream_data_uni;
+        if (stream->stream_type == XQC_CLI_BID) {
+            stream->stream_flow_ctl.fc_max_stream_data_can_send = remote_settings->max_stream_data_bidi_local;
+            stream->stream_flow_ctl.fc_max_stream_data_can_recv = local_settings->max_stream_data_bidi_remote;
+        } else if (stream->stream_type == XQC_SVR_BID) {
+            stream->stream_flow_ctl.fc_max_stream_data_can_send = remote_settings->max_stream_data_bidi_remote;
+            stream->stream_flow_ctl.fc_max_stream_data_can_recv = local_settings->max_stream_data_bidi_local;
+        } else {
+            stream->stream_flow_ctl.fc_max_stream_data_can_send = remote_settings->max_stream_data_uni;
+            stream->stream_flow_ctl.fc_max_stream_data_can_recv = remote_settings->max_stream_data_uni;
+        }
+    }
+}
+
+uint64_t
+xqc_stream_get_init_max_stream_data(xqc_stream_t *stream)
+{
+    xqc_connection_t *conn = stream->stream_conn;
+    if (stream->stream_type == XQC_SVR_BID) {
+        if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
+            return conn->local_settings.max_stream_data_bidi_local;
+        } else {
+            return conn->local_settings.max_stream_data_bidi_remote;
+        }
+    } else if (stream->stream_type == XQC_CLI_BID) {
+        if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
+            return conn->local_settings.max_stream_data_bidi_remote;
+        } else {
+            return conn->local_settings.max_stream_data_bidi_local;
+        }
+    } else {
+        return conn->local_settings.max_stream_data_uni;
     }
 }
 
 int
-xqc_stream_do_flow_ctl(xqc_stream_t *stream)
+xqc_stream_do_send_flow_ctl(xqc_stream_t *stream)
 {
-    if (stream->stream_conn->conn_flow_ctl.fc_data_sent >= stream->stream_conn->conn_flow_ctl.fc_max_data) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_data:%d|",
-                stream->stream_conn->conn_flow_ctl.fc_max_data);
+    //return XQC_OK;
+    /* connection level */
+    if (stream->stream_conn->conn_flow_ctl.fc_data_sent + XQC_PACKET_OUT_SIZE > stream->stream_conn->conn_flow_ctl.fc_max_data_can_send) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_data:%d|",
+                stream->stream_conn->conn_flow_ctl.fc_max_data_can_send);
 
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
-        xqc_write_data_blocked_to_packet(stream->stream_conn, stream->stream_conn->conn_flow_ctl.fc_max_data);
+        xqc_write_data_blocked_to_packet(stream->stream_conn, stream->stream_conn->conn_flow_ctl.fc_max_data_can_send);
         return -XQC_ECONN_BLOCKED;
     }
 
-    if (stream->stream_send_offset >= stream->stream_flow_ctl.fc_max_stream_data) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_send|exceed max_stream_data:%d|",
-                stream->stream_flow_ctl.fc_max_stream_data);
+    /* stream level */
+    if (stream->stream_send_offset + XQC_PACKET_OUT_SIZE > stream->stream_flow_ctl.fc_max_stream_data_can_send) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_stream_data:%d|",
+                stream->stream_flow_ctl.fc_max_stream_data_can_send);
 
         stream->stream_flag |= XQC_STREAM_FLAG_DATA_BLOCKED;
         xqc_write_stream_data_blocked_to_packet(stream->stream_conn, stream->stream_id,
-                                                stream->stream_flow_ctl.fc_max_stream_data);
+                                                stream->stream_flow_ctl.fc_max_stream_data_can_send);
         return -XQC_ESTREAM_BLOCKED;
     }
     return 0;
+}
+
+int
+xqc_stream_do_recv_flow_ctl(xqc_stream_t *stream)
+{
+    //return XQC_OK;
+    xqc_connection_t *conn = stream->stream_conn;
+
+    /* it is impossible */
+    if (conn->conn_flow_ctl.fc_data_recved > conn->conn_flow_ctl.fc_max_data_can_recv) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|exceed conn flow control|fc_data_recved:%ui|fc_max_data_can_recv:%ui|",
+                conn->conn_flow_ctl.fc_data_recved, conn->conn_flow_ctl.fc_max_data_can_recv);
+        XQC_CONN_ERR(conn, TRA_FLOW_CONTROL_ERROR);
+        return -XQC_EPROTO;
+    }
+    if (stream->stream_max_recv_offset > stream->stream_flow_ctl.fc_max_stream_data_can_recv) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|exceed stream flow control|stream_max_recv_offset:%ui|fc_max_stream_data_can_recv:%ui|",
+                stream->stream_max_recv_offset, stream->stream_flow_ctl.fc_max_stream_data_can_recv);
+        XQC_CONN_ERR(conn, TRA_FLOW_CONTROL_ERROR);
+        return -XQC_EPROTO;
+    }
+
+    /* increase recv window */
+    /* connection level */
+    if (conn->conn_flow_ctl.fc_max_data_can_recv - conn->conn_flow_ctl.fc_data_recved <
+        conn->local_settings.max_data / 2) {
+        conn->conn_flow_ctl.fc_max_data_can_recv = conn->conn_flow_ctl.fc_data_recved + conn->local_settings.max_data;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_max_data_to_packet|new_max_data:%ui|fc_data_recved:%ui|init_max_data:%ui|",
+                conn->conn_flow_ctl.fc_max_data_can_recv, conn->conn_flow_ctl.fc_data_recved, conn->local_settings.max_data);
+        xqc_write_max_data_to_packet(conn, conn->conn_flow_ctl.fc_max_data_can_recv);
+    }
+    /* stream level */
+    uint64_t init_max_stream_data;
+    init_max_stream_data = xqc_stream_get_init_max_stream_data(stream);
+    if (stream->stream_flow_ctl.fc_max_stream_data_can_recv - stream->stream_max_recv_offset <
+        init_max_stream_data / 2) {
+        stream->stream_flow_ctl.fc_max_stream_data_can_recv = stream->stream_max_recv_offset + init_max_stream_data;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_max_stream_data_to_packet|new_max_data:%ui|stream_max_recv_offset:%ui|init_max_data:%ui|",
+                stream->stream_flow_ctl.fc_max_stream_data_can_recv, stream->stream_max_recv_offset, init_max_stream_data);
+        xqc_write_max_stream_data_to_packet(conn, stream->stream_id, stream->stream_flow_ctl.fc_max_stream_data_can_recv);
+    }
+    return XQC_OK;
+}
+
+int
+xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type)
+{
+    if (stream_id == XQC_UNDEFINE_STREAM_ID) { //主动创建的；发送方
+        if (stream_type == XQC_CLI_BID || stream_type == XQC_SVR_BID) {
+            if (conn->cur_stream_id_bidi_local >= conn->conn_flow_ctl.fc_max_streams_bidi_can_send) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_bidi_can_send:%d|",
+                        conn->conn_flow_ctl.fc_max_streams_bidi_can_send);
+                xqc_write_streams_blocked_to_packet(conn, conn->conn_flow_ctl.fc_max_streams_bidi_can_send, 1);
+                return -XQC_EPROTO;
+            }
+        } else {
+            if (conn->cur_stream_id_uni_local >= conn->conn_flow_ctl.fc_max_streams_uni_can_send) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_uni_can_send:%d|",
+                        conn->conn_flow_ctl.fc_max_streams_uni_can_send);
+                xqc_write_streams_blocked_to_packet(conn, conn->conn_flow_ctl.fc_max_streams_uni_can_send, 0);
+                return -XQC_EPROTO;
+            }
+        }
+    } else { //被动创建的；接收方
+        stream_type = xqc_get_stream_type(stream_id);
+        if (stream_type == XQC_CLI_BID || stream_type == XQC_SVR_BID) {
+            if (stream_id >= 4 * conn->conn_flow_ctl.fc_max_streams_bidi_can_recv + stream_type) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_bidi_can_recv:%ui|",
+                        conn->conn_flow_ctl.fc_max_streams_bidi_can_recv);
+                XQC_CONN_ERR(conn, TRA_STREAM_LIMIT_ERROR);
+                return -XQC_EPROTO;
+            }
+            /* increase max streams */
+            if ((stream_id >> 2) >= conn->conn_flow_ctl.fc_max_streams_bidi_can_recv / 2) {
+                conn->conn_flow_ctl.fc_max_streams_bidi_can_recv += conn->local_settings.max_streams_bidi;
+                xqc_write_max_streams_to_packet(conn, conn->conn_flow_ctl.fc_max_streams_bidi_can_recv, 1);
+            }
+        } else {
+            if (stream_id >= 4 * conn->conn_flow_ctl.fc_max_streams_uni_can_recv + stream_type) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_uni_can_recv:%ui|",
+                        conn->conn_flow_ctl.fc_max_streams_uni_can_recv);
+                XQC_CONN_ERR(conn, TRA_STREAM_LIMIT_ERROR);
+                return -XQC_EPROTO;
+            }
+            /* increase max streams */
+            if ((stream_id >> 2) >= conn->conn_flow_ctl.fc_max_streams_uni_can_recv / 2) {
+                conn->conn_flow_ctl.fc_max_streams_uni_can_recv += conn->local_settings.max_streams_uni;
+                xqc_write_max_streams_to_packet(conn, conn->conn_flow_ctl.fc_max_streams_uni_can_recv, 0);
+            }
+        }
+    }
+    return XQC_OK;
 }
 
 xqc_stream_t *
@@ -189,10 +352,8 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|cur_stream_id_bidi_local:%ui|",
             conn->cur_stream_id_bidi_local);
 
-    if (conn->cur_stream_id_bidi_local >= conn->conn_flow_ctl.fc_max_streams_bidi) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_bidi:%d|",
-                conn->conn_flow_ctl.fc_max_streams_bidi);
-        xqc_write_streams_blocked_to_packet(conn, conn->conn_flow_ctl.fc_max_streams_bidi, 1);
+    if (xqc_stream_do_create_flow_ctl(conn, stream_id, stream_type)) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_stream_do_create_flow_ctl error|");
         return NULL;
     }
 
@@ -211,7 +372,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
     stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
 
-    xqc_stream_set_flow_ctl(stream, &conn->local_settings);
+    xqc_stream_set_flow_ctl(stream);
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
 
@@ -324,28 +485,29 @@ xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
     return stream;
 }
 
-int xqc_read_crypto_stream(xqc_stream_t * stream){
-
+int xqc_read_crypto_stream(xqc_stream_t * stream)
+{
     xqc_list_head_t *pos, *next;
 
-    xqc_stream_frame_t * stream_frame = NULL;
+    xqc_stream_frame_t *stream_frame = NULL;
 
     xqc_connection_t *conn = stream->stream_conn;
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
-        if(stream->stream_data_in.next_read_offset < stream_frame->data_offset){
+        if (stream->stream_data_in.next_read_offset < stream_frame->data_offset) {
             break;
         }
 
-        if(stream->stream_data_in.next_read_offset >= stream_frame->data_offset + stream_frame->data_length){
+        if (stream->stream_data_in.next_read_offset >= stream_frame->data_offset + stream_frame->data_length) {
             xqc_list_del(pos);
             xqc_destroy_stream_frame(stream_frame);
             continue;
         }
 
-        size_t data_len  = stream_frame->data_offset  + stream_frame->data_length - stream->stream_data_in.next_read_offset;
-        char * data_start =  stream_frame->data + (stream->stream_data_in.next_read_offset - stream_frame->data_offset);
+        size_t data_len =
+                stream_frame->data_offset + stream_frame->data_length - stream->stream_data_in.next_read_offset;
+        char *data_start = stream_frame->data + (stream->stream_data_in.next_read_offset - stream_frame->data_offset);
 
         //printf("recv crypto data:%d\n",data_len);
         //hex_print(data_start, data_len);
@@ -355,7 +517,7 @@ int xqc_read_crypto_stream(xqc_stream_t * stream){
         xqc_destroy_stream_frame(stream_frame);
 
         stream->stream_data_in.next_read_offset = stream->stream_data_in.next_read_offset + data_len;
-        if(ret < 0){
+        if (ret < 0) {
             return ret;
         }
     }
@@ -437,6 +599,7 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
         xqc_tls_free_msg_cb_buffer(conn);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
+        xqc_conn_handshake_complete(conn);
         if (conn->conn_callbacks.conn_handshake_finished) {
             conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
         }
@@ -625,6 +788,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
         xqc_tls_free_msg_cb_buffer(conn);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
+        xqc_conn_handshake_complete(conn);
         if (conn->conn_callbacks.conn_handshake_finished) {
             conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
         }
@@ -821,12 +985,13 @@ xqc_stream_send (xqc_stream_t *stream,
 
     while (offset < send_data_size || fin_only) {
 
-        /*if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
-            ret = xqc_stream_do_flow_ctl(stream);
+        if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
+            ret = xqc_stream_do_send_flow_ctl(stream);
             if (ret) {
+                ret = -XQC_EAGAIN;
                 goto do_buff;
             }
-        }*/
+        }
 
         if (!xqc_send_ctl_can_write(conn->conn_send_ctl)) {
             xqc_log(conn->log, XQC_LOG_WARN, "|too many packets used|ctl_packets_used:%ui|", conn->conn_send_ctl->ctl_packets_used);

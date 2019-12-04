@@ -222,8 +222,12 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
         goto err;
     }
 
-    int size = 10 * 1024 * 1024;
+    int size = 1 * 1024 * 1024;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
+        printf("setsockopt failed, errno: %d\n", errno);
+        goto err;
+    }
+    if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
     }
@@ -408,13 +412,13 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (user_stream->send_body == NULL) {
-        user_stream->send_body_max = 10000*1024;
+        user_stream->send_body_max = 10*1024*1024;
         user_stream->send_body = malloc(user_stream->send_body_max);
         ret = read_file_data(user_stream->send_body, user_stream->send_body_max, "client_send_body");
         if (ret < 0) {
             printf("read body error\n");
             /*文件不存在则发内存数据*/
-            user_stream->send_body_len = 4097;
+            user_stream->send_body_len = 1024*1024;
         } else {
             user_stream->send_body_len = ret;
         }
@@ -694,7 +698,7 @@ int main(int argc, char *argv[]) {
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
                     .log_level = XQC_LOG_DEBUG,
-                    //.log_level = XQC_LOG_ERROR,
+                    //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
                     .xqc_write_log_file = xqc_client_write_log_file,
@@ -790,9 +794,15 @@ int main(int argc, char *argv[]) {
     user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
     if (user_conn->h3) {
         user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
+        if (user_stream->h3_request == NULL) {
+            return -1;
+        }
         xqc_client_request_send(user_stream->h3_request, user_stream);
     } else {
         user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
+        if (user_stream->stream == NULL) {
+            return -1;
+        }
         xqc_client_stream_send(user_stream->stream, user_stream);
     }
 

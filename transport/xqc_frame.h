@@ -52,7 +52,11 @@ typedef enum {
 } xqc_frame_type_bit_t;
 
 
-
+/*
+ * Ack-eliciting Packet:  A QUIC packet that contains frames other than
+      ACK, PADDING, and CONNECTION_CLOSE.  These cause a recipient to
+      send an acknowledgment
+ */
 #define XQC_IS_ACK_ELICITING(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_CONNECTION_CLOSE | XQC_FRAME_BIT_PING))
 
 /*

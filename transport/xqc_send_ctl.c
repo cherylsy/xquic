@@ -536,7 +536,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
         po = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (po->po_pkt.pkt_num > ctl->ctl_largest_acked[pns]) {
             continue;
-        } //TODO: RFC有误？
+        }
 
         // Mark packet as lost, or set time when it should be marked.
         if (po->po_sent_time <= lost_send_time || po->po_pkt.pkt_num <= lost_pn) {
@@ -786,7 +786,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
             ctl->ctl_time_of_last_sent_ack_eliciting_packet + timeout);
 
     xqc_log(conn->log, XQC_LOG_DEBUG,
-            "|xqc_send_ctl_timer_set|ctl_time_of_last_sent_ack_eliciting_packet:%ui|timeout:%ui|",
+            "|PTO|xqc_send_ctl_timer_set|ctl_time_of_last_sent_ack_eliciting_packet:%ui|timeout:%ui|",
             ctl->ctl_time_of_last_sent_ack_eliciting_packet, timeout);
 }
 
@@ -801,7 +801,7 @@ xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pn
 {
     xqc_msec_t time = ctl->ctl_loss_time[XQC_PNS_INIT];
     *pns_ret = XQC_PNS_INIT;
-    for ( xqc_pkt_num_space_t pns = XQC_PNS_HSK; pns < XQC_PNS_01RTT; ++pns) {
+    for ( xqc_pkt_num_space_t pns = XQC_PNS_HSK; pns <= XQC_PNS_01RTT; ++pns) {
         if (ctl->ctl_loss_time[pns] != 0 &&
                 (time == 0 || ctl->ctl_loss_time[pns] < time) ) {
             time = ctl->ctl_loss_time[pns];

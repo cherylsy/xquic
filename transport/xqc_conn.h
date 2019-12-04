@@ -226,12 +226,15 @@ typedef struct {
 
 typedef struct {
     /* flow control limit */
-    uint64_t                fc_max_data;
+    uint64_t                fc_max_data_can_send;
     uint64_t                fc_data_sent;
-    uint64_t                fc_date_recved;
+    uint64_t                fc_max_data_can_recv;
+    uint64_t                fc_data_recved;
 
-    uint32_t                fc_max_streams_bidi;
-    uint32_t                fc_max_streams_uni;
+    uint64_t                fc_max_streams_bidi_can_send;
+    uint64_t                fc_max_streams_bidi_can_recv;
+    uint64_t                fc_max_streams_uni_can_send;
+    uint64_t                fc_max_streams_uni_can_recv;
 } xqc_conn_flow_ctl_t;
 
 
@@ -365,6 +368,8 @@ void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *
 int xqc_conn_early_data_reject(xqc_connection_t *conn);
 
 int xqc_conn_early_data_accept(xqc_connection_t *conn);
+
+int xqc_conn_handshake_complete(xqc_connection_t *conn);
 
 int xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 

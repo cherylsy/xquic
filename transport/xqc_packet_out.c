@@ -454,7 +454,7 @@ xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limi
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
         return -XQC_EWRITE_PKT;
@@ -541,7 +541,7 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
     int ret;
     xqc_packet_out_t *packet_out;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
         return -XQC_EWRITE_PKT;
@@ -557,6 +557,7 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
 
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|new_max_stream:%ui|", max_stream);
     return XQC_OK;
 
 error:
