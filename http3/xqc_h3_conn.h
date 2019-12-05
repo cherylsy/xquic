@@ -17,8 +17,8 @@ typedef enum {
     XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST    = 1 << 2,
     XQC_HTTP3_CONN_FLAG_GOAWAY_SEND         = 1 << 3,
     XQC_HTTP3_CONN_FLAG_GOAWAY_RECVD        = 1 << 4,
-    //XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED = 0x0004,
-    //XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED = 0x0008,
+    XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED = 1 << 5,
+    XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED = 1 << 6,
     /* XQC_HTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED indicates that MAX_PUSH_ID
      *      has been queued to control stream. */
     //XQC_HTTP3_CONN_FLAG_MAX_PUSH_ID_QUEUED = 0x0010,
@@ -38,6 +38,11 @@ struct xqc_h3_conn_s {
 
     xqc_http3_qpack_decoder qdec;
     xqc_http3_qpack_encoder qenc;
+    xqc_h3_stream_t         *qdec_stream;
+    xqc_h3_stream_t         *qenc_stream;
+
+    xqc_list_head_t         block_stream_head;
+    xqc_list_head_t         unack_stream_head;
 
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_http3_tnode_t       *tnode_root;

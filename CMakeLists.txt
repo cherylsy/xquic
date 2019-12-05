@@ -28,6 +28,8 @@ set(
     http3/xqc_h3_frame.c
     http3/xqc_h3_tnode.c
     http3/xqc_h3_qpack.c
+    http3/xqc_h3_ringbuf.c
+    http3/xqc_h3_qpack_token.c
 )
 
 set(

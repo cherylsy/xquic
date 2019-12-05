@@ -189,6 +189,18 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_dat
         return ret;
     }
 
+    ret = xqc_h3_stream_create_qpack_stream(h3_conn, NULL, XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_qpack_encoder error|");
+        return ret;
+    }
+
+    ret = xqc_h3_stream_create_qpack_stream(h3_conn, NULL, XQC_HTTP3_STREAM_TYPE_QPACK_DECODER);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_qpack_encoder error|");
+        return ret;
+    }
+
     //send SETTINGS
     ret = xqc_h3_conn_send_settings(h3_conn);
     if (ret) {

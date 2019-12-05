@@ -23,7 +23,8 @@ typedef enum {
     XQC_HTTP3_STREAM_TYPE_PUSH = 0x01,
     XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER = 0x02,
     XQC_HTTP3_STREAM_TYPE_QPACK_DECODER = 0x03,
-    XQC_HTTP3_STREAM_TYPE_UNKNOWN = UINT64_MAX,
+    XQC_HTTP3_STREAM_TYPE_REQUEST       = 0x10,
+    XQC_HTTP3_STREAM_TYPE_UNKNOWN = 0xFF,
 } xqc_http3_stream_type;
 
 
@@ -139,6 +140,7 @@ typedef struct xqc_h3_stream_s {
     xqc_list_head_t     recv_body_data_buf;
     xqc_http3_qpack_stream_context  qpack_sctx;
 
+    xqc_list_head_t     unack_block_list;
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_http3_tnode_t     *tnode;
 #endif
@@ -174,4 +176,5 @@ xqc_h3_stream_recv_header(xqc_h3_stream_t *h3_stream);
 ssize_t
 xqc_h3_stream_recv_data(xqc_h3_stream_t *stream, unsigned char *recv_buf, size_t recv_buf_size, uint8_t *fin);
 
+int xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream, xqc_http3_stream_type stream_type);
 #endif /* _XQC_H3_STREAM_H_INCLUDED_ */

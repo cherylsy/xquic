@@ -248,4 +248,6 @@ int xqc_h3_stream_free_data_buf(xqc_h3_stream_t *h3_stream);
 
 ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin);
 
+ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin);
+
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

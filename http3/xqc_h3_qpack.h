@@ -6,11 +6,13 @@
 #include "common/xqc_list.h"
 #include "common/xqc_config.h"
 #include "common/xqc_str.h"
+#include "xqc_h3_ringbuf.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
+typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 #define XQC_HTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
 #define XQC_HTTP3_QPACK_ENTRY_OVERHEAD 32
 
@@ -102,6 +104,67 @@ typedef enum {
     XQC_HTTP3_QPACK_RS_OPCODE_LITERAL,
 } xqc_http3_qpack_request_stream_opcode;
 
+typedef struct xqc_qpack_ring_nv{
+    size_t      name_index;
+    size_t      name_len;
+    size_t      value_index;
+    size_t      value_len;
+}xqc_qpack_ring_nv_t;
+
+typedef struct xqc_http3_qpack_entry{
+    xqc_list_head_t head_list;
+    xqc_qpack_ring_nv_t nv;
+    xqc_http3_nv_flag_t flag;
+    size_t absidx;
+    //uint64_t hash;
+    uint64_t name_hash;
+    uint64_t sum;
+    uint8_t draining;
+    uint8_t ack_flag;
+}xqc_http3_qpack_entry;
+
+typedef struct xqc_qpack_find_result{
+    xqc_http3_qpack_entry * name_entry;
+    xqc_http3_qpack_entry * entry;
+
+}xqc_qpack_find_result;
+
+typedef struct xqc_qpack_static_find_result{
+    int     name_absidx; //name match only
+    int     absidx; //name and value match
+}xqc_qpack_static_find_result;
+
+
+typedef struct xqc_qpack_hash_table{
+    xqc_list_head_t * list;
+    size_t element_count;
+}xqc_qpack_hash_table_t;
+
+
+typedef struct {
+    xqc_http3_ringbuf   dtable;
+    xqc_http3_ringdata  dtable_data;
+    size_t hard_max_dtable_size;
+    size_t max_dtable_size; // max_dtable_size is the effective maximum size of dynamic table.
+    size_t max_blocked;
+    size_t next_absidx;
+
+    size_t dtable_size;
+    size_t dtable_sum;
+
+}xqc_http3_qpack_context;
+
+
+typedef struct xqc_qpack_static_table_entry
+{
+    char        *name;
+    char        *value;
+    size_t      name_len;
+    size_t      value_len;
+}xqc_qpack_static_table_entry;
+
+
+
 typedef struct xqc_var_buf{
     size_t  capacity;
     size_t  used_len;
@@ -125,6 +188,21 @@ typedef struct {
     uint8_t huffman_encoded;
 }xqc_http3_qpack_read_state;
 
+typedef struct xqc_qpack_decoder_block_stream{
+    xqc_list_head_t  head_list;
+    size_t      ricnt;
+    xqc_h3_stream_t *h3_stream;
+    uint64_t    stream_id;
+}xqc_qpack_decoder_block_stream_t;
+
+typedef struct xqc_qpack_unack_header_block{ //block means header block
+    xqc_list_head_t  header_block_list;
+    xqc_list_head_t  stream_in_list;
+    size_t      min_rcnt;
+    size_t      max_rcnt;
+    uint64_t    stream_id;
+}xqc_qpack_unack_header_block;
+
 
 
 typedef struct xqc_http3_qpack_stream_context {
@@ -145,36 +223,6 @@ typedef struct xqc_http3_qpack_stream_context {
     int dbase_sign;
 }xqc_http3_qpack_stream_context;
 
-typedef struct xqc_http3_qpack_entry{
-    xqc_list_head_t head_list;
-    //xqc_qpack_ring_nv_t nv;
-    xqc_http3_nv_flag_t flag;
-    size_t absidx;
-    uint64_t hash;
-    uint64_t name_hash;
-    uint64_t sum;
-    uint8_t draining;
-    uint8_t ack_flag;
-}xqc_http3_qpack_entry;
-
-typedef struct xqc_qpack_hash_table{
-    xqc_list_head_t * list;
-    size_t element_count;
-}xqc_qpack_hash_table_t;
-
-
-typedef struct {
-    //xqc_http3_ringbuf   dtable;
-    //xqc_http3_ringdata  dtable_data;
-    size_t hard_max_dtable_size;
-    size_t max_dtable_size; // max_dtable_size is the effective maximum size of dynamic table.
-    size_t max_blocked;
-    size_t next_absidx;
-
-    size_t dtable_size;
-    size_t dtable_sum;
-
-}xqc_http3_qpack_context;
 
 typedef struct xqc_http3_qpack_decoder{
 
@@ -186,6 +234,7 @@ typedef struct xqc_http3_qpack_decoder{
     xqc_http3_qpack_read_state rstate;
 }xqc_http3_qpack_decoder;
 
+typedef xqc_http3_qpack_decoder xqc_http3_qpack_decoder_t;
 
 
 typedef struct xqc_http3_qpack_encoder{
@@ -207,7 +256,6 @@ typedef struct xqc_http3_qpack_encoder{
 }xqc_http3_qpack_encoder;
 
 
-
 typedef struct xqc_var_string{
     size_t strlen; //
     char data[];
@@ -219,7 +267,6 @@ typedef struct xqc_qpack_name_value{
     xqc_var_string_t * value;
     uint8_t  flag;
 }xqc_qpack_name_value_t;
-
 
 
 
@@ -262,7 +309,6 @@ typedef enum {
   XQC_HTTP3_QPACK_DECODE_FLAG_BLOCKED = 0x04
 } xqc_http3_qpack_decode_flag;
 
-typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
 ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
      xqc_http_headers_t * headers, int fin);
@@ -272,5 +318,9 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
 int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, int64_t stream_id);
 int xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx);
 int xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv);
+
+ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_http3_qpack_decoder_t * decoder, uint8_t * src, size_t srclen);
+
+ssize_t xqc_http3_qpack_encoder_read_decoder(xqc_h3_conn_t * h3_conn, uint8_t * src, size_t srclen);
 
 #endif
