@@ -1177,7 +1177,6 @@ int xqc_write_transport_params(xqc_connection_t * conn,
             "initial_max_stream_data_bidi_remote=%lld\n"
             "initial_max_stream_data_uni=%lld\n"
             "initial_max_data=%lld\n"
-            "ack_delay_exponent=%lld\n"
             "max_ack_delay=%lld\n",
             params->initial_max_streams_bidi,
             params->initial_max_streams_uni,
@@ -1185,7 +1184,6 @@ int xqc_write_transport_params(xqc_connection_t * conn,
             params->initial_max_stream_data_bidi_remote,
             params->initial_max_stream_data_uni,
             params->initial_max_data,
-            params->ack_delay_exponent,
             params->max_ack_delay);
     if(tp_data_len == -1){
         xqc_log(conn->log, XQC_LOG_ERROR, "| write tp data error | ret code:%d |", tp_data_len);
@@ -1268,9 +1266,6 @@ int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_
         }else if(strncmp(p, "initial_max_data=", strlen("initial_max_data=")) == 0){
             p = p + strlen("initial_max_data=");
             params->initial_max_data = strtoul(p, NULL, 10);
-        }else if(strncmp(p, "ack_delay_exponent=", strlen("ack_delay_exponent=")) == 0){
-            p = p + strlen("ack_delay_exponent=");
-            params->ack_delay_exponent = strtoul(p, NULL, 10);
         }else if(strncmp(p, "max_ack_delay=", strlen("max_ack_delay=")) == 0){
             p = p + strlen("max_ack_delay=");
             params->max_ack_delay = strtoul(p, NULL, 10);
