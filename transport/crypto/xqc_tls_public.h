@@ -26,10 +26,6 @@
 #define XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS 0xffa5u
 
 #define MAX_HOST_LEN 256
-/*XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
- *factor of ACK Delay field in ACK frame.
- */
-#define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
 
 #define XQC_TRUE 1
 #define XQC_FALSE 0
@@ -57,14 +53,6 @@
 
 #define XQC_NONCE_LEN   32
 #define XQC_UINT32_MAX  (0xffffffff)
-/**
- * @macro
- *
- * XQC_DEFAULT_MAX_ACK_DELAY is a default value of the maximum
- * amount of time in milliseconds by which endpoint delays sending
- * acknowledgement.
- */
-#define XQC_DEFAULT_MAX_ACK_DELAY 25
 
 /* Short header specific macros */
 #define XQC_SHORT_KEY_PHASE_BIT 0x04

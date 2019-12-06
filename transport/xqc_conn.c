@@ -101,12 +101,11 @@ xqc_conn_state_2_str(xqc_conn_state_t state)
 void xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
     memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
-    memset(&conn->remote_settings, 0, sizeof(xqc_trans_settings_t));
 
     xqc_trans_settings_t *settings = &conn->local_settings;
 
-    settings->max_ack_delay = 25;
-    settings->ack_delay_exponent = 3;
+    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
+    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     //TODO: 临时值
     settings->idle_timeout = 30000; //must > XQC_PING_TIMEOUT
     settings->max_data = 1*1024*1024;
@@ -116,6 +115,8 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_streams_bidi = 1024;
     settings->max_streams_uni = 1024;
     settings->max_packet_size = XQC_MAX_PKT_SIZE;
+
+    memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
 }
 
 void xqc_conn_init_flow_ctl(xqc_connection_t *conn)
@@ -530,8 +531,10 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_lost_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|pkt_type:%s|pkt_num:%ui|frame:%s|",
-                xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
+        xqc_log(conn->log, XQC_LOG_DEBUG,
+                "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
+                conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
+                xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
         packet_out->po_flag |= XQC_POF_RETRANS;
 
@@ -611,6 +614,11 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 packet_out->po_flag |= XQC_POF_TLP;
+                xqc_log(conn->log, XQC_LOG_DEBUG,
+                        "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
+                        conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
+                        xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
+                        xqc_frame_type_2_str(packet_out->po_frame_types));
                 ret = xqc_conn_send_one_packet(conn, packet_out);
                 if (ret < 0) {
                     return;

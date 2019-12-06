@@ -14,8 +14,24 @@
 
 #define XQC_TRANSPORT_VERSION "1.0"
 
+/*
+ * XQC_DEFAULT_MAX_ACK_DELAY is a default value of the maximum
+ * amount of time in milliseconds by which endpoint delays sending
+ * acknowledgement.
+ */
+#define XQC_DEFAULT_MAX_ACK_DELAY 25
 
+/*
+ * XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
+ * factor of ACK Delay field in ACK frame.
+ */
+#define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
+
+#define XQC_MAX_PKT_SIZE  65527 //quic protocol define
+
+#define XQC_STATELESS_RESET_TOKENLEN 16
 #define XQC_MAX_TOKEN_LEN 32
+
 #define XQC_TOKEN_EXPIRE_DELTA 60/*7*24*60*60*/   //N秒后过期 TODO:改大
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) //提前更新
 
@@ -151,10 +167,6 @@ typedef struct {
 }xqc_preferred_address_t;
 
 
-#define XQC_STATELESS_RESET_TOKENLEN 16
-#define XQC_MAX_PKT_SIZE  65527 //quic protocol define
-/*@struct address
- * */
 typedef struct {
     xqc_cid_t cid;
     /* ip_addresslen is the length of ip_address. */
