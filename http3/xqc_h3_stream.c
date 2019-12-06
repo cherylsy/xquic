@@ -216,7 +216,7 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     }
 #endif
 
-    n_write = xqc_http3_write_headers(h3_stream, headers, fin);
+    n_write = xqc_http3_write_headers(h3_conn, h3_stream, headers, fin);
     if(n_write < 0){
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|n_write:%i error|", n_write);
     }

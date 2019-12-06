@@ -1979,15 +1979,14 @@ ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_
 
 }
 
-ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin){
+ssize_t xqc_http3_write_headers(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin){
 
     ssize_t n_write = 0;
-    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
 
     xqc_http3_qpack_encoder * encoder = &h3_conn->qenc;
 
 
-    n_write = xqc_http3_stream_write_header_block(h3_stream, encoder, headers, fin);
+    n_write = xqc_http3_stream_write_header_block(h3_conn->qenc_stream, h3_stream, encoder, headers, fin);
 
     if(n_write < 0){
         return -1;
@@ -2420,3 +2419,41 @@ int xqc_http3_conn_on_max_push_id(xqc_h3_conn_t * conn, uint64_t push_id){
 
     return 0;
 }
+
+ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len){
+    if(data_len <= 0){
+        return data_len;
+    }
+
+    ssize_t send_len; // send bytes every time
+    ssize_t send_sum = 0; // means data send or buffer success
+    ssize_t offset = 0; // means read data offset
+
+
+    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
+        return send_sum; //means buffer data not send completely
+    }
+
+    xqc_h3_frame_send_buf_t * send_buf =xqc_create_h3_frame_send_buf(data_len);
+
+    if(send_buf == NULL){
+        return -1;
+    }
+    memcpy(send_buf->data, data, data_len); //send raw data, no frame
+
+
+    uint8_t fin = 0;
+    ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, fin);
+
+    if(send_success == send_buf->data_len){
+        free(send_buf);
+    }else{
+        send_buf->already_consume += send_success;
+        xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
+    }
+    return data_len;
+
+
+}
+
+

@@ -72,7 +72,7 @@ typedef enum{
     //XQc_HTTP3_QPACK_INDEXING_MODE_NEVER means that header field should not be inserted into dynamic table and this must be true for all forwarding paths
     XQC_HTTP3_QPACK_INDEXING_MODE_NEVER,
 
-}xqc_http3_qpack_indexing_mode_t;
+}xqc_http3_qpack_indexing_mode;
 
 
 /* xqc_http3_qpack_request_stream_state is a set of states for request
@@ -105,7 +105,7 @@ typedef enum {
 } xqc_http3_qpack_request_stream_opcode;
 
 typedef struct xqc_qpack_ring_nv{
-    size_t      name_index;
+    size_t      name_index; //uint64
     size_t      name_len;
     size_t      value_index;
     size_t      value_len;
@@ -118,7 +118,7 @@ typedef struct xqc_http3_qpack_entry{
     size_t absidx;
     //uint64_t hash;
     uint64_t name_hash;
-    uint64_t sum;
+    uint64_t sum; //
     uint8_t draining;
     uint8_t ack_flag;
 }xqc_http3_qpack_entry;
@@ -187,6 +187,8 @@ typedef struct {
     uint8_t dynamic;
     uint8_t huffman_encoded;
 }xqc_http3_qpack_read_state;
+//读取未完成的时候，如变成整数、name,等数据完全时再继续读
+//读取一个name-value对未完成时，不继续解码，
 
 typedef struct xqc_qpack_decoder_block_stream{
     xqc_list_head_t  head_list;
@@ -310,7 +312,7 @@ typedef enum {
 } xqc_http3_qpack_decode_flag;
 
 
-ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
+ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *qenc_stream ,xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
      xqc_http_headers_t * headers, int fin);
 ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xqc_http3_qpack_stream_context *sctx,
         xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin);
