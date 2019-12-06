@@ -500,6 +500,10 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     ssize_t read;
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+        if (read < 0) {
+            printf("xqc_h3_request_recv_body error %lld\n", read);
+            return read;
+        }
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");

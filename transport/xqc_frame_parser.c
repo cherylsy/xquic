@@ -444,7 +444,7 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_vint_write(dst_buf, first_ack_range, first_ack_range_bits, xqc_vint_len(first_ack_range_bits));
     dst_buf += xqc_vint_len(first_ack_range_bits);
 
-    //xqc_log(conn->log, XQC_LOG_DEBUG, "|lagest_recv:%ui|first_ack_range:%ud|", lagest_recv, first_ack_range);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|lagest_recv:%ui|ack_delay:%ui|first_ack_range:%ud|largest_pkt_recv_time:%ui|", lagest_recv, ack_delay, first_ack_range, recv_record->largest_pkt_recv_time);
 
     int is_first = 1;
     xqc_list_for_each(pos, &recv_record->list_head) { //from second node

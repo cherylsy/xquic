@@ -82,7 +82,6 @@ typedef struct xqc_send_ctl_s {
 
     xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
 
-    xqc_msec_t                  ctl_time_of_last_sent_crypto_packet;
     xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet;
     xqc_msec_t                  ctl_srtt,
                                 ctl_rttvar,
@@ -92,14 +91,12 @@ typedef struct xqc_send_ctl_s {
     xqc_send_ctl_timer_t        ctl_timer[XQC_TIMER_N];
 
     unsigned                    ctl_pto_count;
-    unsigned                    ctl_crypto_count;
 
     unsigned                    ctl_send_count;
     unsigned                    ctl_retrans_count;
     unsigned                    ctl_tlp_count;
 
     unsigned                    ctl_bytes_in_flight;
-    unsigned                    ctl_crypto_bytes_in_flight;
 
     uint64_t                    ctl_bytes_send;
     uint64_t                    ctl_bytes_recv;

@@ -347,7 +347,7 @@ ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
 
 /**
  * @param fin 1:without body
- * @return 用户应该拷贝到自己的内存
+ * @return 用户应该拷贝到自己的内存，NULL 出错
  */
 xqc_http_headers_t *
 xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request,

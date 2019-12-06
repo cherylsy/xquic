@@ -376,7 +376,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             return ret;
         }
     }
-    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|success|");
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|", h3_stream->stream->stream_id);
     return XQC_OK;
 }
 

@@ -1053,7 +1053,7 @@ int
 xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level)
 {
     if (conn->undecrypt_count[encrypt_level] >= XQC_UNDECRYPT_PACKET_MAX) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|exceed XQC_UNDECRYPT_PACKET_MAX|undecrypt_count:%ud|encrypt_level:%d|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|delay|exceed XQC_UNDECRYPT_PACKET_MAX|undecrypt_count:%ud|encrypt_level:%d|",
                 conn->undecrypt_count[encrypt_level], encrypt_level);
         return -1;
     }
@@ -1068,7 +1068,7 @@ xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *
 
     xqc_list_add_tail(&new_packet->pi_list, &conn->undecrypt_packet_in[encrypt_level]);
     conn->undecrypt_count[encrypt_level]++;
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|====>|undecrypt_count:%ud|encrypt_level:%d|", conn->undecrypt_count[encrypt_level], encrypt_level);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|====>|delay|undecrypt_count:%ud|encrypt_level:%d|", conn->undecrypt_count[encrypt_level], encrypt_level);
     return XQC_OK;
 }
 
@@ -1083,7 +1083,7 @@ xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t
     int ret;
     xqc_list_for_each_safe(pos, next, &conn->undecrypt_packet_in[encrypt_level]) {
         packet_in = xqc_list_entry(pos, xqc_packet_in_t, pi_list);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|undecrypt_count:%ud|encrypt_level:%d|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|delay|undecrypt_count:%ud|encrypt_level:%d|",
                 conn->undecrypt_count[encrypt_level], encrypt_level);
         ret = xqc_packet_process(conn, packet_in->buf, packet_in->buf_size, packet_in->pkt_recv_time);
         if (ret) {

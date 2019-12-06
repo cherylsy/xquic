@@ -109,7 +109,7 @@ xqc_packet_process_single(xqc_connection_t *c,
         /* check handshake */
         if (!xqc_conn_check_handshake_completed(c)) {
             xqc_log(c->log, XQC_LOG_WARN,
-                    "|buff 1RTT packet before handshake completed|");
+                    "|delay|buff 1RTT packet before handshake completed|");
 
             /* buffer packets */
             xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_1RTT);
@@ -122,7 +122,7 @@ xqc_packet_process_single(xqc_connection_t *c,
         if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT &&
                 !xqc_tls_check_0rtt_key_ready(c)) {
 
-            xqc_log(c->log, XQC_LOG_WARN, "|buff 0RTT before initial received|");
+            xqc_log(c->log, XQC_LOG_WARN, "|delay|buff 0RTT before initial received|");
             /* buffer packets */
             xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
 
@@ -132,7 +132,7 @@ xqc_packet_process_single(xqc_connection_t *c,
         else if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_HSK &&
                 !xqc_tls_check_hs_rx_key_ready(c)) {
 
-            xqc_log(c->log, XQC_LOG_WARN, "|buff HSK before hs_rx_key_ready|");
+            xqc_log(c->log, XQC_LOG_WARN, "|delay|buff HSK before hs_rx_key_ready|");
             xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_HSK);
 
             packet_in->pos = packet_in->last;

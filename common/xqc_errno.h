@@ -71,6 +71,7 @@ typedef enum
 #define XQC_ESTREAM_NFOUND  623 //找不到对应流
 #define XQC_EWRITE_PKT      624 //创建包或写包头失败
 #define XQC_ECREATE_STREAM  625 //创建流失败
+#define XQC_ESTREAM_RESET   626 //流已被reset
 
 
 /* For QUIC application 8xx */
