@@ -546,12 +546,6 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
             xqc_send_ctl_remove_unacked(po, ctl);
             if (is_in_flight) {
                 xqc_send_ctl_insert_lost(pos, &ctl->ctl_lost_packets);
-                if (ctl->ctl_bytes_in_flight < po->po_used_size) {
-                    xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
-                    ctl->ctl_bytes_in_flight = 0;
-                } else {
-                    ctl->ctl_bytes_in_flight -= po->po_used_size;
-                }
             } else {
                 xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
             }
