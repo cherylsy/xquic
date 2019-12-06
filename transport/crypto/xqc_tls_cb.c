@@ -1269,9 +1269,8 @@ int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_
         }else if(strncmp(p, "max_ack_delay=", strlen("max_ack_delay=")) == 0){
             p = p + strlen("max_ack_delay=");
             params->max_ack_delay = strtoul(p, NULL, 10);
-        }else{
-            continue;
         }
+
         p = strchr(p, '\n');
         if(p == NULL)return 0;
         p++;
