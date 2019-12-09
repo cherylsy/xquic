@@ -115,7 +115,7 @@ typedef struct xqc_http3_qpack_entry{
     xqc_list_head_t head_list;
     xqc_qpack_ring_nv_t nv;
     xqc_http3_nv_flag_t flag;
-    size_t absidx;
+    uint64_t absidx;
     //uint64_t hash;
     uint64_t name_hash;
     uint64_t sum; //
