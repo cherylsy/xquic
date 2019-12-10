@@ -249,7 +249,6 @@ typedef struct xqc_http3_qpack_encoder{
     size_t krcnt;
 
     xqc_qpack_hash_table_t dtable_hash;
-    xqc_qpack_hash_table_t stable_hash;
 
     size_t min_dtable_update;// min_dtable_update is the minimum dynamic table size required.
     size_t last_max_dtable_update; //last_max_dtable_update is the dynamic table size last requested.
