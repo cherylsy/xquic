@@ -648,10 +648,15 @@ process:
     xqc_log(engine->log, XQC_LOG_INFO, "|==>|conn:%p|size:%ui|state:%s|recv_time:%ui|",
             conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state), recv_time);
 
+    if (XQC_UNLIKELY(conn->local_addrlen == 0)) {
+        xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
+        conn->local_addrlen = local_addrlen;
+    }
+
     /* process packets */
     ret = xqc_packet_process(conn, packet_in_buf, packet_in_size, recv_time);
     if (ret) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to process packets|ret:%d|", ret);
+        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to process packets|conn:%p|ret:%d|", conn, ret);
         XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);
         goto after_process;
     }
@@ -667,7 +672,7 @@ after_process:
         if (0 == xqc_conns_pq_push(engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         } else {
-            xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|");
+            xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|conn:%p|", conn);
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             xqc_conn_destroy(conn);
             return -XQC_EFATAL;

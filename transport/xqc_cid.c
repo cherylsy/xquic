@@ -55,3 +55,21 @@ xqc_cid_set(xqc_cid_t *cid, unsigned char *data, size_t len)
     xqc_memcpy(cid->cid_buf, data, len);
 }
 
+static unsigned char g_scid_buf[XQC_MAX_CID_LEN * 2 + 1];
+static unsigned char g_dcid_buf[XQC_MAX_CID_LEN * 2 + 1];
+
+unsigned char*
+xqc_dcid_str(xqc_cid_t *cid)
+{
+    xqc_hex_dump(g_dcid_buf, cid->cid_buf, cid->cid_len);
+    cid->cid_buf[cid->cid_len * 2] = '\0';
+    return g_dcid_buf;
+}
+
+unsigned char*
+xqc_scid_str(xqc_cid_t *cid)
+{
+    xqc_hex_dump(g_scid_buf, cid->cid_buf, cid->cid_len);
+    cid->cid_buf[cid->cid_len * 2] = '\0';
+    return g_scid_buf;
+}

@@ -46,8 +46,9 @@
 
 #define XQC_CONN_ERR(conn, err) do {        \
     if (conn->conn_err == 0) {              \
-    conn->conn_err = err;                   \
-    conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
+        conn->conn_err = err;               \
+        conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
+        xqc_log(conn->log, XQC_LOG_ERROR, "|conn:%p|err:%i|%s|", conn, err, xqc_conn_addr_str(conn)); \
     }                                       \
 } while(0)                                  \
 
@@ -388,6 +389,14 @@ int xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection
 int xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
 xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
+
+char *xqc_conn_local_addr_str(const struct sockaddr *local_addr,
+                              socklen_t local_addrlen);
+
+char *xqc_conn_peer_addr_str(const struct sockaddr *peer_addr,
+                             socklen_t peer_addrlen);
+
+char *xqc_conn_addr_str(xqc_connection_t *conn);
 
 static inline void
 xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)

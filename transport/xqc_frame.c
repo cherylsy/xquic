@@ -434,6 +434,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         if (xqc_conn_check_token(conn, conn->conn_token, conn->conn_token_len)) {
             conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
         } else {
+            xqc_log(conn->log, XQC_LOG_WARN, "|check_token fail|conn:%p|%s|", conn, xqc_conn_addr_str(conn));
             unsigned char token[XQC_MAX_TOKEN_LEN];
             unsigned token_len = XQC_MAX_TOKEN_LEN;
             xqc_conn_gen_token(conn, token, &token_len);

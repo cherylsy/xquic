@@ -28,7 +28,9 @@
 static inline const char* 
 xqc_log_leveL_str(xqc_log_level_t level)
 {
-    if (level == XQC_LOG_FATAL) {
+    if (level == XQC_LOG_STATS) {
+        return "stats";
+    } else if (level == XQC_LOG_FATAL) {
         return "fatal";
     } else if (level == XQC_LOG_ERROR) {
         return "error";

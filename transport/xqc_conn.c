@@ -336,9 +336,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    xqc_log(xc->log, XQC_LOG_INFO, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|",
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|%s|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count, xc->conn_send_ctl->ctl_tlp_count);
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count, xc->conn_send_ctl->ctl_tlp_count,
+            xqc_conn_addr_str(xc));
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
@@ -931,7 +932,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
 
     xqc_msec_t now = xqc_now() / 1000000;
     if (*expire < now) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|token_expire|expire:%ud|now:%ui|", *expire, now);
+        xqc_log(conn->log, XQC_LOG_WARN, "|token_expire|expire:%ud|now:%ui|", *expire, now);
         return 0;
     }
     else if (*expire - now <= XQC_TOKEN_UPDATE_DELTA) {
@@ -1127,4 +1128,62 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
     xqc_log(conn->log, XQC_LOG_DEBUG, "|wakeup_time:%ui|", wakeup_time);
 
     return wakeup_time;
+}
+
+static char g_local_addr_str[INET6_ADDRSTRLEN];
+static char g_peer_addr_str[INET6_ADDRSTRLEN];
+static char g_addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
+
+char *
+xqc_conn_local_addr_str(const struct sockaddr *local_addr,
+                        socklen_t local_addrlen)
+{
+    if (local_addrlen == 0 || local_addr == NULL) {
+        g_local_addr_str[0] = '\0';
+        return g_local_addr_str;
+    }
+    struct sockaddr_in *sa_local = (struct sockaddr_in *)local_addr;
+    if (sa_local->sin_family == AF_INET) {
+        if (inet_ntop(sa_local->sin_family, &sa_local->sin_addr, g_local_addr_str, local_addrlen) == NULL) {
+            g_local_addr_str[0] = '\0';
+        }
+    } else {
+        if (inet_ntop(sa_local->sin_family, &((struct sockaddr_in6*)sa_local)->sin6_addr, g_local_addr_str, local_addrlen) == NULL) {
+            g_local_addr_str[0] = '\0';
+        }
+    }
+    return g_local_addr_str;
+}
+
+char *
+xqc_conn_peer_addr_str(const struct sockaddr *peer_addr,
+                       socklen_t peer_addrlen)
+{
+    if (peer_addrlen == 0 || peer_addr == NULL) {
+        g_peer_addr_str[0] = '\0';
+        return g_peer_addr_str;
+    }
+    struct sockaddr_in *sa_peer = (struct sockaddr_in *)peer_addr;
+    if (sa_peer->sin_family == AF_INET) {
+        if (inet_ntop(sa_peer->sin_family, &sa_peer->sin_addr, g_peer_addr_str, peer_addrlen) == NULL) {
+            g_peer_addr_str[0] = '\0';
+        }
+    } else {
+        if (inet_ntop(sa_peer->sin_family, &((struct sockaddr_in6*)sa_peer)->sin6_addr, g_peer_addr_str, peer_addrlen) == NULL) {
+            g_peer_addr_str[0] = '\0';
+        }
+    }
+    return g_peer_addr_str;
+}
+
+char *
+xqc_conn_addr_str(xqc_connection_t *conn)
+{
+    struct sockaddr_in *sa_local = (struct sockaddr_in *)conn->local_addr;
+    struct sockaddr_in *sa_peer = (struct sockaddr_in *)conn->peer_addr;
+
+    snprintf(g_addr_str, sizeof(g_addr_str), "l-%s-%d-%s p-%s-%d-%s",
+             xqc_conn_local_addr_str((struct sockaddr*)sa_local, conn->local_addrlen), ntohs(sa_local->sin_port), xqc_scid_str(&conn->scid),
+             xqc_conn_peer_addr_str((struct sockaddr*)sa_peer, conn->peer_addrlen), ntohs(sa_peer->sin_port), xqc_dcid_str(&conn->dcid));
+    return g_addr_str;
 }

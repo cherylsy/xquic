@@ -554,6 +554,13 @@ xqc_client_read_handler(user_conn_t *user_conn)
             printf("xqc_client_read_handler: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
         }
+
+        if (user_conn->local_addrlen == 0) {
+            socklen_t tmp = sizeof(struct sockaddr_in);
+            getsockname(user_conn->fd, (struct sockaddr *) &user_conn->local_addr, &tmp);
+            user_conn->local_addrlen = sizeof(struct sockaddr_in);
+        }
+
         uint64_t recv_time = now();
         printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
@@ -804,14 +811,15 @@ int main(int argc, char *argv[]) {
 
     //xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
     //xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
-
+//for (int i = 0; i < 10; i++) {
     user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
     if (user_conn->h3) {
         user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
         if (user_stream->h3_request == NULL) {
             return -1;
         }
-        xqc_client_request_send(user_stream->h3_request, user_stream);
+        //xqc_client_request_send(user_stream->h3_request, user_stream);
+        xqc_h3_request_close(user_stream->h3_request);
     } else {
         user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
         if (user_stream->stream == NULL) {
@@ -819,7 +827,7 @@ int main(int argc, char *argv[]) {
         }
         xqc_client_stream_send(user_stream->stream, user_stream);
     }
-
+//}
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);

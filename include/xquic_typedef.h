@@ -59,6 +59,7 @@ typedef struct xqc_cid_s
 
 typedef enum xqc_log_level_s
 {
+    XQC_LOG_STATS,
     XQC_LOG_FATAL,
     XQC_LOG_ERROR,
     XQC_LOG_WARN,
