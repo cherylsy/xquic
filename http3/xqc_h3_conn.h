@@ -42,7 +42,7 @@ struct xqc_h3_conn_s {
     xqc_h3_stream_t         *qenc_stream;
 
     xqc_list_head_t         block_stream_head;
-    xqc_list_head_t         unack_stream_head;
+    //xqc_list_head_t         unack_stream_head;
 
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_http3_tnode_t       *tnode_root;

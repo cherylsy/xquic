@@ -18,7 +18,8 @@ typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
 #define XQC_VAR_BUF_INIT_SIZE 256
 #define XQC_VAR_INT_LEN 16
-#define XQC_MAX_SIZE_T (0xFFFFFFFF)
+#define XQC_MAX_SIZE_T (0xFFFFFFFFFFFFFFFF)
+#define XQC_MAX_UINT64 (0xFFFFFFFFFFFFFFFF)
 #define XQC_HTTP3_QPACK_MAX_VALUELEN 65536
 typedef enum {
   XQC_HTTP3_QPACK_ES_STATE_OPCODE,
@@ -144,12 +145,13 @@ typedef struct xqc_qpack_hash_table{
 typedef struct {
     xqc_http3_ringbuf   dtable;
     xqc_http3_ringdata  dtable_data;
-    size_t hard_max_dtable_size;
-    size_t max_dtable_size; // max_dtable_size is the effective maximum size of dynamic table.
+    //size_t hard_max_dtable_size;
+    size_t max_table_capacity;
+    size_t max_dtable_size; // max_dtable_size is the effective maximum size of dynamic table, the same as ringdata capacity.
     size_t max_blocked;
     size_t next_absidx;
 
-    size_t dtable_size;
+    size_t dtable_size; //the dynamic table size
     size_t dtable_sum;
 
 }xqc_http3_qpack_context;
@@ -254,6 +256,7 @@ typedef struct xqc_http3_qpack_encoder{
     size_t last_max_dtable_update; //last_max_dtable_update is the dynamic table size last requested.
 
     uint8_t flags;
+    xqc_list_head_t         unack_stream_head;
 }xqc_http3_qpack_encoder;
 
 
