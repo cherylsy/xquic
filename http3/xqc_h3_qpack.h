@@ -194,7 +194,7 @@ typedef struct {
 
 typedef struct xqc_qpack_decoder_block_stream{
     xqc_list_head_t  head_list;
-    size_t      ricnt;
+    uint64_t        ricnt;
     xqc_h3_stream_t *h3_stream;
     uint64_t    stream_id;
 }xqc_qpack_decoder_block_stream_t;
@@ -323,8 +323,9 @@ int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, in
 int xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx);
 int xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv);
 
-ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_http3_qpack_decoder_t * decoder, uint8_t * src, size_t srclen);
+ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t * h3_conn, uint8_t * src, size_t srclen);
 
 ssize_t xqc_http3_qpack_encoder_read_decoder(xqc_h3_conn_t * h3_conn, uint8_t * src, size_t srclen);
 
+int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
 #endif
