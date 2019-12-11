@@ -818,8 +818,8 @@ int main(int argc, char *argv[]) {
         if (user_stream->h3_request == NULL) {
             return -1;
         }
-        //xqc_client_request_send(user_stream->h3_request, user_stream);
-        xqc_h3_request_close(user_stream->h3_request);
+        xqc_client_request_send(user_stream->h3_request, user_stream);
+        //xqc_h3_request_close(user_stream->h3_request);
     } else {
         user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
         if (user_stream->stream == NULL) {

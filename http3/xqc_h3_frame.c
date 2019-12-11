@@ -2011,6 +2011,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
         if(send_success < 0){
             xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%d|",send_success );
+            xqc_free(send_buf);
             return send_success;
         }
 

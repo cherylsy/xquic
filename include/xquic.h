@@ -268,6 +268,12 @@ xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
 int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
+ * Get cid in hex, end with '\0'
+ */
+unsigned char* xqc_dcid_str(xqc_cid_t *cid);
+unsigned char* xqc_scid_str(xqc_cid_t *cid);
+
+/**
  * Get errno when h3_conn_close_notify, 0 For no-error
  */
 int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);

@@ -169,9 +169,6 @@ ssize_t
 xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin);
 
 ssize_t
-xqc_h3_stream_recv_header(xqc_h3_stream_t *h3_stream);
-
-ssize_t
 xqc_h3_stream_recv_data(xqc_h3_stream_t *stream, unsigned char *recv_buf, size_t recv_buf_size, uint8_t *fin);
 
 #endif /* _XQC_H3_STREAM_H_INCLUDED_ */

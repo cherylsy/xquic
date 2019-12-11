@@ -172,22 +172,12 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
     //QPACK
     //gen HEADERS frame
-#if 0
-    unsigned char buf[200]; ssize_t len=200;
-
-    n_write = xqc_http3_write_frame_header(h3_stream, buf, len, fin);
-    if (n_write < 0) {
-        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_header error|%z|", n_write);
-        return n_write;
-    }
-#endif
-
     n_write = xqc_http3_write_headers(h3_stream, headers, fin);
     if(n_write < 0){
-        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|n_write:%i error|", n_write);
+        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_headers error|%z|", n_write);
     }
-    xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|n_write:%i|", n_write);
-    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|n_write:%i|", n_write);
+    xqc_engine_main_logic(h3_conn->conn->engine);
     return n_write;
 }
 
@@ -204,12 +194,6 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|data_size:%uz|n_write:%z|fin:%d|", data_size, n_write, fin);
     xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);//TODO:不用main，直接发包
     return n_write;
-}
-
-ssize_t
-xqc_h3_stream_recv_header(xqc_h3_stream_t *h3_stream)
-{
-    return 0;
 }
 
 ssize_t
