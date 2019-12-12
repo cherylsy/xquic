@@ -13,6 +13,6 @@ xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
 void xqc_cid_copy(xqc_cid_t *dst, xqc_cid_t *src);
 void xqc_cid_init_zero(xqc_cid_t *cid);
 void xqc_cid_set(xqc_cid_t *cid, unsigned char *data, size_t len);
-
+unsigned char* xqc_dcid_str(xqc_cid_t *cid);
 #endif /* _XQC_CID_H_INCLUDED_ */
 

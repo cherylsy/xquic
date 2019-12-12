@@ -254,7 +254,7 @@ void xqc_engine_destroy(xqc_engine_t *engine);
  * @param server_host server domain
  * @param no_crypto_flag 1:without crypto
  * @param conn_ssl_config For handshake
- * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
+ * @return scid of the connection; user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           xqc_conn_settings_t conn_settings,
@@ -268,8 +268,8 @@ int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * Get cid in hex, end with '\0'
+ * @param cid means scid
  */
-unsigned char* xqc_dcid_str(xqc_cid_t *cid);
 unsigned char* xqc_scid_str(xqc_cid_t *cid);
 
 /**
