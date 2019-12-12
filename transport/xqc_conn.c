@@ -687,13 +687,14 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 
     xqc_send_ctl_drop_packets(conn->conn_send_ctl);
 
-    ret = xqc_write_conn_close_to_packet(conn, conn->conn_err);
-    if (ret) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_conn_close_to_packet error|ret:%d|", ret);
-        return ret;
+    if (conn->conn_close_count < 3) {
+        ret = xqc_write_conn_close_to_packet(conn, conn->conn_err);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_conn_close_to_packet error|ret:%d|", ret);
+        }
+        ++conn->conn_close_count;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_conn_close|state:%s|", xqc_conn_state_2_str(conn->conn_state));
     }
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_conn_close|state:%s|", xqc_conn_state_2_str(conn->conn_state));
 
     if (conn->conn_state < XQC_CONN_STATE_CLOSING) {
         conn->conn_state = XQC_CONN_STATE_CLOSING;
