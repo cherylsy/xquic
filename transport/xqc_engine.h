@@ -4,6 +4,7 @@
 
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
+#include <openssl/ssl.h>
 
 typedef enum {
     XQC_ENG_FLAG_RUNNING    = 1 << 0,

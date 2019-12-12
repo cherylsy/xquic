@@ -13,7 +13,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #endif
-#include <openssl/ssl.h>
 #include "xquic_typedef.h"
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
