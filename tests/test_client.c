@@ -324,6 +324,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
         ret = xqc_stream_send(stream, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %d\n", ret);
+            return ret;
         } else {
             user_stream->send_offset += ret;
             printf("xqc_stream_send offset=%lld\n", user_stream->send_offset);
@@ -353,6 +354,9 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
         printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
+        if (read < 0) {
+            return read;
+        }
     } while (read > 0 && !fin);
 
     return 0;
@@ -411,6 +415,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %d\n", ret);
+            return ret;
         } else {
             printf("xqc_h3_request_send_headers success size=%lld\n", ret);
             user_stream->header_sent = 1;
