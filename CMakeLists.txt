@@ -30,6 +30,8 @@ set(
     http3/xqc_h3_qpack.c
     http3/xqc_h3_ringbuf.c
     http3/xqc_h3_qpack_token.c
+    http3/xqc_h3_huffman_data.c
+    http3/xqc_h3_qpack_huffman.c
 )
 
 set(

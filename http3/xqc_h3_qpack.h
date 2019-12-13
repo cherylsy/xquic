@@ -7,6 +7,7 @@
 #include "common/xqc_config.h"
 #include "common/xqc_str.h"
 #include "xqc_h3_ringbuf.h"
+#include "xqc_h3_qpack_huffman.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -188,6 +189,7 @@ typedef struct {
     uint8_t never;
     uint8_t dynamic;
     uint8_t huffman_encoded;
+    xqc_http3_qpack_huffman_decode_context huffman_ctx;
 }xqc_http3_qpack_read_state;
 //读取未完成的时候，如变成整数、name,等数据完全时再继续读
 //读取一个name-value对未完成时，不继续解码，
