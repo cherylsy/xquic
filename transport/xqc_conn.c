@@ -413,11 +413,6 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets_high_pri) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
-        if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
-            && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-            xqc_gen_padding_frame(packet_out);
-        }
-
         ret = xqc_conn_send_one_packet(conn, packet_out);
         if (ret < 0) {
             return;
@@ -438,7 +433,6 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
-//#if 0
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             /* 优先级高的包一定在前面 */
             if (!xqc_send_ctl_can_send(conn)) {
@@ -451,11 +445,6 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                     break;
                 }
             }
-        }
-//#endif
-        if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
-                && packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-            xqc_gen_padding_frame(packet_out);
         }
 
         ret = xqc_conn_send_one_packet(conn, packet_out);
@@ -481,6 +470,11 @@ ssize_t
 xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
+
+    if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
+        && packet_out->po_frame_types != XQC_FRAME_BIT_ACK) {
+        xqc_gen_padding_frame(packet_out);
+    }
 
     //do encrypt
     /* generate packet number */
@@ -685,19 +679,10 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
     xqc_send_ctl_t *ctl;
     xqc_msec_t now;
 
-    xqc_send_ctl_drop_packets(conn->conn_send_ctl);
-
-    if (conn->conn_close_count < 3) {
-        ret = xqc_write_conn_close_to_packet(conn, conn->conn_err);
-        if (ret) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_conn_close_to_packet error|ret:%d|", ret);
-        }
-        ++conn->conn_close_count;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_conn_close|state:%s|", xqc_conn_state_2_str(conn->conn_state));
-    }
-
     if (conn->conn_state < XQC_CONN_STATE_CLOSING) {
         conn->conn_state = XQC_CONN_STATE_CLOSING;
+
+        xqc_send_ctl_drop_packets(conn->conn_send_ctl);
 
         ctl = conn->conn_send_ctl;
         now = xqc_now();
@@ -710,6 +695,16 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
             xqc_send_ctl_timer_unset(ctl, i);
         }
     }
+
+    if (conn->conn_close_count < 3) {
+        ret = xqc_write_conn_close_to_packet(conn, conn->conn_err);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_conn_close_to_packet error|ret:%d|", ret);
+        }
+        ++conn->conn_close_count;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_conn_close|state:%s|", xqc_conn_state_2_str(conn->conn_state));
+    }
+
     return XQC_OK;
 }
 

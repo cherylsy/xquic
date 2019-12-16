@@ -391,8 +391,9 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     if (c->conn_state == XQC_CONN_STATE_SERVER_INIT &&
         !(c->conn_flag & XQC_CONN_FLAG_SVR_INIT_RECVD)) {
         if (XQC_PACKET_IN_LEFT_SIZE(packet_in) < XQC_PACKET_INITIAL_MIN_LENGTH) {
-            xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_initial|initial size too small|%z|",
+            xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_initial|initial size too small|%z|",
                     XQC_PACKET_IN_LEFT_SIZE(packet_in));
+            XQC_CONN_ERR(c, TRA_PROTOCOL_VIOLATION);
             return -XQC_EILLPKT;
         }
         c->conn_flag |= XQC_CONN_FLAG_SVR_INIT_RECVD;

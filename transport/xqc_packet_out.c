@@ -293,8 +293,12 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code)
 {
     int ret;
     xqc_packet_out_t *packet_out;
+    xqc_pkt_type_t pkt_type = XQC_PTYPE_INIT;
 
-    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+        pkt_type = XQC_PTYPE_SHORT_HEADER;
+    }
+    packet_out = xqc_write_new_packet(conn, pkt_type);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
         return -XQC_EWRITE_PKT;

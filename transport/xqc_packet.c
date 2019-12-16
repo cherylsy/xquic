@@ -250,7 +250,7 @@ xqc_packet_process(xqc_connection_t *c,
 
         /* err in parse packet, don't cause dead loop */
         if (ret != XQC_OK || last_pos == packet_in->pos) {
-            xqc_log(c->log, XQC_LOG_WARN, "|process packets err|ret:%d|pos:%p|buf:%p|buf_size:%z|",
+            xqc_log(c->log, XQC_LOG_ERROR, "|process packets err|ret:%d|pos:%p|buf:%p|buf_size:%z|",
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);
             return ret != XQC_OK ? ret : -XQC_ESYS;
