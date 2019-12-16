@@ -152,7 +152,7 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
         can = 0;
     }
 
-    if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK) && !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
           && conn->conn_type == XQC_CONN_TYPE_SERVER
           && conn->conn_send_ctl->ctl_bytes_send > 3 * conn->conn_send_ctl->ctl_bytes_recv) {
         can = 0;
