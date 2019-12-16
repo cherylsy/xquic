@@ -300,7 +300,7 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code)
         return -XQC_EWRITE_PKT;
     }
 
-    ret = xqc_gen_conn_close_frame(packet_out, err_code, 0, 0);
+    ret = xqc_gen_conn_close_frame(packet_out, err_code, err_code >= HTTP_NO_ERROR ? 1:0, 0);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_conn_close_frame error|");
         goto error;
@@ -364,10 +364,9 @@ xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
      * A STOP_SENDING frame can be sent for streams in the Recv or Size
         Known states
      */
-    if (stream->stream_state_recv > XQC_RECV_STREAM_ST_SIZE_KNOWN) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|state error|");
-        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-        return -XQC_ESTREAM_ST;
+    if (stream->stream_state_recv >= XQC_RECV_STREAM_ST_DATA_RECVD) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|beyond DATA_RECVD|stream_state_recv:%d|", stream->stream_state_recv);
+        return XQC_OK;
     }
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);

@@ -80,7 +80,13 @@ typedef enum
 #define XQC_H3_ECREATE_REQUEST  802 //创建请求失败
 #define XQC_H3_EGOAWAY_RECVD    803 //接收到GOAWAY，拒绝操作
 #define XQC_H3_ECREATE_CONN     804 //创建连接失败
-
+#define XQC_H3_EQPACK_ENCODE    805 //QPACK编码失败
+#define XQC_H3_EQPACK_DECODE    806 //QPACK解码失败
+#define XQC_H3_EPRI_TREE        807 //优先级树失败
+#define XQC_H3_EPROC_CONTROL    808 //处理control流失败
+#define XQC_H3_EPROC_REQUEST    809 //处理request流失败
+#define XQC_H3_EPROC_PUSH       810 //处理push流失败
+#define XQC_H3_EPARAM           811 //参数错误
 
 
 

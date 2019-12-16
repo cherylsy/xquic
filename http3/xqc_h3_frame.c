@@ -4,6 +4,7 @@
 #include "transport/xqc_stream.h"
 #include "common/xqc_list.h"
 #include "common/xqc_id_hash.h"
+#include "common/xqc_errno.h"
 #include "transport/crypto/xqc_tls_public.h"
 #include "xqc_h3_tnode.h"
 #include "xqc_h3_request.h"
@@ -1965,7 +1966,7 @@ ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *
     n_write = xqc_http3_stream_write_header_block(h3_stream, encoder, headers, fin);
 
     if(n_write < 0){
-        return -1;
+        return n_write;
     }
 
     return n_write;
@@ -1975,7 +1976,7 @@ ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *
 ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
     if(data_len <= 0){
-        return data_len;
+        return -XQC_H3_EPARAM;
     }
 
     ssize_t send_len; // send bytes every time
@@ -1998,8 +1999,8 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
         xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_frame_header( h3_stream, data+offset, send_len);
         if(send_buf == NULL){
-            //log
-            return send_sum;
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_frame_header error|");
+            return -XQC_H3_EMALLOC;
         }
 
         if(fin && data_len == 0){
@@ -2034,7 +2035,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
     if(data_len <= 0){
-        return data_len;
+        return -XQC_H3_EPARAM;
     }
 
     ssize_t send_len; // send bytes every time
@@ -2059,7 +2060,8 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
 
         if(send_buf == NULL){
             //log
-            return send_sum;
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_frame_data error|");
+            return -XQC_H3_EMALLOC;
         }
 
         if(fin && data_len == 0){//means last frame

@@ -559,7 +559,7 @@ xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     if (err_code) {
         xqc_log(conn->log, XQC_LOG_ERROR,
-                "|with err:%ui|", err_code);
+                "|with err:0x%xi|", err_code);
         XQC_CONN_ERR(conn, err_code);
     }
 

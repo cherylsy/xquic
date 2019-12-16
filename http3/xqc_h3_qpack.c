@@ -1,5 +1,6 @@
 #include "xqc_h3_qpack.h"
 #include "xqc_h3_frame.h"
+#include "common/xqc_errno.h"
 #define XQC_HTTP3_QPACK_MAX_NAMELEN 256
 
 xqc_var_string_t * xqc_create_var_string(uint8_t * value, size_t strlen){
@@ -267,15 +268,17 @@ ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *stream, xqc_http3_q
     for(i = 0; i < headers->count; i++){
         rv = xqc_http3_qpack_encoder_encode_nv(stream, encoder, &max_cnt, &min_cnt, &pp_buf, &headers->headers[i], base);
         if( rv != 0){
+            rv = -XQC_H3_EQPACK_ENCODE;
             goto fail;
         }
     }
 
     pp_h_data = xqc_var_buf_create((pp_buf)->used_len + XQC_VAR_INT_LEN * 2);
 
-    int ret = xqc_http3_qpack_encoder_write_header_block_prefix( encoder, pp_h_data, max_cnt, base);
+    rv = xqc_http3_qpack_encoder_write_header_block_prefix( encoder, pp_h_data, max_cnt, base);
 
-    if(ret < 0){
+    if(rv < 0){
+        rv = -XQC_H3_EQPACK_ENCODE;
         goto fail;
     }
 
@@ -284,12 +287,12 @@ ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *stream, xqc_http3_q
 
     ssize_t send_size = xqc_http3_write_frame_header(stream, pp_h_data->data, pp_h_data->used_len, fin );
 
-    if(send_size != pp_h_data->used_len){
+    if(send_size != pp_h_data->used_len){//TODO:
         goto fail;
     }
     free(pp_buf);
     free(pp_h_data);
-    return 0;
+    return send_size;
 fail:
     if(pp_buf){
         free(pp_buf);
@@ -298,7 +301,7 @@ fail:
     if(pp_h_data){
         free(pp_h_data);
     }
-    return -1;
+    return rv;
 }
 
 

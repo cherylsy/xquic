@@ -44,11 +44,12 @@
 #define XQC_DEBUG_PRINT
 #endif
 
+/* Send CONNECTION_CLOSE with err */
 #define XQC_CONN_ERR(conn, err) do {        \
     if (conn->conn_err == 0) {              \
         conn->conn_err = err;               \
         conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
-        xqc_log(conn->log, XQC_LOG_ERROR, "|conn:%p|err:%i|%s|", conn, err, xqc_conn_addr_str(conn)); \
+        xqc_log(conn->log, XQC_LOG_ERROR, "|conn:%p|err:0x%xi|%s|", conn, err, xqc_conn_addr_str(conn)); \
     }                                       \
 } while(0)                                  \
 

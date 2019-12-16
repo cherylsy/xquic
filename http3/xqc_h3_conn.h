@@ -10,6 +10,15 @@
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
+/* Send CONNECTION_CLOSE with err if ret is an h3 retcode */
+#define XQC_H3_CONN_ERR(h3_conn, err, ret) do {                 \
+    if (h3_conn->conn->conn_err == 0 && ret <= -XQC_H3_EMALLOC) {\
+        h3_conn->conn->conn_err = err;                          \
+        h3_conn->conn->conn_flag |= XQC_CONN_FLAG_ERROR;        \
+        xqc_log(h3_conn->conn->log, XQC_LOG_ERROR, "|conn:%p|err:0x%xi|ret:%i|%s|", \
+            h3_conn->conn, err, ret, xqc_conn_addr_str(h3_conn->conn)); \
+    }                                                           \
+} while(0)                                                      \
 
 typedef enum {
     XQC_HTTP3_CONN_FLAG_SETTINGS_RECVED     = 1 << 0,
