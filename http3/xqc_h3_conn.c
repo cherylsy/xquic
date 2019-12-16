@@ -76,6 +76,13 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->user_data = user_data;
     h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
+    xqc_http3_qpack_encoder_init(&h3_conn->qenc, QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, DEFAULT_QPACK_BLOCK_STREAM, DEFAULT_QPACK_HASH_TABLE_SIZE);
+    xqc_http3_qpack_decoder_init(&h3_conn->qdec, QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, DEFAULT_QPACK_BLOCK_STREAM);
+
+    xqc_init_list_head(&h3_conn->block_stream_head);
+    h3_conn->qdec_stream = NULL;
+    h3_conn->qenc_stream = NULL;
+
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     if(xqc_tnode_hash_create(&h3_conn->tnode_hash, XQC_TNODE_HASH_SIZE) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode hash table failed|");

@@ -13,6 +13,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define QPACK_MAX_TABLE_CAPACITY (16*1024)
+#define DEFAULT_MAX_DTABLE_SIZE (4*1024)
+#define DEFAULT_QPACK_BLOCK_STREAM (64)
+#define DEFAULT_QPACK_HASH_TABLE_SIZE (8*1024)
+
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 #define XQC_HTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
 #define XQC_HTTP3_QPACK_ENTRY_OVERHEAD 32
@@ -118,11 +123,9 @@ typedef struct xqc_http3_qpack_entry{
     xqc_qpack_ring_nv_t nv;
     xqc_http3_nv_flag_t flag;
     uint64_t absidx;
-    //uint64_t hash;
-    uint64_t name_hash;
     uint64_t sum; //
-    uint8_t draining;
-    uint8_t ack_flag;
+    //uint8_t draining;
+    //uint8_t ack_flag;
 }xqc_http3_qpack_entry;
 
 typedef struct xqc_qpack_find_result{
@@ -147,13 +150,13 @@ typedef struct {
     xqc_http3_ringbuf   dtable;
     xqc_http3_ringdata  dtable_data;
     //size_t hard_max_dtable_size;
-    size_t max_table_capacity;
-    size_t max_dtable_size; // max_dtable_size is the effective maximum size of dynamic table, the same as ringdata capacity.
-    size_t max_blocked;
-    size_t next_absidx;
+    uint64_t max_table_capacity;
+    uint64_t max_dtable_size; // max_dtable_size is the effective maximum size of dynamic table, the same as ringdata capacity.
+    uint64_t max_blocked;
+    uint64_t next_absidx;
 
-    size_t dtable_size; //the dynamic table size
-    size_t dtable_sum;
+    uint64_t dtable_size; //the dynamic table size
+    uint64_t dtable_sum;
 
 }xqc_http3_qpack_context;
 
@@ -254,7 +257,7 @@ typedef struct xqc_http3_qpack_encoder{
 
     xqc_qpack_hash_table_t dtable_hash;
 
-    size_t min_dtable_update;// min_dtable_update is the minimum dynamic table size required.
+    //size_t min_dtable_update;// min_dtable_update is the minimum dynamic table size required.
     size_t last_max_dtable_update; //last_max_dtable_update is the dynamic table size last requested.
 
     uint8_t flags;
@@ -330,4 +333,8 @@ ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t * h3_conn, uint8_t * 
 ssize_t xqc_http3_qpack_encoder_read_decoder(xqc_h3_conn_t * h3_conn, uint8_t * src, size_t srclen);
 
 int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
+int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_table_capacity, uint64_t max_dtable_size,
+        uint64_t max_blocked, size_t hash_table_size);
+int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_table_capacity, uint64_t max_dtable_size, uint64_t max_blocked);
+
 #endif
