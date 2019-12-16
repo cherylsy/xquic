@@ -78,7 +78,8 @@ inline static int xqc_memeq(const void *s1, const void *s2, size_t n) {
 size_t xqc_get_qpack_static_table_size();
 
 xqc_qpack_static_table_entry * xqc_get_qpack_static_table_entry(int idx);
-uint64_t xqc_get_qpack_token_index_value(int token);
+ssize_t xqc_get_qpack_token_index_value(int token);
 int xqc_qpack_lookup_token(const uint8_t *name, size_t namelen);
+int xqc_qpack_init_static_token_index();
 
 #endif

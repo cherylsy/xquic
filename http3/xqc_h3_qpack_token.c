@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "xqc_h3_qpack.h"
 
-uint64_t xqc_g_static_token_index[XQC_QPACK_TOKEN_MAX_SIZE];
+ssize_t xqc_g_static_token_index[XQC_QPACK_TOKEN_MAX_SIZE];
 xqc_qpack_static_table_entry xqc_g_static_table[] =
 {
     {":authority", "", 10, 0,},
@@ -119,7 +119,7 @@ xqc_qpack_static_table_entry * xqc_get_qpack_static_table_entry(int idx){
     return &xqc_g_static_table[idx];
 }
 
-uint64_t xqc_get_qpack_token_index_value(int token){
+ssize_t xqc_get_qpack_token_index_value(int token){
 
     return xqc_g_static_token_index[token];
 }

@@ -1702,6 +1702,20 @@ xqc_h3_frame_send_buf_t * xqc_create_h3_frame_send_buf(size_t buf_len){
     return p_buf;
 }
 
+int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type){
+
+    xqc_h3_frame_send_buf_t * send_buf = xqc_create_h3_frame_send_buf(1);
+
+    if(send_buf == NULL){
+        return -1;
+    }
+    send_buf->data[0] = stream_type;
+
+    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
+
+    return 0;
+}
+
 
 
 xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len){
@@ -2074,7 +2088,6 @@ int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_
     }
     return 0;//means successful buffer
 }
-
 
 
 xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_cancel_push(xqc_h3_stream_t * h3_stream, xqc_http3_frame_cancel_push * fr){

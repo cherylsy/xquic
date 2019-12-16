@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include "xqc_h3_tnode.h"
 #include "include/xquic.h"
+
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 
@@ -250,5 +251,7 @@ ssize_t xqc_http3_write_headers(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t *h3_str
 
 ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin);
 ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len);
+
+int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type);
 
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

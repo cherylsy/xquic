@@ -25,7 +25,7 @@ typedef enum {
     XQC_HTTP3_STREAM_TYPE_QPACK_DECODER = 0x03,
     XQC_HTTP3_STREAM_TYPE_REQUEST       = 0x10,
     XQC_HTTP3_STREAM_TYPE_UNKNOWN = 0xFF,
-} xqc_http3_stream_type;
+}xqc_http3_stream_type;
 
 
 typedef enum {
