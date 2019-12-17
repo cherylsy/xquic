@@ -4,6 +4,7 @@
 #include "transport/xqc_stream.h"
 #include "common/xqc_list.h"
 #include "common/xqc_id_hash.h"
+#include "common/xqc_errno.h"
 #include "transport/crypto/xqc_tls_public.h"
 #include "xqc_h3_tnode.h"
 #include "xqc_h3_request.h"
@@ -323,14 +324,10 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
     ssize_t nread;
     int64_t stream_type;
 
-    if(srclen == 0){
-        return -1;
-    }
-
     nread = xqc_http3_read_varint(rvint, src, srclen);
 
     if(nread < 0){
-        return -1;
+        return -XQC_H3_DECODE_ERROR;
     }
 
     if(rvint->left){
@@ -343,8 +340,7 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
     switch(stream_type){
         case XQC_HTTP3_STREAM_TYPE_CONTROL:
             if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_CONTROL_OPENED) {
-                //xqc_log
-                return -1;
+                return -XQC_H3_INVALID_STREAM;
             }
             h3_conn->flags |= XQC_HTTP3_CONN_FLAG_CONTROL_OPENED;
             h3_stream->type = XQC_HTTP3_STREAM_TYPE_CONTROL;
@@ -357,7 +353,7 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
             break;
         case XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER:
             if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED){
-                return -1;
+                return -XQC_H3_INVALID_STREAM;
             }
             h3_conn->flags |= XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED;
             h3_stream->type = XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER;
@@ -365,7 +361,7 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
 
         case XQC_HTTP3_STREAM_TYPE_QPACK_DECODER:
             if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED) {
-                return -1;
+                return -XQC_H3_INVALID_STREAM;
             }
             h3_conn->flags |= XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED;
             h3_stream->type = XQC_HTTP3_STREAM_TYPE_QPACK_DECODER;
@@ -379,22 +375,23 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
     h3_stream->flags |= XQC_HTTP3_STREAM_FLAG_TYPE_IDENTIFIED;
 
     return nread;
-
 }
 
 ssize_t xqc_http3_conn_read_qpack_encoder(xqc_h3_conn_t * conn,  uint8_t *src, size_t srclen) {
 
-    ssize_t nconsumed = xqc_http3_qpack_decoder_read_encoder(conn, src, srclen);
+    int insert_count = 0;
+    ssize_t nconsumed = xqc_http3_qpack_decoder_read_encoder(conn, src, srclen, &insert_count);
 
     if(nconsumed < 0){
 
         return nconsumed;
     }
 
-    /*
-     *  need finish handle blocked stream
-     */
+    //need finish ; how to send insert count increment???
 
+    if(insert_count > 0){
+        xqc_qpack_decoder_block_stream_check_and_process(conn, conn->qdec.ctx.next_absidx);
+    }
     return nconsumed;
 
 }
@@ -414,21 +411,20 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
     int rv;
 
     if(srclen == 0){
-        //error
-        return -1;
+        return 0;
     }
 
     if(!(h3_stream->flags & XQC_HTTP3_STREAM_FLAG_TYPE_IDENTIFIED)){
         nread = xqc_http3_read_control_stream_type(h3_conn, h3_stream, src, srclen);
        if(nread < 0){
-            return -1;
+            return nread;
         }
         if (!(h3_stream->flags & XQC_HTTP3_STREAM_FLAG_TYPE_IDENTIFIED)){
 
             if(nread == srclen){
                 return nread;
             }else{
-                return -1;
+                return -XQC_H3_DECODE_ERROR; // means decoder not completely
             }
         }
 
@@ -444,7 +440,7 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 
         case XQC_HTTP3_STREAM_TYPE_CONTROL:
             if(fin){
-                return -1;
+                return -XQC_H3_CLOSE_CRITICAL_STREAM;
                 //return XQC_HTTP3_ERR_HTTP_CLOSED_CRITICAL_STREAM;
             }
             nconsumed = xqc_http3_conn_read_control(h3_conn, h3_stream, src, srclen);
@@ -458,14 +454,14 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
             break;
         case XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER:
             if(fin){
-                return -1;
+                return -XQC_H3_CLOSE_CRITICAL_STREAM;
             }
             nconsumed = xqc_http3_conn_read_qpack_encoder(h3_conn, src, srclen);
             break;
 
         case XQC_HTTP3_STREAM_TYPE_QPACK_DECODER:
             if(fin){
-                return -1;
+                return -XQC_H3_CLOSE_CRITICAL_STREAM;
             }
             nconsumed = xqc_http3_conn_read_qpack_decoder(h3_conn, src, srclen);
             break;
@@ -473,13 +469,15 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
         case XQC_HTTP3_STREAM_TYPE_UNKNOWN:
             nconsumed = (ssize_t)srclen;
             //need stop stream
-            return -1;
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|read unknown stream type:%d |", h3_stream->type);
+            break;
         default:
-            return -1;
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|read error stream type:%d |", h3_stream->type);
+            return -XQC_H3_DECODE_ERROR;
     }
 
     if(nconsumed < 0){
-        return -1;
+        return nconsumed;
     }
 
     return nread + nconsumed;
@@ -1153,9 +1151,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
             h3_stream->tx_http_state = XQC_HTTP3_HTTP_STATE_REQ_INITIAL;//??
         }else{
             h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_INITIAL;//??
-
         }
-
     }
 
     ssize_t nread;
@@ -1209,13 +1205,11 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
 
                 switch(rstate->fr.hd.type){
                     case XQC_HTTP3_FRAME_HEADERS:
-                        //need finish
                         rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_HEADERS_BEGIN);
                         if(rv != 0){
                             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_transit_rx_http_state error ,r_state:%d|", rstate->state);
                             return rv;
                         }
-
                         if(rstate->left == 0){
 
                             rv = xqc_http3_stream_empty_headers_allowed(h3_stream);
@@ -1319,10 +1313,12 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                     goto done;
                 }
 
-                rv = xqc_http3_handle_header_data(h3_conn, h3_stream);
-                if(rv < 0){
-                    xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_handle_header_data error, r_state:%d|", rstate->state);
-                    return rv;
+                if(h3_stream->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED == 0){ //按照现在先缓存frame数据，等frame完整后再解析的模式，该条件永远为true
+                    rv = xqc_http3_handle_header_data(h3_conn, h3_stream);
+                    if(rv < 0){
+                        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_handle_header_data error, r_state:%d|", rstate->state);
+                        return rv;
+                    }
                 }
                 rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_HEADERS_END);
                 xqc_http3_stream_read_state_clear(rstate);
