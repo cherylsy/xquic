@@ -14,6 +14,11 @@
 #include <arpa/inet.h>
 #endif
 #include "xquic_typedef.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define XQC_QUIC_VERSION 1
 #define XQC_SUPPORT_VERSION_MAX 64
 
@@ -212,8 +217,9 @@ typedef struct xqc_http_headers_s {
 
 /* For client */
 typedef struct xqc_conn_settings_s {
-    int     pacing_on;
-    xqc_cong_ctrl_callback_t    cong_ctrl_callback;
+    int     pacing_on; /* default: 0 */
+    xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
+    int     ping_on;    /* client sends PING to keepalive, default:0 */
 } xqc_conn_settings_t;
 
 typedef struct xqc_conn_stats_s {
@@ -515,6 +521,9 @@ int xqc_conn_continue_send(xqc_engine_t *engine,
  */
 xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
                                     xqc_cid_t *cid);
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _XQUIC_H_INCLUDED_ */
 

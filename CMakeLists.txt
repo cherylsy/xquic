@@ -91,11 +91,22 @@ add_library(
 
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     target_link_libraries(
-        xquic
-        "-ldl -Wl,--whole-archive"
-        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
-        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
-        "-Wl,--no-whole-archive"
+       xquic
+       "-ldl -Wl,--whole-archive"
+       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
+       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
+       "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,--whole-archive"
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libcrypto.a
+            "-Wl,--no-whole-archive"
     )
     #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
     #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)

@@ -122,7 +122,7 @@ xqc_packet_process_single(xqc_connection_t *c,
         if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT &&
                 !xqc_tls_check_0rtt_key_ready(c)) {
 
-            xqc_log(c->log, XQC_LOG_WARN, "|delay|buff 0RTT before initial received|");
+            xqc_log(c->log, XQC_LOG_WARN, "|delay|buff 0RTT before 0rtt_key_ready|");
             /* buffer packets */
             xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
 

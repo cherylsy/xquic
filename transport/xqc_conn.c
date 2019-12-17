@@ -25,6 +25,7 @@
 
 xqc_conn_settings_t default_conn_settings = {
         .pacing_on  =   0,
+        .ping_on    =   0,
 };
 
 void
@@ -32,6 +33,7 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
 {
     default_conn_settings.cong_ctrl_callback = settings.cong_ctrl_callback;
     default_conn_settings.pacing_on = settings.pacing_on;
+    default_conn_settings.ping_on = settings.ping_on;
 }
 
 static char g_conn_flag_buf[128];

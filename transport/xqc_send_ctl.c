@@ -41,7 +41,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
                            now + send_ctl->ctl_conn->local_settings.idle_timeout * 1000);
 
-    if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+    if (conn->conn_settings.ping_on && conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_PING, now + XQC_PING_TIMEOUT * 1000);
     }
 
@@ -157,8 +157,8 @@ xqc_send_ctl_can_send (xqc_connection_t *conn)
           && conn->conn_send_ctl->ctl_bytes_send > 3 * conn->conn_send_ctl->ctl_bytes_recv) {
         can = 0;
     }
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|can:%i|inflight:%ui|cwnd:%ud|",
-            can, conn->conn_send_ctl->ctl_bytes_in_flight, congestion_window);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|can:%i|inflight:%ui|cwnd:%ud|conn:%p|%s|",
+            can, conn->conn_send_ctl->ctl_bytes_in_flight, congestion_window, conn, xqc_conn_addr_str(conn));
     return can;
 }
 
@@ -926,7 +926,7 @@ xqc_send_ctl_ping_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ct
 
     conn->conn_flag |= XQC_CONN_FLAG_PING;
 
-    if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+    if (conn->conn_settings.ping_on && conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_PING, now + XQC_PING_TIMEOUT * 1000);
     }
 }
