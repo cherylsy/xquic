@@ -50,6 +50,8 @@ typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user
 typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
 
+typedef void (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_cid_t *cid);
+
 //session save callback
 typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_user_data);
 //transport parameters save callback
@@ -151,6 +153,9 @@ typedef struct xqc_engine_callback_s {
 
     /* for socket write */
     xqc_socket_write_pt         write_socket; /* 用户实现socket写接口 */
+
+    /* for server, callback when server accept a new connection */
+    xqc_server_accept_pt        server_accept;
 
     /* for connection notify */
     xqc_conn_callbacks_t        conn_callbacks;

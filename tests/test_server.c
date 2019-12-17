@@ -491,6 +491,10 @@ xqc_server_event_callback(int fd, short what, void *arg)
     }
 }
 
+void xqc_server_accept(xqc_engine_t *engine, xqc_cid_t *cid)
+{
+    DEBUG
+}
 
 static int xqc_server_create_socket(const char *addr, unsigned int port)
 {
@@ -663,6 +667,7 @@ int main(int argc, char *argv[]) {
                     .h3_request_close_notify = xqc_server_request_close_notify,
             },
             .write_socket = xqc_server_send,
+            .server_accept = xqc_server_accept,
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
                     .log_level = XQC_LOG_DEBUG,

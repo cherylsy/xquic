@@ -274,7 +274,10 @@ xqc_conn_server_create(xqc_engine_t *engine,
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
-    /* Do callback on alpn */
+    if (engine->eng_callback.server_accept) {
+        engine->eng_callback.server_accept(engine, &conn->scid);
+    }
+    /* Do connection callback on alpn */
 
     return conn;
 
