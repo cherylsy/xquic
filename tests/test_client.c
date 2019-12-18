@@ -183,12 +183,12 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
     user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res;
     int fd = user_conn->fd;
-    printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
+    //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
         //res = write(fd, buf, size);
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
-        printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
+        //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
         }
@@ -567,7 +567,7 @@ xqc_client_read_handler(user_conn_t *user_conn)
         }
 
         uint64_t recv_time = now();
-        printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
+        //printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
@@ -736,8 +736,8 @@ int main(int argc, char *argv[]) {
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
             //.cong_ctrl_callback = xqc_reno_cb,
-            .cong_ctrl_callback = xqc_cubic_cb,
-            //.cong_ctrl_callback = xqc_bbr_cb,
+            //.cong_ctrl_callback = xqc_cubic_cb,
+            .cong_ctrl_callback = xqc_bbr_cb,
             .ping_on    =   0,
     };
 

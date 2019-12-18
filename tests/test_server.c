@@ -413,15 +413,15 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size,
                         const struct sockaddr *peer_addr,
                         socklen_t peer_addrlen) {
-    DEBUG;
+    //DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
     ssize_t res;
     int fd = ctx.fd;
-    printf("xqc_server_send size=%zd now=%llu\n",size, now());
+    //printf("xqc_server_send size=%zd now=%llu\n",size, now());
     do {
         errno = 0;
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
-        printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
+        //printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
 
     return res;
@@ -460,7 +460,7 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
         }
 
         uint64_t recv_time = now();
-        printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu, recv_total=%d\n", recv_size, recv_time, now(), ++g_recv_total);
+        //printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu, recv_total=%d\n", recv_size, recv_time, now(), ++g_recv_total);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));*/
         if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
