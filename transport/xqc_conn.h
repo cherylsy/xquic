@@ -390,6 +390,10 @@ int xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection
 
 int xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
+void xqc_conn_buff_1rtt_packets(xqc_connection_t *conn);
+
+void xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn);
+
 xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
 char *xqc_conn_local_addr_str(const struct sockaddr *local_addr,

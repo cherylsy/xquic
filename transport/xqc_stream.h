@@ -187,13 +187,13 @@ int
 xqc_read_crypto_stream(xqc_stream_t * stream);
 
 ssize_t
-xqc_stream_write_buff(xqc_stream_t *stream,
+xqc_stream_buff_data(xqc_stream_t *stream,
                       unsigned char *send_data,
                       size_t send_data_size,
                       uint8_t fin);
 
 int
-xqc_stream_write_buff_to_packets(xqc_stream_t *stream);
+xqc_stream_write_buffed_data_to_packets(xqc_stream_t *stream);
 
 void
 xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame);

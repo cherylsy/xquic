@@ -1015,7 +1015,7 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
             }
             stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
             stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
-            xqc_stream_write_buff_to_packets(stream);
+            xqc_stream_write_buffed_data_to_packets(stream);
         }
     }
     return XQC_OK;
@@ -1107,6 +1107,44 @@ xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t
     }
 
     return XQC_OK;
+}
+
+void
+xqc_conn_buff_1rtt_packets(xqc_connection_t *conn)
+{
+    xqc_packet_out_t *packet_out;
+    xqc_list_head_t *pos, *next;
+    xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER) {
+            xqc_send_ctl_remove_send(&packet_out->po_list);
+            xqc_send_ctl_insert_buff(&packet_out->po_list, &conn->conn_send_ctl->ctl_buff_1rtt_packets);
+            if (!(conn->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
+                packet_out->po_flag |= XQC_POF_DCID_NOT_DONE;
+            }
+        }
+    }
+}
+
+void
+xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn)
+{
+    if (conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
+        xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+        xqc_list_head_t *pos, *next;
+        xqc_packet_out_t *packet_out;
+        unsigned total = 0;
+        xqc_list_for_each_safe(pos, next, &ctl->ctl_buff_1rtt_packets) {
+            packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+            xqc_send_ctl_remove_buff(pos, ctl);
+            xqc_send_ctl_insert_send(pos, &ctl->ctl_send_packets, ctl);
+            if (packet_out->po_flag & XQC_POF_DCID_NOT_DONE) {
+                xqc_short_packet_update_dcid(packet_out, conn);
+            }
+            ++total;
+        }
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|total:%ui|", total);
+    }
 }
 
 xqc_msec_t
