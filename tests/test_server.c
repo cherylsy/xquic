@@ -403,7 +403,6 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return read;
         }
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
-        user_stream->recv_body_len += read;
 
         /* 保存接收到的body到文件 */
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
@@ -416,6 +415,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         if (g_echo) {
             memcpy(user_stream->recv_body_buf + user_stream->recv_body_len, buff, buff_size);
         }
+        user_stream->recv_body_len += read;
         /*xqc_h3_request_close(h3_request);
         return 0;*/
 
