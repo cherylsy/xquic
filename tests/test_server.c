@@ -22,6 +22,7 @@ int printf_null(const char *format, ...)
 #define TEST_PORT 8443
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
+#define MAX_BUF_SIZE (30*1024*1024)
 
 typedef struct user_stream_s {
     xqc_stream_t       *stream;
@@ -35,6 +36,7 @@ typedef struct user_stream_s {
     char               *recv_body;
     size_t              recv_body_len;
     FILE               *recv_body_fp;
+    char               *recv_body_buf;
 } user_stream_t;
 
 typedef struct user_conn_s {
@@ -55,6 +57,7 @@ typedef struct xqc_server_ctx_s {
 
 xqc_server_ctx_t ctx;
 struct event_base *eb;
+int g_echo = 0;
 
 static inline uint64_t now()
 {
@@ -286,15 +289,20 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (user_stream->send_body == NULL) {
-        user_stream->send_body_max = 10*1024*1024;
-        user_stream->send_body = malloc(user_stream->send_body_max);
-        ret = read_file_data(user_stream->send_body, user_stream->send_body_max, "server_send_body");
-        if (ret < 0) {
-            printf("read body error\n");
-            /*文件不存在则发内存*/
-            user_stream->send_body_len = 1024*1024;
+        if (g_echo) {
+            user_stream->send_body = user_stream->recv_body_buf;
+            user_stream->send_body_len = user_stream->recv_body_len;
         } else {
-            user_stream->send_body_len = ret;
+            user_stream->send_body_max = MAX_BUF_SIZE;
+            user_stream->send_body = malloc(user_stream->send_body_max);
+            ret = read_file_data(user_stream->send_body, user_stream->send_body_max, "server_send_body");
+            if (ret < 0) {
+                printf("read body error\n");
+                /*文件不存在则发内存*/
+                user_stream->send_body_len = 1024 * 1024;
+            } else {
+                user_stream->send_body_len = ret;
+            }
         }
     }
 
@@ -320,6 +328,9 @@ int xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *user_da
     user_stream->h3_request = h3_request;
     xqc_h3_request_set_user_data(h3_request, user_stream);
 
+    if (g_echo) {
+        user_stream->recv_body_buf = malloc(MAX_BUF_SIZE);
+    }
     return 0;
 }
 
@@ -327,6 +338,7 @@ int xqc_server_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
+    free(user_stream->recv_body_buf);
     free(user_stream);
 
     return 0;
@@ -391,13 +403,22 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return read;
         }
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        user_stream->recv_body_len += read;
+
+        /* 保存接收到的body到文件 */
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
             return -1;
         }
+        if (save) fflush(user_stream->recv_body_fp);
+
+        /* 保存接收到的body到内存 */
+        if (g_echo) {
+            memcpy(user_stream->recv_body_buf + user_stream->recv_body_len, buff, buff_size);
+        }
         /*xqc_h3_request_close(h3_request);
         return 0;*/
-        if (save) fflush(user_stream->recv_body_fp);
+
     } while (read > 0 && !fin);
 
     // 打开注释，服务端收到包后测试发送reset
@@ -603,12 +624,16 @@ int main(int argc, char *argv[]) {
 
     int server_port = TEST_PORT;
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:e:")) != -1){
         switch(ch)
         {
             case 'p':
                 printf("option port :%s\n", optarg);
                 server_port = atoi(optarg);
+                break;
+            case 'e':
+                printf("option echo :%s\n", optarg);
+                g_echo = atoi(optarg);
                 break;
 
             default:

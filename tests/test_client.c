@@ -664,9 +664,10 @@ int main(int argc, char *argv[]) {
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
+    int stream_num = 1;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:s:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -676,6 +677,10 @@ int main(int argc, char *argv[]) {
             case 'p':
                 printf("option port :%s\n", optarg);
                 server_port = atoi(optarg);
+                break;
+            case 's':
+                printf("option stream_num :%s\n", optarg);
+                stream_num = atoi(optarg);
                 break;
 
             default:
@@ -736,8 +741,8 @@ int main(int argc, char *argv[]) {
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   0,
             //.cong_ctrl_callback = xqc_reno_cb,
-            //.cong_ctrl_callback = xqc_cubic_cb,
-            .cong_ctrl_callback = xqc_bbr_cb,
+            .cong_ctrl_callback = xqc_cubic_cb,
+            //.cong_ctrl_callback = xqc_bbr_cb,
             .ping_on    =   0,
     };
 
@@ -815,25 +820,23 @@ int main(int argc, char *argv[]) {
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
-    //xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
-    //xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
-//for (int i = 0; i < 10; i++) {
-    user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
-    if (user_conn->h3) {
-        user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
-        if (user_stream->h3_request == NULL) {
-            return -1;
+    for (int i = 0; i < stream_num; i++) {
+        user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
+        if (user_conn->h3) {
+            user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
+            if (user_stream->h3_request == NULL) {
+                return -1;
+            }
+            xqc_client_request_send(user_stream->h3_request, user_stream);
+            //xqc_h3_request_close(user_stream->h3_request);
+        } else {
+            user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
+            if (user_stream->stream == NULL) {
+                return -1;
+            }
+            xqc_client_stream_send(user_stream->stream, user_stream);
         }
-        xqc_client_request_send(user_stream->h3_request, user_stream);
-        //xqc_h3_request_close(user_stream->h3_request);
-    } else {
-        user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
-        if (user_stream->stream == NULL) {
-            return -1;
-        }
-        xqc_client_stream_send(user_stream->stream, user_stream);
     }
-//}
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);
