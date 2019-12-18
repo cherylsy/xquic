@@ -491,7 +491,7 @@ xqc_server_event_callback(int fd, short what, void *arg)
     }
 }
 
-void xqc_server_accept(xqc_engine_t *engine, xqc_cid_t *cid)
+void xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, void *user_data)
 {
     DEBUG
 }
