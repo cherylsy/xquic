@@ -183,12 +183,12 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
     user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res;
     int fd = user_conn->fd;
-    printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
+    //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
         //res = write(fd, buf, size);
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
-        printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
+        //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
         }
@@ -567,7 +567,7 @@ xqc_client_read_handler(user_conn_t *user_conn)
         }
 
         uint64_t recv_time = now();
-        printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
+        //printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
@@ -664,9 +664,10 @@ int main(int argc, char *argv[]) {
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
+    int stream_num = 1;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:s:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -676,6 +677,10 @@ int main(int argc, char *argv[]) {
             case 'p':
                 printf("option port :%s\n", optarg);
                 server_port = atoi(optarg);
+                break;
+            case 's':
+                printf("option stream_num :%s\n", optarg);
+                stream_num = atoi(optarg);
                 break;
 
             default:
@@ -815,25 +820,23 @@ int main(int argc, char *argv[]) {
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
-    //xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
-    //xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
-//for (int i = 0; i < 10; i++) {
-    user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
-    if (user_conn->h3) {
-        user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
-        if (user_stream->h3_request == NULL) {
-            return -1;
+    for (int i = 0; i < stream_num; i++) {
+        user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
+        if (user_conn->h3) {
+            user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
+            if (user_stream->h3_request == NULL) {
+                return -1;
+            }
+            xqc_client_request_send(user_stream->h3_request, user_stream);
+            //xqc_h3_request_close(user_stream->h3_request);
+        } else {
+            user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
+            if (user_stream->stream == NULL) {
+                return -1;
+            }
+            xqc_client_stream_send(user_stream->stream, user_stream);
         }
-        xqc_client_request_send(user_stream->h3_request, user_stream);
-        //xqc_h3_request_close(user_stream->h3_request);
-    } else {
-        user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
-        if (user_stream->stream == NULL) {
-            return -1;
-        }
-        xqc_client_stream_send(user_stream->stream, user_stream);
     }
-//}
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);

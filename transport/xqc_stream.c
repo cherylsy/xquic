@@ -964,7 +964,6 @@ xqc_stream_send (xqc_stream_t *stream,
     size_t send_data_written = 0;
     size_t offset = 0; //本次send_data中的已写offset
     xqc_connection_t *conn = stream->stream_conn;
-    xqc_packet_out_t *packet_out;
     uint8_t fin_only = fin && !send_data_size;
     uint8_t fin_only_done = 0;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
@@ -1007,14 +1006,14 @@ xqc_stream_send (xqc_stream_t *stream,
         }
 
         if (!xqc_send_ctl_can_write(conn->conn_send_ctl)) {
-            xqc_log(conn->log, XQC_LOG_WARN, "|too many packets used|ctl_packets_used:%ui|", conn->conn_send_ctl->ctl_packets_used);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|too many packets used|ctl_packets_used:%ui|", conn->conn_send_ctl->ctl_packets_used);
             ret = -XQC_EAGAIN;
             goto do_buff;
         }
 
 
         if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count >= XQC_PACKET_0RTT_MAX_COUNT) {
-            xqc_log(conn->log, XQC_LOG_WARN, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
             ret = -XQC_EAGAIN;
             goto do_buff;
         }
@@ -1042,17 +1041,7 @@ xqc_stream_send (xqc_stream_t *stream,
 do_buff:
     /* 握手完成后再发送，移到缓存包队列 */
     if (buff_1rtt) {
-        xqc_list_head_t *pos, *next;
-        xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
-            packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_pkt.pkt_type == XQC_PTYPE_SHORT_HEADER) {
-                xqc_send_ctl_remove_send(&packet_out->po_list);
-                xqc_send_ctl_insert_buff(&packet_out->po_list, &conn->conn_send_ctl->ctl_buff_1rtt_packets);
-                if (!(conn->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
-                    packet_out->po_flag |= XQC_POF_DCID_NOT_DONE;
-                }
-            }
-        }
+        xqc_conn_buff_1rtt_packets(conn);
     }
 
     /* 0RTT失败需要回退到1RTT，保存原始发送数据 */
@@ -1064,7 +1053,7 @@ do_buff:
 
         /* 如果没有写入任何数据或fin，则不需要缓存 */
         if (offset > 0 || fin_only) {
-            xqc_stream_write_buff(stream, send_data, offset, fin);
+            xqc_stream_buff_data(stream, send_data, offset, fin);
         }
     }
 
@@ -1098,7 +1087,7 @@ do_buff:
 }
 
 ssize_t
-xqc_stream_write_buff(xqc_stream_t *stream,
+xqc_stream_buff_data(xqc_stream_t *stream,
                       unsigned char *send_data,
                       size_t send_data_size,
                       uint8_t fin)
@@ -1126,7 +1115,7 @@ xqc_stream_write_buff(xqc_stream_t *stream,
 }
 
 int
-xqc_stream_write_buff_to_packets(xqc_stream_t *stream)
+xqc_stream_write_buffed_data_to_packets(xqc_stream_t *stream)
 {
     xqc_connection_t *conn = stream->stream_conn;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;

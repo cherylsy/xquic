@@ -384,12 +384,12 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if(!bbr->has_srtt && sampler->srtt)
         xqc_bbr_init_pacing_rate(bbr, sampler);
 
-    if(bbr->pacing_rate == 0){//TODO:放后面
-        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
-    }
-
     if(bbr->full_bandwidth_reached || rate > bbr->pacing_rate)
         bbr->pacing_rate = rate;
+
+    if(bbr->pacing_rate == 0){
+        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
+    }
 }
 
 
