@@ -162,6 +162,16 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
         return -1;
     }
 
+    if((sc->alpn == NULL) || (strlen(sc->alpn) == strlen(XQC_ALPN_HTTP3)  && memcmp(sc->alpn, XQC_ALPN_HTTP3, strlen(XQC_ALPN_HTTP3)) == 0 )){
+        tlsref->alpn_num = XQC_ALPN_HTTP3_NUM;
+    }else if(strlen(sc->alpn) == strlen(XQC_ALPN_TRANSPORT) && memcmp(sc->alpn,  XQC_ALPN_TRANSPORT, strlen(XQC_ALPN_TRANSPORT)) == 0){
+        tlsref->alpn_num = XQC_ALPN_TRANSPORT_NUM;
+    }else{
+        xqc_log(conn->log, XQC_LOG_ERROR, "| alpn protocol invalid |");
+        return -1;
+    }
+
+
     conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc);// connection ssl config, early data flag should initial before call xqc_create_client_ssl
     if(conn->xc_ssl == NULL){
         xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_create_client_ssl error |");
