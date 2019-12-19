@@ -295,6 +295,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (user_stream->send_body == NULL) {
+        /* echo > 指定大小 > 指定文件 > 默认大小 */
         if (g_echo) {
             user_stream->send_body = user_stream->recv_body_buf;
             user_stream->send_body_len = user_stream->recv_body_len;
@@ -304,7 +305,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
 
             if (g_send_body_size_defined) {
                 user_stream->send_body_len = g_send_body_size;
-            } else {
+            } else if (g_read_body) {
                 ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
                 if (ret < 0) {
                     printf("read body error\n");
@@ -312,6 +313,8 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                 } else {
                     user_stream->send_body_len = ret;
                 }
+            } else {
+                user_stream->send_body_len = g_send_body_size;
             }
         }
     }
