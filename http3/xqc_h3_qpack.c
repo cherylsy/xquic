@@ -17,7 +17,7 @@ static size_t xqc_table_space(size_t namelen, size_t valuelen) {
 
 xqc_var_string_t * xqc_create_var_string(uint8_t * value, size_t strlen){
 
-    xqc_var_string_t *v_str = malloc(sizeof(xqc_var_string_t) + strlen + 1);
+    xqc_var_string_t *v_str = xqc_malloc(sizeof(xqc_var_string_t) + strlen + 1);
     if(v_str == NULL){
         return NULL;
     }
@@ -46,7 +46,7 @@ int xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv){
 
 xqc_var_buf_t * xqc_var_buf_create(size_t capacity){
 
-    xqc_var_buf_t * p = malloc(sizeof(xqc_var_buf_t) + capacity);
+    xqc_var_buf_t * p = xqc_malloc(sizeof(xqc_var_buf_t) + capacity);
     if(p == NULL){
         return NULL;
     }
@@ -671,7 +671,7 @@ int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_tab
 int xqc_qpack_hash_table_init(xqc_qpack_hash_table_t * htable, size_t element_count){
 
     htable->element_count = element_count;
-    htable->list = malloc(element_count * sizeof(xqc_list_head_t));
+    htable->list = xqc_malloc(element_count * sizeof(xqc_list_head_t));
     size_t i = 0;
 
     for(i = 0; i < element_count; i++){
@@ -1140,7 +1140,7 @@ int xqc_qpack_decoder_block_stream_check_and_process(xqc_h3_conn_t *h3_conn, uin
 
 int xqc_qpack_decoder_block_stream_insert(xqc_h3_stream_t * h3_stream, uint64_t ricnt, xqc_list_head_t *head){
 
-    xqc_qpack_decoder_block_stream_t * block_stream = malloc(sizeof(xqc_qpack_decoder_block_stream_t));
+    xqc_qpack_decoder_block_stream_t * block_stream = xqc_malloc(sizeof(xqc_qpack_decoder_block_stream_t));
 
     xqc_init_list_head(&block_stream->head_list);
     block_stream->ricnt = ricnt;
@@ -1663,7 +1663,7 @@ int xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, siz
     size_t msize = 1;
     for(; msize < cap; msize = msize << 1);
 
-    char * buf = malloc(msize);
+    char * buf = xqc_malloc(msize);
     size_t capacity = msize;
     size_t mask = msize - 1;
 
@@ -1930,11 +1930,11 @@ int xqc_http3_qpack_decoder_dtable_duplicate_add(xqc_http3_qpack_decoder * decod
 
     //char *buf = malloc(xqc_max(entry->nv.name_len, entry->nv.value_len));
 
-    char *name_buf = malloc(entry->nv.name_len);
+    char *name_buf = xqc_malloc(entry->nv.name_len);
 
     xqc_http3_ringdata_copy_data(&decoder->ctx.dtable_data, entry->nv.name_index, entry->nv.name_len, name_buf, entry->nv.name_len);
 
-    char *value_buf = malloc(entry->nv.value_len);
+    char *value_buf = xqc_malloc(entry->nv.value_len);
     xqc_http3_ringdata_copy_data(&decoder->ctx.dtable_data, entry->nv.value_index, entry->nv.value_len, value_buf, entry->nv.value_len);
 
 
@@ -1954,7 +1954,7 @@ int xqc_http3_qpack_decoder_dtable_dynamic_add(xqc_http3_qpack_decoder * decoder
     xqc_http3_qpack_entry *entry;
     entry = xqc_http3_qpack_context_dtable_get(&decoder->ctx, decoder->rstate.absidx);
 
-    char *name_buf = malloc(entry->nv.name_len);
+    char *name_buf = xqc_malloc(entry->nv.name_len);
 
     xqc_http3_ringdata_copy_data(&decoder->ctx.dtable_data, entry->nv.name_index, entry->nv.name_len, name_buf, entry->nv.name_len);
 
@@ -2302,7 +2302,7 @@ int xqc_http3_qpack_check_and_refresh_insert_count(xqc_http3_qpack_encoder * enc
 
 int xqc_http3_qpack_encoder_insert_unack_header(xqc_h3_stream_t * qenc_stream, xqc_h3_stream_t *h3_stream, xqc_http3_qpack_encoder * encoder,
         uint64_t min_rcnt, uint64_t max_rcnt){
-    xqc_qpack_unack_header_block * unack_block = malloc(sizeof(xqc_qpack_unack_header_block));
+    xqc_qpack_unack_header_block * unack_block = xqc_malloc(sizeof(xqc_qpack_unack_header_block));
     xqc_init_list_head(&unack_block->header_block_list);
     xqc_init_list_head(&unack_block->stream_in_list);
     unack_block->min_rcnt = min_rcnt;
@@ -2670,11 +2670,11 @@ int xqc_qpack_encoder_write_duplicate_insert(xqc_http3_qpack_encoder *encoder, x
 
 int xqc_http3_qpack_encoder_dtable_duplicate_add(xqc_http3_qpack_encoder * encoder, xqc_http3_qpack_entry *entry){
 
-    char *name_buf = malloc(entry->nv.name_len);
+    char *name_buf = xqc_malloc(entry->nv.name_len);
 
     xqc_http3_ringdata_copy_data(&encoder->ctx.dtable_data, entry->nv.name_index, entry->nv.name_len, name_buf, entry->nv.name_len);
 
-    char *value_buf = malloc(entry->nv.value_len);
+    char *value_buf = xqc_malloc(entry->nv.value_len);
     xqc_http3_ringdata_copy_data(&encoder->ctx.dtable_data, entry->nv.value_index, entry->nv.value_len, value_buf, entry->nv.value_len);
 
     int rv = xqc_http3_qpack_context_dtable_add(&encoder->ctx, name_buf, entry->nv.name_len, value_buf, entry->nv.value_len, &encoder->dtable_hash);
@@ -2923,7 +2923,7 @@ fail:
 
 int xqc_http_headers_create_buf(xqc_http_headers_t *headers, size_t capacity){
 
-    headers->headers = malloc(sizeof(xqc_http_header_t) * capacity);
+    headers->headers = xqc_malloc(sizeof(xqc_http_header_t) * capacity);
     memset(headers->headers, 0, sizeof(xqc_http_header_t) * capacity);
     headers->count = 0;
     headers->capacity = capacity;
@@ -2937,7 +2937,7 @@ int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity){
     }
     xqc_http_header_t * old = headers->headers;
 
-    headers->headers = malloc(sizeof(xqc_http_header_t) * capacity);
+    headers->headers = xqc_malloc(sizeof(xqc_http_header_t) * capacity);
 
     if(headers->headers == NULL){
         free(old);
@@ -2969,9 +2969,9 @@ int xqc_http3_http_headers_save_nv(xqc_http_headers_t * headers, xqc_qpack_name_
     }
     xqc_http_header_t * header  = &headers->headers[headers->count++];
 
-    header->name.iov_base = malloc(nv->name->strlen + 1);
+    header->name.iov_base = xqc_malloc(nv->name->strlen + 1);
     header->name.iov_len = nv->name->strlen;
-    header->value.iov_base = malloc(nv->value->strlen + 1);
+    header->value.iov_base = xqc_malloc(nv->value->strlen + 1);
     header->value.iov_len = nv->value->strlen;
     strncpy(header->name.iov_base, nv->name->data, header->name.iov_len + 1);
     strncpy(header->value.iov_base, nv->value->data, header->value.iov_len + 1);
