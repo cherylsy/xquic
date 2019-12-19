@@ -620,20 +620,29 @@ ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_
 int main(int argc, char *argv[]) {
     printf("Usage: %s\n", argv[0], XQC_QUIC_VERSION);
 
-    int rc;
-
     int server_port = TEST_PORT;
+    char c_cong_ctl = 'c';
+    int pacing_on = 0;
+
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:e:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:ec:C")) != -1){
         switch(ch)
         {
             case 'p':
                 printf("option port :%s\n", optarg);
                 server_port = atoi(optarg);
                 break;
-            case 'e':
-                printf("option echo :%s\n", optarg);
-                g_echo = atoi(optarg);
+            case 'e': //返回接收到的body
+                printf("option echo :%s\n", "on");
+                g_echo = 1;
+                break;
+            case 'c': //拥塞算法 r:reno b:bbr c:cubic
+                printf("option cong_ctl :%s\n", optarg);
+                c_cong_ctl = optarg[0];
+                break;
+            case 'C': //pacing on
+                printf("option pacing :%s\n", "on");
+                pacing_on = 1;
                 break;
 
             default:
@@ -703,11 +712,21 @@ int main(int argc, char *argv[]) {
             },
     };
 
+    xqc_cong_ctrl_callback_t cong_ctrl;
+    if (c_cong_ctl == 'b') {
+        cong_ctrl = xqc_bbr_cb;
+    } else if (c_cong_ctl == 'r') {
+        cong_ctrl = xqc_reno_cb;
+    } else if (c_cong_ctl == 'c') {
+        cong_ctrl = xqc_cubic_cb;
+    } else {
+        printf("unknown cong_ctrl, option is b, r, c\n");
+        return -1;
+    }
+
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   0,
-            //.cong_ctrl_callback = xqc_reno_cb,
-            .cong_ctrl_callback = xqc_cubic_cb,
-            //.cong_ctrl_callback = xqc_bbr_cb,
+            .pacing_on  =   pacing_on,
+            .cong_ctrl_callback = cong_ctrl,
     };
     xqc_server_set_conn_settings(conn_settings);
 

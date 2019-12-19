@@ -338,7 +338,7 @@ xqc_stream_create (xqc_engine_t *engine,
 
     stream = xqc_create_stream_with_conn(conn, XQC_UNDEFINE_STREAM_ID, XQC_CLI_BID, user_data);
     if (!stream) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|");
         return NULL;
     }
 
@@ -363,7 +363,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
 
     xqc_stream_t *stream = xqc_calloc(1, sizeof(xqc_stream_t));
     if (stream == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_pcalloc error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_calloc error|");
         return NULL;
     }
     xqc_list_add_tail(&stream->all_stream_list, &conn->conn_all_streams);

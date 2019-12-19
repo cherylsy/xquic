@@ -26,12 +26,16 @@ int printf_null(const char *format, ...)
 
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
+#define MAX_BUF_SIZE (30*1024*1024)
 
 #define XQC_MAX_TOKEN_LEN 32
+
+typedef struct user_conn_s user_conn_t;
 
 typedef struct user_stream_s {
     xqc_stream_t       *stream;
     xqc_h3_request_t   *h3_request;
+    user_conn_t        *user_conn;
     uint64_t            send_offset;
     int                 header_sent;
     int                 header_recvd;
@@ -69,6 +73,8 @@ typedef struct client_ctx_s {
 
 client_ctx_t ctx;
 struct event_base *eb;
+int g_req_cnt = 0;
+int g_req_max = 1;
 
 static inline uint64_t now()
 {
@@ -147,7 +153,6 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
 
     ssize_t n = read(fd, token, token_len);
     printf("read token size %lld\n", n);
-    printf("0x%x\n", token[0]);
     close(fd);
     return n;
 }
@@ -427,7 +432,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (user_stream->send_body == NULL) {
-        user_stream->send_body_max = 10*1024*1024;
+        user_stream->send_body_max = MAX_BUF_SIZE;
         user_stream->send_body = malloc(user_stream->send_body_max);
         ret = read_file_data(user_stream->send_body, user_stream->send_body_max, "client_send_body");
         if (ret < 0) {
@@ -523,12 +528,20 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t *)user_data;
+    user_conn_t *user_conn = user_stream->user_conn;
 
     xqc_request_stats_t stats;
     stats = xqc_h3_request_get_stats(h3_request);
     printf("send_body_size:%zu, recv_body_size:%zu\n", stats.send_body_size, stats.recv_body_size);
 
     free(user_stream);
+
+    if (g_req_cnt < g_req_max) {
+        user_stream = calloc(1, sizeof(user_stream_t));
+        user_stream->user_conn = user_conn;
+        user_stream->h3_request = xqc_h3_request_create(ctx.engine, &user_conn->cid, user_stream);
+        g_req_cnt++;
+    }
     return 0;
 }
 
@@ -660,29 +673,55 @@ ssize_t xqc_client_write_log_file(void *engine_user_data, const void *buf, size_
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
-    int rc;
-
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
-    int stream_num = 1;
+    int req_paral = 1;
+    char c_cong_ctl = 'c';
+    int pacing_on = 0;
+    int conn_timeout = 3;
+    int transport = 0;
+    int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:s:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1")) != -1){
         switch(ch)
         {
             case 'a':
-                printf("option a:'%s'\n", optarg);
+                printf("option addr:'%s'\n", optarg);
                 snprintf(server_addr, sizeof(server_addr), optarg);
                 break;
             case 'p':
                 printf("option port :%s\n", optarg);
                 server_port = atoi(optarg);
                 break;
-            case 's':
-                printf("option stream_num :%s\n", optarg);
-                stream_num = atoi(optarg);
+            case 'P': //请求并发数
+                printf("option req_paral :%s\n", optarg);
+                req_paral = atoi(optarg);
                 break;
-
+            case 'n': //请求总数
+                printf("option req_max :%s\n", optarg);
+                g_req_max = atoi(optarg);
+                break;
+            case 'c': //拥塞算法 r:reno b:bbr c:cubic
+                printf("option cong_ctl :%s\n", optarg);
+                c_cong_ctl = optarg[0];
+                break;
+            case 'C': //pacing on
+                printf("option pacing :%s\n", "on");
+                pacing_on = 1;
+                break;
+            case 't': //n秒后关闭连接
+                printf("option conn_timeout :%s\n", optarg);
+                conn_timeout = atoi(optarg);
+                break;
+            case 'T': //仅使用传输层，不使用HTTP3
+                printf("option transport :%s\n", "on");
+                transport = 1;
+                break;
+            case '1': //强制走1RTT
+                printf("option 1RTT :%s\n", "on");
+                use_1rtt = 1;
+                break;
             default:
                 printf("other option :%c\n", ch);
                 exit(0);
@@ -738,11 +777,21 @@ int main(int argc, char *argv[]) {
             .save_tp_cb = save_tp_cb,
     };
 
+    xqc_cong_ctrl_callback_t cong_ctrl;
+    if (c_cong_ctl == 'b') {
+        cong_ctrl = xqc_bbr_cb;
+    } else if (c_cong_ctl == 'r') {
+        cong_ctrl = xqc_reno_cb;
+    } else if (c_cong_ctl == 'c') {
+        cong_ctrl = xqc_cubic_cb;
+    } else {
+        printf("unknown cong_ctrl, option is b, r, c\n");
+        return -1;
+    }
+
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   0,
-            //.cong_ctrl_callback = xqc_reno_cb,
-            .cong_ctrl_callback = xqc_cubic_cb,
-            //.cong_ctrl_callback = xqc_bbr_cb,
+            .pacing_on  =   pacing_on,
+            .cong_ctrl_callback = cong_ctrl,
             .ping_on    =   0,
     };
 
@@ -756,13 +805,12 @@ int main(int argc, char *argv[]) {
     user_conn = calloc(1, sizeof(user_conn_t));
 
     //是否使用http3
-    user_conn->h3 = 1;
-    //user_conn->h3 = 0;
+    user_conn->h3 = transport ? 0 : 1;
 
     user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
     /* 设置连接超时 */
     struct timeval tv;
-    tv.tv_sec = 3;
+    tv.tv_sec = conn_timeout;
     tv.tv_usec = 0;
     event_add(user_conn->ev_timeout, &tv);
 
@@ -793,8 +841,8 @@ int main(int argc, char *argv[]) {
     int session_len = read_file_data(session_ticket_data, sizeof(session_ticket_data), "test_session");
     int tp_len = read_file_data(tp_data, sizeof(tp_data), "tp_localhost");
 
-    if (session_len < 0 || tp_len < 0) {
-        printf("sessoin data read error");
+    if (session_len < 0 || tp_len < 0 || use_1rtt) {
+        printf("sessoin data read error or use_1rtt\n");
         conn_ssl_config.session_ticket_data = NULL;
         conn_ssl_config.transport_parameter_data = NULL;
     } else {
@@ -820,11 +868,14 @@ int main(int argc, char *argv[]) {
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
-    for (int i = 0; i < stream_num; i++) {
+    for (int i = 0; i < req_paral; i++) {
+        g_req_cnt++;
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
+        user_stream->user_conn = user_conn;
         if (user_conn->h3) {
             user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
             if (user_stream->h3_request == NULL) {
+                printf("xqc_h3_request_create error\n");
                 return -1;
             }
             xqc_client_request_send(user_stream->h3_request, user_stream);
@@ -832,6 +883,7 @@ int main(int argc, char *argv[]) {
         } else {
             user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
             if (user_stream->stream == NULL) {
+                printf("xqc_stream_create error\n");
                 return -1;
             }
             xqc_client_stream_send(user_stream->stream, user_stream);
