@@ -63,7 +63,7 @@ typedef struct xqc_log_callbacks_s {
     int (*xqc_open_log_file)(void *engine_user_data);
     int (*xqc_close_log_file)(void *engine_user_data);
     /* return bytes write, <0 for error*/
-    ssize_t (*xqc_write_log_file)(void *engine_user_data, const void *buf, size_t count);
+    ssize_t (*xqc_write_log_file)(void *engine_user_data, const void *buf, size_t size);
     xqc_log_level_t log_level;
 } xqc_log_callbacks_t;
 

@@ -73,8 +73,14 @@ typedef struct client_ctx_s {
 
 client_ctx_t ctx;
 struct event_base *eb;
-int g_req_cnt = 0;
-int g_req_max = 1;
+int g_req_cnt;
+int g_req_max;
+int g_send_body_size;
+int g_send_body_size_defined;
+int g_save_body;
+int g_read_body;
+char g_write_file[256];
+char g_read_file[256];
 
 static inline uint64_t now()
 {
@@ -434,13 +440,17 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (user_stream->send_body == NULL) {
         user_stream->send_body_max = MAX_BUF_SIZE;
         user_stream->send_body = malloc(user_stream->send_body_max);
-        ret = read_file_data(user_stream->send_body, user_stream->send_body_max, "client_send_body");
-        if (ret < 0) {
-            printf("read body error\n");
-            /*文件不存在则发内存数据*/
-            user_stream->send_body_len = 1024*1024;
+
+        if (g_send_body_size_defined) {
+            user_stream->send_body_len = g_send_body_size;
         } else {
-            user_stream->send_body_len = ret;
+            ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
+            if (ret < 0) {
+                printf("read body error\n");
+                return -1;
+            } else {
+                user_stream->send_body_len = ret;
+            }
         }
     }
 
@@ -497,10 +507,10 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     char buff[4096] = {0};
     size_t buff_size = 4096;
 
-    int save = 1;
+    int save = g_save_body;
 
     if (save && user_stream->recv_body_fp == NULL) {
-        user_stream->recv_body_fp = fopen("client_recv_body", "wb");
+        user_stream->recv_body_fp = fopen(g_write_file, "wb");
         if (user_stream->recv_body_fp == NULL) {
             printf("open error\n");
             return -1;
@@ -673,6 +683,13 @@ ssize_t xqc_client_write_log_file(void *engine_user_data, const void *buf, size_
 int main(int argc, char *argv[]) {
     printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
+    g_req_cnt = 0;
+    g_req_max = 1;
+    g_send_body_size = 1024*1024;
+    g_send_body_size_defined = 0;
+    g_save_body = 0;
+    g_read_body = 0;
+
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
     int req_paral = 1;
@@ -683,7 +700,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -721,6 +738,21 @@ int main(int argc, char *argv[]) {
             case '1': //强制走1RTT
                 printf("option 1RTT :%s\n", "on");
                 use_1rtt = 1;
+                break;
+            case 's': //指定发送body字节数
+                printf("option send_body_size :%s\n", optarg);
+                g_send_body_size = atoi(optarg);
+                g_send_body_size_defined = 1;
+                break;
+            case 'w': //保存接收body到文件
+                printf("option save body :%s\n", optarg);
+                snprintf(g_write_file, sizeof(g_write_file), optarg);
+                g_save_body = 1;
+                break;
+            case 'r': //读取文件当body，优先级 s > r
+                printf("option read body :%s\n", optarg);
+                snprintf(g_read_file, sizeof(g_read_file), optarg);
+                g_read_body = 1;
                 break;
             default:
                 printf("other option :%c\n", ch);
