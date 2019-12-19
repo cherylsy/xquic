@@ -1128,10 +1128,10 @@ int xqc_qpack_decoder_block_stream_check_and_process(xqc_h3_conn_t *h3_conn, uin
         xqc_list_del(pos);
         p_b_stream->h3_stream->flags &= (~XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED);
         int ret = xqc_http3_handle_header_data(h3_conn, p_b_stream->h3_stream);
+        free(p_b_stream);
         if(ret < 0){
             return ret;
         }
-        free(p_b_stream);
     }
 
 
@@ -2130,6 +2130,7 @@ ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * s
                         goto fail;
                     }
                 }
+
                 break;
 
             case XQC_HTTP3_QPACK_ES_STATE_READ_NAME_HUFFMAN:
@@ -2884,7 +2885,9 @@ ssize_t xqc_http3_stream_write_header_block( xqc_h3_stream_t * qenc_stream, xqc_
         goto fail;
     }
 
-    send_size = xqc_http3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
+    if(p_enc_buf->used_len > 0){
+        send_size = xqc_http3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
+    }
 
     if(send_size != p_enc_buf->used_len){
         goto fail;
@@ -2976,6 +2979,44 @@ int xqc_http3_http_headers_save_nv(xqc_http_headers_t * headers, xqc_qpack_name_
     return 0;
 }
 
+
+int xqc_http3_qpack_decoder_write_header_ack(xqc_h3_stream_t * qdec_stream, uint64_t stream_id){
+
+    size_t len = xqc_http3_qpack_put_varint_len(stream_id, 7);
+
+    char buf[XQC_VAR_BUF_INIT_SIZE] = {0};
+
+    buf[0] = 0x80;
+
+    xqc_http3_qpack_put_varint(buf, stream_id, 7);
+
+    ssize_t ret = xqc_http3_qpack_encoder_stream_send(qdec_stream, buf, len);
+
+    if(ret != len){
+        //need log
+    }
+    return 0;
+}
+
+int xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_stream, size_t insert_count){
+
+    size_t len = xqc_http3_qpack_put_varint_len(insert_count, 6);
+
+    char buf[XQC_VAR_BUF_INIT_SIZE] = {0};
+
+    buf[0] = 0x0;
+
+    xqc_http3_qpack_put_varint(buf, insert_count, 6);
+
+    ssize_t ret = xqc_http3_qpack_encoder_stream_send(qdec_stream, buf, len);
+
+    if(ret != len){
+        //need log
+    }
+    return 0;
+
+}
+
 int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream){
 
     xqc_list_head_t * head = &h3_stream->recv_header_data_buf;
@@ -3046,6 +3087,12 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
     }
 
     if(xqc_list_empty(head)){
+        if(sctx->ricnt > 0){
+            xqc_http3_qpack_decoder_write_header_ack(h3_conn->qdec_stream, h3_stream->stream->stream_id);
+            if(sctx->ricnt > decoder->written_icnt){
+                decoder->written_icnt = sctx->ricnt;
+            }
+        }
         h3_request->flag |= XQC_H3_REQUEST_HEADER_COMPLETE_RECV;
     }
     return 0;

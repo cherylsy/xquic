@@ -136,7 +136,7 @@ typedef struct xqc_h3_stream_s {
 
     xqc_list_head_t     send_frame_data_buf;
 
-    xqc_list_head_t     recv_header_data_buf;
+    xqc_list_head_t     recv_header_data_buf;  //header only one frame, if header has more than one frame, header ack should change
     xqc_list_head_t     recv_body_data_buf;
     xqc_http3_qpack_stream_context  qpack_sctx;
 

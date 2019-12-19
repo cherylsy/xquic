@@ -391,6 +391,12 @@ ssize_t xqc_http3_conn_read_qpack_encoder(xqc_h3_conn_t * conn,  uint8_t *src, s
 
     if(insert_count > 0){
         xqc_qpack_decoder_block_stream_check_and_process(conn, conn->qdec.ctx.next_absidx);
+
+        if(conn->qdec.written_icnt < conn->qdec.ctx.next_absidx){
+            xqc_http3_qpack_decoder_write_insert_count_increment(conn->qdec_stream, conn->qdec.ctx.next_absidx - conn->qdec.written_icnt);
+            conn->qdec.written_icnt = conn->qdec.ctx.next_absidx;
+
+        }
     }
     return nconsumed;
 

@@ -241,6 +241,8 @@ typedef struct xqc_http3_qpack_decoder{
     xqc_http3_qpack_encoder_stream_state state;
     xqc_http3_qpack_encoder_stream_opcode opcode;
     xqc_http3_qpack_read_state rstate;
+
+    size_t written_icnt;
 }xqc_http3_qpack_decoder;
 
 typedef xqc_http3_qpack_decoder xqc_http3_qpack_decoder_t;
@@ -338,5 +340,6 @@ int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_tab
 int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_table_capacity, uint64_t max_dtable_size, uint64_t max_blocked);
 
 int xqc_qpack_decoder_block_stream_check_and_process(xqc_h3_conn_t *h3_conn, uint64_t absidx);
+int xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_stream, size_t insert_count);
 
 #endif
