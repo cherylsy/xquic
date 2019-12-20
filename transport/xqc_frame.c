@@ -1,4 +1,5 @@
 
+#include <http3/xqc_h3_conn.h>
 #include "common/xqc_log.h"
 #include "common/xqc_errno.h"
 #include "xqc_frame.h"
@@ -876,7 +877,7 @@ xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         return ret;
     }
 
-    conn->engine->eng_callback.save_token(conn->user_data, conn->conn_token, conn->conn_token_len);
+    conn->engine->eng_callback.save_token(xqc_conn_get_user_data(conn), conn->conn_token, conn->conn_token_len);
 
     return XQC_OK;
 }

@@ -2,6 +2,7 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/rand.h>
+#include "http3/xqc_h3_conn.h"
 #include "xqc_tls_init.h"
 #include "xqc_tls_cb.h"
 #include "include/xquic_typedef.h"
@@ -163,7 +164,7 @@ int xqc_new_session_cb(SSL *ssl, SSL_SESSION *session)
             xqc_log(conn->log, XQC_LOG_ERROR, "|save new session  error|");
             ret = -1;
         }else{
-            ret = conn->tlsref.save_session_cb(p_data, data_len, conn->user_data);
+            ret = conn->tlsref.save_session_cb(p_data, data_len, xqc_conn_get_user_data(conn));
         }
         BIO_free(m_f); //free
         return ret;

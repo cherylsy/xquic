@@ -12,6 +12,7 @@
 #include "xqc_stream.h"
 #include "xqc_utils.h"
 #include <openssl/hmac.h>
+#include <http3/xqc_h3_conn.h>
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
 
@@ -980,7 +981,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     hex_print(c->conn_token,c->conn_token_len);*/
 
     //存储token
-    c->engine->eng_callback.save_token(c->user_data, c->conn_token, c->conn_token_len);
+    c->engine->eng_callback.save_token(xqc_conn_get_user_data(c), c->conn_token, c->conn_token_len);
 
     /* 重新发起握手 */
     c->conn_state = XQC_CONN_STATE_CLIENT_INIT;

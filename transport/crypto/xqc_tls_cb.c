@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <openssl/ssl.h>
-#include <transport/xqc_conn.h>
+#include "transport/xqc_conn.h"
+#include "http3/xqc_h3_conn.h"
 #include "include/xquic.h"
 #include "xqc_tls_cb.h"
 #include "xqc_tls_public.h"
@@ -1190,7 +1191,7 @@ int xqc_write_transport_params(xqc_connection_t * conn,
         return -1;
     }
     if(conn -> tlsref.save_tp_cb != NULL){
-        if(conn -> tlsref.save_tp_cb(tp_buf, tp_data_len, conn->user_data) < 0){
+        if(conn -> tlsref.save_tp_cb(tp_buf, tp_data_len, xqc_conn_get_user_data(conn)) < 0){
             xqc_log(conn->log, XQC_LOG_ERROR, "| save tp data error |");
             return -1;
         }

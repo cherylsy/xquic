@@ -105,6 +105,9 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 int save_session_cb( char * data, size_t data_len, void *user_data)
 {
+    user_conn_t *user_conn = (user_conn_t*)user_data;
+    printf("save_session_cb use server domain as the key. h3[%d]\n", user_conn->h3);
+
     FILE * fp  = fopen("test_session", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
@@ -119,6 +122,9 @@ int save_session_cb( char * data, size_t data_len, void *user_data)
 
 int save_tp_cb(char * data, size_t data_len, void * user_data)
 {
+    user_conn_t *user_conn = (user_conn_t*)user_data;
+    printf("save_tp_cb use server domain as the key. h3[%d]\n", user_conn->h3);
+
     FILE * fp = fopen("tp_localhost", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
@@ -133,6 +139,7 @@ int save_tp_cb(char * data, size_t data_len, void * user_data)
 void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
+    printf("xqc_client_save_token use client ip as the key. h3[%d]\n", user_conn->h3);
 
     int fd = open("./xqc_token", O_TRUNC | O_CREAT | O_WRONLY, S_IRWXU);
     if (fd < 0) {
