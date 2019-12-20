@@ -409,13 +409,15 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         }
     }
     ssize_t read;
+    ssize_t read_sum = 0;
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
         if (read < 0) {
             printf("xqc_h3_request_recv_body error %lld\n", read);
             return read;
         }
-        printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        read_sum += read;
 
         /* 保存接收到的body到文件 */
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
@@ -434,6 +436,8 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
     } while (read > 0 && !fin);
 
+    printf("xqc_h3_request_recv_body read_sum:%lld, fin:%d\n", read_sum, fin);
+
     // 打开注释，服务端收到包后测试发送reset
     // h3_request->h3_stream->h3_conn->conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
 
@@ -444,7 +448,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     return 0;
 }
 
-ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size,
+ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size,
                         const struct sockaddr *peer_addr,
                         socklen_t peer_addrlen) {
     //DEBUG;
@@ -463,14 +467,14 @@ ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size,
 
 
 void
-xqc_server_write_handler(xqc_server_ctx_t *ctx)
+xqc_server_socket_write_handler(xqc_server_ctx_t *ctx)
 {
     DEBUG
 }
 
 int g_recv_total = 0;
 void
-xqc_server_read_handler(xqc_server_ctx_t *ctx)
+xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 {
     DEBUG
 
@@ -510,15 +514,15 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
 
 
 static void
-xqc_server_event_callback(int fd, short what, void *arg)
+xqc_server_socket_event_callback(int fd, short what, void *arg)
 {
     //DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
 
     if (what & EV_WRITE) {
-        xqc_server_write_handler(ctx);
+        xqc_server_socket_write_handler(ctx);
     } else if (what & EV_READ) {
-        xqc_server_read_handler(ctx);
+        xqc_server_socket_read_handler(ctx);
     } else {
         printf("event callback: what=%d\n", what);
         exit(1);
@@ -630,8 +634,26 @@ ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_
     return write(ctx->log_fd, buf, count);
 }
 
+void usage(int argc, char *argv[]) {
+    char *prog = argv[0];
+    char *const slash = strrchr(prog, '/');
+    if (slash)
+        prog = slash + 1;
+    printf(
+"Usage: %s [Options]\n"
+"\n"
+"Options:\n"
+"   -p    Server port.\n"
+"   -e    Echo. Send received body.\n"
+"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic\n"
+"   -C    Pacing on.\n"
+"   -s    Body size to send.\n"
+"   -w    Write received body to file.\n"
+"   -r    Read sending body from file. priority e > s > r\n"
+, prog);
+}
+
 int main(int argc, char *argv[]) {
-    printf("Usage: %s\n", argv[0], XQC_QUIC_VERSION);
 
     g_send_body_size = 1024*1024;
     g_send_body_size_defined = 0;
@@ -643,7 +665,7 @@ int main(int argc, char *argv[]) {
     int pacing_on = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:ec:Cs:w:r:")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:")) != -1){
         switch(ch)
         {
             case 'p':
@@ -679,6 +701,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 printf("other option :%c\n", ch);
+                usage(argc, argv);
                 exit(0);
         }
 
@@ -732,7 +755,7 @@ int main(int argc, char *argv[]) {
                     .h3_request_create_notify = xqc_server_request_create_notify,
                     .h3_request_close_notify = xqc_server_request_close_notify,
             },
-            .write_socket = xqc_server_send,
+            .write_socket = xqc_server_write_socket,
             .server_accept = xqc_server_accept,
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
@@ -779,7 +802,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    ctx.ev_socket = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_event_callback, &ctx);
+    ctx.ev_socket = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_socket_event_callback, &ctx);
 
     event_add(ctx.ev_socket, NULL);
 

@@ -528,19 +528,23 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     }
 
     ssize_t read;
+    ssize_t read_sum = 0;
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
         if (read < 0) {
             printf("xqc_h3_request_recv_body error %lld\n", read);
             return read;
         }
-        printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        read_sum += read;
+
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
             return -1;
         }
         if(save) fflush(user_stream->recv_body_fp);
     } while (read > 0 && !fin);
+    printf("xqc_h3_request_recv_body read_sum:%lld, fin:%d\n", read_sum, fin);
     return 0;
 }
 
@@ -566,7 +570,7 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 }
 
 void
-xqc_client_write_handler(user_conn_t *user_conn)
+xqc_client_socket_write_handler(user_conn_t *user_conn)
 {
     DEBUG
     xqc_conn_continue_send(ctx.engine, &user_conn->cid);
@@ -574,7 +578,7 @@ xqc_client_write_handler(user_conn_t *user_conn)
 
 
 void
-xqc_client_read_handler(user_conn_t *user_conn)
+xqc_client_socket_read_handler(user_conn_t *user_conn)
 {
     DEBUG
 
@@ -617,15 +621,15 @@ xqc_client_read_handler(user_conn_t *user_conn)
 
 
 static void
-xqc_client_event_callback(int fd, short what, void *arg)
+xqc_client_socket_event_callback(int fd, short what, void *arg)
 {
     //DEBUG;
     user_conn_t *user_conn = (user_conn_t *) arg;
 
     if (what & EV_WRITE) {
-        xqc_client_write_handler(user_conn);
+        xqc_client_socket_write_handler(user_conn);
     } else if (what & EV_READ) {
-        xqc_client_read_handler(user_conn);
+        xqc_client_socket_read_handler(user_conn);
     } else {
         printf("event callback: what=%d\n", what);
         exit(1);
@@ -688,10 +692,31 @@ ssize_t xqc_client_write_log_file(void *engine_user_data, const void *buf, size_
     return write(ctx->log_fd, buf, count);
 }
 
-
+void usage(int argc, char *argv[]) {
+    char *prog = argv[0];
+    char *const slash = strrchr(prog, '/');
+    if (slash)
+        prog = slash + 1;
+    printf(
+"Usage: %s [Options]\n"
+"\n"
+"Options:\n"
+"   -a    Server addr.\n"
+"   -p    Server port.\n"
+"   -P    Number of Parallel requests per single connection. Default 1.\n"
+"   -n    Total number of requests to send. Defaults 1.\n"
+"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic\n"
+"   -C    Pacing on.\n"
+"   -t    Connection timeout.\n"
+"   -T    Transport layer. No HTTP3.\n"
+"   -1    Force 1RTT.\n"
+"   -s    Body size to send.\n"
+"   -w    Write received body to file.\n"
+"   -r    Read sending body from file. priority s > r\n"
+, prog);
+}
 
 int main(int argc, char *argv[]) {
-    printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
     g_req_cnt = 0;
     g_req_max = 1;
@@ -766,6 +791,7 @@ int main(int argc, char *argv[]) {
                 break;
             default:
                 printf("other option :%c\n", ch);
+                usage(argc, argv);
                 exit(0);
         }
 
@@ -862,7 +888,7 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    user_conn->ev_socket = event_new(eb, user_conn->fd, EV_READ | EV_PERSIST, xqc_client_event_callback, user_conn);
+    user_conn->ev_socket = event_new(eb, user_conn->fd, EV_READ | EV_PERSIST, xqc_client_socket_event_callback, user_conn);
     event_add(user_conn->ev_socket, NULL);
 
     unsigned char token[XQC_MAX_TOKEN_LEN];
