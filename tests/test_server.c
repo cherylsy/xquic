@@ -77,7 +77,7 @@ static inline uint64_t now()
 void xqc_server_set_event_timer(void *user_data, xqc_msec_t wake_after)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
-    printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
+    //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
@@ -267,11 +267,11 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = "200", .iov_len = 3},
                     .flags  = 0,
             },
-            {
+            /*{
                     .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
                     .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
                     .flags  = 0,
-            },
+            },*/
     };
     xqc_http_headers_t headers = {
             .headers = header,
@@ -326,7 +326,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_h3_request_send_body offset=%lld\n", user_stream->send_offset);
+            printf("xqc_h3_request_send_body sent:%lld, offset=%lld\n", ret, user_stream->send_offset);
         }
     }
     return 0;
@@ -359,7 +359,7 @@ int xqc_server_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 
 int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
-    DEBUG;
+    //DEBUG;
     int ret = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
     ret = xqc_server_request_send(h3_request, user_stream);
@@ -368,7 +368,7 @@ int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
 
 int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
-    DEBUG;
+    //DEBUG;
     int ret;
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
@@ -436,7 +436,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
     } while (read > 0 && !fin);
 
-    printf("xqc_h3_request_recv_body read_sum:%lld, fin:%d\n", read_sum, fin);
+    printf("xqc_h3_request_recv_body read:%lld, offset:%lld, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
 
     // 打开注释，服务端收到包后测试发送reset
     // h3_request->h3_stream->h3_conn->conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
@@ -476,9 +476,10 @@ int g_recv_total = 0;
 void
 xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 {
-    DEBUG
+    //DEBUG;
 
     ssize_t recv_size = 0;
+    ssize_t recv_sum = 0;
 
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
@@ -493,9 +494,10 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
             break;
         }
         if (recv_size < 0) {
-            printf("!!!!!!!!!xqc_server_read_handler: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
+            printf("!!!!!!!!!recvfrom: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
             break;
         }
+        recv_sum += recv_size;
 
         uint64_t recv_time = now();
         //printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu, recv_total=%d\n", recv_size, recv_time, now(), ++g_recv_total);
@@ -509,6 +511,8 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
             return;
         }
     } while (recv_size > 0);
+
+    printf("recvfrom size:%lld\n", recv_sum);
     xqc_engine_finish_recv(ctx->engine);
 }
 
@@ -598,7 +602,7 @@ static void
 xqc_server_engine_callback(int fd, short what, void *arg)
 {
     DEBUG;
-    printf("timer wakeup now=%lld\n", now());
+    printf("timer wakeup now:%lld\n", now());
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
 
     xqc_engine_main_logic(ctx->engine);
@@ -650,6 +654,7 @@ void usage(int argc, char *argv[]) {
 "   -s    Body size to send.\n"
 "   -w    Write received body to file.\n"
 "   -r    Read sending body from file. priority e > s > r\n"
+"   -l    Log level. e:error d:debug.\n"
 , prog);
 }
 
@@ -662,10 +667,11 @@ int main(int argc, char *argv[]) {
 
     int server_port = TEST_PORT;
     char c_cong_ctl = 'c';
+    char c_log_level = 'd';
     int pacing_on = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:")) != -1){
         switch(ch)
         {
             case 'p':
@@ -688,6 +694,10 @@ int main(int argc, char *argv[]) {
                 printf("option send_body_size :%s\n", optarg);
                 g_send_body_size = atoi(optarg);
                 g_send_body_size_defined = 1;
+                if (g_send_body_size > MAX_BUF_SIZE) {
+                    printf("max send_body_size :%d\n", MAX_BUF_SIZE);
+                    exit(0);
+                }
                 break;
             case 'w': //保存接收body到文件
                 printf("option save body :%s\n", optarg);
@@ -698,6 +708,10 @@ int main(int argc, char *argv[]) {
                 printf("option read body :%s\n", optarg);
                 snprintf(g_read_file, sizeof(g_read_file), optarg);
                 g_read_body = 1;
+                break;
+            case 'l': //log level. e:error d:debug.
+                printf("option log level :%s\n", optarg);
+                c_log_level = optarg[0];
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -759,7 +773,7 @@ int main(int argc, char *argv[]) {
             .server_accept = xqc_server_accept,
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
-                    .log_level = XQC_LOG_DEBUG,
+                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : XQC_LOG_DEBUG,
                     //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_server_open_log_file,
                     .xqc_close_log_file = xqc_server_close_log_file,
