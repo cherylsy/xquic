@@ -273,7 +273,7 @@ xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, siz
             n_recved += h3_data_buf_left;
             h3_data_buf->already_consume += h3_data_buf_left;
             recv_buf_left -= h3_data_buf_left;
-            if (h3_data_buf->fin) {
+            if (h3_data_buf->fin_flag & XQC_HTTP3_STREAM_FIN) {
                 *fin = 1;
             }
             xqc_list_del_init(pos);

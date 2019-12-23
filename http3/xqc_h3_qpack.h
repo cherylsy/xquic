@@ -342,4 +342,7 @@ int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_tab
 int xqc_qpack_decoder_block_stream_check_and_process(xqc_h3_conn_t *h3_conn, uint64_t absidx);
 int xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_stream, size_t insert_count);
 
+
+int xqc_http3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,  xqc_h3_stream_t * h3_stream, char * data, size_t len, uint8_t fin_flag);
+
 #endif

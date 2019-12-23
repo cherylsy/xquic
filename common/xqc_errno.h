@@ -74,7 +74,7 @@ typedef enum
 #define XQC_ESTREAM_RESET   626 //流已被reset
 
 
-/* For QUIC application 8xx */
+/* For HTTP3 application 8xx */
 #define XQC_H3_EMALLOC          800 //申请内存失败
 #define XQC_H3_ECREATE_STREAM   801 //创建流失败
 #define XQC_H3_ECREATE_REQUEST  802 //创建请求失败
@@ -83,7 +83,7 @@ typedef enum
 #define XQC_H3_DECODE_ERROR     805 //解码失败
 #define XQC_H3_INVALID_STREAM   806 //stream非法，如多个control stream等
 #define XQC_H3_CLOSE_CRITICAL_STREAM 807 //非法关闭control stream、qpack encoder/decoder stream
-
+#define XQC_H3_STATE_ERROR      808
 
 #endif /* _XQC_ERRNO_H_INCLUDED_ */
 
