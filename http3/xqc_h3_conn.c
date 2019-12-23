@@ -153,6 +153,7 @@ xqc_h3_conn_send_settings(xqc_h3_conn_t *h3_conn)
     int ret;
 
     xqc_http3_conn_settings settings;
+    memset(&settings, 0, sizeof(settings));
     ret = xqc_http3_stream_write_settings(h3_conn->control_stream_out, &settings);
     if (ret < 0) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_write_settings error|");
