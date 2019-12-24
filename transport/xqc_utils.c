@@ -14,7 +14,7 @@ xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms)
 {
     xqc_conns_pq_elem_t *elem = (xqc_conns_pq_elem_t*)xqc_pq_push(pq, time_ms);
     if (!elem) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_pq_push error|count:%ui|capacity:%ui|", pq->count, pq->capacity);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_pq_push error|count:%uz|capacity:%uz|", pq->count, pq->capacity);
         return -XQC_EMALLOC;
     }
     elem->conn = conn;

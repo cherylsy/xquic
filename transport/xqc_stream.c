@@ -209,7 +209,7 @@ xqc_stream_do_send_flow_ctl(xqc_stream_t *stream)
     //return XQC_OK;
     /* connection level */
     if (stream->stream_conn->conn_flow_ctl.fc_data_sent + XQC_PACKET_OUT_SIZE > stream->stream_conn->conn_flow_ctl.fc_max_data_can_send) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_data:%d|",
+        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_data:%ui|",
                 stream->stream_conn->conn_flow_ctl.fc_max_data_can_send);
 
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
@@ -219,7 +219,7 @@ xqc_stream_do_send_flow_ctl(xqc_stream_t *stream)
 
     /* stream level */
     if (stream->stream_send_offset + XQC_PACKET_OUT_SIZE > stream->stream_flow_ctl.fc_max_stream_data_can_send) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_stream_data:%d|",
+        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_stream_data:%ui|",
                 stream->stream_flow_ctl.fc_max_stream_data_can_send);
 
         stream->stream_flag |= XQC_STREAM_FLAG_DATA_BLOCKED;
@@ -278,14 +278,14 @@ xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id,
     if (stream_id == XQC_UNDEFINE_STREAM_ID) { //主动创建的；发送方
         if (stream_type == XQC_CLI_BID || stream_type == XQC_SVR_BID) {
             if (conn->cur_stream_id_bidi_local >= conn->conn_flow_ctl.fc_max_streams_bidi_can_send) {
-                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_bidi_can_send:%d|",
+                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_bidi_can_send:%ui|",
                         conn->conn_flow_ctl.fc_max_streams_bidi_can_send);
                 xqc_write_streams_blocked_to_packet(conn, conn->conn_flow_ctl.fc_max_streams_bidi_can_send, 1);
                 return -XQC_EPROTO;
             }
         } else {
             if (conn->cur_stream_id_uni_local >= conn->conn_flow_ctl.fc_max_streams_uni_can_send) {
-                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_uni_can_send:%d|",
+                xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_uni_can_send:%ui|",
                         conn->conn_flow_ctl.fc_max_streams_uni_can_send);
                 xqc_write_streams_blocked_to_packet(conn, conn->conn_flow_ctl.fc_max_streams_uni_can_send, 0);
                 return -XQC_EPROTO;
@@ -435,7 +435,7 @@ xqc_stream_id(xqc_stream_t *stream)
 void
 xqc_destroy_stream(xqc_stream_t *stream)
 {
-    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%ui|recv_state:%ui|stream_id:%ui|stream_type:%d|",
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%ui|recv_state:%d|stream_id:%ui|stream_type:%d|",
             stream->stream_state_send, stream->stream_state_recv, stream->stream_id, stream->stream_type);
 
     if (stream->stream_if->stream_close_notify) {
@@ -673,7 +673,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 xqc_msec_t now = xqc_now();
                 packet_out->po_sent_time = now;
                 xqc_long_packet_update_length(packet_out);
-                xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data: pkt_num:%ui|size:%ud|sent:%uz|pkt_type:%s|frame:%s|now:%ui|",
+                xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data|pkt_num:%ui|size:%ud|sent:%d|pkt_type:%s|frame:%s|now:%ui|",
                     packet_out->po_pkt.pkt_num, packet_out->po_used_size, n_written,
                     xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                     xqc_frame_type_2_str(packet_out->po_frame_types), now);
@@ -714,7 +714,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                 if(!(conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY)){
                     ret = conn->tlsref.callbacks.client_initial(conn);
                     if(ret < 0){
-                        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "| client handshake initial packet error|");
+                        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|client handshake initial packet error|");
                         return XQC_TLS_CLIENT_INITIAL_ERROR;
                     }
                 }
@@ -944,7 +944,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
         }
     }
 
-    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|read:%i|recv_buf_size:%ui|fin:%d|stream_length:%ui|next_read_offset:%ui|",
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|read:%z|recv_buf_size:%uz|fin:%d|stream_length:%ui|next_read_offset:%ui|",
             stream->stream_id, read, recv_buf_size, *fin, stream->stream_data_in.stream_length, stream->stream_data_in.next_read_offset);
 
     xqc_stream_shutdown_read(stream);
@@ -1006,14 +1006,14 @@ xqc_stream_send (xqc_stream_t *stream,
         }
 
         if (!xqc_send_ctl_can_write(conn->conn_send_ctl)) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|too many packets used|ctl_packets_used:%ui|", conn->conn_send_ctl->ctl_packets_used);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|too many packets used|ctl_packets_used:%ud|", conn->conn_send_ctl->ctl_packets_used);
             ret = -XQC_EAGAIN;
             goto do_buff;
         }
 
 
         if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count >= XQC_PACKET_0RTT_MAX_COUNT) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|too many 0rtt packets|zero_rtt_count:%ui|", conn->zero_rtt_count);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|too many 0rtt packets|zero_rtt_count:%ud|", conn->zero_rtt_count);
             ret = -XQC_EAGAIN;
             goto do_buff;
         }
@@ -1058,7 +1058,7 @@ do_buff:
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|ret:%d|stream_id:%ui|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
-                                      "send_data_size:%ui|offset:%ui|fin:%d|flag:%d|",
+                                      "send_data_size:%uz|offset:%uz|fin:%d|flag:%d|",
             ret, stream->stream_id, stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
             send_data_size, offset, fin, stream->stream_flag);
 
@@ -1110,7 +1110,7 @@ xqc_stream_buff_data(xqc_stream_t *stream,
     buff_list->total_len += send_data_size;
     xqc_list_add_tail(&write_buff->sw_list, &buff_list->write_buff_list);
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|size:%ui|", send_data_size);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|size:%uz|", send_data_size);
     return send_data_size;
 }
 

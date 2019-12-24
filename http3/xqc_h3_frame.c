@@ -1361,22 +1361,22 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                         break;
                     case XQC_HTTP3_FRAME_PUSH_PROMISE:
                         if(h3_conn->conn->conn_type == XQC_CONN_TYPE_SERVER){
-                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%d|", rstate->state, rstate->fr.hd.type);
+                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%i|", rstate->state, rstate->fr.hd.type);
                             return -1;
                         }
                         if(rstate->left == 0){
-                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%d|", rstate->state, rstate->fr.hd.type);
+                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%i|", rstate->state, rstate->fr.hd.type);
                             return -1;
                         }
                         rstate->state = XQC_HTTP3_REQ_STREAM_STATE_PUSH_PROMISE_PUSH_ID;
                         break;
                     case XQC_HTTP3_FRAME_DUPLICATE_PUSH:
                         if(h3_conn->conn->conn_type == XQC_CONN_TYPE_SERVER){
-                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%d|", rstate->state, rstate->fr.hd.type);
+                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%i|", rstate->state, rstate->fr.hd.type);
                             return -1;
                         }
                         if(rstate->left == 0){
-                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%d|", rstate->state, rstate->fr.hd.type);
+                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%i|", rstate->state, rstate->fr.hd.type);
                             return -1;
                         }
                         rstate->state = XQC_HTTP3_REQ_STREAM_STATE_DUPLICATE_PUSH;
@@ -1384,7 +1384,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                     default:
                         //control type return -1
                         //not support reserved type frames,need finished
-                        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%d|", rstate->state, rstate->fr.hd.type);
+                        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%i|", rstate->state, rstate->fr.hd.type);
                         return -1;
                 }
                 break;
@@ -1861,7 +1861,7 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
 
         ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data + send_buf->already_consume, send_buf->data_len - send_buf->already_consume, send_buf->fin);
         if (send_success < 0) {
-            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|ret:%i|", send_success);
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|ret:%z|", send_success);
             return send_success;
         }
 
@@ -1936,7 +1936,7 @@ ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_
     ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
 
     if(send_success < 0){
-        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%d|",send_success );
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%z|",send_success );
         return send_success;
     }
 
@@ -2011,7 +2011,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
         ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
 
         if(send_success < 0){
-            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%d|",send_success );
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%z|",send_success );
             xqc_free(send_buf);
             return send_success;
         }
@@ -2072,7 +2072,7 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
         ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
 
         if(send_success < 0){
-            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%d|",send_success );
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%z|",send_success );
             return send_success;
         }
         if(send_success == send_buf->data_len){

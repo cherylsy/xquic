@@ -94,12 +94,12 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
              *        |----|        new_frame  do not insert
              * |-------------------|new_frame
              */
-            xqc_log(conn->log, XQC_LOG_WARN, "|is overlap|offset:%ui|new_offset:%ui|len:%ui|new_len:%ui|",
+            xqc_log(conn->log, XQC_LOG_WARN, "|is overlap|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
         }
         if (new_frame->data_offset >= frame->data_offset &&
             new_frame->data_offset + new_frame->data_length <= frame->data_offset + frame->data_length) {
-            xqc_log(conn->log, XQC_LOG_WARN, "|already recvd|offset:%ui|new_offset:%ui|len:%ui|new_len:%ui|",
+            xqc_log(conn->log, XQC_LOG_WARN, "|already recvd|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
             xqc_free(new_frame->data);
             xqc_free(new_frame);
@@ -127,18 +127,18 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
         stream->stream_data_in.merged_offset_end < new_frame->data_offset + new_frame->data_length) {
 
         stream->stream_data_in.merged_offset_end = new_frame->data_offset + new_frame->data_length;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|merge left|merged_offset_end:%ui|new_offset:%ui|new_len:%ui|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|merge left|merged_offset_end:%ui|new_offset:%ui|new_len:%ud|",
                 stream->stream_data_in.merged_offset_end, new_frame->data_offset, new_frame->data_length);
 
         pos = new_frame->sf_list.next;
         xqc_list_for_each_from(pos, &stream->stream_data_in.frames_tailq) {
             frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
-            /*xqc_log(conn->log, XQC_LOG_DEBUG, "|merge log|merged_offset_end:%ui|offset:%ui|len:%ui|",
+            /*xqc_log(conn->log, XQC_LOG_DEBUG, "|merge log|merged_offset_end:%ui|offset:%ui|len:%ud|",
                     stream->stream_data_in.merged_offset_end, frame->data_offset, frame->data_length);*/
             if (stream->stream_data_in.merged_offset_end >= frame->data_offset &&
                 stream->stream_data_in.merged_offset_end < frame->data_offset + frame->data_length) {
                 stream->stream_data_in.merged_offset_end = frame->data_offset + frame->data_length;
-                xqc_log(conn->log, XQC_LOG_DEBUG, "|merge right|merged_offset_end:%ui|offset:%ui|len:%ui|",
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|merge right|merged_offset_end:%ui|offset:%ui|len:%ud|",
                         stream->stream_data_in.merged_offset_end, frame->data_offset, frame->data_length);
             }
         }
@@ -283,7 +283,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     stream_type = xqc_get_stream_type(stream_id);
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|offset:%ui|data_length:%ui|fin:%ud|",
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|offset:%ui|data_length:%ud|fin:%ud|",
             stream_frame->data_offset, stream_frame->data_length, stream_frame->fin);
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
@@ -344,7 +344,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|already recvd|data_offset:%ui|data_length:%ui|merged_offset_end:%ui|",
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|already recvd|data_offset:%ui|data_length:%ud|merged_offset_end:%ui|",
                 stream_frame->data_offset, stream_frame->data_length, stream->stream_data_in.merged_offset_end);
         goto free;
     }
