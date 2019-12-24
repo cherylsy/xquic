@@ -87,6 +87,7 @@ typedef enum
 #define XQC_H3_CONTROL_ERROR   809  //control stream error, such as setting not send first or send twice
 #define XQC_H3_CONTROL_DECODE_ERROR   810 //control stream 解码错误，如遇到无法识别的frame type
 #define XQC_H3_CONTROL_DECODE_INVALID   810  // control stream decoder invalid, 例如剩余长度非法
+#define XQC_H3_PRIORITY_ERROR  811 //优先级相关错误
 
 
 #define XQC_QPACK_DECODER_VARINT_ERROR 850  //qpack 解码变长整数失败
@@ -97,6 +98,7 @@ typedef enum
 #define XQC_QPACK_SET_DTABLE_CAP_ERROR 855 //qpack设置动态表容量出错
 #define XQC_QPACK_SEND_ERROR        856 //qpack 发送数据或者控制报文出错
 #define XQC_QPACK_SAVE_HEADERS_ERROR 857 //qpack 保存name-value到header结构体中时出错
+
 
 #endif /* _XQC_ERRNO_H_INCLUDED_ */
 
