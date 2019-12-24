@@ -27,7 +27,7 @@ typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 #define XQC_MAX_SIZE_T (0xFFFFFFFFFFFFFFFF)
 #define XQC_MAX_UINT64 (0xFFFFFFFFFFFFFFFF)
 
-#define XQC_HTTP3_QPACK_MAX_VALUELEN 65536
+#define XQC_HTTP3_QPACK_MAX_VALUELEN (16*1024) //16K enough?
 #define XQC_HTTP3_QPACK_MAX_NAMELEN 256
 
 typedef enum {
@@ -334,8 +334,8 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
         xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin);
 
 int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, int64_t stream_id);
-int xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx);
-int xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv);
+void xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx);
+void xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv);
 
 ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t * h3_conn, uint8_t * src, size_t srclen, int *check_block_flag);
 
