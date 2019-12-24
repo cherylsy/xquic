@@ -1,6 +1,5 @@
 #include "xqc_h3_qpack.h"
 #include "xqc_h3_frame.h"
-#define XQC_HTTP3_QPACK_MAX_NAMELEN 256
 #include "xqc_h3_qpack_token.h"
 #include "transport/xqc_conn.h"
 #include "http3/xqc_h3_conn.h"
@@ -10,6 +9,8 @@
 #include "common/xqc_errno.h"
 #include "http3/xqc_h3_frame.h"
 #include "http3/xqc_h3_request.h"
+
+
 static size_t xqc_table_space(size_t namelen, size_t valuelen) {
     return XQC_HTTP3_QPACK_ENTRY_OVERHEAD + namelen + valuelen;
 }
@@ -53,6 +54,10 @@ xqc_var_buf_t * xqc_var_buf_create(size_t capacity){
     p->capacity = capacity;
     p->used_len = 0;
     return p;
+}
+
+int xqc_var_buf_clear(xqc_var_buf_t *vbuf){
+    vbuf->used_len = 0;
 }
 
 int xqc_var_buf_free(xqc_var_buf_t * vbuf){
@@ -266,19 +271,26 @@ uint8_t *xqc_http3_qpack_put_varint(uint8_t *buf, uint64_t n, size_t prefix) {
 }
 
 
-void xqc_http3_qpack_read_state_init(xqc_http3_qpack_read_state *rstate) {
+int xqc_http3_qpack_read_state_init(xqc_http3_qpack_read_state *rstate) {
     memset(rstate, 0, sizeof(xqc_http3_qpack_read_state));
+    xqc_http3_qpack_huffman_decode_context_init(&rstate->huffman_ctx);
+    rstate->name = xqc_var_buf_create(XQC_HTTP3_QPACK_MAX_NAMELEN);
+    if(rstate->name == NULL){
+        return -XQC_H3_EMALLOC;
+    }
+    rstate->value = xqc_var_buf_create(XQC_HTTP3_QPACK_MAX_VALUELEN);
+
+    if(rstate->value == NULL){
+        xqc_var_buf_free(rstate->name);
+        return -XQC_H3_EMALLOC;
+    }
+
+    return 0;
 }
 
 void xqc_http3_qpack_read_state_clear(xqc_http3_qpack_read_state *rstate) {
-    if(rstate->name){
-        xqc_var_buf_free(rstate->name);
-        rstate->name = NULL;
-    }
-    if(rstate->value){
-        xqc_var_buf_free(rstate->value);
-        rstate->value = NULL;
-    }
+    xqc_var_buf_clear(rstate->name);
+    xqc_var_buf_clear(rstate->value);
     rstate->left = 0;
     rstate->prefix = 0;
     rstate->shift = 0;
@@ -289,6 +301,16 @@ void xqc_http3_qpack_read_state_clear(xqc_http3_qpack_read_state *rstate) {
     xqc_http3_qpack_huffman_decode_context_init(&rstate->huffman_ctx);
 }
 
+void xqc_http3_qpack_read_state_free(xqc_http3_qpack_read_state *rstate){
+    if(rstate->name){
+        xqc_var_buf_free(rstate->name);
+        rstate->name = NULL;
+    }
+    if(rstate->value){
+        xqc_var_buf_free(rstate->value);
+        rstate->value = NULL;
+    }
+}
 
 int xqc_qpack_encoder_write_literal_native(xqc_http3_qpack_encoder * encoder, xqc_var_buf_t **pp_buf, uint8_t fb,
         size_t prefix, char * name, size_t name_len, char * value, size_t value_len){
@@ -659,19 +681,53 @@ int xqc_http3_qpack_context_init(xqc_http3_qpack_context * ctx, uint64_t max_tab
     return 0;
 }
 
+void xqc_http3_qpack_context_free(xqc_http3_qpack_context * ctx){
+    xqc_http3_ringdata_free(&ctx->dtable_data);
+    xqc_http3_ringbuf_free(&ctx->dtable);
+}
+
+
+
 int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_table_capacity, uint64_t max_dtable_size, uint64_t max_blocked){
     qdec->state = XQC_HTTP3_QPACK_DS_STATE_OPCODE;
     qdec->opcode = XQC_HTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT;
     xqc_http3_qpack_read_state_init(&qdec->rstate);
 
     xqc_http3_qpack_context_init(&qdec->ctx, max_table_capacity, max_dtable_size, max_blocked);
+
+    qdec->written_icnt = 0;
+    qdec->name_buf = xqc_malloc(XQC_HTTP3_QPACK_MAX_NAMELEN);
+    if(qdec->name_buf == NULL){
+        return -XQC_H3_EMALLOC;
+    }
+    qdec->value_buf = xqc_malloc(XQC_HTTP3_QPACK_MAX_VALUELEN);
+    if(qdec->value_buf == NULL){
+        xqc_free(qdec->name_buf);
+        return -XQC_H3_EMALLOC;
+    }
+
     return 0;
+}
+
+void xqc_http3_qpack_decoder_free(xqc_http3_qpack_decoder *qdec){
+
+    xqc_http3_qpack_read_state_free(&qdec->rstate);
+    xqc_http3_qpack_context_free(&qdec->ctx);
+    if(qdec->name_buf){
+        xqc_free(qdec->name_buf);
+    }
+    if(qdec->value_buf){
+        xqc_free(qdec->value_buf);
+    }
 }
 
 int xqc_qpack_hash_table_init(xqc_qpack_hash_table_t * htable, size_t element_count){
 
     htable->element_count = element_count;
     htable->list = xqc_malloc(element_count * sizeof(xqc_list_head_t));
+    if(htable->list == NULL){
+        return -XQC_H3_EMALLOC;
+    }
     size_t i = 0;
 
     for(i = 0; i < element_count; i++){
@@ -682,9 +738,18 @@ int xqc_qpack_hash_table_init(xqc_qpack_hash_table_t * htable, size_t element_co
     return 0;
 }
 
+void xqc_qpack_hash_table_free(xqc_qpack_hash_table_t * htable){
+
+    if(htable->list){
+        xqc_free(htable->list);
+    }
+
+}
+
 int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_table_capacity, uint64_t max_dtable_size,
         uint64_t max_blocked, size_t hash_table_size){
 
+    memset(qenc, 0, sizeof(xqc_http3_qpack_encoder));
     xqc_http3_qpack_context_init(&qenc->ctx, max_table_capacity, max_dtable_size, max_blocked);
 
     qenc->state = XQC_HTTP3_QPACK_DS_STATE_OPCODE;
@@ -697,9 +762,42 @@ int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_tab
     qenc->flags = 0;
     xqc_init_list_head(&qenc->unack_stream_head);
 
+    qenc->name_buf = xqc_malloc(XQC_HTTP3_QPACK_MAX_NAMELEN);
+    if(qenc->name_buf == NULL){
+        return -XQC_H3_EMALLOC;
+    }
+    qenc->value_buf = xqc_malloc(XQC_HTTP3_QPACK_MAX_VALUELEN);
+    if(qenc->value_buf == NULL){
+        xqc_free(qenc->name_buf);
+        return -XQC_H3_EMALLOC;
+    }
+
     return 0;
 }
 
+int xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc){
+    xqc_http3_qpack_context_free(&qenc->ctx);
+    xqc_http3_qpack_read_state_free(&qenc->rstate);
+    xqc_qpack_hash_table_free(&qenc->dtable_hash);
+
+    if(qenc->name_buf){
+        xqc_free(qenc->name_buf);
+    }
+    if(qenc->value_buf){
+        xqc_free(qenc->value_buf);
+    }
+
+
+    xqc_list_head_t * p_hb_list = &qenc->unack_stream_head;
+    xqc_list_head_t *pos, *next;
+    xqc_list_for_each_safe(pos, next, p_hb_list){
+        xqc_qpack_unack_header_block * u_hb = xqc_list_entry(pos, xqc_qpack_unack_header_block, header_block_list);
+
+        xqc_list_del(&u_hb->stream_in_list);
+        xqc_list_del(pos);
+        xqc_free(u_hb);
+    }
+}
 
 int xqc_http3_qpack_decoder_emit_literal(xqc_http3_qpack_decoder *decoder,
         xqc_http3_qpack_stream_context *sctx,
@@ -821,298 +919,6 @@ int xqc_http3_qpack_decoder_emit_indexed(xqc_http3_qpack_decoder *decoder, xqc_h
 
 }
 
-ssize_t xqc_http3_qpack_decoder_read_request_header_buffer(xqc_http3_qpack_decoder *decoder, xqc_http3_qpack_stream_context *sctx,
-        xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int *need_more_flag) {
-
-    uint8_t *p = src, *end = src + srclen;
-    int ret = -1;
-
-    ssize_t nread;
-
-    int rfin;
-    uint64_t vint = 0;
-
-    *pflags = XQC_HTTP3_QPACK_DECODE_FLAG_NONE;
-    *need_more_flag = 0;
-
-    for(; p < end; ){
-
-        switch (sctx->state){
-            case XQC_HTTP3_QPACK_RS_STATE_RICNT:
-                nread = xqc_http3_qpack_read_varint(&vint, p, end, 8, &rfin);
-                if(nread < 0){
-                    ret = -1;
-                    goto fail;
-                }
-                if(rfin == 0){
-                    goto need_more_data;
-                }
-                p += nread;
-
-                ret = xqc_http3_qpack_decoder_reconstruct_ricnt(decoder, &sctx->ricnt, vint);
-                if(ret != 0){
-                    goto fail;
-                }
-                sctx->state = XQC_HTTP3_QPACK_RS_STATE_DBASE_SIGN;
-                break;
-
-            case XQC_HTTP3_QPACK_RS_STATE_DBASE_SIGN:
-                if((*p) & 0x80){
-                    sctx->dbase_sign = 1;
-                }
-
-                sctx->state = XQC_HTTP3_QPACK_RS_STATE_DBASE;
-
-            case XQC_HTTP3_QPACK_RS_STATE_DBASE:
-                nread = xqc_http3_qpack_read_varint(&vint, p, end, 7, &rfin);
-                if(nread < 0){
-                    ret = -1;
-                    goto fail;
-                }
-                if(rfin == 0){
-                    goto need_more_data;
-                }
-                p += nread;
-
-                if(sctx->dbase_sign){//base 符号位
-                    if(sctx->ricnt <  sctx->rstate.left){
-                        ret = -1;
-                        goto fail;
-                    }
-                    sctx->base = sctx->ricnt - vint - 1;
-                }else{
-
-                    sctx->base = sctx->ricnt + vint;
-                }
-
-                sctx->state = XQC_HTTP3_QPACK_RS_STATE_OPCODE;
-                sctx->rstate.left = 0;
-                sctx->rstate.shift = 0;
-
-                if(sctx->ricnt >  decoder->ctx.next_absidx) {
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_BLOCKED;
-                    *pflags |= XQC_HTTP3_QPACK_DECODE_FLAG_BLOCKED;
-                    return p - src;
-                }
-
-                break;
-            case XQC_HTTP3_QPACK_RS_STATE_OPCODE:
-                if((*p) & 0x80){
-                    sctx->opcode = XQC_HTTP3_QPACK_RS_OPCODE_INDEXED;
-                    sctx->rstate.dynamic = !((*p) & 0x40);
-                    sctx->rstate.prefix = 6;
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_INDEX;
-                }else if((*p) & 0x40){
-
-                    sctx->opcode = XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME;
-                    sctx->rstate.never = (*p) & 0x20;
-                    sctx->rstate.dynamic = !((*p) & 0x10);
-                    sctx->rstate.prefix = 4;
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_INDEX;
-                }else if ((*p) & 0x20){
-
-                    sctx->opcode = XQC_HTTP3_QPACK_RS_OPCODE_LITERAL;
-                    sctx->rstate.never = (*p) & 0x10;
-                    sctx->rstate.dynamic = 0;
-                    sctx->rstate.prefix = 3;
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_CHECK_NAME_HUFFMAN;
-                }else if ((*p) & 0x10){
-                    sctx->opcode = XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_PB;
-                    sctx->rstate.dynamic = 1;
-                    sctx->rstate.prefix = 4;
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_INDEX;
-                }else {
-
-                    sctx->opcode = XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB;
-                    sctx->rstate.never = (*p) & 0x08;
-                    sctx->rstate.dynamic = 1;
-                    sctx->rstate.prefix = 3;
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_INDEX;
-                }
-                break;
-
-            case XQC_HTTP3_QPACK_RS_STATE_READ_INDEX:
-                nread = xqc_http3_qpack_read_varint(&vint, p, end, sctx->rstate.prefix, &rfin);
-                if(nread < 0){
-                    ret = -1;
-                    goto fail;
-                }
-                if(rfin == 0){
-                    goto need_more_data;
-                }
-                p += nread;
-                sctx->rstate.left = vint;
-                switch(sctx->opcode) {
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED:
-                        ret = xqc_http3_qpack_decoder_brel2abs(decoder, sctx);
-                        if (ret != 0){
-                            goto fail;
-                        }
-                        xqc_http3_qpack_decoder_emit_indexed(decoder, sctx, nv);
-                        *pflags |= XQC_HTTP3_QPACK_DECODE_FLAG_EMIT;
-
-                        sctx->state = XQC_HTTP3_QPACK_RS_STATE_OPCODE;
-                        xqc_http3_qpack_read_state_clear(&sctx->rstate);
-                        return p - src;
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_PB:
-                        ret = xqc_http3_qpack_decoder_pbrel2abs(decoder, sctx);
-                        if(ret != 0){
-
-                            goto fail;
-                        }
-                        xqc_http3_qpack_decoder_emit_indexed(decoder, sctx, nv);
-                        *pflags |= XQC_HTTP3_QPACK_DECODE_FLAG_EMIT;
-                        sctx->state = XQC_HTTP3_QPACK_RS_STATE_OPCODE;
-                        xqc_http3_qpack_read_state_clear(&sctx->rstate);
-                        return p - src;
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
-                        ret = xqc_http3_qpack_decoder_brel2abs(decoder, sctx);
-                        if (ret != 0) {
-                            goto fail;
-                        }
-                        sctx->rstate.prefix = 7;
-                        sctx->state = XQC_HTTP3_QPACK_RS_STATE_CHECK_VALUE_HUFFMAN;
-                        break;
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
-                        ret = xqc_http3_qpack_decoder_pbrel2abs(decoder, sctx);
-                        if (ret != 0) {
-                            goto fail;
-                        }
-                        sctx->rstate.prefix = 7;
-                        sctx->state = XQC_HTTP3_QPACK_RS_STATE_CHECK_VALUE_HUFFMAN;
-                        break;
-                    default:
-                        goto fail;
-
-                }
-                break;
-            case XQC_HTTP3_QPACK_RS_STATE_CHECK_NAME_HUFFMAN:
-                xqc_qpack_read_state_check_huffman(&sctx->rstate, *p);
-                sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_NAMELEN;
-                sctx->rstate.left = 0;
-            case XQC_HTTP3_QPACK_RS_STATE_READ_NAMELEN:
-                nread = xqc_http3_qpack_read_varint(&vint, p, end, sctx->rstate.prefix, &rfin);
-                if(nread < 0){
-                    goto fail;
-                }
-                if(rfin == 0){
-
-                    goto need_more_data;
-                }
-                p += nread;
-
-                sctx->rstate.left = vint;
-                if (sctx->rstate.left > XQC_HTTP3_QPACK_MAX_NAMELEN) {
-                    goto fail;
-                }
-                if(sctx->rstate.huffman_encoded) {
-                    goto fail;
-                }else{
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_NAME;
-                    sctx->rstate.name = xqc_var_buf_create(sctx->rstate.left + 1);
-                    if(sctx->rstate.name == NULL){
-                        goto fail;
-                    }
-                }
-                break;
-
-            case XQC_HTTP3_QPACK_RS_STATE_READ_NAME:
-                nread = xqc_http3_qpack_read_string(&sctx->rstate, &sctx->rstate.name, p, end, &rfin);
-                if (nread < 0) {
-                    ret = (int)nread;
-                    goto fail;
-                }
-
-                if(rfin == 0){
-                    goto need_more_data;
-                }
-                p += nread;
-                sctx->state = XQC_HTTP3_QPACK_RS_STATE_CHECK_VALUE_HUFFMAN;
-                sctx->rstate.prefix = 7;
-                break;
-
-            case XQC_HTTP3_QPACK_RS_STATE_CHECK_VALUE_HUFFMAN:
-                xqc_qpack_read_state_check_huffman(&sctx->rstate, *p);
-                sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_VALUELEN;
-
-                sctx->rstate.left = 0;
-                sctx->rstate.shift = 0;
-
-            case XQC_HTTP3_QPACK_RS_STATE_READ_VALUELEN:
-                nread = xqc_http3_qpack_read_varint(&vint, p, end, sctx->rstate.prefix, &rfin);
-                if(nread < 0){
-                    ret = (int)nread;
-                    goto fail;
-                }
-
-                if(rfin == 0){
-                    goto need_more_data;
-                }
-                p += nread;
-
-                sctx->rstate.left = vint;
-                if(sctx->rstate.left > XQC_HTTP3_QPACK_MAX_VALUELEN){
-                    ret = -1;
-                    goto fail;
-                }
-
-                if(sctx->rstate.huffman_encoded){
-                    ret = -1;
-                    goto fail;
-                    //need finish
-                }else{
-                    sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_VALUE;
-                    sctx->rstate.value = xqc_var_buf_create(sctx->rstate.left + 1);
-                    if(sctx->rstate.value == NULL){
-                        goto fail;
-                    }
-
-                }
-            case XQC_HTTP3_QPACK_RS_STATE_READ_VALUE:
-                nread = xqc_http3_qpack_read_string(&sctx->rstate, &sctx->rstate.value, p, end, &rfin);
-                if(nread < 0){
-                    ret = (int)nread;
-                    goto fail;
-                }
-                if(rfin == 0){
-                    goto need_more_data;
-                }
-                p += nread;
-
-                switch(sctx->opcode){
-                    case XQC_HTTP3_QPACK_RS_OPCODE_LITERAL:
-                        if(xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv) < 0){
-                            goto fail;
-                        }
-                        break;
-
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
-                    case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
-                        xqc_http3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
-                    default:
-                        /* Unreachable */
-                        goto fail;
-                }
-
-                *pflags |= XQC_HTTP3_QPACK_DECODE_FLAG_EMIT;
-
-                sctx->state = XQC_HTTP3_QPACK_RS_STATE_OPCODE;
-                xqc_http3_qpack_read_state_clear(&sctx->rstate);
-
-                return p - src;
-            default:
-                goto fail;
-        }
-
-    }
-
-need_more_data:
-    *need_more_flag = 1;
-    return p - src;
-fail:
-    return ret;
-
-}
 
 int xqc_qpack_decoder_block_stream_check_and_process(xqc_h3_conn_t *h3_conn, uint64_t absidx){
 
@@ -1140,7 +946,10 @@ int xqc_qpack_decoder_block_stream_check_and_process(xqc_h3_conn_t *h3_conn, uin
 
 int xqc_qpack_decoder_block_stream_insert(xqc_h3_stream_t * h3_stream, uint64_t ricnt, xqc_list_head_t *head){
 
-    xqc_qpack_decoder_block_stream_t * block_stream = xqc_malloc(sizeof(xqc_qpack_decoder_block_stream_t));
+    xqc_qpack_decoder_block_stream_t * block_stream = xqc_malloc(sizeof(xqc_qpack_decoder_block_stream_t)); //it will be free when free list
+    if(block_stream == NULL){
+        return -XQC_H3_EMALLOC;
+    }
 
     xqc_init_list_head(&block_stream->head_list);
     block_stream->ricnt = ricnt;
@@ -1361,14 +1170,14 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 if(sctx->rstate.huffman_encoded) {
                     sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_NAME_HUFFMAN;
                     xqc_http3_qpack_huffman_decode_context_init(&sctx->rstate.huffman_ctx);
-                    sctx->rstate.name = xqc_var_buf_create(sctx->rstate.left * 2 + 1);
+                    xqc_var_buf_clear(sctx->rstate.name);
                     if(sctx->rstate.name == NULL){
                         goto fail;
                     }
 
                 }else{
                     sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_NAME;
-                    sctx->rstate.name = xqc_var_buf_create(sctx->rstate.left + 1);
+                    xqc_var_buf_clear(sctx->rstate.name);
                     if(sctx->rstate.name == NULL){
                         goto fail;
                     }
@@ -1438,17 +1247,11 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 if(sctx->rstate.huffman_encoded){
                     sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_VALUE_HUFFMAN;
                     xqc_http3_qpack_huffman_decode_context_init(&sctx->rstate.huffman_ctx);
-                    sctx->rstate.value = xqc_var_buf_create(sctx->rstate.left * 2 + 1);
-                    if(sctx->rstate.value == NULL){
-                        goto fail;
-                    }
+                    xqc_var_buf_clear(sctx->rstate.value);
                     //need finish
                 }else{
                     sctx->state = XQC_HTTP3_QPACK_RS_STATE_READ_VALUE;
-                    sctx->rstate.value = xqc_var_buf_create(sctx->rstate.left + 1);
-                    if(sctx->rstate.value == NULL){
-                        goto fail;
-                    }
+                    xqc_var_buf_clear(sctx->rstate.value);
 
                 }
                 break;
@@ -1664,12 +1467,15 @@ int xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, siz
     for(; msize < cap; msize = msize << 1);
 
     char * buf = xqc_malloc(msize);
+    if(buf == NULL){
+        return -XQC_H3_EMALLOC;
+    }
     size_t capacity = msize;
     size_t mask = msize - 1;
 
     size_t i = xqc_http3_ringbuf_len(&ctx->dtable);
     if(i == 0){
-        return 0;
+        goto end;  //need copy
     }
     xqc_http3_qpack_entry *ent = (xqc_http3_qpack_entry *)xqc_http3_ringbuf_get(&ctx->dtable, 0);
 
@@ -1677,6 +1483,7 @@ int xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, siz
 
     xqc_http3_ringdata_copy_data_to_buf(rdata, abs_index, rdata->used, buf, mask);
 
+end:
     free(rdata->buf);
     rdata->buf = buf;
     rdata->capacity = capacity;
@@ -1930,18 +1737,15 @@ int xqc_http3_qpack_decoder_dtable_duplicate_add(xqc_http3_qpack_decoder * decod
 
     //char *buf = malloc(xqc_max(entry->nv.name_len, entry->nv.value_len));
 
-    char *name_buf = xqc_malloc(entry->nv.name_len);
+    char *name_buf = decoder->name_buf;
 
     xqc_http3_ringdata_copy_data(&decoder->ctx.dtable_data, entry->nv.name_index, entry->nv.name_len, name_buf, entry->nv.name_len);
 
-    char *value_buf = xqc_malloc(entry->nv.value_len);
+    char *value_buf = decoder->value_buf;
     xqc_http3_ringdata_copy_data(&decoder->ctx.dtable_data, entry->nv.value_index, entry->nv.value_len, value_buf, entry->nv.value_len);
-
 
     rv = xqc_http3_qpack_context_dtable_add(&decoder->ctx, name_buf, entry->nv.name_len, value_buf,  entry->nv.value_len, NULL);
 
-    if(name_buf)free(name_buf);
-    if(value_buf)free(value_buf);
     if(rv < 0){
         return rv;
     }
@@ -1954,7 +1758,7 @@ int xqc_http3_qpack_decoder_dtable_dynamic_add(xqc_http3_qpack_decoder * decoder
     xqc_http3_qpack_entry *entry;
     entry = xqc_http3_qpack_context_dtable_get(&decoder->ctx, decoder->rstate.absidx);
 
-    char *name_buf = xqc_malloc(entry->nv.name_len);
+    char *name_buf = decoder->name_buf;
 
     xqc_http3_ringdata_copy_data(&decoder->ctx.dtable_data, entry->nv.name_index, entry->nv.name_len, name_buf, entry->nv.name_len);
 
@@ -2117,18 +1921,10 @@ ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * s
                 if(decoder->rstate.huffman_encoded){
                     decoder->state = XQC_HTTP3_QPACK_ES_STATE_READ_NAME_HUFFMAN;
                     xqc_http3_qpack_huffman_decode_context_init(&decoder->rstate.huffman_ctx);
-                    decoder->rstate.name = xqc_var_buf_create(decoder->rstate.left * 2 + 1);
-                    if(decoder->rstate.name == NULL){
-                        rv = -1;
-                        goto fail;
-                    }
+                    xqc_var_buf_clear(decoder->rstate.name);
                 }else{
                     decoder->state = XQC_HTTP3_QPACK_ES_STATE_READ_NAME;
-                    decoder->rstate.name = xqc_var_buf_create(decoder->rstate.left + 1);
-                    if(decoder->rstate.name == NULL){
-                        rv = -1;
-                        goto fail;
-                    }
+                    xqc_var_buf_clear(decoder->rstate.name);
                 }
 
                 break;
@@ -2185,18 +1981,10 @@ ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * s
                 if(decoder->rstate.huffman_encoded){
                     decoder->state = XQC_HTTP3_QPACK_ES_STATE_READ_VALUE_HUFFMAN;
                     xqc_http3_qpack_huffman_decode_context_init(&decoder->rstate.huffman_ctx);
-                    decoder->rstate.value = xqc_var_buf_create(decoder->rstate.left * 2 + 1);
-                    if(decoder->rstate.value == NULL){
-                        rv = -1;
-                        goto fail;
-                    }
+                    xqc_var_buf_clear(decoder->rstate.value);
                 }else{
                     decoder->state = XQC_HTTP3_QPACK_ES_STATE_READ_VALUE;
-                    decoder->rstate.value = xqc_var_buf_create(decoder->rstate.left + 1);
-                    if(decoder->rstate.value == NULL){
-                        rv = -1;
-                        goto fail;
-                    }
+                    xqc_var_buf_clear(decoder->rstate.value);
                 }
 
                 break;
@@ -2670,16 +2458,14 @@ int xqc_qpack_encoder_write_duplicate_insert(xqc_http3_qpack_encoder *encoder, x
 
 int xqc_http3_qpack_encoder_dtable_duplicate_add(xqc_http3_qpack_encoder * encoder, xqc_http3_qpack_entry *entry){
 
-    char *name_buf = xqc_malloc(entry->nv.name_len);
+    char *name_buf = encoder->name_buf;
 
     xqc_http3_ringdata_copy_data(&encoder->ctx.dtable_data, entry->nv.name_index, entry->nv.name_len, name_buf, entry->nv.name_len);
 
-    char *value_buf = xqc_malloc(entry->nv.value_len);
+    char *value_buf = encoder->value_buf;
     xqc_http3_ringdata_copy_data(&encoder->ctx.dtable_data, entry->nv.value_index, entry->nv.value_len, value_buf, entry->nv.value_len);
 
     int rv = xqc_http3_qpack_context_dtable_add(&encoder->ctx, name_buf, entry->nv.name_len, value_buf, entry->nv.value_len, &encoder->dtable_hash);
-    if(name_buf)free(name_buf);
-    if(value_buf)free(value_buf);
 
     return rv;
 
@@ -2949,7 +2735,7 @@ int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity){
 
     memcpy(headers->headers, old, headers->count * sizeof(xqc_http_headers_t));
 
-    free(old);
+    xqc_free(old);
     return 0;
 }
 

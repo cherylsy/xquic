@@ -120,6 +120,8 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
         h3_conn->flags &= ~XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
+    xqc_http3_qpack_decoder_free(&h3_conn->qdec);
+    xqc_http3_qpack_encoder_free(&h3_conn->qenc);
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_tnode_free_hash_table(&h3_conn->tnode_hash);
 #endif

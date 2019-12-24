@@ -26,7 +26,10 @@ typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 #define XQC_VAR_INT_LEN 16
 #define XQC_MAX_SIZE_T (0xFFFFFFFFFFFFFFFF)
 #define XQC_MAX_UINT64 (0xFFFFFFFFFFFFFFFF)
+
 #define XQC_HTTP3_QPACK_MAX_VALUELEN 65536
+#define XQC_HTTP3_QPACK_MAX_NAMELEN 256
+
 typedef enum {
     XQC_HTTP3_QPACK_ES_STATE_OPCODE = 0,
     XQC_HTTP3_QPACK_ES_STATE_READ_INDEX,
@@ -243,6 +246,8 @@ typedef struct xqc_http3_qpack_decoder{
     xqc_http3_qpack_read_state rstate;
 
     size_t written_icnt;
+    char    *name_buf;
+    char    *value_buf;
 }xqc_http3_qpack_decoder;
 
 typedef xqc_http3_qpack_decoder xqc_http3_qpack_decoder_t;
@@ -250,6 +255,7 @@ typedef xqc_http3_qpack_decoder xqc_http3_qpack_decoder_t;
 
 typedef struct xqc_http3_qpack_encoder{
 
+    xqc_list_head_t         unack_stream_head;
     xqc_http3_qpack_context ctx;
     xqc_http3_qpack_decoder_stream_state state;
     xqc_http3_qpack_decoder_stream_opcode opcode;
@@ -263,7 +269,8 @@ typedef struct xqc_http3_qpack_encoder{
     size_t last_max_dtable_update; //last_max_dtable_update is the dynamic table size last requested.
 
     uint8_t flags;
-    xqc_list_head_t         unack_stream_head;
+    char    *name_buf;
+    char    *value_buf;
 }xqc_http3_qpack_encoder;
 
 
@@ -345,4 +352,7 @@ int xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_
 
 int xqc_http3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,  xqc_h3_stream_t * h3_stream, char * data, size_t len, uint8_t fin_flag);
 
+
+int xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc);
+void xqc_http3_qpack_decoder_free(xqc_http3_qpack_decoder *qdec);
 #endif

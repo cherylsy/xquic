@@ -83,7 +83,11 @@ typedef enum
 #define XQC_H3_DECODE_ERROR     805 //解码失败
 #define XQC_H3_INVALID_STREAM   806 //stream非法，如多个control stream等
 #define XQC_H3_CLOSE_CRITICAL_STREAM 807 //非法关闭control stream、qpack encoder/decoder stream
-#define XQC_H3_STATE_ERROR      808
+#define XQC_H3_STATE_ERROR      808 //http3 解码状态出错
+#define XQC_H3_CONTROL_ERROR   809  //control stream error, such as setting not send first or send twice
+#define XQC_H3_CONTROL_DECODE_ERROR   810 //control stream 解码错误，如遇到无法识别的frame type
+#define XQC_H3_CONTROL_DECODE_INVALID   810  // control stream decoder invalid, 例如剩余长度非法
+
 
 #endif /* _XQC_ERRNO_H_INCLUDED_ */
 

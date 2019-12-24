@@ -322,7 +322,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
         processed = xqc_http3_conn_read_uni(h3_conn, h3_stream, data, data_size, fin);
         if(processed < 0 || processed != data_size) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_uni error|%z|", processed);
-            return -1;
+            return processed;
 
         }
         xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_uni|%z|", processed);
