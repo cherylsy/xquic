@@ -227,11 +227,18 @@ typedef struct xqc_conn_settings_s {
     int     ping_on;    /* client sends PING to keepalive, default:0 */
 } xqc_conn_settings_t;
 
+typedef enum {
+    XQC_0RTT_NONE, /* without 0RTT */
+    XQC_0RTT_ACCEPT,
+    XQC_0RTT_REJECT,
+} xqc_0rtt_flag_t;
+
 typedef struct xqc_conn_stats_s {
     uint32_t    send_count;
     uint32_t    lost_count;
     uint32_t    tlp_count;
     xqc_msec_t  srtt;
+    xqc_0rtt_flag_t    early_data_flag;
 } xqc_conn_stats_t;
 
 typedef struct xqc_request_stats_s {

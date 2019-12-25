@@ -81,9 +81,6 @@ xqc_state_to_pkt_type(xqc_connection_t *conn)
 }
 
 
-/**
- * @retval XQC_OK / XQC_ERROR
- */
 xqc_int_t
 xqc_packet_process_single(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in)
@@ -119,17 +116,18 @@ xqc_packet_process_single(xqc_connection_t *c,
         }
     } else {  /* long header */
 
-        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT &&
-                !xqc_tls_check_0rtt_key_ready(c)) {
+        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT) {
+            c->conn_flag |= XQC_CONN_FLAG_HAS_0RTT;
 
-            xqc_log(c->log, XQC_LOG_WARN, "|delay|buff 0RTT before 0rtt_key_ready|");
-            /* buffer packets */
-            xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
+            if (!xqc_tls_check_0rtt_key_ready(c)) {
+                xqc_log(c->log, XQC_LOG_WARN, "|delay|buff 0RTT before 0rtt_key_ready|");
+                /* buffer packets */
+                xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
 
-            packet_in->pos = packet_in->last;
-            return XQC_OK;
-        }
-        else if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_HSK &&
+                packet_in->pos = packet_in->last;
+                return XQC_OK;
+            }
+        } else if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_HSK &&
                 !xqc_tls_check_hs_rx_key_ready(c)) {
 
             xqc_log(c->log, XQC_LOG_WARN, "|delay|buff HSK before hs_rx_key_ready|");
@@ -150,11 +148,6 @@ xqc_packet_process_single(xqc_connection_t *c,
             xqc_log(c->log, XQC_LOG_INFO, "|====>|pkt_type:%s|recv_time:%ui|",
                     xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pkt_recv_time);
             return XQC_OK;
-        }
-
-        /* 需要立即跑main_logic */
-        if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) != XQC_PTYPE_0RTT) {
-            c->conn_flag |= XQC_CONN_FLAG_NEED_RUN;
         }
     }
     unsigned char *last = packet_in->last;
@@ -211,6 +204,10 @@ xqc_packet_process_single(xqc_connection_t *c,
             range_status, packet_in->pi_pkt.pkt_num,
             xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]), packet_in->pi_pkt.pkt_pns);
 
+    /* 需要立即跑main_logic */
+    if (packet_in->pi_frame_types & (~(XQC_FRAME_BIT_STREAM|XQC_FRAME_BIT_PADDING))) {
+        c->conn_flag |= XQC_CONN_FLAG_NEED_RUN;
+    }
     return XQC_OK;
 }
 
