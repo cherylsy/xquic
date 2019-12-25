@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 #include <event2/event.h>
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
@@ -22,7 +23,7 @@ int printf_null(const char *format, ...)
 #define TEST_PORT 8443
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
-#define MAX_BUF_SIZE (30*1024*1024)
+#define MAX_BUF_SIZE (100*1024*1024)
 
 typedef struct user_stream_s {
     xqc_stream_t       *stream;
@@ -36,7 +37,6 @@ typedef struct user_stream_s {
     char               *recv_body;
     size_t              recv_body_len;
     FILE               *recv_body_fp;
-    char               *recv_body_buf;
 } user_stream_t;
 
 typedef struct user_conn_s {
@@ -143,9 +143,9 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
     unsigned buff_size = 10000*1024;
-    char *buff = malloc(buff_size);
+    user_stream->send_body = malloc(buff_size);
     if (user_stream->send_offset < buff_size) {
-        ret = xqc_stream_send(stream, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
+        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %d\n", ret);
             return ret;
@@ -173,6 +173,8 @@ int xqc_server_stream_close_notify(xqc_stream_t *stream, void *user_data)
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
+    free(user_stream->send_body);
+    free(user_stream->recv_body);
     free(user_stream);
 
     return 0;
@@ -295,14 +297,13 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (user_stream->send_body == NULL) {
+        user_stream->send_body_max = MAX_BUF_SIZE;
+        user_stream->send_body = malloc(user_stream->send_body_max);
         /* echo > 指定大小 > 指定文件 > 默认大小 */
         if (g_echo) {
-            user_stream->send_body = user_stream->recv_body_buf;
+            memcpy(user_stream->send_body, user_stream->recv_body, user_stream->recv_body_len);
             user_stream->send_body_len = user_stream->recv_body_len;
         } else {
-            user_stream->send_body_max = MAX_BUF_SIZE;
-            user_stream->send_body = malloc(user_stream->send_body_max);
-
             if (g_send_body_size_defined) {
                 user_stream->send_body_len = g_send_body_size;
             } else if (g_read_body) {
@@ -342,7 +343,7 @@ int xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *user_da
     xqc_h3_request_set_user_data(h3_request, user_stream);
 
     if (g_echo) {
-        user_stream->recv_body_buf = malloc(MAX_BUF_SIZE);
+        user_stream->recv_body = malloc(MAX_BUF_SIZE);
     }
     return 0;
 }
@@ -351,7 +352,8 @@ int xqc_server_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
-    free(user_stream->recv_body_buf);
+    free(user_stream->send_body);
+    free(user_stream->recv_body);
     free(user_stream);
 
     return 0;
@@ -428,7 +430,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         /* 保存接收到的body到内存 */
         if (g_echo) {
-            memcpy(user_stream->recv_body_buf + user_stream->recv_body_len, buff, buff_size);
+            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, buff_size);
         }
         user_stream->recv_body_len += read;
         /*xqc_h3_request_close(h3_request);
@@ -638,6 +640,14 @@ ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_
     return write(ctx->log_fd, buf, count);
 }
 
+void stop(int signo)
+{
+    event_base_loopbreak(eb);
+    xqc_engine_destroy(ctx.engine);
+    fflush(stdout);
+    exit(0);
+}
+
 void usage(int argc, char *argv[]) {
     char *prog = argv[0];
     char *const slash = strrchr(prog, '/');
@@ -660,6 +670,7 @@ void usage(int argc, char *argv[]) {
 
 int main(int argc, char *argv[]) {
 
+    signal (SIGINT, stop);
     g_send_body_size = 1024*1024;
     g_send_body_size_defined = 0;
     g_save_body = 0;

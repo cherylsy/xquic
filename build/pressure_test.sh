@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# 另一个终端启动server
+#./test_server -l e -s 1
+
 >pressure_test.log
 for ((i=0;i<10;i++))
 do

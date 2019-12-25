@@ -353,7 +353,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
             conn->cur_stream_id_bidi_local);
 
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
-        xqc_log(conn->log, XQC_LOG_WARN, "|conn closing, cannot create stream|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|conn closing, cannot create stream|");
         return NULL;
     }
     if (xqc_stream_do_create_flow_ctl(conn, stream_id, stream_type)) {

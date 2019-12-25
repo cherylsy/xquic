@@ -26,7 +26,7 @@ int printf_null(const char *format, ...)
 
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
-#define MAX_BUF_SIZE (30*1024*1024)
+#define MAX_BUF_SIZE (100*1024*1024)
 
 #define XQC_MAX_TOKEN_LEN 32
 
@@ -45,6 +45,7 @@ typedef struct user_stream_s {
     char               *recv_body;
     size_t              recv_body_len;
     FILE               *recv_body_fp;
+    int                 recv_fin;
     xqc_msec_t          start_time;
 } user_stream_t;
 
@@ -80,6 +81,7 @@ int g_send_body_size;
 int g_send_body_size_defined;
 int g_save_body;
 int g_read_body;
+int g_echo_check;
 char g_write_file[256];
 char g_read_file[256];
 
@@ -338,9 +340,9 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
     unsigned buff_size = 1000*1024;
-    char *buff = malloc(buff_size);
+    user_stream->send_body = malloc(buff_size);
     if (user_stream->send_offset < buff_size) {
-        ret = xqc_stream_send(stream, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
+        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %d\n", ret);
             return ret;
@@ -385,6 +387,7 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
+    free(user_stream->send_body);
     free(user_stream);
     return 0;
 }
@@ -513,6 +516,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         if (fin) {
             /* 只有header，请求接收完成，处理业务逻辑 */
+            user_stream->recv_fin = 1;
             return 0;
         }
         //继续收body
@@ -531,6 +535,10 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         }
     }
 
+    if (g_echo_check && user_stream->recv_body == NULL) {
+        user_stream->recv_body = malloc(MAX_BUF_SIZE);
+    }
+
     ssize_t read;
     ssize_t read_sum = 0;
     do {
@@ -539,19 +547,26 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             printf("xqc_h3_request_recv_body error %lld\n", read);
             return read;
         }
-        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
-        read_sum += read;
-        user_stream->recv_body_len += read;
 
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
             return -1;
         }
         if(save) fflush(user_stream->recv_body_fp);
+
+        /* 保存接收到的body到内存 */
+        if (g_echo_check) {
+            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, buff_size);
+        }
+        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        read_sum += read;
+        user_stream->recv_body_len += read;
+
     } while (read > 0 && !fin);
 
     printf("xqc_h3_request_recv_body read:%lld, offset:%lld, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
     if (fin) {
+        user_stream->recv_fin = 1;
         xqc_request_stats_t stats;
         stats = xqc_h3_request_get_stats(h3_request);
         xqc_msec_t now_us = now();
@@ -572,8 +587,19 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 
     xqc_request_stats_t stats;
     stats = xqc_h3_request_get_stats(h3_request);
-    printf("send_body_size:%zu, recv_body_size:%zu\n", stats.send_body_size, stats.recv_body_size);
+    printf("send_body_size:%zu, recv_body_size:%zu, recv_fin:%d\n", stats.send_body_size, stats.recv_body_size, user_stream->recv_fin);
 
+    if (g_echo_check) {
+        int pass = 0;
+        if (user_stream->recv_fin && user_stream->send_body_len == user_stream->recv_body_len
+            && memcmp(user_stream->send_body, user_stream->recv_body, user_stream->send_body_len) == 0) {
+            pass = 1;
+        }
+        printf("******** pass:%d\n", pass);
+    }
+
+    free(user_stream->send_body);
+    free(user_stream->recv_body);
     free(user_stream);
 
     if (g_req_cnt < g_req_max) {
@@ -745,6 +771,7 @@ int main(int argc, char *argv[]) {
     g_send_body_size_defined = 0;
     g_save_body = 0;
     g_read_body = 0;
+    g_echo_check = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -757,7 +784,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:E")) != -1){
         switch(ch)
         {
             case 'a':
@@ -818,6 +845,10 @@ int main(int argc, char *argv[]) {
             case 'l': //log level. e:error d:debug.
                 printf("option log level :%s\n", optarg);
                 c_log_level = optarg[0];
+                break;
+            case 'E': //校验服务端echo数据
+                printf("option echo check :%s\n", "on");
+                g_echo_check = 1;
                 break;
             default:
                 printf("other option :%c\n", ch);
