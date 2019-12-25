@@ -320,7 +320,7 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     printf("conn errno:%d\n", xqc_h3_conn_get_errno(conn));
 
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
-    printf("send_count:%u, retrans_count:%u, tlp_count:%u\n", stats.send_count, stats.retrans_count, stats.tlp_count);
+    printf("send_count:%u, lost_count:%u, tlp_count:%u\n", stats.send_count, stats.lost_count, stats.tlp_count);
 
     free(user_conn);
     event_base_loopbreak(eb);

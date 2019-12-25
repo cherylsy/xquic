@@ -229,7 +229,7 @@ typedef struct xqc_conn_settings_s {
 
 typedef struct xqc_conn_stats_s {
     uint32_t    send_count;
-    uint32_t    retrans_count;
+    uint32_t    lost_count;
     uint32_t    tlp_count;
     xqc_msec_t  srtt;
 } xqc_conn_stats_t;

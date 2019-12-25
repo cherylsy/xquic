@@ -93,7 +93,7 @@ typedef struct xqc_send_ctl_s {
     unsigned                    ctl_pto_count;
 
     unsigned                    ctl_send_count;
-    unsigned                    ctl_retrans_count;
+    unsigned                    ctl_lost_count;
     unsigned                    ctl_tlp_count;
 
     unsigned                    ctl_bytes_in_flight;

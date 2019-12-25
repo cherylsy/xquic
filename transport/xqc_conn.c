@@ -341,9 +341,9 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|retrans_count:%ud|tlp_count:%ud|%s|",
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|%s|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_retrans_count, xc->conn_send_ctl->ctl_tlp_count,
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
             xqc_conn_addr_str(xc));
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
@@ -536,7 +536,7 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
-        packet_out->po_flag |= XQC_POF_RETRANS;
+        packet_out->po_flag |= XQC_POF_LOST;
 
         ret = xqc_conn_send_one_packet(conn, packet_out);
         if (ret < 0) {
@@ -566,7 +566,7 @@ xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
                 xqc_log(conn->log, XQC_LOG_DEBUG, "|pkt_type:%s|pkt_num:%ui|frame:%s|",
                         xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
                         xqc_frame_type_2_str(packet_out->po_frame_types));
-                packet_out->po_flag |= XQC_POF_RETRANS;
+                packet_out->po_flag |= XQC_POF_LOST;
                 ret = xqc_conn_send_one_packet(conn, packet_out);
                 if (ret < 0) {
                     return;
@@ -880,7 +880,7 @@ xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
         return conn_stats;
     }
     ctl = conn->conn_send_ctl;
-    conn_stats.retrans_count = ctl->ctl_retrans_count;
+    conn_stats.lost_count = ctl->ctl_lost_count;
     conn_stats.send_count = ctl->ctl_send_count;
     conn_stats.tlp_count = ctl->ctl_tlp_count;
     conn_stats.srtt = ctl->ctl_srtt;

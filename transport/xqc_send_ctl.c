@@ -345,9 +345,9 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
             xqc_send_ctl_set_loss_detection_timer(ctl);
         }
 
-        if (packet_out->po_flag & XQC_POF_RETRANS) {
-            ++ctl->ctl_retrans_count;
-            packet_out->po_flag &= ~XQC_POF_RETRANS;
+        if (packet_out->po_flag & XQC_POF_LOST) {
+            ++ctl->ctl_lost_count;
+            packet_out->po_flag &= ~XQC_POF_LOST;
         } else if (packet_out->po_flag & XQC_POF_TLP) {
             ++ctl->ctl_tlp_count;
             packet_out->po_flag &= ~XQC_POF_TLP;
@@ -812,7 +812,7 @@ xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl)
     if (ctl->ctl_send_count <= 0) {
         return 0.0f;
     } else {
-        return (float)(ctl->ctl_retrans_count + ctl->ctl_tlp_count) / ctl->ctl_send_count;
+        return (float)(ctl->ctl_lost_count + ctl->ctl_tlp_count) / ctl->ctl_send_count;
     }
 }
 

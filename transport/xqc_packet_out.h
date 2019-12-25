@@ -24,7 +24,7 @@
 
 typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,
-    XQC_POF_RETRANS          = 1 << 1,
+    XQC_POF_LOST             = 1 << 1,
     XQC_POF_DCID_NOT_DONE    = 1 << 2,
     XQC_POF_ENCRYPTED        = 1 << 3,
     XQC_POF_TLP              = 1 << 4,
