@@ -99,7 +99,7 @@ xqc_packet_process_single(xqc_connection_t *c,
         ret = xqc_packet_parse_short_header(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR,
-                    "|xqc_packet_parse_short_header error|");
+                    "|xqc_packet_parse_short_header error:%d|", ret);
             return ret;
         }
 
@@ -140,7 +140,7 @@ xqc_packet_process_single(xqc_connection_t *c,
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (ret != XQC_OK) {
             xqc_log(c->log, XQC_LOG_ERROR,
-                    "|xqc_packet_parse_long_header error|");
+                    "|xqc_packet_parse_long_header error:%d|", ret);
             return ret;
         }
 

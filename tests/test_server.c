@@ -213,6 +213,8 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
 int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)user_data;
+
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
 
@@ -535,9 +537,11 @@ xqc_server_socket_event_callback(int fd, short what, void *arg)
     }
 }
 
-void xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, void *user_data)
+void xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
 {
-    DEBUG
+    DEBUG;
+
+    xqc_conn_set_user_data(conn, &ctx);
 }
 
 static int xqc_server_create_socket(const char *addr, unsigned int port)
