@@ -652,7 +652,12 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
         return -XQC_ECONN_NFOUND;
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|", conn);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|state:%s|flag:%s|", conn,
+            xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag));
+
+    if (conn->conn_state >= XQC_CONN_STATE_DRAINING) {
+        return XQC_OK;
+    }
 
     ret = xqc_conn_immediate_close(conn);
     if (ret) {
