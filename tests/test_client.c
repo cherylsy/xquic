@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <time.h>
 #include "include/xquic.h"
 #include "include/xquic_typedef.h"
 
@@ -20,6 +21,7 @@ int printf_null(const char *format, ...)
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
+#define TEST_DROP (g_drop_rate != 0 && rand() % 1000 < g_drop_rate)
 
 #define TEST_SERVER_ADDR "127.0.0.1"
 #define TEST_SERVER_PORT 8443
@@ -82,6 +84,7 @@ int g_send_body_size_defined;
 int g_save_body;
 int g_read_body;
 int g_echo_check;
+int g_drop_rate;
 char g_write_file[256];
 char g_read_file[256];
 
@@ -202,12 +205,13 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
                                 socklen_t peer_addrlen)
 {
     user_conn_t *user_conn = (user_conn_t *) user;
-    ssize_t res;
+    ssize_t res = 0;
     int fd = user_conn->fd;
     //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
         //res = write(fd, buf, size);
+        if (TEST_DROP) return size;
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
@@ -658,6 +662,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
+        if (TEST_DROP) continue;
         if (xqc_engine_packet_process(ctx.engine, packet_buf, recv_size,
                                       (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
                                       (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
@@ -767,6 +772,7 @@ void usage(int argc, char *argv[]) {
 "   -r    Read sending body from file. priority s > r\n"
 "   -l    Log level. e:error d:debug.\n"
 "   -E    Echo check on. Compare sent data with received data.\n"
+"   -d    Drop rate ‰.\n"
 , prog);
 }
 
@@ -779,6 +785,7 @@ int main(int argc, char *argv[]) {
     g_save_body = 0;
     g_read_body = 0;
     g_echo_check = 0;
+    g_drop_rate = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -791,7 +798,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:E")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -856,6 +863,11 @@ int main(int argc, char *argv[]) {
             case 'E': //校验服务端echo数据
                 printf("option echo check :%s\n", "on");
                 g_echo_check = 1;
+                break;
+            case 'd': //丢包率 ‰
+                printf("option drop rate :%s\n", optarg);
+                g_drop_rate = atoi(optarg);
+                srand((unsigned)time(NULL));
                 break;
             default:
                 printf("other option :%c\n", ch);

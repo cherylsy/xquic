@@ -494,10 +494,11 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_0RTT;
     packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
 
-    if ((++c->zero_rtt_count) > XQC_PACKET_0RTT_MAX_COUNT) {
-        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_zero_rtt|too many 0-RTT packets|%ud|", c->zero_rtt_count);
-        return -XQC_ESYS;
-    }
+    //TODO: 0RTT丢包重传会触发错误
+    /*if ((++c->zero_rtt_count) > XQC_PACKET_0RTT_MAX_COUNT) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_zero_rtt|too many 0-RTT packets|%ud|", c->zero_rtt_count);
+        return -XQC_EPROTO;
+    }*/
 
     xqc_uint_t packet_number_len = (pos[0] & 0x03) + 1;
 
@@ -1198,7 +1199,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK) && c->conn_type == XQC_CONN_TYPE_CLIENT) {
         xqc_cid_copy(&c->dcid, &packet->pkt_scid);
         if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
-            return -XQC_ESYS;
+            return -XQC_EMALLOC;
         }
         c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
     } else if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT) {
