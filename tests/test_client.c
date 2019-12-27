@@ -259,10 +259,10 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
     saddr->sin_port = htons(port);
     saddr->sin_addr = *((struct in_addr *)remote->h_addr);
 
-    /*if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
+    if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
-    }*/
+    }
 
     /*socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);
@@ -401,8 +401,18 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     ssize_t ret = 0;
     xqc_http_header_t header[] = {
             {
-                    .name   = {.iov_base = "method", .iov_len = 7},
+                    .name   = {.iov_base = ":method", .iov_len = 7},
                     .value  = {.iov_base = "post", .iov_len = 4},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = ":scheme", .iov_len = 7},
+                    .value  = {.iov_base = "https", .iov_len = 5},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = ":path", .iov_len = 5},
+                    .value  = {.iov_base = "/resource", .iov_len = 9},
                     .flags  = 0,
             },
             {
@@ -410,21 +420,16 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = "text/plain", .iov_len = 10},
                     .flags  = 0,
             },
-            {
-                    .name   = {.iov_base = "content-encoding", .iov_len = 16},
-                    .value  = {.iov_base = "plain", .iov_len = 5},
-                    .flags  = 0,
-            },
-            {
+            /*{
                     .name   = {.iov_base = "content-length", .iov_len = 14},
                     .value  = {.iov_base = "512", .iov_len = 3},
                     .flags  = 0,
-            },
-            {
-                    .name   = {.iov_base = "status", .iov_len = 6},
+            },*/
+            /*{
+                    .name   = {.iov_base = ":status", .iov_len = 7},
                     .value  = {.iov_base = "200", .iov_len = 3},
                     .flags  = 0,
-            },
+            },*/
             /*{
                     .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
                     .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
@@ -510,7 +515,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return -1;
         }
         for (int i = 0; i < headers->count; i++) {
-            printf("header name:%s value:%s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
+            printf("%s = %s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
         }
 
         user_stream->header_recvd = 1;
@@ -761,6 +766,7 @@ void usage(int argc, char *argv[]) {
 "   -w    Write received body to file.\n"
 "   -r    Read sending body from file. priority s > r\n"
 "   -l    Log level. e:error d:debug.\n"
+"   -E    Echo check on. Compare sent data with received data.\n"
 , prog);
 }
 
@@ -1006,7 +1012,7 @@ int main(int argc, char *argv[]) {
             user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
             if (user_stream->h3_request == NULL) {
                 printf("xqc_h3_request_create error\n");
-                return -1;
+                continue;
             }
             xqc_client_request_send(user_stream->h3_request, user_stream);
             //xqc_h3_request_close(user_stream->h3_request);
@@ -1014,7 +1020,7 @@ int main(int argc, char *argv[]) {
             user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
             if (user_stream->stream == NULL) {
                 printf("xqc_stream_create error\n");
-                return -1;
+                continue;
             }
             xqc_client_stream_send(user_stream->stream, user_stream);
         }

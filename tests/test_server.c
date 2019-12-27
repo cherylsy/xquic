@@ -247,8 +247,18 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     ssize_t ret = 0;
     xqc_http_header_t header[] = {
             {
-                    .name   = {.iov_base = "method", .iov_len = 7},
+                    .name   = {.iov_base = ":method", .iov_len = 7},
                     .value  = {.iov_base = "post", .iov_len = 4},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = ":scheme", .iov_len = 7},
+                    .value  = {.iov_base = "https", .iov_len = 5},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = ":path", .iov_len = 5},
+                    .value  = {.iov_base = "/resource", .iov_len = 9},
                     .flags  = 0,
             },
             {
@@ -256,18 +266,13 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = "text/plain", .iov_len = 10},
                     .flags  = 0,
             },
-            {
-                    .name   = {.iov_base = "content-encoding", .iov_len = 16},
-                    .value  = {.iov_base = "plain", .iov_len = 5},
-                    .flags  = 0,
-            },
-            {
+            /*{
                     .name   = {.iov_base = "content-length", .iov_len = 14},
                     .value  = {.iov_base = "512", .iov_len = 3},
                     .flags  = 0,
-            },
+            },*/
             {
-                    .name   = {.iov_base = "status", .iov_len = 6},
+                    .name   = {.iov_base = ":status", .iov_len = 7},
                     .value  = {.iov_base = "200", .iov_len = 3},
                     .flags  = 0,
             },
@@ -385,7 +390,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return -1;
         }
         for (int i = 0; i < headers->count; i++) {
-            printf("header name:%s value:%s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
+            printf("%s = %s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
         }
 
         user_stream->header_recvd = 1;
