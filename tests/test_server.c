@@ -62,8 +62,13 @@ int g_send_body_size;
 int g_send_body_size_defined;
 int g_save_body;
 int g_read_body;
+int g_spec_url;
 char g_write_file[256];
 char g_read_file[256];
+char g_host[64] = "test.xquic.com";
+char g_path[256] = "/path/resource";
+char g_scheme[8] = "https";
+char g_url[256];
 
 static inline uint64_t now()
 {
@@ -253,12 +258,17 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             },
             {
                     .name   = {.iov_base = ":scheme", .iov_len = 7},
-                    .value  = {.iov_base = "https", .iov_len = 5},
+                    .value  = {.iov_base = g_scheme, .iov_len = strlen(g_scheme)},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "host", .iov_len = 4},
+                    .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
                     .flags  = 0,
             },
             {
                     .name   = {.iov_base = ":path", .iov_len = 5},
-                    .value  = {.iov_base = "/resource", .iov_len = 9},
+                    .value  = {.iov_base = g_path, .iov_len = strlen(g_path)},
                     .flags  = 0,
             },
             {
@@ -674,6 +684,7 @@ void usage(int argc, char *argv[]) {
 "   -w    Write received body to file.\n"
 "   -r    Read sending body from file. priority e > s > r\n"
 "   -l    Log level. e:error d:debug.\n"
+"   -u    Url. default https://test.xquic.com/path/resource\n"
 , prog);
 }
 
@@ -684,6 +695,7 @@ int main(int argc, char *argv[]) {
     g_send_body_size_defined = 0;
     g_save_body = 0;
     g_read_body = 0;
+    g_spec_url = 0;
 
     int server_port = TEST_PORT;
     char c_cong_ctl = 'c';
@@ -691,7 +703,7 @@ int main(int argc, char *argv[]) {
     int pacing_on = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:")) != -1){
         switch(ch)
         {
             case 'p':
@@ -732,6 +744,13 @@ int main(int argc, char *argv[]) {
             case 'l': //log level. e:error d:debug.
                 printf("option log level :%s\n", optarg);
                 c_log_level = optarg[0];
+                break;
+            case 'u': //请求url
+                printf("option url :%s\n", optarg);
+                snprintf(g_url, sizeof(g_url), optarg);
+                g_spec_url = 1;
+                sscanf(g_url,"%[^://]://%[^/]/%[^?]", g_scheme, g_host, g_path);
+                //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
                 break;
             default:
                 printf("other option :%c\n", ch);

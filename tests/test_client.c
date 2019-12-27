@@ -85,8 +85,13 @@ int g_save_body;
 int g_read_body;
 int g_echo_check;
 int g_drop_rate;
-char g_write_file[256];
-char g_read_file[256];
+int g_spec_url;
+char g_write_file[64];
+char g_read_file[64];
+char g_host[64] = "test.xquic.com";
+char g_path[256] = "/path/resource";
+char g_scheme[8] = "https";
+char g_url[256];
 
 static inline uint64_t now()
 {
@@ -411,12 +416,17 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             },
             {
                     .name   = {.iov_base = ":scheme", .iov_len = 7},
-                    .value  = {.iov_base = "https", .iov_len = 5},
+                    .value  = {.iov_base = g_scheme, .iov_len = strlen(g_scheme)},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "host", .iov_len = 4},
+                    .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
                     .flags  = 0,
             },
             {
                     .name   = {.iov_base = ":path", .iov_len = 5},
-                    .value  = {.iov_base = "/resource", .iov_len = 9},
+                    .value  = {.iov_base = g_path, .iov_len = strlen(g_path)},
                     .flags  = 0,
             },
             {
@@ -773,6 +783,7 @@ void usage(int argc, char *argv[]) {
 "   -l    Log level. e:error d:debug.\n"
 "   -E    Echo check on. Compare sent data with received data.\n"
 "   -d    Drop rate ‰.\n"
+"   -u    Url. default https://test.xquic.com/path/resource\n"
 , prog);
 }
 
@@ -786,6 +797,7 @@ int main(int argc, char *argv[]) {
     g_read_body = 0;
     g_echo_check = 0;
     g_drop_rate = 0;
+    g_spec_url = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -798,7 +810,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -868,6 +880,13 @@ int main(int argc, char *argv[]) {
                 printf("option drop rate :%s\n", optarg);
                 g_drop_rate = atoi(optarg);
                 srand((unsigned)time(NULL));
+                break;
+            case 'u': //请求url
+                printf("option url :%s\n", optarg);
+                snprintf(g_url, sizeof(g_url), optarg);
+                g_spec_url = 1;
+                sscanf(g_url,"%[^://]://%[^/]/%[^?]", g_scheme, g_host, g_path);
+                //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
                 break;
             default:
                 printf("other option :%c\n", ch);
