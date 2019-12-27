@@ -1075,6 +1075,9 @@ do_buff:
         xqc_engine_main_logic(conn->engine);
     }
 
+    if (fin_only_done) {
+        return 1;
+    }
     if (offset == 0 && !fin_only_done) {
         if (ret == -XQC_EAGAIN) {
             return 0; // -XQC_EAGAIN not means error
