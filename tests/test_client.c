@@ -87,6 +87,7 @@ int g_echo_check;
 int g_drop_rate;
 int g_spec_url;
 int g_is_get;
+int g_test_case;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
@@ -510,7 +511,17 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     //DEBUG;
     ssize_t ret = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
-//xqc_h3_request_close(h3_request);
+    if (g_test_case == 1) {
+        xqc_h3_request_close(h3_request);
+        return 0;
+    }
+    if (g_test_case == 2) {
+        xqc_h3_conn_close(ctx.engine, &user_stream->user_conn->cid);
+        return 0;
+    }
+    if (g_test_case == 3) {
+        return -1;
+    }
     ret = xqc_client_request_send(h3_request, user_stream);
     return ret;
 }
@@ -518,7 +529,6 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
 int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     //DEBUG;
-    int ret;
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
@@ -786,6 +796,7 @@ void usage(int argc, char *argv[]) {
 "   -d    Drop rate ‰.\n"
 "   -u    Url. default https://test.xquic.com/path/resource\n"
 "   -G    GET on. Default is POST\n"
+"   -x    Test case ID\n"
 , prog);
 }
 
@@ -801,6 +812,7 @@ int main(int argc, char *argv[]) {
     g_drop_rate = 0;
     g_spec_url = 0;
     g_is_get = 0;
+    g_test_case = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -813,7 +825,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:G")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -888,12 +900,16 @@ int main(int argc, char *argv[]) {
                 printf("option url :%s\n", optarg);
                 snprintf(g_url, sizeof(g_url), optarg);
                 g_spec_url = 1;
-                sscanf(g_url,"%[^://]://%[^/]/%[^?]", g_scheme, g_host, g_path);
+                sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
                 //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
                 break;
             case 'G': //Get请求
                 printf("option get :%s\n", "on");
                 g_is_get = 1;
+                break;
+            case 'x': //test case id
+                printf("option test case id:'%s'\n", optarg);
+                g_test_case = atoi(optarg);
                 break;
             default:
                 printf("other option :%c\n", ch);
