@@ -752,7 +752,7 @@ int main(int argc, char *argv[]) {
                 printf("option url :%s\n", optarg);
                 snprintf(g_url, sizeof(g_url), optarg);
                 g_spec_url = 1;
-                sscanf(g_url,"%[^://]://%[^/]/%[^?]", g_scheme, g_host, g_path);
+                sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
                 //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
                 break;
             default:
