@@ -298,6 +298,9 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     };
 
     int header_only = 0;
+    if (g_echo && user_stream->recv_body_len == 0) {
+        header_only = 1;
+    }
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {

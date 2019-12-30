@@ -86,6 +86,7 @@ int g_read_body;
 int g_echo_check;
 int g_drop_rate;
 int g_spec_url;
+int g_is_get;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
@@ -455,7 +456,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             .count  = sizeof(header) / sizeof(header[0]),
     };
 
-    int header_only = 0;
+    int header_only = g_is_get;
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
@@ -784,6 +785,7 @@ void usage(int argc, char *argv[]) {
 "   -E    Echo check on. Compare sent data with received data.\n"
 "   -d    Drop rate ‰.\n"
 "   -u    Url. default https://test.xquic.com/path/resource\n"
+"   -G    GET on. Default is POST\n"
 , prog);
 }
 
@@ -798,6 +800,7 @@ int main(int argc, char *argv[]) {
     g_echo_check = 0;
     g_drop_rate = 0;
     g_spec_url = 0;
+    g_is_get = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -810,7 +813,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:G")) != -1){
         switch(ch)
         {
             case 'a':
@@ -887,6 +890,10 @@ int main(int argc, char *argv[]) {
                 g_spec_url = 1;
                 sscanf(g_url,"%[^://]://%[^/]/%[^?]", g_scheme, g_host, g_path);
                 //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
+                break;
+            case 'G': //Get请求
+                printf("option get :%s\n", "on");
+                g_is_get = 1;
                 break;
             default:
                 printf("other option :%c\n", ch);
