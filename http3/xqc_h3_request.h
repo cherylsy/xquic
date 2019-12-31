@@ -7,13 +7,15 @@ typedef enum{
     XQC_H3_REQUEST_HEADER_COMPLETE_RECV = 1 << 0,
     XQC_H3_REQUEST_HEADER_ALREADY_READ  = 1 << 1,
     XQC_H3_REQUEST_HEADER_FIN           = 1 << 2,
+    XQC_H3_REQUEST_HEADER_CAN_READ      = 1 << 3,
+    XQC_H3_REQUEST_BODY_CAN_READ        = 1 << 4,
 }xqc_h3_request_flag;
 
 typedef struct xqc_h3_request_s {
     xqc_h3_stream_t     *h3_stream;
     void                *user_data;
     xqc_http_headers_t  headers;
-    uint8_t             flag;
+    xqc_h3_request_flag flag;
 
     xqc_h3_request_callbacks_t
                         *request_if;
