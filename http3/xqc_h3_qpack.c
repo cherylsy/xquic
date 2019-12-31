@@ -1273,6 +1273,7 @@ int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, in
 
     memset(sctx, 0, sizeof(xqc_http3_qpack_stream_context));
 
+    xqc_http3_qpack_read_state_init(&sctx->rstate);
     xqc_init_list_head(&sctx->block_list);
     sctx->rstate.prefix = 8;
     sctx->state = XQC_HTTP3_QPACK_RS_STATE_RICNT;
@@ -1292,15 +1293,7 @@ void xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx){
         return;
     }
     //free block_list
-    if(sctx->rstate.name){
-        xqc_var_buf_free(sctx->rstate.name);
-        sctx->rstate.name = NULL;
-    }
-
-    if(sctx->rstate.value){
-        xqc_var_buf_free(sctx->rstate.value);
-        sctx->rstate.value = NULL;
-    }
+    xqc_http3_qpack_read_state_free(&sctx->rstate);
 }
 
 int xqc_http3_ringdata_pop_back(xqc_http3_ringdata *rdata, xqc_http3_qpack_entry *entry){
