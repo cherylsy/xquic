@@ -65,6 +65,7 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
     h3_stream->tx_http_state = XQC_HTTP3_HTTP_STATE_NONE;
 
     xqc_init_list_head(&h3_stream->send_frame_data_buf);
+    h3_stream->send_buf_count = 0;
 
     xqc_init_list_head(&h3_stream->recv_header_data_buf);
     xqc_init_list_head(&h3_stream->recv_body_data_buf);
@@ -297,13 +298,17 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|stream_type:%d|stream_id:%ui|",
             h3_stream->h3_stream_type, h3_stream->stream->stream_id);
 
-    if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST) {
-        ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
-        if (ret < 0) {
+    ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+    if (ret < 0) {
+        if(ret == -XQC_EAGAIN){
+            return ret;
+        }else{
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_http3_send_frame_buffer error|%d|", ret);
             return ret;
         }
+    }
 
+    if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST) {
         ret = h3_stream->h3_request->request_if->h3_request_write_notify(h3_stream->h3_request,
                                                                          h3_stream->h3_request->user_data);
         if (ret) {

@@ -88,6 +88,7 @@ typedef enum
 #define XQC_H3_EPROC_PUSH       810 //处理push流失败
 #define XQC_H3_EPARAM           811 //参数错误
 
+#define XQC_H3_BUFFER_EXCEED    812 //http send buffer 超过最大值
 
 
 #endif /* _XQC_ERRNO_H_INCLUDED_ */

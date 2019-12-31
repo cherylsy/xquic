@@ -1177,9 +1177,9 @@ xqc_process_write_streams (xqc_connection_t *conn)
                 stream->stream_flag, stream->stream_id);
         ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
         if (ret < 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|flag:%d|stream_id:%ui|",
-                    ret, stream->stream_flag, stream->stream_id);
             if (ret != -XQC_EAGAIN) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|flag:%d|stream_id:%ui|",
+                    ret, stream->stream_flag, stream->stream_id);
                 xqc_stream_shutdown_write(stream);
             }
             if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING && ret != -XQC_EAGAIN) {
