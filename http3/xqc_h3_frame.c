@@ -2034,17 +2034,27 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
 ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
-    if(data_len <= 0){
+    if(data_len < 0){
         return -XQC_H3_EPARAM;
     }
 
     ssize_t send_len; // send bytes every time
     ssize_t send_sum = 0; // means data send or buffer success
     ssize_t offset = 0; // means read data offset
-
+    uint8_t fin_only = fin && data_len == 0;
+    uint8_t fin_only_done = 0;
 
     if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
         return send_sum; //means buffer data not send completely
+    }
+
+    if (fin_only) {
+        send_len = xqc_stream_send(h3_stream->stream, NULL, 0, fin);
+        if(send_len < 0){
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send fin,error code:%z|", send_len);
+            return send_len;
+        }
+        return send_len;
     }
 
     while(data_len > 0){
