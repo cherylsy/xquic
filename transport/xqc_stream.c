@@ -881,9 +881,6 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
-        /*printf("data_offset: %llu, data_length: %u, next_read_offset: %llu\n",
-               stream_frame->data_offset, stream_frame->data_length, stream_frame->next_read_offset);*/
-
         if (stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
             break;
         }
@@ -992,7 +989,7 @@ xqc_stream_send (xqc_stream_t *stream,
     if (stream->stream_state_send >= XQC_SEND_STREAM_ST_RESET_SENT) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|stream reset sent, cannot send|");
         xqc_stream_shutdown_write(stream);
-        return -XQC_ESTREAM_ST;
+        return -XQC_ESTREAM_RESET;
     }
 
     while (offset < send_data_size || fin_only) {
@@ -1179,12 +1176,16 @@ xqc_process_write_streams (xqc_connection_t *conn)
             xqc_log(conn->log, XQC_LOG_DEBUG, "|DATA_BLOCKED|stream_id:%ui|", stream->stream_id);
             continue;
         }
-        ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_write_notify|flag:%d|stream_id:%ui|",
                 stream->stream_flag, stream->stream_id);
+        ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
         if (ret < 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|stream_id:%ui|", ret, stream->stream_id);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|flag:%d|stream_id:%ui|",
+                    ret, stream->stream_flag, stream->stream_id);
             xqc_stream_shutdown_write(stream);
+            if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING) {
+                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            }
         }
     }
 }
@@ -1199,13 +1200,16 @@ xqc_process_read_streams (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_read_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
-        ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|stream_id:%ui|",
                 stream->stream_flag, stream->stream_id);
+        ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
         if (ret < 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|stream_id:%ui|",
-                    ret, stream->stream_id);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|flag:%d|stream_id:%ui|",
+                    ret, stream->stream_flag, stream->stream_id);
             xqc_stream_shutdown_read(stream);
+            if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING) {
+                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            }
         }
     }
 }

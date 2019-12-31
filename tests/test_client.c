@@ -493,14 +493,25 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         }
     }
 
+    int fin = 1;
+    if (g_test_case == 4) { //test fin_only
+        fin = 0;
+    }
     if (user_stream->send_offset < user_stream->send_body_len) {
-        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
+        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
         if (ret < 0) {
             printf("xqc_h3_request_send_body error %d\n", ret);
             return ret;
         } else {
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body sent:%lld, offset=%lld\n", ret, user_stream->send_offset);
+        }
+    }
+    if (g_test_case == 4) { //test fin_only
+        if (user_stream->send_offset == user_stream->send_body_len) {
+            fin = 1;
+            ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
+            printf("xqc_h3_request_send_body sent:%lld, offset=%lld, fin=1\n", ret, user_stream->send_offset);
         }
     }
     return 0;
