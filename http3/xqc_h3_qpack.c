@@ -1,6 +1,5 @@
 #include "xqc_h3_qpack.h"
 #include "xqc_h3_frame.h"
-#include "common/xqc_errno.h"
 #define XQC_HTTP3_QPACK_MAX_NAMELEN 256
 
 xqc_var_string_t * xqc_create_var_string(uint8_t * value, size_t strlen){

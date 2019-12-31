@@ -1,5 +1,4 @@
 
-#include "common/xqc_errno.h"
 #include "common/xqc_common.h"
 #include "common/xqc_malloc.h"
 #include "common/xqc_str_hash.h"

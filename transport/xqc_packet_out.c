@@ -1,4 +1,4 @@
-#include <common/xqc_errno.h>
+
 #include <common/xqc_variable_len_int.h>
 #include "xqc_packet_out.h"
 #include "xqc_conn.h"

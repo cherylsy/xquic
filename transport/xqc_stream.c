@@ -1,4 +1,4 @@
-#include "common/xqc_errno.h"
+
 #include "common/xqc_memory_pool.h"
 #include "common/xqc_id_hash.h"
 #include "xqc_conn.h"

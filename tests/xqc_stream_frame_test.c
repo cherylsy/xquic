@@ -5,7 +5,6 @@
 #include "transport/xqc_engine.h"
 #include "transport/xqc_frame.h"
 #include "transport/xqc_stream.h"
-#include "common/xqc_errno.h"
 #include "xqc_common_test.h"
 
 void

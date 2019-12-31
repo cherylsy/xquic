@@ -1,7 +1,6 @@
 
 #include "http3/xqc_h3_stream.h"
 #include "http3/xqc_h3_conn.h"
-#include "common/xqc_errno.h"
 #include "common/xqc_algorithm.h"
 #include "include/xquic.h"
 #include "common/xqc_common.h"

@@ -5,7 +5,6 @@
 #include "transport/xqc_stream.h"
 #include "xqc_h3_conn.h"
 #include "include/xquic.h"
-#include "common/xqc_errno.h"
 #include "xqc_h3_request.h"
 
 

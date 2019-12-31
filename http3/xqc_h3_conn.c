@@ -5,7 +5,6 @@
 #include "xqc_h3_conn.h"
 #include "include/xquic.h"
 #include "xqc_h3_stream.h"
-#include "common/xqc_errno.h"
 
 xqc_cid_t *
 xqc_h3_connect(xqc_engine_t *engine, void *user_data,

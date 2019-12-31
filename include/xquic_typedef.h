@@ -4,6 +4,7 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "xqc_errno.h"
 
 //TODO: 安卓平台下-o2可能有问题
 #if defined(__GNUC__) && !defined(ANDROID)

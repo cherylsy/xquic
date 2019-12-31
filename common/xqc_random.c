@@ -9,7 +9,6 @@
 #include "xqc_random.h"
 #include "xqc_str.h"
 #include "xqc_log.h"
-#include "xqc_errno.h"
 
 #define XQC_RANDOM_BUFFER_SIZE 4096
 

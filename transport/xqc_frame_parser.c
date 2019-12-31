@@ -1,7 +1,6 @@
 
 #include <string.h>
 #include <sys/types.h>
-#include <common/xqc_errno.h>
 #include "xqc_frame_parser.h"
 #include "common/xqc_variable_len_int.h"
 #include "common/xqc_log.h"

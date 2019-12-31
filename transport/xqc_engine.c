@@ -1,6 +1,5 @@
 
 #include "xqc_engine.h"
-#include "common/xqc_errno.h"
 #include "include/xquic.h"
 #include "common/xqc_str.h"
 #include "common/xqc_random.h"
