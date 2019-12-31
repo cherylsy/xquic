@@ -413,7 +413,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     xqc_http_header_t header[] = {
             {
                     .name   = {.iov_base = ":method", .iov_len = 7},
-                    .value  = {.iov_base = "post", .iov_len = 4},
+                    .value  = {.iov_base = "POST", .iov_len = 4},
                     .flags  = 0,
             },
             {
@@ -499,7 +499,9 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
-        if (ret < 0) {
+        if (ret == -XQC_EAGAIN) {
+            return 0;
+        } else if (ret < 0) {
             printf("xqc_h3_request_send_body error %d\n", ret);
             return ret;
         } else {
@@ -537,7 +539,7 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
+int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data/*, xqc_request_notify_flag_t flag*/)
 {
     //DEBUG;
     unsigned char fin = 0;
