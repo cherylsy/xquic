@@ -27,7 +27,7 @@ typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 #define XQC_MAX_SIZE_T (0xFFFFFFFFFFFFFFFF)
 #define XQC_MAX_UINT64 (0xFFFFFFFFFFFFFFFF)
 
-#define XQC_HTTP3_QPACK_MAX_VALUELEN (16*1024) //16K enough?
+#define XQC_HTTP3_QPACK_MAX_VALUELEN (16*1024) //16K enough? //修改成配置项
 #define XQC_HTTP3_QPACK_MAX_NAMELEN 256
 
 typedef enum {

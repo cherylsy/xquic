@@ -46,11 +46,11 @@ int xqc_http_headers_free(xqc_http_headers_t *headers){
     }
     for(i = 0; i < headers->count; i++){
         header = & headers->headers[i];
-        if(header->name.iov_base)free(header->name.iov_base);
-        if(header->value.iov_base)free(header->value.iov_base);
+        if(header->name.iov_base)xqc_free(header->name.iov_base);
+        if(header->value.iov_base)xqc_free(header->value.iov_base);
     }
 
-    free(headers->headers);
+    xqc_free(headers->headers);
     headers->headers = NULL;
     headers->count = 0;
     headers->capacity = 0;

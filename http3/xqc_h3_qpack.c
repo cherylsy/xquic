@@ -37,10 +37,10 @@ void xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv){
         return;
     }
     if(nv->name){
-        free(nv->name);
+        xqc_free(nv->name);
     }
     if(nv->value){
-        free(nv->value);
+        xqc_free(nv->value);
     }
 }
 
@@ -61,7 +61,7 @@ int xqc_var_buf_clear(xqc_var_buf_t *vbuf){
 
 void xqc_var_buf_free(xqc_var_buf_t * vbuf){
     if(vbuf){
-        free(vbuf);
+        xqc_free(vbuf);
     }
 }
 
@@ -552,7 +552,7 @@ int xqc_qpack_decoder_emit_dynamic_indexed_name(xqc_http3_qpack_decoder *decoder
     nv->value = xqc_create_var_string(sctx->rstate.value->data, sctx->rstate.value->used_len);
 
     if(nv->value == NULL){
-        free(nv->name);
+        xqc_free(nv->name);
         return -XQC_H3_EMALLOC;
     }
     return 0;
@@ -577,7 +577,7 @@ int xqc_qpack_decoder_emit_static_indexed_name(xqc_http3_qpack_decoder *decoder,
     nv->value = xqc_create_var_string(sctx->rstate.value->data, sctx->rstate.value->used_len);
 
     if(nv->value == NULL){
-        free(nv->name);
+        xqc_free(nv->name);
         return -XQC_H3_EMALLOC;
     }
 
@@ -644,6 +644,7 @@ int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_tab
     qdec->value_buf = xqc_malloc(XQC_HTTP3_QPACK_MAX_VALUELEN);
     if(qdec->value_buf == NULL){
         xqc_free(qdec->name_buf);
+        qdec->value_buf = NULL;
         return -XQC_H3_EMALLOC;
     }
 
@@ -708,6 +709,7 @@ int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_tab
     qenc->value_buf = xqc_malloc(XQC_HTTP3_QPACK_MAX_VALUELEN);
     if(qenc->value_buf == NULL){
         xqc_free(qenc->name_buf);
+        qenc->name_buf = NULL;
         return -XQC_H3_EMALLOC;
     }
     return 0;
@@ -836,7 +838,7 @@ int xqc_qpack_decoder_emit_static_indexed(xqc_http3_qpack_decoder *decoder, xqc_
     nv->value = xqc_create_var_string(entry->value, entry->value_len);
 
     if(nv->value == NULL){
-        free(nv->name);
+        xqc_free(nv->name);
         return -XQC_H3_EMALLOC;
     }
     return 0;
@@ -1402,7 +1404,7 @@ int xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, siz
     xqc_http3_ringdata_copy_data_to_buf(rdata, abs_index, rdata->used, buf, mask);
 
 end:
-    free(rdata->buf);
+    xqc_free(rdata->buf);
     rdata->buf = buf;
     rdata->capacity = capacity;
     rdata->mask = mask;
@@ -2057,7 +2059,7 @@ int xqc_qpack_free_unack_header_block(xqc_qpack_unack_header_block * header_bloc
 
     xqc_list_del(&header_block->stream_in_list);
 
-    free(header_block);
+    xqc_free(header_block);
 }
 
 int xqc_http3_qpack_encoder_cancel_stream(xqc_h3_conn_t *h3_conn , int64_t stream_id){
@@ -2581,26 +2583,26 @@ ssize_t xqc_http3_stream_write_header_block( xqc_h3_stream_t * qenc_stream, xqc_
         xqc_http3_qpack_encoder_insert_unack_header(qenc_stream, stream, encoder, min_cnt, max_cnt);
     }
     if(pp_buf){
-        free(pp_buf);
+        xqc_free(pp_buf);
     }
 
     if(pp_h_data){
-        free(pp_h_data);
+        xqc_free(pp_h_data);
     }
     if(p_enc_buf){
-        free(p_enc_buf);
+        xqc_free(p_enc_buf);
     }
     return 0;
 fail:
     if(pp_buf){
-        free(pp_buf);
+        xqc_free(pp_buf);
     }
 
     if(pp_h_data){
-        free(pp_h_data);
+        xqc_free(pp_h_data);
     }
     if(p_enc_buf){
-        free(p_enc_buf);
+        xqc_free(p_enc_buf);
     }
     return rv;
 }
@@ -2841,7 +2843,7 @@ int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
             }
 
             xqc_list_del(pos);
-            free(data_buf);
+            xqc_free(data_buf);
 
         }
     }
