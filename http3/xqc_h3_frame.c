@@ -2034,7 +2034,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
 ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
-    if(data_len <= 0){
+    if(data_len <= 0 && !fin){
         return -XQC_H3_EPARAM;
     }
 
