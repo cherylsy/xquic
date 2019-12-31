@@ -1072,12 +1072,9 @@ do_buff:
         xqc_engine_main_logic(conn->engine);
     }
 
-    if (fin_only_done) {
-        return 1;
-    }
     if (offset == 0 && !fin_only_done) {
         if (ret == -XQC_EAGAIN) {
-            return 0; // -XQC_EAGAIN not means error
+            return -XQC_EAGAIN; // -XQC_EAGAIN not means error
         } else {
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             return ret;
@@ -1182,8 +1179,10 @@ xqc_process_write_streams (xqc_connection_t *conn)
         if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|flag:%d|stream_id:%ui|",
                     ret, stream->stream_flag, stream->stream_id);
-            xqc_stream_shutdown_write(stream);
-            if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING) {
+            if (ret != -XQC_EAGAIN) {
+                xqc_stream_shutdown_write(stream);
+            }
+            if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING && ret != -XQC_EAGAIN) {
                 XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             }
         }
@@ -1206,8 +1205,10 @@ xqc_process_read_streams (xqc_connection_t *conn)
         if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|flag:%d|stream_id:%ui|",
                     ret, stream->stream_flag, stream->stream_id);
-            xqc_stream_shutdown_read(stream);
-            if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING) {
+            if (ret != -XQC_EAGAIN) {
+                xqc_stream_shutdown_write(stream);
+            }
+            if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING && ret != -XQC_EAGAIN) {
                 XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             }
         }
