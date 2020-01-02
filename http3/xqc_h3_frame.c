@@ -1849,26 +1849,30 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_data(xqc_h3_stream_t * h3_st
 
 }
 
+#define XQC_HTTP3_SEND_BUF_COMPLETE 0
 
-int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head){
+int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head){ //return 1 means send buf completely, return 0 means buf data send imcompletely
 
     xqc_list_head_t *pos, *next;
     xqc_h3_frame_send_buf_t * send_buf = NULL;
-    int ret = 1;
+    int ret = XQC_HTTP3_SEND_BUF_COMPLETE;
     xqc_list_for_each_safe(pos, next, head){
         send_buf = xqc_list_entry(pos, xqc_h3_frame_send_buf_t, list_head);
 
         ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data + send_buf->already_consume, send_buf->data_len - send_buf->already_consume, send_buf->fin);
-        if (send_success < 0) {
+        if (send_success == -XQC_EAGAIN ) {
+            ret = -XQC_EAGAIN;
+            return -XQC_EAGAIN;
+        }else if(send_success < 0){
             xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|ret:%z|", send_success);
             return send_success;
         }
 
         if(send_success + send_buf->already_consume != send_buf->data_len){
             send_buf->already_consume += send_success;
-            ret = 0; // means send data not completely
-            break;
+            return -XQC_EAGAIN; // means send data not completely
         }else{
+            h3_stream->send_buf_count--;
             xqc_list_del(pos);
             xqc_free(pos);
         }
@@ -1877,6 +1881,26 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
     return ret;
 
 }
+
+#define XQC_HTTP3_MAX_BUFFER_COUNT_SIZE (1024)
+int xqc_http3_frame_data_buffer_and_send(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send_buf_t * send_buf){//control_data_send do not return eagain, if eagian, buf data, if error ,return error
+
+    if(h3_stream->send_buf_count > XQC_HTTP3_MAX_BUFFER_COUNT_SIZE){
+        return -XQC_H3_BUFFER_EXCEED;
+    }
+
+    h3_stream->send_buf_count++;
+    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
+
+    int ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+
+    if(ret == XQC_HTTP3_SEND_BUF_COMPLETE || ret == -XQC_EAGAIN ){
+        return send_buf->data_len;
+    }else{
+        return ret;
+    }
+}
+
 
 xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_push_promise(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint64_t push_id){
 
@@ -1907,50 +1931,9 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_push_promise(xqc_h3_stream_t * h3_
 
 }
 
-ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_t push_id, char * data, ssize_t data_len, uint8_t fin){
+ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_t push_id, char * data, ssize_t data_len, uint8_t fin){ //暂时先不支持push
 
-    if(data_len <= 0){
-        return data_len;
-    }
-
-    ssize_t send_sum = 0; // means data send or buffer success
-    ssize_t offset = 0; // means read data offset
-
-
-    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
-        return send_sum; //means buffer data not send completely
-    }
-
-    xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_push_promise( h3_stream, data, data_len,  push_id);
-    if(send_buf == NULL){
-        //log
-        return send_sum;
-    }
-
-    if(fin){
-        send_buf->fin = fin;
-    }
-    send_sum = data_len;
-
-    ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
-
-    if(send_success < 0){
-        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%z|",send_success );
-        return send_success;
-    }
-
-    if(send_success == send_buf->data_len){
-        xqc_free(send_buf);
-    }else{
-        send_buf->already_consume += send_success;
-        xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
-    }
-
-
-    return send_sum;
-
-
-
+    return -1;
 
 }
 
@@ -1971,70 +1954,39 @@ ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *
     return n_write;
 }
 
-
 ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
     if(data_len <= 0){
         return -XQC_H3_EPARAM;
     }
 
-    ssize_t send_len; // send bytes every time
-    ssize_t send_sum = 0; // means data send or buffer success
-    ssize_t offset = 0; // means read data offset
+    int ret = 0;
 
+    xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_frame_header( h3_stream, data, data_len);
 
-    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
-        return send_sum; //means buffer data not send completely
+    if(fin){
+        send_buf->fin = fin;
+    }
+    if(send_buf == NULL){
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_frame_header error|");
+        return -XQC_H3_EMALLOC;
     }
 
-    while(data_len > 0){
-        if(data_len > XQC_MAX_FRAME_SIZE){
-            send_len = XQC_MAX_FRAME_SIZE;
-        }else{
-            send_len = data_len;
-        }
+    ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
 
-        data_len -= send_len;
+    return ret;
 
-        xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_frame_header( h3_stream, data+offset, send_len);
-        if(send_buf == NULL){
-            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_frame_header error|");
-            return -XQC_H3_EMALLOC;
-        }
-
-        if(fin && data_len == 0){
-            send_buf->fin = fin;
-        }
-
-        send_sum += send_len; //means data already buffer  total
-        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
-
-        if(send_success < 0){
-            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%z|",send_success );
-            xqc_free(send_buf);
-            return send_success;
-        }
-
-        if(send_success == send_buf->data_len){
-            xqc_free(send_buf);
-        }else{
-            send_buf->already_consume += send_success;
-            xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
-            break;
-        }
-
-        offset += send_len;
-    }
-
-    return send_sum;
 
 }
-
-
 ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
 
-    if(data_len <= 0 && !fin){
-        return -XQC_H3_EPARAM;
+    int ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+
+    if(ret == -XQC_EAGAIN){
+        return -XQC_EAGAIN;
+    }else if(ret < 0){
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|send stream buffer data error |");
+        return ret;
     }
 
     ssize_t send_len; // send bytes every time
@@ -2042,11 +1994,7 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
     ssize_t offset = 0; // means read data offset
     uint8_t fin_only = fin && data_len == 0;
 
-    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
-        return send_sum; //means buffer data not send completely
-    }
-
-    if (fin_only) {
+    if(fin_only){
         send_len = xqc_stream_send(h3_stream->stream, NULL, 0, fin);
         if(send_len < 0){
             xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send fin,error code:%z|", send_len);
@@ -2055,8 +2003,12 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
         return send_len;
     }
 
+
+    if(data_len <= 0){
+        return -XQC_H3_EPARAM;
+    }
     while(data_len > 0){
-        if(data_len > XQC_MAX_FRAME_SIZE){
+         if(data_len > XQC_MAX_FRAME_SIZE){
             send_len = XQC_MAX_FRAME_SIZE;
         }else{
             send_len = data_len;
@@ -2066,7 +2018,7 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
 
         xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_frame_data( h3_stream, data+offset, send_len);
 
-        if(send_buf == NULL){
+         if(send_buf == NULL){
             //log
             xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_frame_data error|");
             return -XQC_H3_EMALLOC;
@@ -2075,18 +2027,21 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
         if(fin && data_len == 0){//means last frame
             send_buf->fin = fin;
         }
-
         send_sum += send_len; //means data already buffer  total
         ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
 
-        if(send_success < 0){
+        if(send_success < 0 && send_success != -XQC_EAGAIN){
             xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%z|",send_success );
             return send_success;
         }
+
         if(send_success == send_buf->data_len){
             xqc_free(send_buf);
         }else{
-            send_buf->already_consume += send_success;
+            if(send_success != -XQC_EAGAIN){
+                send_buf->already_consume += send_success;
+            }
+            h3_stream->send_buf_count++;
             xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
             break;
         }
@@ -2097,7 +2052,6 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
     return send_sum;
 
 }
-
 
 xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_settings * setting ){
 
@@ -2157,6 +2111,8 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_settings(xqc_h3_stream_t * h3_stre
 
 }
 
+
+
 int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_settings * settings ){
 
     xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_settings( h3_stream, settings);
@@ -2166,12 +2122,8 @@ int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_
         return -1;
     }
 
-    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
-
-    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
-        //need log
-    }
-    return 0;//means successful buffer
+    int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
+    return ret;
 }
 
 
@@ -2204,14 +2156,8 @@ int xqc_http3_stream_write_cancel_push(xqc_h3_stream_t * h3_stream, xqc_http3_fr
     if(send_buf == 0){
         return -1;
     }
-
-    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
-
-    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
-        //need log
-    }
-    return 0;//means successful buffer
-
+    int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
+    return ret;
 }
 
 xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_max_push_id(xqc_h3_stream_t * h3_stream, xqc_http3_frame_max_push_id * fr){
@@ -2243,12 +2189,8 @@ int xqc_http3_stream_write_max_push_id(xqc_h3_stream_t * h3_stream, xqc_http3_fr
         return -1;
     }
 
-    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
-
-    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
-        //need log
-    }
-    return 0;//means successful buffer
+    int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
+    return ret;
 
 }
 
@@ -2284,12 +2226,8 @@ int xqc_http3_stream_write_priority(xqc_h3_stream_t * h3_stream, xqc_http3_frame
         return -1;
     }
 
-    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
-
-    if(xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf) != 1){
-        //need log
-    }
-    return 0;
+    int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
+    return ret;
 
 }
 
