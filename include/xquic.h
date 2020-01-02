@@ -39,6 +39,11 @@ typedef ssize_t (*xqc_socket_write_pt)(void *conn_user_data, unsigned char *buf,
                                        const struct sockaddr *peer_addr,
                                        socklen_t peer_addrlen);
 
+typedef enum {
+    XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
+    XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
+} xqc_request_notify_flag_t;
+
 /*
  * return 0 for success, <0 for error
  */
@@ -46,6 +51,7 @@ typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *
 typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data);
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
+typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, void *user_data/*, xqc_request_notify_flag_t flag*/);
 
 typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
@@ -99,11 +105,11 @@ typedef struct xqc_stream_callbacks_s {
 
 /* application layer */
 typedef struct xqc_h3_request_callbacks_s {
-    xqc_h3_request_notify_pt    h3_request_read_notify; /* 可读时回调，用户可以继续调用读接口，读headers或body */
-    xqc_h3_request_notify_pt    h3_request_write_notify; /* 可写时回调，用户可以继续调用写接口,写headers或body */
-    xqc_h3_request_notify_pt    h3_request_create_notify; /* required for server, optional for client，
+    xqc_h3_request_read_notify_pt   h3_request_read_notify; /* 可读时回调，用户可以继续调用读接口，读headers或body */
+    xqc_h3_request_notify_pt        h3_request_write_notify; /* 可写时回调，用户可以继续调用写接口,写headers或body */
+    xqc_h3_request_notify_pt        h3_request_create_notify; /* required for server, optional for client，
                                                             * 请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_h3_request_notify_pt    h3_request_close_notify; /* 关闭时回调，用户可以回收资源 */
+    xqc_h3_request_notify_pt        h3_request_close_notify; /* 关闭时回调，用户可以回收资源 */
 } xqc_h3_request_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
@@ -362,7 +368,7 @@ ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
 
 /**
  * @param fin 1:没有多余的body需要发送
- * @return 发送成功的字节数，<0 出错
+ * @return 发送成功的字节数，-XQC_EAGAIN下次尝试写, <0 出错
  */
 ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
                                  unsigned char *data,
@@ -485,7 +491,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 /**
  * Send data in stream.
  * @param fin  0 or 1,  1 - final data block send in this stream.
- * @return bytes sent, <0 for error
+ * @return bytes sent, -XQC_EAGAIN try next time, <0 for error
  */
 ssize_t xqc_stream_send (xqc_stream_t *stream,
                          unsigned char *send_data,
