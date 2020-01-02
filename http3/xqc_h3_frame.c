@@ -1285,10 +1285,10 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
 
                 fin_flag = XQC_HTTP3_NO_FIN;
                 if(fin && (len == (end - p))){
-                    fin_flag &= XQC_HTTP3_STREAM_FIN;
+                    fin_flag |= XQC_HTTP3_STREAM_FIN;
                 }
                 if(len == rstate->left){
-                    fin_flag &= XQC_HTTP3_FRAME_FIN;
+                    fin_flag |= XQC_HTTP3_FRAME_FIN;
                 }
 
                 nread = xqc_http3_handle_header_data_streaming(h3_conn, h3_stream, p, len, fin_flag);
