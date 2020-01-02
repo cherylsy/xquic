@@ -18,6 +18,23 @@ grep_err_log() {
 }
 
 clear_log
+echo -e "验证Token失效 ...\c"
+rm -f xqc_token
+./test_client -s 1024000 -l e -t 1 -E|grep "******** pass"
+grep_err_log|grep -v xqc_conn_check_token
+
+clear_log
+echo -e "验证Token生效 ...\c"
+./test_client -s 1024000 -l e -t 1 -E|grep "******** pass"
+grep_err_log
+
+clear_log
+echo -e "fin only ...\c"
+./test_client -s 10240000 -l e -t 1 -E -x 4 >> clog
+echo "******** pass:1"
+grep_err_log
+
+clear_log
 echo -e "主动关闭连接 ...\c"
 ./test_client -s 10240000 -l e -t 1 -E -x 2 >> clog
 echo "******** pass:1"
@@ -27,7 +44,7 @@ clear_log
 echo -e "出错关闭连接 ...\c"
 ./test_client -s 10240000 -l e -t 1 -E -x 3 >> clog
 echo "******** pass:1"
-grep_err_log
+grep_err_log|grep -v xqc_process_write_streams|grep -v xqc_h3_stream_write_notify
 
 
 clear_log
@@ -39,17 +56,6 @@ else
     echo "******** pass:0"
 fi
 grep_err_log|grep -v stream
-
-clear_log
-echo -e "验证Token失效 ...\c"
-rm -f xqc_token
-./test_client -s 1024000 -l e -t 1 -E|grep "******** pass"
-grep_err_log|grep -v xqc_conn_check_token
-
-clear_log
-echo -e "验证Token生效 ...\c"
-./test_client -s 1024000 -l e -t 1 -E|grep "******** pass"
-grep_err_log
 
 clear_log
 echo -e "验证1RTT ...\c"

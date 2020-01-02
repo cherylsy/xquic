@@ -151,13 +151,13 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
     sent = xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
     if (sent == -XQC_EAGAIN) {
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-                "|xqc_h3_stream_send_data eagain|stream_id:%ui|",
-                h3_request->h3_stream->stream->stream_id);
+                "|xqc_h3_stream_send_data eagain|stream_id:%ui|data_size:%z|fin:%d|",
+                h3_request->h3_stream->stream->stream_id, data_size, fin);
         return sent;
     } else if (sent < 0) {
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
-                "|xqc_h3_stream_send_data error|stream_id:%ui|ret:%z|",
-                h3_request->h3_stream->stream->stream_id, sent);
+                "|xqc_h3_stream_send_data error|stream_id:%ui|ret:%z|data_size:%z|fin:%d|",
+                h3_request->h3_stream->stream->stream_id, sent, data_size, fin);
         return sent;
     }
 
