@@ -149,7 +149,12 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
 {
     ssize_t sent;
     sent = xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
-    if (sent < 0) {
+    if (sent == -XQC_EAGAIN) {
+        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
+                "|xqc_h3_stream_send_data eagain|stream_id:%ui|",
+                h3_request->h3_stream->stream->stream_id);
+        return sent;
+    } else if (sent < 0) {
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
                 "|xqc_h3_stream_send_data error|stream_id:%ui|ret:%z|",
                 h3_request->h3_stream->stream->stream_id, sent);

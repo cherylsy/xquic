@@ -1074,7 +1074,7 @@ do_buff:
 
     if (offset == 0 && !fin_only_done) {
         if (ret == -XQC_EAGAIN) {
-            return 0; // -XQC_EAGAIN not means error
+            return -XQC_EAGAIN; // -XQC_EAGAIN not means error
         } else {
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             return ret;

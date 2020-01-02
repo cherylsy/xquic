@@ -253,7 +253,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     xqc_http_header_t header[] = {
             {
                     .name   = {.iov_base = ":method", .iov_len = 7},
-                    .value  = {.iov_base = "post", .iov_len = 4},
+                    .value  = {.iov_base = "POST", .iov_len = 4},
                     .flags  = 0,
             },
             {
@@ -388,7 +388,7 @@ int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data)
+int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data/*, xqc_request_notify_flag_t flag*/)
 {
     //DEBUG;
     int ret;
