@@ -180,8 +180,9 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
     if(h3_request->flag & XQC_H3_REQUEST_HEADER_FIN){
         *fin = 1;
     }
-    if(!(h3_request->flag & XQC_H3_REQUEST_HEADER_ALREADY_READ)){
-        h3_request->flag |= XQC_H3_REQUEST_HEADER_ALREADY_READ;
+    if(h3_request->flag & XQC_H3_REQUEST_HEADER_CAN_READ ){
+        h3_request->flag &= ~XQC_H3_REQUEST_HEADER_CAN_READ;
+        //need set headers flag
         return &h3_request->headers;
     }
     return NULL;
