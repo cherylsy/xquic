@@ -14,7 +14,7 @@ typedef enum{
 typedef struct xqc_h3_request_s {
     xqc_h3_stream_t     *h3_stream;
     void                *user_data;
-    xqc_http_headers_t  headers;
+    xqc_http_headers_t  headers; //链表，增加是否已读的flag
     xqc_h3_request_flag flag;
 
     xqc_h3_request_callbacks_t
