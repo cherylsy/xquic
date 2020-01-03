@@ -480,6 +480,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             user_stream->send_body = malloc(user_stream->send_body_max);
         } else {
             user_stream->send_body = malloc(g_send_body_size);
+            memset(user_stream->send_body, 1, g_send_body_size);
         }
         if (user_stream->send_body == NULL) {
             printf("send_body malloc error\n");
@@ -548,13 +549,13 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data/*, xqc_request_notify_flag_t flag*/)
+int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
 {
     //DEBUG;
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    if (user_stream->header_recvd == 0) {
+    if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
         if (headers == NULL) {
@@ -573,6 +574,10 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return 0;
         }
         //继续收body
+    }
+
+    if (!(flag & XQC_REQ_NOTIFY_READ_BODY)) {
+        return 0;
     }
 
     char buff[4096] = {0};

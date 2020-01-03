@@ -51,7 +51,7 @@ typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *
 typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data);
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
-typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, void *user_data/*, xqc_request_notify_flag_t flag*/);
+typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag);
 
 typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);

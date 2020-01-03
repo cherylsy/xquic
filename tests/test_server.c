@@ -392,14 +392,14 @@ int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data/*, xqc_request_notify_flag_t flag*/)
+int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
 {
     //DEBUG;
     int ret;
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    if (user_stream->header_recvd == 0) {
+    if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
         if (headers == NULL) {
@@ -421,6 +421,9 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         //继续收body
     }
 
+    if (!(flag & XQC_REQ_NOTIFY_READ_BODY)) {
+        return 0;
+    }
 
     char buff[4096] = {0};
     size_t buff_size = 4096;
