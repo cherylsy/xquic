@@ -58,6 +58,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_SVR_INIT_RECVD_SHIFT]        = "INIT_RECVD",
         [XQC_CONN_FLAG_NEED_RUN_SHIFT]              = "NEED_RUN",
         [XQC_CONN_FLAG_PING_SHIFT]                  = "PING",
+        [XQC_CONN_FLAG_HSK_ACKED_SHIFT]             = "HSK_ACKED",
 };
 
 const char*

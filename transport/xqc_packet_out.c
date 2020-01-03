@@ -295,7 +295,8 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code)
     xqc_packet_out_t *packet_out;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_INIT;
 
-    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+    /* 对端可能未收到握手包 */
+    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED && conn->conn_flag & XQC_CONN_FLAG_HSK_ACKED) {
         pkt_type = XQC_PTYPE_SHORT_HEADER;
     }
     packet_out = xqc_write_new_packet(conn, pkt_type);
