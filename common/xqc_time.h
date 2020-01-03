@@ -48,7 +48,7 @@ static inline uint64_t xqc_now()
     /*获取微秒单位时间*/
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * 1000000 + tv.tv_usec;
+    uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
     return  ul;
 }
 

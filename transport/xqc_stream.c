@@ -435,7 +435,7 @@ xqc_stream_id(xqc_stream_t *stream)
 void
 xqc_destroy_stream(xqc_stream_t *stream)
 {
-    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%ui|recv_state:%d|stream_id:%ui|stream_type:%d|",
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|send_state:%d|recv_state:%d|stream_id:%ui|stream_type:%d|",
             stream->stream_state_send, stream->stream_state_recv, stream->stream_id, stream->stream_type);
 
     if (stream->stream_if->stream_close_notify) {

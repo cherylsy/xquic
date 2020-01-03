@@ -100,7 +100,7 @@ static inline uint64_t now()
     /*获取微秒单位时间*/
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * 1000000 + tv.tv_usec;
+    uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
     return  ul;
 }
 
@@ -178,7 +178,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     }
 
     ssize_t n = read(fd, token, token_len);
-    printf("read token size %lld\n", n);
+    printf("read token size %zu\n", n);
     close(fd);
     return n;
 }
@@ -270,11 +270,12 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
     saddr->sin_port = htons(port);
     saddr->sin_addr = *((struct in_addr *)remote->h_addr);
 
+#if !defined(__APPLE__)
     if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
     }
-
+#endif
     /*socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);
 
@@ -475,7 +476,15 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
 
     if (user_stream->send_body == NULL) {
         user_stream->send_body_max = MAX_BUF_SIZE;
-        user_stream->send_body = malloc(user_stream->send_body_max);
+        if (g_read_body) {
+            user_stream->send_body = malloc(user_stream->send_body_max);
+        } else {
+            user_stream->send_body = malloc(g_send_body_size);
+        }
+        if (user_stream->send_body == NULL) {
+            printf("send_body malloc error\n");
+            return -1;
+        }
 
         /* 指定大小 > 指定文件 > 默认大小 */
         if (g_send_body_size_defined) {
@@ -506,14 +515,14 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_h3_request_send_body sent:%lld, offset=%lld\n", ret, user_stream->send_offset);
+            printf("xqc_h3_request_send_body sent:%zd, offset=%lld\n", ret, user_stream->send_offset);
         }
     }
     if (g_test_case == 4) { //test fin_only
         if (user_stream->send_offset == user_stream->send_body_len) {
             fin = 1;
             ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
-            printf("xqc_h3_request_send_body sent:%lld, offset=%lld, fin=1\n", ret, user_stream->send_offset);
+            printf("xqc_h3_request_send_body sent:%zd, offset=%lld, fin=1\n", ret, user_stream->send_offset);
         }
     }
     return 0;
@@ -600,7 +609,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         /* 保存接收到的body到内存 */
         if (g_echo_check) {
-            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, buff_size);
+            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
         }
         //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
         read_sum += read;
@@ -608,14 +617,14 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
     } while (read > 0 && !fin);
 
-    printf("xqc_h3_request_recv_body read:%lld, offset:%lld, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
+    printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
     if (fin) {
         user_stream->recv_fin = 1;
         xqc_request_stats_t stats;
         stats = xqc_h3_request_get_stats(h3_request);
         xqc_msec_t now_us = now();
-        printf("\033[33m******** request time cost:%lld us, speed:%d K/s \n"
-               "******** send_body_size:%zu, recv_body_size:%zu \033[0m\n",
+        printf("\033[33m>>>>>>>> request time cost:%lld us, speed:%d K/s \n"
+               ">>>>>>>> send_body_size:%zu, recv_body_size:%zu \033[0m\n",
                now_us - user_stream->start_time,
                (stats.send_body_size + stats.recv_body_size)*1000/(now_us - user_stream->start_time),
                stats.send_body_size, stats.recv_body_size);
@@ -639,7 +648,7 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
             && memcmp(user_stream->send_body, user_stream->recv_body, user_stream->send_body_len) == 0) {
             pass = 1;
         }
-        printf("******** pass:%d\n", pass);
+        printf(">>>>>>>> pass:%d\n", pass);
     }
 
     free(user_stream->send_body);
@@ -706,7 +715,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         }
     } while (recv_size > 0);
 
-    printf("recvfrom size:%lld\n", recv_sum);
+    printf("recvfrom size:%zu\n", recv_sum);
     xqc_engine_finish_recv(ctx.engine);
 }
 

@@ -75,7 +75,7 @@ static inline uint64_t now()
     /*获取微秒单位时间*/
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * 1000000 + tv.tv_usec;
+    uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
     return  ul;
 }
 
@@ -318,15 +318,18 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
 
     if (user_stream->send_body == NULL) {
         user_stream->send_body_max = MAX_BUF_SIZE;
-        user_stream->send_body = malloc(user_stream->send_body_max);
+
         /* echo > 指定大小 > 指定文件 > 默认大小 */
         if (g_echo) {
+            user_stream->send_body = malloc(user_stream->recv_body_len);
             memcpy(user_stream->send_body, user_stream->recv_body, user_stream->recv_body_len);
             user_stream->send_body_len = user_stream->recv_body_len;
         } else {
             if (g_send_body_size_defined) {
+                user_stream->send_body = malloc(g_send_body_size);
                 user_stream->send_body_len = g_send_body_size;
             } else if (g_read_body) {
+                user_stream->send_body = malloc(user_stream->send_body_max);
                 ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
                 if (ret < 0) {
                     printf("read body error\n");
@@ -335,6 +338,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     user_stream->send_body_len = ret;
                 }
             } else {
+                user_stream->send_body = malloc(g_send_body_size);
                 user_stream->send_body_len = g_send_body_size;
             }
         }
@@ -347,7 +351,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_h3_request_send_body sent:%lld, offset=%lld\n", ret, user_stream->send_offset);
+            printf("xqc_h3_request_send_body sent:%zd, offset=%lld\n", ret, user_stream->send_offset);
         }
     }
     return 0;
@@ -450,7 +454,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         /* 保存接收到的body到内存 */
         if (g_echo) {
-            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, buff_size);
+            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
         }
         user_stream->recv_body_len += read;
         /*xqc_h3_request_close(h3_request);
@@ -458,7 +462,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
     } while (read > 0 && !fin);
 
-    printf("xqc_h3_request_recv_body read:%lld, offset:%lld, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
+    printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
 
     // 打开注释，服务端收到包后测试发送reset
     // h3_request->h3_stream->h3_conn->conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
@@ -534,7 +538,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         }
     } while (recv_size > 0);
 
-    printf("recvfrom size:%lld\n", recv_sum);
+    printf("recvfrom size:%zu\n", recv_sum);
     xqc_engine_finish_recv(ctx->engine);
 }
 
@@ -626,7 +630,7 @@ static void
 xqc_server_engine_callback(int fd, short what, void *arg)
 {
     DEBUG;
-    printf("timer wakeup now:%lld\n", now());
+    printf("timer wakeup now:%llu\n", now());
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
 
     xqc_engine_main_logic(ctx->engine);

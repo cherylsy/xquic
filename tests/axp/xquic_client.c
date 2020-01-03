@@ -120,7 +120,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     }
 
     ssize_t n = read(fd, token, token_len);
-    printf("read token size %lld\n", n);
+    printf("read token size %zu\n", n);
     printf("0x%x\n", token[0]);
     close(fd);
     return n;

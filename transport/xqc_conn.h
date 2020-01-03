@@ -49,7 +49,7 @@
     if (conn->conn_err == 0) {              \
         conn->conn_err = err;               \
         conn->conn_flag |= XQC_CONN_FLAG_ERROR; \
-        xqc_log(conn->log, XQC_LOG_ERROR, "|conn:%p|err:0x%xi|%s|", conn, err, xqc_conn_addr_str(conn)); \
+        xqc_log(conn->log, XQC_LOG_ERROR, "|conn:%p|err:0x%xi|%s|", conn, (uint64_t)err, xqc_conn_addr_str(conn)); \
     }                                       \
 } while(0)                                  \
 

@@ -506,16 +506,16 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), conn->enc_pkt, conn->enc_pkt_len,
             (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
     xqc_log(conn->log, XQC_LOG_INFO,
-            "|<==|conn:%p|pkt_num:%ui|size:%ud|sent:%uz|pkt_type:%s|frame:%s|now:%ui|",
+            "|<==|conn:%p|pkt_num:%ui|size:%ud|sent:%z|pkt_type:%s|frame:%s|now:%ui|",
             conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
             xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
             xqc_frame_type_2_str(packet_out->po_frame_types), now);
     if (sent != conn->enc_pkt_len) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|write_socket error|"
-                                          "conn:%p|size:%ui|sent:%z|pkt_type:%s|pkt_num:%ui|frame:%s|",
-                conn, packet_out->po_used_size, sent,
-                xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
-                xqc_frame_type_2_str(packet_out->po_frame_types));
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|write_socket error|conn:%p|pkt_num:%ui|size:%ud|sent:%z|pkt_type:%s|frame:%s|now:%ui|",
+                conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
+                xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
+                xqc_frame_type_2_str(packet_out->po_frame_types), now);
         return -XQC_ESOCKET;
     }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);

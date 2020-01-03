@@ -138,6 +138,9 @@ xqc_h3_stream_id(xqc_h3_request_t *h3_request)
 ssize_t
 xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers, uint8_t fin)
 {
+    if (!headers) {
+        return -XQC_H3_EPARAM;
+    }
     return xqc_h3_stream_send_headers(h3_request->h3_stream, headers, fin);
 }
 
@@ -147,6 +150,9 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
                          size_t data_size,
                          uint8_t fin)
 {
+    if (!data) {
+        return -XQC_H3_EPARAM;
+    }
     ssize_t sent;
     sent = xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
     if (sent == -XQC_EAGAIN) {
