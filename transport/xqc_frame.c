@@ -354,7 +354,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     ret = xqc_insert_stream_frame(conn, stream, stream_frame);
     if (ret) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_insert_stream_frame error|stream_id:%ui|", streatm_id);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_insert_stream_frame error|stream_id:%ui|", stream_id);
         goto error;
     }
 

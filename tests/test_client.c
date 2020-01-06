@@ -668,6 +668,11 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
         user_stream = calloc(1, sizeof(user_stream_t));
         user_stream->user_conn = user_conn;
         user_stream->h3_request = xqc_h3_request_create(ctx.engine, &user_conn->cid, user_stream);
+        if (user_stream->h3_request == NULL) {
+            printf("xqc_h3_request_create error\n");
+            return 0;
+        }
+        xqc_client_request_send(user_stream->h3_request, user_stream);
         g_req_cnt++;
     }
     return 0;
