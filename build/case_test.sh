@@ -163,7 +163,7 @@ grep_err_log
 
 clear_log
 echo -e "流并发流控 ...\c"
-./test_client -s 1 -l e -t 2 -E -P 1025 >> clog
+./test_client -s 1 -l e -t 2 -E -P 1025 -G >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 1024 ]]; then
     echo ">>>>>>>> pass:1"
 else

@@ -304,10 +304,10 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
-            printf("xqc_h3_request_send_headers error %d\n", ret);
+            printf("xqc_h3_request_send_headers error %zd\n", ret);
             return ret;
         } else {
-            printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+            printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
         }
 
@@ -366,9 +366,6 @@ int xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *user_da
     user_stream->h3_request = h3_request;
     xqc_h3_request_set_user_data(h3_request, user_stream);
 
-    if (g_echo) {
-        user_stream->recv_body = malloc(MAX_BUF_SIZE);
-    }
     return 0;
 }
 
@@ -425,8 +422,13 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         return 0;
     }
 
-    char buff[4096] = {0};
-    size_t buff_size = 4096;
+    if (g_echo && user_stream->recv_body == NULL) {
+        user_stream->recv_body = malloc(MAX_BUF_SIZE);
+        if (user_stream->recv_body == NULL) {
+            printf("recv_body malloc error\n");
+            return -1;
+        }
+    }
 
     int save = g_save_body;
 
@@ -437,6 +439,9 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return -1;
         }
     }
+
+    char buff[4096] = {0};
+    size_t buff_size = 4096;
     ssize_t read;
     ssize_t read_sum = 0;
     do {

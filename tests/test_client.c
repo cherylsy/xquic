@@ -462,10 +462,10 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
-            printf("xqc_h3_request_send_headers error %d\n", ret);
+            printf("xqc_h3_request_send_headers error %zd\n", ret);
             return ret;
         } else {
-            printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+            printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
         }
 
@@ -594,7 +594,11 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     }
 
     if (g_echo_check && user_stream->recv_body == NULL) {
-        user_stream->recv_body = malloc(MAX_BUF_SIZE);
+        user_stream->recv_body = malloc(user_stream->send_body_len);
+        if (user_stream->recv_body == NULL) {
+            printf("recv_body malloc error\n");
+            return -1;
+        }
     }
 
     ssize_t read;
@@ -613,7 +617,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         if(save) fflush(user_stream->recv_body_fp);
 
         /* 保存接收到的body到内存 */
-        if (g_echo_check) {
+        if (g_echo_check && user_stream->recv_body_len + read <= user_stream->send_body_len) {
             memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
         }
         //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
@@ -628,7 +632,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         xqc_request_stats_t stats;
         stats = xqc_h3_request_get_stats(h3_request);
         xqc_msec_t now_us = now();
-        printf("\033[33m>>>>>>>> request time cost:%lld us, speed:%d K/s \n"
+        printf("\033[33m>>>>>>>> request time cost:%lld us, speed:%lld K/s \n"
                ">>>>>>>> send_body_size:%zu, recv_body_size:%zu \033[0m\n",
                now_us - user_stream->start_time,
                (stats.send_body_size + stats.recv_body_size)*1000/(now_us - user_stream->start_time),
