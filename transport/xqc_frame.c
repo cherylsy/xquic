@@ -343,8 +343,8 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
-        if (stream_frame->fin && stream_frame->data_length == 0) {
-            //fin_only skip
+        if (stream_frame->fin && stream_frame->data_length == 0 && stream->stream_data_in.stream_length == 0) {
+            //first fin_only skip
         } else {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|already recvd|data_offset:%ui|data_length:%ud|merged_offset_end:%ui|",
                     stream_frame->data_offset, stream_frame->data_length, stream->stream_data_in.merged_offset_end);
