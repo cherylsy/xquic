@@ -1347,7 +1347,6 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_transit_rx_http_state error, r_state:%d|", rstate->state);
                             return rv;
                         }
-#if 0
                         if(rstate->left == 0){
                             //data frame empty
                             rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_DATA_END);
@@ -1355,10 +1354,13 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_transit_rx_http_state error, r_state:%d|", rstate->state);
                                 return rv;
                             }
-                            //xqc_http3_stream_read_state_clear(rstate);
-                            //break;
+
+                            if(fin){
+                                xqc_buf_to_tail(&h3_stream->recv_body_data_buf, p, 0, fin );
+                            }
+                            xqc_http3_stream_read_state_clear(rstate);
+                            break;
                         }
-#endif
                         rstate->state = XQC_HTTP3_REQ_STREAM_STATE_DATA;
                         break;
                     case XQC_HTTP3_FRAME_PUSH_PROMISE:
@@ -1423,9 +1425,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                 len = xqc_min(rstate->left, (int64_t)(end - p));
                 //rv = xqc_http3_conn_on_data(conn, h3_stream, p , len);
 
-                if(fin && len == 0){//fin only
-                    fin_flag = fin;
-                }else if(fin && len == (end - p)){ //last frame fin data
+                if(fin && len == (end - p)){ //last frame fin data
                     fin_flag = fin;
                 }else{
                     fin_flag = 0;
