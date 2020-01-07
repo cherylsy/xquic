@@ -122,6 +122,15 @@ elseif(ANDROID_ABI STREQUAL "x86")
     #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
     #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
     #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(PLATFORM STREQUAL "mac")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,-all_load"
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+            "-Wl,-noall_load"
+            -lpthread
+    )
 else()
     target_link_libraries(
         xquic
@@ -162,8 +171,13 @@ include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories( /usr/local/lib )
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 
-target_link_libraries(test_server xquic -levent -lm)
-target_link_libraries(test_client xquic -levent -lm)
+if(PLATFORM STREQUAL "mac")
+    target_link_libraries(test_server xquic  -lm /Users/oceanzhang/libevent32/lib/libevent.dylib)
+    target_link_libraries(test_client xquic  -lm /Users/oceanzhang/libevent32/lib/libevent.dylib)
+else()
+    target_link_libraries(test_server xquic -levent -lm)
+    target_link_libraries(test_client xquic -levent -lm)
+endif()
 #target_link_libraries(xquic_client xquic -levent -lm)
 #target_link_libraries(xquic_server xquic -levent -lm)
 #target_link_libraries(test xquic -lssl )
