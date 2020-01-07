@@ -21,6 +21,27 @@ grep_err_log() {
 }
 
 clear_log
+echo -e "接收到不存在连接的包 ...\c"
+./test_client -s 1024000 -l d -t 2 -E -x 8|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "创建连接失败 ...\c"
+./test_client -s 1024000 -l d -t 1 -E -x 7 >> clog
+echo ">>>>>>>> pass:1"
+grep_err_log
+
+clear_log
+echo -e "socket读失败 ...\c"
+./test_client -s 1024000 -l d -t 2 -E -x 6|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "socket写失败 ...\c"
+./test_client -s 1024000 -l d -t 1 -E -x 5|grep ">>>>>>>> pass"
+grep_err_log|grep -v "write_socket error"
+
+clear_log
 echo -e "验证Token失效 ...\c"
 rm -f xqc_token
 ./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
@@ -33,8 +54,7 @@ grep_err_log
 
 clear_log
 echo -e "fin only ...\c"
-./test_client -s 10240000 -l d -t 1 -E -x 4 >> clog
-echo ">>>>>>>> pass:1"
+./test_client -s 1024000 -l d -t 1 -E -x 4 |grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log

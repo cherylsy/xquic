@@ -276,25 +276,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
         return;
     }
 
-    if (engine->config) {
-        xqc_engine_config_destroy(engine->config);
-        engine->config = NULL;
-    }
-
-    if (engine->rand_generator) {
-        xqc_random_generator_destroy(engine->rand_generator);
-        engine->rand_generator = NULL;
-    }
-
-    if (engine->conns_hash) {
-        xqc_engine_conns_hash_destroy(engine->conns_hash);
-        engine->conns_hash = NULL;
-    }
-    if (engine->conns_hash_dcid) {
-        xqc_engine_conns_hash_destroy(engine->conns_hash_dcid);
-        engine->conns_hash_dcid = NULL;
-    }
-
+    /* 必须先释放连接，再释放其他结构 */
     if (engine->conns_active_pq) {
         while (!xqc_pq_empty(engine->conns_active_pq)) {
             xqc_conns_pq_elem_t *el = xqc_conns_pq_top(engine->conns_active_pq);
@@ -332,6 +314,25 @@ xqc_engine_destroy(xqc_engine_t *engine)
     if (engine->conns_wait_wakeup_pq) {
         xqc_engine_wakeup_pq_destroy(engine->conns_wait_wakeup_pq);
         engine->conns_wait_wakeup_pq = NULL;
+    }
+
+    if (engine->config) {
+        xqc_engine_config_destroy(engine->config);
+        engine->config = NULL;
+    }
+
+    if (engine->rand_generator) {
+        xqc_random_generator_destroy(engine->rand_generator);
+        engine->rand_generator = NULL;
+    }
+
+    if (engine->conns_hash) {
+        xqc_engine_conns_hash_destroy(engine->conns_hash);
+        engine->conns_hash = NULL;
+    }
+    if (engine->conns_hash_dcid) {
+        xqc_engine_conns_hash_destroy(engine->conns_hash_dcid);
+        engine->conns_hash_dcid = NULL;
     }
 
     xqc_tls_free_engine_config(&engine->ssl_config);

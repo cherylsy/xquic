@@ -423,7 +423,7 @@ xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
- * Get errno when h3_conn_close_notify, 0 For no-error
+ * Get errno when conn_close_notify, 0 For no-error
  */
 int xqc_conn_get_errno(xqc_connection_t *conn);
 
