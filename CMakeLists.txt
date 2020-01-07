@@ -79,8 +79,8 @@ set(
 add_library(
     xquic
 
-    STATIC
-    #SHARED
+    #STATIC
+    SHARED
 
 
     ${HTTP3_SOURCES}
