@@ -96,7 +96,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
             xqc_log(conn->log, XQC_LOG_WARN, "|is overlap|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
         }
-        if (new_frame->data_offset >= frame->data_offset &&
+        if (new_frame->data_offset >= frame->data_offset && new_frame->data_length > 0 &&
             new_frame->data_offset + new_frame->data_length <= frame->data_offset + frame->data_length) {
             xqc_log(conn->log, XQC_LOG_WARN, "|already recvd|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
@@ -320,6 +320,16 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto free;
     }
 
+    if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
+        if (stream_frame->fin && stream_frame->data_length == 0 && stream->stream_data_in.stream_length == 0) {
+            //first fin_only skip
+        } else {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|already recvd|data_offset:%ui|data_length:%ud|merged_offset_end:%ui|",
+                    stream_frame->data_offset, stream_frame->data_length, stream->stream_data_in.merged_offset_end);
+            goto free;
+        }
+    }
+
     if (stream_frame->fin) {
         if (stream->stream_data_in.stream_length > 0
                 && stream->stream_data_in.stream_length != stream_frame->data_offset + stream_frame->data_length) {
@@ -340,16 +350,6 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         XQC_CONN_ERR(conn, TRA_FINAL_SIZE_ERROR);
         ret = -XQC_EPROTO;
         goto error;
-    }
-
-    if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
-        if (stream_frame->fin && stream_frame->data_length == 0 && stream->stream_data_in.stream_length == 0) {
-            //first fin_only skip
-        } else {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|already recvd|data_offset:%ui|data_length:%ud|merged_offset_end:%ui|",
-                    stream_frame->data_offset, stream_frame->data_length, stream->stream_data_in.merged_offset_end);
-            goto free;
-        }
     }
 
     ret = xqc_insert_stream_frame(conn, stream, stream_frame);
