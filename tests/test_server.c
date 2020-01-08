@@ -43,6 +43,7 @@ typedef struct user_conn_s {
     struct event       *ev_timeout;
     struct sockaddr_in  peer_addr;
     socklen_t           peer_addrlen;
+    xqc_cid_t           cid;
 } user_conn_t;
 
 typedef struct xqc_server_ctx_s {
@@ -227,6 +228,8 @@ int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, voi
     struct sockaddr* peer_addr = xqc_h3_conn_get_peer_addr(h3_conn, &peer_addrlen);
     memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
     user_conn->peer_addrlen = peer_addrlen;
+
+    memcpy(&user_conn->cid, cid, sizeof(*cid));
     return 0;
 }
 
@@ -243,7 +246,8 @@ void xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
-
+    xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
+    printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
 

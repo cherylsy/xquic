@@ -349,6 +349,8 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
 
+    xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
+    printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
 int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
