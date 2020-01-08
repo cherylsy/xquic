@@ -24,6 +24,7 @@ int xqc_tnode_hash_create(xqc_tnode_hash_table_t * table, size_t element_count){
 int xqc_tnode_hash_table_free_list(xqc_tnode_hash_table_t * table){
 
     xqc_free(table->list);
+    return 0;
 }
 
 int xqc_tnode_hash_table_free_node(xqc_tnode_hash_table_t * table){
@@ -83,6 +84,7 @@ int xqc_tnode_insert_to_hash(xqc_tnode_hash_table_t * table, xqc_http3_tnode_t *
     xqc_list_head_t *head = &(table->list[index]);
 
     xqc_list_add(&tnode->head_list, head);
+    return 0;
 }
 
 int xqc_http3_node_id_eq(xqc_http3_node_id_t * src, xqc_http3_node_id_t *dst){
@@ -213,7 +215,7 @@ int xqc_http3_tnode_del(xqc_http3_tnode_t * tnode){
     tnode->next_sibling = NULL;
     //--parent->num_children;
 
-
+    return 0;
 }
 
 int xqc_http3_tnode_remove_tree(xqc_http3_tnode_t *tnode){
@@ -235,6 +237,7 @@ int xqc_http3_tnode_remove_tree(xqc_http3_tnode_t *tnode){
     tnode->parent = NULL;
     tnode->next_sibling = NULL;
     //--parent->num_children;
+    return 0;
 }
 
 

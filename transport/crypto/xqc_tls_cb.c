@@ -212,7 +212,7 @@ int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secre
 
 int xqc_cache_client_hello(xqc_connection_t *conn, const void * buf, size_t buf_len)
 {
-
+    return 0;
 }
 
 int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)

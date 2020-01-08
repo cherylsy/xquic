@@ -365,7 +365,7 @@ int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
 {
     if (ctl->ctl_cong_callback == &xqc_bbr_cb) {
-        printf("bbr==========before on_ack_received sampler.prior_delivered %u, ctl_delivered %llu, sampler.delivered %u, sampler.rtt %llu, sampler.srtt %llu\n",
+        printf("bbr==========before on_ack_received sampler.prior_delivered %"PRIu64", ctl_delivered %"PRIu64", sampler.delivered %u, sampler.rtt %"PRIu64", sampler.srtt %"PRIu64"\n",
                ctl->sampler.prior_delivered, ctl->ctl_delivered, ctl->sampler.delivered, ctl->sampler.rtt,
                ctl->sampler.srtt);
     }
@@ -451,7 +451,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_send_ctl_set_loss_detection_timer(ctl);
 
     if (ctl->ctl_cong_callback == &xqc_bbr_cb) {
-        printf("bbr==========after  on_ack_received sampler.prior_delivered %u, ctl_delivered %llu, sampler.delivered %u, sampler.rtt %llu, sampler.srtt %llu\n",
+        printf("bbr==========after  on_ack_received sampler.prior_delivered %"PRIu64", ctl_delivered %"PRIu64", sampler.delivered %u, sampler.rtt %"PRIu64", sampler.srtt %"PRIu64"n",
                ctl->sampler.prior_delivered, ctl->ctl_delivered, ctl->sampler.delivered, ctl->sampler.rtt,
                ctl->sampler.srtt);
     }
@@ -462,7 +462,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     }
 
     if (ctl->ctl_cong_callback == &xqc_bbr_cb) {
-        printf("bbr==========after  on_ack_received sampler.prior_delivered %u, ctl_delivered %llu, sampler.delivered %u, sampler.rtt %llu, sampler.srtt %llu\n",
+        printf("bbr==========after  on_ack_received sampler.prior_delivered %"PRIu64", ctl_delivered %"PRIu64", sampler.delivered %u, sampler.rtt %"PRIu64", sampler.srtt %"PRIu64"\n",
                ctl->sampler.prior_delivered, ctl->ctl_delivered, ctl->sampler.delivered, ctl->sampler.rtt,
                ctl->sampler.srtt);
     }
@@ -501,7 +501,7 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
          rttvar = 3/4 * rttvar + 1/4 * rttvar_sample
          smoothed_rtt = 7/8 * smoothed_rtt + 1/8 * latest_rtt*/
         ctl->ctl_rttvar -= ctl->ctl_rttvar >> 2;
-        ctl->ctl_rttvar += llabs(ctl->ctl_srtt - *latest_rtt) >> 2;
+        ctl->ctl_rttvar += (ctl->ctl_srtt > *latest_rtt ? ctl->ctl_srtt - *latest_rtt : *latest_rtt - ctl->ctl_srtt) >> 2;
 
         ctl->ctl_srtt -= ctl->ctl_srtt >> 3;
         ctl->ctl_srtt += *latest_rtt >> 3;

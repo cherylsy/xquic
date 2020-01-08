@@ -35,7 +35,7 @@ xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, uns
            + 1 //DCIL(4)|SCIL(4)
            + dcid_len
            + scid_len
-           + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val(token_len) + token_len : 0)
+           + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val((unsigned)token_len) + token_len : 0)
            + XQC_LONG_HEADER_LENGTH_BYTE //Length (i)
            + xqc_packet_number_bits2len(pktno_bits);
 

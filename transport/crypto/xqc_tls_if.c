@@ -131,7 +131,7 @@ int xqc_is_early_data_reject(xqc_connection_t * conn)
         return XQC_TRUE;
     }
 
-    if(conn->tlsref.flags & XQC_CONN_FLAG_EARLY_DATA_REJECTED != 0){
+    if((conn->tlsref.flags & XQC_CONN_FLAG_EARLY_DATA_REJECTED) != 0){
         return XQC_TRUE;
     }else{
         return XQC_FALSE;
@@ -881,6 +881,7 @@ int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config)
     if(ssl_config->session_ticket_key_data)xqc_free(ssl_config->session_ticket_key_data);
     if(ssl_config->alpn_list)xqc_free(ssl_config->alpn_list);
     memset(ssl_config, 0, sizeof(xqc_engine_ssl_config_t));
+    return 0;
 }
 
 

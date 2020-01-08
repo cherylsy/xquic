@@ -135,7 +135,7 @@ xqc_engine_wakeup_pq_create(xqc_config_t *config)
 xqc_connection_t *
 xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type)
 {
-    if (cid == NULL || cid->cid_len == 0 || cid->cid_buf == NULL) {
+    if (cid == NULL || cid->cid_len == 0) {
         return NULL;
     }
 

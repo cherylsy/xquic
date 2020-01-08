@@ -212,6 +212,7 @@ int xqc_http3_frame_write_hd_len( xqc_http3_frame_hd *hd){
 int xqc_http3_frame_write_push_promise(){
 
     //need finish
+    return 0;
 }
 
 int xqc_http3_frame_write_cancel_push_len(int64_t * ppayloadlen, xqc_http3_frame_cancel_push * fr){

@@ -10,6 +10,9 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D NDEBUG_PRINT -D
 if(GCOV)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
+if(ANDROID_ABI)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-enum-conversion -Wno-pointer-sign -Wno-unused-value -Wno-format")
+endif()
 
 configure_file (
     xqc_cmake_config.h.in

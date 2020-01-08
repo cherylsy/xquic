@@ -392,6 +392,7 @@ int xqc_http3_qpack_decoder_reconstruct_ricnt(xqc_http3_qpack_decoder *decoder, 
     }
 
     *dest = ricnt;
+    return 0;
 }
 
 void xqc_qpack_read_state_check_huffman(xqc_http3_qpack_read_state *rstate,
