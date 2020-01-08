@@ -619,7 +619,8 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     }
     if (XQC_UNLIKELY(conn == NULL)) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%uz|", packet_in_size);
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%uz|cid:%s|",
+                    packet_in_size, xqc_scid_str(&scid));
             ret = xqc_conn_send_reset(engine, &scid, user_data, peer_addr, peer_addrlen);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
@@ -639,7 +640,8 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                 }
                 goto after_process;
             }
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|size:%uz|", packet_in_size);
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|size:%uz|cid:%s|",
+                    packet_in_size, xqc_scid_str(&scid));
         }
         return -XQC_ECONN_NFOUND;
     }
