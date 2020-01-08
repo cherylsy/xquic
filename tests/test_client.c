@@ -33,6 +33,7 @@ int printf_null(const char *format, ...)
 #define XQC_MAX_TOKEN_LEN 32
 
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
+#define XQC_TEST_SHORT_HEADER_PACKET_B "\x80\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 
 typedef struct user_conn_s user_conn_t;
 
@@ -545,7 +546,7 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
         xqc_h3_conn_close(ctx.engine, &user_stream->user_conn->cid);
         return 0;
     }
-    if (g_test_case == 3/*出错关闭连接*/) {
+    if (g_test_case == 3/*流可写通知失败；出错关闭连接*/) {
         return -1;
     }
     ret = xqc_client_request_send(h3_request, user_stream);
@@ -558,6 +559,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
+    if (g_test_case == 12/*流读通知失败*/) { return -1;}
     if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
@@ -725,7 +727,9 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (TEST_DROP) continue;
         if (g_test_case == 6/*socket读失败*/) {g_test_case = -1; break;}
         if (g_test_case == 8/*接收到不存在连接的包*/) {g_test_case = -1; recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1; memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_A, recv_size);}
-        if (g_test_case == 9/*接收到重复的包*/) {again:;}
+        static char copy[XQC_PACKET_TMP_BUF_LEN];
+        if (g_test_case == 9/*接收到重复的包*/) {memcpy(copy, packet_buf, recv_size); again:;}
+        if (g_test_case == 10/*不合法的packet*/) {g_test_case = -1; recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_B)-1; memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_B, recv_size);}
         if (xqc_engine_packet_process(ctx.engine, packet_buf, recv_size,
                                       (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
                                       (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
@@ -733,7 +737,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
             printf("xqc_client_read_handler: packet process err\n");
             return;
         }
-        if (g_test_case == 9/*接收到重复的包*/) {g_test_case = -1; goto again;}
+        if (g_test_case == 9/*接收到重复的包*/) {g_test_case = -1; memcpy(packet_buf, copy, recv_size); goto again;}
     } while (recv_size > 0);
 
     printf("recvfrom size:%zu\n", recv_sum);
@@ -1088,13 +1092,13 @@ int main(int argc, char *argv[]) {
 
     xqc_cid_t *cid;
     if (user_conn->h3) {
+        if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
         cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
         cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
-    if (g_test_case == 7/*创建连接失败*/) {xqc_engine_destroy(ctx.engine); return 0;}
     if (cid == NULL) {
         printf("xqc_connect error\n");
         xqc_engine_destroy(ctx.engine);
@@ -1108,6 +1112,7 @@ int main(int argc, char *argv[]) {
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
         user_stream->user_conn = user_conn;
         if (user_conn->h3) {
+            if (g_test_case == 11/*创建流失败*/) {xqc_cid_t tmp; xqc_h3_request_create(ctx.engine, &tmp, user_stream); continue;}
             user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
             if (user_stream->h3_request == NULL) {
                 printf("xqc_h3_request_create error\n");

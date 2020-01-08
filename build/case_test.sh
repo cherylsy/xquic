@@ -21,6 +21,28 @@ grep_err_log() {
 }
 
 clear_log
+echo -e "流读通知失败 ...\c"
+./test_client -s 1024000 -l d -t 1 -E -x 12 >> clog
+echo ">>>>>>>> pass:1"
+grep_err_log|grep -v xqc_process_read_streams|grep -v xqc_h3_stream_read_notify|grep -v xqc_process_conn_close_frame
+
+clear_log
+echo -e "创建流失败 ...\c"
+./test_client -s 1024000 -l d -t 1 -E -x 11 >> clog
+echo ">>>>>>>> pass:1"
+grep_err_log|grep -v xqc_stream_create
+
+clear_log
+echo -e "不合法的packet ...\c"
+./test_client -s 1024000 -l d -t 2 -E -x 10|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "接收到重复的包 ...\c"
+./test_client -s 1024000 -l d -t 2 -E -x 9|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "接收到不存在连接的包 ...\c"
 ./test_client -s 1024000 -l d -t 2 -E -x 8|grep ">>>>>>>> pass"
 grep_err_log
@@ -29,7 +51,7 @@ clear_log
 echo -e "创建连接失败 ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 7 >> clog
 echo ">>>>>>>> pass:1"
-grep_err_log
+grep_err_log|grep -v xqc_client_connect
 
 clear_log
 echo -e "socket读失败 ...\c"
