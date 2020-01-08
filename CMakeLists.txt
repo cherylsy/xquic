@@ -6,7 +6,7 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -fPIC -std=gnu11 -Werror -D NDEBUG_PRINT -DNPRINT_MALLOC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D NDEBUG_PRINT -DNPRINT_MALLOC")
 if(GCOV)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
@@ -92,6 +92,21 @@ add_library(
     ${CONGESTION_CONTROL_SOURCES}
 )
 
+add_library(
+    xquic_openssl
+
+    #STATIC
+    SHARED
+    ${HTTP3_SOURCES}
+    ${TRANSPORT_SOURCES}
+    ${COMMON_SOURCES}
+    ${CONGESTION_CONTROL_SOURCES}
+)
+
+
+
+
+
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     target_link_libraries(
        xquic
@@ -143,6 +158,16 @@ else()
         "-Wl,--no-whole-archive"
         -lpthread
     )
+
+    target_link_libraries(
+        xquic_openssl
+        "-ldl -Wl,--whole-archive"
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        "-Wl,--no-whole-archive"
+        -lpthread
+    )
+
 endif()
 
 # Strip binary for release builds
