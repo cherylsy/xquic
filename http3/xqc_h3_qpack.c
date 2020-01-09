@@ -2280,8 +2280,14 @@ int xqc_qpack_encoder_write_indexed_name(xqc_http3_qpack_encoder * encoder, xqc_
 
     size_t len = xqc_http3_qpack_put_varint_len(nameidx, prefix);
 
-    len += (xqc_http3_qpack_put_varint_len(value_len, 7) + value_len);
-
+    int vh = 0;
+    size_t vhlen = xqc_http3_qpack_huffman_encode_count(value, value_len);
+    if(vhlen < value_len){
+        vh = 1;
+        len +=  (xqc_http3_qpack_put_varint_len(vhlen, 7) + vhlen);
+    }else{
+        len += (xqc_http3_qpack_put_varint_len(value_len, 7) + value_len);
+    }
     *pp_buf = xqc_var_buf_save_prepare(*pp_buf, len);
 
     if(*pp_buf == NULL){
@@ -2294,9 +2300,14 @@ int xqc_qpack_encoder_write_indexed_name(xqc_http3_qpack_encoder * encoder, xqc_
     p = xqc_http3_qpack_put_varint(p, nameidx, prefix);
 
 
-    p = xqc_http3_qpack_put_varint(p, value_len, 7);
-
-    p = xqc_cpymem(p, value, value_len);
+    *p = 0;
+    if(vh){
+        p = xqc_http3_qpack_put_varint(p, vhlen, 7);
+        p = xqc_http3_qpack_huffman_encode(p, value, value_len);
+    }else{
+        p = xqc_http3_qpack_put_varint(p, value_len, 7);
+        p = xqc_cpymem(p, value, value_len);
+    }
     (*pp_buf)->used_len += len;
 
     return 0;
@@ -2492,6 +2503,7 @@ int xqc_http3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream, xqc_http3_qpack_e
         if(insert_flag){
             xqc_http3_qpack_encoder_dtable_static_write(encoder, p_enc_buf, s_result.name_absidx, name, name_len, value, value_len);
         }
+        xqc_log(stream->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:static name_index, name:%s, value:%s, index:%d|", name, value, s_result.name_absidx);
         rv = xqc_http3_qpack_encoder_write_static_indexed_name(encoder, pp_buf, s_result.name_absidx, value, value_len, flags);
         return rv;
     }
