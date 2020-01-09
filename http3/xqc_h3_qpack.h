@@ -355,4 +355,5 @@ int xqc_http3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,  xqc_h3_strea
 
 int xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc);
 void xqc_http3_qpack_decoder_free(xqc_http3_qpack_decoder *qdec);
+int xqc_http3_qpack_hash_find(xqc_qpack_hash_table_t * table, xqc_http3_ringdata *rdata, char * name, size_t name_len, char *value, size_t value_len, xqc_qpack_find_result *result);
 #endif

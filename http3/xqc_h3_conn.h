@@ -62,12 +62,17 @@ xqc_conn_get_user_data(xqc_connection_t *conn)
         return conn->user_data;
     }
 }
+static inline xqc_http3_qpack_encoder * xqc_get_http3_qpack_encoder(xqc_h3_conn_t *h3_conn){
+
+    return &h3_conn->qenc;
+}
 
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
 
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn);
+
 
 
 #endif /* _XQC_H3_CONN_H_INCLUDED_ */

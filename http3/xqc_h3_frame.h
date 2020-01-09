@@ -217,7 +217,7 @@ typedef struct {
   uint64_t qpack_blocked_streams;
 } xqc_http3_conn_settings;
 
-typedef struct {
+typedef struct { //把这个结构体简化下
     xqc_http3_frame fr;
 
     union{

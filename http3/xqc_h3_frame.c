@@ -839,6 +839,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_GOAWAY:
                 rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_IGN_FRAME;
+                //goaway 逻辑
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID:
                 len = xqc_min(rstate->left, (int64_t)(end - p));
@@ -1234,7 +1235,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                         break;
 
                     case XQC_HTTP3_FRAME_DATA:
-                        rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_DATA_BEGIN);
+                        rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_DATA_BEGIN); //修改成适合我们的状态机
                         if(rv != 0){
                             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_transit_rx_http_state error, r_state:%d|", rstate->state);
                             return rv;
@@ -1491,7 +1492,7 @@ int xqc_http3_http_on_remote_end_stream(xqc_h3_stream_t * h3_stream){
     return 0;
 }
 
-int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_stream_http_event event){
+int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_stream_http_event event){ //修改两个header的场景
 
     int rv;
 

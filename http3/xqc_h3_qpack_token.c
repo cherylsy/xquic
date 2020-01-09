@@ -533,7 +533,7 @@ int xqc_qpack_init_static_token_index(){
         if(token == XQC_HTTP3_QPACK_TOKEN_UNKNOWN){ //means we lost static table options
             return -1;
         }
-        if(xqc_g_static_token_index[token] != -1){
+        if(xqc_g_static_token_index[token] == -1){
             xqc_g_static_token_index[token] = i;
         }
     }
