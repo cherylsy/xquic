@@ -373,6 +373,7 @@ int xqc_qpack_encoder_write_literal(xqc_http3_qpack_encoder * encoder, xqc_var_b
 
     *p = fb;
     if(nh){
+        *p |= (uint8_t)(1 << prefix);
         p = xqc_http3_qpack_put_varint(p, nhlen, prefix);
         p = xqc_http3_qpack_huffman_encode(p, name, name_len);
     }else{
@@ -381,12 +382,14 @@ int xqc_qpack_encoder_write_literal(xqc_http3_qpack_encoder * encoder, xqc_var_b
     }
     *p = 0;
     if(vh){
+        *p |= 0x80;
         p = xqc_http3_qpack_put_varint(p, vhlen, 7);
         p = xqc_http3_qpack_huffman_encode(p, value, value_len);
     } else {
         p = xqc_http3_qpack_put_varint(p, value_len, 7);
         p = xqc_cpymem(p, value, value_len);
     }
+    //hex_print((*pp_buf)->data + (*pp_buf)->used_len, len + 1);
     (*pp_buf)->used_len += len;
     return 0;
 }
@@ -1208,6 +1211,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
                     case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
                         xqc_http3_qpack_decoder_emit_indexed_name(decoder, sctx, nv);
+                        break;
                     default:
                         /* Unreachable */
                         rv = -XQC_QPACK_DECODER_ERROR;
@@ -2316,6 +2320,7 @@ int xqc_qpack_encoder_write_indexed_name(xqc_http3_qpack_encoder * encoder, xqc_
 
     *p = 0;
     if(vh){
+        *p |= 0x80;
         p = xqc_http3_qpack_put_varint(p, vhlen, 7);
         p = xqc_http3_qpack_huffman_encode(p, value, value_len);
     }else{

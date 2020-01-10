@@ -74,7 +74,7 @@ static uint8_t *xqc_huffman_encode_sym(uint8_t *dest, size_t *prembits,
 
 size_t xqc_http3_qpack_huffman_encode_count(const uint8_t *src, size_t len) {
 
-    return 0xFFFFFFFF;
+    //return 0xFFFFFFFF;
     size_t i;
     size_t nbits = 0;
 
