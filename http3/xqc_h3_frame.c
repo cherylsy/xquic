@@ -1921,11 +1921,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
     }
 
     while(data_len > 0){
-        if(data_len > XQC_MAX_FRAME_SIZE){
-            send_len = XQC_MAX_FRAME_SIZE;
-        }else{
-            send_len = data_len;
-        }
+        send_len = data_len;
 
         data_len -= send_len;
 

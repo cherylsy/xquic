@@ -385,15 +385,15 @@ xqc_http_header_t g_array_literial_header[] = {
     },
     {
         .name   = {.iov_base = "literial_long", .iov_len = strlen("literial_long")},
-        .value  = {.iov_base = g_test_header, .iov_len = 2048},
+        .value  = {.iov_base = g_test_header, .iov_len = 4096},
         .flags  = 0,
 
     },
 };
 
 xqc_http_header_t g_header = {
-    .name   = {.iov_base = g_test_header, .iov_len = 1024},
-    .value  = {.iov_base = g_test_header, .iov_len = 2048},
+    .name   = {.iov_base = g_test_header, .iov_len = 16},
+    .value  = {.iov_base = g_test_header, .iov_len = 4096},
     .flags  = 1,
 };
 
@@ -403,7 +403,11 @@ xqc_http_header_t g_static_header = {
     .flags  = 0,
 };
 
-
+xqc_http_header_t g_static_name_idx_header = {
+    .name   = {.iov_base = ":method", .iov_len = strlen(":method")},
+    .value  = {.iov_base = "literial_post", .iov_len = strlen("literial_post")},
+    .flags  = 0,
+};
 
 
 xqc_http_header_t g_literial_header = {
@@ -555,6 +559,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     static int test_name_value_result = 0;
     static int test_name_idx_result = 0;
     static int test_static_result = 0;
+    static int test_static_name_idx_result = 0;
     if (user_stream->header_recvd == 0) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
@@ -599,6 +604,14 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
                     && (0 == memcmp(headers->headers[i].value.iov_base, g_static_header.value.iov_base, headers->headers[i].value.iov_len))
               ){
                     test_static_result++;
+            }
+
+             if((headers->headers[i].name.iov_len == g_static_name_idx_header.name.iov_len)
+                    && (0 == memcmp(headers->headers[i].name.iov_base, g_static_name_idx_header.name.iov_base, headers->headers[i].name.iov_len))
+                    && (headers->headers[i].value.iov_len == g_static_name_idx_header.value.iov_len)
+                    && (0 == memcmp(headers->headers[i].value.iov_base, g_static_name_idx_header.value.iov_base, headers->headers[i].value.iov_len))
+              ){
+                    test_static_name_idx_result++;
             }
 
 
@@ -682,6 +695,11 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         if(test_static_result == 1){
             test_static_result = 0;
             printf("***** qpack test static name value index pass\n\n");
+        }
+
+        if(test_static_name_idx_result == 1){
+            test_static_name_idx_result = 0;
+            printf("***** qpack test static name index pass\n\n");
         }
 
 
@@ -1039,6 +1057,7 @@ int main(int argc, char *argv[]) {
     user_stream_t *user_stream4 = create_user_stream(ctx.engine, user_conn, cid) ;
     user_stream_t *user_stream5 = create_user_stream(ctx.engine, user_conn, cid);
     user_stream_t *user_stream6 = create_user_stream(ctx.engine, user_conn, cid);
+    user_stream_t *user_stream7 = create_user_stream(ctx.engine, user_conn, cid);
 
 
 
@@ -1058,6 +1077,7 @@ int main(int argc, char *argv[]) {
         xqc_client_request_send(user_stream2->h3_request, user_stream2, g_array_literial_header, 3);
 
         xqc_client_request_send(user_stream6->h3_request, user_stream6, &g_static_header, 1);
+        xqc_client_request_send(user_stream7->h3_request, user_stream7, &g_static_name_idx_header, 1);
     } else {
         xqc_client_stream_send(user_stream->stream, user_stream);
     }
