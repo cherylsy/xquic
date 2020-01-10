@@ -18,7 +18,7 @@
 #include "xqc_wakeup_pq.h"
 #include "crypto/xqc_tls_header.h"
 #include "xqc_utils.h"
-
+#include "http3/xqc_h3_qpack_token.h"
 
 xqc_config_t *
 xqc_engine_config_create(xqc_engine_type_t engine_type)
@@ -258,6 +258,8 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     } else {
         goto fail;
     }
+
+    xqc_qpack_init_static_token_index();
 
     return engine;
 

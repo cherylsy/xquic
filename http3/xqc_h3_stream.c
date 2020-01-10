@@ -12,16 +12,13 @@ int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
     xqc_h3_stream_type_t h3_stream_type = h3_stream->h3_stream_type;
-    if(h3_stream_type == XQC_H3_STREAM_CONTROL || h3_stream_type == XQC_H3_STREAM_NUM){
-        h3_stream->tnode = NULL;
-        return 0;
-    }else{
+    if(h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST || h3_stream_type == XQC_HTTP3_STREAM_TYPE_PUSH ){
         xqc_stream_t * stream = h3_stream->stream;
         xqc_http3_node_id_t nid;
         nid.id = stream->stream_id;
-        if(h3_stream_type == XQC_H3_STREAM_REQUEST){
+        if(h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST){
             nid.type = XQC_HTTP3_PRI_ELEM_TYPE_REQUEST;
-        }else if (h3_stream_type == XQC_H3_STREAM_PUSH){
+        }else if (h3_stream_type == XQC_HTTP3_STREAM_TYPE_PUSH){
             nid.type = XQC_HTTP3_PRI_ELEM_TYPE_PUSH;
         }else{
             return -1;
@@ -37,6 +34,10 @@ int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
             //h3_stream->tnode->h3_stream = h3_stream;
         }
 
+    }else{
+
+        h3_stream->tnode = NULL;
+        return 0;
     }
 #endif
     return 0;
@@ -71,6 +72,7 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
     xqc_init_list_head(&h3_stream->recv_body_data_buf);
 
     xqc_http3_qpack_stream_context_init(&h3_stream->qpack_sctx, stream->stream_id);
+    xqc_init_list_head(&h3_stream->unack_block_list);
 
     stream->user_data = h3_stream;
 
@@ -115,6 +117,7 @@ xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
     xqc_free(h3_stream);
 }
 
+
 int
 xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
 {
@@ -132,7 +135,7 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
         }
     }
 
-    xqc_h3_stream_t *h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_CONTROL, NULL);
+    xqc_h3_stream_t *h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_HTTP3_STREAM_TYPE_CONTROL, NULL);
     if (!h3_stream) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|");
         return -XQC_H3_ECREATE_STREAM;
@@ -140,15 +143,50 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
 
     h3_conn->control_stream_out = h3_stream;
 
+    xqc_http3_uni_stream_write_stream_type(h3_stream, XQC_HTTP3_STREAM_TYPE_CONTROL);
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|", stream->stream_id);
     return XQC_OK;
 }
+
+int xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream, xqc_http3_stream_type stream_type){
+    if (!stream) {
+        xqc_stream_type_t stream_type;
+        if (h3_conn->conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+            stream_type = XQC_CLI_UNI;
+        } else {
+            stream_type = XQC_SVR_UNI;
+        }
+        stream = xqc_create_stream_with_conn(h3_conn->conn, XQC_UNDEFINE_STREAM_ID, stream_type, NULL);
+        if (!stream) {
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|");
+            return -1;
+        }
+    }
+
+    xqc_h3_stream_t *h3_stream = xqc_h3_stream_create(h3_conn, stream, stream_type, NULL);
+
+    if(stream_type == XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER){
+        h3_conn->qenc_stream = h3_stream;
+    }else if(stream_type == XQC_HTTP3_STREAM_TYPE_QPACK_DECODER){
+        h3_conn->qdec_stream = h3_stream;
+    }else{
+        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_qpack_stream error|");
+        return -1;
+    }
+
+    xqc_http3_uni_stream_write_stream_type(h3_stream, stream_type);
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui, stream_type:%d|", stream->stream_id, stream_type);
+
+    return XQC_OK;
+}
+
+
 
 ssize_t
 xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin)
 {
     xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
-    if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST &&
+    if (h3_stream->h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST &&
         (h3_conn->flags & XQC_HTTP3_CONN_FLAG_GOAWAY_RECVD) &&
         h3_stream->stream->stream_id >= h3_conn->goaway_stream_id) {
 
@@ -168,21 +206,21 @@ xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_
 ssize_t
 xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin)
 {
-    ssize_t ret = 0;
+    ssize_t  n_write = 0;
     xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
     h3_stream->flags |= XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
     //QPACK
     //gen HEADERS frame
-    ret = xqc_http3_write_headers(h3_stream, headers, fin);
-    if(ret < 0){
-        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_headers error|%z|", ret);
-        XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, ret);
+    n_write = xqc_http3_write_headers(h3_conn, h3_stream, headers, fin);
+    if(n_write < 0){
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|n_write:%i error|", n_write);
+        XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, n_write);
     }
-    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|ret:%z|stream_id:%ui|fin:%d|",
-            ret, h3_stream->stream->stream_id, fin);
+    xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|n_write:%z|stream_id:%ui|fin:%d|",
+            n_write, h3_stream->stream->stream_id, fin);
     h3_stream->flags &= ~XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
     xqc_engine_main_logic(h3_conn->conn->engine);
-    return ret;
+    return n_write;
 }
 
 ssize_t
@@ -233,7 +271,7 @@ xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, siz
             n_recved += h3_data_buf_left;
             h3_data_buf->already_consume += h3_data_buf_left;
             recv_buf_left -= h3_data_buf_left;
-            if (h3_data_buf->fin) {
+            if (h3_data_buf->fin_flag & XQC_HTTP3_STREAM_FIN) {
                 *fin = 1;
             }
             xqc_list_del_init(pos);
@@ -254,9 +292,9 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
 
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|data_size:%z|",
             h3_stream->stream->stream_id, h3_stream->h3_stream_type, data_size);
-    if (XQC_H3_STREAM_NUM == h3_stream->h3_stream_type) {
+    if (XQC_HTTP3_STREAM_TYPE_UNKNOWN == h3_stream->h3_stream_type) {
         if (h3_stream->stream->stream_type == XQC_SVR_BID || h3_stream->stream->stream_type == XQC_CLI_BID) {
-            h3_stream->h3_stream_type = XQC_H3_STREAM_REQUEST;
+            h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_REQUEST;
             if (!h3_stream->h3_request) {
                 h3_stream->h3_request = xqc_h3_request_create_inner(h3_conn, h3_stream, NULL);
                 if (!h3_stream->h3_request) {
@@ -264,10 +302,11 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
                     return -XQC_H3_ECREATE_REQUEST;
                 }
             }
-        } else {
-            h3_stream->h3_stream_type = XQC_H3_STREAM_CONTROL;
-            h3_conn->control_stream_in = h3_stream;
         }
+        /*else {
+            h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_CONTROL;
+            h3_conn->control_stream_in = h3_stream;
+        }*/
         if(h3_conn->conn->conn_type == XQC_CONN_TYPE_SERVER){
             if(xqc_http3_stream_link_tnode(h3_stream) < 0){
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|stream link tnode error|");
@@ -276,15 +315,17 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
         }
     }
 
-    if (XQC_H3_STREAM_CONTROL == h3_stream->h3_stream_type) {
-        processed = xqc_http3_conn_read_control(h3_conn, h3_stream, data, data_size);
-        if (processed < 0 || processed != data_size) {
-            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_control error|%z|", processed);
+    if(h3_stream->stream->stream_type == XQC_CLI_UNI || h3_stream->stream->stream_type == XQC_SVR_UNI){
+
+        processed = xqc_http3_conn_read_uni(h3_conn, h3_stream, data, data_size, fin);
+        if(processed < 0 || processed != data_size) {
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_uni error|%z|", processed);
             XQC_H3_CONN_ERR(h3_conn, HTTP_FRAME_ERROR, -XQC_H3_EPROC_CONTROL);
             return -XQC_H3_EPROC_CONTROL;
+
         }
-        xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_control|%z|", processed);
-    } else if (XQC_H3_STREAM_REQUEST == h3_stream->h3_stream_type) {
+        xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_uni|%z|", processed);
+    }else if (XQC_HTTP3_STREAM_TYPE_REQUEST == h3_stream->h3_stream_type) {
         size_t nproc;
         processed = xqc_http3_conn_read_bidi(h3_conn, &nproc, h3_stream, data, data_size, fin);
         if (processed < 0) {
@@ -343,11 +384,12 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
 
     /* 服务端h3 stream可能还未创建 */
     if (!user_data) {
-        h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_NUM, NULL);
+        h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_HTTP3_STREAM_TYPE_UNKNOWN, NULL);
         if (!h3_stream) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create error|");
             return -XQC_H3_ECREATE_STREAM;
         }
+
     } else {
         h3_stream = (xqc_h3_stream_t *) user_data;
     }
@@ -382,7 +424,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
     xqc_h3_request_t *h3_request;
     h3_request = h3_stream->h3_request;
 
-    if (h3_stream->h3_stream_type == XQC_H3_STREAM_REQUEST && ((h3_request->flag & XQC_H3_REQUEST_HEADER_CAN_READ) || !xqc_list_empty(&h3_stream->recv_body_data_buf))) {
+    if (h3_stream->h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST && ((h3_request->flag & XQC_H3_REQUEST_HEADER_CAN_READ) || !xqc_list_empty(&h3_stream->recv_body_data_buf))) {
         xqc_request_notify_flag_t flag = 0;
         if (h3_request->flag & XQC_H3_REQUEST_HEADER_CAN_READ) {
             flag |= XQC_REQ_NOTIFY_READ_HEADER;

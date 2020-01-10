@@ -34,6 +34,10 @@ set(
     http3/xqc_h3_frame.c
     http3/xqc_h3_tnode.c
     http3/xqc_h3_qpack.c
+    http3/xqc_h3_ringbuf.c
+    http3/xqc_h3_qpack_token.c
+    http3/xqc_h3_huffman_data.c
+    http3/xqc_h3_qpack_huffman.c
 )
 
 set(
@@ -85,8 +89,8 @@ set(
 add_library(
     xquic
 
-    #STATIC
-    SHARED
+    STATIC
+    #SHARED
 
 
     ${HTTP3_SOURCES}
@@ -191,6 +195,8 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
+add_executable(test_qpack_server tests/test_qpack_server.c)
+add_executable(test_qpack_client tests/test_qpack_client.c)
 #add_executable(xquic_client tests/axp/xquic_client.c tests/axp/axquic.c)
 #add_executable(xquic_server tests/axp/xquic_server.c tests/axp/axquic.c)
 #add_executable(test        tests/main.c)
@@ -209,6 +215,10 @@ else()
     target_link_libraries(test_server xquic -levent -lm)
     target_link_libraries(test_client xquic -levent -lm)
 endif()
+
+target_link_libraries(test_qpack_client xquic -levent -lm)
+target_link_libraries(test_qpack_server xquic -levent -lm)
+
 #target_link_libraries(xquic_client xquic -levent -lm)
 #target_link_libraries(xquic_server xquic -levent -lm)
 #target_link_libraries(test xquic -lssl )

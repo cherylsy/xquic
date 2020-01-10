@@ -4,6 +4,7 @@
 #include "transport/xqc_stream.h"
 #include "common/xqc_list.h"
 #include "common/xqc_id_hash.h"
+#include "include/xqc_errno.h"
 #include "transport/crypto/xqc_tls_public.h"
 #include "xqc_h3_tnode.h"
 #include "xqc_h3_request.h"
@@ -38,7 +39,7 @@ int xqc_http3_stream_empty_headers_allowed(xqc_h3_stream_t *stream) {
         case XQC_HTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
             return 0;
         default:
-            return -1;
+            return -XQC_H3_DECODE_ERROR;
     }
 }
 
@@ -49,7 +50,7 @@ xqc_data_buf_t * xqc_create_data_buf(int buf_size){
     xqc_init_list_head(&p_buf->list_head);
     p_buf->buf_len = p_buf->data_len = buf_size;
     p_buf->already_consume = 0;
-    p_buf->fin = 0;
+    p_buf->fin_flag = 0;
     return p_buf;
 }
 
@@ -57,8 +58,9 @@ xqc_data_buf_t * xqc_create_data_buf(int buf_size){
 int xqc_free_data_buf( xqc_list_head_t * head_list){
     xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, head_list){
+        xqc_h3_data_buf_t *data_buf = xqc_list_entry(pos, xqc_h3_data_buf_t, list_head);
         xqc_list_del(pos);
-        xqc_free(pos);
+        xqc_free(data_buf);
     }
     return 0;
 }
@@ -83,7 +85,7 @@ int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint8_t
     if(data_len > 0){
         memcpy(p_buf->data, data, data_len);
     }
-    p_buf->fin = fin;
+    p_buf->fin_flag = fin;
     xqc_list_add_tail(&p_buf->list_head, phead);
     return 0;
 }
@@ -272,17 +274,17 @@ ssize_t xqc_http3_read_varint(xqc_http3_varint_read_state * rvint, uint8_t *src,
     size_t nread = 0 ;
     size_t n,i;
 
-    if(srclen <= 0){
+    if(srclen <= 0){ //means no data need decode
         return -1;
     }
 
-    if(rvint->left == 0){
+    if(rvint->left == 0){//start decode the varint
 
         if(rvint->acc != 0){
-            return -1;
+            return -1; //means rvint state error
         }
 
-        rvint->left = xqc_get_varint_len(src);
+        rvint->left = xqc_get_varint_len(src); //decode varint length
         if(rvint->left <= srclen){
             rvint->acc = xqc_get_varint(&nread, src);
             rvint->left = 0;
@@ -325,14 +327,10 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
     ssize_t nread;
     int64_t stream_type;
 
-    if(srclen == 0){
-        return -1;
-    }
-
     nread = xqc_http3_read_varint(rvint, src, srclen);
 
     if(nread < 0){
-        return -1;
+        return -XQC_H3_DECODE_ERROR;
     }
 
     if(rvint->left){
@@ -345,18 +343,35 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
     switch(stream_type){
         case XQC_HTTP3_STREAM_TYPE_CONTROL:
             if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_CONTROL_OPENED) {
-                //xqc_log
-                return -1;
+
+                XQC_CONN_ERR(h3_conn->conn, HTTP_STREAM_CREATION_ERROR);
+                return -XQC_H3_INVALID_STREAM;
             }
             h3_conn->flags |= XQC_HTTP3_CONN_FLAG_CONTROL_OPENED;
             h3_stream->type = XQC_HTTP3_STREAM_TYPE_CONTROL;
             read_state->state = XQC_HTTP3_CTRL_STREAM_STATE_FRAME_TYPE;
             break;
         case XQC_HTTP3_STREAM_TYPE_PUSH:
-            //if(server){return -1;}
             h3_stream->type = XQC_HTTP3_STREAM_TYPE_PUSH;
             read_state->state = XQC_HTTP3_PUSH_STREAM_STATE_PUSH_ID;
             break;
+        case XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER:
+            if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED){
+                XQC_CONN_ERR(h3_conn->conn, HTTP_STREAM_CREATION_ERROR);
+                return -XQC_H3_INVALID_STREAM;
+            }
+            h3_conn->flags |= XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED;
+            h3_stream->type = XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER;
+            break;
+        case XQC_HTTP3_STREAM_TYPE_QPACK_DECODER:
+            if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED) {
+                XQC_CONN_ERR(h3_conn->conn, HTTP_STREAM_CREATION_ERROR);
+                return -XQC_H3_INVALID_STREAM;
+            }
+            h3_conn->flags |= XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED;
+            h3_stream->type = XQC_HTTP3_STREAM_TYPE_QPACK_DECODER;
+            break;
+
         default:
             h3_stream->type = XQC_HTTP3_STREAM_TYPE_UNKNOWN;
             break;
@@ -365,10 +380,36 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
     h3_stream->flags |= XQC_HTTP3_STREAM_FLAG_TYPE_IDENTIFIED;
 
     return nread;
+}
+
+ssize_t xqc_http3_conn_read_qpack_encoder(xqc_h3_conn_t * conn,  uint8_t *src, size_t srclen) {
+
+    int insert_count = 0;
+    ssize_t nconsumed = xqc_http3_qpack_decoder_read_encoder(conn, src, srclen, &insert_count);
+
+    if(nconsumed < 0){
+
+        return nconsumed;
+    }
+
+    if(insert_count > 0){
+        xqc_qpack_decoder_block_stream_check_and_process(conn, conn->qdec.ctx.next_absidx);
+
+        if(conn->qdec.written_icnt < conn->qdec.ctx.next_absidx){
+            xqc_http3_qpack_decoder_write_insert_count_increment(conn->qdec_stream, conn->qdec.ctx.next_absidx - conn->qdec.written_icnt);
+            conn->qdec.written_icnt = conn->qdec.ctx.next_absidx;
+
+        }
+    }
+    return nconsumed;
 
 }
 
+ssize_t xqc_http3_conn_read_qpack_decoder(xqc_h3_conn_t *conn, int8_t *src, size_t srclen){
 
+    return xqc_http3_qpack_encoder_read_decoder( conn, src, srclen);
+
+}
 
 ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin){
 
@@ -378,34 +419,22 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 
     int rv;
 
-#if 0
-
-    if (h3_stream->rx_http_state == XQC_HTTP3_HTTP_STATE_NONE){
-        if(h3_conn->conn->conn_type == XQC_CONN_TYPE_SERVER){
-            h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_REQ_INITIAL;
-        }else{
-            h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_INITIAL;
-        }
-
-    }
-#endif
-
     if(srclen == 0){
-        //error
-        return -1;
+        return 0;
     }
 
     if(!(h3_stream->flags & XQC_HTTP3_STREAM_FLAG_TYPE_IDENTIFIED)){
         nread = xqc_http3_read_control_stream_type(h3_conn, h3_stream, src, srclen);
        if(nread < 0){
-            return -1;
+            return nread;
         }
         if (!(h3_stream->flags & XQC_HTTP3_STREAM_FLAG_TYPE_IDENTIFIED)){
 
             if(nread == srclen){
                 return nread;
             }else{
-                return -1;
+                XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                return -XQC_H3_DECODE_ERROR; // means decoder not completely
             }
         }
 
@@ -421,42 +450,43 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 
         case XQC_HTTP3_STREAM_TYPE_CONTROL:
             if(fin){
-                return -1;
-                //return XQC_HTTP3_ERR_HTTP_CLOSED_CRITICAL_STREAM;
+                return -XQC_H3_CLOSE_CRITICAL_STREAM;
             }
             nconsumed = xqc_http3_conn_read_control(h3_conn, h3_stream, src, srclen);
             break;
         case XQC_HTTP3_STREAM_TYPE_PUSH:
 
             if(fin){
-                //need finish
+                h3_stream -> flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
             }
             nconsumed = xqc_http3_conn_read_push(h3_conn, &push_nproc, h3_stream, src, srclen, fin);
             break;
         case XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER:
             if(fin){
-                return -1;
+                return -XQC_H3_CLOSE_CRITICAL_STREAM;
             }
-            //nconsumed = xqc_http3_conn_read_qpack_encoder(h3_conn, src, srclen);
+            nconsumed = xqc_http3_conn_read_qpack_encoder(h3_conn, src, srclen);
             break;
 
         case XQC_HTTP3_STREAM_TYPE_QPACK_DECODER:
             if(fin){
-                return -1;
+                return -XQC_H3_CLOSE_CRITICAL_STREAM;
             }
-            //nconsumed = xqc_http3_conn_read_qpack_decoder(h3_conn, src, srclen);
+            nconsumed = xqc_http3_conn_read_qpack_decoder(h3_conn, src, srclen);
             break;
 
         case XQC_HTTP3_STREAM_TYPE_UNKNOWN:
             nconsumed = (ssize_t)srclen;
             //need stop stream
-            return -1;
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|read unknown stream type:%d |", h3_stream->type);
+            break;
         default:
-            return -1;
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|read error stream type:%d |", h3_stream->type);
+            return -XQC_H3_DECODE_ERROR;
     }
 
     if(nconsumed < 0){
-        return -1;
+        return nconsumed;
     }
 
     return nread + nconsumed;
@@ -477,18 +507,20 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
     size_t len;
 
     if(srclen == 0){
-        return -1;
+        return 0;
     }
 
-    for(;p !=end ; ){
+    for(;p < end ; ){
         switch(rstate->state){
             case XQC_HTTP3_CTRL_STREAM_STATE_FRAME_TYPE:
+#if 0
                 if(end - p <= 0){
                     return -1;
                 }
+#endif
                 nread = xqc_http3_read_varint(rvint, p, end - p);
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
                 nconsumed += (size_t)nread;
@@ -499,16 +531,11 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 rstate->fr.hd.type = rvint->acc;
                 xqc_http3_varint_read_state_clear(rvint);
                 rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_FRAME_LENGTH;
-                if( p == end ){
-                    break;
-                }
+                break;
             case XQC_HTTP3_CTRL_STREAM_STATE_FRAME_LENGTH:
-                if(end - p <= 0){
-                    return -1;
-                }
                 nread = xqc_http3_read_varint(rvint, p, end - p);
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
 
                 p += nread;
@@ -523,26 +550,29 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 if(!(h3_conn->flags & XQC_HTTP3_CONN_FLAG_SETTINGS_RECVED)){
 
                     if(rstate->fr.hd.type != XQC_HTTP3_FRAME_SETTINGS) {
-                        //need check
-                        return -1;
+                        XQC_CONN_ERR(h3_conn->conn, HTTP_MISSING_SETTINGS);
+                        return -XQC_H3_CONTROL_ERROR; //the first frame is setting frame
                     }
                     h3_conn->flags |= XQC_HTTP3_CONN_FLAG_SETTINGS_RECVED;
                 } else if (rstate->fr.hd.type == XQC_HTTP3_FRAME_SETTINGS){
-                    return -1; //not allowed send more than once
+                    XQC_CONN_ERR(h3_conn->conn, HTTP_SETTINGS_ERROR);
+                    return -XQC_H3_CONTROL_ERROR; //not allowed send more than once
                 }
 
                 switch( rstate-> fr.hd.type){
                     case XQC_HTTP3_FRAME_PRIORITY:
                         //if no server
                         if(rstate->left < 3){
-                            return -1;
+                            XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                            return -XQC_H3_CONTROL_DECODE_INVALID;
                         }
 
                         rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY;
                         break;
                     case XQC_HTTP3_FRAME_CANCEL_PUSH:
                         if(rstate->left == 0){
-                            return -1;
+                            XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                            return -XQC_H3_CONTROL_DECODE_INVALID;
                         }
                         rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_CANCEL_PUSH;
                         break;
@@ -556,7 +586,8 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                         break;
                     case XQC_HTTP3_FRAME_GOAWAY:
                         if(rstate->left ==0){
-                            return -1;
+                            XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                            return -XQC_H3_CONTROL_DECODE_INVALID;
                         }
                         rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_GOAWAY;
                         break;
@@ -564,7 +595,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                         rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID;
                         break;
                     default:
-                        return -1;
+                        return -XQC_H3_CONTROL_DECODE_ERROR;
                 }
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY:
@@ -574,7 +605,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                     case XQC_HTTP3_PRI_ELEM_TYPE_PLACEHOLDER:
                         break;
                     default:
-                        return -1;
+                        return -XQC_H3_CONTROL_DECODE_ERROR;
 
                 }
 
@@ -589,12 +620,13 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                     return nconsumed;
                 }
 
+                break;
             case XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY_PRI_ELEM_ID:
                 len = (size_t)xqc_min(rstate->left, (end - p));
                 nread = xqc_http3_read_varint(rvint, p, end - p);
 
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
 
                 p += nread;
@@ -609,25 +641,28 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 if(rstate->fr.priority.dt == XQC_HTTP3_ELEM_DEP_TYPE_ROOT) {
 
                     if(rstate->left != 1){
-                        return -1;
+                        XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                        return -XQC_H3_CONTROL_DECODE_INVALID;
                     }
                     rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT;
 
                     break;
                 }
                 if(rstate->left < 2){
-                    return -1;
+                    XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                    return -XQC_H3_CONTROL_DECODE_INVALID;
                 }
 
                 rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY_ELEM_DEP_ID;
                 if( p == end){
                     return (ssize_t)nconsumed;
-                 }
+                }
+                break;
             case XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY_ELEM_DEP_ID:
                 nread = xqc_http3_read_varint(rvint, p , end - p);
 
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
                 nconsumed += (size_t)nread;
@@ -641,17 +676,20 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 xqc_http3_varint_read_state_clear(rvint);
 
                 if(rstate->left != 1){
-                    return -1;
+                    XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                    return -XQC_H3_CONTROL_DECODE_INVALID;
                 }
                 rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT;
                 if( p == end){
                     return (ssize_t)nconsumed;
                  }
+                break;
             case XQC_HTTP3_CTRL_STREAM_STATE_PRIORITY_WEIGHT:
                 //read priority frame competed
                 if(rstate->left != 1){
 
-                    return -1;
+                    XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                    return -XQC_H3_CONTROL_DECODE_INVALID;
                 }
                 rstate->fr.priority.weight = (uint32_t)(*p) + 1;
                 ++p;
@@ -673,7 +711,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 //need check frame parse end?
                 nread = xqc_http3_read_varint(rvint, p, end - p);
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
                 nconsumed += (size_t)nread;
@@ -691,7 +729,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_SETTINGS:
                 //need finish
-                for(; p != end; ){
+                for(; p < end; ){
                     len = (size_t)xqc_min(rstate->left, (int64_t)(end - p));
                     if(rstate->left == 0){
                         xqc_http3_stream_read_state_clear(rstate);
@@ -699,7 +737,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                     }
                     nread = xqc_http3_read_varint(rvint, p, (end - p));
                     if(nread < 0){
-                        return -1;
+                        return -XQC_H3_DECODE_ERROR;
                     }
                     p += nread;
                     nconsumed += (size_t)nread;
@@ -714,7 +752,8 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
 
                     if(rstate->left == 0){
 
-                        return -1;
+                        XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                        return -XQC_H3_CONTROL_DECODE_INVALID;
                     }
                     len -= (size_t)nread;
                     if(len == 0){
@@ -724,7 +763,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
 
                     nread = xqc_http3_read_varint(rvint, p, len);
                     if(nread < 0){
-                        return -1;
+                        return -XQC_H3_DECODE_ERROR;
                     }
                     p += nread;
                     nconsumed += (size_t)nread;
@@ -743,14 +782,13 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 }
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_SETTINGS_ID:
-                //need finish
                 len = xqc_min(rstate->left, (end - p));
                 if(len == 0){
-                    return -1;
+                    return -XQC_H3_CONTROL_DECODE_INVALID;
                 }
                 nread = xqc_http3_read_varint(rvint, p, len);
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
                 nconsumed += (size_t)nread;
@@ -763,21 +801,25 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
 
                 if(rstate->left == 0){
 
-                    return -1;
+                    XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                    return -XQC_H3_CONTROL_DECODE_INVALID;
                 }
 
                 rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE;
                 if( p == end){
                     return (ssize_t)nconsumed;
                 }
+                break;
             case XQC_HTTP3_CTRL_STREAM_STATE_SETTINGS_VALUE:
                 len = xqc_min(rstate->left, (end - p));
                 if(len == 0){
-                    return -1;
+
+                    XQC_CONN_ERR(h3_conn->conn, HTTP_FRAME_ERROR);
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 nread = xqc_http3_read_varint(rvint, p, len);
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
                 nconsumed += (size_t)nread;
@@ -800,12 +842,13 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_GOAWAY:
                 rstate->state = XQC_HTTP3_CTRL_STREAM_STATE_IGN_FRAME;
+                //goaway 逻辑
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID:
                 len = xqc_min(rstate->left, (int64_t)(end - p));
                 nread = xqc_http3_read_varint(rvint, p, len);
                 if(nread < 0){
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
                 nconsumed += (size_t)nread;
@@ -838,12 +881,11 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 xqc_http3_stream_read_state_clear(rstate);
                 break;
             default:
-                return -1;
+                return -XQC_H3_CONTROL_DECODE_ERROR;
         }
 
     }
 end:
-    //*pnproc = (p - src);
     return (ssize_t)nconsumed;
 }
 
@@ -1002,7 +1044,7 @@ ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                     goto done;
                 }
 
-                rv = xqc_http3_handle_header_data(h3_conn, h3_stream);
+                rv = xqc_http3_handle_header_data(h3_conn, h3_stream); //no buffer
                 if(rv < 0){
                     return rv;
                 }
@@ -1065,147 +1107,6 @@ done:
     return 0;
 }
 
-
-#if 0
-ssize_t xqc_http3_conn_read_uni_frame(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin){
-
-    ssize_t nconsumed = 0;
-    size_t push_nproc;
-    switch(h3_stream->type){
-        case XQC_HTTP3_STREAM_TYPE_CONTROL:
-            nconsumed = xqc_http3_conn_read_control(h3_conn, h3_stream, src, srclen);
-            break;
-        case XQC_HTTP3_STREAM_TYPE_PUSH:
-            //nconsumed = xqc_http3_conn_read_push(h3_conn, &push_nproc, h3_stream, src, srclen);
-            break;
-        default:
-            return -1;
-    }
-    return nconsumed;
-}
-#endif
-
-
-//int xqc_http3_read_header_data(
-
-
-int xqc_http_headers_create_buf(xqc_http_headers_t *headers, size_t capacity){
-
-    headers->headers = malloc(sizeof(xqc_http_header_t) * capacity);
-    memset(headers->headers, 0, sizeof(xqc_http_header_t) * capacity);
-    headers->count = 0;
-    headers->capacity = capacity;
-    return 0;
-}
-
-int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity){
-
-    if(headers->count > capacity){
-        return -1;
-    }
-    xqc_http_header_t * old = headers->headers;
-
-    headers->headers = malloc(sizeof(xqc_http_header_t) * capacity);
-
-    if(headers->headers == NULL){
-        free(old);
-        headers->count = 0;
-        headers->capacity = 0;
-        return -1;
-    }
-    headers->capacity = capacity;
-
-    memcpy(headers->headers, old, headers->count * sizeof(xqc_http_headers_t));
-
-    free(old);
-    return 0;
-}
-
-
-#define XQC_HEADERS_INIT_CAPACITY  32
-int xqc_http3_http_headers_save_nv(xqc_http_headers_t * headers, xqc_qpack_name_value_t * nv){
-
-    if(headers->capacity == 0){
-        xqc_http_headers_create_buf(headers, XQC_HEADERS_INIT_CAPACITY);
-    }
-    if(headers->count >= headers->capacity){
-        size_t capacity = xqc_min(headers->capacity * 2, headers->capacity + 128);
-        if(xqc_http_headers_realloc_buf(headers, capacity) < 0){
-            return -1;
-        }
-    }
-    xqc_http_header_t * header  = &headers->headers[headers->count++];
-
-    header->name.iov_base = malloc(nv->name->strlen + 1);
-    header->name.iov_len = nv->name->strlen;
-    header->value.iov_base = malloc(nv->value->strlen + 1);
-    header->value.iov_len = nv->value->strlen;
-    strncpy(header->name.iov_base, nv->name->data, header->name.iov_len + 1);
-    strncpy(header->value.iov_base, nv->value->data, header->value.iov_len + 1);
-
-    return 0;
-}
-
-int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream){
-
-    xqc_list_head_t * head = &h3_stream->recv_header_data_buf;
-    xqc_list_head_t *pos, *next;
-    xqc_data_buf_t * data_buf = NULL;
-    int ret = 1;
-    xqc_http3_qpack_decoder * decoder = &h3_conn->qdec;
-    xqc_http3_qpack_stream_context *sctx = &h3_stream->qpack_sctx;
-
-    xqc_qpack_name_value_t nv={NULL,NULL,0};
-
-    xqc_h3_request_t * h3_request = h3_stream ->h3_request ;
-    xqc_http_headers_t * headers = &h3_request->headers;
-
-    xqc_list_for_each_safe(pos, next, head){
-        data_buf = xqc_list_entry(pos, xqc_data_buf_t, list_head);
-
-
-        char * start = data_buf->data;
-        char * end = data_buf->data + data_buf->data_len;
-        while(start < end){
-
-            uint8_t flags = 0;
-            int nread = xqc_http3_qpack_decoder_read_request_header(decoder, sctx, &nv, &flags,  start, end - start, data_buf->fin);
-
-            if(nread <= 0){
-
-                goto fail;
-            }
-
-            start += nread;
-            if(flags & XQC_HTTP3_QPACK_DECODE_FLAG_EMIT){
-                //save nv
-                if(xqc_http3_http_headers_save_nv(headers, &nv) < 0){
-                    xqc_qpack_name_value_free(&nv);
-                    return -1;
-                }
-                xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|name:%s, value:%s|", nv.name->data, nv.value->data);
-                xqc_qpack_name_value_free(&nv);
-            }else{
-                if(start < end){
-                    return -1;
-                }
-            }
-
-        }
-        if( data_buf->fin){
-            h3_request->flag |= XQC_H3_REQUEST_HEADER_FIN;
-            break;
-        }
-    }
-
-    h3_request->flag |= XQC_H3_REQUEST_HEADER_CAN_READ;
-
-    return 0;
-
-fail:
-    return -1;
-}
-
 int xqc_http3_handle_body_data_completed(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream){
 
     return 0;
@@ -1243,9 +1144,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
             h3_stream->tx_http_state = XQC_HTTP3_HTTP_STATE_REQ_INITIAL;//??
         }else{
             h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_INITIAL;//??
-
         }
-
     }
 
     ssize_t nread;
@@ -1266,7 +1165,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                 nread = xqc_http3_read_varint(rvint, p, (end - p));
                 if(nread < 0){
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
 
                 p += nread;
@@ -1278,19 +1177,16 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                 xqc_http3_varint_read_state_clear(rvint);
                 rstate->state = XQC_HTTP3_REQ_STREAM_STATE_FRAME_LENGTH;
 
-                if(p == end){
-                    goto done;
-                }
+                break;
             case XQC_HTTP3_REQ_STREAM_STATE_FRAME_LENGTH:
                 nread = xqc_http3_read_varint(rvint, p, (end - p));
                 if(nread < 0){
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_read_varint error, r_state:%d|", rstate->state);
-                    return -1;
+                    return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
                 nconsumed += nread;
                 if(rvint->left) {
-
                    goto done;
                 }
                 rstate->left = rstate->fr.hd.length = rvint->acc;
@@ -1299,18 +1195,16 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
 
                 switch(rstate->fr.hd.type){
                     case XQC_HTTP3_FRAME_HEADERS:
-                        //need finish
                         rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_HEADERS_BEGIN);
                         if(rv != 0){
-                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_transit_rx_http_state error ,r_state:%d|", rstate->state);
+                            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_transit_rx_http_state error ,r_state:%d, event:%d|", rstate->state, XQC_HTTP3_HTTP_EVENT_HEADERS_BEGIN);
                             return rv;
                         }
+                        if(rstate->left == 0){ //header frame length is 0
 
-                        if(rstate->left == 0){
-
-                            rv = xqc_http3_stream_empty_headers_allowed(h3_stream);
+                            rv = xqc_http3_stream_empty_headers_allowed(h3_stream);//only trailer can write
                             if(rv != 0){
-                                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_empty_headers_allowed error ,r_state:%d|", rstate->state);
+                                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_empty_headers_allowed error, header frame length:%d ,r_state:%d|", rstate->left, rstate->state);
                                 return rv;
                             }
 
@@ -1326,11 +1220,11 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                         switch(h3_stream->rx_http_state){
                             case XQC_HTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
                             case XQC_HTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
-                                rv = xqc_http3_conn_call_begin_headers(h3_conn, h3_stream); // need finish
+                                rv = xqc_http3_conn_call_begin_headers(h3_conn, h3_stream); //need headers begin callback?
                                 break;
                             case XQC_HTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
                             case XQC_HTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
-                                rv = xqc_http3_conn_call_begin_trailers(h3_conn, h3_stream);
+                                rv = xqc_http3_conn_call_begin_trailers(h3_conn, h3_stream);//need trailers begin callback?
                                 break;
                             default:
                                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, h3_stream->rx_http_state:%d|", rstate->state, h3_stream->rx_http_state);
@@ -1343,7 +1237,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                         break;
 
                     case XQC_HTTP3_FRAME_DATA:
-                        rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_DATA_BEGIN);
+                        rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_DATA_BEGIN); //修改成适合我们的状态机
                         if(rv != 0){
                             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_transit_rx_http_state error, r_state:%d|", rstate->state);
                             return rv;
@@ -1396,12 +1290,25 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
             case XQC_HTTP3_REQ_STREAM_STATE_HEADERS:
                 len = xqc_min(rstate->left, (int64_t)(end - p));
 
-                if(fin && len == (end - p)){
-                    fin_flag = fin;
-                }else{
-                    fin_flag = 0;
+                fin_flag = XQC_HTTP3_NO_FIN;
+                if(fin && (len == (end - p))){
+                    fin_flag |= XQC_HTTP3_STREAM_FIN;
                 }
-                rv = xqc_buf_to_tail(&h3_stream->recv_header_data_buf, p, len, fin_flag);
+                if(len == rstate->left){
+                    fin_flag |= XQC_HTTP3_FRAME_FIN;
+                }
+
+                nread = xqc_http3_handle_header_data_streaming(h3_conn, h3_stream, p, len, fin_flag);
+
+                if(nread < 0){
+                    xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
+                    return nread;
+                }
+
+                if(nread < len){
+                    xqc_buf_to_tail(&h3_stream->recv_header_data_buf, p + nread, len - nread, fin_flag);
+                }
+
                 if(rv < 0){
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
                     return rv;
@@ -1413,15 +1320,37 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                     goto done;
                 }
 
-                rv = xqc_http3_handle_header_data(h3_conn, h3_stream);
-                if(rv < 0){
-                    xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_handle_header_data error, r_state:%d|", rstate->state);
-                    return rv;
-                }
                 rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_HEADERS_END);
                 xqc_http3_stream_read_state_clear(rstate);
                 break;
+#if 0
+            case XQC_HTTP3_REQ_STREAM_STATE_HEADERS:
+                len = xqc_min(rstate->left, (int64_t)(end - p));
 
+                fin_flag = XQC_HTTP3_NO_FIN;
+                if(fin && (len == (end - p))){
+                    fin_flag &= XQC_HTTP3_STREAM_FIN;
+                }
+                if(len == rstate->left){
+                    fin_flag &= XQC_HTTP3_FRAME_FIN;
+                }
+
+                rv = xqc_buf_to_tail(&h3_stream->recv_header_data_buf, p + nread, len - nread, fin_flag);
+                if(rv < 0){
+                    xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
+                    return rv;
+                }
+                p += len;
+                nconsumed += len;
+                rstate->left -=(int64_t)len;
+                if(rstate->left){
+                    goto done;
+                }
+
+                rv = xqc_http3_stream_transit_rx_http_state(h3_stream, XQC_HTTP3_HTTP_EVENT_HEADERS_END);
+                xqc_http3_stream_read_state_clear(rstate);
+                break;
+#endif
             case XQC_HTTP3_REQ_STREAM_STATE_DATA:
                 len = xqc_min(rstate->left, (int64_t)(end - p));
                 //rv = xqc_http3_conn_on_data(conn, h3_stream, p , len);
@@ -1534,7 +1463,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
                 break;
             default:
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
-                return -1;
+                return -XQC_H3_DECODE_ERROR;
 
         }
     }
@@ -1570,27 +1499,24 @@ int xqc_http3_http_on_remote_end_stream(xqc_h3_stream_t * h3_stream){
     return 0;
 }
 
-int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_stream_http_event event){
+int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_stream_http_event event){ //修改两个header的场景
 
     int rv;
 
     switch (stream->rx_http_state) {
         case XQC_HTTP3_HTTP_STATE_NONE:
-            //return XQC_HTTP3_ERR_HTTP_INTERNAL_ERROR;
-            return -1;
+            return -XQC_H3_STATE_ERROR;
         case XQC_HTTP3_HTTP_STATE_REQ_INITIAL:
             switch (event) {
                 case XQC_HTTP3_HTTP_EVENT_HEADERS_BEGIN:
                     stream->rx_http_state = XQC_HTTP3_HTTP_STATE_REQ_HEADERS_BEGIN;
                     return 0;
                 default:
-                    return -1;
-                    //return XQC_HTTP3_ERR_HTTP_UNEXPECTED_FRAME;
+                    return -XQC_H3_STATE_ERROR;
             }
         case XQC_HTTP3_HTTP_STATE_REQ_HEADERS_BEGIN:
             if (event != XQC_HTTP3_HTTP_EVENT_HEADERS_END) {
-                return -1;
-                //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_REQ_HEADERS_END;
             return 0;
@@ -1618,12 +1544,12 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
                     return 0;
                 default:
                     //return XQC_HTTP3_ERR_HTTP_UNEXPECTED_FRAME;
-                    return -1;
+                    return -XQC_H3_STATE_ERROR;
             }
         case XQC_HTTP3_HTTP_STATE_REQ_DATA_BEGIN:
             if (event != XQC_HTTP3_HTTP_EVENT_DATA_END) {
                 //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_REQ_DATA_END;
             return 0;
@@ -1651,13 +1577,13 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
                     stream->rx_http_state = XQC_HTTP3_HTTP_STATE_REQ_END;
                     return 0;
                 default:
-                    return -1;
+                    return -XQC_H3_STATE_ERROR;
                     //return XQC_HTTP3_ERR_HTTP_UNEXPECTED_FRAME;
             }
         case XQC_HTTP3_HTTP_STATE_REQ_TRAILERS_BEGIN:
             if (event != XQC_HTTP3_HTTP_EVENT_HEADERS_END) {
                 //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_REQ_TRAILERS_END;
             return 0;
@@ -1666,24 +1592,24 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
                 /* TODO Should ignore unexpected frame in this state as per
                    spec. */
                 //return XQC_HTTP3_ERR_HTTP_UNEXPECTED_FRAME;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_REQ_END;
             return 0;
         case XQC_HTTP3_HTTP_STATE_REQ_END:
             //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-            return -1;
+            return -XQC_H3_STATE_ERROR;
         case XQC_HTTP3_HTTP_STATE_RESP_INITIAL:
             if (event != XQC_HTTP3_HTTP_EVENT_HEADERS_BEGIN) {
                 //return XQC_HTTP3_ERR_HTTP_UNEXPECTED_FRAME;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_HEADERS_BEGIN;
             return 0;
         case XQC_HTTP3_HTTP_STATE_RESP_HEADERS_BEGIN:
             if (event != XQC_HTTP3_HTTP_EVENT_HEADERS_END) {
                 //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_HEADERS_END;
             return 0;
@@ -1721,12 +1647,12 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
                     return 0;
                 default:
                     //return XQC_HTTP3_ERR_HTTP_UNEXPECTED_FRAME;
-                    return -1;
+                    return -XQC_H3_STATE_ERROR;
             }
         case XQC_HTTP3_HTTP_STATE_RESP_DATA_BEGIN:
             if (event != XQC_HTTP3_HTTP_EVENT_DATA_END) {
                 //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_DATA_END;
             return 0;
@@ -1754,30 +1680,30 @@ int xqc_http3_stream_transit_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_s
                     return 0;
                 default:
                     //return XQC_HTTP3_ERR_HTTP_UNEXPECTED_FRAME;
-                    return -1;
+                    return -XQC_H3_STATE_ERROR;
             }
         case XQC_HTTP3_HTTP_STATE_RESP_TRAILERS_BEGIN:
             if (event != XQC_HTTP3_HTTP_EVENT_HEADERS_END) {
                 //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_TRAILERS_END;
             return 0;
         case XQC_HTTP3_HTTP_STATE_RESP_TRAILERS_END:
             if (event != XQC_HTTP3_HTTP_EVENT_MSG_END) {
                 //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
-                return -1;
+                return -XQC_H3_STATE_ERROR;
             }
             stream->rx_http_state = XQC_HTTP3_HTTP_STATE_RESP_END;
             return 0;
         case XQC_HTTP3_HTTP_STATE_RESP_END:
-            return -1;
+            return -XQC_H3_STATE_ERROR;
             //return XQC_HTTP3_ERR_HTTP_GENERAL_PROTOCOL_ERROR;
         default:
-            return -1;
+            return -XQC_H3_STATE_ERROR;
     }
 
-    return -1;
+    return -XQC_H3_STATE_ERROR;
 }
 
 xqc_h3_frame_send_buf_t * xqc_create_h3_frame_send_buf(size_t buf_len){
@@ -1792,9 +1718,46 @@ xqc_h3_frame_send_buf_t * xqc_create_h3_frame_send_buf(size_t buf_len){
     p_buf->buf_len = buf_len;
     p_buf->data_len = buf_len;
     p_buf->already_consume = 0;
-    p_buf->fin = 0;
+    p_buf->fin_flag = 0;
 
     return p_buf;
+}
+
+#define XQC_HTTP3_MAX_BUFFER_COUNT_SIZE (1024)
+int xqc_http3_stream_send_buf_add(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send_buf_t * send_buf){
+    if(h3_stream->send_buf_count > XQC_HTTP3_MAX_BUFFER_COUNT_SIZE){
+        return -XQC_H3_BUFFER_EXCEED;
+    }
+
+    h3_stream->send_buf_count++;
+
+    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
+
+    return 0;
+}
+
+int xqc_http3_stream_send_buf_del(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send_buf_t * send_buf){
+    h3_stream->send_buf_count--;
+    xqc_list_del(&send_buf->list_head);
+    xqc_free(send_buf);
+    return 0;
+}
+
+
+int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type){
+
+    xqc_h3_frame_send_buf_t * send_buf = xqc_create_h3_frame_send_buf(1);
+
+    if(send_buf == NULL){
+        return -XQC_H3_EMALLOC;
+    }
+    send_buf->data[0] = stream_type;
+
+    int ret = xqc_http3_stream_send_buf_add(h3_stream, send_buf);
+    if(ret < 0){
+        return ret;
+    }
+    return 0;
 }
 
 
@@ -1867,7 +1830,7 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
     xqc_list_for_each_safe(pos, next, head){
         send_buf = xqc_list_entry(pos, xqc_h3_frame_send_buf_t, list_head);
 
-        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data + send_buf->already_consume, send_buf->data_len - send_buf->already_consume, send_buf->fin);
+        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data + send_buf->already_consume, send_buf->data_len - send_buf->already_consume, (send_buf->fin_flag & XQC_HTTP3_STREAM_FIN));
         if (send_success == -XQC_EAGAIN ) {
             ret = -XQC_EAGAIN;
             return -XQC_EAGAIN;
@@ -1880,9 +1843,7 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
             send_buf->already_consume += send_success;
             return -XQC_EAGAIN; // means send data not completely
         }else{
-            h3_stream->send_buf_count--;
-            xqc_list_del(pos);
-            xqc_free(pos);
+            xqc_http3_stream_send_buf_del(h3_stream, send_buf);
         }
 
     }
@@ -1890,17 +1851,14 @@ int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * h
 
 }
 
-#define XQC_HTTP3_MAX_BUFFER_COUNT_SIZE (1024)
 int xqc_http3_frame_data_buffer_and_send(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send_buf_t * send_buf){//control_data_send do not return eagain, if eagian, buf data, if error ,return error
 
-    if(h3_stream->send_buf_count > XQC_HTTP3_MAX_BUFFER_COUNT_SIZE){
-        return -XQC_H3_BUFFER_EXCEED;
+    int ret = xqc_http3_stream_send_buf_add(h3_stream, send_buf);
+    if(ret < 0){
+        return ret;
     }
 
-    h3_stream->send_buf_count++;
-    xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
-
-    int ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+    ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
 
     if(ret == XQC_HTTP3_SEND_BUF_COMPLETE || ret == -XQC_EAGAIN ){
         return send_buf->data_len;
@@ -1945,15 +1903,13 @@ ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_
 
 }
 
-ssize_t xqc_http3_write_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin){
+ssize_t xqc_http3_write_headers(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin){
 
     ssize_t n_write = 0;
-    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
 
     xqc_http3_qpack_encoder * encoder = &h3_conn->qenc;
 
-
-    n_write = xqc_http3_stream_write_header_block(h3_stream, encoder, headers, fin);
+    n_write = xqc_http3_stream_write_header_block(h3_conn->qenc_stream, h3_stream, encoder, headers, fin);
 
     if(n_write < 0){
         return n_write;
@@ -1972,22 +1928,23 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
     xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_frame_header( h3_stream, data, data_len);
 
-    if(fin){
-        send_buf->fin = fin;
-    }
     if(send_buf == NULL){
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_frame_header error|");
         return -XQC_H3_EMALLOC;
     }
 
+    if(fin){
+        send_buf->fin_flag = fin;
+    }
+
     ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
-
-    return ret;
-
+    if(ret < 0){
+        return ret;
+    }
+    return data_len;
 
 }
 ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
-
     int ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
 
     if(ret == -XQC_EAGAIN){
@@ -2006,8 +1963,8 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
 
         xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_frame_data( h3_stream, data, data_len);
 
-        send_buf->fin = fin;
-        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
+        send_buf->fin_flag = fin;
+        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin_flag);
 
 
         if(send_success < 0 && send_success != -XQC_EAGAIN){
@@ -2016,8 +1973,11 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
             return send_success;
         }
         if(send_success == -XQC_EAGAIN){
-            h3_stream->send_buf_count++;
-            xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
+
+            ret = xqc_http3_stream_send_buf_add(h3_stream, send_buf);
+            if(ret < 0){
+                return ret;
+            }
             return  0;
         }
 
@@ -2048,12 +2008,12 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
         }
 
         if(fin && data_len == 0){//means last frame
-            send_buf->fin = fin;
+            send_buf->fin_flag = fin;
         }else{
-            send_buf->fin = 0;
+            send_buf->fin_flag = 0;
         }
         send_sum += send_len; //means data already buffer  total
-        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin);
+        ssize_t send_success = xqc_stream_send(h3_stream->stream, send_buf->data, send_buf->data_len, send_buf->fin_flag & XQC_HTTP3_STREAM_FIN );
 
         if(send_success < 0 && send_success != -XQC_EAGAIN){
             xqc_free(send_buf);
@@ -2067,8 +2027,10 @@ ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssi
             if(send_success != -XQC_EAGAIN){
                 send_buf->already_consume += send_success;
             }
-            h3_stream->send_buf_count++;
-            xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
+            ret = xqc_http3_stream_send_buf_add(h3_stream, send_buf);
+            if(ret < 0){
+                return ret;
+            }
             break;
         }
 
@@ -2111,7 +2073,6 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_settings(xqc_h3_stream_t * h3_stre
         fr_setting.iv[fr_setting.niv].id = XQC_HTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
         fr_setting.iv[fr_setting.niv].value = setting->qpack_blocked_streams;
         ++fr_setting.niv;
-
     }
 
 
@@ -2145,13 +2106,12 @@ int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_
 
     if(send_buf == NULL){
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_init_wrap_settings error|");
-        return -1;
+        return -XQC_H3_EMALLOC;
     }
 
     int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
     return ret;
 }
-
 
 
 xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_cancel_push(xqc_h3_stream_t * h3_stream, xqc_http3_frame_cancel_push * fr){
@@ -2180,7 +2140,7 @@ int xqc_http3_stream_write_cancel_push(xqc_h3_stream_t * h3_stream, xqc_http3_fr
     xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_cancel_push( h3_stream, fr);
 
     if(send_buf == 0){
-        return -1;
+        return -XQC_H3_EMALLOC;
     }
     int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
     return ret;
@@ -2212,7 +2172,7 @@ int xqc_http3_stream_write_max_push_id(xqc_h3_stream_t * h3_stream, xqc_http3_fr
     xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_max_push_id( h3_stream, fr);
 
     if(send_buf == 0){
-        return -1;
+        return -XQC_H3_EMALLOC;
     }
 
     int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
@@ -2249,7 +2209,7 @@ int xqc_http3_stream_write_priority(xqc_h3_stream_t * h3_stream, xqc_http3_frame
     xqc_h3_frame_send_buf_t * send_buf = xqc_http3_init_wrap_priority( h3_stream, fr_priority);
 
     if(send_buf == 0){
-        return -1;
+        return -XQC_H3_EMALLOC;
     }
 
     int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
@@ -2257,35 +2217,6 @@ int xqc_http3_stream_write_priority(xqc_h3_stream_t * h3_stream, xqc_http3_frame
 
 }
 
-ssize_t xqc_h3_fill_outq(xqc_h3_stream_t * h3_stream, xqc_http3_frame_entry_t *fentry){
-
-    switch(fentry->fr.hd.type){
-
-        case XQC_HTTP3_FRAME_SETTINGS:
-            break;
-        case XQC_HTTP3_FRAME_PRIORITY:
-            break;
-        case XQC_HTTP3_FRAME_HEADERS:
-            break;
-        case XQC_HTTP3_FRAME_PUSH_PROMISE:
-            break;
-        case XQC_HTTP3_FRAME_CANCEL_PUSH:
-            break;
-        case XQC_HTTP3_FRAME_DATA:
-
-            break;
-        case XQC_HTTP3_FRAME_MAX_PUSH_ID:
-            break;
-
-        case XQC_HTTP3_FRAME_GOAWAY:
-            break;
-        default:
-            break;
-
-    }
-    return 0;
-
-}
 
 xqc_h3_stream_t * xqc_http3_find_stream(xqc_h3_conn_t * h3_conn, uint64_t stream_id){
 
@@ -2325,18 +2256,18 @@ int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_pri
     xqc_http3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
 
     if(xqc_http3_node_id_eq(&nid, &dep_nid)){
-        return -1;
+        return -XQC_H3_PRIORITY_ERROR;
     }
 
     tnode = xqc_http3_find_tnode(conn, &nid);
     if(tnode == NULL){
-        return -1;
+        return -XQC_H3_PRIORITY_ERROR;
     }
     tnode->weight = fr->weight;
 
     dep_tnode = xqc_http3_find_tnode(conn, &dep_nid);
     if(dep_tnode == NULL){
-        return -1;
+        return -XQC_H3_PRIORITY_ERROR;
     }
 
     xqc_http3_tnode_remove_tree(tnode);
@@ -2344,7 +2275,7 @@ int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_pri
     if(fr->exclusive){
         rv = xqc_http3_tnode_insert_exclusive(tnode, dep_tnode);
         if(rv != 0){
-            return -1;
+            return -XQC_H3_PRIORITY_ERROR;
         }
     }else{
         xqc_http3_tnode_insert(tnode, dep_tnode);
@@ -2370,3 +2301,32 @@ int xqc_http3_conn_on_max_push_id(xqc_h3_conn_t * conn, uint64_t push_id){
 
     return 0;
 }
+
+ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len){
+    if(data_len <= 0){
+        return data_len;
+    }
+
+    ssize_t send_len; // send bytes every time
+    ssize_t send_sum = 0; // means data send or buffer success
+    ssize_t offset = 0; // means read data offset
+
+    xqc_h3_frame_send_buf_t * send_buf =xqc_create_h3_frame_send_buf(data_len);
+
+    if(send_buf == NULL){
+        return -XQC_H3_EMALLOC;
+    }
+    memcpy(send_buf->data, data, data_len); //send raw data, no frame
+
+    send_buf->fin_flag = 0;
+
+    int ret = xqc_http3_frame_data_buffer_and_send(h3_stream, send_buf);
+    if(ret < 0){
+        return ret;
+    }
+
+    return data_len;
+
+}
+
+

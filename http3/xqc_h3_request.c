@@ -21,7 +21,7 @@ xqc_h3_request_create(xqc_engine_t *engine,
 
     h3_conn = (xqc_h3_conn_t*)stream->stream_conn->user_data;
 
-    h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_REQUEST, user_data);
+    h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_HTTP3_STREAM_TYPE_REQUEST, user_data);
     if (!h3_stream) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_h3_stream_create error|");
         return NULL;
@@ -46,11 +46,11 @@ int xqc_http_headers_free(xqc_http_headers_t *headers){
     }
     for(i = 0; i < headers->count; i++){
         header = & headers->headers[i];
-        if(header->name.iov_base)free(header->name.iov_base);
-        if(header->value.iov_base)free(header->value.iov_base);
+        if(header->name.iov_base)xqc_free(header->name.iov_base);
+        if(header->value.iov_base)xqc_free(header->value.iov_base);
     }
 
-    free(headers->headers);
+    xqc_free(headers->headers);
     headers->headers = NULL;
     headers->count = 0;
     headers->capacity = 0;

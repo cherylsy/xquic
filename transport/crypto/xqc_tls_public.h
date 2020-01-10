@@ -543,7 +543,6 @@ static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
             n.b[0] &= 0x3f;
             return bswap64(n.n64);
     }
-    return -1;
 }
 
 static inline size_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,

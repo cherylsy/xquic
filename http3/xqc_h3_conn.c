@@ -75,6 +75,13 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->user_data = user_data;
     h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
+    xqc_http3_qpack_encoder_init(&h3_conn->qenc, QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, DEFAULT_QPACK_BLOCK_STREAM, DEFAULT_QPACK_HASH_TABLE_SIZE, h3_conn);
+    xqc_http3_qpack_decoder_init(&h3_conn->qdec, QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, DEFAULT_QPACK_BLOCK_STREAM, h3_conn);
+
+    xqc_init_list_head(&h3_conn->block_stream_head);
+    h3_conn->qdec_stream = NULL;
+    h3_conn->qenc_stream = NULL;
+
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     if(xqc_tnode_hash_create(&h3_conn->tnode_hash, XQC_TNODE_HASH_SIZE) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode hash table failed|");
@@ -112,6 +119,8 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
         h3_conn->flags &= ~XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
+    xqc_http3_qpack_decoder_free(&h3_conn->qdec);
+    xqc_http3_qpack_encoder_free(&h3_conn->qenc);
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_tnode_free_hash_table(&h3_conn->tnode_hash);
 #endif
@@ -186,6 +195,18 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_dat
     ret = xqc_h3_stream_create_control(h3_conn, NULL);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_control error|");
+        return ret;
+    }
+
+    ret = xqc_h3_stream_create_qpack_stream(h3_conn, NULL, XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_qpack_encoder error|");
+        return ret;
+    }
+
+    ret = xqc_h3_stream_create_qpack_stream(h3_conn, NULL, XQC_HTTP3_STREAM_TYPE_QPACK_DECODER);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_qpack_encoder error|");
         return ret;
     }
 
