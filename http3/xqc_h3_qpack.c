@@ -1458,7 +1458,8 @@ int xqc_http3_qpack_encoder_write_set_dtable_cap(xqc_http3_qpack_encoder *encode
 int xqc_http3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, size_t cap){ //缓存大小调整，在调整大的时候扩大缓存的实现暂未实现, 调整小时不缩小缓存的内存
 
     xqc_http3_qpack_entry *ent;
-    size_t i,ret;
+    size_t i;
+    ssize_t ret;
     xqc_http3_qpack_context *ctx = &decoder->ctx;
 
     if(cap > ctx->max_table_capacity){
