@@ -24,7 +24,7 @@ typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
 #define XQC_VAR_BUF_INIT_SIZE 256
 #define XQC_VAR_INT_LEN 16
-#define XQC_MAX_SIZE_T (0xFFFFFFFFFFFFFFFF)
+#define XQC_MAX_SIZE_T ((size_t)(-1))
 #define XQC_MAX_UINT64 (0xFFFFFFFFFFFFFFFF)
 
 #define XQC_HTTP3_QPACK_MAX_VALUELEN (16*1024) //16K enough? //修改成配置项
