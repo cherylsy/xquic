@@ -2512,6 +2512,7 @@ int xqc_http3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream, xqc_http3_qpack_e
                 entry = d_result.entry;
                 int draining = xqc_qpack_context_check_draining(&encoder->ctx, entry);
                 if(draining){
+                    xqc_log(stream->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:draining, name:%s, value:%s, index:%d|", name, value, entry->absidx);
                     xqc_http3_qpack_encoder_dtable_duplicate(encoder, p_enc_buf, entry);
                     goto literal;
                 }else{
