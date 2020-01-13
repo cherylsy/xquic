@@ -6,12 +6,17 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D NDEBUG_PRINT -DNPRINT_MALLOC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -DNDEBUG_PRINT -DNPRINT_MALLOC")
+
 if(GCOV)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
-if(ANDROID_ABI)
+
+if(ANDROID_ABI OR PLATFORM MATCHES "mac")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-enum-conversion -Wno-pointer-sign -Wno-unused-value -Wno-format")
+    if(PLATFORM STREQUAL "mac32")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+    endif()
 endif()
 
 configure_file (
@@ -89,8 +94,8 @@ set(
 add_library(
     xquic
 
-    STATIC
-    #SHARED
+    #STATIC
+    SHARED
 
 
     ${HTTP3_SOURCES}
@@ -147,7 +152,7 @@ elseif(ANDROID_ABI STREQUAL "x86")
     #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
     #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
     #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
-elseif(PLATFORM STREQUAL "mac")
+elseif(PLATFORM MATCHES "mac")
     target_link_libraries(
             xquic
             "-ldl -Wl,-all_load"
@@ -208,9 +213,9 @@ include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories( /usr/local/lib )
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 
-if(PLATFORM STREQUAL "mac")
-    target_link_libraries(test_server xquic  -lm /Users/oceanzhang/libevent32/lib/libevent.dylib)
-    target_link_libraries(test_client xquic  -lm /Users/oceanzhang/libevent32/lib/libevent.dylib)
+if(PLATFORM STREQUAL "mac32")
+    target_link_libraries(test_server xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
+    target_link_libraries(test_client xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
 else()
     target_link_libraries(test_server xquic -levent -lm)
     target_link_libraries(test_client xquic -levent -lm)
