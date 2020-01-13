@@ -547,7 +547,7 @@ static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
     return 0; //impossible
 }
 
-static inline size_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,
+static inline ssize_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,
         const uint8_t *end) {
     uint16_t len = xqc_get_uint16(p);
     size_t n;

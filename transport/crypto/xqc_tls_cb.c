@@ -400,7 +400,7 @@ int xqc_decode_transport_params(xqc_transport_params_t *params,
     size_t valuelen;
     size_t vlen;
     size_t len;
-    size_t nread;
+    ssize_t nread;
 
     p = data;
     end = data + datalen;
