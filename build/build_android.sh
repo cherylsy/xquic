@@ -1,6 +1,6 @@
 #!/bin/bash
 #abis=("armeabi-v7a" "arm64-v8a" "x86" "x86_64")
-abis=("armeabi-v7a" "arm64-v8a" "x86")
+abis=("armeabi-v7a" "arm64-v8a")
 for abi in ${abis[@]}
 do
 rm -rf CMakeCache.txt
@@ -17,6 +17,6 @@ rm -rf CTestTestfile.cmake
       -DANDROID_PIE=YES \
       -DANDROID_ALLOW_UNDEFINED_SYMBOLS=YES\
       ..;
-make VERBOSE=1 -j4;
+make VERBOSE=1 -j4 xquic;
 mv libxquic.so libxquic.so.$abi
 done;
