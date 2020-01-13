@@ -6,13 +6,14 @@
 #include "xqc_h3_conn.h"
 #include "xqc_h3_frame.h"
 #include "xqc_h3_qpack.h"
-
+#if 0
 typedef enum {
     XQC_H3_STREAM_REQUEST,
     XQC_H3_STREAM_CONTROL,
     XQC_H3_STREAM_PUSH,
     XQC_H3_STREAM_NUM,
 } xqc_h3_stream_type_t;
+#endif
 
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
@@ -130,7 +131,7 @@ typedef xqc_h3_data_buf_t xqc_data_buf_t;
 typedef struct xqc_h3_stream_s {
     xqc_stream_t        *stream;
     xqc_h3_conn_t       *h3_conn;
-    xqc_h3_stream_type_t h3_stream_type;
+    xqc_http3_stream_type h3_stream_type;
     xqc_h3_request_t    *h3_request;
     void                *user_data;
 
@@ -158,7 +159,7 @@ typedef struct xqc_h3_stream_s {
 extern const xqc_stream_callbacks_t h3_stream_callbacks;
 
 xqc_h3_stream_t *
-xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type_t h3_stream_type, void *user_data);
+xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_http3_stream_type h3_stream_type, void *user_data);
 
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream);
