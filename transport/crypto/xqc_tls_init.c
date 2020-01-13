@@ -594,21 +594,21 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
 
     char key[16], iv[16], hp[16];
 
-    size_t keylen = xqc_derive_packet_protection_key(
+    ssize_t keylen = xqc_derive_packet_protection_key(
             key, sizeof(key), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection key failed | ");
         return -1;
     }
 
-    size_t ivlen = xqc_derive_packet_protection_iv(
+    ssize_t ivlen = xqc_derive_packet_protection_iv(
             iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet protection iv failed | ");
         return -1;
     }
 
-    size_t hplen = xqc_derive_header_protection_key(
+    ssize_t hplen = xqc_derive_header_protection_key(
             hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "| derive packet header protection key failed | ");
