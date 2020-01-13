@@ -374,22 +374,42 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
 static char g_test_header[1024*16] = {0};
 xqc_http_header_t g_array_literial_header[] = {
     {
-        .name   = {.iov_base = "literial_method", .iov_len = strlen("literial_method")},
-        .value  = {.iov_base = "literial_post", .iov_len = strlen("literial_post")},
+        .name   = {.iov_base = "literial_method", .iov_len = sizeof("literial_method") - 1},
+        .value  = {.iov_base = "literial_post", .iov_len = sizeof("literial_post") - 1},
         .flags  = 0,
     },
     {
-        .name   = {.iov_base = "literial_content-type", .iov_len = strlen("literial_content-type")},
-        .value  = {.iov_base = "literial_text/plain", .iov_len = strlen("literial_text/plain")},
+        .name   = {.iov_base = "literial_content-type", .iov_len = sizeof("literial_content-type") - 1},
+        .value  = {.iov_base = "literial_text/plain", .iov_len = sizeof("literial_text/plain") - 1},
         .flags  = 1,
     },
     {
-        .name   = {.iov_base = "literial_long", .iov_len = strlen("literial_long")},
+        .name   = {.iov_base = "literial_long", .iov_len = sizeof("literial_long") - 1},
         .value  = {.iov_base = g_test_header, .iov_len = 4096},
         .flags  = 0,
 
     },
 };
+
+xqc_http_header_t g_array_refresh_header[] = {
+    {
+        .name   = {.iov_base = "refresh_test1", .iov_len = sizeof("refresh_test1") - 1},
+        .value  = {.iov_base = g_test_header, .iov_len = 1024},
+        .flags  = 0,
+
+    },
+    {
+        .name   = {.iov_base = "refresh_test2", .iov_len = sizeof("refresh_test2") -1 },
+        .value  = {.iov_base = g_test_header, .iov_len = 2048},
+        .flags  = 0,
+    },
+    {
+        .name   = {.iov_base = "refresh_test3", .iov_len = sizeof("refresh_test3") - 1},
+        .value  = {.iov_base = g_test_header, .iov_len = 1024},
+        .flags  = 0,
+    },
+};
+
 
 xqc_http_header_t g_header = {
     .name   = {.iov_base = g_test_header, .iov_len = 16},
@@ -398,34 +418,34 @@ xqc_http_header_t g_header = {
 };
 
 xqc_http_header_t g_static_header = {
-    .name   = {.iov_base = ":method", .iov_len = strlen(":method")},
-    .value  = {.iov_base = "GET", .iov_len = strlen("GET")},
+    .name   = {.iov_base = ":method", .iov_len = sizeof(":method") - 1},
+    .value  = {.iov_base = "GET", .iov_len = sizeof("GET") - 1},
     .flags  = 0,
 };
 
 xqc_http_header_t g_static_name_idx_header = {
-    .name   = {.iov_base = ":method", .iov_len = strlen(":method")},
-    .value  = {.iov_base = "literial_post", .iov_len = strlen("literial_post")},
+    .name   = {.iov_base = ":method", .iov_len = sizeof(":method") - 1},
+    .value  = {.iov_base = "literial_post", .iov_len = sizeof("literial_post") - 1},
     .flags  = 0,
 };
 
 
 xqc_http_header_t g_literial_header = {
-    .name   = {.iov_base = "literial_method_test_insert", .iov_len = strlen("literial_method_test_insert")},
-    .value  = {.iov_base = "literial_post_test_insert", .iov_len = strlen("literial_post_test_insert")},
+    .name   = {.iov_base = "literial_method_test_insert", .iov_len = sizeof("literial_method_test_insert") - 1},
+    .value  = {.iov_base = "literial_post_test_insert", .iov_len = sizeof("literial_post_test_insert") - 1},
     .flags  = 0,
 };
 
 xqc_http_header_t g_literial_header_with_flag = {
-    .name   = {.iov_base = "literial_content-type_test_never_flag", .iov_len = strlen("literial_content-type_test_never_flag")},
-    .value  = {.iov_base = "literial_text/plain_test_never_flag", .iov_len = strlen("literial_text/plain_test_never_flag")},
+    .name   = {.iov_base = "literial_content-type_test_never_flag", .iov_len = sizeof("literial_content-type_test_never_flag") - 1},
+    .value  = {.iov_base = "literial_text/plain_test_never_flag", .iov_len = sizeof("literial_text/plain_test_never_flag") - 1},
     .flags  = 1,
 
 };
 
 xqc_http_header_t g_test_name_idx_header = {
-    .name   = {.iov_base = "literial_method_test_insert", .iov_len = strlen("literial_method_test_insert")},
-    .value  = {.iov_base = "test_name_idx_post_test_insert", .iov_len = strlen("test_name_idx_post_test_insert")},
+    .name   = {.iov_base = "literial_method_test_insert", .iov_len = sizeof("literial_method_test_insert") - 1},
+    .value  = {.iov_base = "test_name_idx_post_test_insert", .iov_len = sizeof("test_name_idx_post_test_insert") - 1},
     .flags  = 0,
 };
 
@@ -1059,6 +1079,7 @@ int main(int argc, char *argv[]) {
     user_stream_t *user_stream5 = create_user_stream(ctx.engine, user_conn, cid);
     user_stream_t *user_stream6 = create_user_stream(ctx.engine, user_conn, cid);
     user_stream_t *user_stream7 = create_user_stream(ctx.engine, user_conn, cid);
+    user_stream_t *user_stream8 = create_user_stream(ctx.engine, user_conn, cid);
 
 
 
@@ -1067,6 +1088,8 @@ int main(int argc, char *argv[]) {
     g_test_name_idx_user_stream = user_stream4;
     g_user_stream = user_stream5;
     if (user_conn->h3) {
+        //xqc_client_request_send(user_stream8->h3_request, user_stream8, g_array_refresh_header, 3);
+
         xqc_client_request_send(user_stream->h3_request, user_stream, &g_literial_header, 1);
         xqc_h3_stream_t * h3_stream = user_stream->h3_request->h3_stream;
         xqc_h3_conn_t * h3_conn = h3_stream->h3_conn;
