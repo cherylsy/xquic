@@ -110,7 +110,7 @@ static uint32_t xqc_bbr_max_bw(xqc_bbr_t *bbr)
 static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     /*Check whether the data is legal */
-    if(sampler->delivered < 0 || sampler->interval <= 0)
+    if(/*sampler->delivered < 0 ||*/ sampler->interval <= 0)
         return;
     
     /**
@@ -298,7 +298,7 @@ static void xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     bbr->min_rtt_expired = (bbr->min_rtt != 0 
                        && sampler->now > bbr->min_rtt_stamp + xqc_bbr_kMinRttWindowSize * msec2sec);
     
-    if((sampler->rtt >= 0 && sampler->rtt <= bbr->min_rtt)
+    if((/*sampler->rtt >= 0 &&*/ sampler->rtt <= bbr->min_rtt)
         || bbr->min_rtt_expired){
         bbr->min_rtt = sampler->rtt;
         bbr->min_rtt_stamp = sampler->now;
