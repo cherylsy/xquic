@@ -2387,6 +2387,8 @@ int xqc_http3_qpack_encoder_dtable_duplicate_add(xqc_http3_qpack_encoder * encod
 
     int rv = xqc_http3_qpack_context_dtable_add(&encoder->ctx, name_buf, entry->nv.name_len, value_buf, entry->nv.value_len, &encoder->dtable_hash);
 
+    xqc_log(encoder->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode: duplicate insert, name:%s, value:%s, index:%d|", name_buf, value_buf, entry->absidx);
+
     return rv;
 
 }
