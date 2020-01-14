@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <errno.h>
 #include <memory.h>
@@ -515,14 +516,59 @@ void
 xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 {
     //DEBUG;
-
-    ssize_t recv_size = 0;
     ssize_t recv_sum = 0;
-
-    unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
-
     struct sockaddr_in peer_addr;
     socklen_t peer_addrlen = sizeof(peer_addr);
+
+    int batch = 1;
+    if (batch) {
+#define VLEN 10
+#define BUFSIZE XQC_PACKET_TMP_BUF_LEN
+#define TIMEOUT 10
+        struct mmsghdr msgs[VLEN];
+        struct iovec iovecs[VLEN];
+        char bufs[VLEN][BUFSIZE+1];
+        struct timespec timeout;
+        int retval;
+
+        do {
+            memset(msgs, 0, sizeof(msgs));
+            for (int i = 0; i < VLEN; i++) {
+                iovecs[i].iov_base = bufs[i];
+                iovecs[i].iov_len = BUFSIZE;
+                msgs[i].msg_hdr.msg_iov = &iovecs[i];
+                msgs[i].msg_hdr.msg_iovlen = 1;
+                msgs[i].msg_hdr.msg_name = &peer_addr;
+                msgs[i].msg_hdr.msg_namelen = peer_addrlen;
+            }
+
+            timeout.tv_sec = TIMEOUT;
+            timeout.tv_nsec = 0;
+
+            retval = recvmmsg(ctx->fd, msgs, VLEN, 0, &timeout);
+            if (retval == -1) {
+                break;
+            }
+
+            uint64_t recv_time = now();
+            for (int i = 0; i < retval; i++) {
+                recv_sum += msgs[i].msg_len;
+
+                if (xqc_engine_packet_process(ctx->engine, iovecs[i].iov_base, msgs[i].msg_len,
+                                              (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
+                                              (struct sockaddr *) (&peer_addr), peer_addrlen, (xqc_msec_t) recv_time,
+                                              NULL) != 0) {
+                    printf("xqc_server_read_handler: packet process err\n");
+                    return;
+                }
+            }
+        } while (retval > 0);
+        goto finish_recv;
+    }
+
+    ssize_t recv_size = 0;
+
+    unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
     do {
         recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &peer_addr,
@@ -550,6 +596,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         }
     } while (recv_size > 0);
 
+finish_recv:
     printf("recvfrom size:%zu\n", recv_sum);
     xqc_engine_finish_recv(ctx->engine);
 }
