@@ -108,21 +108,7 @@ typedef struct {
   size_t nvlen;
 } xqc_http3_frame_headers;
 
-#if 0
-typedef enum {
-    XQC_HTTP3_PRI_ELEM_TYPE_REQUEST = 0x00,
-    XQC_HTTP3_PRI_ELEM_TYPE_PUSH = 0x01,
-    XQC_HTTP3_PRI_ELEM_TYPE_PLACEHOLDER = 0x02
-} xqc_http3_pri_elem_type;
 
-
-typedef enum {
-  XQC_HTTP3_ELEM_DEP_TYPE_REQUEST = 0x00,
-  XQC_HTTP3_ELEM_DEP_TYPE_PUSH = 0x01,
-  XQC_HTTP3_ELEM_DEP_TYPE_PLACEHOLDER = 0x02,
-  XQC_HTTP3_ELEM_DEP_TYPE_ROOT = 0x03
-} xqc_http3_elem_dep_type;
-#endif
 
 typedef struct {
   xqc_http3_frame_hd hd;

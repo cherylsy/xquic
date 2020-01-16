@@ -17,9 +17,9 @@ int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
         xqc_http3_node_id_t nid;
         nid.id = stream->stream_id;
         if(h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST){
-            nid.type = XQC_HTTP3_PRI_ELEM_TYPE_REQUEST;
+            nid.type = XQC_HTTP3_NODE_ID_TYPE_STREAM;
         }else if (h3_stream_type == XQC_HTTP3_STREAM_TYPE_PUSH){
-            nid.type = XQC_HTTP3_PRI_ELEM_TYPE_PUSH;
+            nid.type = XQC_HTTP3_NODE_ID_TYPE_PUSH;
         }else{
             return -1;
         }

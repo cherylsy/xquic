@@ -36,7 +36,7 @@ typedef enum {
 } xqc_http3_node_id_type_t;
 
 typedef struct {
-  xqc_http3_node_id_type_t type;
+  int type;
   int64_t id;
 } xqc_http3_node_id_t;
 
@@ -76,5 +76,5 @@ int xqc_http3_tnode_handle_child(xqc_http3_tnode_t * parent, xqc_http3_tnode_t *
 int xqc_http3_tnode_del(xqc_http3_tnode_t * tnode);
 int xqc_http3_tnode_remove_tree(xqc_http3_tnode_t *tnode);
 int xqc_http3_node_id_eq(xqc_http3_node_id_t * src, xqc_http3_node_id_t *dst);
-int xqc_http3_node_id_init(xqc_http3_node_id_t * nid, xqc_http3_node_id_type_t type, uint64_t id);
+int xqc_http3_node_id_init(xqc_http3_node_id_t * nid, int type, uint64_t id);
 #endif
