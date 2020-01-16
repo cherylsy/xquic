@@ -75,7 +75,7 @@ xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         return XQC_OK;
     }
 
-    int ret;
+    int ret = XQC_OK;
 
     xqc_pkt_type_t pkt_type = packet_out->po_pkt.pkt_type;
 

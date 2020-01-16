@@ -16,7 +16,7 @@
 static xqc_stream_id_t
 xqc_gen_stream_id (xqc_connection_t *conn, xqc_stream_type_t type)
 {
-    xqc_stream_id_t sid;
+    xqc_stream_id_t sid = 0;
     if (type == XQC_CLI_BID || type == XQC_SVR_BID) {
         sid = conn->cur_stream_id_bidi_local++;
     } else if (type == XQC_CLI_UNI || type ==XQC_SVR_UNI) {
