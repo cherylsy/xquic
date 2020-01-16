@@ -2510,6 +2510,8 @@ int xqc_http3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream, xqc_http3_qpack_e
 
     xqc_http3_qpack_hash_find(&(encoder->dtable_hash), &(encoder->ctx.dtable_data), name, name_len, value, value_len, &d_result);
 
+    int insert_flag = (d_result.entry == NULL) && indexing_mode == XQC_HTTP3_QPACK_INDEXING_MODE_STORE ;
+
     if(indexing_mode != XQC_HTTP3_QPACK_INDEXING_MODE_NEVER){
         if(d_result.entry){//dynamic name value
             ack_flag = d_result.entry->absidx < encoder->krcnt;
@@ -2532,7 +2534,6 @@ int xqc_http3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream, xqc_http3_qpack_e
         }
     }
 
-    int insert_flag = (d_result.entry == NULL) && indexing_mode == XQC_HTTP3_QPACK_INDEXING_MODE_STORE ;
     if(s_result.name_absidx != -1){ //static name
         if(insert_flag){
             xqc_http3_qpack_encoder_dtable_static_write(encoder, p_enc_buf, s_result.name_absidx, name, name_len, value, value_len);
