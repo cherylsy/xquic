@@ -408,6 +408,41 @@ xqc_http_header_t g_array_refresh_header[] = {
         .value  = {.iov_base = g_test_header, .iov_len = 1024},
         .flags  = 0,
     },
+#if 0
+    {
+        .name   = {.iov_base = "refresh_test4", .iov_len = sizeof("refresh_test4") - 1},
+        .value  = {.iov_base = g_test_header, .iov_len = 1024},
+        .flags  = 0,
+
+    },
+#endif
+
+};
+
+
+xqc_http_header_t g_array_draining_header[] = {
+    {
+        .name   = {.iov_base = "draining_test1", .iov_len = sizeof("draining_test1") - 1},
+        .value  = {.iov_base = "draining_value1", .iov_len = sizeof("draining_value1") - 1},
+        .flags  = 0,
+
+    },
+    {
+        .name   = {.iov_base = "draining_test2", .iov_len = sizeof("draining_test2") -1 },
+        .value  = {.iov_base = g_test_header, .iov_len = 1024},
+        .flags  = 0,
+    },
+    {
+        .name   = {.iov_base = "draining_test3", .iov_len = sizeof("draining_test3") - 1},
+        .value  = {.iov_base = g_test_header, .iov_len = 2048},
+        .flags  = 0,
+    },
+    {
+        .name   = {.iov_base = "draining_test4", .iov_len = sizeof("draining_test4") -1 },
+        .value  = {.iov_base = g_test_header, .iov_len = 512},
+        .flags  = 0,
+    },
+
 };
 
 
@@ -450,6 +485,8 @@ xqc_http_header_t g_test_name_idx_header = {
 };
 
 user_stream_t * g_user_stream = NULL;
+user_stream_t * g_drain_user_stream = NULL;
+user_stream_t * g_drain_user_stream1 = NULL;
 user_stream_t * g_test_idx_user_stream = NULL;
 user_stream_t * g_test_array_user_stream = NULL;
 user_stream_t * g_test_name_idx_user_stream = NULL;
@@ -576,10 +613,12 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
     int success_flag = 0;
+    int draining_flag = 0;
     static int test_name_value_result = 0;
     static int test_name_idx_result = 0;
     static int test_static_result = 0;
     static int test_static_name_idx_result = 0;
+    static int test_draining_result = 0;
     //if (user_stream->header_recvd == 0) {
     if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_http_headers_t *headers;
@@ -635,8 +674,26 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
                     test_static_name_idx_result++;
             }
 
+             if((headers->headers[i].name.iov_len == g_array_draining_header[i].name.iov_len)
+                    && (0 == memcmp(headers->headers[i].name.iov_base, g_array_draining_header[i].name.iov_base, headers->headers[i].name.iov_len))
+                    && (headers->headers[i].value.iov_len == g_array_draining_header[i].value.iov_len)
+                    && (0 == memcmp(headers->headers[i].value.iov_base, g_array_draining_header[i].value.iov_base, headers->headers[i].value.iov_len))
+              ){
+                    draining_flag++;
+            }
 
 
+
+        }
+
+
+        if(draining_flag == 4){
+
+            xqc_client_request_send(g_drain_user_stream1->h3_request, g_drain_user_stream1, g_array_draining_header, 1);
+        }
+
+        if(draining_flag == 1){
+            printf("***** qpack test draining pass\n\n");
         }
 
         xqc_h3_conn_t * h3_conn = h3_request->h3_stream->h3_conn;
@@ -651,6 +708,12 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
                 xqc_client_request_send(g_test_name_idx_user_stream->h3_request, g_test_name_idx_user_stream, &g_test_name_idx_header, 1);
                 //xqc_client_request_send(g_test_name_idx_user_stream->h3_request, g_test_name_idx_user_stream, &g_literial_header, 1);
+            }
+
+            if(g_drain_user_stream){
+
+                xqc_client_request_send(g_drain_user_stream->h3_request, g_drain_user_stream, g_array_draining_header, 4);
+
             }
         }else{
 
@@ -1080,6 +1143,8 @@ int main(int argc, char *argv[]) {
     user_stream_t *user_stream6 = create_user_stream(ctx.engine, user_conn, cid);
     user_stream_t *user_stream7 = create_user_stream(ctx.engine, user_conn, cid);
     user_stream_t *user_stream8 = create_user_stream(ctx.engine, user_conn, cid);
+    user_stream_t *user_stream9 = create_user_stream(ctx.engine, user_conn, cid);
+    user_stream_t *user_stream10 = create_user_stream(ctx.engine, user_conn, cid);
 
 
 
@@ -1087,9 +1152,12 @@ int main(int argc, char *argv[]) {
     g_test_idx_user_stream = user_stream3;
     g_test_name_idx_user_stream = user_stream4;
     g_user_stream = user_stream5;
+    g_drain_user_stream = user_stream9;
+    g_drain_user_stream1 = user_stream10;
     if (user_conn->h3) {
         //xqc_client_request_send(user_stream8->h3_request, user_stream8, g_array_refresh_header, 3);
 
+        //xqc_client_request_send(user_stream8->h3_request, user_stream8, g_array_refresh_header, 3);
         xqc_client_request_send(user_stream->h3_request, user_stream, &g_literial_header, 1);
         xqc_h3_stream_t * h3_stream = user_stream->h3_request->h3_stream;
         xqc_h3_conn_t * h3_conn = h3_stream->h3_conn;
@@ -1102,6 +1170,8 @@ int main(int argc, char *argv[]) {
 
         xqc_client_request_send(user_stream6->h3_request, user_stream6, &g_static_header, 1);
         xqc_client_request_send(user_stream7->h3_request, user_stream7, &g_static_name_idx_header, 1);
+
+
     } else {
         xqc_client_stream_send(user_stream->stream, user_stream);
     }

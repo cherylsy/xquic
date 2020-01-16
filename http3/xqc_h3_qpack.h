@@ -345,7 +345,6 @@ ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t * h3_conn, uint8_t * 
 
 ssize_t xqc_http3_qpack_encoder_read_decoder(xqc_h3_conn_t * h3_conn, uint8_t * src, size_t srclen);
 
-int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
 int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_table_capacity, uint64_t max_dtable_size,
         uint64_t max_blocked, size_t hash_table_size, xqc_h3_conn_t * h3_conn);
 int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_table_capacity, uint64_t max_dtable_size, uint64_t max_blocked, xqc_h3_conn_t * h3_conn);
@@ -360,4 +359,5 @@ int xqc_http3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,  xqc_h3_strea
 int xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc);
 void xqc_http3_qpack_decoder_free(xqc_http3_qpack_decoder *qdec);
 int xqc_http3_qpack_hash_find(xqc_qpack_hash_table_t * table, xqc_http3_ringdata *rdata, char * name, size_t name_len, char *value, size_t value_len, xqc_qpack_find_result *result);
+int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity);
 #endif

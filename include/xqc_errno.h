@@ -89,7 +89,6 @@ typedef enum
 
 #define XQC_H3_BUFFER_EXCEED    812 //http send buffer 超过最大值
 
-
 #define XQC_H3_DECODE_ERROR     815 //解码失败
 #define XQC_H3_INVALID_STREAM   816 //stream非法，如多个control stream等
 #define XQC_H3_CLOSE_CRITICAL_STREAM 817 //非法关闭control stream、qpack encoder/decoder stream
@@ -97,7 +96,13 @@ typedef enum
 #define XQC_H3_CONTROL_ERROR   819  //control stream error, such as setting not send first or send twice
 #define XQC_H3_CONTROL_DECODE_ERROR   820 //control stream 解码错误，如遇到无法识别的frame type
 #define XQC_H3_CONTROL_DECODE_INVALID   821  // control stream decoder invalid, 例如剩余长度非法
-#define XQC_H3_PRIORITY_ERROR  812 //优先级相关错误
+#define XQC_H3_PRIORITY_ERROR  822 //优先级相关错误
+
+#define XQC_H3_INVALID_FRAME_TYPE 830
+#define XQC_H3_UNSUPPORT_FRAME_TYPE 831
+
+
+
 
 #define XQC_QPACK_DECODER_VARINT_ERROR 850  //qpack 解码变长整数失败
 #define XQC_QPACK_ENCODER_ERROR     851 //qpack编码过程中出错
