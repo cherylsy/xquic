@@ -884,7 +884,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
         }
 
     }
-end:
+
     return (ssize_t)nconsumed;
 }
 

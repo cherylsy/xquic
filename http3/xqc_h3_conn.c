@@ -134,8 +134,8 @@ int
 xqc_h3_conn_send_goaway(xqc_h3_conn_t *h3_conn)
 {
     ssize_t ret;
-    unsigned char *data;
-    size_t data_len;
+    unsigned char *data = NULL;
+    size_t data_len = 0;
     //gen_goaway_frame
     h3_conn->goaway_stream_id = h3_conn->max_stream_id_recvd + 4;
     ret = xqc_h3_stream_send(h3_conn->control_stream_out, data, data_len, 0);
