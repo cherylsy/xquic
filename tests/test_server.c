@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <event2/event.h>
+#include <inttypes.h>
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
 
@@ -158,7 +159,7 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
             return ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_stream_send offset=%lld\n", user_stream->send_offset);
+            printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
         }
     }
     return 0;
@@ -356,7 +357,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_h3_request_send_body sent:%zd, offset=%lld\n", ret, user_stream->send_offset);
+            printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
     }
     return 0;
@@ -409,7 +410,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return -1;
         }
         for (int i = 0; i < headers->count; i++) {
-            printf("%s = %s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
+            printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
         }
 
         user_stream->header_recvd = 1;
@@ -690,7 +691,7 @@ static void
 xqc_server_engine_callback(int fd, short what, void *arg)
 {
     DEBUG;
-    printf("timer wakeup now:%llu\n", now());
+    printf("timer wakeup now:%"PRIu64"\n", now());
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
 
     xqc_engine_main_logic(ctx->engine);
