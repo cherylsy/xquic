@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <time.h>
+#include <inttypes.h>
 #include "include/xquic.h"
 #include "include/xquic_typedef.h"
 
@@ -367,7 +368,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
             return (int)ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_stream_send offset=%lld\n", user_stream->send_offset);
+            printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
         }
     }
     return 0;
@@ -522,14 +523,14 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_h3_request_send_body sent:%zd, offset=%lld\n", ret, user_stream->send_offset);
+            printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
     }
     if (g_test_case == 4) { //test fin_only
         if (user_stream->send_offset == user_stream->send_body_len) {
             fin = 1;
             ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
-            printf("xqc_h3_request_send_body sent:%zd, offset=%lld, fin=1\n", ret, user_stream->send_offset);
+            printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64", fin=1\n", ret, user_stream->send_offset);
         }
     }
     return 0;
@@ -570,7 +571,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return -1;
         }
         for (int i = 0; i < headers->count; i++) {
-            printf("%s = %s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
+            printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
         }
 
         user_stream->header_recvd = 1;
@@ -639,7 +640,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         xqc_request_stats_t stats;
         stats = xqc_h3_request_get_stats(h3_request);
         xqc_msec_t now_us = now();
-        printf("\033[33m>>>>>>>> request time cost:%lld us, speed:%lld K/s \n"
+        printf("\033[33m>>>>>>>> request time cost:%"PRIu64" us, speed:%"PRIu64" K/s \n"
                ">>>>>>>> send_body_size:%zu, recv_body_size:%zu \033[0m\n",
                now_us - user_stream->start_time,
                (stats.send_body_size + stats.recv_body_size)*1000/(now_us - user_stream->start_time),
@@ -767,7 +768,7 @@ xqc_client_socket_event_callback(int fd, short what, void *arg)
 static void
 xqc_client_engine_callback(int fd, short what, void *arg)
 {
-    printf("timer wakeup now:%llu\n", now());
+    printf("timer wakeup now:%"PRIu64"\n", now());
     client_ctx_t *ctx = (client_ctx_t *) arg;
 
     xqc_engine_main_logic(ctx->engine);
@@ -776,7 +777,7 @@ xqc_client_engine_callback(int fd, short what, void *arg)
 static void
 xqc_client_timeout_callback(int fd, short what, void *arg)
 {
-    printf("xqc_client_timeout_callback now %llu\n", now());
+    printf("xqc_client_timeout_callback now %"PRIu64"\n", now());
     user_conn_t *user_conn = (user_conn_t *) arg;
     int rc;
     rc = xqc_conn_close(ctx.engine, &user_conn->cid);

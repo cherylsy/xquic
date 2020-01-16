@@ -1278,7 +1278,7 @@ xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len)
     HMAC_Final(ctx, output, &output_len);
     HMAC_CTX_free(ctx);
 
-    memcpy(token, output, output_len < token_len ? : token_len);
+    memcpy(token, output, output_len < token_len ? output_len : token_len);
 }
 
 /*
