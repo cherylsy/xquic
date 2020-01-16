@@ -387,7 +387,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         user_stream->header_recvd = 1;
 
         //sleep(0.5);
-        xqc_server_request_send_test(h3_request, &h3_request->headers, user_stream);
+        xqc_server_request_send_test(h3_request, headers, user_stream);
         if (fin) {
             /* 只有header，请求接收完成，处理业务逻辑 */
             return 0;

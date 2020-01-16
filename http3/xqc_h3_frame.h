@@ -241,7 +241,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
 ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen);
 
-ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, uint8_t fin);
+ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, uint8_t fin);
 
 int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head);
 
@@ -253,5 +253,7 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len);
 
 int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type);
+int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint8_t fin);
+int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
 
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

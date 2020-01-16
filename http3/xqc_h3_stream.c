@@ -68,7 +68,7 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_http3_str
     xqc_init_list_head(&h3_stream->send_frame_data_buf);
     h3_stream->send_buf_count = 0;
 
-    xqc_init_list_head(&h3_stream->recv_header_data_buf);
+    xqc_init_list_head(&h3_stream->recv_data_buf);
     xqc_init_list_head(&h3_stream->recv_body_data_buf);
 
     xqc_http3_qpack_stream_context_init(&h3_stream->qpack_sctx, stream->stream_id);
@@ -326,14 +326,29 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
         }
         xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_uni|%z|", processed);
     }else if (XQC_HTTP3_STREAM_TYPE_REQUEST == h3_stream->h3_stream_type) {
-        size_t nproc;
-        processed = xqc_http3_conn_read_bidi(h3_conn, &nproc, h3_stream, data, data_size, fin);
-        if (processed < 0) {
+        processed = xqc_http3_conn_read_bidi(h3_conn, h3_stream, data, data_size, fin);
+        if (processed < 0) { //process error
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_bidi error|%z|", processed);
             XQC_H3_CONN_ERR(h3_conn, HTTP_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
             return -XQC_H3_EPROC_REQUEST;
         }
         xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_bidi|%z|", processed);
+
+        if(processed < data_size){
+            if(h3_stream->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED){
+                int rv = xqc_buf_to_tail(&h3_stream->recv_data_buf, data + processed, data_size - processed, fin);
+                if(rv < 0){
+                    return rv;
+                }
+                return XQC_OK;
+            }else{
+                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_bidi error, read data not completely");
+                XQC_H3_CONN_ERR(h3_conn, HTTP_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
+                return -XQC_H3_EPROC_REQUEST;
+            }
+
+        }
+
     }
     return XQC_OK;
 }
@@ -424,9 +439,9 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
     xqc_h3_request_t *h3_request;
     h3_request = h3_stream->h3_request;
 
-    if (h3_stream->h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST && ((h3_request->flag & XQC_H3_REQUEST_HEADER_CAN_READ) || !xqc_list_empty(&h3_stream->recv_body_data_buf))) {
+    if (h3_stream->h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST && ((h3_request->h3_header.read_flag != XQC_H3_REQUEST_HEADER_DATA_NONE) || !xqc_list_empty(&h3_stream->recv_body_data_buf))) {
         xqc_request_notify_flag_t flag = 0;
-        if (h3_request->flag & XQC_H3_REQUEST_HEADER_CAN_READ) {
+        if (h3_request->h3_header.read_flag != XQC_H3_REQUEST_HEADER_DATA_NONE) {
             flag |= XQC_REQ_NOTIFY_READ_HEADER;
         }
         if (!xqc_list_empty(&h3_stream->recv_body_data_buf)) {
