@@ -13,7 +13,7 @@ if(GCOV)
 endif()
 
 if(ANDROID_ABI OR PLATFORM MATCHES "mac")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-enum-conversion -Wno-pointer-sign -Wno-unused-value -Wno-format")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-pointer-sign -Wno-format-security")
     if(PLATFORM STREQUAL "mac32")
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
     endif()

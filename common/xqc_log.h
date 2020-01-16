@@ -99,10 +99,17 @@ xqc_log_time(char* buf)
     tm.tm_mon++;
     tm.tm_year += 1900;
 
+#ifdef __APPLE__
     sprintf(buf, "%4d/%02d/%02d %02d:%02d:%02d %06d",
                 tm.tm_year, tm.tm_mon,
                 tm.tm_mday, tm.tm_hour,
                 tm.tm_min, tm.tm_sec, tv.tv_usec);
+#else
+    sprintf(buf, "%4d/%02d/%02d %02d:%02d:%02d %06ld",
+            tm.tm_year, tm.tm_mon,
+            tm.tm_mday, tm.tm_hour,
+            tm.tm_min, tm.tm_sec, tv.tv_usec);
+#endif
 }
 
 static inline void

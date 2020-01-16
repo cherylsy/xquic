@@ -154,7 +154,7 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
     if (user_stream->send_offset < buff_size) {
         ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
         if (ret < 0) {
-            printf("xqc_stream_send error %d\n", ret);
+            printf("xqc_stream_send error %zd\n", ret);
             return ret;
         } else {
             user_stream->send_offset += ret;
@@ -205,7 +205,7 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
     unsigned char fin;
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
-        printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
+        printf("xqc_stream_recv %zd, fin:%d\n", read, fin);
         if (read < 0) {
             return read;
         }
@@ -352,7 +352,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
-            printf("xqc_h3_request_send_body error %d\n", ret);
+            printf("xqc_h3_request_send_body error %zd\n", ret);
             return ret;
         } else {
             user_stream->send_offset += ret;
@@ -452,7 +452,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
         if (read < 0) {
-            printf("xqc_h3_request_recv_body error %lld\n", read);
+            printf("xqc_h3_request_recv_body error %zd\n", read);
             return read;
         }
         //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);

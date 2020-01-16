@@ -1172,13 +1172,13 @@ int xqc_write_transport_params(xqc_connection_t * conn,
 {
 
     char tp_buf[8192] = {0};
-    int tp_data_len = snprintf(tp_buf, sizeof(tp_buf), "initial_max_streams_bidi=%lld\n"
-            "initial_max_streams_uni=%lld\n"
-            "initial_max_stream_data_bidi_local=%lld\n"
-            "initial_max_stream_data_bidi_remote=%lld\n"
-            "initial_max_stream_data_uni=%lld\n"
-            "initial_max_data=%lld\n"
-            "max_ack_delay=%lld\n",
+    int tp_data_len = snprintf(tp_buf, sizeof(tp_buf), "initial_max_streams_bidi=%"PRIu64"\n"
+            "initial_max_streams_uni=%"PRIu64"\n"
+            "initial_max_stream_data_bidi_local=%"PRIu64"\n"
+            "initial_max_stream_data_bidi_remote=%"PRIu64"\n"
+            "initial_max_stream_data_uni=%"PRIu64"\n"
+            "initial_max_data=%"PRIu64"\n"
+            "max_ack_delay=%"PRIu64"\n",
             params->initial_max_streams_bidi,
             params->initial_max_streams_uni,
             params->initial_max_stream_data_bidi_local,
@@ -1370,7 +1370,6 @@ static int xqc_conn_key_phase_changed(xqc_connection_t *conn, const xqc_pkt_hd *
 }
 
 int xqc_update_key(xqc_connection_t *conn, void *user_data){
-    (void *)user_data;
     if(xqc_do_update_key(conn) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_do_update_key failed|");
         return -1;
