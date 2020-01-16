@@ -636,20 +636,18 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
 int xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
 {
-  int rv;
+    int rv = 0;
 
-  conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED;
+    conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED;
 
-  if(conn->tlsref.callbacks.handshake_completed){
+    if(conn->tlsref.callbacks.handshake_completed){
 
-    rv = conn->tlsref.callbacks.handshake_completed(conn, NULL);
-  }
-  if (rv != 0) {
-    return rv;
-  }
-
-
-  return 0;
+        rv = conn->tlsref.callbacks.handshake_completed(conn, NULL);
+        if (rv != 0) {
+            return rv;
+        }
+    }
+    return 0;
 }
 
 
