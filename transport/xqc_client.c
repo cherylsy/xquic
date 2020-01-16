@@ -136,9 +136,6 @@ xqc_client_create_connection(xqc_engine_t *engine,
 
     xqc_cid_copy(&(xc->ocid), &(xc->dcid));
 
-    xc->cur_stream_id_bidi_local = 0;
-    xc->cur_stream_id_uni_local = 0;
-
     xc->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(xc, XQC_ENC_LEV_INIT, user_data);
     if (!xc->crypto_stream[XQC_ENC_LEV_INIT]) {
         goto fail;

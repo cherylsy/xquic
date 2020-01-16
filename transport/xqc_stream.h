@@ -120,6 +120,12 @@ xqc_get_stream_type(xqc_stream_id_t stream_id)
     return stream_id & 0x03;
 }
 
+static inline int
+xqc_stream_is_bidi(xqc_stream_id_t stream_id)
+{
+    return !(stream_id & 0x02);
+}
+
 xqc_stream_t *
 xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type,
                              void *user_data);

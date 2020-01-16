@@ -291,13 +291,14 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI))
         ) {
             stream = xqc_passive_create_stream(conn, stream_id, NULL);
+            if (!stream) {
+                goto free;
+            }
+        } else {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
+            ret = -XQC_ESTREAM_NFOUND;
+            goto error;
         }
-    }
-
-    if (!stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
-        ret = -XQC_ESTREAM_NFOUND;
-        goto error;
     }
 
     if (stream->stream_state_recv >= XQC_RECV_STREAM_ST_RESET_RECVD) {
@@ -597,15 +598,22 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
                 "|xqc_parse_reset_stream_frame error|");
         return ret;
     }
+    xqc_stream_type_t stream_type = xqc_get_stream_type(stream_id);
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
-    if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
-        stream = xqc_passive_create_stream(conn, stream_id, NULL);
-    }
-
     if (!stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
-        return -XQC_ESTREAM_NFOUND;
+        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI)) ||
+            (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI))
+                ) {
+            stream = xqc_passive_create_stream(conn, stream_id, NULL);
+            if (!stream) {
+                return XQC_OK;
+            }
+        } else {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
+            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+            return -XQC_ESTREAM_NFOUND;
+        }
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_recv:%d|stream_state_send:%d|",
@@ -640,15 +648,22 @@ xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
         return ret;
     }
 
-    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
-    if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
-        stream = xqc_passive_create_stream(conn, stream_id, NULL);
-    }
+    xqc_stream_type_t stream_type = xqc_get_stream_type(stream_id);
 
+    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
     if (!stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
-        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-        return -XQC_ESTREAM_NFOUND;
+        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI)) ||
+            (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI))
+                ) {
+            stream = xqc_passive_create_stream(conn, stream_id, NULL);
+            if (!stream) {
+                return XQC_OK;
+            }
+        } else {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
+            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+            return -XQC_ESTREAM_NFOUND;
+        }
     }
 
     /*
@@ -711,14 +726,22 @@ xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *p
         return ret;
     }
 
-    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
-    if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
-        stream = xqc_passive_create_stream(conn, stream_id, NULL);
-    }
+    xqc_stream_type_t stream_type = xqc_get_stream_type(stream_id);
 
+    stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
     if (!stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
-        return -XQC_ESTREAM_NFOUND;
+        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI)) ||
+            (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI))
+                ) {
+            stream = xqc_passive_create_stream(conn, stream_id, NULL);
+            if (!stream) {
+                return XQC_OK;
+            }
+        } else {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
+            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+            return -XQC_ESTREAM_NFOUND;
+        }
     }
 
     uint64_t init_max_stream_data;
@@ -816,16 +839,24 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
         return ret;
     }
 
+    xqc_stream_type_t stream_type = xqc_get_stream_type(stream_id);
+
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
-    if (!stream && conn->conn_type == XQC_CONN_TYPE_SERVER) {
-        stream = xqc_passive_create_stream(conn, stream_id, NULL);
+    if (!stream) {
+        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI)) ||
+            (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI))
+                ) {
+            stream = xqc_passive_create_stream(conn, stream_id, NULL);
+            if (!stream) {
+                return XQC_OK;
+            }
+        } else {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
+            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
+            return -XQC_ESTREAM_NFOUND;
+        }
     }
 
-    if (!stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|");
-        XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-        return -XQC_ESTREAM_NFOUND;
-    }
     if (max_stream_data > stream->stream_flow_ctl.fc_max_stream_data_can_send) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|max_stream_data=%ui|max_stream_data_old=%ui|",
                 max_stream_data, stream->stream_flow_ctl.fc_max_stream_data_can_send);

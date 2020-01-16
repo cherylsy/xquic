@@ -444,6 +444,7 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
 
     xqc_id_hash_delete(stream->stream_conn->streams_hash, stream->stream_id);
+    xqc_id_hash_delete(stream->stream_conn->passive_streams_hash, stream->stream_id);
 
     xqc_free(stream);
 }
@@ -478,13 +479,43 @@ xqc_stream_close (xqc_stream_t *stream)
     return XQC_OK;
 }
 
+int
+xqc_insert_passive_stream_hash(xqc_connection_t *conn, int64_t cur_max_sid, xqc_stream_id_t stream_id)
+{
+    xqc_stream_type_t type = xqc_get_stream_type(stream_id);
+    for (int64_t sid = cur_max_sid + 1; sid <= (stream_id >> 2u); ++sid) {
+        xqc_id_hash_element_t e = {(uint64_t)sid << 2u | type, conn};
+        if (xqc_id_hash_add(conn->passive_streams_hash, e)) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_id_hash_add error|stream_id:%ui|", stream_id);
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+        }
+    }
+    return XQC_OK;
+}
+
 xqc_stream_t *
 xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
                    void *user_data)
 {
+    int64_t sid = stream_id >> 2u;
+    if (xqc_stream_is_bidi(stream_id) && sid > conn->max_stream_id_bidi_remote) {
+        xqc_insert_passive_stream_hash(conn, conn->max_stream_id_bidi_remote, stream_id);
+        conn->max_stream_id_bidi_remote = sid;
+    } else if (!xqc_stream_is_bidi(stream_id) && sid > conn->max_stream_id_uni_remote) {
+        xqc_insert_passive_stream_hash(conn, conn->max_stream_id_uni_remote, stream_id);
+        conn->max_stream_id_uni_remote = sid;
+    } else {
+        if (!xqc_id_hash_find(conn->passive_streams_hash, stream_id)) {
+            /* already closed */
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|stream already closed|stream_id:%ui|", stream_id);
+            return NULL;
+        }
+    }
+
     xqc_stream_t *stream = xqc_create_stream_with_conn(conn, stream_id, 0, user_data);
     if (stream == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_stream_create error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_stream_with_conn error|stream_id:%ui|", stream_id);
+        XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
         return NULL;
     }
 

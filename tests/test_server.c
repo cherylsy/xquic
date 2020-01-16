@@ -519,7 +519,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
     ssize_t recv_sum = 0;
     struct sockaddr_in peer_addr;
     socklen_t peer_addrlen = sizeof(peer_addr);
-
+#ifdef __linux__
     int batch = 1;
     if (batch) {
 #define VLEN 10
@@ -565,6 +565,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         } while (retval > 0);
         goto finish_recv;
     }
+#endif
 
     ssize_t recv_size = 0;
 

@@ -175,6 +175,8 @@ xqc_conn_create(xqc_engine_t *engine,
     xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;
     xc->zero_rtt_count = 0;
     xc->conn_create_time = xqc_now();
+    xc->max_stream_id_bidi_remote = -1;
+    xc->max_stream_id_uni_remote = -1;
     for (xqc_encrypt_level_t encrypt_level = XQC_ENC_LEV_INIT; encrypt_level < XQC_ENC_MAX_LEVEL; encrypt_level++) {
         xc->undecrypt_count[encrypt_level] = 0;
     }
@@ -198,6 +200,16 @@ xqc_conn_create(xqc_engine_t *engine,
         goto fail;
     }
     if (xqc_id_hash_init(xc->streams_hash,
+                         xqc_default_allocator,
+                         engine->config->streams_hash_bucket_size) == XQC_ERROR) {
+        goto fail;
+    }
+
+    xc->passive_streams_hash = xqc_pcalloc(xc->conn_pool, sizeof(xqc_id_hash_table_t));
+    if (xc->passive_streams_hash == NULL) {
+        goto fail;
+    }
+    if (xqc_id_hash_init(xc->passive_streams_hash,
                          xqc_default_allocator,
                          engine->config->streams_hash_bucket_size) == XQC_ERROR) {
         goto fail;
@@ -359,6 +371,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
     if (xc->streams_hash) {
         xqc_id_hash_release(xc->streams_hash);
         xc->streams_hash = NULL;
+    }
+    if (xc->passive_streams_hash) {
+        xqc_id_hash_release(xc->passive_streams_hash);
+        xc->passive_streams_hash = NULL;
     }
 
     for (xqc_encrypt_level_t encrypt_level = XQC_ENC_LEV_INIT; encrypt_level < XQC_ENC_MAX_LEVEL; encrypt_level++) {
