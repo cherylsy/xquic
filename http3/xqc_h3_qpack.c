@@ -635,8 +635,8 @@ void xqc_http3_qpack_context_free(xqc_http3_qpack_context * ctx){
 
 
 int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_table_capacity, uint64_t max_dtable_size, uint64_t max_blocked, xqc_h3_conn_t * h3_conn){
-    qdec->state = XQC_HTTP3_QPACK_DS_STATE_OPCODE;
-    qdec->opcode = XQC_HTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT;
+    qdec->state = XQC_HTTP3_QPACK_ES_STATE_OPCODE;
+    qdec->opcode = 0;
     xqc_http3_qpack_read_state_init(&qdec->rstate);
 
     xqc_http3_qpack_context_init(&qdec->ctx, max_table_capacity, max_dtable_size, max_blocked);
@@ -700,7 +700,7 @@ int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_tab
     xqc_http3_qpack_context_init(&qenc->ctx, max_table_capacity, max_dtable_size, max_blocked);
 
     qenc->state = XQC_HTTP3_QPACK_DS_STATE_OPCODE;
-    qenc->opcode = XQC_HTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT;
+    qenc->opcode = 0;
     xqc_http3_qpack_read_state_init(&qenc->rstate);
 
     qenc->krcnt = 0;
@@ -1444,14 +1444,17 @@ int xqc_http3_qpack_encoder_write_set_dtable_cap(xqc_http3_qpack_encoder *encode
         return -XQC_QPACK_SET_DTABLE_CAP_ERROR;
     }
 
-    if(ctx->dtable_size < cap){
+    if(ctx->dtable_size < cap){ //只支持设置大，如果设置小则不做动作
         ctx->max_dtable_size = cap;
-        xqc_qpack_write_number(p_enc_buf, 0x20, cap, 5);
+        return xqc_qpack_write_number(p_enc_buf, 0x20, cap, 5);
+
+    }else{
+
+
 
     }
 
     return 0;
-
 
 }
 

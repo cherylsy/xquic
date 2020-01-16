@@ -1789,8 +1789,8 @@ int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_pri
     xqc_http3_tnode_t * dep_tnode = NULL, *tnode = NULL;
     int rv = 0;
 
-    xqc_http3_node_id_init(&nid, fr->pt, fr->pri_elem_id);
-    xqc_http3_node_id_init(&dep_nid, fr->dt, fr->elem_dep_id);
+    xqc_http3_node_id_init(&nid, (int)(fr->pt), fr->pri_elem_id);
+    xqc_http3_node_id_init(&dep_nid, (int)(fr->dt), fr->elem_dep_id);
 
     if(xqc_http3_node_id_eq(&nid, &dep_nid)){
         return -XQC_H3_PRIORITY_ERROR;

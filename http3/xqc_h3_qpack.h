@@ -46,12 +46,12 @@ typedef enum {
 }xqc_http3_qpack_encoder_stream_state;
 
 typedef enum{
-    XQC_HTTP3_QPACK_DS_STATE_OPCODE,
+    XQC_HTTP3_QPACK_DS_STATE_OPCODE = 0,
     XQC_HTTP3_QPACK_DS_STATE_READ_NUMBER,
 }xqc_http3_qpack_decoder_stream_state;
 
 typedef enum{
-    XQC_HTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT,
+    XQC_HTTP3_QPACK_DS_OPCODE_ICNT_INCREMENT = 0,
     XQC_HTTP3_QPACK_DS_OPCODE_HEADER_ACK,
     XQC_HTTP3_QPACK_DS_OPCODE_STREAM_CANCEL
 }xqc_http3_qpack_decoder_stream_opcode;
@@ -61,7 +61,7 @@ typedef enum{
 /* xqc_http3_qpack_encoder_stream_opcode is a set of opcodes used in
    encoder stream. */
 typedef enum {
-    XQC_HTTP3_QPACK_ES_OPCODE_INSERT_INDEXED,
+    XQC_HTTP3_QPACK_ES_OPCODE_INSERT_INDEXED = 0,
     XQC_HTTP3_QPACK_ES_OPCODE_INSERT,
     XQC_HTTP3_QPACK_ES_OPCODE_DUPLICATE,
     XQC_HTTP3_QPACK_ES_OPCODE_SET_DTABLE_CAP,
@@ -90,7 +90,7 @@ typedef enum{
 /* xqc_http3_qpack_request_stream_state is a set of states for request
    stream decoding. */
 typedef enum {
-    XQC_HTTP3_QPACK_RS_STATE_RICNT,
+    XQC_HTTP3_QPACK_RS_STATE_RICNT = 0,
     XQC_HTTP3_QPACK_RS_STATE_DBASE_SIGN,
     XQC_HTTP3_QPACK_RS_STATE_DBASE,
     XQC_HTTP3_QPACK_RS_STATE_OPCODE,
@@ -109,7 +109,7 @@ typedef enum {
 /* xqc_http3_qpack_request_stream_opcode is a set of opcodes used in
    request stream. */
 typedef enum {
-    XQC_HTTP3_QPACK_RS_OPCODE_INDEXED,
+    XQC_HTTP3_QPACK_RS_OPCODE_INDEXED = 0,
     XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_PB,
     XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME,
     XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB,

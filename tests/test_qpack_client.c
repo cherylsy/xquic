@@ -549,15 +549,15 @@ int xqc_encoder_check_insert_result(xqc_h3_conn_t * h3_conn, xqc_http_header_t *
 
     if(header->flags == 0){
         if(d_result.entry){
-            printf("***** qpack test insert literial pass\n\n");
+            printf("***** qpack test insert literial [1] pass\n\n");
         }else{
-            printf("----- qpack test insert literial failed\n\n");
+            printf("----- qpack test insert literial [1] failed\n\n");
         }
     }else{
         if(d_result.entry == NULL){
-            printf("***** qpack test never flag pass\n\n");
+            printf("***** qpack test never flag [2] pass\n\n");
         }else{
-            printf("----- qpack test never flag failed\n\n");
+            printf("----- qpack test never flag [2] failed\n\n");
         }
     }
 
@@ -693,7 +693,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         }
 
         if(draining_flag == 1){
-            printf("***** qpack test draining pass\n\n");
+            printf("***** qpack test draining [8] pass\n\n");
         }
 
         xqc_h3_conn_t * h3_conn = h3_request->h3_stream->h3_conn;
@@ -749,7 +749,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
 
         if(success_flag == 0){
-            printf("***** qpack test literial pass\n\n");
+            printf("***** qpack test literial [3] pass\n\n");
 
             if(g_test_name_idx_user_stream){
 
@@ -768,22 +768,22 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         if(test_name_value_result == 2){
             test_name_value_result = -100;
-            printf("***** qpack test name value index pass\n\n");
+            printf("***** qpack test name value index [6] pass\n\n");
         }
 
         if(test_name_idx_result == 1){
             test_name_idx_result = 0;
-            printf("***** qpack test name index pass\n\n");
+            printf("***** qpack test name index [7] pass\n\n");
         }
 
         if(test_static_result == 1){
             test_static_result = 0;
-            printf("***** qpack test static name value index pass\n\n");
+            printf("***** qpack test static name value index [4] pass\n\n");
         }
 
         if(test_static_name_idx_result == 1){
             test_static_name_idx_result = 0;
-            printf("***** qpack test static name index pass\n\n");
+            printf("***** qpack test static name index [5] pass\n\n");
         }
 
 

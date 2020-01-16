@@ -92,7 +92,7 @@ int xqc_http3_node_id_eq(xqc_http3_node_id_t * src, xqc_http3_node_id_t *dst){
     //return  (src->id == dst->id);
 }
 
-int xqc_http3_node_id_init(xqc_http3_node_id_t * nid, xqc_http3_node_id_type_t type, uint64_t id){
+int xqc_http3_node_id_init(xqc_http3_node_id_t * nid, int type, uint64_t id){
     nid->type = type;
     nid->id = id;
     return 0;
