@@ -12,7 +12,7 @@ xqc_vint_read(const unsigned char *p, const unsigned char *end,
     if (p >= end)
         return -1;
 
-    switch (*p >> 6) {
+    switch (*p >> 6u) {
         case 0:
             *valp = *p;
             return 1;
