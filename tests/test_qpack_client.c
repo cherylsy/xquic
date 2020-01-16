@@ -87,7 +87,7 @@ static inline uint64_t now()
 void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
-    printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
+    //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
@@ -151,7 +151,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     }
 
     ssize_t n = read(fd, token, token_len);
-    printf("read token size %lld\n", n);
+    printf("read token size %zd\n", n);
     printf("0x%x\n", token[0]);
     close(fd);
     return n;
@@ -188,7 +188,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
     user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res;
     int fd = user_conn->fd;
-    printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
+    //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
         //res = write(fd, buf, size);
@@ -328,10 +328,10 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     if (user_stream->send_offset < buff_size) {
         ret = xqc_stream_send(stream, buff + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
         if (ret < 0) {
-            printf("xqc_stream_send error %d\n", ret);
+            printf("xqc_stream_send error %zd\n", ret);
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_stream_send offset=%lld\n", user_stream->send_offset);
+            printf("xqc_stream_send offset=%lld\n", (long long int)user_stream->send_offset);
         }
     }
     return 0;
@@ -357,7 +357,7 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
     unsigned char fin;
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
-        printf("xqc_stream_recv %lld, fin:%d\n", read, fin);
+        printf("xqc_stream_recv %zd, fin:%d\n", read, (int)fin);
     } while (read > 0 && !fin);
 
     return 0;
@@ -578,9 +578,9 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
-            printf("xqc_h3_request_send_headers error %d\n", ret);
+            printf("xqc_h3_request_send_headers error %zd\n", ret);
         } else {
-            printf("xqc_h3_request_send_headers success size=%lld\n", ret);
+            printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
         }
 
@@ -634,7 +634,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         }
         int i = 0;
         for (i = 0; i < headers->count; i++) {
-            printf("header name:%s value:%s\n",headers->headers[i].name.iov_base, headers->headers[i].value.iov_base);
+            printf("header name:%s value:%s\n",(char *)(headers->headers[i].name.iov_base), (char *)(headers->headers[i].value.iov_base));
             if((headers-> headers[i].name.iov_len != g_array_literial_header[i].name.iov_len) ||
                     (0 != memcmp(headers->headers[i].name.iov_base, g_array_literial_header[i].name.iov_base, headers->headers[i].name.iov_len) )){
                 success_flag++;
@@ -737,7 +737,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
                     return ret;
                 } else {
                     user_stream->send_offset += ret;
-                    printf("xqc_h3_request_send_body offset=%lld\n", user_stream->send_offset);
+                    //printf("xqc_h3_request_send_body offset=%llu\n", user_stream->send_offset);
                 }
             }
 
@@ -866,7 +866,7 @@ xqc_client_read_handler(user_conn_t *user_conn)
             break;
         }
         uint64_t recv_time = now();
-        printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
+        //printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
@@ -902,7 +902,7 @@ xqc_client_event_callback(int fd, short what, void *arg)
 static void
 xqc_client_engine_callback(int fd, short what, void *arg)
 {
-    printf("xqc_client_timer_callback now %llu\n", now());
+    //printf("xqc_client_timer_callback now %llu\n", now());
     client_ctx_t *ctx = (client_ctx_t *) arg;
 
     xqc_engine_main_logic(ctx->engine);
@@ -911,7 +911,7 @@ xqc_client_engine_callback(int fd, short what, void *arg)
 static void
 xqc_client_timeout_callback(int fd, short what, void *arg)
 {
-    printf("xqc_client_timeout_callback now %llu\n", now());
+    //printf("xqc_client_timeout_callback now %llu\n", now());
     user_conn_t *user_conn = (user_conn_t *) arg;
     int rc;
     rc = xqc_conn_close(ctx.engine, &user_conn->cid);
