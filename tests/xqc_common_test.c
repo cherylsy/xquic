@@ -105,6 +105,7 @@ int test_rbtree()
     CU_ASSERT(xqc_rbtree_count(&rbtree) == 7);
 
     xqc_rbtree_foreach(&rbtree, rbtree_cb);
+    return 0;
 }
 
 void xqc_test_common()
