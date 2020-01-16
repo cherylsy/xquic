@@ -32,7 +32,7 @@ int test_object_manager()
         return 1;
     }
 
-    xqc_item_t *item1 = (xqc_item_t*)xqc_object_manager_alloc(manager); 
+    xqc_item_t *item1 = (xqc_item_t*)xqc_object_manager_alloc(manager);
     if (item1) {
         item1->data = 1;
     }
@@ -68,7 +68,7 @@ int test_rbtree()
     xqc_rbtree_t rbtree;
     xqc_rbtree_init(&rbtree);
 
-    xqc_rbtree_node_t list[] = 
+    xqc_rbtree_node_t list[] =
     {
         { 0, 0, 0, 5, xqc_rbtree_black },
         { 0, 0, 0, 1, xqc_rbtree_black },
@@ -105,6 +105,7 @@ int test_rbtree()
     CU_ASSERT(xqc_rbtree_count(&rbtree) == 7);
 
     xqc_rbtree_foreach(&rbtree, rbtree_cb);
+    return 0;
 }
 
 void xqc_test_common()
@@ -144,7 +145,7 @@ void xqc_test_common()
     xqc_md5_final(final, &ctx);
 
     uint32_t hash_value = ngx_murmur_hash2(buf, 11);
-    
+
     test_object_manager();
 
     test_rbtree();
