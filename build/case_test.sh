@@ -21,6 +21,11 @@ grep_err_log() {
 }
 
 clear_log
+echo -e "变长cid_len ...\c"
+./test_client -s 1024000 -l d -t 1 -E -x 13|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "流读通知失败 ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 12 >> clog
 echo ">>>>>>>> pass:1"

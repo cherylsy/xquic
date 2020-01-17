@@ -1039,6 +1039,12 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
+    if (g_test_case == 13) {//test different cid_len
+        xqc_config_t config;
+        config.cid_len = XQC_MAX_CID_LEN;
+        xqc_set_engine_config(&config, XQC_ENGINE_CLIENT);
+    }
+
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, &ctx);
 
     user_conn_t *user_conn;

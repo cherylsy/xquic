@@ -233,6 +233,7 @@ xqc_conn_create(xqc_engine_t *engine,
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid));
     return xc;
 
 fail:
@@ -261,7 +262,7 @@ xqc_conn_server_create(xqc_engine_t *engine,
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
         return NULL;
     }
-    /*memset(&new_scid.cid_buf, 0xDD, 4);*/ //TODO: for test
+
     conn = xqc_conn_create(engine, dcid, &new_scid,
                            callbacks,
                            settings,

@@ -2,7 +2,7 @@
 #include "xqc_str.h"
 
 unsigned char *
-xqc_hex_dump(unsigned char *dst, unsigned char *src, size_t len)
+xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len)
 {
     static unsigned char  hex[] = "0123456789abcdef";
 

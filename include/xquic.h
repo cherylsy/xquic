@@ -143,6 +143,7 @@ typedef struct xqc_config_s {
     size_t  conns_wakeup_pq_capacity;
     uint32_t  support_version_list[XQC_SUPPORT_VERSION_MAX]; /*支持的版本列表*/
     uint32_t  support_version_count; /*版本列表数量*/
+    uint8_t   cid_len;
 } xqc_config_t;
 
 
@@ -254,6 +255,13 @@ typedef struct xqc_request_stats_s {
 } xqc_request_stats_t;
 
 /**
+ * Modify engine config before engine created. Default config will be used otherwise.
+ * Item value 0 means use default value.
+ * @return 0 for success, <0 for error. default value is used if config item is illegal
+ */
+int xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+
+/**
  * For server, it can be called anytime. settings will take effect on new connections
  */
 void xqc_server_set_conn_settings(xqc_conn_settings_t settings);
@@ -295,7 +303,7 @@ int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
  * Get cid in hex, end with '\0'
  * @param cid means scid
  */
-unsigned char* xqc_scid_str(xqc_cid_t *cid);
+unsigned char* xqc_scid_str(const xqc_cid_t *cid);
 
 /**
  * Get errno when h3_conn_close_notify, 0 For no-error

@@ -44,7 +44,7 @@ xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, uns
 
 
 xqc_int_t
-xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
+xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
                      unsigned char *buf, size_t size)
 {
     unsigned char *pos = NULL;
@@ -56,12 +56,11 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
     /* short header */
     if (XQC_PACKET_IS_SHORT_HEADER(buf)) {
 
-        /* TODO: fix me, variable length */
-        if (size < 1 + XQC_DEFAULT_CID_LEN) {
+        if (size < 1 + cid_len) {
             return -XQC_ENOBUF;
         }
 
-        xqc_cid_set(dcid, buf + 1, XQC_DEFAULT_CID_LEN);
+        xqc_cid_set(dcid, buf + 1, cid_len);
 
         return XQC_OK;
     }
@@ -209,12 +208,12 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 {
     unsigned char *pos = packet_in->pos;
     xqc_packet_t *packet = &packet_in->pi_pkt;
-
+    uint8_t cid_len = c->engine->config->cid_len;
 
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
     packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
 
-    if (XQC_PACKET_IN_LEFT_SIZE(packet_in) < 1 + XQC_DEFAULT_CID_LEN) {
+    if (XQC_PACKET_IN_LEFT_SIZE(packet_in) < 1 + cid_len) {
         return -XQC_ENOBUF;
     }
 
@@ -235,8 +234,8 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
             key_phase, packet_number_len);
 
     /* check dcid */
-    xqc_cid_set(&(packet->pkt_dcid), pos, XQC_DEFAULT_CID_LEN);
-    pos += XQC_DEFAULT_CID_LEN;
+    xqc_cid_set(&(packet->pkt_dcid), pos, cid_len);
+    pos += cid_len;
     if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK) {
         /* log & ignore */
         xqc_log(c->log, XQC_LOG_WARN, "|parse short header|invalid destination cid|");

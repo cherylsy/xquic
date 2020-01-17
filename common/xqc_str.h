@@ -34,7 +34,7 @@ typedef struct xqc_str_s
 
 #define xqc_memcmp(s1, s2, n)  memcmp((const char *) s1, (const char *) s2, n)
 
-unsigned char *xqc_hex_dump(unsigned char *dst, unsigned char *src, size_t len);
+unsigned char *xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len);
 
 
 static inline unsigned char *

@@ -16,7 +16,7 @@ unsigned
 xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
                              unsigned char pktno_bits, xqc_pkt_type_t type);
 xqc_int_t
-xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
+xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
                                unsigned char *buf, size_t size);
 
 int

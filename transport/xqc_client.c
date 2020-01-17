@@ -35,7 +35,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         goto fail;
     }
 
-    //TODO: for test
+    //for test
     /*memset(scid.cid_buf, 0xCC, 4);
     memset(dcid.cid_buf, 0xDD, dcid.cid_len);*/
 

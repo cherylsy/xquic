@@ -20,6 +20,72 @@
 #include "xqc_utils.h"
 #include "http3/xqc_h3_qpack_token.h"
 
+xqc_config_t default_client_config = {
+        .conn_pool_size = 4096,
+        .streams_hash_bucket_size = 1024,
+        .conns_hash_bucket_size = 1024,
+        .conns_active_pq_capacity = 128,
+        .conns_wakeup_pq_capacity = 128,
+        .support_version_count = 1,
+        .support_version_list[0] = XQC_QUIC_VERSION,
+        .cid_len = XQC_DEFAULT_CID_LEN,
+};
+
+xqc_config_t default_server_config = {
+        .conn_pool_size = 4096,
+        .streams_hash_bucket_size = 1024,
+        .conns_hash_bucket_size = 1024*1024, //不能扩展，连接多了查找性能
+        .conns_active_pq_capacity = 1024,
+        .conns_wakeup_pq_capacity = 16*1024,
+        .support_version_count = 1,
+        .support_version_list[0] = XQC_QUIC_VERSION,
+        .cid_len = XQC_DEFAULT_CID_LEN,
+};
+
+int
+xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
+{
+    if (src->conn_pool_size > 0) {
+        dst->conn_pool_size = src->conn_pool_size;
+    }
+    if (src->streams_hash_bucket_size > 0) {
+        dst->streams_hash_bucket_size = src->streams_hash_bucket_size;
+    }
+    if (src->conns_hash_bucket_size > 0) {
+        dst->conns_hash_bucket_size = src->conns_hash_bucket_size;
+    }
+    if (src->conns_active_pq_capacity > 0) {
+        dst->conns_active_pq_capacity = src->conns_active_pq_capacity;
+    }
+    if (src->conns_wakeup_pq_capacity > 0) {
+        dst->conns_wakeup_pq_capacity = src->conns_wakeup_pq_capacity;
+    }
+    if (src->support_version_count > 0 && src->support_version_count <= XQC_SUPPORT_VERSION_MAX) {
+        dst->support_version_count = src->support_version_count;
+        for (int i = 0; i < src->support_version_count; ++i) {
+            dst->support_version_list[i] = src->support_version_list[i];
+        }
+    } else if (src->support_version_count > XQC_SUPPORT_VERSION_MAX) {
+        return XQC_ERROR;
+    }
+    if (src->cid_len > 0 && src->cid_len <= XQC_MAX_CID_LEN) {
+        dst->cid_len = src->cid_len;
+    } else if (src->cid_len > XQC_MAX_CID_LEN) {
+        return XQC_ERROR;
+    }
+    return XQC_OK;
+}
+
+int
+xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type)
+{
+    if (engine_type == XQC_ENGINE_SERVER) {
+        return xqc_set_config(&default_server_config, config);
+    } else {
+        return xqc_set_config(&default_client_config, config);
+    }
+}
+
 xqc_config_t *
 xqc_engine_config_create(xqc_engine_type_t engine_type)
 {
@@ -30,23 +96,11 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
 
     xqc_memzero(config, sizeof(xqc_config_t));
 
-    /* set default value */
-    config->conn_pool_size = 4096;
-
     if (engine_type == XQC_ENGINE_SERVER) {
-        config->streams_hash_bucket_size = 1024;
-        config->conns_hash_bucket_size = 1024*1024; //不能扩展，连接多了查找性能？
-        config->conns_active_pq_capacity = 1024;
-        config->conns_wakeup_pq_capacity = 16*1024;
+        xqc_set_config(config, &default_server_config);
     } else if (engine_type == XQC_ENGINE_CLIENT) {
-        config->streams_hash_bucket_size = 1024;
-        config->conns_hash_bucket_size = 1024;
-        config->conns_active_pq_capacity = 128;
-        config->conns_wakeup_pq_capacity = 128;
+        xqc_set_config(config, &default_client_config);
     }
-
-    config->support_version_count = 1;
-    config->support_version_list[0] = XQC_QUIC_VERSION;
 
     return config;
 }
@@ -585,10 +639,11 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     int ret = 0;
 
     /* 对端的scid是本地的dcid */
-    if (XQC_UNLIKELY(xqc_packet_parse_cid(&scid, &dcid, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK)) {
+    if (XQC_UNLIKELY(xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK)) {
         xqc_log(engine->log, XQC_LOG_WARN, "|fail to parse cid|");
         return -XQC_EILLPKT;
     }
+    //xqc_log(engine->log, XQC_LOG_DEBUG, "|scid:%s|dcid:%s|", xqc_scid_str(&scid), xqc_dcid_str(&dcid));
 
     conn = xqc_engine_conns_hash_find(engine, &scid, 's');
 
@@ -621,7 +676,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     }
     if (XQC_UNLIKELY(conn == NULL)) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%uz|cid:%s|",
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
             ret = xqc_conn_send_reset(engine, &scid, user_data, peer_addr, peer_addrlen);
             if (ret) {
@@ -642,7 +697,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                 }
                 goto after_process;
             }
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|size:%uz|cid:%s|",
+            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, exit|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
         }
         return -XQC_ECONN_NFOUND;

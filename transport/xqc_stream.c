@@ -677,7 +677,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                                                                                          MIN_CRYPTO_FRAME_SIZE) : (
                                buf->data_len - offset + header_size);
                 packet_out = xqc_write_new_packet(c, pkt_type);
-                //packet_out = xqc_write_packet(c, pkt_type, need);//TODO: 打开有问题
+                //packet_out = xqc_write_packet(c, pkt_type, need);
                 if (packet_out == NULL) {
                     return -XQC_EWRITE_PKT;
                 }
@@ -979,20 +979,7 @@ xqc_stream_send (xqc_stream_t *stream,
     uint8_t fin_only_done = 0;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
     int support_0rtt = xqc_is_ready_to_send_early_data(conn);
-
-    //support_0rtt = 0;
     int buff_1rtt = 0;
-
-    if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
-        if ((conn->conn_type == XQC_CONN_TYPE_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) &&
-            support_0rtt) {
-            pkt_type = XQC_PTYPE_0RTT;
-            conn->conn_flag |= XQC_CONN_FLAG_HAS_0RTT;
-            stream->stream_flag |= XQC_STREAM_FLAG_HAS_0RTT;
-        } else {
-            buff_1rtt = 1;
-        }
-    }
 
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|conn closing, cannot send|");
@@ -1004,6 +991,18 @@ xqc_stream_send (xqc_stream_t *stream,
         xqc_log(conn->log, XQC_LOG_ERROR, "|stream reset sent, cannot send|");
         xqc_stream_shutdown_write(stream);
         return -XQC_ESTREAM_RESET;
+    }
+
+    if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
+        if ((conn->conn_type == XQC_CONN_TYPE_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) &&
+            support_0rtt) {
+            pkt_type = XQC_PTYPE_0RTT;
+            conn->conn_flag |= XQC_CONN_FLAG_HAS_0RTT;
+            stream->stream_flag |= XQC_STREAM_FLAG_HAS_0RTT;
+        } else {
+            ret = -XQC_EAGAIN;
+            goto do_buff;
+        }
     }
 
     while (offset < send_data_size || fin_only) {
@@ -1051,9 +1050,9 @@ xqc_stream_send (xqc_stream_t *stream,
 
 do_buff:
     /* 握手完成后再发送，移到缓存包队列 */
-    if (buff_1rtt) {
+    /*if (buff_1rtt) {
         xqc_conn_buff_1rtt_packets(conn);
-    }
+    }*/
 
     /* 0RTT失败需要回退到1RTT，保存原始发送数据 */
     if (pkt_type == XQC_PTYPE_0RTT) {

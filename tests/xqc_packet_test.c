@@ -31,7 +31,7 @@ void xqc_test_packet_parse_cid(unsigned char *buf, size_t size, int is_short)
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
-    xqc_int_t rc = xqc_packet_parse_cid(&dcid, &scid, buf, size);
+    xqc_int_t rc = xqc_packet_parse_cid(&dcid, &scid, engine->config->cid_len, buf, size);
     CU_ASSERT(rc == XQC_OK);
 
     xqc_log(engine->log, XQC_LOG_WARN, "parse cid length|%z|%z|", dcid.cid_len, scid.cid_len);
