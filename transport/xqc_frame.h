@@ -61,7 +61,7 @@ typedef enum {
       CONNECTION_CLOSE frames, are not sent again when packet loss is
       detected, but as described in Section 10.
  */
-#define XQC_IS_ACK_ELICITING(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_CONNECTION_CLOSE))
+#define XQC_IS_ACK_ELICITING(types) ((types) & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_CONNECTION_CLOSE))
 
 /*
  * https://tools.ietf.org/html/draft-ietf-quic-recovery-24#section-3
@@ -72,7 +72,7 @@ typedef enum {
    PADDING frames cause packets to contribute toward bytes in flight
       without directly causing an acknowledgment to be sent.
  */
-#define XQC_CAN_IN_FLIGHT(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_CONNECTION_CLOSE))
+#define XQC_CAN_IN_FLIGHT(types) ((types) & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_CONNECTION_CLOSE))
 
 
 const char*

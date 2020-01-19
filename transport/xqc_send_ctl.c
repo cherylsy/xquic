@@ -295,11 +295,12 @@ void
 xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_msec_t now)
 {
     //printf("send packet_out: %p\n", packet_out);
+    xqc_pkt_num_space_t pns = packet_out->po_pkt.pkt_pns;
 
     xqc_sample_on_sent(packet_out, ctl, now);
 
-    if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent) {
-        ctl->ctl_largest_sent = packet_out->po_pkt.pkt_num;
+    if (packet_out->po_pkt.pkt_num > ctl->ctl_largest_sent[pns]) {
+        ctl->ctl_largest_sent[pns] = packet_out->po_pkt.pkt_num;
     }
 
     ctl->ctl_bytes_send += packet_out->po_used_size;
@@ -378,8 +379,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_pkt_num_space_t pns = ack_info->pns;
     unsigned char need_del_record = 0;
 
-    if (lagest_ack > ctl->ctl_largest_sent) {
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|");
+    if (lagest_ack > ctl->ctl_largest_sent[pns]) {
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|%ui|", lagest_ack);
         return -XQC_EPROTO;
     }
 

@@ -184,24 +184,29 @@ xqc_packet_process_single(xqc_connection_t *c,
 
     xqc_pkt_range_status range_status;
     int out_of_order = 0;
+    xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
+    xqc_packet_number_t pkt_num = packet_in->pi_pkt.pkt_num;
 
-    range_status = xqc_recv_record_add(&c->recv_record[packet_in->pi_pkt.pkt_pns], packet_in->pi_pkt.pkt_num,
+    range_status = xqc_recv_record_add(&c->recv_record[pns], pkt_num,
                                        packet_in->pkt_recv_time);
     if (range_status == XQC_PKTRANGE_OK) {
         if (XQC_IS_ACK_ELICITING(packet_in->pi_frame_types)) {
-            ++c->ack_eliciting_pkt[packet_in->pi_pkt.pkt_pns];
+            ++c->ack_eliciting_pkt[pns];
         }
-        if (packet_in->pi_pkt.pkt_num != xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns])) {
+        if (pkt_num > c->conn_send_ctl->ctl_largest_recvd[pns]) {
+            c->conn_send_ctl->ctl_largest_recvd[pns] = pkt_num;
+        }
+        if (pkt_num != xqc_recv_record_largest(&c->recv_record[pns])) {
             out_of_order = 1;
         }
-        xqc_maybe_should_ack(c, packet_in->pi_pkt.pkt_pns, out_of_order, packet_in->pkt_recv_time);
+        xqc_maybe_should_ack(c, pns, out_of_order, packet_in->pkt_recv_time);
     }
 
-    xqc_recv_record_log(c, &c->recv_record[packet_in->pi_pkt.pkt_pns]);
+    xqc_recv_record_log(c, &c->recv_record[pns]);
     xqc_log(c->log, XQC_LOG_DEBUG,
             "|xqc_recv_record_add|status:%d|pkt_num:%ui|largest:%ui|pns:%d|",
-            range_status, packet_in->pi_pkt.pkt_num,
-            xqc_recv_record_largest(&c->recv_record[packet_in->pi_pkt.pkt_pns]), packet_in->pi_pkt.pkt_pns);
+            range_status, pkt_num,
+            xqc_recv_record_largest(&c->recv_record[pns]), pns);
 
     /* 需要立即跑main_logic */
     if (packet_in->pi_frame_types & (~(XQC_FRAME_BIT_STREAM|XQC_FRAME_BIT_PADDING))) {

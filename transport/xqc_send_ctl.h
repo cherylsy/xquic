@@ -71,8 +71,11 @@ typedef struct xqc_send_ctl_s {
      * 确保了ACK已被对端收到，因此发送方可以不再生成小于该值的ACK*/
     xqc_packet_number_t         ctl_largest_ack_both[XQC_PNS_N];
 
-    /* 已发送的最大packet number*/
-    xqc_packet_number_t         ctl_largest_sent;
+    /* 已发送的最大packet number */
+    xqc_packet_number_t         ctl_largest_sent[XQC_PNS_N];
+
+    /* 已接收的最大packet number */
+    xqc_packet_number_t         ctl_largest_recvd[XQC_PNS_N];
 
     /* packet_out中被ACK的最大的packet number */
     xqc_packet_number_t         ctl_largest_acked[XQC_PNS_N];
