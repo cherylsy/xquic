@@ -88,7 +88,7 @@ xqc_packet_process_single(xqc_connection_t *c,
 
     xqc_int_t ret = XQC_ERROR;
 
-    if (XQC_PACKET_IN_LEFT_SIZE(packet_in) == 0) {
+    if (XQC_BUFF_LEFT_SIZE(pos, packet_in->last) == 0) {
         return -XQC_EILLPKT;
     }
 
@@ -151,9 +151,6 @@ xqc_packet_process_single(xqc_connection_t *c,
     }
     unsigned char *last = packet_in->last;
 
-    /*packet_in->pos = packet_in->decode_payload;
-    packet_in->last = packet_in->decode_payload + packet_in->decode_payload_len;*/
-
     //printf("recv crypto data :%d\n", packet_in->last - packet_in->pos);
     //hex_print(packet_in->pos, packet_in->last - packet_in->pos);
     ret = xqc_do_decrypt_pkt(c, packet_in);
@@ -162,16 +159,16 @@ xqc_packet_process_single(xqc_connection_t *c,
                 xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num);
         ret = xqc_process_frames(c, packet_in);
         if (ret != XQC_OK) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|xqc_process_frames error|");
+            xqc_log(c->log, XQC_LOG_ERROR, "|xqc_process_frames error|%d|", ret);
             return ret;
         }
     } else {
         if (ret == XQC_EARLY_DATA_REJECT) {
-            xqc_log(c->log, XQC_LOG_DEBUG, "|decrypt early data reject, continue |");
+            xqc_log(c->log, XQC_LOG_DEBUG, "|decrypt early data reject, continue|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
         } else {
-            xqc_log(c->log, XQC_LOG_ERROR, "|decrypt data error, return|");
+            xqc_log(c->log, XQC_LOG_ERROR, "|decrypt data error, return|%d|", ret);
             return -XQC_EDECRYPT;
         }
     }

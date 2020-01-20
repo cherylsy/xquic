@@ -232,7 +232,7 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         }
 
         if (ret) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|process frame error|");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|process frame error|%d|", ret);
             return ret;
         }
 
