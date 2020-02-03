@@ -972,7 +972,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 
     if(srclen == 0){ //recv 0 length data
         if(fin){ //空fin
-            xqc_buf_to_tail(&h3_stream->recv_body_data_buf, src, 0, fin );
+            xqc_buf_to_tail(&h3_stream->recv_body_data_buf, src, 0, fin ); //空fin是通过增加一个带fin标志的空body数据块，来通知调用层读取
         }
         return 0;
     }
@@ -982,7 +982,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 
     uint8_t *p = src, *end = src + srclen;
     if (h3_stream->rx_http_state == XQC_HTTP3_HTTP_STATE_NONE){
-        h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_BEGIN;//??
+        h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_BEGIN;//
     }
 
     xqc_http3_stream_read_state *rstate = &h3_stream->read_state;

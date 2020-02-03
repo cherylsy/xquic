@@ -360,4 +360,10 @@ int xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc);
 void xqc_http3_qpack_decoder_free(xqc_http3_qpack_decoder *qdec);
 int xqc_http3_qpack_hash_find(xqc_qpack_hash_table_t * table, xqc_http3_ringdata *rdata, char * name, size_t name_len, char *value, size_t value_len, xqc_qpack_find_result *result);
 int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity);
+
+
+int xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, size_t cap);
+
+xqc_var_buf_t * xqc_var_buf_create(size_t capacity);
+int xqc_http3_qpack_encoder_write_set_dtable_cap(xqc_http3_qpack_encoder *encoder, xqc_var_buf_t ** p_enc_buf, size_t cap);
 #endif

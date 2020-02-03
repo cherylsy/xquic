@@ -932,6 +932,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 nread = xqc_qpack_read_varint(&rfin, &sctx->rstate, p, end);
                 if(nread < 0){
                     rv = -XQC_QPACK_DECODER_VARINT_ERROR;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_varint error, return value:%d|",nread);
                     goto fail;
                 }
                 p += nread;
@@ -941,6 +942,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
 
                 rv = xqc_http3_qpack_decoder_reconstruct_ricnt(decoder, &sctx->ricnt, sctx->rstate.left);
                 if(rv != 0){
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_reconstruct_ricnt error, return value:%d|",rv);
                     goto fail;
                 }
                 sctx->state = XQC_HTTP3_QPACK_RS_STATE_DBASE_SIGN;
@@ -958,6 +960,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
             case XQC_HTTP3_QPACK_RS_STATE_DBASE:
                 nread = xqc_qpack_read_varint(&rfin, &sctx->rstate, p, end);
                 if(nread < 0){
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_varint error, return value:%d|",nread);
                     rv = -XQC_QPACK_DECODER_VARINT_ERROR;
                     goto fail;
                 }
@@ -969,6 +972,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
 
                 if(sctx->dbase_sign){//base 符号位
                     if(sctx->ricnt <  sctx->rstate.left){
+                        xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|dbase_sign mode error, sctx->dbase_sign:%d, sctx->ricnt:%d, sctx->rstate.left=%d|", sctx->dbase_sign, sctx->ricnt, sctx->rstate.left);
                         rv = -XQC_QPACK_DECODER_ERROR;
                         goto fail;
                     }
@@ -1038,6 +1042,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 nread = xqc_qpack_read_varint(&rfin, &sctx->rstate, p, end);
 
                 if(nread < 0){
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_varint error, return value:%d|",nread);
                     rv = -XQC_QPACK_DECODER_VARINT_ERROR;
                     goto fail;
                 }
@@ -1051,6 +1056,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED:
                         rv = xqc_http3_qpack_decoder_brel2abs(decoder, sctx);
                         if (rv != 0){
+                            xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_brel2abs error, return value:%d|",rv);
                             goto fail;
                         }
                         xqc_http3_qpack_decoder_emit_indexed(decoder, sctx, nv);
@@ -1063,6 +1069,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                         rv = xqc_http3_qpack_decoder_pbrel2abs(decoder, sctx);
                         if(rv != 0){
 
+                            xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_pbrel2abs error, return value:%d|",rv);
                             goto fail;
                         }
                         xqc_http3_qpack_decoder_emit_indexed(decoder, sctx, nv);
@@ -1073,6 +1080,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME:
                         rv = xqc_http3_qpack_decoder_brel2abs(decoder, sctx);
                         if (rv != 0) {
+                            xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_brel2abs error, return value:%d|",rv);
                             goto fail;
                         }
                         sctx->rstate.prefix = 7;
@@ -1081,12 +1089,14 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     case XQC_HTTP3_QPACK_RS_OPCODE_INDEXED_NAME_PB:
                         rv = xqc_http3_qpack_decoder_pbrel2abs(decoder, sctx);
                         if (rv != 0) {
+                            xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_pbrel2abs error, return value:%d|",rv);
                             goto fail;
                         }
                         sctx->rstate.prefix = 7;
                         sctx->state = XQC_HTTP3_QPACK_RS_STATE_CHECK_VALUE_HUFFMAN;
                         break;
                     default:
+                        xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|unknown sctx->opcode:%d|",sctx->opcode);
                         goto fail;
 
                 }
@@ -1099,6 +1109,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
             case XQC_HTTP3_QPACK_RS_STATE_READ_NAMELEN:
                 nread = xqc_qpack_read_varint(&rfin, &sctx->rstate, p, end);
                 if (nread < 0) {
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_varint error, return value:%d|",nread);
                     goto fail;
                 }
                 p += nread;
@@ -1106,6 +1117,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     goto need_more_data;
                 }
                 if (sctx->rstate.left > XQC_HTTP3_QPACK_MAX_NAMELEN) {
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|name len exceed max_namelen, namelen:%d|", sctx->rstate.left);
                     goto fail;
                 }
                 if(sctx->rstate.huffman_encoded) {
@@ -1123,6 +1135,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.name, p, end);
                 if (nread < 0) {
                     rv = (int)nread;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_huffman_string error, return value:%d|",nread);
                     goto fail;
                 }
 
@@ -1139,6 +1152,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 nread = xqc_qpack_read_string(&sctx->rstate, &sctx->rstate.name, p, end);
                 if (nread < 0) {
                     rv = (int)nread;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_string error, return value:%d|",nread);
                     goto fail;
                 }
 
@@ -1163,6 +1177,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
             case XQC_HTTP3_QPACK_RS_STATE_READ_VALUELEN:
                 nread = xqc_qpack_read_varint(&rfin, &sctx->rstate, p, end);
                 if(nread < 0){
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_varint error, return value:%d|",nread);
                     rv = (int)nread;
                     goto fail;
                 }
@@ -1174,6 +1189,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
 
                 if(decoder->rstate.left > XQC_HTTP3_QPACK_MAX_VALUELEN){
                     rv = -XQC_QPACK_DECODER_ERROR;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|value len exceed max_namelen, namelen:%d|", decoder->rstate.left);
                     goto fail;
                 }
 
@@ -1192,6 +1208,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.value, p, end);
                 if(nread < 0){
                     rv = (int)nread;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_string error, return value:%d|",nread);
                     goto fail;
                 }
 
@@ -1205,6 +1222,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     case XQC_HTTP3_QPACK_RS_OPCODE_LITERAL:
                         if(xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv) < 0){
                             rv = -XQC_QPACK_DECODER_ERROR;
+                            xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_emit_literal error|");
                             goto fail;
                         }
                         break;
@@ -1215,6 +1233,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                         break;
                     default:
                         /* Unreachable */
+                        xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|unknown opcode, opcode:%d|", sctx->opcode);
                         rv = -XQC_QPACK_DECODER_ERROR;
                         goto fail;
                 }
@@ -1230,6 +1249,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                 nread = xqc_qpack_read_string(&sctx->rstate, &sctx->rstate.value, p, end);
                 if(nread < 0){
                     rv = (int)nread;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_string error, return value:%d|",nread);
                     goto fail;
                 }
 
@@ -1243,6 +1263,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     case XQC_HTTP3_QPACK_RS_OPCODE_LITERAL:
                         if(xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv) < 0){
                             rv = -XQC_QPACK_DECODER_ERROR;
+                            xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_emit_literal error|");
                             goto fail;
                         }
                         break;
@@ -1254,6 +1275,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
                     default:
                         /* Unreachable */
 
+                        xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|unknown opcode, opcode:%d|", sctx->opcode);
                         rv = -XQC_QPACK_DECODER_ERROR;
                         goto fail;
                 }
@@ -1265,6 +1287,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
 
                 return p - src;
             default:
+                xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|unknown decoder state , sctx->state:%d|", sctx->state);
                 goto fail;
         }
     }
@@ -1354,7 +1377,7 @@ int xqc_http3_qpack_encoder_reduce_dtable_size(xqc_http3_qpack_encoder *encoder,
         ref_idx = XQC_MAX_UINT64;
     }else{
         xqc_qpack_unack_header_block * u_hb = xqc_list_entry(encoder->unack_stream_head.next, xqc_qpack_unack_header_block, header_block_list);
-        ref_idx = u_hb->min_rcnt;
+        ref_idx = u_hb->min_rcnt - 1;
     }
 
 
@@ -1498,6 +1521,7 @@ int xqc_http3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, si
 
     }
 
+    xqc_log(decoder->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:set dtable capacity, capacity:%d|", cap);
     return 0;
 }
 
@@ -2001,6 +2025,7 @@ int xqc_http3_qpack_encoder_add_insert_count(xqc_http3_qpack_encoder * encoder, 
     }
 
     encoder->krcnt += n;
+    xqc_log(encoder->h3_conn->log, XQC_LOG_INFO, "|qpack test mode:krcnt, krcnt:%d|", encoder->krcnt);
     return 0;
 }
 
@@ -2008,6 +2033,7 @@ int xqc_http3_qpack_check_and_refresh_insert_count(xqc_http3_qpack_encoder * enc
 
     if(encoder->krcnt < max_rcnt){
         encoder->krcnt = max_rcnt;
+        xqc_log(encoder->h3_conn->log, XQC_LOG_INFO, "|qpack test mode:krcnt, krcnt:%d|", encoder->krcnt);
     }
     return 0;
 }
@@ -2032,6 +2058,7 @@ int xqc_http3_qpack_encoder_insert_unack_header(xqc_h3_stream_t * qenc_stream, x
         }
     }
 
+    xqc_log(h3_stream->h3_conn->log, XQC_LOG_INFO, "|qpack test mode: unack header block, min_rcnt:%z, max_rcnt:%z, stream_id:%lu",unack_block->min_rcnt, unack_block->max_rcnt, unack_block->stream_id);
     xqc_list_add_tail(&unack_block->header_block_list, pos);
 
     xqc_list_head_t * p_si_list = &h3_stream->unack_block_list;
@@ -2057,6 +2084,8 @@ int xqc_http3_qpack_encoder_ack_header(xqc_h3_conn_t * h3_conn, int64_t stream_i
     xqc_list_head_t * block_head = head->next;
 
     xqc_qpack_unack_header_block * unack_block = xqc_list_entry(block_head, xqc_qpack_unack_header_block, stream_in_list);
+
+    xqc_log(h3_stream->h3_conn->log, XQC_LOG_INFO, "|qpack test mode: unack header block del, min_rcnt:%z, max_rcnt:%z, stream_id:%lu",unack_block->min_rcnt, unack_block->max_rcnt, unack_block->stream_id);
 
     xqc_list_del(block_head);
 
@@ -2199,7 +2228,7 @@ int xqc_qpack_encoder_dtable_prepare_space(xqc_http3_qpack_encoder * encoder, si
         ref_idx = XQC_MAX_UINT64;
     }else{
         xqc_qpack_unack_header_block * u_hb = xqc_list_entry(encoder->unack_stream_head.next, xqc_qpack_unack_header_block, header_block_list);
-        ref_idx = u_hb->min_rcnt;
+        ref_idx = u_hb->min_rcnt - 1;
     }
 
     xqc_http3_qpack_context *ctx = &encoder->ctx;
@@ -2627,6 +2656,7 @@ ssize_t xqc_http3_stream_write_header_block( xqc_h3_stream_t * qenc_stream, xqc_
         goto fail;
     }
 
+    // hex_print(pp_h_data->data, pp_h_data->used_len);
     if(p_enc_buf->used_len > 0){
         send_size = xqc_http3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
         if(send_size != p_enc_buf->used_len){
