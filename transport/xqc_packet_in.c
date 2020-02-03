@@ -9,7 +9,7 @@ void
 xqc_packet_in_init(xqc_packet_in_t *packet_in,
                    const unsigned char *packet_in_buf,
                    size_t packet_in_size,
-                   const unsigned char *decode_payload,
+                   unsigned char *decode_payload,
                    size_t decode_payload_size,
                    xqc_msec_t recv_time)
 {
