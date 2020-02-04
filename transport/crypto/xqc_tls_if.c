@@ -1,5 +1,4 @@
 #include <openssl/ssl.h>
-#include <arpa/inet.h>
 #include <openssl/err.h>
 #include <assert.h>
 #include "transport/xqc_conn.h"
@@ -8,6 +7,8 @@
 
 #include "xqc_tls_cb.h"
 
+int xqc_conn_handshake_completed_handled(xqc_connection_t *conn);
+
 
 static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn)
 {
@@ -15,9 +16,14 @@ static inline int xqc_conn_get_handshake_completed(xqc_connection_t *conn)
         (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED);
 }
 
-void xqc_conn_handshake_completed(xqc_connection_t *conn)
+int xqc_conn_handshake_completed(xqc_connection_t *conn)
 {
     conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX;
+
+    if((conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED) == 0){
+        return xqc_conn_handshake_completed_handled(conn);
+    }
+    return 0;
 }
 
 
@@ -86,7 +92,10 @@ int xqc_server_tls_handshake(xqc_connection_t * conn)
         }
     }
 
-    xqc_conn_handshake_completed(conn);
+    if(xqc_conn_handshake_completed(conn) < 0){
+
+        xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error: handshake completed callback return error|");
+    }
     return 0;
 }
 
@@ -122,7 +131,7 @@ int xqc_is_early_data_reject(xqc_connection_t * conn)
         return XQC_TRUE;
     }
 
-    if(conn->tlsref.flags & XQC_CONN_FLAG_EARLY_DATA_REJECTED != 0){
+    if((conn->tlsref.flags & XQC_CONN_FLAG_EARLY_DATA_REJECTED) != 0){
         return XQC_TRUE;
     }else{
         return XQC_FALSE;
@@ -222,19 +231,34 @@ int xqc_client_tls_handshake(xqc_connection_t *conn)
 //return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
 {
-
-    if(conn->tlsref.resumption){
-
-        SSL * ssl = conn->xc_ssl;
-        if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
-            return XQC_TLS_EARLY_DATA_REJECT ;
+    if(conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX){
+        if(conn->conn_type == XQC_CONN_TYPE_SERVER){
+            SSL * ssl = conn->xc_ssl;
+            if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
+                return XQC_TLS_EARLY_DATA_REJECT ;
+            }else{
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
+                return  XQC_TLS_EARLY_DATA_ACCEPT ;
+            }
         }else{
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
-            return  XQC_TLS_EARLY_DATA_ACCEPT ;
+            if(conn->tlsref.resumption){
+
+                SSL * ssl = conn->xc_ssl;
+                if(SSL_get_early_data_status(ssl) != SSL_EARLY_DATA_ACCEPTED){
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was rejected by server|");
+                    return XQC_TLS_EARLY_DATA_REJECT ;
+                }else{
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|Early data was accepted by server|");
+                    return  XQC_TLS_EARLY_DATA_ACCEPT ;
+                }
+            }else{
+                return XQC_TLS_NO_EARLY_DATA ;
+            }
         }
     }else{
-        return XQC_TLS_NO_EARLY_DATA ;
+
+        return XQC_TLS_EARLY_DATA_UNKNOWN;
     }
 
 }
@@ -354,8 +378,12 @@ int xqc_read_tls(SSL *ssl)
     for (;;) {
         int rv = SSL_read_ex(ssl, buf, sizeof(buf), &nread);
         if (rv == 1) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|Read  bytes from TLS crypto stream|");
-            return XQC_ERR_PROTO;
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER){
+                xqc_log(conn->log, XQC_LOG_ERROR, "|Read  bytes from TLS crypto stream|");
+                return XQC_ERR_PROTO;
+            }else{
+                continue;
+            }
         }
         int err = SSL_get_error(ssl, 0);
         switch (err) {
@@ -377,7 +405,10 @@ int xqc_read_tls(SSL *ssl)
 
 int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
 {
-    if(conn->tlsref.hs_to_tls_buf)free(conn->tlsref.hs_to_tls_buf);
+    if(conn->tlsref.hs_to_tls_buf) {
+        xqc_free(conn->tlsref.hs_to_tls_buf);
+        conn->tlsref.hs_to_tls_buf = NULL;
+    }
     conn->tlsref.hs_to_tls_buf = xqc_create_hs_buffer(buf_len);
     if(conn->tlsref.hs_to_tls_buf == NULL){
         xqc_log(conn->log, XQC_LOG_ERROR, "|malloc %d bytes failed|", buf_len);
@@ -431,7 +462,7 @@ int xqc_free_pktns_list_buffer(xqc_pktns_t * p_pktns){
     xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, head) {
         xqc_list_del(pos);
-        free(pos);
+        xqc_free(pos);
     }
 
     return 0;
@@ -451,6 +482,7 @@ int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data)
     //clear
     xqc_tls_free_msg_cb_buffer(conn);
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "handshake completed callback\n");
     return 0;
 }
 
@@ -602,23 +634,20 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
     return nwrite;
 }
 
-
-static int xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
+int xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
 {
-  int rv;
+    int rv = 0;
 
-  conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED;
+    conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED;
 
-  if(conn->tlsref.callbacks.handshake_completed){
+    if(conn->tlsref.callbacks.handshake_completed){
 
-    rv = conn->tlsref.callbacks.handshake_completed(conn, NULL);
-  }
-  if (rv != 0) {
-    return rv;
-  }
-
-
-  return 0;
+        rv = conn->tlsref.callbacks.handshake_completed(conn, NULL);
+        if (rv != 0) {
+            return rv;
+        }
+    }
+    return 0;
 }
 
 
@@ -828,16 +857,29 @@ int xqc_tls_free_pktns(xqc_pktns_t * p_pktns){
     xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, head) {
         xqc_list_del(pos);
-        free(pos);
+        xqc_free(pos);
     }
 
     head = &p_pktns->msg_cb_buffer;
     xqc_list_for_each_safe(pos, next, head) {
         xqc_list_del(pos);
-        free(pos);
+        xqc_free(pos);
     }
     return 0;
 
+}
+
+int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config)
+{
+
+    if(ssl_config->private_key_file)xqc_free(ssl_config->private_key_file);
+    if(ssl_config->cert_file)xqc_free(ssl_config->cert_file);
+    if(ssl_config->ciphers)xqc_free(ssl_config->ciphers);
+    if(ssl_config->groups)xqc_free(ssl_config->groups);
+    if(ssl_config->session_ticket_key_data)xqc_free(ssl_config->session_ticket_key_data);
+    if(ssl_config->alpn_list)xqc_free(ssl_config->alpn_list);
+    memset(ssl_config, 0, sizeof(xqc_engine_ssl_config_t));
+    return 0;
 }
 
 
@@ -848,6 +890,9 @@ int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
     }
     if(ssl_config->transport_parameter_data){
         xqc_free(ssl_config->transport_parameter_data);
+    }
+    if(ssl_config->alpn){
+        xqc_free(ssl_config->alpn);
     }
     return 0;
 }
@@ -872,7 +917,7 @@ int xqc_tls_free_tlsref(xqc_connection_t * conn)
     xqc_vec_free(&tlsref->rx_secret);
 
     if(tlsref->hs_to_tls_buf){
-        free(tlsref->hs_to_tls_buf);
+        xqc_free(tlsref->hs_to_tls_buf);
     }
 
     xqc_tls_free_ssl_config(&tlsref->conn_ssl_config);
@@ -888,7 +933,8 @@ int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid )
         return -1;
     }
     conn->tlsref.flags  |= XQC_CONN_FLAG_RECV_RETRY;
-    int ret = xqc_client_setup_initial_crypto_context(conn, dcid);
+    int ret = 0;
+    //int ret = xqc_client_setup_initial_crypto_context(conn, dcid);
 
     xqc_pktns_t  * p_pktns = &conn->tlsref.initial_pktns;
     xqc_list_head_t *head = &p_pktns->msg_cb_buffer;

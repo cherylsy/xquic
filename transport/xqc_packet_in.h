@@ -12,7 +12,7 @@ struct xqc_packet_in_s
     xqc_list_head_t         pi_list;
     const unsigned char    *buf;
     size_t                  buf_size;
-    const unsigned char    *decode_payload;
+    unsigned char          *decode_payload;
     size_t                  decode_payload_size;
     size_t                  decode_payload_len;
     unsigned char          *pos;
@@ -22,14 +22,14 @@ struct xqc_packet_in_s
 };
 
 
-#define XQC_PACKET_IN_LEFT_SIZE(packet_in) (((packet_in)->pos < (packet_in)->last)?((packet_in)->last - (packet_in)->pos):0)
-
+//#define XQC_PACKET_IN_LEFT_SIZE(packet_in) (((packet_in)->pos < (packet_in)->last)?((packet_in)->last - (packet_in)->pos):0)
+#define XQC_BUFF_LEFT_SIZE(pos, last) ((last) > (pos) ? (last) - (pos) : 0)
 
 void
 xqc_packet_in_init(xqc_packet_in_t *packet_in,
                    const unsigned char *packet_in_buf,
                    size_t packet_in_size,
-                   const unsigned char *decode_payload,
+                   unsigned char *decode_payload,
                    size_t decode_payload_size,
                    xqc_msec_t recv_time);
 

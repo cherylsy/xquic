@@ -2,7 +2,6 @@
 #define _XQC_TLS_PUBLIC_H_INCLUDED_
 
 #include <openssl/ssl.h>
-#include <arpa/inet.h>
 #include <assert.h>
 #include <ctype.h>
 #include "xqc_crypto.h"
@@ -13,6 +12,7 @@
 #include "transport/xqc_frame.h"
 //#include "transport/xqc_conn.h"
 #include "xqc_tls_if.h"
+#include "common/xqc_malloc.h"
 
 #ifdef WORDS_BIGENDIAN
 #  define bswap64(N) (N)
@@ -26,10 +26,6 @@
 #define XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS 0xffa5u
 
 #define MAX_HOST_LEN 256
-/*XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
- *factor of ACK Delay field in ACK frame.
- */
-#define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
 
 #define XQC_TRUE 1
 #define XQC_FALSE 0
@@ -41,6 +37,7 @@
 #define XQC_TLS_EARLY_DATA_ACCEPT (1)
 #define XQC_TLS_EARLY_DATA_REJECT (-1)
 #define XQC_TLS_NO_EARLY_DATA   (0)
+#define XQC_TLS_EARLY_DATA_UNKNOWN (-2)  //early data status can read only after handshake completed
 
 
 //xquic tls error code, for call
@@ -56,14 +53,6 @@
 
 #define XQC_NONCE_LEN   32
 #define XQC_UINT32_MAX  (0xffffffff)
-/**
- * @macro
- *
- * XQC_DEFAULT_MAX_ACK_DELAY is a default value of the maximum
- * amount of time in milliseconds by which endpoint delays sending
- * acknowledgement.
- */
-#define XQC_DEFAULT_MAX_ACK_DELAY 25
 
 /* Short header specific macros */
 #define XQC_SHORT_KEY_PHASE_BIT 0x04
@@ -77,6 +66,12 @@
 #ifndef xqc_min
 #define xqc_min(A, B) ((A) < (B) ? (A) : (B))
 #endif
+
+typedef enum {
+    XQC_ALPN_DEFAULT_NUM = 0,
+    XQC_ALPN_HTTP3_NUM = 1,
+    XQC_ALPN_TRANSPORT_NUM = 2,
+}xqc_alpn_num;
 
 typedef enum {
   //XQC_CONN_FLAG_NONE = 0x00,
@@ -120,6 +115,8 @@ typedef enum {
      endpoint has initiated key update and waits for the remote
      endpoint to update key. */
   XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE = 0x0800,
+  /*XQC_CONN_FLAG_RETRY_SENT means server already send retry packet */
+  XQC_CONN_FLAG_RETRY_SENT = 0x1000,
 }xqc_conn_flag;
 
 
@@ -302,7 +299,7 @@ typedef struct xqc_hs_buffer xqc_hs_buffer_t;
 
 static inline xqc_hs_buffer_t * xqc_create_hs_buffer(int buf_size){
 
-    xqc_hs_buffer_t * p_buf = malloc(sizeof(xqc_hs_buffer_t) + buf_size);
+    xqc_hs_buffer_t * p_buf = xqc_malloc(sizeof(xqc_hs_buffer_t) + buf_size);
     if(p_buf == NULL)return NULL;
     xqc_init_list_head(&p_buf->list_head);
     p_buf->data_len = buf_size;
@@ -328,6 +325,7 @@ struct xqc_tlsref{
     xqc_connection_t        *conn;
     uint8_t                 initial;
     uint8_t                 resumption;
+    xqc_alpn_num            alpn_num;
     uint64_t                flags; //record handshake completed or recv retry packet
 
     int64_t                 aead_overhead;  //aead for gcm or chacha
@@ -546,9 +544,10 @@ static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
             return bswap64(n.n64);
     }
 
+    return 0; //impossible
 }
 
-static inline size_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,
+static inline ssize_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,
         const uint8_t *end) {
     uint16_t len = xqc_get_uint16(p);
     size_t n;
@@ -586,13 +585,13 @@ static inline void xqc_vec_init(xqc_vec_t * vec){
 }
 
 static inline void xqc_vec_free(xqc_vec_t *vec) {
-    if(vec->base)free(vec->base);
+    if(vec->base)xqc_free(vec->base);
     vec->base = NULL;
     vec->len = 0;
 }
 
 static inline int xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len){
-    vec->base = malloc(data_len);
+    vec->base = xqc_malloc(data_len);
     if(vec->base == NULL){
         return -1;
     }

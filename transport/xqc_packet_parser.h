@@ -16,7 +16,7 @@ unsigned
 xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
                              unsigned char pktno_bits, xqc_pkt_type_t type);
 xqc_int_t
-xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid,
+xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
                                unsigned char *buf, size_t size);
 
 int
@@ -80,7 +80,7 @@ int
 xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size);
 
 int
-xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in );
+xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 int
 xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out);

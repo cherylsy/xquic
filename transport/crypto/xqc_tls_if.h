@@ -2,7 +2,6 @@
 #define _XQC_TLS_IF_INCLUDED_
 
 #include <openssl/ssl.h>
-#include <arpa/inet.h>
 #include <assert.h>
 #include "xqc_crypto.h"
 #include "include/xquic_typedef.h"
@@ -505,4 +504,6 @@ int xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn);
 int xqc_tls_free_tlsref(xqc_connection_t * conn);
 int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid);
 int xqc_tls_free_msg_cb_buffer(xqc_connection_t * conn);
+
+int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config);
 #endif

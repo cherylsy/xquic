@@ -7,7 +7,7 @@
 
 #define XQC_MSS 1460 //TODO
 
-#define XQC_PACKET_0RTT_MAX_COUNT  100
+#define XQC_PACKET_0RTT_MAX_COUNT  10
 #define XQC_UNDECRYPT_PACKET_MAX  100
 
 typedef enum xqc_pkt_num_space
@@ -47,11 +47,10 @@ struct xqc_packet_s {
     xqc_cid_t               pkt_scid;
 
     /*
-     * len is the sum of pkt_numlen and the length of QUIC packet
-     * payload.
+     * length is the sum of pkt_numlen and the length of QUIC packet payload.
      */
-    size_t                  len;
-    uint8_t                 pkt_num_offset;
+    uint64_t                length;
+    size_t                  pkt_num_offset;
 
 };
 
@@ -59,13 +58,10 @@ struct xqc_packet_s {
 #define XQC_PACKET_IS_LONG_HEADER(buf) ((buf[0] & 0x80) != 0)
 #define XQC_PACKET_IS_SHORT_HEADER(buf) ((buf[0] & 0x80) == 0)
 
-#define XQC_PACKET_LONG_HEADER_GET_DCIL(buf) ((buf[0] & 0xF0) >> 4)
-#define XQC_PACKET_LONG_HEADER_GET_SCIL(buf) ((buf[0] & 0x0F))
-
 #define XQC_PACKET_LONG_HEADER_GET_TYPE(buf) ((buf[0] & 0x30) >> 4)
 
 #define XQC_PACKET_VERSION_LENGTH 4
-#define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH + 1)
+#define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH)
 #define XQC_PACKET_INITIAL_MIN_LENGTH   1200
 
 

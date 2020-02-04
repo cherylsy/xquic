@@ -10,7 +10,7 @@
 #define XQC_kMinimumWindow (2 * XQC_MSS)
 #define XQC_kInitialWindow (32 * XQC_MSS)
 
-#define max(a, b) ((a) > (b) ? (a) : (b))
+#define xqc_max(a, b) ((a) > (b) ? (a) : (b))
 
 static int fast_convergence = 1;
 
@@ -105,7 +105,7 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
     //in_recovery?
     cubic->cwnd *= XQC_BETA_CUBIC;
     cubic->tcp_cwnd *= XQC_BETA_CUBIC;
-    cubic->ssthresh = max(cubic->cwnd, XQC_kMinimumWindow);
+    cubic->ssthresh = xqc_max(cubic->cwnd, XQC_kMinimumWindow);
 }
 
 static void

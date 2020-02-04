@@ -1,5 +1,8 @@
 #include <stdio.h>
 #include <openssl/ssl.h>
+#include "transport/xqc_conn.h"
+#include "http3/xqc_h3_conn.h"
+#include "include/xquic.h"
 #include "xqc_tls_cb.h"
 #include "xqc_tls_public.h"
 #include "common/xqc_log.h"
@@ -209,7 +212,7 @@ int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secre
 
 int xqc_cache_client_hello(xqc_connection_t *conn, const void * buf, size_t buf_len)
 {
-
+    return 0;
 }
 
 int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
@@ -295,9 +298,28 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
         unsigned int inlen, void *arg)
 {
     xqc_connection_t * conn = (xqc_connection_t *) SSL_get_app_data(ssl) ;
-    const uint8_t *alpn;
-    size_t alpnlen;
+    xqc_engine_ssl_config_t *xs_config = (xqc_engine_ssl_config_t *)arg;
+    uint8_t *alpn_list = xs_config->alpn_list;
+    size_t alpn_list_len = xs_config->alpn_list_len;
 
+    if(SSL_select_next_proto((unsigned char **)out, outlen, alpn_list, alpn_list_len, in, inlen ) != OPENSSL_NPN_NEGOTIATED){
+        return SSL_TLSEXT_ERR_NOACK;
+    }
+
+    uint8_t * alpn = (uint8_t *)(*out);
+    uint8_t alpn_len = *outlen;
+
+    if(alpn_len == strlen(XQC_ALPN_TRANSPORT) && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0){
+        conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
+    }else{
+        conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+    }
+
+    xqc_conn_server_on_alpn(conn);
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|select apln number:%d|", conn->tlsref.alpn_num);
+
+#if 0
     int version = conn->version ;
     // Just select alpn for now.
     switch (version) {
@@ -310,6 +332,8 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
     }
     *out = (const uint8_t *)(alpn + 1);
     *outlen = alpn[0];
+#endif
+
 
     return SSL_TLSEXT_ERR_OK;
 }
@@ -376,7 +400,7 @@ int xqc_decode_transport_params(xqc_transport_params_t *params,
     size_t valuelen;
     size_t vlen;
     size_t len;
-    size_t nread;
+    ssize_t nread;
 
     p = data;
     end = data + datalen;
@@ -1079,7 +1103,7 @@ int xqc_server_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
     params.v.ee.len = 1;
     params.v.ee.supported_versions[0] = XQC_QUIC_VERSION; // just use XQC VERSION
 
-    uint8_t *buf = malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
+    uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 
     ssize_t nwrite = xqc_encode_transport_params(
             buf, XQC_TRANSPORT_PARAM_BUF_LEN, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
@@ -1097,13 +1121,13 @@ int xqc_server_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
     return 1;
 }
 
-//need finish , need test for malloc free
+//need finish , need test for malloc xqc_free
 void xqc_transport_params_free_cb(SSL *ssl, unsigned int ext_type,
         unsigned int context, const unsigned char *out,
         void *add_arg)
 {
     if(out != NULL){
-        free((void *)out);
+        xqc_free((void *)out);
     }
     return;
 }
@@ -1126,7 +1150,7 @@ int xqc_client_transport_params_add_cb(SSL *ssl, unsigned int ext_type,
         return -1;
     }
 
-    uint8_t *buf = malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
+    uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 
     ssize_t nwrite = xqc_encode_transport_params(
             buf, XQC_TRANSPORT_PARAM_BUF_LEN, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &params);
@@ -1148,24 +1172,26 @@ int xqc_write_transport_params(xqc_connection_t * conn,
 {
 
     char tp_buf[8192] = {0};
-    int tp_data_len = snprintf(tp_buf, sizeof(tp_buf), "initial_max_streams_bidi=%d\n"
-            "initial_max_streams_uni=%d\n"
-            "initial_max_stream_data_bidi_local=%d\n"
-            "initial_max_stream_data_bidi_remote=%d\n"
-            "initial_max_stream_data_uni=%d\n"
-            "initial_max_data=%d\n",
+    int tp_data_len = snprintf(tp_buf, sizeof(tp_buf), "initial_max_streams_bidi=%"PRIu64"\n"
+            "initial_max_streams_uni=%"PRIu64"\n"
+            "initial_max_stream_data_bidi_local=%"PRIu64"\n"
+            "initial_max_stream_data_bidi_remote=%"PRIu64"\n"
+            "initial_max_stream_data_uni=%"PRIu64"\n"
+            "initial_max_data=%"PRIu64"\n"
+            "max_ack_delay=%"PRIu64"\n",
             params->initial_max_streams_bidi,
             params->initial_max_streams_uni,
             params->initial_max_stream_data_bidi_local,
             params->initial_max_stream_data_bidi_remote,
             params->initial_max_stream_data_uni,
-            params->initial_max_data);
+            params->initial_max_data,
+            params->max_ack_delay);
     if(tp_data_len == -1){
         xqc_log(conn->log, XQC_LOG_ERROR, "| write tp data error | ret code:%d |", tp_data_len);
         return -1;
     }
     if(conn -> tlsref.save_tp_cb != NULL){
-        if(conn -> tlsref.save_tp_cb(tp_buf, tp_data_len, conn->tlsref.tp_user_data) < 0){
+        if(conn -> tlsref.save_tp_cb(tp_buf, tp_data_len, xqc_conn_get_user_data(conn)) < 0){
             xqc_log(conn->log, XQC_LOG_ERROR, "| save tp data error |");
             return -1;
         }
@@ -1241,9 +1267,11 @@ int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_
         }else if(strncmp(p, "initial_max_data=", strlen("initial_max_data=")) == 0){
             p = p + strlen("initial_max_data=");
             params->initial_max_data = strtoul(p, NULL, 10);
-        }else{
-            continue;
+        }else if(strncmp(p, "max_ack_delay=", strlen("max_ack_delay=")) == 0){
+            p = p + strlen("max_ack_delay=");
+            params->max_ack_delay = strtoul(p, NULL, 10);
         }
+
         p = strchr(p, '\n');
         if(p == NULL)return 0;
         p++;
@@ -1342,7 +1370,6 @@ static int xqc_conn_key_phase_changed(xqc_connection_t *conn, const xqc_pkt_hd *
 }
 
 int xqc_update_key(xqc_connection_t *conn, void *user_data){
-    (void *)user_data;
     if(xqc_do_update_key(conn) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_do_update_key failed|");
         return -1;

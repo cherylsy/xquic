@@ -24,15 +24,14 @@ void xqc_test_packet_parse_cid(unsigned char *buf, size_t size, int is_short)
     unsigned char dcid_buf[XQC_MAX_CID_LEN * 2];
     unsigned char scid_buf[XQC_MAX_CID_LEN * 2];
 
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
     xqc_cid_t dcid, scid;
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
-    xqc_int_t rc = xqc_packet_parse_cid(&dcid, &scid, buf, size);
+    xqc_int_t rc = xqc_packet_parse_cid(&dcid, &scid, engine->config->cid_len, buf, size);
     CU_ASSERT(rc == XQC_OK);
 
     xqc_log(engine->log, XQC_LOG_WARN, "parse cid length|%z|%z|", dcid.cid_len, scid.cid_len);

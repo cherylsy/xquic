@@ -5,7 +5,6 @@
 #include "transport/xqc_engine.h"
 #include "transport/xqc_frame.h"
 #include "transport/xqc_stream.h"
-#include "common/xqc_errno.h"
 #include "xqc_common_test.h"
 
 void
@@ -13,12 +12,12 @@ xqc_test_stream_frame()
 {
     xqc_int_t ret;
 
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
     xqc_connection_t *conn;
-    xqc_cid_t *cid = xqc_connect(engine, NULL, NULL, 0, "", 0, NULL);
+    xqc_conn_settings_t conn_settings;
+    xqc_cid_t *cid = xqc_connect(engine, NULL, conn_settings, NULL, 0, "", 0, NULL, NULL, 0);
     CU_ASSERT(cid != NULL);
 
     conn = xqc_engine_conns_hash_find(engine, cid, 's');

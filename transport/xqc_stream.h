@@ -47,7 +47,8 @@ typedef enum {
 } xqc_recv_stream_state_t;
 
 typedef struct {
-    uint64_t                fc_max_stream_data;
+    uint64_t                fc_max_stream_data_can_send;
+    uint64_t                fc_max_stream_data_can_recv;
 } xqc_stream_flow_ctl_t;
 
 
@@ -103,6 +104,7 @@ struct xqc_stream_s {
                             all_stream_list;
 
     uint64_t                stream_send_offset;
+    uint64_t                stream_max_recv_offset;
     xqc_stream_flag_t       stream_flag;
     xqc_encrypt_level_t     stream_encrypt_level;
     xqc_stream_data_in_t    stream_data_in;
@@ -116,6 +118,12 @@ static inline xqc_stream_type_t
 xqc_get_stream_type(xqc_stream_id_t stream_id)
 {
     return stream_id & 0x03;
+}
+
+static inline int
+xqc_stream_is_bidi(xqc_stream_id_t stream_id)
+{
+    return !(stream_id & 0x02);
 }
 
 xqc_stream_t *
@@ -154,6 +162,21 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream);
 xqc_stream_t *
 xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash);
 
+void
+xqc_stream_set_flow_ctl (xqc_stream_t *stream);
+
+int
+xqc_stream_do_send_flow_ctl(xqc_stream_t *stream);
+
+int
+xqc_stream_do_recv_flow_ctl(xqc_stream_t *stream);
+
+int
+xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type);
+
+uint64_t
+xqc_stream_get_init_max_stream_data(xqc_stream_t *stream);
+
 xqc_stream_t *
 xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
                           void *user_data);
@@ -170,13 +193,13 @@ int
 xqc_read_crypto_stream(xqc_stream_t * stream);
 
 ssize_t
-xqc_stream_write_buff(xqc_stream_t *stream,
+xqc_stream_buff_data(xqc_stream_t *stream,
                       unsigned char *send_data,
                       size_t send_data_size,
                       uint8_t fin);
 
 int
-xqc_stream_write_buff_to_packets(xqc_stream_t *stream);
+xqc_stream_write_buffed_data_to_packets(xqc_stream_t *stream);
 
 void
 xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame);

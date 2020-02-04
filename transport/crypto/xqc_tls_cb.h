@@ -4,8 +4,8 @@
 #include "include/xquic_typedef.h"
 #include "xqc_tls_public.h"
 #include "transport/xqc_conn.h"
-#define XQC_ALPN_V1 "\x7http3-1"
-
+#define XQC_ALPN_V1 "\x7http3-1\x9transport"
+#define XQC_ALPN_LIST XQC_ALPN_V1
 
 typedef enum {
   XQC_ERR_INVALID_ARGUMENT = -701,

@@ -1,5 +1,6 @@
 #include "xqc_h3_tnode.h"
 #include "common/xqc_list.h"
+#include "common/xqc_malloc.h"
 
 
 int xqc_tnode_hash_create(xqc_tnode_hash_table_t * table, size_t element_count){
@@ -7,7 +8,7 @@ int xqc_tnode_hash_create(xqc_tnode_hash_table_t * table, size_t element_count){
         return -1;
     }
     table->element_count = element_count;
-    table->list = malloc(sizeof(xqc_list_head_t) * element_count);
+    table->list = xqc_malloc(sizeof(xqc_list_head_t) * element_count);
 
     if(table->list == NULL){
         return -1;
@@ -22,7 +23,8 @@ int xqc_tnode_hash_create(xqc_tnode_hash_table_t * table, size_t element_count){
 
 int xqc_tnode_hash_table_free_list(xqc_tnode_hash_table_t * table){
 
-    free(table->list);
+    xqc_free(table->list);
+    return 0;
 }
 
 int xqc_tnode_hash_table_free_node(xqc_tnode_hash_table_t * table){
@@ -35,7 +37,7 @@ int xqc_tnode_hash_table_free_node(xqc_tnode_hash_table_t * table){
             xqc_http3_tnode_t * tnode = xqc_list_entry(pos, xqc_http3_tnode_t, head_list);
 
             xqc_list_del(pos);
-            free(tnode);
+            xqc_free(tnode);
         }
     }
     return 0;
@@ -82,6 +84,7 @@ int xqc_tnode_insert_to_hash(xqc_tnode_hash_table_t * table, xqc_http3_tnode_t *
     xqc_list_head_t *head = &(table->list[index]);
 
     xqc_list_add(&tnode->head_list, head);
+    return 0;
 }
 
 int xqc_http3_node_id_eq(xqc_http3_node_id_t * src, xqc_http3_node_id_t *dst){
@@ -89,14 +92,14 @@ int xqc_http3_node_id_eq(xqc_http3_node_id_t * src, xqc_http3_node_id_t *dst){
     //return  (src->id == dst->id);
 }
 
-int xqc_http3_node_id_init(xqc_http3_node_id_t * nid, xqc_http3_node_id_type_t type, uint64_t id){
+int xqc_http3_node_id_init(xqc_http3_node_id_t * nid, int type, uint64_t id){
     nid->type = type;
     nid->id = id;
     return 0;
 }
 
 xqc_http3_tnode_t * xqc_http3_create_tnode( xqc_tnode_hash_table_t * table, xqc_http3_node_id_t * nid, uint32_t weight, xqc_http3_tnode_t * parent){
-    xqc_http3_tnode_t * tnode = malloc(sizeof(xqc_http3_tnode_t));
+    xqc_http3_tnode_t * tnode = xqc_malloc(sizeof(xqc_http3_tnode_t));
     if(tnode == NULL){
         return NULL;
     }
@@ -112,7 +115,7 @@ void xqc_http3_tnode_free(xqc_http3_tnode_t * tnode){
         xqc_http3_tnode_del(tnode);
     }
     xqc_tnode_remove_from_hash(tnode);
-    free(tnode);
+    xqc_free(tnode);
 }
 
 int xqc_http3_tnode_init(xqc_http3_tnode_t * tnode, xqc_http3_node_id_t * nid, uint32_t weight, xqc_http3_tnode_t * parent){
@@ -212,7 +215,7 @@ int xqc_http3_tnode_del(xqc_http3_tnode_t * tnode){
     tnode->next_sibling = NULL;
     //--parent->num_children;
 
-
+    return 0;
 }
 
 int xqc_http3_tnode_remove_tree(xqc_http3_tnode_t *tnode){
@@ -234,6 +237,7 @@ int xqc_http3_tnode_remove_tree(xqc_http3_tnode_t *tnode){
     tnode->parent = NULL;
     tnode->next_sibling = NULL;
     //--parent->num_children;
+    return 0;
 }
 
 

@@ -6,7 +6,17 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -D DEBUG_PRINT")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC")
+
+if(GCOV)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
+endif()
+
+if(ANDROID_ABI OR PLATFORM MATCHES "mac")
+    if(PLATFORM STREQUAL "mac32")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
+    endif()
+endif()
 
 configure_file (
     xqc_cmake_config.h.in
@@ -27,6 +37,11 @@ set(
     http3/xqc_h3_request.c
     http3/xqc_h3_frame.c
     http3/xqc_h3_tnode.c
+    http3/xqc_h3_qpack.c
+    http3/xqc_h3_ringbuf.c
+    http3/xqc_h3_qpack_token.c
+    http3/xqc_h3_huffman_data.c
+    http3/xqc_h3_qpack_huffman.c
 )
 
 set(
@@ -54,7 +69,6 @@ set(
     transport/crypto/xqc_tls_cb.c
     transport/crypto/xqc_tls_0rtt.c
     transport/crypto/xqc_tls_if.c
-    
     )
 
 set(
@@ -63,6 +77,7 @@ set(
     common/xqc_random.c
     common/xqc_variable_len_int.c
     common/xqc_str.c
+    common/xqc_log.c
 )
 
 set(
@@ -78,16 +93,99 @@ set(
 add_library(
     xquic
 
-    STATIC
+    #STATIC
+    SHARED
+
 
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )
-link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
-link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
-link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+
+add_library(
+    xquic_openssl
+
+    #STATIC
+    SHARED
+    ${HTTP3_SOURCES}
+    ${TRANSPORT_SOURCES}
+    ${COMMON_SOURCES}
+    ${CONGESTION_CONTROL_SOURCES}
+)
+
+
+
+
+
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    target_link_libraries(
+       xquic
+       "-ldl -Wl,--whole-archive"
+       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
+       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
+       "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,--whole-archive"
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libcrypto.a
+            "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(ANDROID_ABI STREQUAL "x86")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,--whole-archive"
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-x86/lib/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-x86/lib/libcrypto.a
+            "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(PLATFORM MATCHES "mac")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,-all_load"
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+            "-Wl,-noall_load"
+            -lpthread
+    )
+else()
+    target_link_libraries(
+        xquic
+        "-ldl -Wl,--whole-archive"
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        "-Wl,--no-whole-archive"
+        -lpthread
+    )
+
+    target_link_libraries(
+        xquic_openssl
+        "-ldl -Wl,--whole-archive"
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        "-Wl,--no-whole-archive"
+        -lpthread
+    )
+
+endif()
+
+# Strip binary for release builds
+if (CMAKE_BUILD_TYPE STREQUAL Release)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_STRIP} libxquic.so)
+endif ()
 
 ##### for unit test #########
 find_package(CUnit 2.1)
@@ -101,7 +199,11 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
-add_executable(test        tests/main.c)
+add_executable(test_qpack_server tests/test_qpack_server.c)
+add_executable(test_qpack_client tests/test_qpack_client.c)
+#add_executable(xquic_client tests/axp/xquic_client.c tests/axp/axquic.c)
+#add_executable(xquic_server tests/axp/xquic_server.c tests/axp/axquic.c)
+#add_executable(test        tests/main.c)
 
 include_directories( /usr/local/include )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
@@ -110,9 +212,20 @@ include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories( /usr/local/lib )
 link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
 
-target_link_libraries(test_server xquic -levent -lm)
-target_link_libraries(test_client xquic -levent -lm)
-target_link_libraries(test xquic -lssl )
-target_link_libraries(test xquic -lcrypto)
+if(PLATFORM STREQUAL "mac32")
+    target_link_libraries(test_server xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
+    target_link_libraries(test_client xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
+else()
+    target_link_libraries(test_server xquic -levent -lm)
+    target_link_libraries(test_client xquic -levent -lm)
+endif()
+
+target_link_libraries(test_qpack_client xquic -levent -lm)
+target_link_libraries(test_qpack_server xquic -levent -lm)
+
+#target_link_libraries(xquic_client xquic -levent -lm)
+#target_link_libraries(xquic_server xquic -levent -lm)
+#target_link_libraries(test xquic -lssl )
+#target_link_libraries(test xquic -lcrypto)
 
 

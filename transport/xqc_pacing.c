@@ -17,15 +17,6 @@ xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
 }
 
 /**
- * @return 是否启用pacing
- */
-int
-xqc_pacing_is_on(xqc_pacing_t *pacing)
-{
-    return pacing->on;
-}
-
-/**
  * @return 每秒可发字节数
  */
 uint64_t
@@ -114,6 +105,6 @@ xqc_pacing_can_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
         can = 1;
     }
 
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_pacing_can_send|%ui", can);
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_pacing_can_send|%ui|", can);
     return can;
 }

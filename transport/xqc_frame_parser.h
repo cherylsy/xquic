@@ -29,26 +29,30 @@ void xqc_gen_padding_frame(xqc_packet_out_t *packet_out);
 
 int xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
 
+int xqc_gen_ping_frame(xqc_packet_out_t *packet_out);
+
+int xqc_parse_ping_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
+
 int xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_msec_t now, int ack_delay_exponent,
                       xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack);
 
 int xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_info_t *ack_info);
 
-int xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, unsigned short err_code, int is_app, int frame_type);
+int xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, uint64_t err_code, int is_app, int frame_type);
 
-int xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, unsigned short *err_code);
+int xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code);
 
 int xqc_gen_reset_stream_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id,
-                           unsigned short err_code, uint64_t final_size);
+                           uint64_t err_code, uint64_t final_size);
 
 int xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
-                             unsigned short *err_code, uint64_t *final_size);
+                             uint64_t *err_code, uint64_t *final_size);
 
 int xqc_gen_stop_sending_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id,
-                               unsigned short err_code);
+                               uint64_t err_code);
 
 int xqc_parse_stop_sending_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
-                                 unsigned short *err_code);
+                                 uint64_t *err_code);
 
 int xqc_gen_data_blocked_frame(xqc_packet_out_t *packet_out, uint64_t data_limit);
 

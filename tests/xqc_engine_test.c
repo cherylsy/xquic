@@ -1,7 +1,6 @@
 
 #include <CUnit/CUnit.h>
 #include "include/xquic.h"
-#include "transport/xqc_transport.h"
 #include "transport/xqc_packet.h"
 #include "common/xqc_log.h"
 #include "transport/xqc_engine.h"
@@ -17,13 +16,7 @@
 
 void xqc_test_engine_create()
 {
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config);
-    CU_ASSERT(engine != NULL);
-    xqc_engine_destroy(engine);
-    engine = NULL;
-
-    engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
     xqc_engine_destroy(engine);
     engine = NULL;
@@ -36,17 +29,9 @@ void xqc_test_engine_create()
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
 
-int xqc_test_conn_create_notify(xqc_connection_t *conn, void *user_data)
-{
-    return XQC_OK;
-}
-
-int xqc_test_conn_close_notify(xqc_connection_t *conn, void *user_data)
-{
-    return XQC_OK;
-}
-
-ssize_t xqc_client_send(void *user_data, unsigned char *buf, size_t size)
+ssize_t xqc_client_send(void *user_data, unsigned char *buf, size_t size,
+                        const struct sockaddr *peer_addr,
+                        socklen_t peer_addrlen)
 {
     return 0;
 }
@@ -59,13 +44,9 @@ void xqc_test_engine_packet_process()
     const struct sockaddr * peer_addr = NULL;
     socklen_t peer_addrlen = 0;
 
-    def_engine_ssl_config;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config);
+    xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
-    engine->eng_callback.conn_callbacks.conn_create_notify = xqc_test_conn_create_notify;
-    engine->eng_callback.conn_callbacks.conn_close_notify = xqc_test_conn_close_notify;    
     engine->eng_callback.write_socket = xqc_client_send;
-    engine->eng_callback.cong_ctrl_callback = xqc_reno_cb;
 
     xqc_msec_t recv_time = xqc_now();
 
@@ -80,7 +61,7 @@ void xqc_test_engine_packet_process()
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
-    rc = xqc_packet_parse_cid(&dcid, &scid, XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1);
+    rc = xqc_packet_parse_cid(&dcid, &scid, engine->config->cid_len, XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1);
     CU_ASSERT(rc == XQC_OK);
 
     xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, &scid, 'd');

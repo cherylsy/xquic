@@ -51,6 +51,8 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
     }
     if (first && packet_number > first->pktno_range.high) {
         recv_record->largest_pkt_recv_time = recv_time;
+    } else if (!first) {
+        recv_record->largest_pkt_recv_time = recv_time;
     }
 
     xqc_list_for_each(pos, &recv_record->list_head) {
@@ -128,6 +130,18 @@ xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_fro
     }
 }
 
+void
+xqc_recv_record_destroy(xqc_recv_record_t *recv_record)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_pktno_range_node_t *pnode;
+    xqc_list_for_each_safe(pos, next, &recv_record->list_head) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+            xqc_list_del_init(pos);
+            xqc_free(pnode);
+    }
+}
+
 xqc_packet_number_t
 xqc_recv_record_largest(xqc_recv_record_t *recv_record)
 {
@@ -188,10 +202,10 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
 
 
     if(pns == XQC_PNS_HSK && (xqc_tls_check_hs_tx_key_ready(conn) == 0)){
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|handshake ack should send after tx key ready|");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|delay|handshake ack should send after tx key ready|");
         return;
     } else if (pns == XQC_PNS_01RTT && !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|01RTT ack should send after handshake complete|");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|delay|01RTT ack should send after handshake complete|");
         return;
     }
 

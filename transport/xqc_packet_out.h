@@ -24,9 +24,10 @@
 
 typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,
-    XQC_POF_RETRANS          = 1 << 1,
+    XQC_POF_LOST             = 1 << 1,
     XQC_POF_DCID_NOT_DONE    = 1 << 2,
     XQC_POF_ENCRYPTED        = 1 << 3,
+    XQC_POF_TLP              = 1 << 4,
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {
@@ -85,15 +86,18 @@ int
 xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
 
 int
-xqc_write_conn_close_to_packet(xqc_connection_t *conn, unsigned short err_code);
+xqc_write_ping_to_packet(xqc_connection_t *conn);
+
+int
+xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code);
 
 int
 xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 unsigned short err_code, uint64_t final_size);
+                                 uint64_t err_code, uint64_t final_size);
 
 int
 xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 unsigned short err_code);
+                                 uint64_t err_code);
 
 int
 xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit);
@@ -120,7 +124,5 @@ int
 xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
                                  xqc_pkt_type_t pkt_type, uint8_t fin,
                                  const unsigned char *payload, size_t payload_size, size_t *send_data_written);
-void
-xqc_write_buffed_1rtt_packets(xqc_connection_t *conn);
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

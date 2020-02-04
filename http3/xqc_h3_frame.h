@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include "xqc_h3_tnode.h"
+#include "include/xquic.h"
 
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
@@ -107,21 +108,7 @@ typedef struct {
   size_t nvlen;
 } xqc_http3_frame_headers;
 
-#if 0
-typedef enum {
-    XQC_HTTP3_PRI_ELEM_TYPE_REQUEST = 0x00,
-    XQC_HTTP3_PRI_ELEM_TYPE_PUSH = 0x01,
-    XQC_HTTP3_PRI_ELEM_TYPE_PLACEHOLDER = 0x02
-} xqc_http3_pri_elem_type;
 
-
-typedef enum {
-  XQC_HTTP3_ELEM_DEP_TYPE_REQUEST = 0x00,
-  XQC_HTTP3_ELEM_DEP_TYPE_PUSH = 0x01,
-  XQC_HTTP3_ELEM_DEP_TYPE_PLACEHOLDER = 0x02,
-  XQC_HTTP3_ELEM_DEP_TYPE_ROOT = 0x03
-} xqc_http3_elem_dep_type;
-#endif
 
 typedef struct {
   xqc_http3_frame_hd hd;
@@ -216,7 +203,7 @@ typedef struct {
   uint64_t qpack_blocked_streams;
 } xqc_http3_conn_settings;
 
-typedef struct {
+typedef struct { //把这个结构体简化下
     xqc_http3_frame fr;
 
     union{
@@ -240,9 +227,19 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
 ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen);
 
-ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, uint8_t fin);
+ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, uint8_t fin);
 
 int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head);
 
 int xqc_h3_stream_free_data_buf(xqc_h3_stream_t *h3_stream);
+
+ssize_t xqc_http3_write_headers(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin);
+
+ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin);
+ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len);
+
+int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type);
+int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint8_t fin);
+int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
+
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

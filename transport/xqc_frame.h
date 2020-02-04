@@ -52,17 +52,27 @@ typedef enum {
 } xqc_frame_type_bit_t;
 
 
-
-#define XQC_IS_ACK_ELICITING(types) (types & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_CONNECTION_CLOSE))
-
 /*
- * Connection close signals, including packets that contain
+ * Ack-eliciting Packet:  A QUIC packet that contains frames other than
+      ACK, PADDING, and CONNECTION_CLOSE.  These cause a recipient to
+      send an acknowledgment
+
+      Connection close signals, including packets that contain
       CONNECTION_CLOSE frames, are not sent again when packet loss is
       detected, but as described in Section 10.
  */
+#define XQC_IS_ACK_ELICITING(types) ((types) & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_CONNECTION_CLOSE))
 
+/*
+ * https://tools.ietf.org/html/draft-ietf-quic-recovery-24#section-3
+ * Packets containing frames besides ACK or CONNECTION_CLOSE frames
+      count toward congestion control limits and are considered in-
+      flight.
 
-#define XQC_CAN_IN_FLIGHT(types) XQC_IS_ACK_ELICITING(types)
+   PADDING frames cause packets to contribute toward bytes in flight
+      without directly causing an acknowledgment to be sent.
+ */
+#define XQC_CAN_IN_FLIGHT(types) ((types) & ~(XQC_FRAME_BIT_ACK | XQC_FRAME_BIT_CONNECTION_CLOSE))
 
 
 const char*
@@ -91,6 +101,9 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t
 xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_ping_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 xqc_int_t
 xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);

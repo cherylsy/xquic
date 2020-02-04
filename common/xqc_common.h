@@ -10,10 +10,6 @@
 #define XQC_TRUE 1
 #define XQC_FALSE 0
 
-#ifndef XQC_MAX_CID_LEN
-# define XQC_MAX_CID_LEN 18
-#endif
-
 #ifndef XQC_LITTLE_ENDIAN
 # define XQC_LITTLE_ENDIAN 1
 #endif

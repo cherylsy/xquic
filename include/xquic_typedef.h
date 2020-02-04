@@ -4,11 +4,22 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include "xqc_errno.h"
+
+//TODO: 安卓平台下-o2可能有问题
+#if defined(__GNUC__) && !defined(ANDROID)
+#   define XQC_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
+#   define XQC_LIKELY(cond) __builtin_expect(!!(cond), 1)
+#else
+#   define XQC_UNLIKELY(cond) cond
+#   define XQC_LIKELY(cond) cond
+#endif
 
 typedef struct xqc_stream_s xqc_stream_t;
 typedef struct xqc_connection_s xqc_connection_t;
 typedef struct xqc_conn_settings_s xqc_conn_settings_t;
 typedef struct xqc_engine_s xqc_engine_t;
+typedef struct xqc_log_callbacks_s xqc_log_callbacks_t;
 typedef struct xqc_conn_callbacks_s xqc_conn_callbacks_t;
 typedef struct xqc_h3_conn_callbacks_s xqc_h3_conn_callbacks_t;
 typedef struct xqc_random_generator_s xqc_random_generator_t;
@@ -27,6 +38,8 @@ typedef struct xqc_ssl_config xqc_ssl_config_t;
 typedef struct xqc_h3_request_s xqc_h3_request_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_sample_s xqc_sample_t;
+typedef struct xqc_ssl_session_ticket_key_s xqc_ssl_session_ticket_key_t;
+typedef struct xqc_memory_pool_s xqc_memory_pool_t;
 
 typedef uint64_t xqc_msec_t;
 
@@ -45,5 +58,21 @@ typedef struct xqc_cid_s
     uint8_t    cid_buf[XQC_MAX_CID_LEN];
 } xqc_cid_t;
 
+typedef enum xqc_log_level_s
+{
+    XQC_LOG_STATS,
+    XQC_LOG_FATAL,
+    XQC_LOG_ERROR,
+    XQC_LOG_WARN,
+    XQC_LOG_INFO,
+    XQC_LOG_DEBUG,
+} xqc_log_level_t;
+
+#ifdef WIN32
+struct iovec {
+	void *   iov_base;	/* [XSI] Base address of I/O memory region */
+	size_t	 iov_len;	/* [XSI] Size of region iov_base points to */
+};
+#endif
 
 #endif /*_XQUIC_TYPEDEF_H_INCLUDED_*/

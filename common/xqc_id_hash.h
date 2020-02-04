@@ -152,11 +152,13 @@ static inline int xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_ele
 static inline int xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 {
     uint64_t index = hash % hash_tab->count;
+    xqc_allocator_t *a = &hash_tab->allocator;
     xqc_id_hash_node_t** pp = &hash_tab->list[index];
     xqc_id_hash_node_t* node = hash_tab->list[index];
     while (node) {
         if (node->element.hash == hash) {
             *pp = node->next; /*从冲突链删除*/
+            a->free(a->opaque, node);
             return XQC_OK;
         }
 

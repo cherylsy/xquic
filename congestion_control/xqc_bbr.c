@@ -5,7 +5,7 @@
 #include "common/xqc_config.h"
 #include <stdio.h>
 #include <string.h>
-#include <common/xqc_time.h>
+#include "common/xqc_time.h"
 
 #define XQC_kMaxDatagramSize 1200
 #define XQC_kMinimumWindow (4 * XQC_kMaxDatagramSize)
@@ -110,7 +110,7 @@ static uint32_t xqc_bbr_max_bw(xqc_bbr_t *bbr)
 static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     /*Check whether the data is legal */
-    if(sampler->delivered < 0 || sampler->interval <= 0)
+    if(/*sampler->delivered < 0 ||*/ sampler->interval <= 0)
         return;
     
     /**
@@ -298,7 +298,7 @@ static void xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     bbr->min_rtt_expired = (bbr->min_rtt != 0 
                        && sampler->now > bbr->min_rtt_stamp + xqc_bbr_kMinRttWindowSize * msec2sec);
     
-    if((sampler->rtt >= 0 && sampler->rtt <= bbr->min_rtt)
+    if((/*sampler->rtt >= 0 &&*/ sampler->rtt <= bbr->min_rtt)
         || bbr->min_rtt_expired){
         bbr->min_rtt = sampler->rtt;
         bbr->min_rtt_stamp = sampler->now;
@@ -384,12 +384,12 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if(!bbr->has_srtt && sampler->srtt)
         xqc_bbr_init_pacing_rate(bbr, sampler);
 
-    if(bbr->pacing_rate == 0){//TODO:放后面
-        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
-    }
-
     if(bbr->full_bandwidth_reached || rate > bbr->pacing_rate)
         bbr->pacing_rate = rate;
+
+    if(bbr->pacing_rate == 0){
+        bbr->pacing_rate = xqc_bbr_kHighGain * (bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
+    }
 }
 
 

@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
-#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -15,6 +14,8 @@
 #include "xqc_config.h"
 #include "xqc_malloc.h"
 #include "xqc_str.h"
+#include "include/xquic.h"
+#include "xqc_time.h"
 
 /*
  * 目前只是标准输出
@@ -23,19 +24,13 @@
  * 再用xqc_log_debug/xqc_log_error等接口记录日志
  * */
 
-enum xqc_log_level_t
-{
-    XQC_LOG_FATAL,
-    XQC_LOG_ERROR,
-    XQC_LOG_WARN,
-    XQC_LOG_INFO,
-    XQC_LOG_DEBUG,
-};
 
 static inline const char* 
-xqc_log_leveL_str(enum xqc_log_level_t level)
+xqc_log_leveL_str(xqc_log_level_t level)
 {
-    if (level == XQC_LOG_FATAL) {
+    if (level == XQC_LOG_STATS) {
+        return "stats";
+    } else if (level == XQC_LOG_FATAL) {
         return "fatal";
     } else if (level == XQC_LOG_ERROR) {
         return "error";
@@ -53,37 +48,31 @@ xqc_log_leveL_str(enum xqc_log_level_t level)
 typedef struct xqc_log_s
 {
     unsigned log_level; /*日志级别*/
-    int file_handle; /*文件句柄*/
+    xqc_log_callbacks_t *log_callbacks;
+    void *user_data;
 } xqc_log_t;
 
 static inline xqc_log_t *
-xqc_log_init(enum xqc_log_level_t level, const char* path, const char* file)
+xqc_log_init(xqc_log_callbacks_t *log_callbacks, void *user_data)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
-    log->log_level = level;
-    
-    size_t len1 = strlen(path), len2 = strlen(file);
-    char name[len1 + len2 + 2];
-    char* p = strcpy(name, path) + len1;
-    if (*(p - 1) != '/') {
-        *p++ = '/';
-    }
-    strcpy(p, file);
+    log->log_level = log_callbacks->log_level;
+    log->user_data = user_data;
 
-    log->file_handle = open(name, (O_WRONLY | O_APPEND | O_CREAT), 0644);
-    if (log->file_handle == -1) {
+    int ret = log_callbacks->xqc_open_log_file(user_data);
+    if (ret < 0) {
         printf("open file failed\n");
         xqc_free(log);
         return NULL;
     }
-
+    log->log_callbacks = log_callbacks;
     return log;
 }
 
 static inline void 
 xqc_log_release(xqc_log_t* log)
 {
-    close(log->file_handle);
+    log->log_callbacks->xqc_close_log_file(log->user_data);
     xqc_free(log);
     log = NULL;
 }
@@ -95,14 +84,32 @@ xqc_log_time(char* buf)
     gettimeofday(&tv, NULL);
 
     struct tm tm;
+
+#ifdef WIN32
+    time_t t = tv.tv_sec;
+#ifdef _USE_32BIT_TIME_T
+	_localtime32_s(&tm, &t);
+#else
+	_localtime64_s(&tm, &t);
+#endif
+
+#else
     localtime_r(&tv.tv_sec, &tm);
+#endif
     tm.tm_mon++;
     tm.tm_year += 1900;
 
+#ifdef __APPLE__
     sprintf(buf, "%4d/%02d/%02d %02d:%02d:%02d %06d",
                 tm.tm_year, tm.tm_mon,
                 tm.tm_mday, tm.tm_hour,
                 tm.tm_min, tm.tm_sec, tv.tv_usec);
+#else
+    sprintf(buf, "%4d/%02d/%02d %02d:%02d:%02d %06ld",
+            tm.tm_year, tm.tm_mon,
+            tm.tm_mday, tm.tm_hour,
+            tm.tm_min, tm.tm_sec, tv.tv_usec);
+#endif
 }
 
 static inline void
@@ -130,8 +137,10 @@ xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *f
 
     /*换行*/
     *p++ = '\n';
+    /*外部有可能用printf %s打印，加上结束符，不计入总字节数中*/
+    *p = '\0';
 
-    write(log->file_handle, buf, p - buf);
+    log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
 }
 
 #define xqc_log(log, level, ...) \
@@ -175,6 +184,8 @@ xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *f
             xqc_log_implement(log, XQC_LOG_DEBUG, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
+
+extern xqc_log_callbacks_t null_log_cb;
 
 #endif /*_XQC_H_LOG_INCLUDED_*/
 
