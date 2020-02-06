@@ -1294,6 +1294,7 @@ ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *dec
 
 need_more_data:
     if(fin){
+        xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|need more data but frame or stream fin, sctx->state:%d|", sctx->state);
         return -XQC_QPACK_DECODER_ERROR;
     }
     return p - src;
@@ -1320,6 +1321,19 @@ int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, in
     return 0;
 }
 
+int xqc_http3_qpack_stream_context_reinit(xqc_http3_qpack_stream_context *sctx){
+
+    xqc_http3_qpack_read_state_clear(&sctx->rstate);
+    sctx->rstate.prefix = 8;
+    sctx->state = XQC_HTTP3_QPACK_RS_STATE_RICNT;
+    sctx->opcode = 0;
+    sctx->ricnt = 0;
+    sctx->dbase_sign = 0;
+    sctx->base = 0;
+
+    return 0;
+
+}
 
 void xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx){
 
@@ -2842,6 +2856,8 @@ int xqc_http3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,  xqc_h3_strea
         }
 
         if(fin_flag & XQC_HTTP3_FRAME_FIN){
+
+            xqc_http3_qpack_stream_context_reinit(sctx);
             if(sctx->ricnt > 0){
                 xqc_http3_qpack_decoder_write_header_ack(h3_conn->qdec_stream, h3_stream->stream->stream_id);
                 if(sctx->ricnt > decoder->written_icnt){

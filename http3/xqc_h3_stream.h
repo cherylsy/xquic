@@ -95,20 +95,6 @@ typedef enum {
     XQC_HTTP3_FRAME_FIN = 0x02,
 }xqc_h3_data_buf_fin_flag_t;
 
-typedef struct xqc_h3_data_buf{
-    xqc_list_head_t list_head;
-    size_t  buf_len;
-    size_t  data_len;
-    //size_t  data_left;
-    size_t  already_consume;
-    uint8_t fin_flag; //xqc_h3_data_buf_fin_flag_t
-    char    data[];
-
-}xqc_h3_data_buf_t;
-
-typedef xqc_h3_data_buf_t xqc_h3_frame_send_buf_t;
-typedef xqc_h3_data_buf_t xqc_data_buf_t;
-
 typedef struct xqc_h3_stream_s {
     xqc_stream_t        *stream;
     xqc_h3_conn_t       *h3_conn;
