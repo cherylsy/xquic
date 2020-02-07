@@ -55,6 +55,10 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
         return -XQC_EPARAM;
     }
 
+    if ((buf[0] & 0x40) == 0) {
+        return -XQC_EILLPKT;
+    }
+
     /* short header */
     if (XQC_PACKET_IS_SHORT_HEADER(buf)) {
 
