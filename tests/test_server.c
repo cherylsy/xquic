@@ -43,7 +43,7 @@ typedef struct user_stream_s {
 
 typedef struct user_conn_s {
     struct event       *ev_timeout;
-    struct sockaddr_in  peer_addr;
+    struct sockaddr_in6  peer_addr;
     socklen_t           peer_addrlen;
     xqc_cid_t           cid;
 } user_conn_t;
@@ -51,7 +51,7 @@ typedef struct user_conn_s {
 typedef struct xqc_server_ctx_s {
     int fd;
     xqc_engine_t        *engine;
-    struct sockaddr_in  local_addr;
+    struct sockaddr_in6  local_addr;
     socklen_t           local_addrlen;
     struct event        *ev_socket;
     struct event        *ev_engine;
@@ -66,6 +66,7 @@ int g_send_body_size_defined;
 int g_save_body;
 int g_read_body;
 int g_spec_url;
+int g_ipv6;
 char g_write_file[256];
 char g_read_file[256];
 char g_host[64] = "test.xquic.com";
@@ -518,8 +519,8 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 {
     //DEBUG;
     ssize_t recv_sum = 0;
-    struct sockaddr_in peer_addr;
-    socklen_t peer_addrlen = sizeof(peer_addr);
+    struct sockaddr_in6 peer_addr;
+    socklen_t peer_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 #ifdef __linux__
     int batch = 1;
     if (batch) {
@@ -630,17 +631,13 @@ void xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *
 static int xqc_server_create_socket(const char *addr, unsigned int port)
 {
     int fd;
-    struct sockaddr_in *saddr = &ctx.local_addr;
-    struct hostent *ent;
+    int type = g_ipv6 ? AF_INET6 : AF_INET;
+    ctx.local_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+    struct sockaddr *saddr = (struct sockaddr *)&ctx.local_addr;
+
     int optval;
 
-    ent = gethostbyname(addr);
-    if (ent == NULL) {
-        printf("can not resolve host name: %s\n", addr);
-        return -1;
-    }
-
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    fd = socket(type, SOCK_DGRAM, 0);
     if (fd < 0) {
         printf("create socket failed, errno: %d\n", errno);
         return -1;
@@ -667,14 +664,21 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
         goto err;
     }
 
-    memset(saddr, 0, sizeof(struct sockaddr_in));
-    ctx.local_addrlen = sizeof(struct sockaddr_in);
+    if (type == AF_INET6) {
+        memset(saddr, 0, sizeof(struct sockaddr_in6));
+        struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)saddr;
+        addr_v6->sin6_family = type;
+        addr_v6->sin6_port = htons(port);
+        addr_v6->sin6_addr = in6addr_any;
+    } else {
+        memset(saddr, 0, sizeof(struct sockaddr_in));
+        struct sockaddr_in *addr_v4 = (struct sockaddr_in *)saddr;
+        addr_v4->sin_family = type;
+        addr_v4->sin_port = htons(port);
+        addr_v4->sin_addr.s_addr = htonl(INADDR_ANY);
+    }
 
-    saddr->sin_family = AF_INET;
-    saddr->sin_port = htons(port);
-    saddr->sin_addr.s_addr = htonl(INADDR_ANY);
-
-    if (bind(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
+    if (bind(fd, saddr, ctx.local_addrlen) < 0) {
         printf("bind socket failed, errno: %d\n", errno);
         goto err;
     }
@@ -753,6 +757,7 @@ void usage(int argc, char *argv[]) {
 "   -r    Read sending body from file. priority e > s > r\n"
 "   -l    Log level. e:error d:debug.\n"
 "   -u    Url. default https://test.xquic.com/path/resource\n"
+"   -6    IPv6\n"
 , prog);
 }
 
@@ -764,6 +769,7 @@ int main(int argc, char *argv[]) {
     g_save_body = 0;
     g_read_body = 0;
     g_spec_url = 0;
+    g_ipv6 = 0;
 
     int server_port = TEST_PORT;
     char c_cong_ctl = 'c';
@@ -771,7 +777,7 @@ int main(int argc, char *argv[]) {
     int pacing_on = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:6")) != -1){
         switch(ch)
         {
             case 'p':
@@ -819,6 +825,10 @@ int main(int argc, char *argv[]) {
                 g_spec_url = 1;
                 sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
                 //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
+                break;
+            case '6': //IPv6
+                printf("option IPv6 :%s\n", "on");
+                g_ipv6 = 1;
                 break;
             default:
                 printf("other option :%c\n", ch);
