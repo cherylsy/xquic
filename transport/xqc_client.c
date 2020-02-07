@@ -79,10 +79,12 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     }
 
     /* 必须放到最后，xqc_conn_destroy必须在插入到conns_active_pq之前调用 */
-    if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
-        goto fail;
+    if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)){
+        if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
+            goto fail;
+        }
+        xc->conn_flag |= XQC_CONN_FLAG_TICKING;
     }
-    xc->conn_flag |= XQC_CONN_FLAG_TICKING;
 
     xqc_engine_main_logic(engine);
 
