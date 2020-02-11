@@ -643,8 +643,10 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                 if (ret < 0) {
                     return;
                 }
-                if (++cnt >= probe_num) {
-                    return;
+                if(pns >= XQC_PNS_01RTT){ //握手报文不能够受每次重传报文个数的限制，否则握手报文传输不完整，无法生成加密key，也没有办法回复ack
+                    if (++cnt >= probe_num) {
+                        return;
+                    }
                 }
             }
         }
