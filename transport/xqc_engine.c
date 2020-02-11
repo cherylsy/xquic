@@ -236,6 +236,27 @@ xqc_engine_wakeup_after (xqc_engine_t *engine)
     return 0;
 }
 
+int
+xqc_engine_schedule_reset(xqc_engine_t *engine,
+                          const struct sockaddr *peer_addr,
+                          socklen_t peer_addrlen,
+                          xqc_msec_t now)
+{
+    /* Can send 2 reset packets in 5 seconds */
+    if (now - engine->reset_sent_cnt_cleared > 5000*1000) {
+        memset(engine->reset_sent_cnt, 0, sizeof(engine->reset_sent_cnt));
+        engine->reset_sent_cnt_cleared = now;
+    }
+    uint32_t hash = ngx_murmur_hash2((unsigned char*)peer_addr, peer_addrlen);
+    hash = hash % XQC_RESET_CNT_ARRAY_LEN;
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|hash:%ud|cnt:%ud|",hash, engine->reset_sent_cnt[hash]);
+    if (engine->reset_sent_cnt[hash] < 2) {
+        engine->reset_sent_cnt[hash]++;
+        return XQC_OK;
+    }
+    return XQC_ERROR;
+}
+
 /**
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
@@ -676,6 +697,9 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     }
     if (XQC_UNLIKELY(conn == NULL)) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
+            if (xqc_engine_schedule_reset(engine, peer_addr, peer_addrlen, recv_time) != XQC_OK) {
+                return -XQC_ECONN_NFOUND;
+            }
             xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
             ret = xqc_conn_send_reset(engine, &scid, user_data, peer_addr, peer_addrlen);

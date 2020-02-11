@@ -12,15 +12,8 @@ xqc_test_stream_frame()
 {
     xqc_int_t ret;
 
-    xqc_engine_t *engine = test_create_engine();
-    CU_ASSERT(engine != NULL);
-
     xqc_connection_t *conn;
-    xqc_conn_settings_t conn_settings;
-    xqc_cid_t *cid = xqc_connect(engine, NULL, conn_settings, NULL, 0, "", 0, NULL, NULL, 0);
-    CU_ASSERT(cid != NULL);
-
-    conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    conn = test_engine_connect();
     CU_ASSERT(conn != NULL);
 
     xqc_stream_t *stream = xqc_create_stream_with_conn(conn, XQC_UNDEFINE_STREAM_ID, XQC_CLI_BID, NULL);

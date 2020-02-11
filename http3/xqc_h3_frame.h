@@ -71,6 +71,21 @@ typedef struct {
     xqc_http3_frame_hd hd;
 } xqc_http3_frame_data;
 
+typedef struct xqc_h3_data_buf{
+    xqc_list_head_t list_head;
+    size_t  buf_len;
+    size_t  data_len;
+    //size_t  data_left;
+    size_t  already_consume;
+    uint8_t fin_flag; //xqc_h3_data_buf_fin_flag_t
+    char    data[];
+
+}xqc_h3_data_buf_t;
+
+typedef xqc_h3_data_buf_t xqc_h3_frame_send_buf_t;
+typedef xqc_h3_data_buf_t xqc_data_buf_t;
+
+
 
 /**
  * @struct
@@ -242,4 +257,5 @@ int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t 
 int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint8_t fin);
 int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
 
+xqc_data_buf_t * xqc_create_data_buf(int buf_size, int data_len);
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */
