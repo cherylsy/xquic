@@ -59,9 +59,9 @@ typedef struct user_conn_s {
     int                 fd;
     xqc_cid_t           cid;
 
-    struct sockaddr_in  local_addr;
+    struct sockaddr_in6  local_addr;
     socklen_t           local_addrlen;
-    struct sockaddr_in  peer_addr;
+    struct sockaddr_in6  peer_addr;
     socklen_t           peer_addrlen;
 
     unsigned char      *token;
@@ -92,6 +92,7 @@ int g_drop_rate;
 int g_spec_url;
 int g_is_get;
 int g_test_case;
+int g_ipv6;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
@@ -238,17 +239,12 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
 static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, unsigned int port)
 {
     int fd;
-    struct sockaddr_in *saddr = &user_conn->peer_addr;
-    user_conn->peer_addrlen = sizeof(*saddr);
-    struct hostent *remote;
+    int type = g_ipv6 ? AF_INET6 : AF_INET;
+    user_conn->peer_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 
-    remote = gethostbyname(addr);
-    if (remote == NULL) {
-        printf("can not resolve host name: %s\n", addr);
-        return -1;
-    }
+    struct sockaddr *saddr = (struct sockaddr *)&user_conn->peer_addr;
 
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    fd = socket(type, SOCK_DGRAM, 0);
     if (fd < 0) {
         printf("create socket failed, errno: %d\n", errno);
         return -1;
@@ -269,23 +265,27 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
         goto err;
     }
 
-    memset(saddr, 0, sizeof(struct sockaddr_in));
+    if (type == AF_INET6) {
+        memset(saddr, 0, sizeof(struct sockaddr_in6));
+        struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)saddr;
+        inet_pton(type, addr, &(addr_v6->sin6_addr.s6_addr));
+        addr_v6->sin6_family = type;
+        addr_v6->sin6_port = htons(port);
+    } else {
+        memset(saddr, 0, sizeof(struct sockaddr_in));
+        struct sockaddr_in *addr_v4 = (struct sockaddr_in *)saddr;
+        inet_pton(type, addr, &(addr_v4->sin_addr.s_addr));
+        addr_v4->sin_family = type;
+        addr_v4->sin_port = htons(port);
+    }
 
-    saddr->sin_family = AF_INET;
-    saddr->sin_port = htons(port);
-    saddr->sin_addr = *((struct in_addr *)remote->h_addr);
 
 #if !defined(__APPLE__)
-    if (connect(fd, (struct sockaddr *)saddr, sizeof(struct sockaddr_in)) < 0) {
+    if (connect(fd, (struct sockaddr *)saddr, user_conn->peer_addrlen) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
     }
 #endif
-    /*socklen_t tmp = sizeof(struct sockaddr_in);
-    getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);
-
-    printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
-    printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
     return fd;
 
@@ -702,7 +702,6 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
     ssize_t recv_size = 0;
     ssize_t recv_sum = 0;
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
-    user_conn->peer_addrlen = sizeof(user_conn->peer_addr);
 
     do {
         recv_size = recvfrom(user_conn->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &user_conn->peer_addr,
@@ -717,9 +716,9 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         recv_sum += recv_size;
 
         if (user_conn->local_addrlen == 0) {
-            socklen_t tmp = sizeof(struct sockaddr_in);
+            socklen_t tmp = sizeof(struct sockaddr_in6);
             getsockname(user_conn->fd, (struct sockaddr *) &user_conn->local_addr, &tmp);
-            user_conn->local_addrlen = sizeof(struct sockaddr_in);
+            user_conn->local_addrlen = tmp;
         }
 
         uint64_t recv_time = now();
@@ -847,6 +846,7 @@ void usage(int argc, char *argv[]) {
 "   -u    Url. default https://test.xquic.com/path/resource\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
+"   -6    IPv6\n"
 , prog);
 }
 
@@ -863,6 +863,7 @@ int main(int argc, char *argv[]) {
     g_spec_url = 0;
     g_is_get = 0;
     g_test_case = 0;
+    g_ipv6 = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -875,7 +876,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6")) != -1){
         switch(ch)
         {
             case 'a':
@@ -960,6 +961,10 @@ int main(int argc, char *argv[]) {
             case 'x': //test case id
                 printf("option test case id: %s\n", optarg);
                 g_test_case = atoi(optarg);
+                break;
+            case '6': //IPv6
+                printf("option IPv6 :%s\n", "on");
+                g_ipv6 = 1;
                 break;
             default:
                 printf("other option :%c\n", ch);

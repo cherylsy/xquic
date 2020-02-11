@@ -24,17 +24,9 @@ void xqc_test_engine_create()
 
 
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
-#define XQC_TEST_LONG_HEADER_PACKET_B "\xC0\x00\x00\x00\x01\x55\xAB\x3f\x12\x0a\xcd\xef\x00\x89\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
+#define XQC_TEST_LONG_HEADER_PACKET_B "\xC0\x00\x00\x00\x01\x08\xAB\x3f\x12\x0a\xcd\xef\x00\x89\x08\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
-
-
-ssize_t xqc_client_send(void *user_data, unsigned char *buf, size_t size,
-                        const struct sockaddr *peer_addr,
-                        socklen_t peer_addrlen)
-{
-    return 0;
-}
 
 
 void xqc_test_engine_packet_process()
@@ -46,7 +38,7 @@ void xqc_test_engine_packet_process()
 
     xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
-    engine->eng_callback.write_socket = xqc_client_send;
+    engine->eng_type = XQC_ENGINE_SERVER;
 
     xqc_msec_t recv_time = xqc_now();
 

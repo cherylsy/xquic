@@ -37,6 +37,9 @@ typedef struct xqc_engine_s {
     xqc_ssl_session_ticket_key_t  session_ticket_key;
 
     xqc_engine_flag_t       engine_flag;
+#define XQC_RESET_CNT_ARRAY_LEN 16384
+    uint8_t                 reset_sent_cnt[XQC_RESET_CNT_ARRAY_LEN]; /* remote addr hash */
+    xqc_msec_t              reset_sent_cnt_cleared;
 }xqc_engine_t;
 
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);

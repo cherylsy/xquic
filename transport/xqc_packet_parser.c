@@ -55,6 +55,10 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
         return -XQC_EPARAM;
     }
 
+    if ((buf[0] & 0x40) == 0) {
+        return -XQC_EILLPKT;
+    }
+
     /* short header */
     if (XQC_PACKET_IS_SHORT_HEADER(buf)) {
 
@@ -74,6 +78,9 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
 
     pos = buf + 1 + XQC_PACKET_VERSION_LENGTH;
     dcid->cid_len = (uint8_t)(*pos);
+    if(dcid->cid_len != cid_len) {
+        return -XQC_EILLPKT;
+    }
     pos += 1;
 
     if (XQC_BUFF_LEFT_SIZE(pos, end) < dcid->cid_len + 1) {
@@ -83,6 +90,9 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
     pos += dcid->cid_len;
 
     scid->cid_len = (uint8_t)(*pos);
+    if(scid->cid_len != cid_len) {
+        return -XQC_EILLPKT;
+    }
     pos += 1;
 
     if (XQC_BUFF_LEFT_SIZE(pos, end) < scid->cid_len) {
