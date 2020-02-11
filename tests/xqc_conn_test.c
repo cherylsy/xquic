@@ -14,9 +14,7 @@ void xqc_test_conn_create()
     xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
-    xqc_conn_ssl_config_t conn_ssl_config;
-    xqc_conn_settings_t conn_settings;
-    xqc_cid_t *cid = xqc_connect(engine, NULL, conn_settings, NULL, 0, "", 0, &conn_ssl_config, NULL, 0);
+    xqc_cid_t *cid = test_cid_connect(engine);
     CU_ASSERT_NOT_EQUAL(cid, NULL);
 
     xqc_engine_destroy(engine);
