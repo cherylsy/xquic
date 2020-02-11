@@ -520,7 +520,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     }
     engine->engine_flag |= XQC_ENG_FLAG_RUNNING;
 
-    xqc_log(engine->log, XQC_LOG_DEBUG, "|");
+    //xqc_log(engine->log, XQC_LOG_DEBUG, "|");
 
     xqc_msec_t now = xqc_now();
     xqc_connection_t *conn;
@@ -534,7 +534,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         }
         conn = el->conn;
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|wakeup|conn:%p|state:%s|flag:%s|now:%ui|wakeup:%ui|",
+        xqc_log(conn->log, XQC_LOG_INFO, "|wakeup|conn:%p|state:%s|flag:%s|now:%ui|wakeup:%ui|",
                 conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now, el->wakeup_time);
         if (el->wakeup_time <= now) {
             xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
