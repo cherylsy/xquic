@@ -314,12 +314,14 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto free;
     }
 
+#if 0 //避免出现当gap 超过XQC_MAX_GAP_NOT_RECVD 报错，在传输1G数据30%丢包并且网速较快的情况下很容易出现该报错
     if (stream_frame->data_offset - stream->stream_data_in.merged_offset_end > XQC_MAX_GAP_NOT_RECVD &&
             stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|frame maybe lost|stream_id:%ui|", stream_id);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|frame maybe lost|stream_id:%ui, stream_frame->data_offset:%ui, stream->stream_data_in.merged_offset_end:%ui|", stream_id,  stream_frame->data_offset, stream->stream_data_in.merged_offset_end);
         ret = -XQC_ELIMIT;
         goto free;
     }
+#endif
 
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
         if (stream_frame->fin && stream_frame->data_length == 0 && stream->stream_data_in.stream_length == 0) {
