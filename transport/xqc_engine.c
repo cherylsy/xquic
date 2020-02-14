@@ -372,6 +372,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
                 xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
                 continue;
             }
+            conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
             if (conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
                 xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
                 conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
