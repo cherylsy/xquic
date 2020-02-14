@@ -399,7 +399,6 @@ xqc_conn_destroy(xqc_connection_t *xc)
     /* free pool, 必须放到最后释放 */
     if (xc->conn_pool) {
         xqc_destroy_pool(xc->conn_pool);
-        xc->conn_pool = NULL;
     }
 
 }
