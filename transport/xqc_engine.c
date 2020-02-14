@@ -390,6 +390,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
                 continue;
             }
             conn = el->conn;
+            conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
             xqc_conn_destroy(conn);
         }
     }
