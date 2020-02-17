@@ -47,7 +47,7 @@ typedef struct xqc_wakeup_pq_s
 
 
 #define xqc_wakeup_pq_element(pq, index) ((xqc_wakeup_pq_elem_t*)&(pq)->elements[(index) * (pq)->element_size])
-#define xqc_wakeup_pq_element_copy(pq, dst, src) memcpy(xqc_wakeup_pq_element((pq), (dst)), xqc_wakeup_pq_element((pq), (src)), (pq)->element_size)
+#define xqc_wakeup_pq_element_copy(pq, dst, src) memmove(xqc_wakeup_pq_element((pq), (dst)), xqc_wakeup_pq_element((pq), (src)), (pq)->element_size)
 #define xqc_wakeup_pq_default_capacity 16
 
 static inline int xqc_wakeup_pq_init(xqc_wakeup_pq_t *pq, size_t capacity, xqc_allocator_t a, xqc_wakeup_pq_compare_ptr cmp)
