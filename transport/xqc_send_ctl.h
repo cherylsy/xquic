@@ -285,9 +285,16 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
     for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
         timer = &ctl->ctl_timer[type];
         if (timer->ctl_timer_is_set && timer->ctl_expire_time <= now) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
+            if(type == XQC_TIMER_IDLE){
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR,
+                    "|conn:%p|timer expired|type:%s|expire_time:%ui|now:%ui|",
+                    ctl->ctl_conn, xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
+
+            }else{
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
                     "|timer expired|type:%s|expire_time:%ui|now:%ui|",
                     xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
+            }
             timer->ctl_timer_callback(type, now, timer->ctl_ctx);
 
             //unset timer if it is not updated in ctl_timer_callback

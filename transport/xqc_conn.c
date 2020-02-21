@@ -109,7 +109,7 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     //TODO: 临时值
-    settings->idle_timeout = 30000; //must > XQC_PING_TIMEOUT
+    settings->idle_timeout = 120000; //must > XQC_PING_TIMEOUT
     settings->max_data = 1*1024*1024;
     settings->max_stream_data_bidi_local = 1024*1024;
     settings->max_stream_data_bidi_remote = 1024*1024;
@@ -394,8 +394,9 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
 
-    xqc_tls_free_tlsref(xc);
-    /* free pool 必须放到最后 */
+    xqc_tls_free_tlsref(xc);  //需要提到释放conn_pool之前
+
+    /* free pool, 必须放到最后释放 */
     if (xc->conn_pool) {
         xqc_destroy_pool(xc->conn_pool);
     }

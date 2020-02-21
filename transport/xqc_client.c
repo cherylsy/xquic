@@ -85,6 +85,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         }
         xc->conn_flag |= XQC_CONN_FLAG_TICKING;
     }
+
     xqc_engine_main_logic(engine);
 
     return xc;
