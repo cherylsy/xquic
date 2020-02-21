@@ -1304,7 +1304,7 @@ fail:
 }
 
 
-int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, int64_t stream_id){
+int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, uint64_t stream_id){
 
     memset(sctx, 0, sizeof(xqc_http3_qpack_stream_context));
 
@@ -2076,12 +2076,13 @@ int xqc_http3_qpack_encoder_insert_unack_header(xqc_h3_stream_t * qenc_stream, x
     xqc_list_add_tail(&unack_block->header_block_list, pos);
 
     xqc_list_head_t * p_si_list = &h3_stream->unack_block_list;
+
     xqc_list_add_tail(&unack_block->stream_in_list, p_si_list);
     return 0;
 
 }
 
-int xqc_http3_qpack_encoder_ack_header(xqc_h3_conn_t * h3_conn, int64_t stream_id){
+int xqc_http3_qpack_encoder_ack_header(xqc_h3_conn_t * h3_conn, uint64_t stream_id){
 
     xqc_connection_t * conn = h3_conn->conn;
     xqc_stream_t * stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
@@ -2124,34 +2125,51 @@ void xqc_qpack_free_unack_header_block(xqc_qpack_unack_header_block * header_blo
     xqc_free(header_block);
 }
 
-int xqc_http3_qpack_encoder_cancel_stream(xqc_h3_conn_t *h3_conn , int64_t stream_id){
+int xqc_http3_qpack_clear_block_stream_list(xqc_h3_conn_t *h3_conn, uint64_t stream_id){
 
-    xqc_connection_t * conn = h3_conn->conn;
-    xqc_stream_t * stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
-    xqc_h3_stream_t * h3_stream = stream->user_data;
-
-
-    xqc_list_head_t * head = &(h3_stream->unack_block_list);
+    xqc_list_head_t * head = &(h3_conn->block_stream_head);
 
     xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, head){
-        xqc_qpack_unack_header_block * header_block = xqc_list_entry(pos, xqc_qpack_unack_header_block, header_block_list);
-        xqc_qpack_free_unack_header_block(header_block);
-    }
-
-
-    head = &(h3_conn->block_stream_head);
-
-    xqc_list_for_each_safe(pos, next, head){
-
         xqc_qpack_decoder_block_stream_t * blocked = xqc_list_entry(pos, xqc_qpack_decoder_block_stream_t, head_list);
 
         if(blocked->stream_id == stream_id){
             xqc_list_del(pos);
             blocked->h3_stream->flags &= (~XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED);
-            xqc_free(pos);
+            xqc_free(blocked);
         }
     }
+    return 0;
+}
+
+
+int xqc_http3_stream_clear_unack_and_block_stream_list(xqc_h3_stream_t * h3_stream){
+    xqc_list_head_t * head = &(h3_stream->unack_block_list);
+
+    xqc_list_head_t *pos, *next;
+    xqc_list_for_each_safe(pos, next, head){
+        xqc_qpack_unack_header_block * header_block = xqc_list_entry(pos, xqc_qpack_unack_header_block, stream_in_list);
+        xqc_qpack_free_unack_header_block(header_block);
+    }
+
+    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
+
+    uint64_t stream_id = h3_stream->stream->stream_id;
+
+    xqc_http3_qpack_clear_block_stream_list(h3_conn, stream_id);
+
+    return 0;
+
+}
+
+int xqc_http3_qpack_encoder_cancel_stream(xqc_h3_conn_t *h3_conn , uint64_t stream_id){
+
+    xqc_connection_t * conn = h3_conn->conn;
+    xqc_stream_t * stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
+    xqc_h3_stream_t * h3_stream = stream->user_data;
+
+    xqc_http3_stream_clear_unack_and_block_stream_list(h3_stream);
+
 
     return 0;
 }
@@ -2670,6 +2688,7 @@ ssize_t xqc_http3_stream_write_header_block( xqc_h3_stream_t * qenc_stream, xqc_
         goto fail;
     }
 
+    rv = pp_h_data->used_len;
     // hex_print(pp_h_data->data, pp_h_data->used_len);
     if(p_enc_buf->used_len > 0){
         send_size = xqc_http3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
@@ -2693,7 +2712,7 @@ ok:
     if(p_enc_buf){
         xqc_free(p_enc_buf);
     }
-    return 0;
+    return rv;
 fail:
     if(pp_buf){
         xqc_free(pp_buf);

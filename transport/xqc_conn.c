@@ -394,13 +394,12 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
 
-    /* free pool */
+    xqc_tls_free_tlsref(xc);
+    /* free pool 必须放到最后 */
     if (xc->conn_pool) {
         xqc_destroy_pool(xc->conn_pool);
-        xc->conn_pool = NULL;
     }
 
-    xqc_tls_free_tlsref(xc);
 }
 
 void xqc_conn_set_user_data(xqc_connection_t *conn,
