@@ -164,6 +164,9 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
         if (vlen < 0) {
             return -XQC_EVINTREAD;
         }
+        if (length > end - p) {
+            return -XQC_EILLPKT;
+        }
         p += vlen;
         frame->data_length = length;
     } else {
