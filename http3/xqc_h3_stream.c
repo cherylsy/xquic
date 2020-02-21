@@ -108,6 +108,7 @@ xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
     xqc_http3_qpack_stream_context_free(&h3_stream->qpack_sctx);
     xqc_h3_stream_free_data_buf(h3_stream);
 
+    xqc_http3_stream_clear_unack_and_block_stream_list(h3_stream);
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     if(h3_stream->tnode){
         xqc_http3_tnode_free(h3_stream->tnode);
@@ -276,7 +277,7 @@ xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, siz
                 *fin = 1;
             }
             xqc_list_del_init(pos);
-            xqc_free(pos);
+            xqc_free(h3_data_buf);
             if (0 == recv_buf_left) {
                 return n_recved;
             }
