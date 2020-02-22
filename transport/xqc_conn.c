@@ -462,11 +462,10 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             /* 优先级高的包一定在前面 */
             if (!xqc_send_ctl_can_send(conn)) {
                 break;
-            } else if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
-                xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
-                if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
-                    xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
-                    xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
+            }
+            if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
+                if (!xqc_pacing_can_write(&ctl->ctl_pacing, ctl, conn, packet_out)) {
+                    printf("pacing blocked， ts: %lu\n", xqc_now());
                     break;
                 }
             }
