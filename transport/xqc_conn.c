@@ -333,6 +333,14 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|err:0x%xi|%s|",
+            xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
+            xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
+            xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
+            xc->conn_err,
+            xqc_conn_addr_str(xc));
+
     if (xc->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
         xqc_wakeup_pq_remove(xc->engine->conns_wait_wakeup_pq, xc);
         xc->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
@@ -353,14 +361,6 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->conn_callbacks.conn_close_notify(xc, &xc->scid, xc->user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
-
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|err:0x%xi|%s|",
-            xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
-            xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
-            xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
-            xc->conn_err,
-            xqc_conn_addr_str(xc));
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
