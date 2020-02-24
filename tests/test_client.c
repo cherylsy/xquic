@@ -24,7 +24,7 @@ int printf_null(const char *format, ...)
 
 #define TEST_DROP (g_drop_rate != 0 && rand() % 1000 < g_drop_rate)
 
-#define TEST_SERVER_ADDR "127.0.0.1"
+#define TEST_SERVER_ADDR "1.0.0.3"
 #define TEST_SERVER_PORT 8443
 
 
@@ -645,6 +645,21 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
                now_us - user_stream->start_time,
                (stats.send_body_size + stats.recv_body_size)*1000/(now_us - user_stream->start_time),
                stats.send_body_size, stats.recv_body_size);
+
+        // write to eval file
+        {
+            FILE* fp = NULL;
+            fp = fopen("eval_result.txt", "a+");
+            if (fp == NULL){
+                exit(1);
+            }
+
+            fprintf(fp, "recv_size: %lu; cost_time: %lu\n", stats.recv_body_size, (uint64_t)((now_us - user_stream->start_time)/1000));
+            fclose(fp);
+
+            exit(0);
+        }
+
     }
     return 0;
 }
@@ -779,6 +794,20 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
     printf("xqc_client_timeout_callback now %"PRIu64"\n", now());
     user_conn_t *user_conn = (user_conn_t *) arg;
     int rc;
+
+    // write to eval file
+    {
+        FILE* fp = NULL;
+        fp = fopen("eval_result.txt", "a+");
+        if (fp == NULL){
+            exit(1);
+        }
+
+        fprintf(fp, "recv_size: %u; cost_time: %u\n", 11, 60 * 1000);
+        fclose(fp);
+
+    }
+
     rc = xqc_conn_close(ctx.engine, &user_conn->cid);
     if (rc) {
         printf("xqc_conn_close error\n");
@@ -871,7 +900,7 @@ int main(int argc, char *argv[]) {
     char c_cong_ctl = 'c';
     char c_log_level = 'd';
     int pacing_on = 0;
-    int conn_timeout = 3;
+    int conn_timeout = 60;
     int transport = 0;
     int use_1rtt = 0;
 
