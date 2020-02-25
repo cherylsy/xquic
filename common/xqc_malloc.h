@@ -10,8 +10,8 @@
  * */
 #ifdef PRINT_MALLOC
 #define xqc_malloc(size) ({\
-    void *p = malloc(size);\
-    printf("PRINT_MALLOC %p %zu %s:%d\n", p, size, __FILE__, __LINE__);\
+    void *p = malloc((size));\
+    printf("PRINT_MALLOC %p %zu %s:%d\n", p, (size_t)(size), __FILE__, __LINE__);\
     (p);\
     })
 #else
