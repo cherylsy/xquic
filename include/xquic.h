@@ -57,7 +57,7 @@ typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_dat
 typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
 
 /* user_data is a parameter of xqc_engine_packet_process */
-typedef void (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
+typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
 
 //session save callback
 typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_user_data);
