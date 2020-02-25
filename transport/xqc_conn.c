@@ -336,6 +336,14 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|err:0x%xi|%s|",
+            xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
+            xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
+            xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
+            xc->conn_err,
+            xqc_conn_addr_str(xc));
+
     if (xc->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
         xqc_wakeup_pq_remove(xc->engine->conns_wait_wakeup_pq, xc);
         xc->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
@@ -356,14 +364,6 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->conn_callbacks.conn_close_notify(xc, &xc->scid, xc->user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
-
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|err:0x%xi|%s|",
-            xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
-            xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
-            xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
-            xc->conn_err,
-            xqc_conn_addr_str(xc));
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
@@ -465,11 +465,10 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             /* 优先级高的包一定在前面 */
             if (!xqc_send_ctl_can_send(conn)) {
                 break;
-            } else if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
-                xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
-                if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
-                    xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
-                    xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
+            }
+            if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
+                if (!xqc_pacing_can_write(&ctl->ctl_pacing, ctl, conn, packet_out)) {
+                    printf("pacing blocked， ts: %lu\n", xqc_now());
                     break;
                 }
             }

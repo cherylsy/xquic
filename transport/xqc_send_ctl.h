@@ -51,6 +51,7 @@ typedef struct {
     xqc_msec_t                  ctl_expire_time;
     void                        *ctl_ctx;
     xqc_send_ctl_timer_callback ctl_timer_callback;
+    int                         ctl_pacing_time_isexpire;
 } xqc_send_ctl_timer_t;
 
 typedef struct xqc_send_ctl_s {
@@ -277,6 +278,40 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|",
             xqc_timer_type_2_str(type));
 }
+
+/*
+ * add by zhiyou
+ */
+static inline void
+xqc_send_pacing_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t expire) {
+    ctl->ctl_timer[type].ctl_timer_is_set = 1;
+    ctl->ctl_timer[type].ctl_expire_time = expire;
+
+    ctl->ctl_timer[type].ctl_pacing_time_isexpire = 0;
+}
+
+static inline void
+xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t new_expire) {
+
+    if (new_expire - ctl->ctl_timer[type].ctl_expire_time < 1000)
+        return;
+
+    int was_set = ctl->ctl_timer[type].ctl_timer_is_set;
+
+    if (was_set) {
+        // update
+        ctl->ctl_timer[type].ctl_expire_time = new_expire;
+    } else {
+        xqc_send_pacing_timer_set(ctl, type, new_expire);
+    }
+
+}
+
+static inline int
+xqc_send_pacing_timer_isset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type) {
+    return ctl->ctl_timer[type].ctl_timer_is_set;
+}
+
 
 static inline void
 xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
