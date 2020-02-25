@@ -683,6 +683,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             &&
                 (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_INIT
                 || XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_0RTT)
+            && (local_addr != NULL && peer_addr != NULL) //防止server新建连接时源目的地址为空
             )) {
 
         /* 防止initial包重传重复创建连接 */
