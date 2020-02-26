@@ -626,7 +626,7 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     if (nwrite < 0 || nwrite != payloadlen + conn->tlsref.aead_overhead) {
         //printf("encrypt error \n");
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|%d|", nwrite);
-        return nwrite;
+        return -XQC_EENCRYPT;
     }
 
     conn->enc_pkt_len = nwrite + hdlen;
@@ -637,7 +637,7 @@ int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     nwrite = hp_mask(conn, mask, sizeof(mask), tx_hp->base, tx_hp->len, ppktno + 4, XQC_HP_SAMPLELEN, NULL);
 
     if (nwrite < XQC_HP_MASKLEN) {
-        return nwrite;
+        return -XQC_EENCRYPT;
     }
 #if 0
 
