@@ -319,6 +319,11 @@ xqc_engine_create(xqc_engine_type_t engine_type,
             goto fail;
         }
 
+        engine->ssl_meth = xqc_create_bio_method();
+        if(engine->ssl_meth == NULL){
+            goto fail;
+        }
+
         if (engine_type == XQC_ENGINE_SERVER) {
             engine->ssl_ctx = xqc_create_server_ssl_ctx(engine, ssl_config);
             if (engine->ssl_ctx == NULL) {
@@ -428,6 +433,13 @@ xqc_engine_destroy(xqc_engine_t *engine)
     }
 
     xqc_tls_free_engine_config(&engine->ssl_config);
+
+    if(engine->ssl_ctx){
+        SSL_CTX_free(engine->ssl_ctx);
+    }
+    if(engine->ssl_meth){
+        BIO_meth_free(engine->ssl_meth);
+    }
 
     if (engine->log) {
         xqc_log_release(engine->log);

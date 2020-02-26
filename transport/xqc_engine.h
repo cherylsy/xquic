@@ -33,6 +33,7 @@ typedef struct xqc_engine_s {
     void                   *user_data;
 
     SSL_CTX                *ssl_ctx;  //for ssl
+    BIO_METHOD             *ssl_meth; //for ssl bio method
     xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
     xqc_ssl_session_ticket_key_t  session_ticket_key;
 
