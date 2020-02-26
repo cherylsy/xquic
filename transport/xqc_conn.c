@@ -397,6 +397,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
 
+    if(xc->xc_ssl){
+        SSL_free(xc->xc_ssl);
+        xc->xc_ssl = NULL;
+    }
     xqc_tls_free_tlsref(xc);  //需要提到释放conn_pool之前
 
     /* free pool, 必须放到最后释放 */
