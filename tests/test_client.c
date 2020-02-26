@@ -224,7 +224,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
         errno = 0;
         //res = write(fd, buf, size);
         if (TEST_DROP) return size;
-        if (g_test_case == 5/*socket写失败*/) {g_test_case = -1;return -1;}
+        if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return -1;}
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
