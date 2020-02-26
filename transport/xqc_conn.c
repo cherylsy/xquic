@@ -507,8 +507,8 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     xqc_long_packet_update_length(packet_out);
 
     if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
-
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
+        conn->conn_state = XQC_CONN_STATE_CLOSED;
         return -XQC_EENCRYPT;
     }
 
@@ -533,6 +533,13 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types), now);
+#ifdef __linux__
+#include <errno.h>
+        if (errno != EAGAIN) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception|");
+            conn->conn_state = XQC_CONN_STATE_CLOSED;
+        }
+#endif
         return -XQC_ESOCKET;
     }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);

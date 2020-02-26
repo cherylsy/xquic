@@ -613,6 +613,11 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             xqc_conn_retransmit_lost_packets(conn);
             xqc_conn_send_packets(conn);
 
+            if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
+                conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
+                xqc_conn_destroy(conn);
+                continue;
+            }
             conn->next_tick_time = xqc_conn_next_wakeup_time(conn);
             if (conn->next_tick_time) {
                 if (!(conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP)) {
