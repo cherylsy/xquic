@@ -100,6 +100,9 @@ static inline void xqc_id_hash_release(xqc_id_hash_table_t* hash_tab)
         xqc_id_hash_node_t* node = hash_tab->list[i];
         while (node) {
             xqc_id_hash_node_t* p = node;
+            if (node->next == node) {
+                break;
+            }
             node = node->next;
             a->free(a->opaque, p);
         }
@@ -117,6 +120,9 @@ static inline void* xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t has
     while (node) {
         if (node->element.hash == hash) {
             return node->element.value;
+        }
+        if (node->next == node) {
+            return NULL;
         }
         node = node->next;
     }
@@ -161,7 +167,10 @@ static inline int xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t has
             a->free(a->opaque, node);
             return XQC_OK;
         }
-
+#define XQC_ID_HASH_LOOP -9
+        if (node->next == node) {
+            return XQC_ID_HASH_LOOP;
+        }
         pp = &node->next;
         node = node->next;
     }

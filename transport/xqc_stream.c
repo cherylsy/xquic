@@ -444,7 +444,12 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
 
     xqc_id_hash_delete(stream->stream_conn->streams_hash, stream->stream_id);
-    xqc_id_hash_delete(stream->stream_conn->passive_streams_hash, stream->stream_id);
+    if (xqc_id_hash_delete(stream->stream_conn->passive_streams_hash, stream->stream_id) == XQC_ID_HASH_LOOP) {
+        xqc_id_hash_table_t* hash_tab = stream->stream_conn->passive_streams_hash;
+        xqc_id_hash_node_t* node = hash_tab->list[stream->stream_id % hash_tab->count];
+        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|stream_id:%ui|hash:%ui|value:%p|node:%p|next:%p|",
+                stream->stream_id, node->element.hash, node->element.value, node, node->next);
+    }
 
     xqc_free(stream);
 }
