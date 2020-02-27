@@ -543,7 +543,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 #ifdef __linux__
 #include <errno.h>
         if (errno != EAGAIN) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception|");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception, errno:%d|", errno);
             conn->conn_state = XQC_CONN_STATE_CLOSED;
         }
 #endif
