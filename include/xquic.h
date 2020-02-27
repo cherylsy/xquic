@@ -537,6 +537,12 @@ void xqc_engine_finish_recv (xqc_engine_t *engine);
  */
 void xqc_engine_main_logic (xqc_engine_t *engine);
 
+/**
+ * Get dcid and scid before process packet
+ */
+xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
+                               unsigned char *buf, size_t size);
+
 
 /**
  * User should call xqc_conn_continue_send when write event ready
