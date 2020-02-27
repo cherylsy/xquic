@@ -543,6 +543,7 @@ void xqc_engine_main_logic (xqc_engine_t *engine);
 xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
                                unsigned char *buf, size_t size);
 xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
+unsigned char* xqc_dcid_str(const xqc_cid_t *cid);
 uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
 
 
