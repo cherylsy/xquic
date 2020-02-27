@@ -247,7 +247,7 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
         memset(engine->reset_sent_cnt, 0, sizeof(engine->reset_sent_cnt));
         engine->reset_sent_cnt_cleared = now;
     }
-    uint32_t hash = ngx_murmur_hash2((unsigned char*)peer_addr, peer_addrlen);
+    uint32_t hash = xqc_murmur_hash2((unsigned char*)peer_addr, peer_addrlen);
     hash = hash % XQC_RESET_CNT_ARRAY_LEN;
     xqc_log(engine->log, XQC_LOG_DEBUG, "|hash:%ud|cnt:%ud|",hash, engine->reset_sent_cnt[hash]);
     if (engine->reset_sent_cnt[hash] < 2) {
