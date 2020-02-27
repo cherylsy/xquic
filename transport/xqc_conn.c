@@ -704,7 +704,7 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
         }
     }
 
-    xqc_engine_main_logic(conn->engine);
+    xqc_engine_main_logic_internal(conn->engine, conn);
 
     return XQC_OK;
 }
@@ -902,7 +902,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
     }
     xqc_log(conn->log, XQC_LOG_WARN, "|conn:%p|", conn);
     xqc_conn_send_packets(conn);
-    xqc_engine_main_logic(conn->engine);
+    xqc_engine_main_logic_internal(conn->engine, conn);
 
     return XQC_OK;
 }

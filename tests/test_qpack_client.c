@@ -878,7 +878,7 @@ xqc_client_read_handler(user_conn_t *user_conn)
             return;
         }
     } while (recv_size > 0);
-    xqc_engine_finish_recv(ctx.engine);
+    xqc_engine_main_logic(ctx.engine);
 }
 
 

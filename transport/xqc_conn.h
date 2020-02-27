@@ -111,6 +111,7 @@ typedef enum {
     XQC_CONN_FLAG_NEED_RUN_SHIFT,
     XQC_CONN_FLAG_PING_SHIFT,
     XQC_CONN_FLAG_HSK_ACKED_SHIFT,
+    XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -136,6 +137,7 @@ typedef enum {
     XQC_CONN_FLAG_NEED_RUN              = 1 << XQC_CONN_FLAG_NEED_RUN_SHIFT,
     XQC_CONN_FLAG_PING                  = 1 << XQC_CONN_FLAG_PING_SHIFT,
     XQC_CONN_FLAG_HSK_ACKED             = 1 << XQC_CONN_FLAG_HSK_ACKED_SHIFT,
+    XQC_CONN_FLAG_CANNOT_DESTROY        = 1 << XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT,
 }xqc_conn_flag_t;
 
 typedef enum {

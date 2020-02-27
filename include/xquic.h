@@ -530,7 +530,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 /**
  * user should call after a number of packet processed in xqc_engine_packet_process
  */
-void xqc_engine_finish_recv (xqc_engine_t *engine);
+void xqc_engine_finish_recv (xqc_engine_t *engine, xqc_connection_t *conn);
 
 /**
  * Process all connections, user should call when timer expire
