@@ -15,7 +15,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
     }
 
     if(sampler->prior_time == 0) {
-        printf("bbr=================== xqc_generate_sample false sampler->prior_time == 0\n");
+        //printf("bbr=================== xqc_generate_sample false sampler->prior_time == 0\n");
         return false; /* nothing delivered on this ACK */
     }
 
@@ -33,7 +33,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
         */
     if (sampler->interval < send_ctl->ctl_minrtt){
         sampler->interval = 0;
-        printf("bbr==================== xqc_generate_sample false sampler->interval < send_ctl->ctl_minrtt\n");
+        //printf("bbr==================== xqc_generate_sample false sampler->interval < send_ctl->ctl_minrtt\n");
         return false;
     }
     if(sampler->interval != 0) {

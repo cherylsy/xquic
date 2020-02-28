@@ -465,7 +465,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             }
             if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
                 if (!xqc_pacing_can_write(&ctl->ctl_pacing, ctl, conn, packet_out)) {
-                    printf("pacing blocked， ts: %lu\n", xqc_now());
+                    //printf("pacing blocked， ts: %"PRIu64"\n", xqc_now());
                     break;
                 }
             }
