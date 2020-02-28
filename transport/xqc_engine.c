@@ -551,11 +551,14 @@ end:
 }
 
 void
-xqc_engine_finish_recv (xqc_engine_t *engine, xqc_connection_t * conn)
+xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t * conn)
 {
     xqc_engine_main_logic_internal(engine, conn);
 }
 
+void xqc_engine_finish_recv (xqc_engine_t *engine){
+    xqc_engine_main_logic(engine);
+}
 
 void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * conn){
     if(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY){
@@ -839,7 +842,7 @@ after_process:
 }
 
 
-uint8_t 
+uint8_t
 xqc_engine_config_get_cid_len(xqc_engine_t *engine)
 {
     return engine->config->cid_len;

@@ -530,7 +530,8 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 /**
  * user should call after a number of packet processed in xqc_engine_packet_process
  */
-void xqc_engine_finish_recv (xqc_engine_t *engine, xqc_connection_t *conn);
+void xqc_engine_finish_recv (xqc_engine_t *engine);//call after recv loop, may destory connection when error
+void xqc_engine_recv_batch (xqc_engine_t *engine, xqc_connection_t *conn);//call after recv a batch packets, do not destory connection
 
 /**
  * Process all connections, user should call when timer expire
