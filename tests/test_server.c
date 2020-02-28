@@ -601,7 +601,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 
 finish_recv:
     printf("recvfrom size:%zu\n", recv_sum);
-    xqc_engine_finish_recv(ctx->engine);
+    xqc_engine_main_logic(ctx->engine);
 }
 
 
@@ -621,11 +621,12 @@ xqc_server_socket_event_callback(int fd, short what, void *arg)
     }
 }
 
-void xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
     xqc_conn_set_user_data(conn, &ctx);
+    return 0;
 }
 
 static int xqc_server_create_socket(const char *addr, unsigned int port)

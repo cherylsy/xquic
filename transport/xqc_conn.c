@@ -59,6 +59,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_NEED_RUN_SHIFT]              = "NEED_RUN",
         [XQC_CONN_FLAG_PING_SHIFT]                  = "PING",
         [XQC_CONN_FLAG_HSK_ACKED_SHIFT]             = "HSK_ACKED",
+        [XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT]        = "CANNOT_DESTROY",
 };
 
 const char*
@@ -288,7 +289,10 @@ xqc_conn_server_create(xqc_engine_t *engine,
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
     if (engine->eng_callback.server_accept) {
-        engine->eng_callback.server_accept(engine, conn, &conn->scid, user_data);
+        if(engine->eng_callback.server_accept(engine, conn, &conn->scid, user_data) < 0){
+            xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
+            goto fail;
+        }
     }
     /* Do connection callback on alpn */
 
@@ -394,6 +398,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
 
+    if(xc->xc_ssl){
+        SSL_free(xc->xc_ssl);
+        xc->xc_ssl = NULL;
+    }
     xqc_tls_free_tlsref(xc);  //需要提到释放conn_pool之前
 
     /* free pool, 必须放到最后释放 */
@@ -536,7 +544,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 #ifdef __linux__
 #include <errno.h>
         if (errno != EAGAIN) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception|");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception, errno:%d|", errno);
             conn->conn_state = XQC_CONN_STATE_CLOSED;
         }
 #endif
@@ -697,7 +705,7 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
         }
     }
 
-    xqc_engine_main_logic(conn->engine);
+    xqc_engine_main_logic_internal(conn->engine, conn);
 
     return XQC_OK;
 }
@@ -895,7 +903,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
     }
     xqc_log(conn->log, XQC_LOG_WARN, "|conn:%p|", conn);
     xqc_conn_send_packets(conn);
-    xqc_engine_main_logic(conn->engine);
+    xqc_engine_main_logic_internal(conn->engine, conn);
 
     return XQC_OK;
 }

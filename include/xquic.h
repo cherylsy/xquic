@@ -57,7 +57,7 @@ typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_dat
 typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
 
 /* user_data is a parameter of xqc_engine_packet_process */
-typedef void (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
+typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
 
 //session save callback
 typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_user_data);
@@ -530,12 +530,22 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 /**
  * user should call after a number of packet processed in xqc_engine_packet_process
  */
-void xqc_engine_finish_recv (xqc_engine_t *engine);
+void xqc_engine_finish_recv (xqc_engine_t *engine);//call after recv loop, may destory connection when error
+void xqc_engine_recv_batch (xqc_engine_t *engine, xqc_connection_t *conn);//call after recv a batch packets, do not destory connection
 
 /**
  * Process all connections, user should call when timer expire
  */
 void xqc_engine_main_logic (xqc_engine_t *engine);
+
+/**
+ * Get dcid and scid before process packet
+ */
+xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
+                               unsigned char *buf, size_t size);
+xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
+unsigned char* xqc_dcid_str(const xqc_cid_t *cid);
+uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
 
 
 /**

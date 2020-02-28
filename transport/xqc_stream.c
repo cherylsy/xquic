@@ -480,7 +480,7 @@ xqc_stream_close (xqc_stream_t *stream)
         }
     }
     xqc_stream_shutdown_write(stream);
-    xqc_engine_main_logic(conn->engine);
+    xqc_engine_main_logic_internal(conn->engine, conn);
     return XQC_OK;
 }
 
@@ -1087,7 +1087,7 @@ do_buff:
 
     /* 有应用层的由应用层调用主循环 */
     if (!(stream->stream_flag & XQC_STREAM_FLAG_HAS_H3)) {
-        xqc_engine_main_logic(conn->engine);
+        xqc_engine_main_logic_internal(conn->engine, conn);
     }
 
     if (offset == 0 && !fin_only_done) {

@@ -333,7 +333,7 @@ int test_hash(int argc, char* argv[])
         printf("%c\n", final[i]);
     }
 
-    uint32_t hash_value = ngx_murmur_hash2(buf, 11);
+    uint32_t hash_value = xqc_murmur_hash2(buf, 11);
     printf("hash value:%u\n", hash_value);
 
     return 0;

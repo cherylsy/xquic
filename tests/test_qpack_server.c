@@ -493,7 +493,7 @@ xqc_server_read_handler(xqc_server_ctx_t *ctx)
             return;
         }
     } while (recv_size > 0);
-    xqc_engine_finish_recv(ctx->engine);
+    xqc_engine_main_logic(ctx->engine);
 }
 
 

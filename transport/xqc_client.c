@@ -86,7 +86,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         xc->conn_flag |= XQC_CONN_FLAG_TICKING;
     }
 
-    xqc_engine_main_logic(engine);
+    xqc_engine_main_logic_internal(engine, xc);
     if(xqc_engine_conns_hash_find(engine, &scid, 's') == NULL){ //用于当连接在main logic中destroy时，需要返回错误让上层感知
         return NULL;
     }
