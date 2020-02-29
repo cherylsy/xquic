@@ -20,10 +20,10 @@ grep_err_log() {
     #grep "retrans rate:" slog|grep -v "retrans rate:0.0000"
 }
 
-clear_log
-echo -e "变长cid_len ...\c"
-./test_client -s 1024000 -l d -t 1 -E -x 13|grep ">>>>>>>> pass"
-grep_err_log
+#clear_log
+#echo -e "变长cid_len ...\c"
+#./test_client -s 1024000 -l d -t 1 -E -x 13|grep ">>>>>>>> pass"
+#grep_err_log
 
 clear_log
 echo -e "流读通知失败 ...\c"
@@ -165,7 +165,7 @@ grep_err_log
 
 clear_log
 echo -e "发送10M ...\c"
-./test_client -s 10240000 -l d -t 2 -E|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 2 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
@@ -195,7 +195,7 @@ grep_err_log
 
 clear_log
 echo -e "流级流控 ...\c"
-./test_client -s 10240000 -l d -t 2 -E|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 2 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log

@@ -71,6 +71,7 @@ typedef enum
 #define XQC_EWRITE_PKT      624 //创建包或写包头失败
 #define XQC_ECREATE_STREAM  625 //创建流失败
 #define XQC_ESTREAM_RESET   626 //流已被reset
+#define XQC_EDUP_FRAME      627 //重复的帧
 
 
 /* For HTTP3 application 8xx */

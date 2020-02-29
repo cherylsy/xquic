@@ -59,6 +59,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_NEED_RUN_SHIFT]              = "NEED_RUN",
         [XQC_CONN_FLAG_PING_SHIFT]                  = "PING",
         [XQC_CONN_FLAG_HSK_ACKED_SHIFT]             = "HSK_ACKED",
+        [XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT]        = "CANNOT_DESTROY",
 };
 
 const char*
@@ -109,7 +110,7 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     //TODO: 临时值
-    settings->idle_timeout = 30000; //must > XQC_PING_TIMEOUT
+    settings->idle_timeout = 120000; //must > XQC_PING_TIMEOUT
     settings->max_data = 1*1024*1024;
     settings->max_stream_data_bidi_local = 1024*1024;
     settings->max_stream_data_bidi_remote = 1024*1024;
@@ -288,7 +289,10 @@ xqc_conn_server_create(xqc_engine_t *engine,
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
     if (engine->eng_callback.server_accept) {
-        engine->eng_callback.server_accept(engine, conn, &conn->scid, user_data);
+        if(engine->eng_callback.server_accept(engine, conn, &conn->scid, user_data) < 0){
+            xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
+            goto fail;
+        }
     }
     /* Do connection callback on alpn */
 
@@ -333,6 +337,14 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|err:0x%xi|%s|",
+            xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
+            xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
+            xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
+            xc->conn_err,
+            xqc_conn_addr_str(xc));
+
     if (xc->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
         xqc_wakeup_pq_remove(xc->engine->conns_wait_wakeup_pq, xc);
         xc->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
@@ -353,14 +365,6 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->conn_callbacks.conn_close_notify(xc, &xc->scid, xc->user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
-
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|err:0x%xi|%s|",
-            xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
-            xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
-            xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
-            xc->conn_err,
-            xqc_conn_addr_str(xc));
 
     xqc_send_ctl_destroy(xc->conn_send_ctl);
 
@@ -394,13 +398,17 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
 
-    /* free pool */
+    if(xc->xc_ssl){
+        SSL_free(xc->xc_ssl);
+        xc->xc_ssl = NULL;
+    }
+    xqc_tls_free_tlsref(xc);  //需要提到释放conn_pool之前
+
+    /* free pool, 必须放到最后释放 */
     if (xc->conn_pool) {
         xqc_destroy_pool(xc->conn_pool);
-        xc->conn_pool = NULL;
     }
 
-    xqc_tls_free_tlsref(xc);
 }
 
 void xqc_conn_set_user_data(xqc_connection_t *conn,
@@ -462,11 +470,10 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             /* 优先级高的包一定在前面 */
             if (!xqc_send_ctl_can_send(conn)) {
                 break;
-            } else if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
-                xqc_pacing_schedule(&ctl->ctl_pacing, ctl);
-                if (!xqc_pacing_can_send(&ctl->ctl_pacing, ctl)) {
-                    xqc_send_ctl_timer_set(ctl, XQC_TIMER_PACING, ctl->ctl_pacing.next_send_time);
-                    xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
+            }
+            if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
+                if (!xqc_pacing_can_write(&ctl->ctl_pacing, ctl, conn, packet_out)) {
+                    printf("pacing blocked， ts: %lu\n", xqc_now());
                     break;
                 }
             }
@@ -508,8 +515,8 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     xqc_long_packet_update_length(packet_out);
 
     if(xqc_do_encrypt_pkt(conn,packet_out) < 0){
-
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
+        conn->conn_state = XQC_CONN_STATE_CLOSED;
         return -XQC_EENCRYPT;
     }
 
@@ -534,6 +541,13 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types), now);
+#ifdef __linux__
+#include <errno.h>
+        if (errno != EAGAIN) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception, errno:%d|", errno);
+            conn->conn_state = XQC_CONN_STATE_CLOSED;
+        }
+#endif
         return -XQC_ESOCKET;
     }
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
@@ -691,7 +705,7 @@ xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
         }
     }
 
-    xqc_engine_main_logic(conn->engine);
+    xqc_engine_main_logic_internal(conn->engine, conn);
 
     return XQC_OK;
 }
@@ -889,7 +903,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
     }
     xqc_log(conn->log, XQC_LOG_WARN, "|conn:%p|", conn);
     xqc_conn_send_packets(conn);
-    xqc_engine_main_logic(conn->engine);
+    xqc_engine_main_logic_internal(conn->engine, conn);
 
     return XQC_OK;
 }

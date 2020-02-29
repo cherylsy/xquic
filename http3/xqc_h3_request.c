@@ -180,7 +180,7 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
                          size_t data_size,
                          uint8_t fin)
 {
-    if (!data) {
+    if (data_size > 0 && data == NULL) {
         return -XQC_H3_EPARAM;
     }
     ssize_t sent;

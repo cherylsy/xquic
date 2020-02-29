@@ -29,5 +29,6 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
 int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char * hostname,  xqc_conn_ssl_config_t * conn_ssl_config,  xqc_cid_t *dcid, uint16_t no_crypto_flag);
 int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_engine_ssl_config_t *sc);
 
+BIO_METHOD *xqc_create_bio_method();
 
 #endif

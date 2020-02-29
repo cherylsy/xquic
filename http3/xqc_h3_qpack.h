@@ -228,7 +228,7 @@ typedef struct xqc_http3_qpack_stream_context {
     xqc_http3_qpack_read_state rstate;
     /* opcode is a request stream opcode being processed. */
     xqc_http3_qpack_request_stream_opcode opcode;
-    int64_t stream_id;
+    uint64_t stream_id;
     /* ricnt is Required Insert Count to decode this header block. */
     size_t ricnt;
     /* base is Base in Header Block Prefix. */
@@ -337,7 +337,7 @@ ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *qenc_stream ,xqc_h3
 ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xqc_http3_qpack_stream_context *sctx,
         xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin);
 
-int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, int64_t stream_id);
+int xqc_http3_qpack_stream_context_init(xqc_http3_qpack_stream_context *sctx, uint64_t stream_id);
 void xqc_http3_qpack_stream_context_free(xqc_http3_qpack_stream_context * sctx);
 void xqc_qpack_name_value_free(xqc_qpack_name_value_t *nv);
 
@@ -366,4 +366,5 @@ int xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, siz
 
 xqc_var_buf_t * xqc_var_buf_create(size_t capacity);
 int xqc_http3_qpack_encoder_write_set_dtable_cap(xqc_http3_qpack_encoder *encoder, xqc_var_buf_t ** p_enc_buf, size_t cap);
+int xqc_http3_stream_clear_unack_and_block_stream_list(xqc_h3_stream_t * h3_stream);
 #endif

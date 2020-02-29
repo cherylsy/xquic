@@ -1,0 +1,23 @@
+xquic for axp 版本编译指南
+
+一、openssl编译
+1、openssl 从gitlab获取openssl源码 
+    git clone http://gitlab.alibaba-inc.com/quic/openssl.git
+    git checkout juewen
+2、xquic使用ali-openssl版本增加了quic协议支持的版本ali-openssl.zip
+    解压: unzip ali-openssl.zip -d ./openssl/;cd openssl
+    编译: 查看openssl文件夹下的readme，按照readme方法进行编译 
+3、将编译出来的openssl文件夹拷贝到xquic 代码的libs目录
+
+二、xquic编译
+1、gitlab获取源码
+    git clone http://gitlab.alibaba-inc.com/quic/xquic.git
+    git checkout axp_stable 
+
+2、编译
+    将openssl文件夹拷贝到libs目录
+    cmake ./
+    make
+
+3、libxquic_openssl.so 为axp编译所需的动态库
+

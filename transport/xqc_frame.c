@@ -100,9 +100,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
             new_frame->data_offset + new_frame->data_length <= frame->data_offset + frame->data_length) {
             xqc_log(conn->log, XQC_LOG_WARN, "|already recvd|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
-            xqc_free(new_frame->data);
-            xqc_free(new_frame);
-            return XQC_OK;
+            return -XQC_EDUP_FRAME;
         }
 
         if (new_frame->data_offset >= frame->data_offset) {
@@ -314,12 +312,14 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto free;
     }
 
+#if 0 //避免出现当gap 超过XQC_MAX_GAP_NOT_RECVD 报错，在传输1G数据30%丢包并且网速较快的情况下很容易出现该报错
     if (stream_frame->data_offset - stream->stream_data_in.merged_offset_end > XQC_MAX_GAP_NOT_RECVD &&
             stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|frame maybe lost|stream_id:%ui|", stream_id);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|frame maybe lost|stream_id:%ui, stream_frame->data_offset:%ui, stream->stream_data_in.merged_offset_end:%ui|", stream_id,  stream_frame->data_offset, stream->stream_data_in.merged_offset_end);
         ret = -XQC_ELIMIT;
         goto free;
     }
+#endif
 
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
         if (stream_frame->fin && stream_frame->data_length == 0 && stream->stream_data_in.stream_length == 0) {
@@ -354,7 +354,10 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     ret = xqc_insert_stream_frame(conn, stream, stream_frame);
-    if (ret) {
+    if (ret == -XQC_EDUP_FRAME) {
+        ret = XQC_OK;
+        goto free;
+    } else if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_insert_stream_frame error|stream_id:%ui|", stream_id);
         goto error;
     }

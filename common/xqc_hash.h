@@ -65,7 +65,7 @@ xqc_hash_string(u_char* data, size_t len)
  * murmurhash2
  * */
 static inline uint32_t 
-ngx_murmur_hash2(u_char *data, size_t len)
+xqc_murmur_hash2(u_char *data, size_t len)
 {
     uint32_t  h, k;
 

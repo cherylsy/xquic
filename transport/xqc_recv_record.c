@@ -43,6 +43,7 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
     xqc_pktno_range_t range;
     pnode = prev_node = NULL;
     pos = prev = NULL;
+    int pos_find = 0;
 
     xqc_pktno_range_node_t *first = NULL;
     xqc_list_for_each(pos, &recv_record->list_head) {
@@ -62,19 +63,20 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
                 return XQC_PKTRANGE_DUP;
             }
         } else {
+            pos_find = 1;
             break;
         }
         prev = pos;
     }
 
-    if (pos && !xqc_list_empty(&recv_record->list_head)) {
+    if (pos && pos_find) {
         pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
     }
     if (prev) {
         prev_node = xqc_list_entry(prev, xqc_pktno_range_node_t, list);
     }
 
-    if ((prev && xqc_pktno_range_can_merge(prev_node, packet_number)) ||
+    if ((prev_node && xqc_pktno_range_can_merge(prev_node, packet_number)) ||
         (pnode && xqc_pktno_range_can_merge(pnode, packet_number))) {
         if (prev_node && pnode && (prev_node->pktno_range.low - 1 == pnode->pktno_range.high)) {
             prev_node->pktno_range.low = pnode->pktno_range.low;
@@ -87,7 +89,7 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
             return XQC_PKTRANGE_ERR;
         }
         new_node->pktno_range.low = new_node->pktno_range.high = packet_number;
-        if (pos) {
+        if (pos && pos_find) {
             //insert before pos
             xqc_list_add_tail(&(new_node->list), pos);
         } else {

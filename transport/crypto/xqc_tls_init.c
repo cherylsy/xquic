@@ -474,7 +474,10 @@ int xqc_bio_destroy(BIO *b)
 
 BIO_METHOD *xqc_create_bio_method()
 { //just create bio for openssl
-    BIO_METHOD * meth = BIO_meth_new(BIO_TYPE_FD, "bio");
+    BIO_METHOD * meth = BIO_meth_new(BIO_TYPE_FD, "ssl_fd_bio");
+    if(meth == NULL){
+        return NULL;
+    }
     BIO_meth_set_write(meth, xqc_bio_write);
     BIO_meth_set_read(meth, xqc_bio_read);
     BIO_meth_set_puts(meth, xqc_bio_puts);
@@ -493,7 +496,7 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag)
         xqc_log(conn->log, XQC_LOG_ERROR, "| SSL_new return null | ");
         return NULL;
     }
-    BIO * bio = BIO_new(xqc_create_bio_method());
+    BIO * bio = BIO_new(engine->ssl_meth);
     BIO_set_data(bio, conn);
     SSL_set_bio(ssl, bio, bio);
     SSL_set_app_data(ssl, conn);

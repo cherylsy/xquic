@@ -4,6 +4,7 @@
 #include "xqc_h3_stream.h"
 #include "xqc_h3_frame.h"
 #include "transport/xqc_stream.h"
+#include "transport/xqc_engine.h"
 #include "xqc_h3_conn.h"
 #include "include/xquic.h"
 #include "xqc_h3_request.h"
@@ -108,6 +109,7 @@ xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
     xqc_http3_qpack_stream_context_free(&h3_stream->qpack_sctx);
     xqc_h3_stream_free_data_buf(h3_stream);
 
+    xqc_http3_stream_clear_unack_and_block_stream_list(h3_stream);
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     if(h3_stream->tnode){
         xqc_http3_tnode_free(h3_stream->tnode);
@@ -200,7 +202,7 @@ xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|%z|", n_write);
         XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, n_write);
     }
-    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);
+    xqc_engine_main_logic_internal(h3_stream->h3_conn->conn->engine, h3_stream->h3_conn->conn);
     return n_write;
 }
 
@@ -220,7 +222,7 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|n_write:%z|stream_id:%ui|fin:%d|",
             n_write, h3_stream->stream->stream_id, fin);
     h3_stream->flags &= ~XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
-    xqc_engine_main_logic(h3_conn->conn->engine);
+    xqc_engine_main_logic_internal(h3_conn->conn->engine, h3_conn->conn);
     return n_write;
 }
 
@@ -245,7 +247,7 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
     if (n_write == data_size) {
         h3_stream->flags &= ~XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
     }
-    xqc_engine_main_logic(h3_stream->h3_conn->conn->engine);
+    xqc_engine_main_logic_internal(h3_stream->h3_conn->conn->engine, h3_stream->h3_conn->conn);
     return n_write;
 }
 
@@ -276,7 +278,7 @@ xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, siz
                 *fin = 1;
             }
             xqc_list_del_init(pos);
-            xqc_free(pos);
+            xqc_free(h3_data_buf);
             if (0 == recv_buf_left) {
                 return n_recved;
             }
