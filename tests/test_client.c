@@ -466,6 +466,12 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     };
 
     int header_only = g_is_get;
+    if (g_is_get) {
+         header[0].value.iov_base = "GET";
+         header[0].value.iov_len = sizeof("GET") - 1;
+    }
+
+
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
