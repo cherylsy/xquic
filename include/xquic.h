@@ -459,6 +459,11 @@ struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
                                         socklen_t *local_addr_len);
 
 /**
+ * @return 1 for can send 0rtt, 0 for cannot send 0rtt
+ */
+int xqc_is_ready_to_send_early_data(xqc_connection_t * conn);
+
+/**
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
