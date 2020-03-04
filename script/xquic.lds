@@ -47,6 +47,7 @@ XQUIC_VERS_1.0 {
         xqc_bbr_cb;
         xqc_reno_cb;
         xqc_cubic_cb;
+        xqc_is_ready_to_send_early_data;
     local:
         *;
 };
