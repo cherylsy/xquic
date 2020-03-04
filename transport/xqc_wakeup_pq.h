@@ -188,7 +188,7 @@ static inline void xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connecti
     p->conn->wakeup_pq_index = pq_index;
 
     int i = pq_index, j = 2 * i + 1;
-    while (j <= pq->count - 1) {
+    while (j <= pq->count - 1) { //调整子节点，保证最小堆性质
         if (j < pq->count - 1 && pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, j+1)->wakeup_time)) {
             ++j;
         }
@@ -201,6 +201,17 @@ static inline void xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connecti
 
         i = j;
         j = 2 * i + 1;
+    }
+
+    i = pq_index;
+    while(i != 0){  //调整父节点，保证最小堆性质
+        j = (i - 1)/2;
+        if (!pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, i)->wakeup_time)){
+            break;
+        }
+
+        xqc_wakeup_pq_element_swap(pq, i, j);
+        i = j;
     }
 
 }
