@@ -2753,7 +2753,7 @@ int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity){
     }
     headers->capacity = capacity;
 
-    memcpy(headers->headers, old, headers->count * sizeof(xqc_http_headers_t));
+    memcpy(headers->headers, old, headers->count * sizeof(xqc_http_header_t));
 
     xqc_free(old);
     return 0;
