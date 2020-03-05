@@ -35,7 +35,7 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     default_conn_settings.ping_on = settings.ping_on;
 }
 
-static char g_conn_flag_buf[128];
+static char g_conn_flag_buf[256];
 
 static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT]           = "WAIT_WAKEUP",
@@ -942,8 +942,12 @@ int
 xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len)
 {
     if (token_len > XQC_MAX_TOKEN_LEN) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|exceed XQC_MAX_TOKEN_LEN|");
-        return 0;
+        xqc_log(conn->log, XQC_LOG_ERROR, "|%ud exceed XQC_MAX_TOKEN_LEN|", token_len);
+        return XQC_ERROR;
+    }
+    if (token_len == 0) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|token empty|");
+        return XQC_ERROR;
     }
     /*printf("xqc_conn_check_token token:\n");
     hex_print((char *)token,token_len);*/
@@ -955,11 +959,11 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
         struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)sa;
         if (token_len != 21) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|token_len error|token_len:%ui|", token_len);
-            return 0;
+            return XQC_ERROR;
         }
         if (memcmp(&sa6->sin6_addr, in6, sizeof(struct in6_addr)) != 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|ipv6 not match|");
-            return 0;
+            return XQC_ERROR;
         }
         pos += sizeof(struct in6_addr);
 
@@ -968,13 +972,13 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
         struct sockaddr_in *sa4 = (struct sockaddr_in*)sa;
         if (token_len != 9) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|token_len error|token_len:%ui|", token_len);
-            return 0;
+            return XQC_ERROR;
         }
         xqc_log(conn->log, XQC_LOG_DEBUG, "|peer_addr:%s|", inet_ntoa(sa4->sin_addr));
 
         if (memcmp(&sa4->sin_addr, pos, sizeof(struct in_addr)) != 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|ipv4 not match|token_addr:%s|", inet_ntoa(*in4));
-            return 0;
+            return XQC_ERROR;
         }
         pos += sizeof(struct in_addr);
     }
@@ -985,7 +989,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
     xqc_msec_t now = xqc_now() / 1000000;
     if (*expire < now) {
         xqc_log(conn->log, XQC_LOG_WARN, "|token_expire|expire:%ud|now:%ui|", *expire, now);
-        return 0;
+        return XQC_ERROR;
     }
     else if (*expire - now <= XQC_TOKEN_UPDATE_DELTA) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|new token|expire:%ud|now:%ui|delta:%ud|", *expire, now, XQC_TOKEN_UPDATE_DELTA);
@@ -993,7 +997,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|pass|");
-    return 1;
+    return XQC_OK;
 }
 
 /*

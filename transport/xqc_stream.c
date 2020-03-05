@@ -459,8 +459,8 @@ xqc_stream_close (xqc_stream_t *stream)
 {
     int ret;
     xqc_connection_t *conn = stream->stream_conn;
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_state_send:%d|conn_state:%s|",
-            stream->stream_state_send, xqc_conn_state_2_str(conn->conn_state));
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_send:%d|stream_state_recv:%d|conn:%p|conn_state:%s|",
+            stream->stream_id, stream->stream_state_send, stream->stream_state_recv, conn, xqc_conn_state_2_str(conn->conn_state));
     if (stream->stream_state_send >= XQC_SEND_STREAM_ST_RESET_SENT) {
         return XQC_OK;
     }
@@ -960,8 +960,10 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
         }
     }
 
-    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|read:%z|recv_buf_size:%uz|fin:%d|stream_length:%ui|next_read_offset:%ui|",
-            stream->stream_id, read, recv_buf_size, *fin, stream->stream_data_in.stream_length, stream->stream_data_in.next_read_offset);
+    xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
+            "|stream_id:%ui|read:%z|recv_buf_size:%uz|fin:%d|stream_length:%ui|next_read_offset:%ui|conn:%p|",
+            stream->stream_id, read, recv_buf_size, *fin, stream->stream_data_in.stream_length,
+            stream->stream_data_in.next_read_offset, stream->stream_conn);
 
     xqc_stream_shutdown_read(stream);
     return read;
@@ -1073,9 +1075,10 @@ do_buff:
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|ret:%d|stream_id:%ui|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
-                                      "send_data_size:%uz|offset:%uz|fin:%d|flag:%d|",
+                                      "send_data_size:%uz|offset:%uz|fin:%d|stream_flag:%d|conn:%p|conn_state:%s|flag:%s|",
             ret, stream->stream_id, stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
-            send_data_size, offset, fin, stream->stream_flag);
+            send_data_size, offset, fin, stream->stream_flag, conn, xqc_conn_state_2_str(conn->conn_state),
+            xqc_conn_flag_2_str(conn->conn_flag));
 
     xqc_sample_check_app_limited(&conn->conn_send_ctl->sampler, conn->conn_send_ctl);
 
@@ -1188,15 +1191,16 @@ xqc_process_write_streams (xqc_connection_t *conn)
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
         if (stream->stream_flag & XQC_STREAM_FLAG_DATA_BLOCKED
             || conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|DATA_BLOCKED|stream_id:%ui|", stream->stream_id);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|DATA_BLOCKED|stream_id:%ui|conn:%p|",
+                    stream->stream_id, stream->stream_conn);
             continue;
         }
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_write_notify|flag:%d|stream_id:%ui|",
-                stream->stream_flag, stream->stream_id);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_write_notify|flag:%d|stream_id:%ui|conn:%p|",
+                stream->stream_flag, stream->stream_id, stream->stream_conn);
         ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
         if (ret < 0 && ret != -XQC_EAGAIN) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|flag:%d|stream_id:%ui|",
-                    ret, stream->stream_flag, stream->stream_id);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|flag:%d|stream_id:%ui|conn:%p|",
+                    ret, stream->stream_flag, stream->stream_id, stream->stream_conn);
             xqc_stream_shutdown_write(stream);
             if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING && ret != -XQC_EAGAIN) {
                 XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
@@ -1215,12 +1219,12 @@ xqc_process_read_streams (xqc_connection_t *conn)
 
     xqc_list_for_each_safe(pos, next, &conn->conn_read_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|stream_id:%ui|",
-                stream->stream_flag, stream->stream_id);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|stream_id:%ui|conn:%p|",
+                stream->stream_flag, stream->stream_id, stream->stream_conn);
         ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
         if (ret < 0 && ret != -XQC_EAGAIN) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|flag:%d|stream_id:%ui|",
-                    ret, stream->stream_flag, stream->stream_id);
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|flag:%d|stream_id:%ui|conn:%p|",
+                    ret, stream->stream_flag, stream->stream_id, stream->stream_conn);
             xqc_stream_shutdown_write(stream);
             if (ret != -XQC_ESTREAM_RESET && ret != -XQC_CLOSING && ret != -XQC_EAGAIN) {
                 XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);

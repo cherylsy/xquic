@@ -33,7 +33,9 @@ xqc_h3_request_create(xqc_engine_t *engine,
         return NULL;
     }
 
-    xqc_log(engine->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|", stream->stream_id);
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|conn:%p|conn_state:%s|flag:%s|",
+            stream->stream_id, h3_conn->conn, xqc_conn_state_2_str(h3_conn->conn->conn_state),
+            xqc_conn_flag_2_str(h3_conn->conn->conn_flag));
     return h3_request;
 }
 
@@ -91,7 +93,19 @@ xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
 
 int xqc_h3_request_close (xqc_h3_request_t *h3_request)
 {
-    return xqc_stream_close(h3_request->h3_stream->stream);
+    xqc_connection_t *conn = h3_request->h3_stream->h3_conn->conn;
+    xqc_stream_t *stream = h3_request->h3_stream->stream;
+    int ret = xqc_stream_close(stream);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|fail|ret:%d|stream_id:%ui|conn:%p|conn_state:%s|flag:%s|",
+                ret, stream->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
+                xqc_conn_flag_2_str(conn->conn_flag));
+        return ret;
+    }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|conn:%p|conn_state:%s|flag:%s|",
+            stream->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
+            xqc_conn_flag_2_str(conn->conn_flag));
+    return XQC_OK;
 }
 
 void xqc_http_headers_initial(xqc_http_headers_t *headers){
@@ -202,10 +216,10 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
         h3_request->body_sent_final_size = h3_request->body_sent;
     }
     xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|stream_id:%ui|data_size:%z|sent:%z|body_sent:%uz|body_sent_final_size:%uz|fin:%d|flag:%d|",
+            "|stream_id:%ui|data_size:%z|sent:%z|body_sent:%uz|body_sent_final_size:%uz|fin:%d|flag:%d|conn:%p|",
             h3_request->h3_stream->stream->stream_id,
             data_size, sent, h3_request->body_sent, h3_request->body_sent_final_size, fin,
-            h3_request->h3_stream->stream->stream_flag);
+            h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3_conn->conn);
     return sent;
 }
 
@@ -218,6 +232,10 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
         *fin = 1;
     }
     if(h3_request->h3_header.read_flag != XQC_H3_REQUEST_HEADER_DATA_NONE ){
+        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
+                "|stream_id:%ui|fin:%d|flag:%d|conn:%p|",
+                h3_request->h3_stream->stream->stream_id, *fin,
+                h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3_conn->conn);
         uint8_t read_cursor = h3_request->h3_header.read_flag - 1;
         h3_request->h3_header.read_flag = XQC_H3_REQUEST_HEADER_DATA_NONE;
         //need set headers flag
@@ -236,8 +254,8 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
     n_recv = xqc_h3_stream_recv_data(h3_request->h3_stream, recv_buf, recv_buf_size, fin);
     if (n_recv < 0) {
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
-                "|xqc_h3_stream_recv_data error|stream_id:%ui|ret:%z|",
-                h3_request->h3_stream->stream->stream_id, n_recv);
+                "|xqc_h3_stream_recv_data error|stream_id:%ui|ret:%z|conn:%p|",
+                h3_request->h3_stream->stream->stream_id, n_recv, h3_request->h3_stream->h3_conn->conn);
         return n_recv;
     }
 
@@ -246,10 +264,10 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
         h3_request->body_recvd_final_size = h3_request->body_recvd;
     }
     xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|fin:%d|flag:%d|",
+            "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|fin:%d|flag:%d|conn:%p|",
             h3_request->h3_stream->stream->stream_id,
             recv_buf_size, n_recv, h3_request->body_recvd, h3_request->body_recvd_final_size, *fin,
-            h3_request->h3_stream->stream->stream_flag);
+            h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3_conn->conn);
     return n_recv;
 }
 

@@ -23,7 +23,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
 
     if (token_len > XQC_MAX_TOKEN_LEN) {
         xqc_log(engine->log, XQC_LOG_ERROR,
-                "|exceed XQC_MAX_TOKEN_LEN|");
+                "|%ud exceed XQC_MAX_TOKEN_LEN|", token_len);
         return NULL;
     }
 

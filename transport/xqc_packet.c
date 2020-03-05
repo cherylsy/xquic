@@ -175,7 +175,8 @@ xqc_packet_process_single(xqc_connection_t *c,
 
     packet_in->last = last;
 
-    xqc_log(c->log, XQC_LOG_INFO, "|====>|pkt_type:%s|pkt_num:%ui|frame:%s|recv_time:%ui|",
+    xqc_log(c->log, XQC_LOG_INFO, "|====>|conn:%p|size:%ui|pkt_type:%s|pkt_num:%ui|frame:%s|recv_time:%ui|",
+            c, packet_in->buf_size,
             xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
             xqc_frame_type_2_str(packet_in->pi_frame_types), packet_in->pkt_recv_time);
 

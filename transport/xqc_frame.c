@@ -439,7 +439,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             && conn->conn_type == XQC_CONN_TYPE_SERVER
             && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {
 
-        if (xqc_conn_check_token(conn, conn->conn_token, conn->conn_token_len)) {
+        if (xqc_conn_check_token(conn, conn->conn_token, conn->conn_token_len) == XQC_OK) {
             conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
         } else {
             xqc_log(conn->log, XQC_LOG_WARN, "|check_token fail|conn:%p|%s|", conn, xqc_conn_addr_str(conn));
