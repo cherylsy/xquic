@@ -172,7 +172,7 @@ else()
 
     target_link_libraries(
         xquic_openssl
-        "-ldl -Wl,--whole-archive -Wl,--version-script=script/xquic.lds"
+        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
         "-Wl,--no-whole-archive"
