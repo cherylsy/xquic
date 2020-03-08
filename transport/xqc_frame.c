@@ -618,6 +618,7 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
             return -XQC_ESTREAM_NFOUND;
         }
     }
+    stream->stream_err = err_code;
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_recv:%d|stream_state_send:%d|",
             stream->stream_id, stream->stream_state_recv, stream->stream_state_send);

@@ -340,6 +340,7 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_reset_stream_frame error|");
         goto error;
     }
+    stream->stream_err = err_code;
 
     packet_out->po_used_size += ret;
 

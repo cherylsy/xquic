@@ -112,6 +112,7 @@ struct xqc_stream_s {
     xqc_send_stream_state_t stream_state_send;
     xqc_recv_stream_state_t stream_state_recv;
     xqc_msec_t              stream_close_time;
+    uint64_t                stream_err;
 };
 
 static inline xqc_stream_type_t

@@ -678,7 +678,8 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 
     xqc_request_stats_t stats;
     stats = xqc_h3_request_get_stats(h3_request);
-    printf("send_body_size:%zu, recv_body_size:%zu, recv_fin:%d\n", stats.send_body_size, stats.recv_body_size, user_stream->recv_fin);
+    printf("send_body_size:%zu, recv_body_size:%zu, recv_fin:%d, err:%d\n",
+           stats.send_body_size, stats.recv_body_size, user_stream->recv_fin, stats.stream_err);
 
     if (g_echo_check) {
         int pass = 0;
