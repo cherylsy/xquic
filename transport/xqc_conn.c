@@ -926,7 +926,9 @@ xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
     conn_stats.lost_count = ctl->ctl_lost_count;
     conn_stats.send_count = ctl->ctl_send_count;
     conn_stats.tlp_count = ctl->ctl_tlp_count;
+    conn_stats.recv_count = ctl->ctl_recv_count;
     conn_stats.srtt = ctl->ctl_srtt;
+    conn_stats.conn_err = (int)conn->conn_err;
     conn_stats.early_data_flag = XQC_0RTT_NONE;
     if (conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT) {
         if (conn->conn_flag & XQC_CONN_FLAG_0RTT_OK) {

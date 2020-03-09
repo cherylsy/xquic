@@ -248,6 +248,8 @@ typedef struct xqc_conn_stats_s {
     uint32_t    tlp_count;
     xqc_msec_t  srtt;
     xqc_0rtt_flag_t    early_data_flag;
+    uint32_t    recv_count;
+    int         conn_err;
 } xqc_conn_stats_t;
 
 typedef struct xqc_request_stats_s {

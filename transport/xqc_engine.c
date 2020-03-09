@@ -811,6 +811,7 @@ process:
     }
 
     conn->conn_send_ctl->ctl_bytes_recv += packet_in_size;
+    conn->conn_send_ctl->ctl_recv_count++;
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
                            recv_time + conn->conn_send_ctl->ctl_conn->local_settings.idle_timeout*1000);
