@@ -977,28 +977,26 @@ xqc_stream_send (xqc_stream_t *stream,
                  size_t send_data_size,
                  uint8_t fin)
 {
-    int ret;
-    xqc_stream_ready_to_write(stream);
-    size_t send_data_written = 0;
-    size_t offset = 0; //本次send_data中的已写offset
     xqc_connection_t *conn = stream->stream_conn;
-    uint8_t fin_only = fin && !send_data_size;
-    uint8_t fin_only_done = 0;
-    xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
-    int support_0rtt = xqc_is_ready_to_send_early_data(conn);
-    int buff_1rtt = 0;
-
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|conn closing, cannot send|");
         xqc_stream_shutdown_write(stream);
         return -XQC_CLOSING;
     }
-
     if (stream->stream_state_send >= XQC_SEND_STREAM_ST_RESET_SENT) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|stream reset sent, cannot send|");
         xqc_stream_shutdown_write(stream);
         return -XQC_ESTREAM_RESET;
     }
+    int ret;
+    xqc_stream_ready_to_write(stream);
+    size_t send_data_written = 0;
+    size_t offset = 0; //本次send_data中的已写offset
+    uint8_t fin_only = fin && !send_data_size;
+    uint8_t fin_only_done = 0;
+    xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
+    int support_0rtt = xqc_is_ready_to_send_early_data(conn);
+    int buff_1rtt = 0;
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
         if ((conn->conn_type == XQC_CONN_TYPE_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) &&
