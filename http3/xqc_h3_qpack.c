@@ -2488,8 +2488,8 @@ int xqc_http3_qpack_encoder_dtable_duplicate(xqc_http3_qpack_encoder *encoder, x
     int can_insert = xqc_qpack_encoder_can_index_nv(encoder, entry->nv.name_len, entry->nv.value_len);
 
     if(can_insert){
+        xqc_qpack_encoder_write_duplicate_insert(encoder, p_enc_buf, entry); //通知对端更新需要放在插入之前，因为插入会改变absidx,而通知对端计算相对index是根据插入前的absidx计算
         xqc_http3_qpack_encoder_dtable_duplicate_add(encoder, entry);
-        xqc_qpack_encoder_write_duplicate_insert(encoder, p_enc_buf, entry);
     }
 
     return 0;
