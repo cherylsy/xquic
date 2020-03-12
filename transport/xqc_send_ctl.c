@@ -314,7 +314,8 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
              * when sending a packet containing frames other than ACK or PADDING (an
              * ACK-eliciting packet
              */
-            xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->local_settings.idle_timeout * 1000);
+            //udp无法识别是否真正发送到对端，避免重传一直刷新idle时间
+            //xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->local_settings.idle_timeout * 1000);
         }
 
         if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
