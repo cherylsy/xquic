@@ -56,7 +56,7 @@ typedef struct {
 
 
 #define XQC_DEFAULT_RECORD_INTERVAL (100000)   //100毫秒的记录间隔
-#define XQC_DEFAULT_RTT_CHANGE_THRESHOLD (50) //50ms
+#define XQC_DEFAULT_RTT_CHANGE_THRESHOLD (50 * 1000) //50毫秒
 #define XQC_DEFAULT_BW_CHANGE_THRESHOLD (50) //带宽改变的百分比
 typedef struct {
     xqc_msec_t  last_record_time; //上次周期性记录的时间
