@@ -235,6 +235,7 @@ xqc_conn_create(xqc_engine_t *engine,
     }
 
     xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid));
+    //xqc_conn_log(xc, XQC_LOG_DEBUG, "|create success|scid:%s|dcid:%s|",  xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid));
     return xc;
 
 fail:
@@ -1292,3 +1293,5 @@ xqc_conn_addr_str(xqc_connection_t *conn)
              xqc_conn_peer_addr_str((struct sockaddr*)sa_peer, conn->peer_addrlen), ntohs(sa_peer->sin_port), xqc_dcid_str(&conn->dcid));
     return g_addr_str;
 }
+
+

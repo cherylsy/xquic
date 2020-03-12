@@ -314,6 +314,7 @@ struct xqc_connection_s{
     xqc_log_t              *log;
 
     xqc_send_ctl_t         *conn_send_ctl;
+    //xqc_send_ctl_info_t     ctl_info;
 
     xqc_msec_t              last_ticked_time;
     xqc_msec_t              next_tick_time;
