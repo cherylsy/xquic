@@ -74,6 +74,15 @@ typedef enum
 #define XQC_EDUP_FRAME      627 //重复的帧
 
 
+//xquic tls error code, for call
+#define XQC_EARLY_DATA_REJECT (-770)
+#define XQC_ENCRYPT_DATA_ERROR  (-790)
+#define XQC_DECRYPT_DATA_ERROR  (-791)
+#define XQC_TLS_CLIENT_INITIAL_ERROR (-780)
+#define XQC_TLS_CLIENT_REINTIAL_ERROR (-781)
+
+
+
 /* For HTTP3 application 8xx */
 #define XQC_H3_EMALLOC          800 //申请内存失败
 #define XQC_H3_ECREATE_STREAM   801 //创建流失败
