@@ -904,7 +904,7 @@ int main(int argc, char *argv[]) {
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
     int req_paral = 1;
-    char c_cong_ctl = 'c';
+    char c_cong_ctl = 'b';
     char c_log_level = 'd';
     int pacing_on = 0;
     int conn_timeout = 3;

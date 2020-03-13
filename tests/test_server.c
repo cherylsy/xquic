@@ -773,7 +773,7 @@ int main(int argc, char *argv[]) {
     g_ipv6 = 0;
 
     int server_port = TEST_PORT;
-    char c_cong_ctl = 'c';
+    char c_cong_ctl = 'b';
     char c_log_level = 'd';
     int pacing_on = 0;
 

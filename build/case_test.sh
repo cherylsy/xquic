@@ -165,37 +165,37 @@ grep_err_log
 
 clear_log
 echo -e "发送10M ...\c"
-./test_client -s 10240000 -l e -t 2 -E|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "BBR ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c bbr|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c bbr|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Reno with pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c reno -C|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c reno -C|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Reno without pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c reno|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c reno|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Cubic with pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c cubic -C|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c cubic -C|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Cubic without pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c cubic|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c cubic|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "流级流控 ...\c"
-./test_client -s 10240000 -l e -t 2 -E|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
@@ -232,3 +232,5 @@ clear_log
 echo -e "10%丢包率 ...\c"
 ./test_client -s 10240000 -l e -t 10 -E -d 100|grep ">>>>>>>> pass"
 grep_err_log
+
+killall test_server
