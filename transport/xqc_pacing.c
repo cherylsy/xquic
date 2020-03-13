@@ -26,7 +26,7 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
     uint64_t cwnd;
     if (ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
         pacing_rate = ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong);
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "zzl-cwnd == pacing: %l", pacing_rate);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|zzl-cwnd == pacing: %ui|", pacing_rate);
         return pacing_rate;
     }
 
