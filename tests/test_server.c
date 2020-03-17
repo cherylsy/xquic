@@ -601,7 +601,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 
 finish_recv:
     printf("recvfrom size:%zu\n", recv_sum);
-    xqc_engine_main_logic(ctx->engine);
+    xqc_engine_finish_recv(ctx->engine);
 }
 
 

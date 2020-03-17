@@ -765,7 +765,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
     } while (recv_size > 0);
 
     printf("recvfrom size:%zu\n", recv_sum);
-    xqc_engine_main_logic(ctx.engine);
+    xqc_engine_finish_recv(ctx.engine);
 }
 
 

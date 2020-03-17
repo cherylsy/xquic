@@ -581,7 +581,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     }
     engine->engine_flag |= XQC_ENG_FLAG_RUNNING;
 
-    //xqc_log(engine->log, XQC_LOG_DEBUG, "|");
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|");
 
     xqc_msec_t now = xqc_now();
     xqc_connection_t *conn;

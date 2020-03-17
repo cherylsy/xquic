@@ -121,7 +121,7 @@ add_library(
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     target_link_libraries(
        xquic
-       "-ldl -Wl,--whole-archive"
+       "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
        "-Wl,--no-whole-archive"
@@ -132,7 +132,7 @@ if(ANDROID_ABI STREQUAL "arm64-v8a")
 elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
     target_link_libraries(
             xquic
-            "-ldl -Wl,--whole-archive"
+            "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
             ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libssl.a
             ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libcrypto.a
             "-Wl,--no-whole-archive"
