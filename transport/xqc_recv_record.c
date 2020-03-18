@@ -17,6 +17,32 @@ xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record)
     }
 }
 
+void
+xqc_recv_record_print(xqc_connection_t *conn, xqc_recv_record_t *recv_record, char *buff, unsigned buff_size)
+{
+    xqc_list_head_t *pos;
+    xqc_pktno_range_node_t *pnode;
+    buff[0] = '\0';
+    xqc_pktno_range_t range[3]; //最多记录3段
+    memset(&range, 0, sizeof(range));
+    int range_count = 0;
+
+    xqc_list_for_each(pos, &recv_record->list_head) {
+        pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
+        range[range_count].high = pnode->pktno_range.high;
+        range[range_count].low = pnode->pktno_range.low;
+        range_count++;
+        if (range_count >= 3) {
+            break;
+        }
+    }
+
+    snprintf(buff, buff_size, "#%"PRIu64"-%"PRIu64"#%"PRIu64"-%"PRIu64"#%"PRIu64"-%"PRIu64"",
+             range[0].high, range[0].low,
+             range[1].high, range[1].low,
+             range[2].high, range[2].low);
+}
+
 static int
 xqc_pktno_range_can_merge (xqc_pktno_range_node_t *node, xqc_packet_number_t packet_number)
 {

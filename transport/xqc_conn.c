@@ -938,6 +938,7 @@ xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
             conn_stats.early_data_flag = XQC_0RTT_REJECT;
         }
     }
+    xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_01RTT], conn_stats.ack_info, sizeof(conn_stats.ack_info));
     return conn_stats;
 }
 
