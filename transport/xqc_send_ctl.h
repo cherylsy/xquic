@@ -12,7 +12,8 @@
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
 #define XQC_kGranularity 2
-#define XQC_kInitialRtt 500
+//#define XQC_kInitialRtt 500
+#define XQC_kInitialRtt 250
 
 //2^n
 #define xqc_send_ctl_pow(n) (1 << n)
