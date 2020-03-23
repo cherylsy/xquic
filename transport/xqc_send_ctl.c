@@ -605,6 +605,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *po, *largest_lost = NULL;
     int is_in_flight;
+    uint64_t lost_n = 0;
 
     ctl->ctl_loss_time[pns] = 0;
 
@@ -637,6 +638,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
             xqc_send_ctl_remove_unacked(po, ctl);
             if (is_in_flight) {
                 xqc_send_ctl_insert_lost(pos, &ctl->ctl_lost_packets);
+                lost_n++;
             } else {
                 xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
             }
@@ -668,9 +670,9 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
         xqc_msec_t now = xqc_now();
         if(ctl->ctl_info.last_lost_time + ctl->ctl_info.record_interval <= now){
             ctl->ctl_info.last_lost_time = now;
-            uint64_t lost_count = ctl->ctl_lost_count - ctl->ctl_info.last_lost_count;
+            uint64_t lost_count = ctl->ctl_lost_count + lost_n - ctl->ctl_info.last_lost_count;
             uint64_t send_count = ctl->ctl_send_count - ctl->ctl_info.last_send_count;
-            ctl->ctl_info.last_lost_count = ctl->ctl_lost_count;
+            ctl->ctl_info.last_lost_count = ctl->ctl_lost_count + lost_n;
             ctl->ctl_info.last_send_count = ctl->ctl_send_count;
             xqc_conn_log(ctl->ctl_conn, XQC_LOG_STATS, "|mark lost|lost_count:%ui|send_count:%ui|pkt_num:%ui|po_send_time:%ui|srtt:%ui|cwnd:%ui|",
                     lost_count, send_count, largest_lost->po_pkt.pkt_num, largest_lost->po_sent_time, ctl-> ctl_srtt, ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong) );
