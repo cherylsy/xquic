@@ -62,7 +62,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_pacing_init(&send_ctl->ctl_pacing, conn->conn_settings.pacing_on, send_ctl);
 
     send_ctl->ctl_info.record_interval = XQC_DEFAULT_RECORD_INTERVAL;
-    send_ctl->ctl_info.last_record_time = now;
+    send_ctl->ctl_info.last_record_time = 0;
     send_ctl->ctl_info.last_rtt_time = 0;
     send_ctl->ctl_info.last_lost_time = 0;
     send_ctl->ctl_info.last_bw_time = 0;
