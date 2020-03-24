@@ -319,6 +319,7 @@ struct xqc_connection_s{
     xqc_msec_t              last_ticked_time;
     xqc_msec_t              next_tick_time;
     xqc_msec_t              conn_create_time;
+    xqc_msec_t              handshake_complete_time;
 
     SSL                     *xc_ssl;   /*ssl for connection*/
     xqc_tlsref_t            tlsref;   //all tls reference
