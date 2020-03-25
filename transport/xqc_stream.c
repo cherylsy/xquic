@@ -998,6 +998,7 @@ xqc_stream_send (xqc_stream_t *stream,
     int support_0rtt = xqc_is_ready_to_send_early_data(conn);
     int buff_1rtt = 0;
 
+
     if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
         if ((conn->conn_type == XQC_CONN_TYPE_CLIENT) && (conn->conn_state == XQC_CONN_STATE_CLIENT_INITIAL_SENT) &&
             support_0rtt) {
@@ -1071,6 +1072,11 @@ do_buff:
             xqc_stream_buff_data(stream, send_data, offset, fin);
         }
     }
+
+    if((!conn->first_data_send_time) && ((stream->stream_type == XQC_CLI_BID) || (stream->stream_type == XQC_SVR_BID))){
+        conn->first_data_send_time = xqc_now();
+    }
+
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|ret:%d|stream_id:%ui|stream_send_offset:%ui|pkt_type:%s|buff_1rtt:%d|"
                                       "send_data_size:%uz|offset:%uz|fin:%d|stream_flag:%d|conn:%p|conn_state:%s|flag:%s|",

@@ -319,6 +319,8 @@ struct xqc_connection_s{
     xqc_msec_t              last_ticked_time;
     xqc_msec_t              next_tick_time;
     xqc_msec_t              conn_create_time;
+    xqc_msec_t              handshake_complete_time;//记录握手结束的时间
+    xqc_msec_t              first_data_send_time; //记录双向流第一次发送数据的时间
 
     SSL                     *xc_ssl;   /*ssl for connection*/
     xqc_tlsref_t            tlsref;   //all tls reference
