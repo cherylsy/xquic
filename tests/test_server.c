@@ -151,10 +151,36 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
     ssize_t ret;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    unsigned buff_size = 10000*1024;
-    user_stream->send_body = malloc(buff_size);
-    if (user_stream->send_offset < buff_size) {
-        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
+    if (user_stream->send_body == NULL) {
+        user_stream->send_body_max = MAX_BUF_SIZE;
+
+        /* echo > 指定大小 > 指定文件 > 默认大小 */
+        if (g_echo) {
+            user_stream->send_body = malloc(user_stream->recv_body_len);
+            memcpy(user_stream->send_body, user_stream->recv_body, user_stream->recv_body_len);
+            user_stream->send_body_len = user_stream->recv_body_len;
+        } else {
+            if (g_send_body_size_defined) {
+                user_stream->send_body = malloc(g_send_body_size);
+                user_stream->send_body_len = g_send_body_size;
+            } else if (g_read_body) {
+                user_stream->send_body = malloc(user_stream->send_body_max);
+                ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
+                if (ret < 0) {
+                    printf("read body error\n");
+                    return -1;
+                } else {
+                    user_stream->send_body_len = ret;
+                }
+            } else {
+                user_stream->send_body = malloc(g_send_body_size);
+                user_stream->send_body_len = g_send_body_size;
+            }
+        }
+    }
+
+    if (user_stream->send_offset < user_stream->send_body_len) {
+        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %zd\n", ret);
             return ret;
@@ -199,19 +225,54 @@ int xqc_server_stream_write_notify(xqc_stream_t *stream, void *user_data) {
 
 int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
     DEBUG;
+    unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
-    char buff[5000] = {0};
-    size_t buff_size = 5000;
 
+    if (g_echo && user_stream->recv_body == NULL) {
+        user_stream->recv_body = malloc(MAX_BUF_SIZE);
+        if (user_stream->recv_body == NULL) {
+            printf("recv_body malloc error\n");
+            return -1;
+        }
+    }
+
+    int save = g_save_body;
+
+    if (save && user_stream->recv_body_fp == NULL) {
+        user_stream->recv_body_fp = fopen(g_write_file, "wb");
+        if (user_stream->recv_body_fp == NULL) {
+            printf("open error\n");
+            return -1;
+        }
+    }
+
+    char buff[4096] = {0};
+    size_t buff_size = 4096;
     ssize_t read;
-    unsigned char fin;
+    ssize_t read_sum = 0;
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
-        printf("xqc_stream_recv %zd, fin:%d\n", read, fin);
         if (read < 0) {
+            printf("xqc_stream_recv error %zd\n", read);
             return read;
         }
+        read_sum += read;
+
+        /* 保存接收到的body到文件 */
+        if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+            printf("fwrite error\n");
+            return -1;
+        }
+        if (save) fflush(user_stream->recv_body_fp);
+
+        /* 保存接收到的body到内存 */
+        if (g_echo) {
+            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
+        }
+        user_stream->recv_body_len += read;
     } while (read > 0 && !fin);
+
+    printf("xqc_stream_recv read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
 
     if (fin) {
         xqc_server_stream_send(stream, user_data);
