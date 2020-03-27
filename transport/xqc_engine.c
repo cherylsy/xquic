@@ -776,7 +776,8 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             //RST包只有对端cid
             conn = xqc_engine_conns_hash_find(engine, &scid, 'd');
             if (conn) {
-                xqc_log(engine->log, XQC_LOG_WARN, "|====>|receive reset, enter draining|");
+                xqc_log(engine->log, XQC_LOG_WARN, "|====>|receive reset, enter draining|size:%uz|scid:%s|",
+                        packet_in_size, xqc_scid_str(&scid));
                 if (conn->conn_state < XQC_CONN_STATE_DRAINING) {
                     conn->conn_state = XQC_CONN_STATE_DRAINING;
                     xqc_send_ctl_drop_packets(conn->conn_send_ctl);

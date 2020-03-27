@@ -236,7 +236,7 @@ xqc_conn_create(xqc_engine_t *engine,
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid));
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid), xc);
     //xqc_conn_log(xc, XQC_LOG_DEBUG, "|create success|scid:%s|dcid:%s|",  xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid));
     return xc;
 
@@ -342,9 +342,9 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count, xc->conn_send_ctl->ctl_recv_count,
             xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
             xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
             (xc->handshake_complete_time > xc->conn_create_time) ? (xc->handshake_complete_time - xc->conn_create_time) : 0,
