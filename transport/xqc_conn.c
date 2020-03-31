@@ -630,7 +630,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
     xqc_list_head_t *pos, *next;
     ssize_t ret;
 
-    xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
+    /*xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
@@ -639,7 +639,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                 return;
             }
 
-            /* move send list to unacked list */
+            *//* move send list to unacked list *//*
             xqc_send_ctl_remove_send(&packet_out->po_list);
             xqc_send_ctl_insert_unacked(packet_out,
                                         &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
@@ -649,7 +649,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
         if (++cnt >= probe_num) {
             return;
         }
-    }
+    }*/
 
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
