@@ -342,11 +342,12 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|token_ok:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
             xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count, xc->conn_send_ctl->ctl_recv_count,
             xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
             xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
+            xc->conn_type == XQC_CONN_TYPE_SERVER ? (xc->conn_flag & XQC_CONN_FLAG_TOKEN_OK ? 1:0) : (-1),
             (xc->handshake_complete_time > xc->conn_create_time) ? (xc->handshake_complete_time - xc->conn_create_time) : 0,
             (xc->first_data_send_time > xc->conn_create_time) ? (xc->first_data_send_time - xc->conn_create_time) : 0,
             xqc_now() - xc->conn_create_time,
