@@ -13,9 +13,10 @@
 #include "include/xquic_typedef.h"
 
 
-#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
+//#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
-#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
+//#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
+#define DEBUG ;
 
 #define TEST_DROP (g_drop_rate != 0 && rand() % 1000 < g_drop_rate)
 
@@ -93,11 +94,17 @@ typedef struct user_conn_s {
 #define MAX_CONN_NUM 1000
 int g_use_1rtt = 0;
 int g_pacing_on = 0;
-int g_conn_num = 2;
+int g_conn_num = 100;
 int g_stream_num_per_conn = 2;
 int g_qpack_header_num = 2;
-int g_test_conc = 0;
-int g_test_new_create = 1;
+int g_test_conc = 1;
+int g_test_new_create = 0;
+
+#define MAX_HEAD_BUF_LEN 8096
+#define MAX_HEADER_COUNT 128
+static char g_header_buffer[MAX_HEAD_BUF_LEN];
+xqc_http_header_t g_header_array[MAX_HEADER_COUNT];
+int g_header_array_read_count = 0;
 
 int g_req_cnt;
 int g_req_max;
@@ -144,7 +151,7 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 int save_session_cb( char * data, size_t data_len, void *user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
-    printf("save_session_cb use server domain as the key. h3[%d]\n", user_conn->h3);
+    //printf("save_session_cb use server domain as the key. h3[%d]\n", user_conn->h3);
 
     FILE * fp  = fopen("test_session", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
@@ -161,7 +168,7 @@ int save_session_cb( char * data, size_t data_len, void *user_data)
 int save_tp_cb(char * data, size_t data_len, void * user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
-    printf("save_tp_cb use server domain as the key. h3[%d]\n", user_conn->h3);
+    //printf("save_tp_cb use server domain as the key. h3[%d]\n", user_conn->h3);
 
     FILE * fp = fopen("tp_localhost", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
@@ -203,7 +210,7 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     }
 
     ssize_t n = read(fd, token, token_len);
-    printf("read token size %zu\n", n);
+    //printf("read token size %zu\n", n);
     close(fd);
     return n;
 }
@@ -245,7 +252,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
         errno = 0;
         //res = write(fd, buf, size);
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
-        printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
+        //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
         }
@@ -326,6 +333,7 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
 
     client_ctx_t * ctx = user_conn->ctx;
     ctx->cur_conn_num--;
+    printf("---------------------connection close:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
     free(user_conn);
 
     return 0;
@@ -382,6 +390,12 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx->engine, cid);
     printf("send_count:%u, lost_count:%u, tlp_count:%u\n", stats.send_count, stats.lost_count, stats.tlp_count);
 
+    event_del(user_conn->ev_socket);
+
+    //client_ctx_t * ctx = user_conn->ctx;
+    ctx->cur_conn_num--;
+    printf("---------------------connection close:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
+
     free(user_conn);
     xqc_h3_conn_set_user_data(conn, NULL);
     return 0;
@@ -412,6 +426,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     }
     return 0;
 }
+
 
 int xqc_client_stream_write_notify(xqc_stream_t *stream, void *user_data)
 {
@@ -507,7 +522,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %zd\n", ret);
         } else {
-            printf("xqc_h3_request_send_headers success size=%zd\n", ret);
+            //printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
         }
     }
@@ -526,7 +541,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return ret;
         } else {
             user_stream->send_offset += ret;
-            printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
+            //printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
     }
 
@@ -562,7 +577,7 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
     user_conn_t * user_conn = user_stream->user_conn;
     xqc_request_stats_t stats;
     stats = xqc_h3_request_get_stats(h3_request);
-    printf("send_body_size:%zu, recv_body_size:%zu\n", stats.send_body_size, stats.recv_body_size);
+    //printf("send_body_size:%zu, recv_body_size:%zu\n", stats.send_body_size, stats.recv_body_size);
 
     if(user_stream->http_header.headers){
         free(user_stream->http_header.headers);
@@ -975,6 +990,100 @@ xqc_http_header_t g_headers[] = {
     },
 };
 
+
+//return numbers of header read from file
+int client_read_http_headers_from_file(xqc_http_header_t * header_array, int max_header_num, char * file_path){
+
+#if 0
+    int header_count = 0;
+    FILE * fp;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen(file_path, "r");
+    if(fp == NULL){
+        return header_count;
+    }
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+        if(header_count == 0){
+
+        }
+
+    }
+#endif
+
+    int read_len = read_file_data(g_header_buffer, sizeof(g_header_buffer) - 1, file_path);
+    if(read_len < 0){
+
+        return 0;
+    }
+
+    g_header_buffer[read_len] = '\0';
+
+    int header_count = 0;
+    char * p = g_header_buffer;
+
+    while(*p != '\0'){
+        char * start_p = p;
+        char *end_p = strchr(p, '\n');
+
+        if(end_p == NULL){
+            break;
+        }
+        *end_p = '\0';
+
+        if(header_count == 0){
+            char *split_p = strchr(p, ' ');
+            if(split_p == NULL){
+                printf("error http header file line:%s\n", p);
+            }else{
+                header_array[header_count].name.iov_base = p;
+                header_array[header_count].name.iov_len = split_p - p;
+                header_array[header_count].value.iov_base = split_p + 1;
+                header_array[header_count].value.iov_len = strlen(split_p + 1);
+                header_array[header_count].flags = 0;
+                if(header_array[header_count].name.iov_len == 0 || header_array[header_count].value.iov_len == 0){
+                    printf("error http header file line:%s\n", p);
+                }else{
+                    header_count++;
+                    if(header_count >= max_header_num){
+                        break;
+                    }
+                }
+            }
+        }else{
+            char *split_p = strchr(p, ':');
+
+            if(split_p == NULL){
+                if(*p != '\0'){
+                    printf("error http header file line:%s\n", p);
+                }
+            }else{
+                header_array[header_count].name.iov_base = p;
+                header_array[header_count].name.iov_len = split_p - p;
+                header_array[header_count].value.iov_base = split_p + 1;
+                header_array[header_count].value.iov_len = strlen(split_p + 1);
+                header_array[header_count].flags = 0;
+                if(header_array[header_count].name.iov_len == 0 || header_array[header_count].value.iov_len == 0){
+                    printf("error http header file line:%s\n", p);
+                }else{
+                    header_count++;
+                    if(header_count >= max_header_num){
+                        break;
+                    }
+                }
+            }
+        }
+
+        *end_p = '\n';
+        p = end_p;
+        p++;
+    }
+    return header_count;
+}
+
 #define MAX_QPACK_KEY_LEN 128
 #define MAX_QPACK_VALUE_LEN 4096
 #define HTTP_BODY_MAX_SIZE 1024*1024
@@ -989,18 +1098,38 @@ int client_prepare_http_header(user_stream_t * user_stream){
         return -1;
     }
     int i = 0;
-    for(i = 0; i < g_qpack_header_num; i++){
+    if(g_qpack_header_num <= g_header_array_read_count){
+        for(i = 0; i < g_qpack_header_num; i++){
+            xqc_http_header_t *hd = headers+i;
+            hd->name.iov_base = g_header_array[i].name.iov_base;
+            hd->name.iov_len = g_header_array[i].name.iov_len;
+            hd->value.iov_base = g_header_array[i].value.iov_base;
+            hd->value.iov_len = g_header_array[i].value.iov_len;
+            hd->flags = g_header_array[i].flags;
+        }
+    }else{
+        for(i = 0; i < g_header_array_read_count; i++){
+            xqc_http_header_t *hd = headers+i;
+            hd->name.iov_base = g_header_array[i].name.iov_base;
+            hd->name.iov_len = g_header_array[i].name.iov_len;
+            hd->value.iov_base = g_header_array[i].value.iov_base;
+            hd->value.iov_len = g_header_array[i].value.iov_len;
+            hd->flags = g_header_array[i].flags;
+        }
 
-        xqc_http_header_t *hd = headers+i;
-        int m = 0, n = 0;
-        m = rand();
-        n = rand();
-        hd->name.iov_base = g_qpack_key;
-        hd->name.iov_len = m%(128 - 1) + 1;
 
-        hd->value.iov_base = g_qpack_value;
-        hd->value.iov_len = n%(4095-1) + 1;
-        hd->flags = 0;
+        for(i = g_header_array_read_count; i < g_qpack_header_num; i++){
+            xqc_http_header_t *hd = headers+i;
+            int m = 0, n = 0;
+            m = rand();
+            n = rand();
+            hd->name.iov_base = g_qpack_key;
+            hd->name.iov_len = m%(128 - 1) + 1;
+
+            hd->value.iov_base = g_qpack_value;
+            hd->value.iov_len = n%(4095-1) + 1;
+            hd->flags = 0;
+        }
     }
 
     user_stream->http_header.headers = headers;
@@ -1160,6 +1289,10 @@ int main(int argc, char *argv[]) {
     }
 
 #endif
+
+    char *header_file = "./http_header_file";
+    g_header_array_read_count = client_read_http_headers_from_file(g_header_array, MAX_HEADER_COUNT, header_file);
+
 
     client_ctx_t * ctx = NULL;
     ctx = client_create_context_new();
