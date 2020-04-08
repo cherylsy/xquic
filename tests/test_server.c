@@ -136,8 +136,8 @@ int xqc_server_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
-    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, early_data_flag:%d, conn_err:%d, ack_info:%s\n",
-           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.early_data_flag, stats.conn_err, stats.ack_info);
+    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
+           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
 
     free(user_conn);
     return 0;
@@ -306,8 +306,8 @@ int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
-    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, early_data_flag:%d, conn_err:%d, ack_info:%s\n",
-           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.early_data_flag, stats.conn_err, stats.ack_info);
+    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
+           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
 
     free(user_conn);
     //event_base_loopbreak(eb);
@@ -591,11 +591,12 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
     struct sockaddr_in6 peer_addr;
     socklen_t peer_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 #ifdef __linux__
-    int batch = 1;
+    int batch = 0; /* 不一定是同一条连接上的包 */
     if (batch) {
-#define VLEN 10
+#define VLEN 100
 #define BUFSIZE XQC_PACKET_TMP_BUF_LEN
 #define TIMEOUT 10
+        struct sockaddr_in6 pa[VLEN];
         struct mmsghdr msgs[VLEN];
         struct iovec iovecs[VLEN];
         char bufs[VLEN][BUFSIZE+1];
@@ -609,7 +610,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
                 iovecs[i].iov_len = BUFSIZE;
                 msgs[i].msg_hdr.msg_iov = &iovecs[i];
                 msgs[i].msg_hdr.msg_iovlen = 1;
-                msgs[i].msg_hdr.msg_name = &peer_addr;
+                msgs[i].msg_hdr.msg_name = &pa[i];
                 msgs[i].msg_hdr.msg_namelen = peer_addrlen;
             }
 
@@ -627,7 +628,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 
                 if (xqc_engine_packet_process(ctx->engine, iovecs[i].iov_base, msgs[i].msg_len,
                                               (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
-                                              (struct sockaddr *) (&peer_addr), peer_addrlen, (xqc_msec_t) recv_time,
+                                              (struct sockaddr *) (&pa[i]), peer_addrlen, (xqc_msec_t) recv_time,
                                               NULL) != 0) {
                     printf("xqc_server_read_handler: packet process err\n");
                     return;
@@ -724,7 +725,7 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
         goto err;
     }
 
-    int size = 1 * 1024 * 1024;
+    int size = 10 * 1024 * 1024;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
@@ -764,7 +765,7 @@ err:
 static void
 xqc_server_engine_callback(int fd, short what, void *arg)
 {
-    DEBUG;
+    //DEBUG;
     printf("timer wakeup now:%"PRIu64"\n", now());
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) arg;
 
