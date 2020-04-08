@@ -35,6 +35,17 @@
 
 typedef struct user_conn_s user_conn_t;
 
+typedef struct user_stats{
+    uint64_t        conc_conn_count;
+    uint64_t        conc_stream_count;
+
+    uint64_t        send_bytes_count;
+    uint64_t        recv_bytes_count;
+    uint64_t        send_request_count;
+    uint64_t        recv_respont_count;
+}user_stats_t;
+
+
 typedef struct user_stream_s {
     xqc_stream_t       *stream;
     xqc_h3_request_t   *h3_request;
@@ -95,16 +106,18 @@ typedef struct user_conn_s {
 int g_use_1rtt = 0;
 int g_pacing_on = 0;
 int g_conn_num = 100;
-int g_stream_num_per_conn = 2;
-int g_qpack_header_num = 2;
-int g_test_conc = 1;
-int g_test_new_create = 0;
+int g_stream_num_per_conn = 10;
+int g_qpack_header_num = 10;
+int g_test_conc = 0;
+int g_test_new_create = 1;
 
 #define MAX_HEAD_BUF_LEN 8096
 #define MAX_HEADER_COUNT 128
 static char g_header_buffer[MAX_HEAD_BUF_LEN];
 xqc_http_header_t g_header_array[MAX_HEADER_COUNT];
 int g_header_array_read_count = 0;
+user_stats_t g_user_stats;
+
 
 int g_req_cnt;
 int g_req_max;
@@ -256,6 +269,9 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
         }
+        if(res > 0){
+            g_user_stats.send_bytes_count += res;
+        }
     } while ((res < 0) && (errno == EINTR));
     /*socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);*/
@@ -333,6 +349,7 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
 
     client_ctx_t * ctx = user_conn->ctx;
     ctx->cur_conn_num--;
+    g_user_stats.conc_conn_count--;
     printf("---------------------connection close:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
     free(user_conn);
 
@@ -369,6 +386,7 @@ int check_close_user_conn(user_conn_t * user_conn){
     client_ctx_t *ctx = user_conn->ctx;
 
     event_del(user_conn->ev_socket);
+    printf("xqc_conn_close :%p, total conn:%d\n", user_conn, ctx->cur_conn_num);
     int rc = xqc_conn_close(ctx->engine, &user_conn->cid);
     if(rc){
 
@@ -528,23 +546,29 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (header_only) {
+        g_user_stats.send_request_count++;
         return 0;
     }
 
     int fin = 1; //request send fin
-    if (user_stream->send_offset < user_stream->send_body_len) {
+    while(user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
         if (ret == -XQC_EAGAIN) {
             return 0;
         } else if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
             return ret;
-        } else {
+        } else if(ret == 0){
+            break;
+        }else {
             user_stream->send_offset += ret;
             //printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
     }
 
+    if(user_stream->send_offset == user_stream->send_body_len){
+        g_user_stats.send_request_count++;
+    }
     return 0;
 }
 
@@ -587,6 +611,7 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
     free(user_stream);
 
     user_conn->cur_stream_num--;
+    g_user_stats.conc_stream_count--;
     check_close_user_conn(user_conn);
 
     return 0;
@@ -616,6 +641,9 @@ xqc_client_read_handler(user_conn_t *user_conn)
         if (recv_size < 0) {
             printf("xqc_client_read_handler: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
+        }
+        if(recv_size > 0){
+            g_user_stats.recv_bytes_count += recv_size;
         }
         uint64_t recv_time = now();
         //printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
@@ -803,7 +831,7 @@ client_ctx_t * client_create_context_new(){
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = XQC_LOG_DEBUG,
+                    .log_level = XQC_LOG_ERROR,
                     //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
@@ -1177,6 +1205,7 @@ int benchmark_run(client_ctx_t *ctx, int conn_num){
             }
 
             user_conn->cur_stream_num++;
+            g_user_stats.conc_stream_count++;
 
             client_prepare_http_data(user_stream);
 
@@ -1184,6 +1213,7 @@ int benchmark_run(client_ctx_t *ctx, int conn_num){
 
         }
         ctx->cur_conn_num++;
+        g_user_stats.conc_conn_count++;
         printf("*****************create connection:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
     }
 
@@ -1221,6 +1251,8 @@ int main(int argc, char *argv[]) {
 
     memset(g_qpack_key, 'k', sizeof(g_qpack_key));
     memset(g_qpack_value, 'v', sizeof(g_qpack_value));
+
+    memset(&g_user_stats, 0, sizeof(user_stats_t));
 
 #if 0
     client_ctx_t * ctx = malloc(sizeof(client_ctx_t));
