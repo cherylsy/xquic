@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <inttypes.h>
+#include <pthread.h>
+//#include <cstdio>
 #include "include/xquic.h"
 #include "include/xquic_typedef.h"
 
@@ -35,14 +37,17 @@
 
 typedef struct user_conn_s user_conn_t;
 
+
 typedef struct user_stats{
+    uint64_t        total_conn_count;
+    uint64_t        total_stream_count;
     uint64_t        conc_conn_count;
     uint64_t        conc_stream_count;
 
     uint64_t        send_bytes_count;
     uint64_t        recv_bytes_count;
     uint64_t        send_request_count;
-    uint64_t        recv_respont_count;
+    uint64_t        recv_response_count;
 }user_stats_t;
 
 
@@ -106,10 +111,12 @@ typedef struct user_conn_s {
 int g_use_1rtt = 0;
 int g_pacing_on = 0;
 int g_conn_num = 100;
+int g_max_conn_num = MAX_CONN_NUM;
 int g_stream_num_per_conn = 10;
 int g_qpack_header_num = 10;
 int g_test_conc = 0;
 int g_test_new_create = 1;
+int g_test_mode = 0;
 
 #define MAX_HEAD_BUF_LEN 8096
 #define MAX_HEADER_COUNT 128
@@ -118,6 +125,7 @@ xqc_http_header_t g_header_array[MAX_HEADER_COUNT];
 int g_header_array_read_count = 0;
 user_stats_t g_user_stats;
 
+FILE * g_stats_fp;
 
 int g_req_cnt;
 int g_req_max;
@@ -346,11 +354,13 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
     event_del(user_conn->ev_socket);
+    event_del(user_conn->ev_timeout);
 
     client_ctx_t * ctx = user_conn->ctx;
     ctx->cur_conn_num--;
     g_user_stats.conc_conn_count--;
     printf("---------------------connection close:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
+    close(user_conn->fd);
     free(user_conn);
 
     return 0;
@@ -412,6 +422,7 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
 
     //client_ctx_t * ctx = user_conn->ctx;
     ctx->cur_conn_num--;
+    g_user_stats.conc_conn_count--;
     printf("---------------------connection close:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
 
     free(user_conn);
@@ -695,16 +706,16 @@ static void xqc_client_concurrent_callback(int fd, short what, void *arg){
     tv.tv_usec = 0;
     event_add(ctx->ev_conc, &tv);
 
-    if(g_test_conc){
+    if(g_test_mode == 0){
         if(ctx->cur_conn_num < g_conn_num){
             if(benchmark_run(ctx, g_conn_num - ctx->cur_conn_num ) < 0){
                 printf("create connection failed\n");
             }
         }
-    }else if(g_test_new_create){
+    }else if(g_test_mode == 1){
         printf("******** calltime:%lu", now());
-        if(ctx->cur_conn_num >= MAX_CONN_NUM){
-            printf("******* current conn num:%d, max conn num:%d\n", ctx->cur_conn_num, MAX_CONN_NUM);
+        if(ctx->cur_conn_num >= g_max_conn_num){
+            printf("******* current conn num:%d, max conn num:%d\n", ctx->cur_conn_num, g_max_conn_num);
         }else{
             if(benchmark_run(ctx, g_conn_num) < 0){
                 printf("create connection failed1\n");
@@ -1206,7 +1217,7 @@ int benchmark_run(client_ctx_t *ctx, int conn_num){
 
             user_conn->cur_stream_num++;
             g_user_stats.conc_stream_count++;
-
+            g_user_stats.total_stream_count++;
             client_prepare_http_data(user_stream);
 
             xqc_client_request_send(user_stream->h3_request, user_stream);
@@ -1214,10 +1225,129 @@ int benchmark_run(client_ctx_t *ctx, int conn_num){
         }
         ctx->cur_conn_num++;
         g_user_stats.conc_conn_count++;
+        g_user_stats.total_conn_count++;
         printf("*****************create connection:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
     }
 
     return 0;
+}
+
+int client_print_stats(){
+
+    static uint64_t last_record_time = 0;
+    static user_stats_t last_user_stats;
+
+    uint64_t cur_time = now();
+
+    if(last_record_time > 0){
+
+        struct timeval tv;
+        gettimeofday(&tv, NULL);
+
+        struct tm tm;
+        localtime_r(&tv.tv_sec, &tm);
+        tm.tm_mon++;
+        tm.tm_year += 1900;
+        fprintf(g_stats_fp, "%4d/%02d/%02d %02d:%02d:%02d %06ld\n",
+                tm.tm_year, tm.tm_mon,
+                tm.tm_mday, tm.tm_hour,
+                tm.tm_min, tm.tm_sec, tv.tv_usec);
+        fprintf(g_stats_fp, "total_conn:%lu, total_stream:%lu, conc_conn:%lu, conc_stream:%lu, total_send:%lu, total_recv:%lu, total_req:%lu, total_res:%lu\n",
+                g_user_stats.total_conn_count, g_user_stats.total_stream_count, g_user_stats.conc_conn_count, g_user_stats.conc_stream_count,
+                g_user_stats.send_bytes_count, g_user_stats.recv_bytes_count, g_user_stats.send_request_count, g_user_stats.recv_response_count);
+
+        uint64_t past_time = cur_time - last_record_time;
+        uint64_t new_conn = g_user_stats.total_conn_count - last_user_stats.total_conn_count;
+        uint64_t new_stream = g_user_stats.total_stream_count - last_user_stats.total_stream_count;
+        uint64_t send_b = g_user_stats.send_bytes_count - last_user_stats.send_bytes_count;
+        uint64_t recv_b = g_user_stats.recv_bytes_count - last_user_stats.recv_bytes_count;
+        uint64_t send_req = g_user_stats.send_request_count - last_user_stats.send_request_count;
+        uint64_t recv_res = g_user_stats.recv_response_count - last_user_stats.recv_response_count;
+
+        new_conn = (new_conn * 1000000)/past_time;
+        new_stream = (new_stream * 1000000)/past_time;
+        send_b = (send_b *1000000)/past_time;
+        recv_b = (recv_b *1000000)/past_time;
+        send_req = (send_req * 1000000)/past_time;
+        recv_res = (recv_res * 1000000)/past_time;
+        fprintf(g_stats_fp,"new_conn_rate:%lu, new_stream_rate:%lu, send_byte_rate:%luKB, recv_byte_rate:%luKB, send_req_rate:%lu, recv_req_rate:%lu\n\n",
+                new_conn, new_stream, send_b/1000, recv_b/1000, send_req, recv_res);
+
+        fflush(g_stats_fp);
+    }
+    memcpy(&last_user_stats, &g_user_stats, sizeof(user_stats_t));
+    last_record_time = cur_time;
+
+    return 0;
+}
+
+void print_stat_thread(void){
+
+    while(1){
+        client_print_stats();
+        sleep(1);
+    }
+}
+
+int parse_args(int argc, char *argv[]){
+
+    int ch = 0;
+    printf("useage: \n"
+            "-c create connection per second \n"
+            "-C MAX connection num \n"
+            "-s stream num per conn \n"
+            "-q qpack header key_value num \n"
+            "-m test mode: 0 test concurrent, 1 test new create mode\n");
+    sleep(1);
+    while((ch = getopt(argc, argv, "a:p:c:C:s:q:m:")) != -1){
+        switch(ch)
+        {
+
+            case 'a':
+                printf("option a:'%s'\n", optarg);
+                //snprintf(server_addr, sizeof(server_addr), optarg);
+                break;
+            case 'p':
+                printf("option port :%s\n", optarg);
+                //server_port = atoi(optarg);
+                break;
+
+            case 'c':
+                printf("create connection per second :%s\n", optarg);
+                g_conn_num = atoi(optarg);
+                break;
+            case 'C':
+                printf("MAX connection num:%s\n", optarg);
+                g_max_conn_num = atoi(optarg);
+                break;
+            case 's':
+                printf("stream num per conn :%s\n", optarg);
+                g_stream_num_per_conn = atoi(optarg);
+                break;
+            case 'q':
+                printf("qpack header key_value num :%s\n", optarg);
+                g_qpack_header_num = atoi(optarg);
+                break;
+            case 'm':
+                g_test_mode = atoi(optarg);
+                if(atoi(optarg) == 0){
+                    printf("test mode : 测试并发模式\n");
+                }else if(atoi(optarg) == 1){
+                    printf("test mode : 测试新建模式\n");
+                }else{
+                    printf("error mode :%s", optarg);
+                    return -1;
+                }
+                break;
+
+            default:
+                printf("other option :%c\n", ch);
+                return -1;
+
+        }
+    }
+    return 0;
+
 }
 
 int main(int argc, char *argv[]) {
@@ -1229,30 +1359,17 @@ int main(int argc, char *argv[]) {
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
 
-    int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:")) != -1){
-        switch(ch)
-        {
-            case 'a':
-                printf("option a:'%s'\n", optarg);
-                snprintf(server_addr, sizeof(server_addr), optarg);
-                break;
-            case 'p':
-                printf("option port :%s\n", optarg);
-                server_port = atoi(optarg);
-                break;
-
-            default:
-                printf("other option :%c\n", ch);
-                exit(0);
-        }
-
+    if(parse_args(argc, argv) < 0){
+        printf("parse arg error\n");
+        return -1;
     }
 
     memset(g_qpack_key, 'k', sizeof(g_qpack_key));
     memset(g_qpack_value, 'v', sizeof(g_qpack_value));
 
     memset(&g_user_stats, 0, sizeof(user_stats_t));
+
+    g_stats_fp = fopen("b_stats", "wb");
 
 #if 0
     client_ctx_t * ctx = malloc(sizeof(client_ctx_t));
@@ -1336,6 +1453,14 @@ int main(int argc, char *argv[]) {
     if(benchmark_run(ctx, g_conn_num) < 0){
         printf("***************benchmark_run failed\n");
     }
+
+    pthread_t id;
+    int ret = pthread_create(&id, NULL, (void *)print_stat_thread, NULL);
+    if(ret != 0){
+        printf ("Create pthread error!\n");
+        exit(0);
+    }
+
 
     event_base_dispatch(ctx->eb);
 }
