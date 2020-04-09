@@ -666,7 +666,13 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                 if (ret < 0) {
                     return;
                 }
+
                 if(pns >= XQC_PNS_01RTT){ //握手报文不能够受每次重传报文个数的限制，否则握手报文传输不完整，无法生成加密key，也没有办法回复ack
+                    /* 重新插入尾部，保持unack队列里按pkt_num排序 */
+                    xqc_send_ctl_remove_unacked(packet_out, conn->conn_send_ctl);
+                    xqc_send_ctl_insert_unacked(packet_out,
+                                                &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                                conn->conn_send_ctl);
                     if (++cnt >= probe_num) {
                         return;
                     }
