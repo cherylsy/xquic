@@ -487,6 +487,10 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                 } else {
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing passed|");
                 }
+
+                if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
+                    xqc_pacing_on_packet_sent(&ctl->ctl_pacing, ctl, ctl->ctl_conn, packet_out);
+                }
             }
         }
 

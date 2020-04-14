@@ -400,10 +400,10 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
 
     }
 
-    if (xqc_pacing_is_on(&ctl->ctl_pacing) && ctl->ctl_pacing.ref) {
-        ctl->ctl_pacing.ref = 0;
-        xqc_pacing_on_packet_sent(&ctl->ctl_pacing, ctl, ctl->ctl_conn, packet_out);
-    }
+//    if (xqc_pacing_is_on(&ctl->ctl_pacing) && ctl->ctl_pacing.ref) {
+//        ctl->ctl_pacing.ref = 0;
+//        xqc_pacing_on_packet_sent(&ctl->ctl_pacing, ctl, ctl->ctl_conn, packet_out);
+//    }
 
 }
 
