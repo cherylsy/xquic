@@ -26,7 +26,7 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
     uint64_t cwnd;
     if (ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
         pacing_rate = ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong);
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|zzl-cwnd == pacing: %ui|", pacing_rate);
+        //xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|zzl-cwnd == pacing: %ui|", pacing_rate);
         return pacing_rate;
     }
 
@@ -79,9 +79,6 @@ xqc_pacing_bw_estimate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
  */
 void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
                                xqc_connection_t *conn, xqc_packet_out_t *packet_out) {
-    if (ctl->ctl_bytes_in_flight == 0) {
-        pacing->burst_tokens = XQC_MAX_BURST_NUM;
-    }
 
     if (pacing->burst_tokens > 0) {
         --pacing->burst_tokens;
@@ -112,6 +109,7 @@ void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
         if (bandwidth_estimate < smallest_bandwidth) {
             pacing->lumpy_tokens = 1;
         }
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|bandwidth_estimate:%ui|", bandwidth_estimate);
     }
 
     --pacing->lumpy_tokens;
@@ -129,11 +127,15 @@ void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
      */
 
     uint64_t cwnd = ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
-    if (ctl->ctl_bytes_in_flight + packet_out->po_used_size < cwnd) {
+    if (ctl->ctl_bytes_in_flight < cwnd) {
         pacing->pacing_limited = 1;
     } else {
         pacing->pacing_limited = 0;
     }
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|delay:%ud|delta:%i|pacing_limited:%d|pacing_rate:%ui|burst_tokens:%ud|lumpy_tokens:%ud|",
+            delay, (int64_t)pacing->ideal_next_packet_send_time - xqc_now(), pacing->pacing_limited, pacing_rate,
+            ctl->ctl_pacing.burst_tokens, ctl->ctl_pacing.lumpy_tokens);
 }
 
 uint64_t xqc_pacing_time_until_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
@@ -159,14 +161,16 @@ uint64_t xqc_pacing_time_until_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
 int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
                          xqc_connection_t *conn, xqc_packet_out_t *packet_out) {
 
-    uint64_t smallest_bandwidth = 1.2 * 1000000 / 8;
+
+    pacing->ref = 1;
+     uint64_t smallest_bandwidth = 1.2 * 1000000 / 8;
     uint64_t pacing_rate = xqc_pacing_rate_calc(pacing, ctl);
 
     if (pacing_rate < smallest_bandwidth)
         return true;
 
-    if (packet_out->po_flag & XQC_POF_LOST) {
-        return true;
+    if (ctl->ctl_bytes_in_flight == 0) {
+        pacing->burst_tokens = XQC_MAX_BURST_NUM;
     }
 
     // check timer
@@ -184,7 +188,7 @@ int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
     if (delay != 0) {
         // update timer
         xqc_send_pacing_timer_update(ctl, XQC_TIMER_PACING, xqc_now() + delay);
-
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|PACING timer update|delay:%ui|", delay);
         return false;
     }
 

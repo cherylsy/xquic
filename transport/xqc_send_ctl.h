@@ -179,7 +179,7 @@ void
 xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
 
 int
-xqc_send_ctl_can_send (xqc_connection_t *conn);
+xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
 void
 xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
@@ -308,6 +308,8 @@ xqc_send_pacing_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc
     ctl->ctl_timer[type].ctl_expire_time = expire;
 
     ctl->ctl_timer[type].ctl_pacing_time_isexpire = 0;
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|",
+            xqc_timer_type_2_str(type), expire, xqc_now());
 }
 
 static inline void
@@ -321,6 +323,8 @@ xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, 
     if (was_set) {
         // update
         ctl->ctl_timer[type].ctl_expire_time = new_expire;
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|new_expire:%ui|now:%ui|",
+                xqc_timer_type_2_str(type), new_expire, xqc_now());
     } else {
         xqc_send_pacing_timer_set(ctl, type, new_expire);
     }

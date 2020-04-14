@@ -477,13 +477,15 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             /* 优先级高的包一定在前面 */
-            if (!xqc_send_ctl_can_send(conn)) {
+            if (!xqc_send_ctl_can_send(conn, packet_out)) {
                 break;
             }
             if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
                 if (!xqc_pacing_can_write(&ctl->ctl_pacing, ctl, conn, packet_out)) {
-                    //printf("pacing blocked， ts: %"PRIu64"\n", xqc_now());
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
                     break;
+                } else {
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing passed|");
                 }
             }
         }
