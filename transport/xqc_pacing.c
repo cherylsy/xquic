@@ -170,6 +170,12 @@ int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
         pacing->burst_tokens = XQC_MAX_BURST_NUM;
     }
 
+    if (packet_out->po_flag & XQC_POF_LOST) {
+//        pacing->burst_tokens = 0;
+        printf("pacing-packet lost\n");
+        return true;
+    }
+
     // check timer
     if (xqc_send_pacing_timer_isset(ctl, XQC_TIMER_PACING)) {
         return false;
