@@ -236,7 +236,7 @@ xqc_conn_create(xqc_engine_t *engine,
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid));
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid), xc);
     //xqc_conn_log(xc, XQC_LOG_DEBUG, "|create success|scid:%s|dcid:%s|",  xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid));
     return xc;
 
@@ -342,11 +342,12 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|has_0rtt:%d|0rtt_accept:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
+    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|token_ok:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count, xc->conn_send_ctl->ctl_recv_count,
             xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
             xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
+            xc->conn_type == XQC_CONN_TYPE_SERVER ? (xc->conn_flag & XQC_CONN_FLAG_TOKEN_OK ? 1:0) : (-1),
             (xc->handshake_complete_time > xc->conn_create_time) ? (xc->handshake_complete_time - xc->conn_create_time) : 0,
             (xc->first_data_send_time > xc->conn_create_time) ? (xc->first_data_send_time - xc->conn_create_time) : 0,
             xqc_now() - xc->conn_create_time,
@@ -630,7 +631,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
     xqc_list_head_t *pos, *next;
     ssize_t ret;
 
-    xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
+    /*xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
@@ -639,7 +640,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                 return;
             }
 
-            /* move send list to unacked list */
+            *//* move send list to unacked list *//*
             xqc_send_ctl_remove_send(&packet_out->po_list);
             xqc_send_ctl_insert_unacked(packet_out,
                                         &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
@@ -649,7 +650,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
         if (++cnt >= probe_num) {
             return;
         }
-    }
+    }*/
 
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
@@ -665,7 +666,13 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                 if (ret < 0) {
                     return;
                 }
+
                 if(pns >= XQC_PNS_01RTT){ //握手报文不能够受每次重传报文个数的限制，否则握手报文传输不完整，无法生成加密key，也没有办法回复ack
+                    /* 重新插入尾部，保持unack队列里按pkt_num排序 */
+                    xqc_send_ctl_remove_unacked(packet_out, conn->conn_send_ctl);
+                    xqc_send_ctl_insert_unacked(packet_out,
+                                                &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
+                                                conn->conn_send_ctl);
                     if (++cnt >= probe_num) {
                         return;
                     }

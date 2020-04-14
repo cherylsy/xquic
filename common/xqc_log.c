@@ -19,5 +19,5 @@ xqc_log_callbacks_t null_log_cb = {
         .xqc_open_log_file = xqc_open_log_file_default,
         .xqc_close_log_file = xqc_close_log_file_default,
         .xqc_write_log_file = xqc_write_log_file_default,
-        .log_level = XQC_LOG_DEBUG,
+        .log_level = XQC_LOG_STATS,
 };

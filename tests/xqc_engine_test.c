@@ -31,9 +31,9 @@ void xqc_test_engine_create()
 
 void xqc_test_engine_packet_process()
 {
-    const struct sockaddr * local_addr = NULL;
+    struct sockaddr local_addr;
     socklen_t local_addrlen = 0;
-    const struct sockaddr * peer_addr = NULL;
+    struct sockaddr peer_addr;
     socklen_t peer_addrlen = 0;
 
     xqc_engine_t *engine = test_create_engine();
@@ -43,9 +43,9 @@ void xqc_test_engine_packet_process()
     xqc_msec_t recv_time = xqc_now();
 
     xqc_int_t rc = xqc_engine_packet_process(engine, 
-                         XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1, 
-                         local_addr, local_addrlen, 
-                         peer_addr, peer_addrlen, recv_time, NULL);
+                         XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1,
+                                             (struct sockaddr *)(&local_addr), local_addrlen,
+                                             (struct sockaddr *)(&peer_addr), peer_addrlen, recv_time, NULL);
     //CU_ASSERT(rc == XQC_OK);
 
     /* get connection */
@@ -64,9 +64,9 @@ void xqc_test_engine_packet_process()
 
     recv_time = xqc_now();
     rc = xqc_engine_packet_process(engine, 
-                         XQC_TEST_SHORT_HEADER_PACKET_A, sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1, 
-                         local_addr, local_addrlen, 
-                         peer_addr, peer_addrlen, recv_time, NULL);
+                         XQC_TEST_SHORT_HEADER_PACKET_A, sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1,
+                                   (struct sockaddr *)&local_addr, local_addrlen,
+                                   (struct sockaddr *)&peer_addr, peer_addrlen, recv_time, NULL);
     //CU_ASSERT(rc == XQC_OK);
 
     xqc_engine_destroy(engine);

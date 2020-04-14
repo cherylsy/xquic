@@ -870,9 +870,11 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     // Calculate PTO duration
     if (ctl->ctl_srtt == 0) {
         timeout = 2 * XQC_kInitialRtt * 1000;
-    } else {
-        timeout = ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity * 1000) +
+    } else if (ctl->ctl_srtt == ctl->ctl_latest_rtt && ctl->ctl_rttvar == ctl->ctl_srtt >> 1) { //第一次计算出的rttvar=srtt/2值比较大
+        timeout = ctl->ctl_srtt + xqc_max(1 * ctl->ctl_rttvar, XQC_kGranularity * 1000) +
                   ctl->ctl_conn->local_settings.max_ack_delay * 1000;
+    } else {
+        timeout = xqc_send_ctl_calc_pto(ctl);
     }
     timeout = timeout * xqc_send_ctl_pow(ctl->ctl_pto_count);
 
@@ -880,8 +882,8 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
             ctl->ctl_time_of_last_sent_ack_eliciting_packet + timeout);
 
     xqc_log(conn->log, XQC_LOG_DEBUG,
-            "|PTO|xqc_send_ctl_timer_set|ctl_time_of_last_sent_ack_eliciting_packet:%ui|timeout:%ui|",
-            ctl->ctl_time_of_last_sent_ack_eliciting_packet, timeout);
+            "|PTO|xqc_send_ctl_timer_set|ctl_time_of_last_sent_ack_eliciting_packet:%ui|pto_count:%ud|timeout:%ui|",
+            ctl->ctl_time_of_last_sent_ack_eliciting_packet, ctl->ctl_pto_count, timeout);
 }
 
 /**
