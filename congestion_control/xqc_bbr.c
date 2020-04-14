@@ -132,6 +132,7 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     uint32_t bandwidth;
     /*Calculate the new bandwidth, bytes per second */
     bandwidth = 1.0 * sampler->delivered / sampler->interval * msec2sec;
+    printf("updatebw: del: %u, interval: %lu\n", sampler->delivered, sampler->interval);
 
     if(!sampler->is_app_limited || bandwidth >= xqc_bbr_max_bw(bbr))
     {
@@ -154,6 +155,8 @@ static uint32_t xqc_bbr_target_cwnd(xqc_bbr_t *bbr, float gain)
     if (cwnd == 0) {
         cwnd = gain * bdp;
     }
+
+    printf("zzl-cwnd : %u , min_rtt: %lu, bandwidth: %u\n", cwnd, bbr->min_rtt, xqc_win_filter_get(&bbr->bandwidth));
 
     return xqc_max(cwnd, XQC_kMinimumWindow);
 }
@@ -488,9 +491,9 @@ static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
 
-    if (bbr->mode == BBR_STARTUP)
-        return 0xffffffff;
-
+//    if (bbr->mode == BBR_STARTUP)
+//        return 0xffffffff;
+//    return 0xffffffff;
     return bbr->pacing_rate;
 }
 
