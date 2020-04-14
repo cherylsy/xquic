@@ -493,7 +493,6 @@ static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)
 
 //    if (bbr->mode == BBR_STARTUP)
 //        return 0xffffffff;
-//    return 0xffffffff;
     return bbr->pacing_rate;
 }
 

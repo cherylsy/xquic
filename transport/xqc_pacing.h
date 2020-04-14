@@ -13,7 +13,6 @@ typedef struct xqc_pacing_s {
     uint32_t            burst_num;
     int                 timer_expire;
     int                 on;
-    int                 ref;
 
     /* add by zhiyou */
     int pacing_limited;

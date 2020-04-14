@@ -488,7 +488,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing passed|");
                 }
 
-                if (xqc_pacing_is_on(&ctl->ctl_pacing) && packet_out->po_frame_types != XQC_FRAME_BIT_MAX_DATA) {
+                if (xqc_pacing_is_on(&ctl->ctl_pacing) && (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)) {
                     xqc_pacing_on_packet_sent(&ctl->ctl_pacing, ctl, ctl->ctl_conn, packet_out);
                 }
             }

@@ -427,6 +427,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
     xqc_pkt_num_space_t pns = ack_info->pns;
     unsigned char need_del_record = 0;
+    int stream_frame_acked = 0;
 
     if (lagest_ack > ctl->ctl_largest_sent[pns]) {
         xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|%ui|", lagest_ack);
@@ -456,6 +457,10 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
             if (packet_out->po_largest_ack > ctl->ctl_largest_ack_both[pns]) {
                 ctl->ctl_largest_ack_both[pns] = packet_out->po_largest_ack;
                 need_del_record = 1;
+            }
+
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+                stream_frame_acked = 1;
             }
 
             xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
@@ -506,7 +511,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                ctl->sampler.srtt);*/
     }
 
-    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
+    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time) && stream_frame_acked) {
 
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
