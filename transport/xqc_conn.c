@@ -484,8 +484,6 @@ xqc_conn_send_packets (xqc_connection_t *conn)
                 if (!xqc_pacing_can_write(&ctl->ctl_pacing, ctl, conn, packet_out)) {
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
                     break;
-                } else {
-                    xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing passed|");
                 }
 
                 if (xqc_pacing_is_on(&ctl->ctl_pacing) && (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)) {

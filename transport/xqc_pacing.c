@@ -153,7 +153,7 @@ uint64_t xqc_pacing_time_until_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
     if (pacing->ideal_next_packet_send_time > time_now + 1000) {
         return pacing->ideal_next_packet_send_time - time_now;
     }
-    xqc_log(conn->log, XQC_LOG_DEBUG,"|ideal_next_packet_send_time:%ui|", pacing->ideal_next_packet_send_time);
+    //xqc_log(conn->log, XQC_LOG_DEBUG,"|ideal_next_packet_send_time:%ui|", pacing->ideal_next_packet_send_time);
     return 0;
 }
 

@@ -858,9 +858,9 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 
     xqc_connection_t *conn = ctl->ctl_conn;
 
-    xqc_log(conn->log, XQC_LOG_DEBUG,
+    /*xqc_log(conn->log, XQC_LOG_DEBUG,
             "|ctl_bytes_in_flight:%ui|",
-            ctl->ctl_bytes_in_flight);
+            ctl->ctl_bytes_in_flight);*/
 
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
