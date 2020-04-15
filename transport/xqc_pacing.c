@@ -161,7 +161,7 @@ int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
                          xqc_connection_t *conn, xqc_packet_out_t *packet_out) {
 
 //     uint64_t smallest_bandwidth = 1.2 * 1000000 / 8;
-    uint64_t pacing_rate = xqc_pacing_rate_calc(pacing, ctl);
+//    uint64_t pacing_rate = xqc_pacing_rate_calc(pacing, ctl);
 
 //    if (pacing_rate < smallest_bandwidth)
 //        return true;
