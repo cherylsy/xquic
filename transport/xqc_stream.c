@@ -253,21 +253,21 @@ xqc_stream_do_recv_flow_ctl(xqc_stream_t *stream)
 
     /* increase recv window */
     /* connection level */
-    if (conn->conn_flow_ctl.fc_max_data_can_recv - conn->conn_flow_ctl.fc_data_recved <
+    if (conn->conn_flow_ctl.fc_max_data_can_recv - conn->conn_flow_ctl.fc_data_read <
         conn->local_settings.max_data * 9 / 10) {
-        conn->conn_flow_ctl.fc_max_data_can_recv = conn->conn_flow_ctl.fc_data_recved + conn->local_settings.max_data;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_max_data_to_packet|new_max_data:%ui|fc_data_recved:%ui|init_max_data:%ui|",
-                conn->conn_flow_ctl.fc_max_data_can_recv, conn->conn_flow_ctl.fc_data_recved, conn->local_settings.max_data);
+        conn->conn_flow_ctl.fc_max_data_can_recv = conn->conn_flow_ctl.fc_data_read + conn->local_settings.max_data;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_max_data_to_packet|new_max_data:%ui|fc_data_recved:%ui|fc_data_read:%ui|init_max_data:%ui|",
+                conn->conn_flow_ctl.fc_max_data_can_recv, conn->conn_flow_ctl.fc_data_recved, conn->conn_flow_ctl.fc_data_read, conn->local_settings.max_data);
         xqc_write_max_data_to_packet(conn, conn->conn_flow_ctl.fc_max_data_can_recv);
     }
     /* stream level */
     uint64_t init_max_stream_data;
     init_max_stream_data = xqc_stream_get_init_max_stream_data(stream);
-    if (stream->stream_flow_ctl.fc_max_stream_data_can_recv - stream->stream_max_recv_offset <
+    if (stream->stream_flow_ctl.fc_max_stream_data_can_recv - stream->stream_data_in.next_read_offset <
         init_max_stream_data * 9 / 10) {
-        stream->stream_flow_ctl.fc_max_stream_data_can_recv = stream->stream_max_recv_offset + init_max_stream_data;
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_max_stream_data_to_packet|new_max_data:%ui|stream_max_recv_offset:%ui|init_max_data:%ui|",
-                stream->stream_flow_ctl.fc_max_stream_data_can_recv, stream->stream_max_recv_offset, init_max_stream_data);
+        stream->stream_flow_ctl.fc_max_stream_data_can_recv = stream->stream_data_in.next_read_offset + init_max_stream_data;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_max_stream_data_to_packet|new_max_data:%ui|stream_max_recv_offset:%ui|next_read_offset:%ui|init_max_data:%ui|",
+                stream->stream_flow_ctl.fc_max_stream_data_can_recv, stream->stream_max_recv_offset, stream->stream_data_in.next_read_offset, init_max_stream_data);
         xqc_write_max_stream_data_to_packet(conn, stream->stream_id, stream->stream_flow_ctl.fc_max_stream_data_can_recv);
     }
     return XQC_OK;
@@ -961,12 +961,21 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
         }
     }
 
+    stream->stream_conn->conn_flow_ctl.fc_data_read += read;
+
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
             "|stream_id:%ui|read:%z|recv_buf_size:%uz|fin:%d|stream_length:%ui|next_read_offset:%ui|conn:%p|",
             stream->stream_id, read, recv_buf_size, *fin, stream->stream_data_in.stream_length,
             stream->stream_data_in.next_read_offset, stream->stream_conn);
 
     xqc_stream_shutdown_read(stream);
+
+    int ret = xqc_stream_do_recv_flow_ctl(stream);
+    if (ret) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_stream_do_recv_flow_ctl error|stream_id:%ui|", stream->stream_id);
+        return ret;
+    }
+
     return read;
 }
 
