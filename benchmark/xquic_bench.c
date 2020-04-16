@@ -104,6 +104,7 @@ typedef struct user_conn_s {
     int                 send_request_count;
     int                 recv_response_count;
     int                 cur_stream_num;
+    int                 total_stream_num;
 } user_conn_t;
 
 
@@ -126,6 +127,8 @@ int g_test_new_create = 1;
 int g_test_mode = 0;
 int g_req_body_len = (1024 * 1);
 int g_process_num = 1;
+
+user_conn_t * g_cur_user_conn = NULL;
 
 #define MAX_HEAD_BUF_LEN 8096
 #define MAX_HEADER_COUNT 128
@@ -156,6 +159,7 @@ char g_scheme[8] = "https";
 char g_url[256];
 
 int benchmark_run(client_ctx_t *ctx , int conn_num);
+int  light_benchmark(client_ctx_t * ctx);
 
 static inline uint64_t now()
 {
@@ -405,6 +409,9 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     //printf("---------------------connection close:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
 
     close(user_conn->fd);
+    if(g_cur_user_conn == user_conn){
+        g_cur_user_conn = NULL;
+    }
     free(user_conn);
     xqc_h3_conn_set_user_data(conn, NULL);
     return 0;
@@ -541,7 +548,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return -1;
         }
         for (int i = 0; i < headers->count; i++) {
-            //printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
+            printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
         }
 
         user_stream->header_recvd = 1;
@@ -687,8 +694,8 @@ static void xqc_client_concurrent_callback(int fd, short what, void *arg){
 
     client_ctx_t *ctx = (client_ctx_t *)arg;
     struct timeval tv;
-    tv.tv_sec = 1;
-    tv.tv_usec = 0;
+    tv.tv_sec = 0;
+    tv.tv_usec = (1000000/(g_cur_conn_num * g_stream_num_per_conn) );
     event_add(ctx->ev_conc, &tv);
 
     if(g_test_mode == 0){
@@ -702,9 +709,12 @@ static void xqc_client_concurrent_callback(int fd, short what, void *arg){
         if(ctx->cur_conn_num >= g_max_conn_num){
             printf("******* current conn num:%d, max conn num:%d\n", ctx->cur_conn_num, g_max_conn_num);
         }else{
+            light_benchmark(ctx);
+#if 0
             if(benchmark_run(ctx, g_conn_num) < 0){
                 printf("create connection failed1\n");
             }
+#endif
         }
 
     }
@@ -968,6 +978,10 @@ user_conn_t * client_create_connection(client_ctx_t * ctx){
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
+    ctx->cur_conn_num++;
+    g_user_stats.conc_conn_count++;
+    g_user_stats.total_conn_count++;
+
     return user_conn;
 
 }
@@ -1179,6 +1193,44 @@ int client_prepare_http_data(user_stream_t * user_stream){
     return 0;
 }
 
+int client_create_stream(client_ctx_t * ctx, user_conn_t *user_conn){
+    user_stream_t * user_stream = create_user_stream(ctx->engine, user_conn, &user_conn->cid);
+
+    if(user_stream == NULL){
+        printf("error create user stream\n");
+        return -1;
+    }
+    user_conn->cur_stream_num++;
+    user_conn->total_stream_num++;
+    g_user_stats.conc_stream_count++;
+    g_user_stats.total_stream_count++;
+
+    client_prepare_http_data(user_stream);
+
+    xqc_client_request_send(user_stream->h3_request, user_stream);
+
+}
+
+int  light_benchmark(client_ctx_t * ctx){
+
+    if(g_cur_user_conn == NULL){
+        g_cur_user_conn = client_create_connection(ctx);
+        if(g_cur_user_conn == NULL){
+            printf("create connection error\n");
+        }
+    }
+    if(client_create_stream(ctx, g_cur_user_conn) < 0){
+        printf("create stream error\n");
+    }
+
+    if(g_cur_user_conn->total_stream_num >= g_stream_num_per_conn){
+        g_cur_user_conn = NULL;
+    }
+
+    return 0;
+
+}
+
 int benchmark_run(client_ctx_t *ctx, int conn_num){
 
     int i = 0, j = 0;
@@ -1207,9 +1259,6 @@ int benchmark_run(client_ctx_t *ctx, int conn_num){
             xqc_client_request_send(user_stream->h3_request, user_stream);
 
         }
-        ctx->cur_conn_num++;
-        g_user_stats.conc_conn_count++;
-        g_user_stats.total_conn_count++;
         //printf("*****************create connection:%p, cur_conn_num:%d\n", user_conn, ctx->cur_conn_num);
     }
 
@@ -1407,10 +1456,11 @@ int main(int argc, char *argv[]) {
         printf("ctx create error\n");
         exit(0);
     }
-
+#if 0
     if(benchmark_run(ctx, g_conn_num) < 0){
         printf("***************benchmark_run failed\n");
     }
+#endif
 
     pthread_t id;
     int ret = pthread_create(&id, NULL, (void *)print_stat_thread, NULL);
