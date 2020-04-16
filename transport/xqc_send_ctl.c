@@ -463,7 +463,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 stream_frame_acked = 1;
             }
 
-            xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)
+                xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out);
 

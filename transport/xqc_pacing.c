@@ -166,6 +166,12 @@ int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
 //    if (pacing_rate < smallest_bandwidth)
 //        return true;
 
+    if (packet_out->po_flag & XQC_POF_LOST) {
+        pacing->burst_tokens = 0;
+        return true;
+    }
+
+
     if (ctl->ctl_bytes_in_flight == 0) {
         pacing->burst_tokens = XQC_MAX_BURST_NUM;
     }

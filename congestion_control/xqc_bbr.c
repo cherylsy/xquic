@@ -118,6 +118,8 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
      * 条件语句表示：周期开始的时候，发送完毕的packet数量小于等于当前ack的包在发送时
      * 已经发送完毕的packet最大数量
      */
+
+
     if(bbr->next_round_delivered <= sampler->prior_delivered)
     {
         bbr->next_round_delivered = sampler->total_acked;
@@ -128,17 +130,29 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     {
         bbr->round_start = false;
     }
+
+    if (sampler->lagest_ack_time > bbr->last_round_trip_time) {
+        bbr->round_cnt++;
+        bbr->last_round_trip_time = xqc_now();
+    }
+
     
     uint32_t bandwidth;
     /*Calculate the new bandwidth, bytes per second */
     bandwidth = 1.0 * sampler->delivered / sampler->interval * msec2sec;
-    //printf("updatebw: del: %u, interval: %lu\n", sampler->delivered, sampler->interval);
+
+//    if (bandwidth >= 2400000)
+//        bandwidth = 2400000;
+
+//    printf("updatebw: del: %u, interval: %lu, next_del: %u, prior_del: %lu, lagest_ack: %lu, round_cnt: %u\n",
+//            sampler->delivered, sampler->interval, bbr->next_round_delivered, sampler->prior_delivered,
+//            sampler->lagest_ack_time, bbr->round_cnt);
 
     if(!sampler->is_app_limited || bandwidth >= xqc_bbr_max_bw(bbr))
     {
-//        printf("bbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
+//        printf("bwbbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
         xqc_win_filter_max(&bbr->bandwidth, xqc_bbr_kBandwidthWindowSize, bbr->round_cnt, bandwidth);
-//        printf("bbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
+//        printf("bwbbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
     }
 }
 
@@ -179,7 +193,7 @@ static bool xqc_bbr_is_next_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 //        return is_full_length;
 //    }
 
-    if (bbr->pacing_gain > 1.0 && !sampler->loss && inflight >= xqc_bbr_target_cwnd(bbr, bbr->pacing_gain)) {
+    if (bbr->pacing_gain > 1.0 && !sampler->loss && inflight < xqc_bbr_target_cwnd(bbr, bbr->pacing_gain)) {
         should_advance_gain_cycling = false;
     }
 

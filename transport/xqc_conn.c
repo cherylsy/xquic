@@ -480,6 +480,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             if (!xqc_send_ctl_can_send(conn, packet_out)) {
                 break;
             }
+
             if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
                 if (!xqc_pacing_can_write(&ctl->ctl_pacing, ctl, conn, packet_out)) {
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
@@ -585,10 +586,27 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                 xqc_frame_type_2_str(packet_out->po_frame_types));
         packet_out->po_flag |= XQC_POF_LOST;
 
+        if (xqc_pacing_is_on(&conn->conn_send_ctl->ctl_pacing)) {
+            if (!xqc_pacing_can_write(&conn->conn_send_ctl->ctl_pacing, conn->conn_send_ctl, conn, packet_out)) {
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
+                break;
+            }
+
+            if (xqc_pacing_is_on(&conn->conn_send_ctl->ctl_pacing) && (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)) {
+                xqc_pacing_on_packet_sent(&conn->conn_send_ctl->ctl_pacing, conn->conn_send_ctl, conn->conn_send_ctl->ctl_conn, packet_out);
+            }
+        }
+
         ret = xqc_conn_send_one_packet(conn, packet_out);
+
         if (ret < 0) {
             return;
         }
+
+//        if (xqc_pacing_is_on(&conn->conn_send_ctl->ctl_pacing) && (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)) {
+//            xqc_pacing_on_packet_sent(&conn->conn_send_ctl->ctl_pacing, conn->conn_send_ctl, conn->conn_send_ctl->ctl_conn, packet_out);
+//        }
+
         xqc_send_ctl_remove_lost(&packet_out->po_list);
         xqc_send_ctl_insert_unacked(packet_out,
                                     &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],

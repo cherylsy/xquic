@@ -66,6 +66,9 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
         sampler->send_elapse = packet->po_sent_time - packet->po_first_sent_time;
         sampler->ack_elapse = send_ctl->ctl_delivered_time - packet->po_delivered_time;
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
+
+        sampler->lagest_ack_time = now;
+
     }
 
     /* Mark the packet as delivered once it's SACKed to
