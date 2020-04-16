@@ -248,6 +248,7 @@ typedef struct {
     uint64_t                fc_data_sent;
     uint64_t                fc_max_data_can_recv;
     uint64_t                fc_data_recved;
+    uint64_t                fc_data_read;
 
     uint64_t                fc_max_streams_bidi_can_send;
     uint64_t                fc_max_streams_bidi_can_recv;

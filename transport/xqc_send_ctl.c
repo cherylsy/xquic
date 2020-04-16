@@ -1,4 +1,5 @@
 
+#include "congestion_control/xqc_bbr.h"
 #include "xqc_engine.h"
 #include "xqc_send_ctl.h"
 #include "xqc_packet.h"
@@ -183,12 +184,12 @@ void xqc_send_ctl_info_circle_record(xqc_connection_t *conn){
    generic and are designed to support different algorithms.
  */
 int
-xqc_send_ctl_can_send (xqc_connection_t *conn)
+xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     int can = 1;
     unsigned congestion_window =
             conn->conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(conn->conn_send_ctl->ctl_cong);
-    if (conn->conn_send_ctl->ctl_bytes_in_flight >= congestion_window) {
+    if (conn->conn_send_ctl->ctl_bytes_in_flight + packet_out->po_used_size > congestion_window) {
         can = 0;
     }
 
@@ -399,9 +400,10 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
 
     }
 
-    if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
-        xqc_pacing_on_packet_sent(&ctl->ctl_pacing, ctl, ctl->ctl_conn, packet_out);
-    }
+//    if (xqc_pacing_is_on(&ctl->ctl_pacing) && ctl->ctl_pacing.ref) {
+//        ctl->ctl_pacing.ref = 0;
+//        xqc_pacing_on_packet_sent(&ctl->ctl_pacing, ctl, ctl->ctl_conn, packet_out);
+//    }
 
 }
 
@@ -425,6 +427,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
     xqc_pkt_num_space_t pns = ack_info->pns;
     unsigned char need_del_record = 0;
+    int stream_frame_acked = 0;
 
     if (lagest_ack > ctl->ctl_largest_sent[pns]) {
         xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|%ui|", lagest_ack);
@@ -456,7 +459,12 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 need_del_record = 1;
             }
 
-            xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+                stream_frame_acked = 1;
+            }
+
+            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)
+                xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out);
 
@@ -504,7 +512,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                ctl->sampler.srtt);*/
     }
 
-    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
+    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time) && stream_frame_acked) {
 
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
@@ -515,7 +523,14 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 bw_record_flag = 1;
             }
         }
+
         ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
+        xqc_bbr_t *bbr = (xqc_bbr_t*)(ctl->ctl_cong);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|cwnd:%ud|",
+                bbr->mode,
+                ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
+                ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
+                ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong));
 
         if(bw_record_flag){
             bw_after = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
@@ -844,9 +859,9 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 
     xqc_connection_t *conn = ctl->ctl_conn;
 
-    xqc_log(conn->log, XQC_LOG_DEBUG,
+    /*xqc_log(conn->log, XQC_LOG_DEBUG,
             "|ctl_bytes_in_flight:%ui|",
-            ctl->ctl_bytes_in_flight);
+            ctl->ctl_bytes_in_flight);*/
 
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {

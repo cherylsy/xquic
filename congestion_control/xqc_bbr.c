@@ -118,26 +118,41 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
      * 条件语句表示：周期开始的时候，发送完毕的packet数量小于等于当前ack的包在发送时
      * 已经发送完毕的packet最大数量
      */
+
+
     if(bbr->next_round_delivered <= sampler->prior_delivered)
     {
         bbr->next_round_delivered = sampler->total_acked;
-        bbr->round_cnt++;
+//        bbr->round_cnt++;
         bbr->round_start = true;
 
     }else
     {
         bbr->round_start = false;
     }
+
+    if (sampler->lagest_ack_time > bbr->last_round_trip_time) {
+        bbr->round_cnt++;
+        bbr->last_round_trip_time = xqc_now();
+    }
+
     
     uint32_t bandwidth;
     /*Calculate the new bandwidth, bytes per second */
     bandwidth = 1.0 * sampler->delivered / sampler->interval * msec2sec;
 
+//    if (bandwidth >= 2400000)
+//        bandwidth = 2400000;
+
+//    printf("updatebw: del: %u, interval: %lu, next_del: %u, prior_del: %lu, lagest_ack: %lu, round_cnt: %u\n",
+//            sampler->delivered, sampler->interval, bbr->next_round_delivered, sampler->prior_delivered,
+//            sampler->lagest_ack_time, bbr->round_cnt);
+
     if(!sampler->is_app_limited || bandwidth >= xqc_bbr_max_bw(bbr))
     {
-//        printf("bbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
+//        printf("bwbbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
         xqc_win_filter_max(&bbr->bandwidth, xqc_bbr_kBandwidthWindowSize, bbr->round_cnt, bandwidth);
-//        printf("bbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
+//        printf("bwbbr test============bw:%u %u\n", bandwidth, xqc_bbr_max_bw(bbr));
     }
 }
 
@@ -154,6 +169,8 @@ static uint32_t xqc_bbr_target_cwnd(xqc_bbr_t *bbr, float gain)
     if (cwnd == 0) {
         cwnd = gain * bdp;
     }
+
+    //printf("zzl-cwnd : %u , min_rtt: %lu, bandwidth: %u\n", cwnd, bbr->min_rtt, xqc_win_filter_get(&bbr->bandwidth));
 
     return xqc_max(cwnd, XQC_kMinimumWindow);
 }
@@ -176,7 +193,7 @@ static bool xqc_bbr_is_next_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 //        return is_full_length;
 //    }
 
-    if (bbr->pacing_gain > 1.0 && !sampler->loss && inflight >= xqc_bbr_target_cwnd(bbr, bbr->pacing_gain)) {
+    if (bbr->pacing_gain > 1.0 && !sampler->loss && inflight < xqc_bbr_target_cwnd(bbr, bbr->pacing_gain)) {
         should_advance_gain_cycling = false;
     }
 
@@ -480,7 +497,8 @@ static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
 //    printf("==========xqc_bbr_get_cwnd cwnd %u, bandwidth %u, min_rtt %llu\n",bbr->congestion_window, xqc_bbr_max_bw(bbr), bbr->min_rtt);
 
     // TODO: 300k is an expirement setting, traffic control
-    return xqc_min(bbr->congestion_window, 300000);
+//    return xqc_min(bbr->congestion_window, 300000);
+    return bbr->congestion_window;
 }
 
 static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)
@@ -489,7 +507,6 @@ static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)
 
     if (bbr->mode == BBR_STARTUP)
         return 0xffffffff;
-
     return bbr->pacing_rate;
 }
 

@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <event2/event.h>
 #include <memory.h>
@@ -852,6 +853,56 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
 
     ssize_t recv_size = 0;
     ssize_t recv_sum = 0;
+
+#ifdef __linux__
+    int batch = 0;
+    if (batch) {
+#define VLEN 100
+#define BUFSIZE XQC_PACKET_TMP_BUF_LEN
+#define TIMEOUT 10
+        struct sockaddr_in6 pa[VLEN];
+        struct mmsghdr msgs[VLEN];
+        struct iovec iovecs[VLEN];
+        char bufs[VLEN][BUFSIZE+1];
+        struct timespec timeout;
+        int retval;
+
+        do {
+            memset(msgs, 0, sizeof(msgs));
+            for (int i = 0; i < VLEN; i++) {
+                iovecs[i].iov_base = bufs[i];
+                iovecs[i].iov_len = BUFSIZE;
+                msgs[i].msg_hdr.msg_iov = &iovecs[i];
+                msgs[i].msg_hdr.msg_iovlen = 1;
+                msgs[i].msg_hdr.msg_name = &pa[i];
+                msgs[i].msg_hdr.msg_namelen = user_conn->peer_addrlen;
+            }
+
+            timeout.tv_sec = TIMEOUT;
+            timeout.tv_nsec = 0;
+
+            retval = recvmmsg(user_conn->fd, msgs, VLEN, 0, &timeout);
+            if (retval == -1) {
+                break;
+            }
+
+            uint64_t recv_time = now();
+            for (int i = 0; i < retval; i++) {
+                recv_sum += msgs[i].msg_len;
+
+                if (xqc_engine_packet_process(ctx.engine, iovecs[i].iov_base, msgs[i].msg_len,
+                                              (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
+                                      (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
+                                      (xqc_msec_t) recv_time, user_conn) != 0 ) {
+                    printf("xqc_server_read_handler: packet process err\n");
+                    return;
+                }
+            }
+        } while (retval > 0);
+        goto finish_recv;
+    }
+#endif
+
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
     do {
@@ -893,6 +944,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (g_test_case == 9/*接收到重复的包*/) {g_test_case = -1; memcpy(packet_buf, copy, recv_size); goto again;}
     } while (recv_size > 0);
 
+finish_recv:
     printf("recvfrom size:%zu\n", recv_sum);
     xqc_engine_finish_recv(ctx.engine);
 }
@@ -957,6 +1009,7 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
 int xqc_client_open_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    //ctx->log_fd = open("/home/jiuhai.zjh/ramdisk/clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
     ctx->log_fd = open("./clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (ctx->log_fd <= 0) {
         return -1;
@@ -1177,7 +1230,7 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : XQC_LOG_DEBUG,
+                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : XQC_LOG_DEBUG),
                     //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
