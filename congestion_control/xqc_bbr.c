@@ -123,7 +123,7 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if(bbr->next_round_delivered <= sampler->prior_delivered)
     {
         bbr->next_round_delivered = sampler->total_acked;
-        bbr->round_cnt++;
+//        bbr->round_cnt++;
         bbr->round_start = true;
 
     }else
