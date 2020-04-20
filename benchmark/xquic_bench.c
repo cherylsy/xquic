@@ -13,7 +13,7 @@
 //#include <cstdio>
 #include "include/xquic.h"
 #include "include/xquic_typedef.h"
-
+#include "transport/crypto/xqc_tls_public.h"
 
 //#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -136,6 +136,18 @@ static char g_header_buffer[MAX_HEAD_BUF_LEN];
 xqc_http_header_t g_header_array[MAX_HEADER_COUNT];
 int g_header_array_read_count = 0;
 user_stats_t g_user_stats;
+
+
+char g_session_ticket_data[8192]={0};
+char g_tp_data[8192] = {0};
+
+int g_session_len = 0;
+int g_tp_len = 0;
+
+unsigned char g_token[XQC_MAX_TOKEN_LEN];
+int g_token_len = XQC_MAX_TOKEN_LEN;
+
+
 
 FILE * g_stats_fp;
 
@@ -365,7 +377,7 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *
 
 int check_close_user_conn(user_conn_t * user_conn){
 
-    if(user_conn->cur_stream_num > 0){
+    if(user_conn->cur_stream_num > 0 || user_conn->total_stream_num < g_stream_num_per_conn ){
         return 0;
     }
 
@@ -403,6 +415,8 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     event_del(user_conn->ev_socket);
     event_del(user_conn->ev_timeout);
 
+    event_free(user_conn->ev_socket);
+    event_free(user_conn->ev_timeout);
     //client_ctx_t * ctx = user_conn->ctx;
     ctx->cur_conn_num--;
     g_user_stats.conc_conn_count--;
@@ -535,7 +549,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 {
     DEBUG;
     int ret;
-    return 0;
+    //return 0;
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
     user_conn_t *user_conn = user_stream->user_conn;
@@ -548,7 +562,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return -1;
         }
         for (int i = 0; i < headers->count; i++) {
-            printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
+            //printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
         }
 
         user_stream->header_recvd = 1;
@@ -579,6 +593,8 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             printf("xqc_h3_request_recv_body error %zd\n", read);
             return read;
         }
+
+        ///hex_print(buff, read);
 
         read_sum += read;
         user_stream->recv_body_len += read;
@@ -695,7 +711,8 @@ static void xqc_client_concurrent_callback(int fd, short what, void *arg){
     client_ctx_t *ctx = (client_ctx_t *)arg;
     struct timeval tv;
     tv.tv_sec = 0;
-    tv.tv_usec = (1000000/(g_cur_conn_num * g_stream_num_per_conn) );
+    tv.tv_usec = (1000000/(g_conn_num * g_stream_num_per_conn) );
+    //tv.tv_usec = 2;
     event_add(ctx->ev_conc, &tv);
 
     if(g_test_mode == 0){
@@ -705,7 +722,9 @@ static void xqc_client_concurrent_callback(int fd, short what, void *arg){
             }
         }
     }else if(g_test_mode == 1){
-        printf("******** calltime:%lu\n", now());
+        if(g_user_stats.total_stream_count % 10000 == 0){
+            printf("******** create 10000 streams, calltime:%lu\n", now());
+        }
         if(ctx->cur_conn_num >= g_max_conn_num){
             printf("******* current conn num:%d, max conn num:%d\n", ctx->cur_conn_num, g_max_conn_num);
         }else{
@@ -923,33 +942,19 @@ user_conn_t * client_create_connection(client_ctx_t * ctx){
     user_conn->ev_socket = event_new(ctx->eb, user_conn->fd, EV_READ | EV_PERSIST, xqc_client_socket_event_callback, user_conn);
     event_add(user_conn->ev_socket, NULL);
 
-    unsigned char token[XQC_MAX_TOKEN_LEN];
-    int token_len = XQC_MAX_TOKEN_LEN;
-    token_len = xqc_client_read_token(token, token_len);
-    if (token_len < 0) {
-        token_len = 0;
-        //user_conn->token = token;
-        //user_conn->token_len = token_len;
-    }
 
     xqc_conn_ssl_config_t conn_ssl_config;
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
 
-    char session_ticket_data[8192]={0};
-    char tp_data[8192] = {0};
-
-    int session_len = read_file_data(session_ticket_data, sizeof(session_ticket_data), "test_session");
-    int tp_len = read_file_data(tp_data, sizeof(tp_data), "tp_localhost");
-
-    if (session_len < 0 || tp_len < 0 || g_use_1rtt) {
-        printf("sessoin data read error or use_1rtt\n");
+    if (g_session_len <= 0 || g_tp_len <= 0 || g_use_1rtt) {
+        printf("session data read error or use_1rtt\n");
         conn_ssl_config.session_ticket_data = NULL;
         conn_ssl_config.transport_parameter_data = NULL;
     } else {
-        conn_ssl_config.session_ticket_data = session_ticket_data;
-        conn_ssl_config.session_ticket_len = session_len;
-        conn_ssl_config.transport_parameter_data = tp_data;
-        conn_ssl_config.transport_parameter_data_len = tp_len;
+        conn_ssl_config.session_ticket_data = g_session_ticket_data;
+        conn_ssl_config.session_ticket_len = g_session_len;
+        conn_ssl_config.transport_parameter_data = g_tp_data;
+        conn_ssl_config.transport_parameter_data_len = g_tp_len;
     }
 
     //xqc_cong_ctrl_callback_t cong_ctrl = xqc_bbr_cb;
@@ -964,10 +969,10 @@ user_conn_t * client_create_connection(client_ctx_t * ctx){
     int no_crypto_flag = g_no_crypto_flag?1:0;
     xqc_cid_t *cid;
     if (user_conn->h3) {
-        cid = xqc_h3_connect(engine, user_conn, conn_settings, token, token_len, g_server_addr, no_crypto_flag,
+        cid = xqc_h3_connect(engine, user_conn, conn_settings, g_token, g_token_len, g_server_addr, no_crypto_flag,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
-        cid = xqc_connect(engine, user_conn, conn_settings, token, token_len, g_server_addr, no_crypto_flag,
+        cid = xqc_connect(engine, user_conn, conn_settings, g_token, g_token_len, g_server_addr, no_crypto_flag,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
 
@@ -1209,6 +1214,7 @@ int client_create_stream(client_ctx_t * ctx, user_conn_t *user_conn){
 
     xqc_client_request_send(user_stream->h3_request, user_stream);
 
+    return 0;
 }
 
 int  light_benchmark(client_ctx_t * ctx){
@@ -1323,6 +1329,17 @@ void print_stat_thread(void){
 
     while(1){
         client_print_stats();
+        static int n_second = 0;
+#if 0
+        while(n_second % 10 == 0){
+            g_session_len = read_file_data(g_session_ticket_data, sizeof(g_session_ticket_data), "test_session");
+            //g_tp_len = read_file_data(g_tp_data, sizeof(g_tp_data), "tp_localhost");
+            if(g_session_len <= 0 || g_tp_len <= 0){
+                printf("*********g_session_len :%d, g_tp_len:%d\n", g_session_len, g_tp_len);
+            }
+        }
+#endif
+        n_second++;
         sleep(1);
     }
 }
@@ -1434,6 +1451,17 @@ int main(int argc, char *argv[]) {
     char *header_file = "./http_header_file";
     g_header_array_read_count = client_read_http_headers_from_file(g_header_array, MAX_HEADER_COUNT, header_file);
 
+    g_session_len = read_file_data(g_session_ticket_data, sizeof(g_session_ticket_data), "test_session");
+    g_tp_len = read_file_data(g_tp_data, sizeof(g_tp_data), "tp_localhost");
+
+    g_token_len = xqc_client_read_token(g_token, sizeof(g_token));
+    if (g_token_len < 0) {
+        g_token_len = 0;
+        //user_conn->token = token;
+        //user_conn->token_len = token_len;
+    }
+
+
 
     int i = 0;
     pid_t pid;
@@ -1448,7 +1476,6 @@ int main(int argc, char *argv[]) {
             sleep(1);
         }
     }
-
 
     client_ctx_t * ctx = NULL;
     ctx = client_create_context_new();
