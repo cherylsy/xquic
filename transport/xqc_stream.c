@@ -1007,6 +1007,7 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
     int support_0rtt = xqc_is_ready_to_send_early_data(conn);
     int buff_1rtt = 0;
+    int check_app_limit = 1;
 
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)) {
@@ -1042,6 +1043,11 @@ xqc_stream_send (xqc_stream_t *stream,
             xqc_log(conn->log, XQC_LOG_DEBUG, "|too many 0rtt packets|zero_rtt_count:%ud|", conn->zero_rtt_count);
             ret = -XQC_EAGAIN;
             goto do_buff;
+        }
+
+        if (check_app_limit) {
+            xqc_sample_check_app_limited(&conn->conn_send_ctl->sampler, conn->conn_send_ctl);
+            check_app_limit = 0;
         }
 
         ret = xqc_write_stream_frame_to_packet(conn, stream, pkt_type,
@@ -1093,8 +1099,6 @@ do_buff:
             ret, stream->stream_id, stream->stream_send_offset, xqc_pkt_type_2_str(pkt_type), buff_1rtt,
             send_data_size, offset, fin, stream->stream_flag, conn, xqc_conn_state_2_str(conn->conn_state),
             xqc_conn_flag_2_str(conn->conn_flag));
-
-    xqc_sample_check_app_limited(&conn->conn_send_ctl->sampler, conn->conn_send_ctl);
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
