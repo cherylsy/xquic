@@ -26,7 +26,7 @@ const uint32_t xqc_bbr_kBandwidthWindowSize = xqc_bbr_kCycleLength + 2;
 const uint32_t xqc_bbr_kMinRttWindowSize = 10;
 /* Minimum time spent in BBR_PROBE_RTT, in usec*/
 const uint32_t xqc_bbr_kProbeRttTime = 200;
-/*Initial rtt before any samples are received  */
+/*Initial rtt before any samples are received, in usec  */
 const uint64_t xqc_bbr_kInitialRtt = 100;
 /*The gain of pacing rate for STRAT_UP, 2/(ln2) */
 const float xqc_bbr_kHighGain = 2.885;
@@ -428,7 +428,7 @@ static void xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 static uint64_t xqc_bbr_get_min_rtt(xqc_bbr_t *bbr)
 {
 
-    return bbr->min_rtt == 0 ? xqc_bbr_kInitialRtt : bbr->min_rtt;
+    return bbr->min_rtt == 0 ? xqc_bbr_kInitialRtt * 1000 : bbr->min_rtt;
 }
 
 static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
