@@ -70,6 +70,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     send_ctl->ctl_info.rtt_change_threshold = XQC_DEFAULT_RTT_CHANGE_THRESHOLD;
     send_ctl->ctl_info.bw_change_threshold = XQC_DEFAULT_BW_CHANGE_THRESHOLD;
 
+    send_ctl->sampler.send_ctl = send_ctl;
+
     return send_ctl;
 }
 
