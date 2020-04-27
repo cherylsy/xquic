@@ -511,7 +511,7 @@ static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
 //    printf("==========xqc_bbr_get_cwnd cwnd %u, bandwidth %u, min_rtt %llu\n",bbr->congestion_window, xqc_bbr_max_bw(bbr), bbr->min_rtt);
 
     // TODO: 300k is an expirement setting, traffic control
-    return xqc_min(bbr->congestion_window, 400000);
+//    return xqc_min(bbr->congestion_window, 400000);
     return bbr->congestion_window;
 }
 
