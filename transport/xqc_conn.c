@@ -134,6 +134,8 @@ void xqc_conn_init_flow_ctl(xqc_connection_t *conn)
     flow_ctl->fc_max_streams_uni_can_recv = settings->max_streams_uni;
     flow_ctl->fc_data_sent = 0;
     flow_ctl->fc_data_recved = 0;
+    flow_ctl->fc_recv_windows_size = settings->max_data;
+    flow_ctl->fc_last_window_update_time = 0;
 }
 
 xqc_connection_t *

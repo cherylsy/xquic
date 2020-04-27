@@ -37,6 +37,8 @@
 
 #define XQC_MAX_PACKET_PROCESS_BATCH 100 //xqc_engine_packet_process最多积累个数
 
+#define XQC_MAX_RECV_WINDOW (16*1024*1024)
+
 /* 调试时候用，会删掉 */
 #ifdef DEBUG_PRINT
 #define XQC_DEBUG_PRINT printf("%s:%d (%s)\n", __FILE__, __LINE__, __FUNCTION__);
@@ -254,6 +256,9 @@ typedef struct {
     uint64_t                fc_max_streams_bidi_can_recv;
     uint64_t                fc_max_streams_uni_can_send;
     uint64_t                fc_max_streams_uni_can_recv;
+
+    uint64_t                fc_recv_windows_size;
+    xqc_msec_t              fc_last_window_update_time;
 } xqc_conn_flow_ctl_t;
 
 
