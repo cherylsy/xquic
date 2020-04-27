@@ -97,6 +97,7 @@ int g_spec_url;
 int g_is_get;
 int g_test_case;
 int g_ipv6;
+int g_no_crypt;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
@@ -1064,6 +1065,7 @@ void usage(int argc, char *argv[]) {
 "   -u    Url. default https://test.xquic.com/path/resource\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
+"   -N    No crypt\n"
 "   -6    IPv6\n"
 , prog);
 }
@@ -1082,6 +1084,7 @@ int main(int argc, char *argv[]) {
     g_is_get = 0;
     g_test_case = 0;
     g_ipv6 = 0;
+    g_no_crypt = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -1094,7 +1097,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6N")) != -1){
         switch(ch)
         {
             case 'a':
@@ -1183,6 +1186,10 @@ int main(int argc, char *argv[]) {
             case '6': //IPv6
                 printf("option IPv6 :%s\n", "on");
                 g_ipv6 = 1;
+                break;
+            case 'N':
+                printf("option No crypt: %s\n", "yes");
+                g_no_crypt = 1;
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -1325,10 +1332,10 @@ int main(int argc, char *argv[]) {
     xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
-        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
-        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
     if (cid == NULL) {
