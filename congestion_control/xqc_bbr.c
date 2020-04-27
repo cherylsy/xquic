@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <string.h>
 #include "common/xqc_time.h"
+#include "transport/xqc_send_ctl.h"
+#include <assert.h>
 
 #define XQC_kMaxDatagramSize 1200
 #define XQC_kMinimumWindow (4 * XQC_kMaxDatagramSize)
@@ -399,8 +401,9 @@ static void xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     }
     if(bbr->mode == BBR_PROBE_RTT){
         /* Ignore low rate samples during this mode. */
-        /*tp->app_limited =
-                (tp->delivered + tcp_packets_in_flight(tp)) ? : 1;*/
+        xqc_send_ctl_t *send_ctl = sampler->send_ctl;
+        assert(send_ctl != NULL);
+        send_ctl->ctl_app_limited = send_ctl->ctl_delivered + send_ctl->ctl_bytes_in_flight?:1;
         if(!bbr->probe_rtt_round_done_stamp 
            && (sampler->bytes_inflight <= xqc_bbr_kMinCongestionWindow
                || sampler->bytes_inflight <= xqc_bbr_max_bw(bbr) * xqc_bbr_probe_rtt_gain)){
@@ -457,10 +460,12 @@ static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     uint32_t target_cwnd;
     target_cwnd = xqc_bbr_target_cwnd(bbr,bbr->cwnd_gain);
     target_cwnd += xqc_bbr_ack_aggregation_cwnd(bbr);
+    xqc_send_ctl_t *send_ctl = sampler->send_ctl;
+    assert(send_ctl != NULL);
 
     if(bbr->full_bandwidth_reached)
         bbr->congestion_window = xqc_min(target_cwnd,bbr->congestion_window + sampler->delivered);
-    else if(bbr->congestion_window < target_cwnd)
+    else if(bbr->congestion_window < target_cwnd || send_ctl->ctl_delivered < bbr->initial_congestion_window)
         bbr->congestion_window += sampler->delivered;
 
     bbr->congestion_window = xqc_max(bbr->congestion_window, xqc_bbr_kMinCongestionWindow);
