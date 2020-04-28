@@ -80,11 +80,15 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
 void xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
     if (/* We are not limited by CWND. */
-        send_ctl->ctl_packets_used * XQC_PACKET_OUT_SIZE_EXT <
+        send_ctl->ctl_bytes_in_flight <
         send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong) &&
+        /* We have no packet to send. */
+        xqc_list_empty(&send_ctl->ctl_send_packets) &&
         /* All lost packets have been retransmitted. */
-        !xqc_list_empty(&send_ctl->ctl_lost_packets)) {
+        xqc_list_empty(&send_ctl->ctl_lost_packets)) {
         send_ctl->ctl_app_limited = send_ctl->ctl_delivered + send_ctl->ctl_bytes_in_flight ? : 1;
+        //xqc_log(send_ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|ctl_bytes_in_flight:%ud|send empty:%ud|lost empty:%ud|",
+        //        send_ctl->ctl_bytes_in_flight, xqc_list_empty(&send_ctl->ctl_send_packets)?1:0, xqc_list_empty(&send_ctl->ctl_lost_packets)?1:0);
     }
 }
 

@@ -70,6 +70,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     send_ctl->ctl_info.rtt_change_threshold = XQC_DEFAULT_RTT_CHANGE_THRESHOLD;
     send_ctl->ctl_info.bw_change_threshold = XQC_DEFAULT_BW_CHANGE_THRESHOLD;
 
+    send_ctl->sampler.send_ctl = send_ctl;
+
     return send_ctl;
 }
 
@@ -526,11 +528,13 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
         ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
         xqc_bbr_t *bbr = (xqc_bbr_t*)(ctl->ctl_cong);
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|cwnd:%ud|",
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|cwnd:%ud|inflight:%ud|applimit:%ud|",
                 bbr->mode,
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
-                ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong));
+                ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong),
+                ctl->ctl_bytes_in_flight,
+                ctl->sampler.is_app_limited);
 
         if(bw_record_flag){
             bw_after = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
