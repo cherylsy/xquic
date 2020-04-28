@@ -87,6 +87,8 @@ void xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ct
         /* All lost packets have been retransmitted. */
         xqc_list_empty(&send_ctl->ctl_lost_packets)) {
         send_ctl->ctl_app_limited = send_ctl->ctl_delivered + send_ctl->ctl_bytes_in_flight ? : 1;
+        //xqc_log(send_ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|ctl_bytes_in_flight:%ud|send empty:%ud|lost empty:%ud|",
+        //        send_ctl->ctl_bytes_in_flight, xqc_list_empty(&send_ctl->ctl_send_packets)?1:0, xqc_list_empty(&send_ctl->ctl_lost_packets)?1:0);
     }
 }
 

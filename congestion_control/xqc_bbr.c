@@ -406,15 +406,17 @@ static void xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         send_ctl->ctl_app_limited = send_ctl->ctl_delivered + send_ctl->ctl_bytes_in_flight?:1;
         uint32_t bdp;
         bdp = bbr->min_rtt * xqc_win_filter_get(&bbr->bandwidth) / msec2sec;
+        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_INFO, "|inflight:%ud|bdp:%ud|done_stamp:%ui|done:%ud|round_start:%ud|",
+                sampler->bytes_inflight, bdp, bbr->probe_rtt_round_done_stamp, bbr->probe_rtt_round_done, bbr->round_start);
         if(!bbr->probe_rtt_round_done_stamp
            && (sampler->bytes_inflight <= xqc_bbr_kMinCongestionWindow
                || sampler->bytes_inflight <= bdp * 0.75)){
-               bbr->probe_rtt_round_done_stamp = sampler->now + xqc_bbr_kProbeRttTime * 1000;
+               bbr->probe_rtt_round_done_stamp = sampler->now + 2 * sampler->rtt;
                bbr->probe_rtt_round_done = false;
                bbr->next_round_delivered = sampler->total_acked;
 
         } else if(bbr->probe_rtt_round_done_stamp){
-            if(bbr->round_start)
+            if(bbr->round_start || bbr->probe_rtt_round_done_stamp < sampler->now)
                 bbr->probe_rtt_round_done = 1;
             if(bbr->probe_rtt_round_done/* && bbr->probe_rtt_round_done_stamp < sampler->now*/){
                 bbr->min_rtt_stamp = sampler->now;
@@ -467,19 +469,20 @@ static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 
     if(bbr->full_bandwidth_reached) {
         bbr->congestion_window = xqc_min(target_cwnd, bbr->congestion_window + sampler->delivered);
-//        printf("set cwnd: here11\n");
     }
     else if(bbr->congestion_window < target_cwnd || send_ctl->ctl_delivered < bbr->initial_congestion_window) {
         bbr->congestion_window += sampler->delivered;
-//        printf("set cwnd: here222\n");
     }
 
     bbr->congestion_window = xqc_max(bbr->congestion_window, xqc_bbr_kMinCongestionWindow);
 //    if(bbr->mode == BBR_PROBE_RTT)
 //        bbr->congestion_window = xqc_min(bbr->congestion_window, xqc_bbr_kMinCongestionWindow);
     // larger cwnd
-    if(bbr->mode == BBR_PROBE_RTT)
-        bbr->congestion_window = xqc_max(target_cwnd * 0.5, xqc_bbr_kMinCongestionWindow);
+    if(bbr->mode == BBR_PROBE_RTT) {
+        uint32_t bdp;
+        bdp = bbr->min_rtt * xqc_win_filter_get(&bbr->bandwidth) / msec2sec;
+        bbr->congestion_window = xqc_max(bdp * 0.5, xqc_bbr_kMinCongestionWindow);
+    }
 }
 
 static void xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
