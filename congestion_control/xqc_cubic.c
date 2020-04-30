@@ -7,7 +7,7 @@
 #define XQC_BETA_CUBIC 0.7f
 #define XQC_C_CUBIC 0.4f
 
-#define XQC_kMinimumWindow (2 * XQC_MSS)
+#define XQC_kMinimumWindow (4 * XQC_MSS)
 #define XQC_kInitialWindow (32 * XQC_MSS)
 
 #define xqc_max(a, b) ((a) > (b) ? (a) : (b))

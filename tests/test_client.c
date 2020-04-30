@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <event2/event.h>
 #include <memory.h>
@@ -53,6 +54,9 @@ typedef struct user_stream_s {
     FILE               *recv_body_fp;
     int                 recv_fin;
     xqc_msec_t          start_time;
+    xqc_msec_t          first_frame_time; //首帧下载时间
+    xqc_msec_t          last_read_time;
+    int                 abnormal_count;
 } user_stream_t;
 
 typedef struct user_conn_s {
@@ -93,6 +97,7 @@ int g_spec_url;
 int g_is_get;
 int g_test_case;
 int g_ipv6;
+int g_no_crypt;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
@@ -308,6 +313,11 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
+
+    xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
+    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
+           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
+
     free(user_conn);
     event_base_loopbreak(eb);
     return 0;
@@ -337,8 +347,8 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     printf("conn errno:%d\n", xqc_h3_conn_get_errno(conn));
 
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
-    printf("send_count:%u, lost_count:%u, tlp_count:%u, early_data_flag:%d\n",
-           stats.send_count, stats.lost_count, stats.tlp_count, stats.early_data_flag);
+    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
+           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
 
     free(user_conn);
     event_base_loopbreak(eb);
@@ -359,10 +369,41 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     ssize_t ret;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    unsigned buff_size = 1000*1024;
-    user_stream->send_body = malloc(buff_size);
-    if (user_stream->send_offset < buff_size) {
-        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, buff_size - user_stream->send_offset, 1);
+    if (user_stream->start_time == 0) {
+        user_stream->start_time = now();
+    }
+
+    if (user_stream->send_body == NULL) {
+        user_stream->send_body_max = MAX_BUF_SIZE;
+        if (g_read_body) {
+            user_stream->send_body = malloc(user_stream->send_body_max);
+        } else {
+            user_stream->send_body = malloc(g_send_body_size);
+            memset(user_stream->send_body, 1, g_send_body_size);
+        }
+        if (user_stream->send_body == NULL) {
+            printf("send_body malloc error\n");
+            return -1;
+        }
+
+        /* 指定大小 > 指定文件 > 默认大小 */
+        if (g_send_body_size_defined) {
+            user_stream->send_body_len = g_send_body_size;
+        } else if (g_read_body) {
+            ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
+            if (ret < 0) {
+                printf("read body error\n");
+                return -1;
+            } else {
+                user_stream->send_body_len = ret;
+            }
+        } else {
+            user_stream->send_body_len = g_send_body_size;
+        }
+    }
+
+    if (user_stream->send_offset < user_stream->send_body_len) {
+        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %zd\n", ret);
             return (int)ret;
@@ -376,7 +417,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
 
 int xqc_client_stream_write_notify(xqc_stream_t *stream, void *user_data)
 {
-    DEBUG;
+    //DEBUG;
     int ret = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
     ret = xqc_client_stream_send(stream, user_stream);
@@ -385,21 +426,94 @@ int xqc_client_stream_write_notify(xqc_stream_t *stream, void *user_data)
 
 int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
 {
-    DEBUG;
+    //DEBUG;
+    unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
-    char buff[1000] = {0};
-    size_t buff_size = 1000;
+    char buff[4096] = {0};
+    size_t buff_size = 4096;
+
+    int save = g_save_body;
+
+    if (save && user_stream->recv_body_fp == NULL) {
+        user_stream->recv_body_fp = fopen(g_write_file, "wb");
+        if (user_stream->recv_body_fp == NULL) {
+            printf("open error\n");
+            return -1;
+        }
+    }
+
+    if (g_echo_check && user_stream->recv_body == NULL) {
+        user_stream->recv_body = malloc(user_stream->send_body_len);
+        if (user_stream->recv_body == NULL) {
+            printf("recv_body malloc error\n");
+            return -1;
+        }
+    }
 
     ssize_t read;
-    unsigned char fin;
+    ssize_t read_sum = 0;
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
-        printf("xqc_stream_recv %zd, fin:%d\n", read, fin);
         if (read < 0) {
+            printf("xqc_stream_recv error %zd\n", read);
             return read;
         }
+
+        if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+            printf("fwrite error\n");
+            return -1;
+        }
+        if(save) fflush(user_stream->recv_body_fp);
+
+        /* 保存接收到的body到内存 */
+        if (g_echo_check && user_stream->recv_body_len + read <= user_stream->send_body_len) {
+            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
+        }
+        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+        read_sum += read;
+        user_stream->recv_body_len += read;
+
     } while (read > 0 && !fin);
 
+    printf("xqc_stream_recv read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
+
+    if (g_test_case == 14/*测试秒开率*/ && user_stream->first_frame_time == 0 && user_stream->recv_body_len >= 98*1024) {
+        user_stream->first_frame_time = now();
+    }
+
+    if (g_test_case == 14/*测试卡顿率*/) {
+        xqc_msec_t tmp = now();
+        if (tmp - user_stream->last_read_time > 150*1000 && user_stream->last_read_time != 0 ) {
+            user_stream->abnormal_count++;
+            printf("\033[33m!!!!!!!!!!!!!!!!!!!!abnormal!!!!!!!!!!!!!!!!!!!!!!!!\033[0m\n");
+        }
+        user_stream->last_read_time = tmp;
+    }
+
+    if (fin) {
+        user_stream->recv_fin = 1;
+        xqc_msec_t now_us = now();
+        printf("\033[33m>>>>>>>> request time cost:%"PRIu64" us, speed:%"PRIu64" K/s \n"
+               ">>>>>>>> send_body_size:%zu, recv_body_size:%zu \033[0m\n",
+               now_us - user_stream->start_time,
+               (user_stream->send_body_len + user_stream->recv_body_len)*1000/(now_us - user_stream->start_time),
+               user_stream->send_body_len, user_stream->recv_body_len);
+
+        // write to eval file
+        /*{
+            FILE* fp = NULL;
+            fp = fopen("eval_result.txt", "a+");
+            if (fp == NULL){
+                exit(1);
+            }
+
+            fprintf(fp, "recv_size: %lu; cost_time: %lu\n", stats.recv_body_size, (uint64_t)((now_us - user_stream->start_time)/1000));
+            fclose(fp);
+
+            exit(0);
+        }*/
+
+    }
     return 0;
 }
 
@@ -407,7 +521,24 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
+    if (g_echo_check) {
+        int pass = 0;
+        if (user_stream->recv_fin && user_stream->send_body_len == user_stream->recv_body_len
+            && memcmp(user_stream->send_body, user_stream->recv_body, user_stream->send_body_len) == 0) {
+            pass = 1;
+        }
+        printf(">>>>>>>> pass:%d\n", pass);
+    }
+    if (g_test_case == 14/*测试秒开率*/ ) {
+        xqc_msec_t t = user_stream->first_frame_time - user_stream->start_time + 200000/*服务端处理耗时*/;
+        printf("\033[33m>>>>>>>> first_frame pass:%d time:%"PRIu64"\033[0m\n", t <= 1000000 ? 1 : 0, t);
+    }
+
+    if (g_test_case == 14/*测试卡顿率*/ ) {
+        printf("\033[33m>>>>>>>> abnormal pass:%d count:%d\033[0m\n", user_stream->abnormal_count == 0 ? 1 : 0, user_stream->abnormal_count);
+    }
     free(user_stream->send_body);
+    free(user_stream->recv_body);
     free(user_stream);
     return 0;
 }
@@ -466,6 +597,12 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     };
 
     int header_only = g_is_get;
+    if (g_is_get) {
+         header[0].value.iov_base = "GET";
+         header[0].value.iov_len = sizeof("GET") - 1;
+    }
+
+
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
@@ -672,7 +809,8 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
 
     xqc_request_stats_t stats;
     stats = xqc_h3_request_get_stats(h3_request);
-    printf("send_body_size:%zu, recv_body_size:%zu, recv_fin:%d\n", stats.send_body_size, stats.recv_body_size, user_stream->recv_fin);
+    printf("send_body_size:%zu, recv_body_size:%zu, recv_fin:%d, err:%d\n",
+           stats.send_body_size, stats.recv_body_size, user_stream->recv_fin, stats.stream_err);
 
     if (g_echo_check) {
         int pass = 0;
@@ -716,6 +854,56 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
 
     ssize_t recv_size = 0;
     ssize_t recv_sum = 0;
+
+#ifdef __linux__
+    int batch = 0;
+    if (batch) {
+#define VLEN 100
+#define BUFSIZE XQC_PACKET_TMP_BUF_LEN
+#define TIMEOUT 10
+        struct sockaddr_in6 pa[VLEN];
+        struct mmsghdr msgs[VLEN];
+        struct iovec iovecs[VLEN];
+        char bufs[VLEN][BUFSIZE+1];
+        struct timespec timeout;
+        int retval;
+
+        do {
+            memset(msgs, 0, sizeof(msgs));
+            for (int i = 0; i < VLEN; i++) {
+                iovecs[i].iov_base = bufs[i];
+                iovecs[i].iov_len = BUFSIZE;
+                msgs[i].msg_hdr.msg_iov = &iovecs[i];
+                msgs[i].msg_hdr.msg_iovlen = 1;
+                msgs[i].msg_hdr.msg_name = &pa[i];
+                msgs[i].msg_hdr.msg_namelen = user_conn->peer_addrlen;
+            }
+
+            timeout.tv_sec = TIMEOUT;
+            timeout.tv_nsec = 0;
+
+            retval = recvmmsg(user_conn->fd, msgs, VLEN, 0, &timeout);
+            if (retval == -1) {
+                break;
+            }
+
+            uint64_t recv_time = now();
+            for (int i = 0; i < retval; i++) {
+                recv_sum += msgs[i].msg_len;
+
+                if (xqc_engine_packet_process(ctx.engine, iovecs[i].iov_base, msgs[i].msg_len,
+                                              (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
+                                      (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
+                                      (xqc_msec_t) recv_time, user_conn) != 0 ) {
+                    printf("xqc_server_read_handler: packet process err\n");
+                    return;
+                }
+            }
+        } while (retval > 0);
+        goto finish_recv;
+    }
+#endif
+
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
     do {
@@ -757,8 +945,9 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (g_test_case == 9/*接收到重复的包*/) {g_test_case = -1; memcpy(packet_buf, copy, recv_size); goto again;}
     } while (recv_size > 0);
 
+finish_recv:
     printf("recvfrom size:%zu\n", recv_sum);
-    xqc_engine_main_logic(ctx.engine);
+    xqc_engine_finish_recv(ctx.engine);
 }
 
 
@@ -821,6 +1010,7 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
 int xqc_client_open_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    //ctx->log_fd = open("/home/jiuhai.zjh/ramdisk/clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
     ctx->log_fd = open("./clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (ctx->log_fd <= 0) {
         return -1;
@@ -875,6 +1065,7 @@ void usage(int argc, char *argv[]) {
 "   -u    Url. default https://test.xquic.com/path/resource\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
+"   -N    No crypt\n"
 "   -6    IPv6\n"
 , prog);
 }
@@ -893,11 +1084,12 @@ int main(int argc, char *argv[]) {
     g_is_get = 0;
     g_test_case = 0;
     g_ipv6 = 0;
+    g_no_crypt = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
     int req_paral = 1;
-    char c_cong_ctl = 'c';
+    char c_cong_ctl = 'b';
     char c_log_level = 'd';
     int pacing_on = 0;
     int conn_timeout = 3;
@@ -905,7 +1097,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6N")) != -1){
         switch(ch)
         {
             case 'a':
@@ -995,6 +1187,10 @@ int main(int argc, char *argv[]) {
                 printf("option IPv6 :%s\n", "on");
                 g_ipv6 = 1;
                 break;
+            case 'N':
+                printf("option No crypt: %s\n", "yes");
+                g_no_crypt = 1;
+                break;
             default:
                 printf("other option :%c\n", ch);
                 usage(argc, argv);
@@ -1041,7 +1237,7 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : XQC_LOG_DEBUG,
+                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : XQC_LOG_DEBUG),
                     //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
@@ -1136,10 +1332,10 @@ int main(int argc, char *argv[]) {
     xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
-        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
-        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
     if (cid == NULL) {

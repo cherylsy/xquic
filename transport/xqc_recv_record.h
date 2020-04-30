@@ -36,6 +36,9 @@ void
 xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record);
 
 void
+xqc_recv_record_print(xqc_connection_t *conn, xqc_recv_record_t *recv_record, char *buff, unsigned buff_size);
+
+void
 xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from);
 
 void

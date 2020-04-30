@@ -32,10 +32,12 @@
 #define XQC_STATELESS_RESET_TOKENLEN 16
 #define XQC_MAX_TOKEN_LEN 32
 
-#define XQC_TOKEN_EXPIRE_DELTA 60/*7*24*60*60*/   //N秒后过期 TODO:改大
+#define XQC_TOKEN_EXPIRE_DELTA (7*24*60*60)   //N秒后过期
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) //提前更新
 
 #define XQC_MAX_PACKET_PROCESS_BATCH 100 //xqc_engine_packet_process最多积累个数
+
+#define XQC_MAX_RECV_WINDOW (16*1024*1024)
 
 /* 调试时候用，会删掉 */
 #ifdef DEBUG_PRINT
@@ -248,11 +250,15 @@ typedef struct {
     uint64_t                fc_data_sent;
     uint64_t                fc_max_data_can_recv;
     uint64_t                fc_data_recved;
+    uint64_t                fc_data_read;
 
     uint64_t                fc_max_streams_bidi_can_send;
     uint64_t                fc_max_streams_bidi_can_recv;
     uint64_t                fc_max_streams_uni_can_send;
     uint64_t                fc_max_streams_uni_can_recv;
+
+    uint64_t                fc_recv_windows_size;
+    xqc_msec_t              fc_last_window_update_time;
 } xqc_conn_flow_ctl_t;
 
 
@@ -314,10 +320,13 @@ struct xqc_connection_s{
     xqc_log_t              *log;
 
     xqc_send_ctl_t         *conn_send_ctl;
+    //xqc_send_ctl_info_t     ctl_info;
 
     xqc_msec_t              last_ticked_time;
     xqc_msec_t              next_tick_time;
     xqc_msec_t              conn_create_time;
+    xqc_msec_t              handshake_complete_time;//记录握手结束的时间
+    xqc_msec_t              first_data_send_time; //记录双向流第一次发送数据的时间
 
     SSL                     *xc_ssl;   /*ssl for connection*/
     xqc_tlsref_t            tlsref;   //all tls reference

@@ -86,7 +86,7 @@ grep_err_log
 
 clear_log
 echo -e "主动关闭连接 ...\c"
-./test_client -s 10240000 -l d -t 1 -E -x 2 >> clog
+./test_client -s 1024000 -l d -t 1 -E -x 2 >> clog
 if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "====>.*CONNECTION_CLOSE" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
 else
@@ -96,7 +96,7 @@ grep_err_log
 
 clear_log
 echo -e "出错关闭连接 ...\c"
-./test_client -s 10240000 -l d -t 1 -E -x 3 >> clog
+./test_client -s 1024000 -l d -t 1 -E -x 3 >> clog
 if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "====>.*CONNECTION_CLOSE" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
 else
@@ -107,7 +107,7 @@ grep_err_log|grep -v xqc_process_write_streams|grep -v xqc_h3_stream_write_notif
 
 clear_log
 echo -e "Reset stream ...\c"
-./test_client -s 10240000 -l d -t 1 -E -x 1 >> clog
+./test_client -s 1024000 -l d -t 1 -E -x 1 >> clog
 if grep "send_state:5|recv_state:5" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
 else
@@ -165,37 +165,37 @@ grep_err_log
 
 clear_log
 echo -e "发送10M ...\c"
-./test_client -s 10240000 -l e -t 2 -E|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "BBR ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c bbr|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 4 -E -c bbr|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Reno with pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c reno -C|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c reno -C|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Reno without pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c reno|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c reno|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Cubic with pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c cubic -C|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c cubic -C|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "Cubic without pacing ...\c"
-./test_client -s 10240000 -l e -t 2 -E -c cubic|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 3 -E -c cubic|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "流级流控 ...\c"
-./test_client -s 10240000 -l e -t 2 -E|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
@@ -220,15 +220,17 @@ grep_err_log|grep -v stream
 
 clear_log
 echo -e "1%丢包率 ...\c"
-./test_client -s 10240000 -l e -t 3 -E -d 10|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 4 -E -d 10|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "3%丢包率 ...\c"
-./test_client -s 10240000 -l e -t 3 -E -d 30|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 4 -E -d 30|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
 echo -e "10%丢包率 ...\c"
 ./test_client -s 10240000 -l e -t 10 -E -d 100|grep ">>>>>>>> pass"
 grep_err_log
+
+killall test_server

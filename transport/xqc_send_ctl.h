@@ -12,12 +12,13 @@
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
 #define XQC_kGranularity 2
-#define XQC_kInitialRtt 500
+//#define XQC_kInitialRtt 500
+#define XQC_kInitialRtt 250
 
 //2^n
 #define xqc_send_ctl_pow(n) (1 << n)
 
-#define XQC_CTL_PACKETS_USED_MAX 1000
+#define XQC_CTL_PACKETS_USED_MAX 16000
 
 /*
  * A connection will time out if no packets are sent or received for a
@@ -53,6 +54,22 @@ typedef struct {
     xqc_send_ctl_timer_callback ctl_timer_callback;
     int                         ctl_pacing_time_isexpire;
 } xqc_send_ctl_timer_t;
+
+
+#define XQC_DEFAULT_RECORD_INTERVAL (100000)   //100毫秒的记录间隔
+#define XQC_DEFAULT_RTT_CHANGE_THRESHOLD (50 * 1000) //50毫秒
+#define XQC_DEFAULT_BW_CHANGE_THRESHOLD (50) //带宽改变的百分比
+typedef struct {
+    xqc_msec_t  last_record_time; //上次周期性记录的时间
+    xqc_msec_t  last_rtt_time; //上次rtt发生大变化的时间
+    xqc_msec_t  last_lost_time; //上次记录发生丢包的时间
+    xqc_msec_t  last_bw_time; //上次记录bandwidth发生剧烈变化的时间
+    uint64_t    record_interval; //所有类型的记录在该间隔内都只记录一次
+    uint64_t    rtt_change_threshold; //rtt发生变化的阈值
+    uint64_t    bw_change_threshold;//bandwidth发生变化的阈值
+    uint64_t    last_lost_count;//上次记录的丢包数目
+    uint64_t    last_send_count;//上次记录的发包数目
+}xqc_send_ctl_info_t;
 
 typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_send_packets; //xqc_packet_out_t to send
@@ -100,6 +117,8 @@ typedef struct xqc_send_ctl_s {
     unsigned                    ctl_lost_count;
     unsigned                    ctl_tlp_count;
 
+    unsigned                    ctl_recv_count;
+
     unsigned                    ctl_bytes_in_flight;
 
     uint64_t                    ctl_bytes_send;
@@ -120,6 +139,7 @@ typedef struct xqc_send_ctl_s {
 
     xqc_sample_t                sampler;
 
+    xqc_send_ctl_info_t         ctl_info;
 } xqc_send_ctl_t;
 
 
@@ -159,7 +179,7 @@ void
 xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
 
 int
-xqc_send_ctl_can_send (xqc_connection_t *conn);
+xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
 void
 xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
@@ -288,6 +308,8 @@ xqc_send_pacing_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc
     ctl->ctl_timer[type].ctl_expire_time = expire;
 
     ctl->ctl_timer[type].ctl_pacing_time_isexpire = 0;
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|",
+            xqc_timer_type_2_str(type), expire, xqc_now());
 }
 
 static inline void
@@ -301,6 +323,8 @@ xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, 
     if (was_set) {
         // update
         ctl->ctl_timer[type].ctl_expire_time = new_expire;
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|new_expire:%ui|now:%ui|",
+                xqc_timer_type_2_str(type), new_expire, xqc_now());
     } else {
         xqc_send_pacing_timer_set(ctl, type, new_expire);
     }

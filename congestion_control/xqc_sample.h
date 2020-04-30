@@ -30,6 +30,9 @@ typedef struct xqc_sample_s{
     xqc_msec_t  ack_elapse;
     xqc_msec_t  send_elapse;
     uint32_t    delivery_rate;
+    xqc_msec_t lagest_ack_time;
+    xqc_send_ctl_t *send_ctl;
+
 } xqc_sample_t;
 
 bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_msec_t now);

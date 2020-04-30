@@ -15,7 +15,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
     }
 
     if(sampler->prior_time == 0) {
-        printf("bbr=================== xqc_generate_sample false sampler->prior_time == 0\n");
+        //printf("bbr=================== xqc_generate_sample false sampler->prior_time == 0\n");
         return false; /* nothing delivered on this ACK */
     }
 
@@ -33,7 +33,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
         */
     if (sampler->interval < send_ctl->ctl_minrtt){
         sampler->interval = 0;
-        printf("bbr==================== xqc_generate_sample false sampler->interval < send_ctl->ctl_minrtt\n");
+        //printf("bbr==================== xqc_generate_sample false sampler->interval < send_ctl->ctl_minrtt\n");
         return false;
     }
     if(sampler->interval != 0) {
@@ -66,6 +66,9 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
         sampler->send_elapse = packet->po_sent_time - packet->po_first_sent_time;
         sampler->ack_elapse = send_ctl->ctl_delivered_time - packet->po_delivered_time;
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
+
+        sampler->lagest_ack_time = now;
+
     }
 
     /* Mark the packet as delivered once it's SACKed to
@@ -77,11 +80,15 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
 void xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
     if (/* We are not limited by CWND. */
-        send_ctl->ctl_packets_used * XQC_PACKET_OUT_SIZE_EXT <
+        send_ctl->ctl_bytes_in_flight <
         send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong) &&
+        /* We have no packet to send. */
+        xqc_list_empty(&send_ctl->ctl_send_packets) &&
         /* All lost packets have been retransmitted. */
-        !xqc_list_empty(&send_ctl->ctl_lost_packets)) {
+        xqc_list_empty(&send_ctl->ctl_lost_packets)) {
         send_ctl->ctl_app_limited = send_ctl->ctl_delivered + send_ctl->ctl_bytes_in_flight ? : 1;
+        //xqc_log(send_ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|ctl_bytes_in_flight:%ud|send empty:%ud|lost empty:%ud|",
+        //        send_ctl->ctl_bytes_in_flight, xqc_list_empty(&send_ctl->ctl_send_packets)?1:0, xqc_list_empty(&send_ctl->ctl_lost_packets)?1:0);
     }
 }
 

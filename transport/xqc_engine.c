@@ -516,7 +516,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+    if (conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
         xqc_process_read_streams(conn);
         if (xqc_send_ctl_can_write(conn->conn_send_ctl)) {
             xqc_process_write_streams(conn);
@@ -581,7 +581,7 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     }
     engine->engine_flag |= XQC_ENG_FLAG_RUNNING;
 
-    //xqc_log(engine->log, XQC_LOG_DEBUG, "|");
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|");
 
     xqc_msec_t now = xqc_now();
     xqc_connection_t *conn;
@@ -776,7 +776,8 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             //RST包只有对端cid
             conn = xqc_engine_conns_hash_find(engine, &scid, 'd');
             if (conn) {
-                xqc_log(engine->log, XQC_LOG_WARN, "|====>|receive reset, enter draining|");
+                xqc_log(engine->log, XQC_LOG_WARN, "|====>|receive reset, enter draining|size:%uz|scid:%s|",
+                        packet_in_size, xqc_scid_str(&scid));
                 if (conn->conn_state < XQC_CONN_STATE_DRAINING) {
                     conn->conn_state = XQC_CONN_STATE_DRAINING;
                     xqc_send_ctl_drop_packets(conn->conn_send_ctl);
@@ -811,6 +812,7 @@ process:
     }
 
     conn->conn_send_ctl->ctl_bytes_recv += packet_in_size;
+    conn->conn_send_ctl->ctl_recv_count++;
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
                            recv_time + conn->conn_send_ctl->ctl_conn->local_settings.idle_timeout*1000);

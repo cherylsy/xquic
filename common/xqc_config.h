@@ -3,6 +3,7 @@
 
 #define xqc_min(a, b) ((a) < (b) ? (a) : (b))
 #define xqc_max(a, b) ((a) > (b) ? (a) : (b))
+#define xqc_sub_abs(a, b) ((a) > (b) ? ((a) - (b)): ((b) - (a)))
 
 #define LF     (unsigned char) '\n'
 #define CR     (unsigned char) '\r'
