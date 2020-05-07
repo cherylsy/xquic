@@ -477,10 +477,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
             if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
                 stream_frame_acked = 1;
-            }
-
-            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)
                 xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
+            }
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out);
 
@@ -528,7 +526,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                ctl->sampler.srtt);*/
     }
 
-    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time) && stream_frame_acked) {
+    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && stream_frame_acked && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
 
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
