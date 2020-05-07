@@ -43,6 +43,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
     sampler->rtt = send_ctl->ctl_latest_rtt;
     sampler->srtt = send_ctl->ctl_srtt;
     sampler->bytes_inflight = send_ctl->ctl_bytes_in_flight;
+    sampler->prior_inflight = send_ctl->ctl_prior_bytes_in_flight;
     sampler->total_acked = send_ctl->ctl_delivered;
     return true;
 }

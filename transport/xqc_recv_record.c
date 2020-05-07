@@ -37,7 +37,7 @@ xqc_recv_record_print(xqc_connection_t *conn, xqc_recv_record_t *recv_record, ch
         }
     }
 
-    snprintf(buff, buff_size, "#%"PRIu64"-%"PRIu64"#%"PRIu64"-%"PRIu64"#%"PRIu64"-%"PRIu64"",
+    snprintf(buff, buff_size, "#%"PRIu64"-%"PRIu64"#%"PRIu64"-%"PRIu64"#%"PRIu64"-%"PRIu64"#v0429",
              range[0].high, range[0].low,
              range[1].high, range[1].low,
              range[2].high, range[2].low);

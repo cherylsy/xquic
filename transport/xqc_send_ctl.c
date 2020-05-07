@@ -158,13 +158,26 @@ void xqc_send_ctl_info_circle_record(xqc_connection_t *conn){
     uint64_t cwnd = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(conn_send_ctl->ctl_cong);
 
     uint64_t bw = 0;
-    if(conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate){
+    uint64_t pacing_rate = 0;
+    xqc_bbr_t *bbr = NULL;
+    int mode = 0;
+    xqc_msec_t min_rtt = 0;
+    if(conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr){
+        bbr = (xqc_bbr_t*)(conn_send_ctl->ctl_cong);
         bw = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(conn_send_ctl->ctl_cong);
+        pacing_rate = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(conn_send_ctl->ctl_cong);
+        mode = bbr->mode;
+        min_rtt = bbr->min_rtt;
     }
 
     uint64_t srtt = conn_send_ctl->ctl_srtt;
-    xqc_conn_log(conn, XQC_LOG_STATS, "|cwnd:%ui|bw:%ui|srtt:%ui|latest_rtt:%ui|send_count:%ud|conn:%p|conn_life:%ui|",
-                 cwnd, bw, srtt, conn_send_ctl->ctl_latest_rtt, conn_send_ctl->ctl_send_count, conn, now - conn->conn_create_time);
+    xqc_conn_log(conn, XQC_LOG_STATS,
+                 "|cwnd:%ui|inflight:%ud|mode:%ud|applimit:%ud|pacing_rate:%ui|bw:%ui|srtt:%ui|latest_rtt:%ui|min_rtt:%ui|send:%ud|lost:%ud|conn_life:%ui|",
+                 cwnd, conn_send_ctl->ctl_bytes_in_flight,
+                 mode, conn_send_ctl->sampler.is_app_limited, pacing_rate, bw,
+                 srtt, conn_send_ctl->ctl_latest_rtt, min_rtt,
+                 conn_send_ctl->ctl_send_count, conn_send_ctl->ctl_lost_count,
+                 now - conn->conn_create_time);
 
 }
 
@@ -430,6 +443,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_pkt_num_space_t pns = ack_info->pns;
     unsigned char need_del_record = 0;
     int stream_frame_acked = 0;
+    ctl->ctl_prior_bytes_in_flight = ctl->ctl_bytes_in_flight;
 
     if (lagest_ack > ctl->ctl_largest_sent[pns]) {
         xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|%ui|", lagest_ack);
@@ -463,10 +477,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
             if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
                 stream_frame_acked = 1;
-            }
-
-            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)
                 xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
+            }
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out);
 
@@ -514,7 +526,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                ctl->sampler.srtt);*/
     }
 
-    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time) && stream_frame_acked) {
+    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && stream_frame_acked && xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
 
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
@@ -528,13 +540,16 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
         ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
         xqc_bbr_t *bbr = (xqc_bbr_t*)(ctl->ctl_cong);
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|cwnd:%ud|inflight:%ud|applimit:%ud|",
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO,
+                "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|cwnd:%ud|full_bw_reached:%ud|inflight:%ud|srtt:%ui|latest_rtt:%ui|min_rtt:%ui|applimit:%ud|lost:%ud|",
                 bbr->mode,
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong),
+                bbr->full_bandwidth_reached,
                 ctl->ctl_bytes_in_flight,
-                ctl->sampler.is_app_limited);
+                ctl->ctl_srtt, ctl->ctl_latest_rtt, bbr->min_rtt,
+                ctl->sampler.is_app_limited, ctl->ctl_lost_count);
 
         if(bw_record_flag){
             bw_after = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
