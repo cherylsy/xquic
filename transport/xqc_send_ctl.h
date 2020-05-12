@@ -103,7 +103,7 @@ typedef struct xqc_send_ctl_s {
 
     xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
 
-    xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet;
+    xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet[XQC_PNS_N];
     xqc_msec_t                  ctl_srtt,
                                 ctl_rttvar,
                                 ctl_minrtt,

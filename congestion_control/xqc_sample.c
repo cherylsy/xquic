@@ -68,6 +68,7 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
 
         sampler->lagest_ack_time = now;
+        sampler->po_sent_time = packet->po_sent_time;
 
     }
 
