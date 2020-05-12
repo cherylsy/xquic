@@ -200,7 +200,7 @@ static bool xqc_bbr_is_next_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 //        return is_full_length;
 //    }
 
-    if (bbr->pacing_gain > 1.0 && !sampler->loss && inflight < xqc_bbr_target_cwnd(bbr, bbr->pacing_gain)) {
+    if (bbr->pacing_gain > 1.0 && !sampler->loss && sampler->prior_inflight < xqc_bbr_target_cwnd(bbr, bbr->pacing_gain)) {
         should_advance_gain_cycling = false;
     }
 
@@ -558,9 +558,9 @@ static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
 //    printf("==========xqc_bbr_get_cwnd cwnd %u, bandwidth %u, min_rtt %llu\n",bbr->congestion_window, xqc_bbr_max_bw(bbr), bbr->min_rtt);
 
-    // TODO: 300k is an expirement setting, traffic control
-//    return xqc_min(bbr->congestion_window, 400000);
-    return bbr->congestion_window;
+    // FLAGS_quic_max_congestion_window from chrome quic
+    return xqc_min(bbr->congestion_window, 2000 * XQC_kMaxDatagramSize);
+//    return bbr->congestion_window;
 }
 
 static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)

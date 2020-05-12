@@ -18,6 +18,8 @@ typedef struct xqc_sample_s{
     uint32_t    delivered;
     /*发送但未收到ack的数据量 */
     uint32_t    bytes_inflight;
+    /*before processing this ack */
+    uint32_t    prior_inflight;
     /*采样所得的rtt */
     xqc_msec_t  rtt;
     uint32_t    is_app_limited;
