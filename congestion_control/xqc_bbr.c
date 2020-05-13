@@ -15,7 +15,7 @@
 kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 #define XQC_kInitialWindow (32 * XQC_kMaxDatagramSize)  // same init window as cubic
 
-
+#define XQC_kExpectBw (1*1024*1024) //TODO:配置化
 
 /**
  * Constants of BBR
@@ -38,6 +38,7 @@ const float xqc_bbr_kDrainGain = 1.0 / 2.885;
 const float xqc_bbr_kCwndGain = 2.0;
 /*Cycle of gains in PROBE_BW for pacing rate */
 const float xqc_bbr_kPacingGain[] = {1.25, 0.75, 1, 1, 1, 1, 1, 1};
+const float xqc_bbr_kPacingGainLow[] = {1.1, 0.9, 1, 1, 1, 1, 1, 1};
 /*Minimum packets that need to ensure ack if there is delayed ack */
 const uint32_t xqc_bbr_kMinCongestionWindow = 4 * XQC_kMaxDatagramSize;
 /*If bandwidth has increased by 1.25, there may be more bandwidth avaliable */
@@ -143,8 +144,8 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     /*Calculate the new bandwidth, bytes per second */
     bandwidth = 1.0 * sampler->delivered / sampler->interval * msec2sec;
 
-//    if (bandwidth >= 9000000)
-//        bandwidth = 9000000;
+//    if (bandwidth >= XQC_kExpectBw)
+//        bandwidth = XQC_kExpectBw;
 
 //    printf("updatebw: del: %u, interval: %lu, next_del: %u, prior_del: %lu, lagest_ack: %lu, round_cnt: %u\n",
 //            sampler->delivered, sampler->interval, bbr->next_round_delivered, sampler->prior_delivered,
@@ -234,12 +235,20 @@ static bool xqc_bbr_is_next_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 
 }
 
+static float xqc_bbr_get_pacing_gain(xqc_bbr_t *bbr, uint32_t cycle_idx)
+{
+    if (xqc_bbr_max_bw(bbr) >= XQC_kExpectBw) {
+        return xqc_bbr_kPacingGainLow[cycle_idx];
+    }
+    return xqc_bbr_kPacingGain[cycle_idx];
+}
+
 static void xqc_bbr_update_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     if(bbr->mode == BBR_PROBE_BW && xqc_bbr_is_next_cycle_phase(bbr, sampler)){
         bbr->cycle_idx = (bbr->cycle_idx + 1) % xqc_bbr_kCycleLength;
         bbr->last_cycle_start = xqc_now();
-        bbr->pacing_gain = xqc_bbr_kPacingGain[bbr->cycle_idx];
+        bbr->pacing_gain = xqc_bbr_get_pacing_gain(bbr, bbr->cycle_idx);
     }
 }
 
@@ -332,7 +341,7 @@ static void xqc_bbr_enter_probe_bw(xqc_bbr_t *bbr, xqc_sample_t *sampler)
      *  ++bbr->cycle_idx;
      */
     bbr->cycle_idx = 0;
-    bbr->pacing_gain = xqc_bbr_kPacingGain[bbr->cycle_idx];
+    bbr->pacing_gain = xqc_bbr_get_pacing_gain(bbr, bbr->cycle_idx);
     bbr->cycle_start_stamp = sampler->now;
     bbr->last_cycle_start = xqc_now();
 }
@@ -513,8 +522,8 @@ static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
 //    printf("==========xqc_bbr_get_cwnd cwnd %u, bandwidth %u, min_rtt %llu\n",bbr->congestion_window, xqc_bbr_max_bw(bbr), bbr->min_rtt);
 
-    // FLAGS_quic_max_congestion_window from chrome quic
-    return xqc_min(bbr->congestion_window, 2000 * XQC_kMaxDatagramSize);
+    // chrome quic: FLAGS_quic_max_congestion_window 2M
+    return xqc_min(bbr->congestion_window, 1000 * XQC_kMaxDatagramSize);
 //    return bbr->congestion_window;
 }
 
