@@ -16,7 +16,7 @@ kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 #define XQC_kInitialWindow (32 * XQC_kMaxDatagramSize)  // same init window as cubic
 
 #define XQC_kExpectBw (1*1024*1024) //TODO:配置化
-
+#define XQC_kMaxExpectBw (2*1024*1024)
 /**
  * Constants of BBR
  */
@@ -144,8 +144,8 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     /*Calculate the new bandwidth, bytes per second */
     bandwidth = 1.0 * sampler->delivered / sampler->interval * msec2sec;
 
-//    if (bandwidth >= XQC_kExpectBw)
-//        bandwidth = XQC_kExpectBw;
+    if (bandwidth >= XQC_kMaxExpectBw)
+        bandwidth = XQC_kMaxExpectBw;
 
 //    printf("updatebw: del: %u, interval: %lu, next_del: %u, prior_del: %lu, lagest_ack: %lu, round_cnt: %u\n",
 //            sampler->delivered, sampler->interval, bbr->next_round_delivered, sampler->prior_delivered,
@@ -310,7 +310,15 @@ static void xqc_update_ack_aggregation(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 
 static void xqc_bbr_check_full_bw_reached(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
+    /*if (!bbr->round_start)
+        return;*/
+
     if(bbr->full_bandwidth_reached || sampler->is_app_limited ){
+        return;
+    }
+
+    if (xqc_bbr_max_bw(bbr) >= XQC_kExpectBw) {
+        bbr->full_bandwidth_reached = true;
         return;
     }
 
