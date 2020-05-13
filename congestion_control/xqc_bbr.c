@@ -464,6 +464,11 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 }
 
 static void xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sampler) {
+    xqc_conn_log(sampler->send_ctl->ctl_conn, XQC_LOG_INFO, "|before ModulateCwndForRecovery|cwnd:%ud"
+        "|packet_lost:%ud|delivered:%ud|po_sent_time:%"PRIu64
+        "|recovery:%ud|recovery_start:%"PRIu64"|packet_conservation:%ud|next_round_delivered:%"PRIu64"|",
+        bbr->congestion_window, sampler->loss, sampler->delivered, sampler->po_sent_time,
+        bbr->recovery_mode, bbr->recovery_start_time, bbr->packet_conservation, bbr->next_round_delivered);
     if (sampler->loss > 0)
         bbr->congestion_window = xqc_max(bbr->congestion_window - sampler->loss * XQC_kMaxDatagramSize, XQC_kMaxDatagramSize);
     if (sampler->po_sent_time <= bbr->recovery_start_time && bbr->recovery_mode == BBR_NOT_IN_RECOVERY) {
@@ -480,6 +485,11 @@ static void xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sam
     if (bbr->packet_conservation) {
         bbr->congestion_window = xqc_max(bbr->congestion_window, sampler->send_ctl->ctl_bytes_in_flight + sampler->delivered);
     }
+    xqc_conn_log(sampler->send_ctl->ctl_conn, XQC_LOG_INFO, "|after ModulateCwndForRecovery|cwnd:%ud"
+        "|packet_lost:%ud|delivered:%ud|po_sent_time:%"PRIu64
+        "|recovery:%ud|recovery_start:%"PRIu64"|packet_conservation:%ud|next_round_delivered:%"PRIu64"|",
+        bbr->congestion_window, sampler->loss, sampler->delivered, sampler->po_sent_time,
+        bbr->recovery_mode, bbr->recovery_start_time, bbr->packet_conservation, bbr->next_round_delivered);
 }
 
 static void xqc_bbr_reset_cwnd(void *cong_ctl) {
@@ -489,11 +499,12 @@ static void xqc_bbr_reset_cwnd(void *cong_ctl) {
     bbr->congestion_window = XQC_kMinimumWindow;
     //cancel recovery state
     if (bbr->recovery_mode == BBR_IN_RECOVERY) {
-        bbr->recovery_start_time = 0;
         bbr->recovery_mode = BBR_NOT_IN_RECOVERY;
         bbr->packet_conservation = 0;
         //we do not restore cwnd here
     }
+    //reset recovery start time in any case
+    bbr->recovery_start_time = 0;
 }
 
 static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
