@@ -471,8 +471,15 @@ static void xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sam
         "|recovery:%ud|recovery_start:%ui|packet_conservation:%ud|next_round_delivered:%ui|",
         bbr->congestion_window, sampler->loss, sampler->acked, sampler->po_sent_time,
         bbr->recovery_mode, bbr->recovery_start_time, bbr->packet_conservation, bbr->next_round_delivered);
-    if (sampler->loss > 0)
-        bbr->congestion_window = xqc_max(bbr->congestion_window - sampler->loss * XQC_kMaxDatagramSize, XQC_kMaxDatagramSize);
+    if (sampler->loss > 0) {
+        //to avoid underflow of unsigned numbers
+        if (bbr->congestion_window > (sampler->loss * XQC_kMaxDatagramSize))
+            bbr->congestion_window -= sampler->loss * XQC_kMaxDatagramSize;
+        else
+            bbr->congestion_window = 0;
+        bbr->congestion_window = xqc_max(bbr->congestion_window, XQC_kMaxDatagramSize);
+    }
+        
     if (sampler->po_sent_time <= bbr->recovery_start_time && bbr->recovery_mode == BBR_NOT_IN_RECOVERY) {
         bbr->recovery_mode = BBR_IN_RECOVERY;
         bbr->packet_conservation = 1;
@@ -582,8 +589,8 @@ static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
 //    printf("==========xqc_bbr_get_cwnd cwnd %u, bandwidth %u, min_rtt %llu\n",bbr->congestion_window, xqc_bbr_max_bw(bbr), bbr->min_rtt);
 
     // FLAGS_quic_max_congestion_window from chrome quic
-    return xqc_min(bbr->congestion_window, 2000 * XQC_kMaxDatagramSize);
-//    return bbr->congestion_window;
+    //return xqc_min(bbr->congestion_window, 2000 * XQC_kMaxDatagramSize);
+    return bbr->congestion_window;
 }
 
 static uint32_t  xqc_bbr_get_pacing_rate(void *cong_ctl)
