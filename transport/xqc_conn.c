@@ -300,6 +300,7 @@ xqc_conn_server_create(xqc_engine_t *engine,
             xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
             goto fail;
         }
+        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
     /* Do connection callback on alpn */
 
