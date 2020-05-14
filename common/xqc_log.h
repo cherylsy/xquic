@@ -25,7 +25,7 @@
  * */
 
 
-static inline const char* 
+static inline const char*
 xqc_log_leveL_str(xqc_log_level_t level)
 {
     if (level == XQC_LOG_STATS) {
@@ -69,7 +69,7 @@ xqc_log_init(xqc_log_callbacks_t *log_callbacks, void *user_data)
     return log;
 }
 
-static inline void 
+static inline void
 xqc_log_release(xqc_log_t* log)
 {
     log->log_callbacks->xqc_close_log_file(log->user_data);
@@ -143,12 +143,18 @@ xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *f
     log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
 }
 
+
 #define xqc_log(log, level, ...) \
     do { \
         if ((log)->log_level >= level) { \
             xqc_log_implement(log, level, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
+
+
+#define xqc_conn_log(conn, level, fmt, ...) \
+    xqc_log(conn->log, level, "|%s " fmt, xqc_conn_addr_str(conn), __VA_ARGS__ )
+
 
 #define xqc_log_fatal(log, ...) \
     do {\

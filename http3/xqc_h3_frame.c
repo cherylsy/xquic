@@ -1396,10 +1396,11 @@ int xqc_http3_frame_data_buffer_and_send(xqc_h3_stream_t * h3_stream, xqc_h3_fra
         return ret;
     }
 
+    int data_len = send_buf->data_len;
     ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
 
     if(ret == XQC_HTTP3_SEND_BUF_COMPLETE || ret == -XQC_EAGAIN ){
-        return send_buf->data_len;
+        return data_len;
     }else{
         return ret;
     }

@@ -39,18 +39,6 @@
 #define XQC_TLS_NO_EARLY_DATA   (0)
 #define XQC_TLS_EARLY_DATA_UNKNOWN (-2)  //early data status can read only after handshake completed
 
-
-//xquic tls error code, for call
-#define XQC_EARLY_DATA_REJECT (-770)
-
-#define XQC_ENCRYPT_DATA_ERROR  (-790)
-#define XQC_DECRYPT_DATA_ERROR  (-791)
-
-#define XQC_TLS_CLIENT_INITIAL_ERROR (-780)
-#define XQC_TLS_CLIENT_REINTIAL_ERROR (-781)
-
-
-
 #define XQC_NONCE_LEN   32
 #define XQC_UINT32_MAX  (0xffffffff)
 

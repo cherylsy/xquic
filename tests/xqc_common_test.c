@@ -144,7 +144,7 @@ void xqc_test_common()
     unsigned char final[16] = {};
     xqc_md5_final(final, &ctx);
 
-    uint32_t hash_value = ngx_murmur_hash2(buf, 11);
+    uint32_t hash_value = xqc_murmur_hash2(buf, 11);
 
     test_object_manager();
 

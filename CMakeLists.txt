@@ -6,7 +6,7 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC ")
 
 if(GCOV)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
@@ -121,7 +121,7 @@ add_library(
 if(ANDROID_ABI STREQUAL "arm64-v8a")
     target_link_libraries(
        xquic
-       "-ldl -Wl,--whole-archive"
+       "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
        "-Wl,--no-whole-archive"
@@ -132,7 +132,7 @@ if(ANDROID_ABI STREQUAL "arm64-v8a")
 elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
     target_link_libraries(
             xquic
-            "-ldl -Wl,--whole-archive"
+            "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
             ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libssl.a
             ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libcrypto.a
             "-Wl,--no-whole-archive"
@@ -172,7 +172,7 @@ else()
 
     target_link_libraries(
         xquic_openssl
-        "-ldl -Wl,--whole-archive"
+        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
         ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
         "-Wl,--no-whole-archive"

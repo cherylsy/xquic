@@ -49,6 +49,8 @@ typedef enum {
 typedef struct {
     uint64_t                fc_max_stream_data_can_send;
     uint64_t                fc_max_stream_data_can_recv;
+    uint64_t                fc_stream_recv_window_size;
+    xqc_msec_t              fc_last_window_update_time;
 } xqc_stream_flow_ctl_t;
 
 
@@ -112,6 +114,7 @@ struct xqc_stream_s {
     xqc_send_stream_state_t stream_state_send;
     xqc_recv_stream_state_t stream_state_recv;
     xqc_msec_t              stream_close_time;
+    uint64_t                stream_err;
 };
 
 static inline xqc_stream_type_t

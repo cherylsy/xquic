@@ -97,6 +97,8 @@ typedef struct xqc_bbr_s{
     uint8_t             has_srtt;
     uint8_t             idle_restart;
 
+    xqc_msec_t          last_round_trip_time;
+
 }xqc_bbr_t;
 extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 

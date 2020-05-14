@@ -47,7 +47,7 @@ typedef struct xqc_wakeup_pq_s
 
 
 #define xqc_wakeup_pq_element(pq, index) ((xqc_wakeup_pq_elem_t*)&(pq)->elements[(index) * (pq)->element_size])
-#define xqc_wakeup_pq_element_copy(pq, dst, src) memcpy(xqc_wakeup_pq_element((pq), (dst)), xqc_wakeup_pq_element((pq), (src)), (pq)->element_size)
+#define xqc_wakeup_pq_element_copy(pq, dst, src) memmove(xqc_wakeup_pq_element((pq), (dst)), xqc_wakeup_pq_element((pq), (src)), (pq)->element_size)
 #define xqc_wakeup_pq_default_capacity 16
 
 static inline int xqc_wakeup_pq_init(xqc_wakeup_pq_t *pq, size_t capacity, xqc_allocator_t a, xqc_wakeup_pq_compare_ptr cmp)
@@ -188,7 +188,7 @@ static inline void xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connecti
     p->conn->wakeup_pq_index = pq_index;
 
     int i = pq_index, j = 2 * i + 1;
-    while (j <= pq->count - 1) {
+    while (j <= pq->count - 1) { //调整子节点，保证最小堆性质
         if (j < pq->count - 1 && pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, j+1)->wakeup_time)) {
             ++j;
         }
@@ -201,6 +201,17 @@ static inline void xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connecti
 
         i = j;
         j = 2 * i + 1;
+    }
+
+    i = pq_index;
+    while(i != 0){  //调整父节点，保证最小堆性质
+        j = (i - 1)/2;
+        if (!pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, i)->wakeup_time)){
+            break;
+        }
+
+        xqc_wakeup_pq_element_swap(pq, i, j);
+        i = j;
     }
 
 }

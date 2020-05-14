@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "common/xqc_list.h"
 
-#define XQC_HTTP3_PRIORITY_ENABLE
+//#define XQC_HTTP3_PRIORITY_ENABLE
 
 typedef enum {
   XQC_HTTP3_PRI_ELEM_TYPE_REQUEST = 0x00,
