@@ -1,4 +1,5 @@
 
+
 #include "xqc_engine.h"
 #include "include/xquic.h"
 #include "common/xqc_str.h"
@@ -643,7 +644,12 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             conn->last_ticked_time = now;
 
             xqc_conn_retransmit_lost_packets(conn);
-            xqc_conn_send_packets(conn);
+
+            if(engine->eng_callback.write_mmsg){
+                xqc_conn_send_packets_batch(conn);
+            }else{
+                xqc_conn_send_packets(conn);
+            }
 
             if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
                 conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
