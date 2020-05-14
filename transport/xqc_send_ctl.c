@@ -378,17 +378,16 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         }
 
         /*add here RestartfromIdle here*/
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|xqc_send_ctl_on_packet_sent|inflight:%ud|applimit:%ud|", ctl->ctl_bytes_in_flight, ctl->ctl_app_limited);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_packet_sent|inflight:%ud|applimit:%ud|", ctl->ctl_bytes_in_flight, ctl->ctl_app_limited);
         if (ctl->ctl_bytes_in_flight == 0 && ctl->ctl_app_limited > 0) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|xqc_send_ctl_on_packet_sent|%s|%ui|%ui|", "PreEnterRestart", ctl->ctl_cong_callback, &xqc_bbr_cb);
             if (ctl->ctl_cong_callback->xqc_cong_ctl_restart_from_idle) {
                 /*Just From Debug*/
                 xqc_bbr_t *bbr = (xqc_bbr_t*)ctl->ctl_cong;
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|xqc_send_ctl_on_packet_sent|BeforeRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud",
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_packet_sent|BeforeRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
                     bbr->mode, bbr->idle_restart, ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
                     ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
                 ctl->ctl_cong_callback->xqc_cong_ctl_restart_from_idle(ctl->ctl_cong);
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|xqc_send_ctl_on_packet_sent|AfterRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud",
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_packet_sent|AfterRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
                     bbr->mode, bbr->idle_restart, ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
                     ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
             }
@@ -528,7 +527,6 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         }
     }
     
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|ACK->LossDetection|");
     xqc_send_ctl_detect_lost(ctl, pns, ack_recv_time);
 
     if (need_del_record) {
@@ -569,7 +567,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         xqc_bbr_t *bbr = (xqc_bbr_t*)(ctl->ctl_cong);
         xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO,
                 "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|cwnd:%ud|full_bw_reached:%ud"
-                "|inflight:%ud|srtt:%ui|latest_rtt:%ui|min_rtt:%ui|applimit:%ud|lost:%ud",
+                "|inflight:%ud|srtt:%ui|latest_rtt:%ui|min_rtt:%ui|applimit:%ud|lost:%ud"
+                "|recovery:%ud|recovery_start:%ui|idle_restart:%ud|packet_conservation:%ud|",
                 bbr->mode,
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
@@ -577,10 +576,16 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 bbr->full_bandwidth_reached,
                 ctl->ctl_bytes_in_flight,
                 ctl->ctl_srtt, ctl->ctl_latest_rtt, bbr->min_rtt,
-                ctl->sampler.is_app_limited, ctl->ctl_lost_count);
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO,
-                "|bbr on ack|recovery:%ud|recovery_start:%ui|idle_restart:%ud|packet_conservation:%ud|",
+                ctl->sampler.is_app_limited, ctl->ctl_lost_count,
                 bbr->recovery_mode, bbr->recovery_start_time, bbr->idle_restart, bbr->packet_conservation);
+        // xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO,
+        //         "|sock: 123456, est.bw: %ud, pacing_rate: %ud, cwnd: %ud, srtt: %ui, rack.rtt: %ui, min_rtt: %ui,"
+        //         "pacing_gain: %.2f, cwnd_gain: %.2f",
+        //         ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
+        //         ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
+        //         ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong),
+        //         ctl->ctl_srtt, ctl->ctl_latest_rtt, bbr->min_rtt,
+        //         bbr->pacing_gain, bbr->cwnd_gain);
 
         if(bw_record_flag){
             bw_after = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
@@ -736,14 +741,14 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
         // Start a new congestion epoch if the last lost packet
         // is past the end of the previous recovery epoch.
         // enter loss recovery here
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|OnLostDetection|largest_lost sent time: %lu|", largest_lost->po_sent_time);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|OnLostDetection|largest_lost sent time: %lu|", largest_lost->po_sent_time);
         xqc_send_ctl_congestion_event(ctl, largest_lost->po_sent_time);
 
         // Collapse congestion window if persistent congestion
         if (ctl->ctl_cong_callback->xqc_cong_ctl_reset_cwnd &&
             xqc_send_ctl_in_persistent_congestion(ctl, largest_lost)) {
             //we reset BBR's cwnd here
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|OnLostDetection|%s|", "Persistent congestion occurs");
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|OnLostDetection|%s|", "Persistent congestion occurs");
             ctl->ctl_cong_callback->xqc_cong_ctl_reset_cwnd(ctl->ctl_cong);
         }
 
@@ -812,8 +817,8 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
                 packet_out->po_pkt.pkt_num < largest_lost->po_pkt.pkt_num)
                 lost_pkts_in_between++;
         }
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|InPresistentCongestion|largest.pn %"PRIu64"|smallest.pn %"PRIu64
-            "|largest sent time %"PRIu64"|smallest sent time %"PRIu64"|lost pkts in between %ud|",
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|InPresistentCongestion|largest.pn %ui|smallest.pn %ui"
+            "|largest sent time %ui|smallest sent time %ui|lost pkts in between %ud|",
             largest_lost->po_pkt.pkt_num, smallest_lost_in_period->po_pkt.pkt_num,
             largest_lost->po_sent_time, smallest_lost_in_period->po_sent_time,
             lost_pkts_in_between);
@@ -1069,7 +1074,6 @@ xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_detect_lost|");
-        xqc_log(conn->log, XQC_LOG_INFO, "|Timeout->LossDetection|");
         // Time threshold loss Detection
         xqc_send_ctl_detect_lost(ctl, pns, now);
         xqc_send_ctl_set_loss_detection_timer(ctl);

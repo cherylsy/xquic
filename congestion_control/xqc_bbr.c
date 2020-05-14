@@ -411,7 +411,7 @@ static void xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         send_ctl->ctl_app_limited = send_ctl->ctl_delivered + (send_ctl->ctl_bytes_in_flight?:1);
         uint32_t bdp;
         bdp = bbr->min_rtt * xqc_win_filter_get(&bbr->bandwidth) / msec2sec;
-        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_INFO, "|BBR PROBE_RTT|inflight:%ud|bdp:%ud|done_stamp:%ui|done:%ud|round_start:%ud|",
+        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, "|BBR PROBE_RTT|inflight:%ud|bdp:%ud|done_stamp:%ui|done:%ud|round_start:%ud|",
                 sampler->bytes_inflight, bdp, bbr->probe_rtt_round_done_stamp, bbr->probe_rtt_round_done, bbr->round_start);
         if(!bbr->probe_rtt_round_done_stamp
            && (sampler->bytes_inflight <= xqc_bbr_kMinCongestionWindow
@@ -466,7 +466,7 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 }
 
 static void xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sampler) {
-    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_INFO, "|before ModulateCwndForRecovery|cwnd:%ud"
+    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, "|before ModulateCwndForRecovery|cwnd:%ud"
         "|packet_lost:%ud|acked:%ud|po_sent_time:%ui"
         "|recovery:%ud|recovery_start:%ui|packet_conservation:%ud|next_round_delivered:%ui|",
         bbr->congestion_window, sampler->loss, sampler->acked, sampler->po_sent_time,
@@ -495,7 +495,7 @@ static void xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sam
     if (bbr->packet_conservation) {
         bbr->congestion_window = xqc_max(bbr->congestion_window, sampler->send_ctl->ctl_bytes_in_flight + sampler->acked);
     }
-    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_INFO, "|after ModulateCwndForRecovery|cwnd:%ud"
+    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, "|after ModulateCwndForRecovery|cwnd:%ud"
         "|packet_lost:%ud|acked:%ud|po_sent_time:%ui"
         "|recovery:%ud|recovery_start:%ui|packet_conservation:%ud|next_round_delivered:%ui|",
         bbr->congestion_window, sampler->loss, sampler->acked, sampler->po_sent_time,
@@ -528,8 +528,8 @@ static void xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     uint32_t target_cwnd, extra_cwnd;
     target_cwnd = xqc_bbr_target_cwnd(bbr,bbr->cwnd_gain);
     extra_cwnd = xqc_bbr_ack_aggregation_cwnd(bbr);
-    xqc_log(send_ctl->ctl_conn->log, XQC_LOG_INFO, 
-        "|xqc_bbr_set_cwnd|target_cwnd:%ud|extra_cwnd:%ud", target_cwnd, extra_cwnd);
+    xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+        "|xqc_bbr_set_cwnd|target_cwnd:%ud|extra_cwnd:%ud|", target_cwnd, extra_cwnd);
     target_cwnd += extra_cwnd;
 
     xqc_bbr_modulate_cwnd_for_recovery(bbr, sampler);
