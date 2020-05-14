@@ -14,11 +14,13 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
         send_ctl->ctl_app_limited = 0;
     }
 
+    // we do NOT have a valid sample yet.
     if(sampler->prior_time == 0) {
-        //printf("bbr=================== xqc_generate_sample false sampler->prior_time == 0\n");
-        return false; /* nothing delivered on this ACK */
+        sampler->interval = 0;
+        return false; 
     }
 
+    sampler->acked = send_ctl->ctl_delivered - send_ctl->ctl_prior_delivered;
     /* Use the longer of the send_elapsed and ack_elapsed */
     sampler->interval = xqc_max(sampler->ack_elapse, sampler->send_elapse);
 
@@ -60,19 +62,17 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
     send_ctl->ctl_delivered_time = now;
 
     /* Update info using the newest packet: */
-    if(packet->po_delivered > sampler->prior_delivered){
+    // if it's the ACKs from the first RTT round, we use the sample anyway
+    if(sampler->prior_delivered == 0 || (packet->po_delivered > sampler->prior_delivered) ){
         sampler->prior_delivered = packet->po_delivered;
         sampler->prior_time = packet->po_delivered_time;
         sampler->is_app_limited = packet->po_is_app_limited;
         sampler->send_elapse = packet->po_sent_time - packet->po_first_sent_time;
         sampler->ack_elapse = send_ctl->ctl_delivered_time - packet->po_delivered_time;
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
-
         sampler->lagest_ack_time = now;
-        sampler->po_sent_time = packet->po_sent_time;
-
+        sampler->po_sent_time = packet->po_sent_time; //always keep it updated
     }
-
     /* Mark the packet as delivered once it's SACKed to
     * avoid being used again when it's cumulatively acked.
     */
