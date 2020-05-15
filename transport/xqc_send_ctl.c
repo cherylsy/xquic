@@ -850,6 +850,11 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO && packet_out->po_pkt.pkt_pns == XQC_PNS_HSK) {
             ctl->ctl_conn->conn_flag |= XQC_CONN_FLAG_HSK_ACKED;
         }
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_PING) {
+            if (ctl->ctl_conn->conn_callbacks.conn_ping_acked) {
+                ctl->ctl_conn->conn_callbacks.conn_ping_acked(ctl->ctl_conn, &ctl->ctl_conn->scid, ctl->ctl_conn->user_data);
+            }
+        }
 
         packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
     }

@@ -449,6 +449,32 @@ xqc_conn_get_local_addr(xqc_connection_t *conn,
     return (struct sockaddr*)conn->local_addr;
 }
 
+int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid)
+{
+    xqc_connection_t *conn;
+    int ret;
+    conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (!conn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
+        return -XQC_ECONN_NFOUND;
+    }
+    if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
+        return XQC_OK;
+    }
+    ret = xqc_write_ping_to_packet(conn);
+    if (ret < 0) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|write ping error|");
+        return ret;
+    }
+    if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
+        if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
+            conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+        }
+    }
+    xqc_engine_main_logic_internal(engine, conn);
+    return XQC_OK;
+}
+
 int xqc_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest){
     int i = 0;
     //struct mmsghdr mmsg[XQC_MAX_SEND_MSG_ONCE];
