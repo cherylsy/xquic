@@ -16,8 +16,12 @@ typedef struct xqc_sample_s{
     xqc_msec_t  interval;
     /*两次采样之间传输完成(ack)的数据量 */
     uint32_t    delivered;
+    /*the amount of newly delivered data*/
+    uint32_t    acked;
     /*发送但未收到ack的数据量 */
     uint32_t    bytes_inflight;
+    /*before processing this ack */
+    uint32_t    prior_inflight;
     /*采样所得的rtt */
     xqc_msec_t  rtt;
     uint32_t    is_app_limited;
@@ -30,8 +34,10 @@ typedef struct xqc_sample_s{
     xqc_msec_t  ack_elapse;
     xqc_msec_t  send_elapse;
     uint32_t    delivery_rate;
-
     xqc_msec_t lagest_ack_time;
+    xqc_send_ctl_t *send_ctl;
+
+    xqc_msec_t po_sent_time;
 
 } xqc_sample_t;
 

@@ -95,8 +95,12 @@ int g_echo_check;
 int g_drop_rate;
 int g_spec_url;
 int g_is_get;
+//currently, the maximum used test case id is 15
+//please keep this comment updated if you are adding more test cases. :-D
 int g_test_case;
 int g_ipv6;
+int g_no_crypt;
+int g_conn_timeout = 3;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
@@ -322,6 +326,13 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
+int xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+{
+    DEBUG;
+
+    return 0;
+}
+
 void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 {
     DEBUG;
@@ -361,6 +372,12 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
 
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
+}
+
+int xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+{
+    DEBUG;
+    return 0;
 }
 
 int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
@@ -529,6 +546,7 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
         printf(">>>>>>>> pass:%d\n", pass);
     }
     if (g_test_case == 14/*测试秒开率*/ ) {
+        printf("first_frame_time: %lu, start_time: %lu\n", user_stream->first_frame_time, user_stream->start_time);
         xqc_msec_t t = user_stream->first_frame_time - user_stream->start_time + 200000/*服务端处理耗时*/;
         printf("\033[33m>>>>>>>> first_frame pass:%d time:%"PRIu64"\033[0m\n", t <= 1000000 ? 1 : 0, t);
     }
@@ -982,6 +1000,7 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
     printf("xqc_client_timeout_callback now %"PRIu64"\n", now());
     user_conn_t *user_conn = (user_conn_t *) arg;
     int rc;
+    static int restart_after_a_while = 1;
 
     // write to eval file
     /*{
@@ -995,13 +1014,32 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
         fclose(fp);
 
     }*/
-
+    //Test case 15: testing restart from idle
+    if (restart_after_a_while && g_test_case == 15) {
+        restart_after_a_while--;
+        //we don't care the memory leak caused by user_stream. It's just for one-shot testing. :D
+        user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
+        memset(user_stream, 0, sizeof(user_stream_t));
+        user_stream->user_conn = user_conn;
+        user_stream->stream = xqc_stream_create(ctx.engine, &(user_conn->cid), user_stream);
+        if (user_stream->stream == NULL) {
+            printf("xqc_stream_create error\n");
+            goto conn_close;
+        }
+        xqc_client_stream_send(user_stream->stream, user_stream);
+        struct timeval tv;
+        tv.tv_sec = g_conn_timeout;
+        tv.tv_usec = 0;
+        event_add(user_conn->ev_timeout, &tv);
+        printf("scheduled a new stream request\n");
+        return;
+    }
+conn_close:
     rc = xqc_conn_close(ctx.engine, &user_conn->cid);
     if (rc) {
         printf("xqc_conn_close error\n");
         return;
     }
-
     //event_base_loopbreak(eb);
 }
 
@@ -1064,6 +1102,7 @@ void usage(int argc, char *argv[]) {
 "   -u    Url. default https://test.xquic.com/path/resource\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
+"   -N    No crypt\n"
 "   -6    IPv6\n"
 , prog);
 }
@@ -1082,6 +1121,7 @@ int main(int argc, char *argv[]) {
     g_is_get = 0;
     g_test_case = 0;
     g_ipv6 = 0;
+    g_no_crypt = 0;
 
     char server_addr[64] = TEST_SERVER_ADDR;
     int server_port = TEST_SERVER_PORT;
@@ -1089,12 +1129,11 @@ int main(int argc, char *argv[]) {
     char c_cong_ctl = 'b';
     char c_log_level = 'd';
     int pacing_on = 0;
-    int conn_timeout = 3;
     int transport = 0;
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6N")) != -1){
         switch(ch)
         {
             case 'a':
@@ -1122,8 +1161,8 @@ int main(int argc, char *argv[]) {
                 pacing_on = 1;
                 break;
             case 't': //n秒后关闭连接
-                printf("option conn_timeout :%s\n", optarg);
-                conn_timeout = atoi(optarg);
+                printf("option g_conn_timeout :%s\n", optarg);
+                g_conn_timeout = atoi(optarg);
                 break;
             case 'T': //仅使用传输层，不使用HTTP3
                 printf("option transport :%s\n", "on");
@@ -1184,6 +1223,10 @@ int main(int argc, char *argv[]) {
                 printf("option IPv6 :%s\n", "on");
                 g_ipv6 = 1;
                 break;
+            case 'N':
+                printf("option No crypt: %s\n", "yes");
+                g_no_crypt = 1;
+                break;
             default:
                 printf("other option :%c\n", ch);
                 usage(argc, argv);
@@ -1208,11 +1251,13 @@ int main(int argc, char *argv[]) {
                     .conn_create_notify = xqc_client_conn_create_notify,
                     .conn_close_notify = xqc_client_conn_close_notify,
                     .conn_handshake_finished = xqc_client_conn_handshake_finished,
+                    .conn_ping_acked = xqc_client_conn_ping_acked_notify,
             },
             .h3_conn_callbacks = {
                     .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
                     .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
                     .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* 握手完成时回调 */
+                    .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
             },
             /* 仅使用传输层时实现 */
             .stream_callbacks = {
@@ -1279,7 +1324,7 @@ int main(int argc, char *argv[]) {
     user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
     /* 设置连接超时 */
     struct timeval tv;
-    tv.tv_sec = conn_timeout;
+    tv.tv_sec = g_conn_timeout;
     tv.tv_usec = 0;
     event_add(user_conn->ev_timeout, &tv);
 
@@ -1325,10 +1370,10 @@ int main(int argc, char *argv[]) {
     xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
-        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
-        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
+        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
     if (cid == NULL) {
@@ -1338,7 +1383,7 @@ int main(int argc, char *argv[]) {
     }
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
-
+    //xqc_conn_send_ping(ctx.engine, &user_conn->cid);
     for (int i = 0; i < req_paral; i++) {
         g_req_cnt++;
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
