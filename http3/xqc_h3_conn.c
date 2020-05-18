@@ -129,6 +129,10 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
     xqc_free(h3_conn);
 }
 
+int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid)
+{
+    return xqc_conn_send_ping(engine, cid);
+}
 
 int
 xqc_h3_conn_send_goaway(xqc_h3_conn_t *h3_conn)
@@ -238,9 +242,20 @@ xqc_h3_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
     }
 }
 
+int
+xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+{
+    xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
+    if (h3_conn->h3_conn_callbacks.h3_conn_ping_acked) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|Ping acked notify|");
+        h3_conn->h3_conn_callbacks.h3_conn_ping_acked(h3_conn, &h3_conn->conn->scid, h3_conn->user_data);
+    }
+    return XQC_OK;
+}
 
 const xqc_conn_callbacks_t h3_conn_callbacks = {
         .conn_create_notify = xqc_h3_conn_create_notify,
         .conn_close_notify = xqc_h3_conn_close_notify,
         .conn_handshake_finished = xqc_h3_conn_handshake_finished,
+        .conn_ping_acked = xqc_h3_conn_ping_acked_notify,
 };

@@ -326,6 +326,13 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
+int xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+{
+    DEBUG;
+
+    return 0;
+}
+
 void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 {
     DEBUG;
@@ -365,6 +372,12 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
 
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
+}
+
+int xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+{
+    DEBUG;
+    return 0;
 }
 
 int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
@@ -1238,11 +1251,13 @@ int main(int argc, char *argv[]) {
                     .conn_create_notify = xqc_client_conn_create_notify,
                     .conn_close_notify = xqc_client_conn_close_notify,
                     .conn_handshake_finished = xqc_client_conn_handshake_finished,
+                    .conn_ping_acked = xqc_client_conn_ping_acked_notify,
             },
             .h3_conn_callbacks = {
                     .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
                     .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
                     .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* 握手完成时回调 */
+                    .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
             },
             /* 仅使用传输层时实现 */
             .stream_callbacks = {
@@ -1368,7 +1383,7 @@ int main(int argc, char *argv[]) {
     }
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
-
+    //xqc_conn_send_ping(ctx.engine, &user_conn->cid);
     for (int i = 0; i < req_paral; i++) {
         g_req_cnt++;
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));

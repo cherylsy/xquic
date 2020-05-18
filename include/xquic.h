@@ -27,6 +27,8 @@ extern "C" {
 
 #define XQC_TLS_AEAD_OVERHEAD_MAX_LEN 16
 
+#define XQC_MAX_SEND_MSG_ONCE  32
+
 typedef void (*xqc_set_event_timer_pt)(void *engine_user_data, xqc_msec_t wake_after);
 
 typedef void (*xqc_save_token_pt)(void *conn_user_data, const unsigned char *token, uint32_t token_len);
@@ -38,6 +40,10 @@ typedef void (*xqc_save_token_pt)(void *conn_user_data, const unsigned char *tok
 typedef ssize_t (*xqc_socket_write_pt)(void *conn_user_data, unsigned char *buf, size_t size,
                                        const struct sockaddr *peer_addr,
                                        socklen_t peer_addrlen);
+typedef ssize_t (*xqc_send_mmsg_pt)(void *conn_user_data, struct iovec *msg_iov, unsigned int vlen,
+                                        const struct sockaddr *peer_addr,
+                                        socklen_t peer_addrlen);
+
 
 typedef enum {
     XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
@@ -82,6 +88,8 @@ typedef struct xqc_conn_callbacks_s {
     xqc_conn_notify_pt          conn_close_notify;
     /* for handshake done */
     xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
+    /* ping is acked */
+    xqc_conn_notify_pt          conn_ping_acked; /* optional */
 } xqc_conn_callbacks_t;
 
 /* application layer */
@@ -92,6 +100,8 @@ typedef struct xqc_h3_conn_callbacks_s {
     xqc_h3_conn_notify_pt          h3_conn_close_notify;
     /* for handshake done */
     xqc_h3_handshake_finished_pt   h3_conn_handshake_finished;  /* optional */
+    /* ping is acked */
+    xqc_h3_conn_notify_pt          h3_conn_ping_acked; /* optional */
 } xqc_h3_conn_callbacks_t;
 
 /* transport layer */
@@ -163,6 +173,9 @@ typedef struct xqc_engine_callback_s {
 
     /* for socket write */
     xqc_socket_write_pt         write_socket; /* 用户实现socket写接口 */
+
+    /* for send_mmsg write*/
+    xqc_send_mmsg_pt            write_mmsg; /*批量发送接口*/
 
     /* for server, callback when server accept a new connection */
     xqc_server_accept_pt        server_accept;
@@ -339,6 +352,12 @@ struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
                                            socklen_t *local_addr_len);
 
 /**
+ * Send PING to peer, if ack received, h3_conn_ping_acked will callback
+ * @return 0 for success, <0 for error
+ */
+int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid);
+
+/**
  * @param user_data For request
  */
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
@@ -462,6 +481,12 @@ struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
  */
 struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
                                         socklen_t *local_addr_len);
+
+/**
+ * Send PING to peer, if ack received, conn_ping_acked will callback
+ * @return 0 for success, <0 for error
+ */
+int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt
