@@ -461,7 +461,7 @@ static void xqc_bbr_set_pacing_rate(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if(bbr->pacing_rate == 0){
         bbr->pacing_rate = xqc_bbr_kHighGain * (1.0 * bbr->initial_congestion_window / xqc_bbr_get_min_rtt(bbr) * msec2sec);
         xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_WARN, 
-            "|xqc_bbr_set_pacing_rate|rate eached 0|reset pacing_rate:%ud|", bbr->pacing_rate);
+            "|rate reached 0|reset pacing_rate:%ud|", bbr->pacing_rate);
     }
 }
 

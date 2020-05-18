@@ -378,16 +378,16 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         }
 
         /*add here RestartfromIdle here*/
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_packet_sent|inflight:%ud|applimit:%ud|", ctl->ctl_bytes_in_flight, ctl->ctl_app_limited);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|inflight:%ud|applimit:%ui|", ctl->ctl_bytes_in_flight, ctl->ctl_app_limited);
         if (ctl->ctl_bytes_in_flight == 0 && ctl->ctl_app_limited > 0) {
             if (ctl->ctl_cong_callback->xqc_cong_ctl_restart_from_idle) {
                 /*Just From Debug*/
                 xqc_bbr_t *bbr = (xqc_bbr_t*)ctl->ctl_cong;
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_packet_sent|BeforeRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|BeforeRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
                     bbr->mode, bbr->idle_restart, ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
                     ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
                 ctl->ctl_cong_callback->xqc_cong_ctl_restart_from_idle(ctl->ctl_cong);
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_on_packet_sent|AfterRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|AfterRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
                     bbr->mode, bbr->idle_restart, ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
                     ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
             }
@@ -554,7 +554,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
         xqc_msec_t now = xqc_now();
-        if(/*(ctl->ctl_cong_callback ==  &xqc_bbr_cb) && */
+        if((ctl->ctl_cong_callback ==  &xqc_bbr_cb) &&
         (ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL) && 
         (ctl->ctl_info.last_bw_time + ctl->ctl_info.record_interval <= now)){
             bw_before = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
