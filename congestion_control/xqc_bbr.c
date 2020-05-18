@@ -15,8 +15,8 @@
 kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 #define XQC_kInitialWindow (32 * XQC_kMaxDatagramSize)  // same init window as cubic
 
-#define XQC_kExpectBw (1*1024*1024) //TODO:配置化
-#define XQC_kMaxExpectBw (2*1024*1024)
+/*#define XQC_kExpectBw (1*1024*1024) //TODO:配置化
+#define XQC_kMaxExpectBw (2*1024*1024)*/
 /**
  * Constants of BBR
  */
@@ -147,8 +147,8 @@ static void xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     /*Calculate the new bandwidth, bytes per second */
     bandwidth = 1.0 * sampler->delivered / sampler->interval * msec2sec;
 
-    if (bandwidth >= XQC_kMaxExpectBw)
-        bandwidth = XQC_kMaxExpectBw;
+    /*if (bandwidth >= XQC_kMaxExpectBw)
+        bandwidth = XQC_kMaxExpectBw;*/
 
 //    printf("updatebw: del: %u, interval: %lu, next_del: %u, prior_del: %lu, lagest_ack: %lu, round_cnt: %u\n",
 //            sampler->delivered, sampler->interval, bbr->next_round_delivered, sampler->prior_delivered,
@@ -240,9 +240,9 @@ static bool xqc_bbr_is_next_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 
 static float xqc_bbr_get_pacing_gain(xqc_bbr_t *bbr, uint32_t cycle_idx)
 {
-    if (xqc_bbr_max_bw(bbr) >= XQC_kExpectBw) {
+    /*if (xqc_bbr_max_bw(bbr) >= XQC_kExpectBw) {
         return xqc_bbr_kPacingGainLow[cycle_idx];
-    }
+    }*/
     return xqc_bbr_kPacingGain[cycle_idx];
 }
 
@@ -319,10 +319,10 @@ static void xqc_bbr_check_full_bw_reached(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         return;
     }
 
-    if (xqc_bbr_max_bw(bbr) >= XQC_kExpectBw) {
+    /*if (xqc_bbr_max_bw(bbr) >= XQC_kExpectBw) {
         bbr->full_bandwidth_reached = true;
         return;
-    }
+    }*/
 
     uint32_t bw_thresh = bbr->last_bandwidth * xqc_bbr_kFullBandWithThresh;
     if(xqc_bbr_max_bw(bbr) >= bw_thresh){
