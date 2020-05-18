@@ -446,12 +446,6 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
 int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
 {
-    // if (ctl->ctl_cong_callback == &xqc_bbr_cb) {
-    //     /*printf("bbr==========before on_ack_received sampler.prior_delivered %"PRIu64", ctl_delivered %"PRIu64", sampler.delivered %u, sampler.rtt %"PRIu64", sampler.srtt %"PRIu64"\n",
-    //            ctl->sampler.prior_delivered, ctl->ctl_delivered, ctl->sampler.delivered, ctl->sampler.rtt,
-    //            ctl->sampler.srtt);*/
-    // }
-
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     unsigned char update_rtt = 0;
@@ -541,12 +535,6 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
 
-    // if (ctl->ctl_cong_callback == &xqc_bbr_cb) {
-    //     /*printf("bbr==========after  on_ack_received sampler.prior_delivered %"PRIu64", ctl_delivered %"PRIu64", sampler.delivered %u, sampler.rtt %"PRIu64", sampler.srtt %"PRIu64"n",
-    //            ctl->sampler.prior_delivered, ctl->ctl_delivered, ctl->sampler.delivered, ctl->sampler.rtt,
-    //            ctl->sampler.srtt);*/
-    // }
-
     if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && stream_frame_acked) {
 
         xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time);
@@ -554,8 +542,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
         xqc_msec_t now = xqc_now();
-        if((ctl->ctl_cong_callback ==  &xqc_bbr_cb) &&
-        (ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL) && 
+        if((ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL) &&
         (ctl->ctl_info.last_bw_time + ctl->ctl_info.record_interval <= now)){
             bw_before = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
             if(bw_before != 0 ){
@@ -602,11 +589,6 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         ctl->sampler.prior_time = 0;
     }
 
-    // if (ctl->ctl_cong_callback == &xqc_bbr_cb) {
-    //     /*printf("bbr==========after  on_ack_received sampler.prior_delivered %"PRIu64", ctl_delivered %"PRIu64", sampler.delivered %u, sampler.rtt %"PRIu64", sampler.srtt %"PRIu64"\n",
-    //            ctl->sampler.prior_delivered, ctl->ctl_delivered, ctl->sampler.delivered, ctl->sampler.rtt,
-    //            ctl->sampler.srtt);*/
-    // }
     xqc_send_ctl_info_circle_record(ctl->ctl_conn);
     return XQC_OK;
 }
