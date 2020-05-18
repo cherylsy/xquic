@@ -14,6 +14,8 @@
 #include "include/xquic.h"
 #include "include/xquic_typedef.h"
 #include "transport/crypto/xqc_tls_public.h"
+#include "transport/xqc_conn.h"
+#include "transport/xqc_engine.h"
 
 //#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -170,8 +172,12 @@ char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[256];
 
+#define NGX_PROCESS_NUM 32
+static uint64_t g_process_count_array[NGX_PROCESS_NUM];
+
 int benchmark_run(client_ctx_t *ctx , int conn_num);
 int  light_benchmark(client_ctx_t * ctx);
+uint32_t ngx_murmur_hash2(u_char *data, size_t len);
 
 static inline uint64_t now()
 {
@@ -358,6 +364,10 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
         addr_v4->sin_port = htons(port);
     }
 
+    if(connect(fd, (struct sockaddr *)saddr, user_conn->peer_addrlen) < 0){
+        printf("connect socket failed error:%d\n", errno);
+        goto err;
+    }
 
     return fd;
 
@@ -594,7 +604,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             return read;
         }
 
-        ///hex_print(buff, read);
+        //hex_print(buff, read);
 
         read_sum += read;
         user_stream->recv_body_len += read;
@@ -983,6 +993,15 @@ user_conn_t * client_create_connection(client_ctx_t * ctx){
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
+
+    //for test dcid hash
+    xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, cid, 's');
+
+    uint32_t hash = ngx_murmur_hash2(conn->dcid.cid_buf, conn->dcid.cid_len);
+
+    g_process_count_array[hash% NGX_PROCESS_NUM]++;
+
+
     ctx->cur_conn_num++;
     g_user_stats.conc_conn_count++;
     g_user_stats.total_conn_count++;
@@ -1330,15 +1349,29 @@ void print_stat_thread(void){
     while(1){
         client_print_stats();
         static int n_second = 0;
-#if 0
-        while(n_second % 10 == 0){
+
+        if(n_second % 10 == 0){
             g_session_len = read_file_data(g_session_ticket_data, sizeof(g_session_ticket_data), "test_session");
             //g_tp_len = read_file_data(g_tp_data, sizeof(g_tp_data), "tp_localhost");
-            if(g_session_len <= 0 || g_tp_len <= 0){
+            if(g_session_len <= 0){
                 printf("*********g_session_len :%d, g_tp_len:%d\n", g_session_len, g_tp_len);
             }
+
+            g_token_len = xqc_client_read_token(g_token, sizeof(g_token));
+            if(g_token_len < 0){
+                g_token_len = 0;
+            }
         }
-#endif
+
+        if(n_second % 30 == 0){
+
+            int i = 0;
+            for(i = 0; i < NGX_PROCESS_NUM; i++){
+                printf("proc_n:%d\t hash_count:%lu\n",i,g_process_count_array[i]);
+            }
+            printf("\n");
+        }
+
         n_second++;
         sleep(1);
     }
@@ -1427,6 +1460,46 @@ int parse_args(int argc, char *argv[]){
 
 }
 
+uint32_t ngx_murmur_hash2(u_char *data, size_t len)
+{
+    uint32_t  h, k;
+
+    h = 0 ^ len;
+
+    while (len >= 4) {
+        k  = data[0];
+        k |= data[1] << 8;
+        k |= data[2] << 16;
+        k |= data[3] << 24;
+
+        k *= 0x5bd1e995;
+        k ^= k >> 24;
+        k *= 0x5bd1e995;
+
+        h *= 0x5bd1e995;
+        h ^= k;
+
+        data += 4;
+        len -= 4;
+    }
+
+    switch (len) {
+        case 3:
+            h ^= data[2] << 16;
+        case 2:
+            h ^= data[1] << 8;
+        case 1:
+            h ^= data[0];
+            h *= 0x5bd1e995;
+    }
+
+    h ^= h >> 13;
+    h *= 0x5bd1e995;
+    h ^= h >> 15;
+
+    return h;
+}
+
 int main(int argc, char *argv[]) {
 
     //printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
@@ -1462,8 +1535,12 @@ int main(int argc, char *argv[]) {
     }
 
 
-
     int i = 0;
+
+    for(i = 0; i < NGX_PROCESS_NUM; i++){
+        g_process_count_array[i] = 0;
+    }
+
     pid_t pid;
     for(i = 1; i < g_process_num; i++){
         pid = fork();
