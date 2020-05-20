@@ -8,7 +8,7 @@ set(CMAKE_C_STANDARD 11 )
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH       "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(COMMON_FLAGS            "-Werror -Wall -Wno-deprecated  -Wno-unused -Wno-pointer-sign -Wno-format-security ")
 
@@ -30,11 +30,6 @@ endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} ${DYNAMIC_COMPILE_FLAGS}")
 
-configure_file (
-    xqc_cmake_config.h.in
-    xqc_cmake_config.h
-)
-
 if(ANDROID)
     set(DYMAMIC_LINX_OPTION "${DYMAMIC_LINX_OPTION} -lm -llog")
     if(NOT ANDROID_TOOLCHAIN_ROOT)
@@ -42,81 +37,96 @@ if(ANDROID)
     endif()
 endif()
 
-set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
-add_subdirectory(external/openssl-cmake)
-
 include(CMakeOptions.txt)
 
-include_directories(
-    http3
-    transport
-    transport/crypto
-    common
-    congestion_control
-)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+if (XQC_WITH_OPENSSL)
+    set(XQC_TLS_BUILD_WITH_OPENSSL 1)
+    if(XQC_OPENSSL_IS_BORINGSSL) 
+        add_subdirectory(third_party/boringssl)
+        include_directories(third_party/boringssl/include)
+    else()
+        set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
+        add_subdirectory(external/openssl-cmake)
+    endif()
+endif()
+
+
+configure_file (xqc_configure.h.in include/xquic/xqc_configure.h  @ONLY)
+
+include_directories(
+    include/ 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 set(
 
     HTTP3_SOURCES
 
-    http3/xqc_h3_conn.c
-    http3/xqc_h3_stream.c
-    http3/xqc_h3_request.c
-    http3/xqc_h3_frame.c
-    http3/xqc_h3_tnode.c
-    http3/xqc_h3_qpack.c
-    http3/xqc_h3_ringbuf.c
-    http3/xqc_h3_qpack_token.c
-    http3/xqc_h3_huffman_data.c
-    http3/xqc_h3_qpack_huffman.c
+    "src/http3/xqc_h3_conn.c"
+    "src/http3/xqc_h3_stream.c"
+    "src/http3/xqc_h3_request.c"
+    "src/http3/xqc_h3_frame.c"
+    "src/http3/xqc_h3_tnode.c"
+    "src/http3/xqc_h3_qpack.c"
+    "src/http3/xqc_h3_ringbuf.c"
+    "src/http3/xqc_h3_qpack_token.c"
+    "src/http3/xqc_h3_huffman_data.c"
+    "src/http3/xqc_h3_qpack_huffman.c"
 )
 
 set(
+
     TRANSPORT_SOURCES
 
-    transport/xqc_engine.c
-    transport/xqc_conn.c
-    transport/xqc_client.c
-    transport/xqc_cid.c
-    transport/xqc_packet_parser.c
-    transport/xqc_frame_parser.c
-    transport/xqc_stream.c
-    transport/xqc_packet_out.c
-    transport/xqc_packet_in.c
-    transport/xqc_send_ctl.c
-    transport/xqc_packet.c
-    transport/xqc_frame.c
-    transport/xqc_recv_record.c
-    transport/xqc_wakeup_pq.c
-    transport/xqc_pacing.c
-    transport/xqc_utils.c
-
-    transport/crypto/xqc_tls_init.c
-    transport/crypto/xqc_crypto.c
-    transport/crypto/xqc_tls_cb.c
-    transport/crypto/xqc_tls_0rtt.c
-    transport/crypto/xqc_tls_if.c
+    "src/transport/xqc_engine.c"
+    "src/transport/xqc_conn.c"
+    "src/transport/xqc_client.c"
+    "src/transport/xqc_cid.c"
+    "src/transport/xqc_packet_parser.c"
+    "src/transport/xqc_frame_parser.c"
+    "src/transport/xqc_stream.c"
+    "src/transport/xqc_packet_out.c"
+    "src/transport/xqc_packet_in.c"
+    "src/transport/xqc_send_ctl.c"
+    "src/transport/xqc_packet.c"
+    "src/transport/xqc_frame.c"
+    "src/transport/xqc_recv_record.c"
+    "src/transport/xqc_wakeup_pq.c"
+    "src/transport/xqc_pacing.c"
+    "src/transport/xqc_utils.c"
     )
+
+set (
+    
+    CRYPTO_SOURCE
+
+    "src/crypto/xqc_tls_init.c"
+    "src/crypto/xqc_crypto.c"
+    "src/crypto/xqc_tls_cb.c"
+    "src/crypto/xqc_tls_0rtt.c"
+    "src/crypto/xqc_tls_if.c"
+
+)
 
 set(
     COMMON_SOURCES
 
-    common/xqc_random.c
-    common/xqc_variable_len_int.c
-    common/xqc_str.c
-    common/xqc_log.c
+    "src/common/xqc_random.c"
+    "src/common/xqc_variable_len_int.c"
+    "src/common/xqc_str.c"
+    "src/common/xqc_log.c"
 )
 
 set(
     CONGESTION_CONTROL_SOURCES
 
-    congestion_control/xqc_new_reno.c
-    congestion_control/xqc_cubic.c
-    congestion_control/xqc_bbr.c
-    congestion_control/xqc_window_filter.c
-    congestion_control/xqc_sample.c
+    "src/congestion_control/xqc_new_reno.c"
+    "src/congestion_control/xqc_cubic.c"
+    "src/congestion_control/xqc_bbr.c"
+    "src/congestion_control/xqc_window_filter.c"
+    "src/congestion_control/xqc_sample.c"
 )
 
 add_library(
@@ -124,6 +134,7 @@ add_library(
     SHARED
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
+    ${CRYPTO_SOURCE}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )
@@ -135,13 +146,3 @@ target_link_libraries(
     -pthread
     ${DYMAMIC_LINX_OPTION}
 )
-
-#add_subdirectires(third_party/libevent) 
-#add_executable(test_client tests/test_client.c)
-#target_link_libraries(xquic event add_executable(test_client tests/test_client.c)
-
-#add_executable(test_client tests/test_client.c)
-#add_executable(test_server tests/test_server.c)
-
-#target_link_libraries(test_client xquic -levent)
-#target_link_libraries(test_server xquic -levent)

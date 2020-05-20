@@ -1,0 +1,7 @@
+
+// the configured options and settings for xquic
+#define xquic_VERSION_MAJOR @xquic_VERSION_MAJOR@
+#define xquic_VERSION_MINOR @xquic_VERSION_MINOR@
+
+// build TLS WITH OPENSSL , Boringssl is also a kind of OpenSSL , using OPENSSL_IS_BORINGSSL to find out 
+#cmakedefined01 XQC_TLS_BUILD_WITH_OPENSSL
