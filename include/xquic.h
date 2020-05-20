@@ -328,7 +328,7 @@ int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 unsigned char* xqc_scid_str(const xqc_cid_t *cid);
 
 /**
- * Get errno when h3_conn_close_notify, 0 For no-error
+ * Get errno when h3_conn_close_notify, HTTP_NO_ERROR(0x100) For no-error
  */
 int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);
 

@@ -57,7 +57,8 @@ xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
 
 int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
-    return xqc_conn_get_errno(h3_conn->conn);
+    int ret = xqc_conn_get_errno(h3_conn->conn);
+    return ret == 0 ? HTTP_NO_ERROR : ret;
 }
 
 xqc_h3_conn_t *
