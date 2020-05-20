@@ -449,7 +449,7 @@ xqc_conn_get_local_addr(xqc_connection_t *conn,
     return (struct sockaddr*)conn->local_addr;
 }
 
-int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid)
+int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
 {
     xqc_connection_t *conn;
     int ret;
@@ -461,7 +461,7 @@ int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid)
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
         return XQC_OK;
     }
-    ret = xqc_write_ping_to_packet(conn);
+    ret = xqc_write_ping_to_packet(conn, user_data);
     if (ret < 0) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|write ping error|");
         return ret;

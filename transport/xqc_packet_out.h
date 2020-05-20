@@ -59,6 +59,7 @@ typedef struct xqc_packet_out_s
     xqc_msec_t              po_delivered_time; /* 在发送packet P之前最后一个被ack的包的时间 */
     xqc_msec_t              po_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
     unsigned char           po_is_app_limited;
+    void                    *ping_user_data; /* 上层用于区别哪个ping被ack */
 } xqc_packet_out_t;
 
 xqc_packet_out_t *
@@ -86,7 +87,7 @@ int
 xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
 
 int
-xqc_write_ping_to_packet(xqc_connection_t *conn);
+xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data);
 
 int
 xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code);

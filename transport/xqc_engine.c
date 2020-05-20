@@ -537,7 +537,7 @@ xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
     XQC_CHECK_IMMEDIATE_CLOSE();
 
     if (XQC_UNLIKELY(conn->conn_flag & XQC_CONN_FLAG_PING)) {
-        ret = xqc_write_ping_to_packet(conn);
+        ret = xqc_write_ping_to_packet(conn, NULL);
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_ping_to_packet error|");
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);

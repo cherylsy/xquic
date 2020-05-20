@@ -260,7 +260,7 @@ done:
 }
 
 int
-xqc_write_ping_to_packet(xqc_connection_t *conn)
+xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data)
 {
     int ret;
     xqc_packet_out_t *packet_out;
@@ -276,11 +276,13 @@ xqc_write_ping_to_packet(xqc_connection_t *conn)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_ping_frame error|");
         goto error;
     }
+    packet_out->ping_user_data = user_data;
 
     packet_out->po_used_size += ret;
 
     conn->conn_flag &= ~XQC_CONN_FLAG_PING;
 
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
     return XQC_OK;
 
 error:

@@ -107,6 +107,7 @@ char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[256];
+int g_ping_id = 1;
 
 static inline uint64_t now()
 {
@@ -326,10 +327,10 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
-int xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
 {
     DEBUG;
-
+    printf("ping_id:%d\n",*(int*)ping_user_data);
     return 0;
 }
 
@@ -374,9 +375,10 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
-int xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
 {
     DEBUG;
+    printf("ping_id:%d\n",*(int*)ping_user_data);
     return 0;
 }
 
@@ -1383,7 +1385,7 @@ int main(int argc, char *argv[]) {
     }
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
-    //xqc_conn_send_ping(ctx.engine, &user_conn->cid);
+    //xqc_conn_send_ping(ctx.engine, &user_conn->cid, &g_ping_id);
     for (int i = 0; i < req_paral; i++) {
         g_req_cnt++;
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));

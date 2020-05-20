@@ -884,8 +884,10 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
             ctl->ctl_conn->conn_flag |= XQC_CONN_FLAG_HSK_ACKED;
         }
         if (packet_out->po_frame_types & XQC_FRAME_BIT_PING) {
-            if (ctl->ctl_conn->conn_callbacks.conn_ping_acked) {
-                ctl->ctl_conn->conn_callbacks.conn_ping_acked(ctl->ctl_conn, &ctl->ctl_conn->scid, ctl->ctl_conn->user_data);
+            if (ctl->ctl_conn->conn_callbacks.conn_ping_acked && packet_out->ping_user_data) {
+                ctl->ctl_conn->conn_callbacks.conn_ping_acked(ctl->ctl_conn, &ctl->ctl_conn->scid,
+                                                              ctl->ctl_conn->user_data,
+                                                              packet_out->ping_user_data);
             }
         }
 
