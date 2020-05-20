@@ -57,7 +57,7 @@ configure_file (xqc_configure.h.in include/xquic/xqc_configure.h  @ONLY)
 include_directories(
     include/ 
     ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
 set(
