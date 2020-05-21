@@ -273,6 +273,8 @@ typedef struct xqc_conn_stats_s {
 typedef struct xqc_request_stats_s {
     size_t      send_body_size;
     size_t      recv_body_size;
+    size_t      send_header_size; //compressed header size
+    size_t      recv_header_size; //compressed header size
     int         stream_err; /* 0 For no-error */
 } xqc_request_stats_t;
 
