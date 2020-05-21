@@ -1393,7 +1393,7 @@ int parse_args(int argc, char *argv[]){
             "-m test mode: 0 test concurrent, 1 test new create mode, default 1\n"
             "-P process num: default 1");
     sleep(1);
-    while((ch = getopt(argc, argv, "a:p:c:C:s:q:m:b:P:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:c:C:s:q:m:b:P:t:")) != -1){
         switch(ch)
         {
 
