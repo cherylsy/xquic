@@ -638,6 +638,7 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
             packet_out->po_stream_frames[i].ps_stream = stream;
             if (fin && *send_data_written == payload_size) {
                 packet_out->po_stream_frames[i].ps_has_fin = 1;
+                stream->stream_flag |= XQC_STREAM_FLAG_FIN_WRITE;
             }
         }
     }
