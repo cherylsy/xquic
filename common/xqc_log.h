@@ -123,6 +123,9 @@ xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *f
     char time[64];
     xqc_log_time(time);
     p = xqc_sprintf(p, last, "[%s] ", time);
+    // struct timeval tv;
+    // gettimeofday(&tv, NULL);
+    // p = xqc_sprintf(p, last, "[%ud.%06ud] ", tv.tv_sec, tv.tv_usec);
 
     /*日志等级*/
     p = xqc_sprintf(p, last, "[%s] ", xqc_log_leveL_str(level));

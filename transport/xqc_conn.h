@@ -282,7 +282,7 @@ struct xqc_connection_s{
 
     unsigned char           conn_token[XQC_MAX_TOKEN_LEN];
     unsigned char           enc_pkt[XQC_PACKET_OUT_SIZE_EXT];
-    uint32_t                enc_pkt_len;
+    size_t                  enc_pkt_len;
     uint32_t                conn_token_len;
     uint32_t                zero_rtt_count;
     uint32_t                retry_count;
@@ -369,8 +369,10 @@ void xqc_conn_server_on_alpn(xqc_connection_t *conn);
 void xqc_conn_destroy(xqc_connection_t *xc);
 
 void xqc_conn_send_packets (xqc_connection_t *conn);
+void xqc_conn_send_packets_batch(xqc_connection_t *conn);
 
 ssize_t xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+int xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, char *enc_pkt, size_t * enc_pkt_len);
 
 void xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
 

@@ -6,7 +6,7 @@ set (xquic_VERSION_MINOR 1)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC ")
 
 if(GCOV)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
@@ -201,6 +201,7 @@ add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
 add_executable(test_qpack_server tests/test_qpack_server.c)
 add_executable(test_qpack_client tests/test_qpack_client.c)
+add_executable(xquic_bench benchmark/xquic_bench.c)
 #add_executable(xquic_client tests/axp/xquic_client.c tests/axp/axquic.c)
 #add_executable(xquic_server tests/axp/xquic_server.c tests/axp/axquic.c)
 #add_executable(test        tests/main.c)
@@ -222,6 +223,7 @@ endif()
 
 target_link_libraries(test_qpack_client xquic -levent -lm)
 target_link_libraries(test_qpack_server xquic -levent -lm)
+target_link_libraries(xquic_bench xquic -levent -lm)
 
 #target_link_libraries(xquic_client xquic -levent -lm)
 #target_link_libraries(xquic_server xquic -levent -lm)
