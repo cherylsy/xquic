@@ -59,6 +59,9 @@ typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
 typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag);
 
+typedef int (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
+typedef int (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
+
 typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
 typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
 
@@ -89,7 +92,7 @@ typedef struct xqc_conn_callbacks_s {
     /* for handshake done */
     xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
     /* ping is acked */
-    xqc_conn_notify_pt          conn_ping_acked; /* optional */
+    xqc_conn_ping_ack_notify_pt conn_ping_acked; /* optional */
 } xqc_conn_callbacks_t;
 
 /* application layer */
@@ -101,7 +104,7 @@ typedef struct xqc_h3_conn_callbacks_s {
     /* for handshake done */
     xqc_h3_handshake_finished_pt   h3_conn_handshake_finished;  /* optional */
     /* ping is acked */
-    xqc_h3_conn_notify_pt          h3_conn_ping_acked; /* optional */
+    xqc_h3_conn_ping_ack_notify_pt h3_conn_ping_acked; /* optional */
 } xqc_h3_conn_callbacks_t;
 
 /* transport layer */
@@ -270,6 +273,8 @@ typedef struct xqc_conn_stats_s {
 typedef struct xqc_request_stats_s {
     size_t      send_body_size;
     size_t      recv_body_size;
+    size_t      send_header_size; //compressed header size
+    size_t      recv_header_size; //compressed header size
     int         stream_err; /* 0 For no-error */
 } xqc_request_stats_t;
 
@@ -325,7 +330,7 @@ int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 unsigned char* xqc_scid_str(const xqc_cid_t *cid);
 
 /**
- * Get errno when h3_conn_close_notify, 0 For no-error
+ * Get errno when h3_conn_close_notify, HTTP_NO_ERROR(0x100) For no-error
  */
 int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);
 
@@ -352,10 +357,10 @@ struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
                                            socklen_t *local_addr_len);
 
 /**
- * Send PING to peer, if ack received, h3_conn_ping_acked will callback
+ * Send PING to peer, if ack received, h3_conn_ping_acked will callback with user_data
  * @return 0 for success, <0 for error
  */
-int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid);
+int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
 
 /**
  * @param user_data For request
@@ -483,10 +488,10 @@ struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
                                         socklen_t *local_addr_len);
 
 /**
- * Send PING to peer, if ack received, conn_ping_acked will callback
+ * Send PING to peer, if ack received, conn_ping_acked will callback with user_data
  * @return 0 for success, <0 for error
  */
-int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid);
+int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
 
 /**
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt

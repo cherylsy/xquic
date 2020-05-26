@@ -1024,14 +1024,19 @@ xqc_stream_send (xqc_stream_t *stream,
 {
     xqc_connection_t *conn = stream->stream_conn;
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|conn closing, cannot send|");
+        xqc_conn_log(conn, XQC_LOG_ERROR, "|conn closing, cannot send|stream_id:%ui|", stream->stream_id);
         xqc_stream_shutdown_write(stream);
         return -XQC_CLOSING;
     }
     if (stream->stream_state_send >= XQC_SEND_STREAM_ST_RESET_SENT) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|stream reset sent, cannot send|");
+        xqc_conn_log(conn, XQC_LOG_ERROR, "|stream reset sent, cannot send|stream_id:%ui|", stream->stream_id);
         xqc_stream_shutdown_write(stream);
         return -XQC_ESTREAM_RESET;
+    }
+    if (stream->stream_flag & XQC_STREAM_FLAG_FIN_WRITE) {
+        xqc_conn_log(conn, XQC_LOG_WARN, "|fin write, cannot send|stream_id:%ui|", stream->stream_id);
+        xqc_stream_shutdown_write(stream);
+        return 0;
     }
     int ret;
     xqc_stream_ready_to_write(stream);

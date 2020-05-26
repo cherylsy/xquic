@@ -396,7 +396,8 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
             ctl->ctl_bytes_in_flight += packet_out->po_used_size;
 
-            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+            if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) &&
+                !(packet_out->po_flag & XQC_POF_STREAM_UNACK)) {
                 xqc_stream_t *stream;
                 for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
                     stream = packet_out->po_stream_frames[i].ps_stream;
@@ -413,6 +414,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
                         break;
                     }
                 }
+                packet_out->po_flag |= XQC_POF_STREAM_UNACK;
             }
             packet_out->po_flag |= XQC_POF_IN_FLIGHT;
         }
@@ -849,7 +851,8 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
             ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
         }
 
-        if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+        if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) &&
+                (packet_out->po_flag & XQC_POF_STREAM_UNACK)) {
             for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
                 stream = packet_out->po_stream_frames[i].ps_stream;
                 if (stream != NULL) {
@@ -868,6 +871,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
                     xqc_stream_maybe_need_close(stream);
                 }
             }
+            packet_out->po_flag &= ~XQC_POF_STREAM_UNACK;
         }
         if (packet_out->po_frame_types & XQC_FRAME_BIT_RESET_STREAM) {
             for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
@@ -884,8 +888,10 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
             ctl->ctl_conn->conn_flag |= XQC_CONN_FLAG_HSK_ACKED;
         }
         if (packet_out->po_frame_types & XQC_FRAME_BIT_PING) {
-            if (ctl->ctl_conn->conn_callbacks.conn_ping_acked) {
-                ctl->ctl_conn->conn_callbacks.conn_ping_acked(ctl->ctl_conn, &ctl->ctl_conn->scid, ctl->ctl_conn->user_data);
+            if (ctl->ctl_conn->conn_callbacks.conn_ping_acked && packet_out->ping_user_data) {
+                ctl->ctl_conn->conn_callbacks.conn_ping_acked(ctl->ctl_conn, &ctl->ctl_conn->scid,
+                                                              ctl->ctl_conn->user_data,
+                                                              packet_out->ping_user_data);
             }
         }
 
