@@ -599,11 +599,11 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = "512", .iov_len = 3},
                     .flags  = 0,
             },*/
-            /*{
-                    .name   = {.iov_base = ":status", .iov_len = 7},
-                    .value  = {.iov_base = "200", .iov_len = 3},
+            {
+                    .name   = {.iov_base = "cookie", .iov_len = 6},
+                    .value  = {.iov_base = "cid=123; sid=456", .iov_len = 16},
                     .flags  = 0,
-            },*/
+            },
             /*{
                     .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
                     .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
