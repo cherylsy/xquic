@@ -37,6 +37,8 @@ int printf_null(const char *format, ...)
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 #define XQC_TEST_SHORT_HEADER_PACKET_B "\x80\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 
+#define MAX_HEADER 100
+
 typedef struct user_conn_s user_conn_t;
 
 typedef struct user_stream_s {
@@ -107,7 +109,7 @@ char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[256];
-char g_headers[100][256];
+char g_headers[MAX_HEADER][256];
 int g_header_cnt = 0;
 int g_ping_id = 1;
 
@@ -572,7 +574,8 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     ssize_t ret = 0;
     char content_len[10];
     snprintf(content_len, sizeof(content_len), "%d", g_send_body_size);
-    xqc_http_header_t header[] = {
+    int header_size = 6;
+    xqc_http_header_t header[MAX_HEADER] = {
             {
                     .name   = {.iov_base = ":method", .iov_len = 7},
                     .value  = {.iov_base = "POST", .iov_len = 4},
@@ -603,11 +606,11 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = content_len, .iov_len = strlen(content_len)},
                     .flags  = 0,
             },
-            {
+            /*{
                     .name   = {.iov_base = "Cookie", .iov_len = 6},
                     .value  = {.iov_base = "cna=NvdTF0ieN2QCASp4SuLTmxi9; isg=BM3NGXkgr2HysAtNdjrv0n7G1-hHqgF8Xz0osQ9SGWTTBu241_oRTBu3dNz45xk0", .iov_len = 98},
                     .flags  = 0,
-            },
+            },*/
             /*{
                     .name   = {.iov_base = "cookie", .iov_len = 6},
                     .value  = {.iov_base = "cid2=1234; sid2=5678", .iov_len = 20},
@@ -619,17 +622,26 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .flags  = 0,
             },*/
     };
-    xqc_http_headers_t headers = {
-            .headers = header,
-            .count  = sizeof(header) / sizeof(header[0]),
-    };
 
-    xqc_http_header_t user_header[100];
     if (g_header_cnt > 0) {
         for (int i = 0; i < g_header_cnt; i++) {
-
+            char *pos = strchr(g_headers[i], '=');
+            if (pos == NULL) {
+                continue;
+            }
+            header[header_size].name.iov_base = g_headers[i];
+            header[header_size].name.iov_len = pos - g_headers[i];
+            header[header_size].value.iov_base = pos + 1;
+            header[header_size].value.iov_len = strlen(pos+1);
+            header[header_size].flags = 0;
+            header_size++;
         }
     }
+
+    xqc_http_headers_t headers = {
+            .headers = header,
+            .count  = header_size,
+    };
 
     int header_only = g_is_get;
     if (g_is_get) {
