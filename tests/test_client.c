@@ -601,14 +601,14 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             },*/
             {
                     .name   = {.iov_base = "cookie", .iov_len = 6},
-                    .value  = {.iov_base = "cid=123; sid=456", .iov_len = 16},
+                    .value  = {.iov_base = "cna=NvdTF0ieN2QCASp4SuLTmxi9; isg=BM3NGXkgr2HysAtNdjrv0n7G1-hHqgF8Xz0osQ9SGWTTBu241_oRTBu3dNz45xk0", .iov_len = 98},
                     .flags  = 0,
             },
-            {
+            /*{
                     .name   = {.iov_base = "cookie", .iov_len = 6},
                     .value  = {.iov_base = "cid2=1234; sid2=5678", .iov_len = 20},
                     .flags  = 0,
-            },
+            },*/
             /*{
                     .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
                     .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
