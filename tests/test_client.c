@@ -625,7 +625,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
 
     if (g_header_cnt > 0) {
         for (int i = 0; i < g_header_cnt; i++) {
-            char *pos = strchr(g_headers[i], '=');
+            char *pos = strchr(g_headers[i], ':');
             if (pos == NULL) {
                 continue;
             }
