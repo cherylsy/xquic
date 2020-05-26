@@ -107,6 +107,8 @@ char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[256];
+char g_headers[100][256];
+int g_header_cnt = 0;
 int g_ping_id = 1;
 
 static inline uint64_t now()
@@ -602,7 +604,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .flags  = 0,
             },
             {
-                    .name   = {.iov_base = "cookie", .iov_len = 6},
+                    .name   = {.iov_base = "Cookie", .iov_len = 6},
                     .value  = {.iov_base = "cna=NvdTF0ieN2QCASp4SuLTmxi9; isg=BM3NGXkgr2HysAtNdjrv0n7G1-hHqgF8Xz0osQ9SGWTTBu241_oRTBu3dNz45xk0", .iov_len = 98},
                     .flags  = 0,
             },
@@ -621,6 +623,13 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             .headers = header,
             .count  = sizeof(header) / sizeof(header[0]),
     };
+
+    xqc_http_header_t user_header[100];
+    if (g_header_cnt > 0) {
+        for (int i = 0; i < g_header_cnt; i++) {
+
+        }
+    }
 
     int header_only = g_is_get;
     if (g_is_get) {
@@ -1111,6 +1120,7 @@ void usage(int argc, char *argv[]) {
 "   -E    Echo check on. Compare sent data with received data.\n"
 "   -d    Drop rate ‰.\n"
 "   -u    Url. default https://test.xquic.com/path/resource\n"
+"   -H    Header. eg. key=value\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
 "   -N    No crypt\n"
@@ -1144,7 +1154,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:Gx:6N")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:Gx:6N")) != -1){
         switch(ch)
         {
             case 'a':
@@ -1221,6 +1231,11 @@ int main(int argc, char *argv[]) {
                 g_spec_url = 1;
                 sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
                 //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
+                break;
+            case 'H': //请求header
+                printf("option header :%s\n", optarg);
+                snprintf(g_headers[g_header_cnt], sizeof(g_headers[g_header_cnt]), optarg);
+                g_header_cnt++;
                 break;
             case 'G': //Get请求
                 printf("option get :%s\n", "on");
