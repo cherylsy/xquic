@@ -568,6 +568,8 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         user_stream->start_time = now();
     }
     ssize_t ret = 0;
+    char content_len[10];
+    snprintf(content_len, sizeof(content_len), "%d", g_send_body_size);
     xqc_http_header_t header[] = {
             {
                     .name   = {.iov_base = ":method", .iov_len = 7},
@@ -594,11 +596,11 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = "text/plain", .iov_len = 10},
                     .flags  = 0,
             },
-            /*{
+            {
                     .name   = {.iov_base = "content-length", .iov_len = 14},
-                    .value  = {.iov_base = "512", .iov_len = 3},
+                    .value  = {.iov_base = content_len, .iov_len = strlen(content_len)},
                     .flags  = 0,
-            },*/
+            },
             {
                     .name   = {.iov_base = "cookie", .iov_len = 6},
                     .value  = {.iov_base = "cna=NvdTF0ieN2QCASp4SuLTmxi9; isg=BM3NGXkgr2HysAtNdjrv0n7G1-hHqgF8Xz0osQ9SGWTTBu241_oRTBu3dNz45xk0", .iov_len = 98},
