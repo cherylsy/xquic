@@ -121,6 +121,8 @@ typedef struct xqc_h3_stream_s {
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_http3_tnode_t     *tnode;
 #endif
+    uint32_t            header_sent; //compressed header size
+    uint32_t            header_recvd; //compressed header size
 
 } xqc_h3_stream_t;
 

@@ -103,7 +103,8 @@ typedef struct xqc_send_ctl_s {
 
     xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
 
-    xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet;
+    xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet[XQC_PNS_N];
+    xqc_packet_number_t         ctl_last_sent_ack_eliciting_packet_number[XQC_PNS_N];
     xqc_msec_t                  ctl_srtt,
                                 ctl_rttvar,
                                 ctl_minrtt,
@@ -131,6 +132,7 @@ typedef struct xqc_send_ctl_s {
 
     xqc_pacing_t                ctl_pacing;
 
+    uint64_t                    ctl_prior_delivered; /* the amount of data delivered in the last call of on_ack_received*/
     uint64_t                    ctl_delivered; /* 表示当前ack时刻已经标记为发送完毕的数据量 */
     uint64_t                    ctl_app_limited; /* The index of the last transmitted packet marked as
    application-limited, or 0 if the connection is not currently

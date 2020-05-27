@@ -159,6 +159,8 @@ xqc_h3_request_get_stats(xqc_h3_request_t *h3_request)
     uint64_t conn_err = h3_request->h3_stream->stream->stream_conn->conn_err;
     stats.recv_body_size = h3_request->body_recvd;
     stats.send_body_size = h3_request->body_sent;
+    stats.recv_header_size = h3_request->h3_stream->header_recvd;
+    stats.send_header_size = h3_request->h3_stream->header_sent;
     stats.stream_err = conn_err != 0 ? conn_err : h3_request->h3_stream->stream->stream_err;
     return stats;
 }

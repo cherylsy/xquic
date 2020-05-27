@@ -219,6 +219,7 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|n_write:%z error|stream_id:%ui|", n_write, h3_stream->stream->stream_id);
         XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, n_write);
     }
+    h3_stream->header_sent += n_write;
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|n_write:%z|stream_id:%ui|fin:%d|conn:%p|flag:%s|",
             n_write, h3_stream->stream->stream_id, fin, h3_conn->conn, xqc_conn_flag_2_str(h3_conn->conn->conn_flag));
     h3_stream->flags &= ~XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;

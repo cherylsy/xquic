@@ -26,6 +26,7 @@ typedef enum {
     XQC_STREAM_FLAG_HAS_0RTT        = 1 << 3,
     XQC_STREAM_FLAG_HAS_H3          = 1 << 4,
     XQC_STREAM_FLAG_NEED_CLOSE      = 1 << 5,
+    XQC_STREAM_FLAG_FIN_WRITE       = 1 << 6,
 } xqc_stream_flag_t;
 
 typedef enum {

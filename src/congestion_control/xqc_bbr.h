@@ -21,6 +21,11 @@ typedef enum {
             BBR_PROBE_RTT,
 }xqc_bbr_mode;
 
+typedef enum {
+        BBR_NOT_IN_RECOVERY=0,
+        BBR_IN_RECOVERY,
+}xqc_bbr_recovery_mode;
+
 typedef struct xqc_bbr_s{
     /*Current mode */
     xqc_bbr_mode        mode;
@@ -42,7 +47,6 @@ typedef struct xqc_bbr_s{
     bool                round_start;
     /*packet delivered value denoting the end of a packet-timed round trip */
     uint32_t            next_round_delivered;
-    bool                packet_conservation;
     uint64_t            aggregation_epoch_start_time;
     /*Number of bytes acked during the aggregation time */
     uint32_t            aggregation_epoch_bytes;
@@ -95,11 +99,20 @@ typedef struct xqc_bbr_s{
     uint32_t            extra_ack_round_rtt;
     uint32_t            extra_ack_idx;
     uint32_t            epoch_ack;
+    bool                extra_ack_in_startup;
     uint8_t             has_srtt;
     uint8_t             idle_restart;
+    uint32_t            extra_ack_win_len;
+    uint32_t            extra_ack_win_len_in_startup;
 
     xqc_msec_t          last_round_trip_time;
 
+    /*adjust cwnd in loss recovery*/
+    xqc_bbr_recovery_mode               recovery_mode;
+    bool                just_enter_recovery_mode;
+    bool                just_exit_recovery_mode;
+    xqc_msec_t          recovery_start_time;
+    bool                packet_conservation;
 }xqc_bbr_t;
 extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 

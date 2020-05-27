@@ -121,13 +121,7 @@ int read_file_data( char * data, size_t data_len, char *filename){
 int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
-    user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
-    xqc_conn_set_user_data(conn, user_conn);
 
-    socklen_t peer_addrlen;
-    struct sockaddr* peer_addr = xqc_conn_get_peer_addr(conn, &peer_addrlen);
-    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
-    user_conn->peer_addrlen = peer_addrlen;
     return 0;
 }
 
@@ -694,8 +688,14 @@ xqc_server_socket_event_callback(int fd, short what, void *arg)
 int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
+    user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
+    xqc_conn_set_user_data(conn, user_conn);
 
-    xqc_conn_set_user_data(conn, &ctx);
+    socklen_t peer_addrlen;
+    struct sockaddr* peer_addr = xqc_conn_get_peer_addr(conn, &peer_addrlen);
+    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
+    user_conn->peer_addrlen = peer_addrlen;
+
     return 0;
 }
 

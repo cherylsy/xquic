@@ -2546,8 +2546,17 @@ int xqc_http3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream, xqc_http3_qpack_e
 
     int token = 0;
 
-    char * name = header->name.iov_base;
+    char name_tmp[XQC_HTTP3_QPACK_MAX_NAME_BUFLEN];
+
+    if (header->name.iov_len > XQC_HTTP3_QPACK_MAX_NAME_BUFLEN) {
+        return -XQC_ENOBUF;
+    }
+    xqc_memcpy(name_tmp, header->name.iov_base, header->name.iov_len);
+
+    char * name = name_tmp;
     size_t name_len = header->name.iov_len;
+    xqc_str_tolower(name, name_len);
+
     char * value = header->value.iov_base;
     size_t value_len = header->value.iov_len;
     uint8_t flags = header->flags;

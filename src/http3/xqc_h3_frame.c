@@ -1050,6 +1050,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                             break;
                         }
 
+                        h3_stream->header_recvd += rstate->left;
                         rstate->state = XQC_HTTP3_REQ_STREAM_STATE_HEADERS;
                         break;
 
