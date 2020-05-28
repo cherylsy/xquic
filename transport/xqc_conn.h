@@ -280,6 +280,9 @@ struct xqc_connection_s{
     socklen_t               peer_addrlen,
                             local_addrlen;
 
+    char                    addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
+    size_t                  addr_str_len;
+
     unsigned char           conn_token[XQC_MAX_TOKEN_LEN];
     unsigned char           enc_pkt[XQC_PACKET_OUT_SIZE_EXT];
     size_t                  enc_pkt_len;

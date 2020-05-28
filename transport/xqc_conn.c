@@ -1480,7 +1480,7 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
 
 static char g_local_addr_str[INET6_ADDRSTRLEN];
 static char g_peer_addr_str[INET6_ADDRSTRLEN];
-static char g_addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
+//static char g_addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
 
 char *
 xqc_conn_local_addr_str(const struct sockaddr *local_addr,
@@ -1527,13 +1527,17 @@ xqc_conn_peer_addr_str(const struct sockaddr *peer_addr,
 char *
 xqc_conn_addr_str(xqc_connection_t *conn)
 {
-    struct sockaddr_in *sa_local = (struct sockaddr_in *)conn->local_addr;
-    struct sockaddr_in *sa_peer = (struct sockaddr_in *)conn->peer_addr;
+    if (conn->addr_str_len == 0) {
+        struct sockaddr_in *sa_local = (struct sockaddr_in *)conn->local_addr;
+        struct sockaddr_in *sa_peer = (struct sockaddr_in *)conn->peer_addr;
 
-    snprintf(g_addr_str, sizeof(g_addr_str), "l-%s-%d-%s p-%s-%d-%s",
+        conn->addr_str_len = snprintf(conn->addr_str, sizeof(conn->addr_str), "l-%s-%d-%s p-%s-%d-%s",
              xqc_conn_local_addr_str((struct sockaddr*)sa_local, conn->local_addrlen), ntohs(sa_local->sin_port), xqc_scid_str(&conn->scid),
-             xqc_conn_peer_addr_str((struct sockaddr*)sa_peer, conn->peer_addrlen), ntohs(sa_peer->sin_port), xqc_dcid_str(&conn->dcid));
-    return g_addr_str;
+             xqc_conn_peer_addr_str((struct sockaddr*)sa_peer, conn->peer_addrlen), ntohs(sa_peer->sin_port), xqc_dcid_str(&conn->dcid))
+             - conn->addr_str;
+    }
+
+    return conn->addr_str;
 }
 
 
