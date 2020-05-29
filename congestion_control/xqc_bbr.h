@@ -98,13 +98,18 @@ typedef struct xqc_bbr_s{
     uint32_t            extra_ack_round_rtt;
     uint32_t            extra_ack_idx;
     uint32_t            epoch_ack;
+    bool                extra_ack_in_startup;
     uint8_t             has_srtt;
     uint8_t             idle_restart;
+    uint32_t            extra_ack_win_len;
+    uint32_t            extra_ack_win_len_in_startup;
 
     xqc_msec_t          last_round_trip_time;
 
     /*adjust cwnd in loss recovery*/
     xqc_bbr_recovery_mode               recovery_mode;
+    bool                just_enter_recovery_mode;
+    bool                just_exit_recovery_mode;
     xqc_msec_t          recovery_start_time;
     bool                packet_conservation;
 }xqc_bbr_t;

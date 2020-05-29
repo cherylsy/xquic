@@ -516,7 +516,8 @@ int xqc_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int 
         iov_array[burst_can_send].iov_len = XQC_PACKET_OUT_SIZE_EXT;
 
         //ret = xqc_do_encrypt_pkt_buf(conn, packet_out, iov_array[burst_can_send].iov_base, &iov_array[burst_can_send].iov_len);
-        ret = xqc_conn_enc_packet(conn, packet_out, iov_array[burst_can_send].iov_base, &iov_array[burst_can_send].iov_len);
+        ret = xqc_conn_enc_packet(conn, packet_out, iov_array[burst_can_send].iov_base, 
+                                  &iov_array[burst_can_send].iov_len, now);
         if(ret < 0){
             return ret;
         }
@@ -675,7 +676,10 @@ xqc_conn_send_packets (xqc_connection_t *conn)
 
 
 
-int xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, char *enc_pkt, size_t * enc_pkt_len){
+int xqc_conn_enc_packet(xqc_connection_t *conn,
+    xqc_packet_out_t *packet_out, char *enc_pkt, size_t * enc_pkt_len, 
+    xqc_msec_t current_time)
+{
     if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
         && packet_out->po_frame_types != XQC_FRAME_BIT_ACK) {
         xqc_gen_padding_frame(packet_out);
@@ -695,8 +699,7 @@ int xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, ch
         return -XQC_EENCRYPT;
     }
 
-    xqc_msec_t now = xqc_now();
-    packet_out->po_sent_time = now;
+    packet_out->po_sent_time = current_time;
 
     packet_out->po_flag &= XQC_POF_ENCRYPTED;
 
@@ -1477,7 +1480,7 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
 
 static char g_local_addr_str[INET6_ADDRSTRLEN];
 static char g_peer_addr_str[INET6_ADDRSTRLEN];
-static char g_addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
+//static char g_addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
 
 char *
 xqc_conn_local_addr_str(const struct sockaddr *local_addr,
@@ -1524,13 +1527,16 @@ xqc_conn_peer_addr_str(const struct sockaddr *peer_addr,
 char *
 xqc_conn_addr_str(xqc_connection_t *conn)
 {
-    struct sockaddr_in *sa_local = (struct sockaddr_in *)conn->local_addr;
-    struct sockaddr_in *sa_peer = (struct sockaddr_in *)conn->peer_addr;
+    if (conn->addr_str_len == 0) {
+        struct sockaddr_in *sa_local = (struct sockaddr_in *)conn->local_addr;
+        struct sockaddr_in *sa_peer = (struct sockaddr_in *)conn->peer_addr;
 
-    snprintf(g_addr_str, sizeof(g_addr_str), "l-%s-%d-%s p-%s-%d-%s",
+        conn->addr_str_len = snprintf(conn->addr_str, sizeof(conn->addr_str), "l-%s-%d-%s p-%s-%d-%s",
              xqc_conn_local_addr_str((struct sockaddr*)sa_local, conn->local_addrlen), ntohs(sa_local->sin_port), xqc_scid_str(&conn->scid),
              xqc_conn_peer_addr_str((struct sockaddr*)sa_peer, conn->peer_addrlen), ntohs(sa_peer->sin_port), xqc_dcid_str(&conn->dcid));
-    return g_addr_str;
+    }
+
+    return conn->addr_str;
 }
 
 

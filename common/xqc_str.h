@@ -36,6 +36,16 @@ typedef struct xqc_str_s
 
 unsigned char *xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len);
 
+static inline void
+xqc_str_tolower(char *str, size_t len)
+{
+    for (int i = 0; i < len; i++) {
+        if (*str >= 'A' && *str <= 'Z') {
+            *str = *str + (char)32;
+        }
+        str++;
+    }
+}
 
 static inline unsigned char *
 xqc_sprintf_num(unsigned char *buf, unsigned char *last, uint64_t ui64, unsigned char zero, uintptr_t hexadecimal, uintptr_t width)

@@ -152,6 +152,7 @@ void xqc_test_common()
 
     /*test fifo*/
     xqc_fifo_t fifo;
+    memset(&fifo, 0, sizeof(fifo));
     xqc_fifo_init(&fifo, xqc_default_allocator, sizeof(int), 4);
 
     xqc_fifo_push_int(&fifo, 3);
