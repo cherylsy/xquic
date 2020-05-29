@@ -7,6 +7,7 @@ void xqc_test_wakeup_pq()
 {
     int ret;
     xqc_wakeup_pq_t pq;
+    memset(&pq, 0, sizeof(pq));
     ret = xqc_wakeup_pq_init(&pq, 4, xqc_default_allocator, xqc_wakeup_pq_revert_cmp);
     CU_ASSERT(ret == 0);
 
