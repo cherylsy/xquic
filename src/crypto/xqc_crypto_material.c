@@ -71,7 +71,8 @@ void
 xqc_init_initial_crypto_ctx(xqc_connection_t * conn)
 {
     xqc_tls_context_t * ctx = &conn->tlsref.hs_crypto_ctx;
-    (void) xqc_complete_crypto_ctx(ctx,0x03001301u,conn->local_settings.no_crypto);
+    // 从之前的实现看，inittial加密等级会无视no crypto 。
+    (void) xqc_complete_crypto_ctx(ctx,0x03001301u,/** no crypto */ 0);
 }
 
 xqc_int_t 
