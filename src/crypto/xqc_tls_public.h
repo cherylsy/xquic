@@ -11,9 +11,9 @@
 #include "src/common/xqc_list.h"
 #include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_frame.h"
-//#include "transport/xqc_conn.h"
 #include "src/crypto/xqc_tls_if.h"
 #include "src/common/xqc_malloc.h"
+#include "src/crypto/xqc_aead.h"
 
 #ifdef WORDS_BIGENDIAN
 #  define bswap64(N) (N)
@@ -55,6 +55,22 @@
 #ifndef xqc_min
 #define xqc_min(A, B) ((A) < (B) ? (A) : (B))
 #endif
+
+#define XQC_PKT_NUMLEN_MASK 0x03
+
+#define XQC_HP_SAMPLELEN 16
+#define XQC_HP_MASKLEN 5
+
+#define INITIAL_SECRET_MAX_LEN  32
+
+#define XQC_INITIAL_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
+
+/* XQC_INITIAL_SALT is a salt value which is used to derive initial
+   secret. */
+#define XQC_INITIAL_SALT                                                    \
+  "\xef\x4f\xb0\xab\xb4\x74\x70\xc4\x1b\xef\xcf\x80\x31\x33\x4f\xae\x48\x5e"   \
+  "\x09\xa0"
+
 
 typedef enum {
     XQC_ALPN_DEFAULT_NUM = 0,
@@ -176,8 +192,6 @@ typedef enum {
     XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
     XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS
 } xqc_transport_params_type_t;
-
-
 
 
 
@@ -310,17 +324,18 @@ typedef int  (*xqc_read_session_cb_t )(char ** data);
 
 typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means early data accept, 0 means early data reject
 
-struct xqc_tlsref{
+struct xqc_tlsref
+{
     xqc_connection_t        *conn;
     uint8_t                 initial;
     uint8_t                 resumption;
     xqc_alpn_num            alpn_num;
     uint64_t                flags; //record handshake completed or recv retry packet
 
-    int64_t                 aead_overhead;  //aead for gcm or chacha
+    xqc_tls_context_t       hs_crypto_ctx;          
+    xqc_tls_context_t       crypto_ctx;     /* prf and aead */
+    uint32_t                last_cipher_id ; // last cipher id 
 
-    xqc_tls_context_t       hs_crypto_ctx;
-    xqc_tls_context_t       crypto_ctx; /* prf and aead */
     xqc_pktns_t             initial_pktns; // initial packet space key
     xqc_pktns_t             hs_pktns; // handshake packet space  key
     xqc_pktns_t             pktns; //application packet space key

@@ -4,6 +4,10 @@
 #include <assert.h>
 #include <stdlib.h>
 #include "src/congestion_control/xqc_bbr.h"
+#include "src/congestion_control/xqc_sample.h"
+#include "src/common/xqc_time.h"
+#include "src/common/xqc_config.h"
+#include "src/transport/xqc_send_ctl.h"
 
 #define XQC_kMaxDatagramSize 1200
 #define XQC_kMinimumWindow (4 * XQC_kMaxDatagramSize)

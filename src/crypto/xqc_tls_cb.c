@@ -10,6 +10,8 @@
 #include "src/crypto/xqc_crypto.h"
 #include "src/crypto/xqc_tls_0rtt.h"
 #include "src/crypto/xqc_tls_init.h"
+#include "src/crypto/xqc_crypto_material.h"
+
 /*
  * key callback
  *@param
@@ -21,8 +23,6 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
     int rv;
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
-    //printf("xqc_tls_key_cb: %d\n", name);
-    //hex_print((char *)secret, secretlen);
     switch (name) {
         case SSL_KEY_CLIENT_EARLY_TRAFFIC:
         case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
@@ -76,21 +76,10 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
             return 0;
     }
 
-    // TODO We don't have to call this everytime we get key generated.
-    if(conn->tlsref.crypto_ctx.prf == NULL){
-        rv = xqc_negotiated_prf(& conn->tlsref.crypto_ctx, ssl);
-        if (rv != 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_negotiated_prf failed|");
-            return -1;
-        }
-    }
-    if(conn->tlsref.crypto_ctx.aead == NULL){
-        rv = xqc_negotiated_aead(& conn->tlsref.crypto_ctx, ssl);
-        if (rv != 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_negotiated_aead failed|");
-            return -1;
-        }
-    }
+
+    // call it every time 
+    xqc_init_crypto_ctx(conn,SSL_get_current_cipher(ssl));
+
 
     uint8_t key[64] = {0}, iv[64] = {0}, hp[64] = {0}; //need check 64 bytes enough
     ssize_t keylen = xqc_derive_packet_protection_key(
@@ -112,13 +101,6 @@ int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t se
 
     if (hplen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed| ret code:%d|", hplen);
-        return -1;
-    }
-
-    // TODO Just call this once.
-    xqc_conn_set_aead_overhead(conn, xqc_aead_max_overhead(& conn->tlsref.crypto_ctx));
-    if(conn->tlsref.aead_overhead < 0 || conn->tlsref.aead_overhead > XQC_INITIAL_AEAD_OVERHEAD){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|aead_overhead set too big| aead_overhead:%d|", conn->tlsref.aead_overhead);
         return -1;
     }
 
@@ -227,7 +209,6 @@ int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
     xqc_list_head_t  * phead = NULL;
     xqc_pktns_t * pktns = NULL;
 
-
     if(conn->tlsref.pktns.tx_ckm.key.base != NULL && conn->tlsref.pktns.tx_ckm.key.len > 0){
         pktns = & conn->tlsref.pktns;
         phead = & pktns->msg_cb_head;
@@ -239,10 +220,11 @@ int xqc_msg_cb_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
         if(pktns->tx_ckm.key.base != NULL && pktns->tx_ckm.key.len > 0){
             phead = & pktns->msg_cb_head;
         }else{
-            xqc_log(conn->log, XQC_LOG_ERROR, "|error msg_cb_handshake|");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|error msg_cb_handshake|%p:%d",pktns->tx_ckm.key.base,pktns->tx_ckm.key.len);
             return -1;
         }
     }
+    
     xqc_hs_buffer_t  * p_data = xqc_create_hs_buffer(buf_len);
     if(p_data == NULL){
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_hs_buffer failed|");
@@ -783,6 +765,8 @@ int xqc_server_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
     }
 
 
+    
+
     int rv;
 
     xqc_transport_params_t params;
@@ -1284,7 +1268,7 @@ int xqc_do_update_key(xqc_connection_t *conn)
 {
 
     char secret[64], key[64], iv[64];
-    //conn->tlsref.nkey_update++;
+    //conn->tlsref.nkey_update++;g
     int keylen,ivlen, rv;
 
     xqc_tlsref_t *tlsref = &conn->tlsref;

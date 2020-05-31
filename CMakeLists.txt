@@ -14,7 +14,7 @@ set(COMMON_FLAGS            "-Werror -Wall -Wno-deprecated  -Wno-unused -Wno-poi
 
 set(COMMON_RELEASE_FLAGS    "-DNDEBUG")
 set(COMMON_MIN_FLAGS        " ${COMMON_RELEASE_FLAGS} -Os -ffunction-sections -fdata-sections -fvisibility=hidden")
-set(COMMON_DEBUG_FLAGS     "-pg -O0")
+set(COMMON_DEBUG_FLAGS      " -O0")
 if(GCOV)
     set(COMMON_DEBUG_FLAGS "${COMMON_DEBUG_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
@@ -40,7 +40,7 @@ endif()
 include(CMakeOptions.txt)
 
 
-if (XQC_WITH_OPENSSL)
+if (XQC_BUILD_OPENSSL)
     set(XQC_TLS_BUILD_WITH_OPENSSL 1)
     if(XQC_OPENSSL_IS_BORINGSSL) 
         add_subdirectory(third_party/boringssl)
@@ -49,6 +49,19 @@ if (XQC_WITH_OPENSSL)
         set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
         add_subdirectory(external/openssl-cmake)
     endif()
+    set(DYMAMIC_LINX_OPTION 
+        ssl 
+        crypto 
+        ${DYMAMIC_LINX_OPTION}
+        )
+elseif(XQC_EXISTS_OPENSSL)
+    if(not XQC_EXISTS_OPENSSL_INCLUDE_DIR or not XQC_EXISTS_OPENSSL_BINARY )
+        message(FATAL_ERROR  "You Must DEFINE XQC_EXISTS_OPENSSL_INCLUDE_DIR and XQC_EXISTS_OPENSSL_BINARY")
+    endif()
+    include_directories(XQC_EXISTS_OPENSSL_INCLUDE_DIR)
+    set(DYMAMIC_LINX_OPTION "${XQC_EXISTS_OPENSSL_BINARY} ${DYMAMIC_LINX_OPTION}")
+else()
+    message(FATAL_ERROR  "There Must Exists one tls impl")
 endif()
 
 
@@ -98,17 +111,37 @@ set(
     "src/transport/xqc_utils.c"
     )
 
-set (
-    
-    CRYPTO_SOURCE
 
+set (
+    CRYPTO_SOURCE
     "src/crypto/xqc_tls_init.c"
-    "src/crypto/xqc_crypto.c"
     "src/crypto/xqc_tls_cb.c"
     "src/crypto/xqc_tls_0rtt.c"
     "src/crypto/xqc_tls_if.c"
-
+    "src/crypto/xqc_crypto_material.c"
+    "src/crypto/xqc_tls_stack_cb.c"
+    "src/crypto/xqc_hkdf.c"
+    "src/crypto/xqc_aead.c"
 )
+
+if(XQC_OPENSSL_IS_BORINGSSL)
+set (
+    CRYPTO_SOURCE 
+    ${CRYPTO_SOURCE}
+    "src/crypto/boringssl/xqc_hkdf.c"
+    "src/crypto/boringssl/xqc_crypto.c"
+)
+else()
+set(
+    CRYPTO_SOURCE 
+    ${CRYPTO_SOURCE}
+    "src/crypto/openssl/xqc_hkdf.c"
+    "src/crypto/openssl/xqc_crypto.c"
+    "src/crypto/openssl/xqc_tls_if.c"
+)
+endif()
+
+
 
 set(
     COMMON_SOURCES
@@ -145,4 +178,37 @@ target_link_libraries(
     crypto
     -pthread
     ${DYMAMIC_LINX_OPTION}
+)
+
+
+
+link_directories(
+  /usr/local/lib
+  /usr/lib
+)
+INCLUDE_DIRECTORIES(
+  /usr/local/include/
+  /usr/include
+)
+
+add_executable(
+    test_client 
+    "tests/test_client.c"
+)
+
+add_executable(
+    test_server 
+    "tests/test_server.c"
+)
+
+target_link_libraries(
+    test_client
+    xquic
+    -levent
+)
+
+target_link_libraries(
+    test_server
+    xquic
+    -levent
 )

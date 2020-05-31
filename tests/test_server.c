@@ -8,8 +8,8 @@
 #include <sys/wait.h>
 #include <event2/event.h>
 #include <inttypes.h>
-#include "include/xquic_typedef.h"
-#include "include/xquic.h"
+#include <xquic/xquic_typedef.h>
+#include <xquic/xquic.h>
 
 int printf_null(const char *format, ...)
 {

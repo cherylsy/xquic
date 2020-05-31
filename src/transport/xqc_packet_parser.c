@@ -561,13 +561,16 @@ int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_crypto_km_t *p_ckm = NULL;
     xqc_vec_t *tx_hp = NULL;
 
+    xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx;
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_out->po_pkt.pkt_type);
+
     if (encrypt_level == XQC_ENC_LEV_INIT) {
         p_pktns = &conn->tlsref.initial_pktns;
         p_ckm = &p_pktns->tx_ckm;
         tx_hp = &p_pktns->tx_hp;
         encrypt_func = conn->tlsref.callbacks.in_encrypt;
         hp_mask = conn->tlsref.callbacks.in_hp_mask;
+        p_ctx  = &conn->tlsref.hs_crypto_ctx;
     } else if (encrypt_level == XQC_ENC_LEV_0RTT) {
         p_ckm = &conn->tlsref.early_ckm;
         tx_hp = &conn->tlsref.early_hp;
@@ -608,13 +611,13 @@ int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     int pktno_len = (packet_out->po_buf[0] & XQC_PKT_NUMLEN_MASK) + 1;
 
     memcpy(enc_pkt, pkt_hd, hdlen);//copy header to buf
+
     //refresh header length
     if (encrypt_level == XQC_ENC_LEV_INIT || encrypt_level == XQC_ENC_LEV_0RTT ||
         encrypt_level == XQC_ENC_LEV_HSK) {
-
         uint8_t *plength = enc_pkt + (packet_out->ppktno - XQC_LONG_HEADER_LENGTH_BYTE - packet_out->po_buf);
-        uint32_t length =
-                (packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno) + conn->tlsref.aead_overhead;
+        uint32_t length = packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno ;
+        length += xqc_crypto_overhead(&p_ctx->aead,length);
         xqc_vint_write(plength, length, 0x01, 2);
     }
 
@@ -622,7 +625,7 @@ int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     int nwrite = encrypt_func(conn, enc_pkt + hdlen, *(enc_pkt_len) - hdlen, payload, payloadlen,
                               p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, enc_pkt, hdlen, NULL);
 
-    if (nwrite < 0 || nwrite != payloadlen + conn->tlsref.aead_overhead) {
+    if (nwrite < 0 || nwrite != (payloadlen + xqc_crypto_overhead(&p_ctx->aead,payloadlen))) {
         //printf("encrypt error \n");
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|%d|", nwrite);
         return -XQC_EENCRYPT;

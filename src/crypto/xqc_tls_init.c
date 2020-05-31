@@ -8,6 +8,7 @@
 #include "src/crypto/xqc_tls_if.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_engine.h"
+#include "src/crypto/xqc_crypto_material.h"
 
 /*
  * initial ssl config
@@ -191,8 +192,6 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
         settings->no_crypto = 0;
     }
 
-    tlsref->aead_overhead = XQC_INITIAL_AEAD_OVERHEAD;
-
     xqc_tls_callbacks_t * callbacks = & conn->tlsref.callbacks;
     callbacks->client_initial = xqc_client_initial_cb;
     callbacks->recv_client_initial = NULL;
@@ -254,8 +253,6 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     xqc_init_list_head(& conn->tlsref.initial_pktns.msg_cb_buffer);
     xqc_init_list_head(& conn->tlsref.hs_pktns.msg_cb_buffer);
     xqc_init_list_head(& conn->tlsref.pktns.msg_cb_buffer);
-
-    tlsref->aead_overhead = XQC_INITIAL_AEAD_OVERHEAD;
 
     xqc_tls_callbacks_t * callbacks = & conn->tlsref.callbacks;
     callbacks->client_initial = NULL;
@@ -566,9 +563,6 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
     return ssl;
 }
 
-
-
-
 int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *dcid )
 {
     int rv;
@@ -583,8 +577,7 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
         return -1;
     }
 
-    xqc_prf_sha256(& conn->tlsref.hs_crypto_ctx);
-    xqc_aead_aes_128_gcm(& conn->tlsref.hs_crypto_ctx);
+    xqc_init_initial_crypto_ctx(conn);
 
     rv = xqc_derive_client_initial_secret(secret, sizeof(secret),
             initial_secret,

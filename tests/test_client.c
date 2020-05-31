@@ -10,8 +10,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <inttypes.h>
-#include "include/xquic.h"
-#include "include/xquic_typedef.h"
+#include <xquic/xquic.h>
+#include <xquic/xquic_typedef.h>
 
 int printf_null(const char *format, ...)
 {
@@ -25,7 +25,7 @@ int printf_null(const char *format, ...)
 
 #define TEST_DROP (g_drop_rate != 0 && rand() % 1000 < g_drop_rate)
 
-#define TEST_SERVER_ADDR "127.0.0.1"
+#define TEST_SERVER_ADDR "11.158.143.180"
 #define TEST_SERVER_PORT 8443
 
 
@@ -552,7 +552,7 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
         printf(">>>>>>>> pass:%d\n", pass);
     }
     if (g_test_case == 14/*测试秒开率*/ ) {
-        printf("first_frame_time: %lu, start_time: %lu\n", user_stream->first_frame_time, user_stream->start_time);
+        printf("first_frame_time: %llu, start_time: %llu\n", user_stream->first_frame_time, user_stream->start_time);
         xqc_msec_t t = user_stream->first_frame_time - user_stream->start_time + 200000/*服务端处理耗时*/;
         printf("\033[33m>>>>>>>> first_frame pass:%d time:%"PRIu64"\033[0m\n", t <= 1000000 ? 1 : 0, t);
     }

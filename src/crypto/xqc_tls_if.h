@@ -4,10 +4,12 @@
 #include <openssl/ssl.h>
 #include <assert.h>
 #include <xquic/xquic_typedef.h>
-#include "src/crypto/xqc_crypto.h"
+#include <xquic/xquic.h>
 #include "src/common/xqc_str.h"
 #include "src/common/xqc_list.h"
 #include "src/transport/xqc_frame.h"
+#include "src/crypto/xqc_digist.h"
+#include "src/crypto/xqc_aead.h"
 
 
 typedef struct {
@@ -17,6 +19,34 @@ typedef struct {
 } xqc_pkt_stateless_reset;
 
 
+struct xqc_tls_context 
+{
+    xqc_crypto_t    aead;
+    xqc_crypto_t    hp;
+    xqc_digist_t    prf;
+};
+
+typedef struct xqc_tls_context xqc_tls_context_t;
+
+typedef struct {
+  //xqc_cid_t dcid;
+  //xqc_cid_t scid;
+  uint64_t pkt_num;
+  uint8_t *token;
+  size_t tokenlen;
+  /**
+   * pkt_numlen is the number of bytes spent to encode pkt_num.
+   */
+  size_t pkt_numlen;
+  /**
+   * len is the sum of pkt_numlen and the length of QUIC packet
+   * payload.
+   */
+  size_t len;
+  uint32_t version;
+  uint8_t type;
+  uint8_t flags;
+} xqc_pkt_hd;
 
 
 /**
@@ -444,7 +474,6 @@ typedef int (*xqc_path_validation)(xqc_connection_t *conn,
 
 
 
-
 int xqc_client_initial_cb(xqc_connection_t *conn);
 int xqc_recv_client_initial_cb(xqc_connection_t * conn,
          xqc_cid_t *dcid,
@@ -454,6 +483,9 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
         const uint8_t *data, size_t datalen,
         void *user_data);
 int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data);
+
+
+int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid);
 
 ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *plaintext,
@@ -491,19 +523,25 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen, void *user_data);
 
+
+
+int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
+
+/** ------- utils --------*/ 
+
+
+// create crypto nonce 
+void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,uint64_t pkt_num) ;
 int xqc_conn_prepare_key_update(xqc_connection_t * conn);
 int xqc_start_key_update(xqc_connection_t * conn);
-
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn);
 int xqc_tls_check_rx_key_ready(xqc_connection_t * conn);
-int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
 int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn);
 int xqc_tls_check_hs_rx_key_ready(xqc_connection_t * conn);
 int xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn);
-
 int xqc_tls_free_tlsref(xqc_connection_t * conn);
-int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid);
 int xqc_tls_free_msg_cb_buffer(xqc_connection_t * conn);
-
 int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config);
+
+
 #endif
