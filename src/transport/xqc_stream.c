@@ -569,6 +569,7 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
 
     xqc_stream_frame_t *stream_frame = NULL;
 
+
     xqc_connection_t *conn = stream->stream_conn;
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
@@ -589,7 +590,7 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
 
         //printf("recv crypto data:%d\n",data_len);
         //hex_print(data_start, data_len);
-        int ret = conn->tlsref.callbacks.recv_crypto_data(conn, 0, data_start, data_len, NULL);
+        int ret = conn->tlsref.callbacks.recv_crypto_data(conn, 0, data_start, data_len, stream->stream_encrypt_level ,NULL);
 
         xqc_list_del(pos);
         xqc_destroy_stream_frame(stream_frame);

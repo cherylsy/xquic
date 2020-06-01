@@ -198,6 +198,7 @@ int xqc_client_tls_handshake(xqc_connection_t *conn)
 
 int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
         const uint8_t *data, size_t datalen,
+        xqc_encrypt_level_t encrypt_level,
         void *user_data)
 {
 

@@ -10,6 +10,7 @@
 #include "src/transport/xqc_frame.h"
 #include "src/crypto/xqc_digist.h"
 #include "src/crypto/xqc_aead.h"
+#include "src/transport/xqc_packet.h"
 
 
 typedef struct {
@@ -119,6 +120,7 @@ typedef int (*xqc_recv_client_initial)(xqc_connection_t *conn,
  */
 typedef int (*xqc_recv_crypto_data)(xqc_connection_t *conn, uint64_t offset,
                                        const uint8_t *data, size_t datalen,
+                                       xqc_encrypt_level_t  encrtpt_level,
                                        void *user_data);
 
 /**
@@ -481,6 +483,7 @@ int xqc_recv_client_initial_cb(xqc_connection_t * conn,
 
 int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
         const uint8_t *data, size_t datalen,
+        xqc_encrypt_level_t level,
         void *user_data);
 int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data);
 
