@@ -2,6 +2,13 @@
 
 > xquic_test.log
 
+#生成证书
+if [[ ! -f "server.key" || ! -f "server.crt" ]]; then
+keyfile=server.key
+certfile=server.crt
+openssl req -newkey rsa:2048 -x509 -nodes -keyout "$keyfile" -new -out "$certfile" -subj /CN=localhost
+fi
+
 #安装批量输出工具，否则只能按单个文件输出结果
 sudo yum -y install python-pip > /dev/null
 sudo yum -y install python-lxml > /dev/null
