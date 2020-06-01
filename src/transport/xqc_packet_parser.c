@@ -617,7 +617,7 @@ int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         encrypt_level == XQC_ENC_LEV_HSK) {
         uint8_t *plength = enc_pkt + (packet_out->ppktno - XQC_LONG_HEADER_LENGTH_BYTE - packet_out->po_buf);
         uint32_t length = packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno ;
-        length += xqc_crypto_overhead(&p_ctx->aead,length);
+        length += xqc_aead_overhead(&p_ctx->aead,length);
         xqc_vint_write(plength, length, 0x01, 2);
     }
 
@@ -625,7 +625,7 @@ int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     int nwrite = encrypt_func(conn, enc_pkt + hdlen, *(enc_pkt_len) - hdlen, payload, payloadlen,
                               p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, enc_pkt, hdlen, NULL);
 
-    if (nwrite < 0 || nwrite != (payloadlen + xqc_crypto_overhead(&p_ctx->aead,payloadlen))) {
+    if (nwrite < 0 || nwrite != (payloadlen + xqc_aead_overhead(&p_ctx->aead,payloadlen))) {
         //printf("encrypt error \n");
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|%d|", nwrite);
         return -XQC_EENCRYPT;

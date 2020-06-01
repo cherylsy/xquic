@@ -33,19 +33,19 @@ int xqc_negotiated_aead_and_prf(xqc_tls_context_t *ctx, uint32_t cipher_id)
     switch(cipher_id)
     {
         case 0x03001301u: // TLS_AES_128_GCM_SHA256
-            xqc_crypto_init_aes_gcm(&ctx->aead,128);
-            xqc_crypto_init_aes_ctr(&ctx->hp,128);
+            xqc_crypto_init(&ctx->aead,xqc_aead_init_aes_gcm,128);
+            xqc_crypto_init(&ctx->hp,xqc_aead_init_aes_ctr,128);
             xqc_digist_init_to_sha256(&ctx->prf);
             return 0;
         case 0x03001302u: // TLS_AES_256_GCM_SHA384
-            xqc_crypto_init_aes_gcm(&ctx->aead,256);
-            xqc_crypto_init_aes_ctr(&ctx->hp,256);
+            xqc_crypto_init(&ctx->aead,xqc_aead_init_aes_gcm,256);
+            xqc_crypto_init(&ctx->hp,xqc_aead_init_aes_ctr,256);
             xqc_digist_init_to_sha384(&ctx->prf);
             return 0;
         case 0x03001303u: // TLS_CHACHA20_POLY1305_SHA256
-            xqc_crypto_init_chacha_20_poly1305(&ctx->aead);
-            xqc_crypto_init_chacha_20_poly1305(&ctx->hp);
-            xqc_digist_init_to_sha256(&ctx->prf);
+            xqc_crypto_init(&ctx->aead,xqc_aead_init_chacha20_poly1305);
+            xqc_crypto_init(&ctx->hp,xqc_aead_init_chacha20_poly1305);
+            xqc_digist_init_to_sha384(&ctx->prf);
             return 0;
         case NID_undef:
             xqc_crypto_init_plaintext(&ctx->aead,XQC_FAKE_AEAD_OVERHEAD);
@@ -82,8 +82,7 @@ xqc_init_crypto_ctx(xqc_connection_t * conn,const SSL_CIPHER * cipher)
     {
         xqc_tls_context_t * ctx = &conn->tlsref.crypto_ctx ;
         const uint32_t cipher_id = SSL_CIPHER_get_id(cipher) ;
-        if(ctx->aead.aead_ctx == NULL || cipher_id != conn->tlsref.last_cipher_id ) 
-        {
+        if(ctx->aead.aead_ctx == NULL || cipher_id != conn->tlsref.last_cipher_id) {
             if(xqc_complete_crypto_ctx(ctx,cipher_id,conn->local_settings.no_crypto) != 0){
                 goto err ;
             }
@@ -134,7 +133,7 @@ ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
     static   uint8_t LABEL[] = "quic iv";
 
     
-    ssize_t ivlen = xqc_max(8, xqc_crypto_noncelen(&ctx->aead));
+    ssize_t ivlen = xqc_max(8, xqc_aead_noncelen(&ctx->aead));
     if (ivlen > destlen) {
         return -1;
     }
@@ -155,7 +154,7 @@ ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
     int rv;
     static   uint8_t LABEL[] = "quic hp";
 
-    ssize_t keylen = xqc_crypto_keylen(&ctx->hp);
+    ssize_t keylen = xqc_aead_keylen(&ctx->hp);
     if (keylen > destlen) {
         return -1;
     }
@@ -178,7 +177,7 @@ ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
     int rv;
     static   uint8_t LABEL[] = "quic key";
 
-    ssize_t keylen = xqc_crypto_keylen(&ctx->aead);
+    ssize_t keylen = xqc_aead_keylen(&ctx->aead);
     if (keylen > destlen) {
         return -1;
     }

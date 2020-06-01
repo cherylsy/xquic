@@ -8,8 +8,7 @@
 #include "src/crypto/xqc_hkdf.h"
 #include "src/crypto/xqc_digist.h"
 #include "src/crypto/xqc_digist.h"
-#include "src/crypto/xqc_aead.h"
-
+#include "src/crypto/xqc_crypto.h"
 
 
 int64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen) 
@@ -29,7 +28,7 @@ int64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen)
     }
 }
 
-ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_crypto_t  *ctx,
+ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_crypto_hp_t  *ctx,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen) 
 {
@@ -41,7 +40,8 @@ ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_crypto_t  *ctx,
         return -1;
     }
 
-    if (EVP_EncryptInit_ex(actx, xqc_crypto_aead_ctx(ctx) , NULL, key, sample) != 1) {
+
+    if (EVP_EncryptInit_ex(actx, xqc_aead_ctx(ctx) , NULL, key, sample) != 1) {
         goto err;
     }
 
@@ -135,9 +135,9 @@ ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         const uint8_t *ad, size_t adlen)
 {
 
-    ssize_t taglen = xqc_crypto_taglen(ctx);
+    ssize_t taglen = xqc_aead_taglen(ctx);
 
-    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_crypto_overhead(ctx,destlen) ) {
+    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(ctx,destlen) ) {
         return -1;
     }
 
@@ -149,7 +149,7 @@ ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         return -1;
     }
 
-    if (EVP_DecryptInit_ex(actx,xqc_crypto_aead_ctx(ctx), NULL, NULL, NULL) != 1) {
+    if (EVP_DecryptInit_ex(actx,xqc_aead_ctx(ctx), NULL, NULL, NULL) != 1) {
         goto err;
     }
 
@@ -202,9 +202,9 @@ xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         const uint8_t *ad, size_t adlen) 
 {
 
-    ssize_t taglen = xqc_crypto_taglen(ctx);
+    ssize_t taglen = xqc_aead_taglen(ctx);
     // not enough space 
-    if( destlen <  plaintextlen + xqc_crypto_overhead(ctx,plaintextlen) ) {
+    if( destlen <  plaintextlen + xqc_aead_overhead(ctx,plaintextlen) ) {
         return -1;
     }
 
@@ -214,7 +214,7 @@ xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         return -1;
     }
     
-    if (EVP_EncryptInit_ex(actx, xqc_crypto_aead_ctx(ctx) , NULL, NULL, NULL) != 1) {
+    if (EVP_EncryptInit_ex(actx, xqc_aead_ctx(ctx) , NULL, NULL, NULL) != 1) {
         goto err;
     }
 

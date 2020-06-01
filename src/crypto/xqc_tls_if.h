@@ -9,7 +9,7 @@
 #include "src/common/xqc_list.h"
 #include "src/transport/xqc_frame.h"
 #include "src/crypto/xqc_digist.h"
-#include "src/crypto/xqc_aead.h"
+#include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_packet.h"
 
 
@@ -23,7 +23,7 @@ typedef struct {
 struct xqc_tls_context 
 {
     xqc_crypto_t    aead;
-    xqc_crypto_t    hp;
+    xqc_crypto_hp_t hp;
     xqc_digist_t    prf;
 };
 
