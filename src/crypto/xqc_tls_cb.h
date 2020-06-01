@@ -78,15 +78,11 @@ int xqc_client_transport_params_parse_cb(SSL *ssl, unsigned int ext_type,
         size_t inlen, X509 *x, size_t chainidx, int *al,
         void *parse_arg);
 
-int xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params);
-int xqc_conn_set_early_remote_transport_params(
-    xqc_connection_t *conn, const xqc_transport_params_t *params);
-
-
 
 int xqc_update_key(xqc_connection_t *conn, void *user_data );
 int xqc_do_update_key(xqc_connection_t *conn);
 int xqc_conn_commit_key_update(xqc_connection_t *conn, uint64_t pkt_num) ;
+
 #endif /* _XQC_TLS_CB_H_INCLUDED_ */
 
 

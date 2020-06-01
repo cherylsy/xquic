@@ -9,6 +9,7 @@
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_engine.h"
 #include "src/crypto/xqc_crypto_material.h"
+#include "src/crypto/xqc_transport_params.h"
 
 /*
  * initial ssl config

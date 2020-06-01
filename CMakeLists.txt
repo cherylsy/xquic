@@ -122,6 +122,7 @@ set (
     "src/crypto/xqc_tls_stack_cb.c"
     "src/crypto/xqc_hkdf.c"
     "src/crypto/xqc_aead.c"
+    "src/crypto/xqc_transport_params.c"
 )
 
 if(XQC_OPENSSL_IS_BORINGSSL)
@@ -160,6 +161,7 @@ set(
     "src/congestion_control/xqc_bbr.c"
     "src/congestion_control/xqc_window_filter.c"
     "src/congestion_control/xqc_sample.c"
+
 )
 
 add_library(
