@@ -678,13 +678,14 @@ xqc_client_read_handler(user_conn_t *user_conn)
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
-        if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
+        int ret = xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
                                       (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
-                                      (xqc_msec_t) recv_time, user_conn) != 0) {
-            printf("xqc_client_read_handler: packet process err\n");
-            //xqc_conn_close(ctx->engine, &user_conn->cid);
-            //return;
+                                      (xqc_msec_t) recv_time, user_conn);
+        if(ret != 0) {
+            if(ret != -XQC_ECONN_NFOUND && ret != -XQC_ESTREAM_NFOUND){
+                printf("xqc_client_read_handler: packet process err error:%d\n", ret);
+            }
         }
     } while (recv_size > 0);
     xqc_engine_main_logic(ctx->engine);
