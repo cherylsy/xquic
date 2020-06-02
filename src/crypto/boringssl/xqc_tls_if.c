@@ -95,52 +95,6 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     switch(level)
     {
     case ssl_encryption_initial:
-    {
-        uint8_t private_secret[INITIAL_SECRET_MAX_LEN]={0} ; 
-        // 在此处，我们只安装 server 的init rx 和 tx 密钥
-        if(conn->conn_type == XQC_CONN_TYPE_SERVER) {
-
-            // 初始化初始密钥套件
-            xqc_init_initial_crypto_ctx(conn);
-            
-            // 初始化服务端密钥
-            if(!xqc_generate_initial_secret(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),conn, /** server_secret */ 1)) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_generate_initial_secret failed|");
-                return 0 ;
-            }
-            // 计算服务端密钥套件所需的key nonce 和 hp
-            if(!xqc_xqc_derive_packet_protection(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-                // log has done 
-                return 0;
-            }
-
-            // 设置到 服务端的 tx 
-            if( xqc_conn_install_initial_tx_keys(conn,key,keylen,iv,ivlen,hp,hplen) != 0 ) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_conn_install_initial_tx_keys failed|");
-                return 0 ;
-            }
-
-            // 初始化客户端密钥 
-            if(!xqc_generate_initial_secret(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),conn, /** server_secret */ 0)) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_generate_initial_client_secret failed|");
-                return 0 ;
-            }
-
-            // 重新计算客户端密钥套件所需的key nonce 和 hp
-            if(!xqc_xqc_derive_packet_protection(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-                // log has done 
-                return 0;
-            }
-
-            // 设置到 服务端的 rx
-            if( xqc_conn_install_initial_rx_keys(conn,key,keylen,iv,ivlen,hp,hplen) != 0 ) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_conn_install_initial_tx_keys failed|");
-                return 0 ;
-            }
-        }
-        // read_secret  我们只安装服务端的init密钥，客户端在write_secret 安装
-        return 1;
-    }
     case ssl_encryption_early_data:
     case ssl_encryption_handshake :
        if( xqc_init_crypto_ctx (conn,cipher) != 0 ) {
@@ -211,50 +165,6 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     switch(level)
     {
     case ssl_encryption_initial:
-    {
-        uint8_t private_secret[INITIAL_SECRET_MAX_LEN]={0} ; 
-        // 在此处，我们只安装 client 的init rx 和 tx 密钥, 注意这里和 xqc_set_read_secret对应的部分是相反的 。不要尝试合并 
-        if(conn->conn_type == XQC_CONN_TYPE_CLIENT) {
-
-            xqc_init_initial_crypto_ctx(conn);
-            
-            // 初始化服务端密钥
-            if(!xqc_generate_initial_secret(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),conn, /** server_secret */ 1)) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_generate_initial_secret failed|");
-                return 0 ;
-            }
-            // 计算服务端密钥套件所需的key nonce 和 hp
-            if(!xqc_xqc_derive_packet_protection(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-                // log has done 
-                return 0;
-            }
-
-            // 设置到 客户端 的 rx 
-            if( xqc_conn_install_initial_rx_keys(conn,key,keylen,iv,ivlen,hp,hplen) != 0 ) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_conn_install_initial_tx_keys failed|");
-                return 0 ;
-            }
-
-            // 初始化客户端密钥 
-            if(!xqc_generate_initial_secret(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),conn, /** server_secret */ 0)) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_generate_initial_client_secret failed|");
-                return 0 ;
-            }
-
-            // 重新计算客户端密钥套件所需的key nonce 和 hp
-            if(!xqc_xqc_derive_packet_protection(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-                // log has done 
-                return 0;
-            }
-
-            // 设置到 客户端的 tx
-            if( xqc_conn_install_initial_tx_keys(conn,key,keylen,iv,ivlen,hp,hplen) != 0 ) {
-                xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_conn_install_initial_tx_keys failed|");
-                return 0 ;
-            }
-        }
-        return 1 ;
-    }
     case ssl_encryption_early_data:
     case ssl_encryption_handshake:
     {
@@ -402,6 +312,11 @@ again:
         }
     }
 
+    // 如果是因early data提前握手结束，则需要继续。但是此时early data 密钥已经准备就绪。
+    if(SSL_in_early_data(ssl)) {
+        return 0;
+    }
+
     const uint8_t * peer_transport_params ;
     size_t outlen;
     SSL_get_peer_quic_transport_params(ssl,&peer_transport_params,&outlen);
@@ -485,6 +400,11 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
         if(xqc_do_handshake(conn) != 0) {
             return -1;
         }
+    }else 
+    {
+        if( SSL_process_quic_post_handshake(ssl) != 1 ) {
+            return -1;
+        }
     }
 
     return 0 ;
@@ -492,8 +412,17 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
 
 
 int 
-xqc_tls_is_early_data_accepted(xqc_connection_t * conn){
-    return SSL_early_data_accepted(conn->xc_ssl);
+xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
+{
+    if(conn->conn_type == XQC_CONN_TYPE_CLIENT && !conn->tlsref.resumption) {
+        return XQC_TLS_NO_EARLY_DATA ;
+    }
+
+    if(SSL_early_data_accepted(conn->xc_ssl)) {
+        return XQC_TLS_EARLY_DATA_ACCEPT ;
+    }else {
+        return XQC_TLS_EARLY_DATA_REJECT;
+    }
 }
 
 int xqc_recv_client_initial_cb(xqc_connection_t * conn,
