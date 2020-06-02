@@ -1,6 +1,5 @@
 #include <openssl/ssl.h>
 #include <openssl/err.h>
-#include "src/crypto/xqc_crypto.h"
 #include "src/crypto/xqc_tls_public.h"
 #include "src/transport/xqc_conn.h"
 #include "src/common/xqc_config.h"
@@ -9,6 +8,7 @@
 #include "src/crypto/xqc_digist.h"
 #include "src/crypto/xqc_digist.h"
 #include "src/crypto/xqc_crypto.h"
+
 
 
 int64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen) 
@@ -28,9 +28,12 @@ int64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen)
     }
 }
 
-ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_crypto_hp_t  *ctx,
+ssize_t
+xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
+        uint8_t *dest,size_t destlen, 
+        const uint8_t *plaintext,size_t plaintextlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen) 
+        size_t samplelen)
 {
 
     static   uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
@@ -40,8 +43,7 @@ ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_crypto_hp_t  *ctx,
         return -1;
     }
 
-
-    if (EVP_EncryptInit_ex(actx, xqc_aead_ctx(ctx) , NULL, key, sample) != 1) {
+    if (EVP_EncryptInit_ex(actx, crypto->ctx , NULL, key, sample) != 1) {
         goto err;
     }
 
@@ -76,68 +78,16 @@ err:
     return -1;
 }
 
-//need finish : conn_decrypt_hp only decrypt header protect , not do anything else
-static 
-ssize_t xqc_conn_decrypt_hp(xqc_connection_t *conn, xqc_pkt_hd *hd,
-        uint8_t *dest, size_t destlen,
-        const uint8_t *pkt, size_t pktlen,
-        size_t pkt_num_offset, unsigned char * hpkey, int hpkey_len,
-        xqc_tls_context_t  *ctx, size_t aead_overhead){
-    size_t nwrite;
-    size_t sample_offset;
-    uint8_t *p = dest;
-    uint8_t mask[XQC_HP_SAMPLELEN];
-    size_t i;
-
-    if (pkt_num_offset + XQC_HP_SAMPLELEN > pktlen) {
-        return XQC_ERR_PROTO;
-    }
-
-    memcpy(p, pkt, pkt_num_offset);
-    p = p + pkt_num_offset;
-
-    sample_offset = pkt_num_offset + 4;
-
-    nwrite =  xqc_hp_mask(mask, sizeof(mask), &ctx->hp, hpkey, hpkey_len, pkt + sample_offset, XQC_HP_SAMPLELEN);
-    if (nwrite < XQC_HP_MASKLEN) {
-        return XQC_ERR_CALLBACK_FAILURE;
-    }
-
-    if (hd->flags & XQC_PKT_FLAG_LONG_FORM) {
-        dest[0] = (uint8_t)(dest[0] ^ (mask[0] & 0x0f));
-    } else {
-        dest[0] = (uint8_t)(dest[0] ^ (mask[0] & 0x1f));
-        //if (dest[0] & XQC_SHORT_KEY_PHASE_BIT) {
-        //  hd->flags |= XQC_PKT_FLAG_KEY_PHASE;
-        //}
-    }
-
-    hd->pkt_numlen = (size_t)((dest[0] & XQC_PKT_NUMLEN_MASK) + 1);
-
-    for (i = 0; i < hd->pkt_numlen; ++i) {
-        *p++ = *(pkt + pkt_num_offset + i) ^ mask[i + 1];
-    }
-
-    int64_t pkt_num = xqc_get_pkt_num(p - hd->pkt_numlen, hd->pkt_numlen);
-    if(pkt_num < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|error packet num|");
-        return -1;
-    }
-    hd->pkt_num = pkt_num;
-
-    return p - dest;
-}
-
-
-ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
-        size_t ciphertextlen, const xqc_crypto_t *ctx, const uint8_t *key,
+ssize_t 
+xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+        size_t ciphertextlen,const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen)
 {
 
-    ssize_t taglen = xqc_aead_taglen(ctx);
+    ssize_t taglen = xqc_crypto_taglen(aead);
 
-    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(ctx,destlen) ) {
+    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_crypto_overhead(aead,destlen) ) {
         return -1;
     }
 
@@ -149,12 +99,11 @@ ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
         return -1;
     }
 
-    if (EVP_DecryptInit_ex(actx,xqc_aead_ctx(ctx), NULL, NULL, NULL) != 1) {
+    if (EVP_DecryptInit_ex(actx,aead->ctx, NULL, NULL, NULL) != 1) {
         goto err;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) !=
-            1) {
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != 1) {
         goto err;
     }
 
@@ -196,15 +145,15 @@ err:
 }
 
 ssize_t 
-xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
-        size_t plaintextlen, const xqc_crypto_t *ctx, const uint8_t *key,
+xqc_ossl_aead_encrypt(const xqc_aead_t * aead,uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+        size_t plaintextlen,  const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
-        const uint8_t *ad, size_t adlen) 
+        const uint8_t *ad, size_t adlen)
 {
 
-    ssize_t taglen = xqc_aead_taglen(ctx);
+    ssize_t taglen = xqc_crypto_taglen(aead);
     // not enough space 
-    if( destlen <  plaintextlen + xqc_aead_overhead(ctx,plaintextlen) ) {
+    if( destlen <  plaintextlen + xqc_aead_overhead(aead,plaintextlen) ) {
         return -1;
     }
 
@@ -214,7 +163,7 @@ xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
         return -1;
     }
     
-    if (EVP_EncryptInit_ex(actx, xqc_aead_ctx(ctx) , NULL, NULL, NULL) != 1) {
+    if (EVP_EncryptInit_ex(actx, aead->ctx, NULL, NULL, NULL) != 1) {
         goto err;
     }
 

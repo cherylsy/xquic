@@ -1,132 +1,139 @@
 #ifndef XQC_CRYPTO_H_
 #define XQC_CRYPTO_H_
 
+/**
+ *  @author 不达 
+ * */
+
 #include <stdio.h>
 #include <stdint.h>
 #include <xquic/xquic.h>
-#include "src/crypto/xqc_aead.h"
+#include <xquic/xquic_typedef.h>
+#include <openssl/ssl.h>
+
+typedef struct xqc_aead_st          xqc_aead_t ;
+typedef struct xqc_crypto_st        xqc_crypto_t ;
+
+#undef  XQC_CRYPTO_PRIVAYE
+#define XQC_CRYPTO_PRIVAYE
+
+#ifdef OPENSSL_IS_BORINGSSL
+#include "src/crypto/boringssl/xqc_aead_impl.h"
+#else 
+#include "src/crypto/openssl/xqc_aead_impl.h"
+#endif 
+
+#undef  XQC_CRYPTO_PRIVAYE
 
 #define XQC_FAKE_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 #define XQC_FAKE_HP_MASK "\x00\x00\x00\x00\x00"
 
-struct xqc_aead_st
-{
-    // aead ctx 
-    const void * ctx ;
 
-    // quick query
-    size_t taglen   ;
-    size_t keylen   ;
-    size_t noncelen ;
-};
+// crypto 和 aead 共有 noncelen 和 keylen 字段。 
+#define xqc_crypto_key_length(obj)      ((obj)->keylen)
+#define xqc_crypto_iv_length(obj)       ((obj)->noncelen)
+
+// 加密开销，一般来说是受影响的因素包括padding大小和tag的长度。
+#define xqc_crypto_overhead(obj,cln)    _Generic((obj),         \
+    const xqc_crypto_t *  :  xqc_cipher_overhead(obj,cln),      \
+    const xqc_aead_t *    :  xqc_aead_overhead(obj,cln)         \
+)              
+
+// tag长度,一般我们不会对crypto求taglen，因为是没有意义的。这里的0后续可以修改为 XQC_UN_REACHABLE
+#define xqc_crypto_taglen(obj)          _Generic((obj),         \
+    const xqc_crypto_t *   :  0 ,                               \
+    const xqc_aead_t *     :  (obj)->taglen                     \
+)
+
+// 这里我们暂时只需要如下几种加密算法的实现
+// 所有的初始化都需要完整的填充所有数据。
+
+#ifdef XQC_AEAD_INIT_NULL_IMPL
+#define xqc_aead_init_null(aead,tgl,...)            XQC_AEAD_INIT_NULL_IMPL(aead,tgl,__VA_ARGS__)
+#else // XQC_AEAD_INIT_NULL_IMPL
+xqc_int_t xqc_aead_init_null(xqc_aead_t * aead,size_t taglen) ;
+#endif // XQC_AEAD_INIT_NULL_IMPL
+
+// aes_d_gcm  d 即密钥长度
+#define xqc_aead_init_aes_gcm(aead,d,...)           XQC_AEAD_INIT_AES_GCM_IMPL(aead,d,__VA_ARGS__)
+
+// chacha20_poly1305
+#define xqc_aead_init_chacha20_poly1305(obj,...)    XQC_AEAD_INIT_CHACHA20_POLY1305_IMPL(obj,__VA_ARGS__)
+
+
+#ifdef XQC_CRYPTO_INIT_NULL_IMPL
+#define xqc_crypto_init_null(crypto,...)            XQC_CRYPTO_INIT_NULL_IMPL(crypto,__VA_ARGS__)
+#else   // XQC_CRYPTO_INIT_NULL_IMPL
+xqc_int_t xqc_crypto_init_null(xqc_crypto_t * crypto);
+#endif // XQC_CRYPTO_INIT_NULL_IMPL
+
+// aes_d_ctr 
+#define xqc_crypto_init_aes_ctr(crypto,d,...)       XQC_CRYPTO_INIT_AES_CTR_IMPL(crypto,d,__VA_ARGS__)
+
+// chacha20
+#define xqc_crypto_init_chacha20(crypto,...)        XQC_CRYPTO_INIT_CHACHA20_IMPL(crypto,__VA_ARGS__)
+
+// private ，不推荐直接调用。
+#define xqc_cipher_overhead(obj,cln)                XQC_CIPHER_OVERHEAD_IMPL((obj),cln)
+#define xqc_aead_overhead(obj,cln)                  XQC_AEAD_OVERHEAD_IMPL((obj),cln)
+
+// crypto单指不做认证的加密
+#define XQC_CRYPTO_CTX_TYPE     XQC_CRYPTO_CTX_TYPE_IMPL
+// aead指需要做认证的加解密。 
+#define XQC_AEAD_CTX_TYPE       XQC_AEAD_CTX_TYPE_IMPL
 
 struct xqc_crypto_st 
 {
-    // aead ctx 
-    const void * aead_ctx ;
-
-    size_t taglen   ;
-    size_t keylen   ;
-    size_t noncelen ;
+    XQC_CRYPTO_CTX_TYPE ctx     ;
+    size_t keylen;
+    size_t noncelen;
 
     struct 
     {
-        // for user define ctx 。 normaly set ctx = aead_ctx ;
+        // normaly unused 
         const void * encrypt_ctx ;
         ssize_t 
-        (*xqc_encrypt_func) (uint8_t *dest, size_t destlen, const uint8_t *plaintext,
-            size_t plaintextlen, const xqc_crypto_t * ctx, const uint8_t *key,
+        (*xqc_encrypt_func)(const xqc_crypto_t *ctx,uint8_t *dest, size_t destlen, 
+            const uint8_t *plaintext,size_t plaintextlen,
+            const uint8_t *key, size_t keylen, const uint8_t *sample,
+            size_t samplelen);
+    }encrypt;
+};
+
+struct xqc_aead_st 
+{
+    XQC_AEAD_CTX_TYPE   ctx     ;
+    size_t keylen               ;
+    size_t noncelen             ;
+    size_t taglen               ;     
+
+    struct 
+    {
+        // for user define ctx 。 normaly unused 
+        const void * encrypt_ctx ;
+        ssize_t 
+        (*xqc_encrypt_func) ( const xqc_aead_t * ctx,uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+            size_t plaintextlen,const uint8_t *key,
             size_t keylen, const uint8_t *nonce, size_t noncelen,
             const uint8_t *ad, size_t adlen) ;
     }encrypt;
 
     struct 
     {
-        // normaly set ctx = aead_ctx 
+        // normaly unused 
         const void * decrypt_ctx ;
         ssize_t 
-        (*xqc_decrypt_func) (uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
-            size_t ciphertextlen, const xqc_crypto_t *ctx, const uint8_t *key,
+        (*xqc_decrypt_func) (const xqc_aead_t *ctx,uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+            size_t ciphertextlen,  const uint8_t *key,
             size_t keylen, const uint8_t *nonce, size_t noncelen,
             const uint8_t *ad, size_t adlen) ;
     }decrypt;
 };
 
-struct xqc_crypto_hp_st 
-{
-    // aead ctx 
-    const void * aead_ctx ;
-    
-    size_t taglen   ;
-    size_t keylen   ;
-    size_t noncelen ;
-    
-    struct 
-    {
-        // weird 
-        ssize_t 
-        (*xqc_hp_mask_func)(uint8_t *dest, size_t destlen, const xqc_crypto_hp_t *ctx,
-            const uint8_t *key, size_t keylen, const uint8_t *sample,
-            size_t samplelen);
-    }hp_mask;
-};
-
-ssize_t 
-xqc_null_cipher_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
-            size_t plaintextlen, const xqc_crypto_t * ctx, const uint8_t *key,
-            size_t keylen, const uint8_t *nonce, size_t noncelen,
-            const uint8_t *ad, size_t adlen);
-
-ssize_t 
-xqc_null_cipher_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
-            size_t ciphertextlen, const xqc_crypto_t * ctx, const uint8_t *key,
-            size_t keylen, const uint8_t *nonce, size_t noncelen,
-            const uint8_t *ad, size_t adlen);
-
-ssize_t 
-xqc_null_cipher_hp_mask (uint8_t *dest, size_t destlen, const xqc_crypto_hp_t *ctx,
-            const uint8_t *key, size_t keylen, const uint8_t *sample,
-            size_t samplelen);
-
-
-// Return ZERO on success ,init plaintext always success 
-#define xqc_crypto_init_plaintext(obj,d)    ({                                                  \
-    xqc_aead_t * ___aead = (xqc_aead_t *)(obj);                                                 \
-    ___aead->keylen = ___aead->noncelen = 1 ;                                                   \
-    ___aead->taglen = (d);                                                                      \
-    _Generic((obj),                                                                             \
-        xqc_crypto_t * : ({                                                                     \
-            xqc_crypto_t * ___crypto = (xqc_crypto_t*)(___aead) ;                               \
-            ___crypto->encrypt.xqc_encrypt_func = xqc_null_cipher_encrypt ;                     \
-            ___crypto->decrypt.xqc_decrypt_func = xqc_null_cipher_decrypt ;                     \
-        }),                                                                                     \
-        xqc_crypto_hp_t * : ({                                                             \
-            xqc_crypto_hp_t * ___crypto_hp_mask = (xqc_crypto_hp_t*) (___aead);       \
-            ___crypto_hp_mask->hp_mask.xqc_hp_mask_func = xqc_null_cipher_hp_mask ;             \
-        })                                                                                      \
-    );                                                                                          \
-    0;                                                                                          \
-})
-
-// Return ZERO on success ;
-#define xqc_crypto_init(obj,aead_init,...)  ({                                                  \
-    xqc_aead_t * ___aead = (xqc_aead_t *)(obj);                                                 \
-    aead_init(___aead,__VA_ARGS__);                                                             \
-    _Generic((obj),                                                                             \
-        xqc_crypto_t * : ({                                                                     \
-            xqc_crypto_t * ___crypto = (xqc_crypto_t*)(___aead) ;                               \
-            XQC_INIT_CRYPTO(___crypto);                                                         \
-        }),                                                                                     \
-        xqc_crypto_hp_t * : ({                                                                  \
-            xqc_crypto_hp_t * ___crypto_hp_mask = (xqc_crypto_hp_t*) (___aead);                 \
-            XQC_INIT_CRYPTO_HP_MASK(___crypto_hp_mask);                                         \
-        })                                                                                      \
-    );                                                                                          \
-    0;})
 
 static inline 
 ssize_t 
-xqc_crypto_encrypt(const xqc_crypto_t * crypto,uint8_t *dest, size_t destlen, 
+xqc_aead_encrypt(const xqc_aead_t * crypto,uint8_t *dest, size_t destlen, 
             const uint8_t *plaintext,size_t plaintextlen, 
             const uint8_t *key,size_t keylen, 
             const uint8_t *nonce, size_t noncelen,
@@ -136,9 +143,9 @@ xqc_crypto_encrypt(const xqc_crypto_t * crypto,uint8_t *dest, size_t destlen,
         return -1 ;
     }
     else {
-        return crypto->encrypt.xqc_encrypt_func(dest,destlen,
+        return crypto->encrypt.xqc_encrypt_func(
+                crypto,dest,destlen,
                 plaintext,plaintextlen,
-                crypto,
                 key,keylen,
                 nonce,noncelen,
                 ad,adlen);
@@ -147,7 +154,7 @@ xqc_crypto_encrypt(const xqc_crypto_t * crypto,uint8_t *dest, size_t destlen,
 
 static inline 
 ssize_t 
-xqc_crypto_decrypt(const xqc_crypto_t * crypto,uint8_t *dest, size_t destlen, 
+xqc_aead_decrypt(const xqc_aead_t * crypto,uint8_t *dest, size_t destlen, 
             const uint8_t *ciphertext,size_t ciphertextlen, 
             const uint8_t *key,size_t keylen, 
             const uint8_t *nonce, size_t noncelen,
@@ -157,9 +164,10 @@ xqc_crypto_decrypt(const xqc_crypto_t * crypto,uint8_t *dest, size_t destlen,
         return -1 ;
     }
     else {
-        return crypto->decrypt.xqc_decrypt_func(dest,destlen,
-                ciphertext,ciphertextlen,
+        return crypto->decrypt.xqc_decrypt_func(
                 crypto,
+                dest,destlen,
+                ciphertext,ciphertextlen,
                 key,keylen,
                 nonce,noncelen,
                 ad,adlen);
@@ -168,16 +176,17 @@ xqc_crypto_decrypt(const xqc_crypto_t * crypto,uint8_t *dest, size_t destlen,
 
 static inline
 ssize_t 
-xqc_crypto_hp_mask(const xqc_crypto_hp_t * hp_mask,
+xqc_crypto_encrypt(const xqc_crypto_t * crypto,
             uint8_t *dest, size_t destlen,
+            const uint8_t *plaintext,size_t plaintextlen,
             const uint8_t *key, size_t keylen, const uint8_t *sample,
             size_t samplelen)
 {
-    if(XQC_UNLIKELY(hp_mask == NULL)) {
+    if(XQC_UNLIKELY(crypto == NULL)) {
         return -1 ;
     }
     else {
-        return hp_mask->hp_mask.xqc_hp_mask_func(dest,destlen,hp_mask,key,keylen,sample,samplelen);
+        return crypto->encrypt.xqc_encrypt_func(crypto,dest,destlen,plaintext,plaintextlen,key,keylen,sample,samplelen);
     }
 }
 

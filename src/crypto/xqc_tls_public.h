@@ -13,7 +13,6 @@
 #include "src/transport/xqc_frame.h"
 #include "src/crypto/xqc_tls_if.h"
 #include "src/common/xqc_malloc.h"
-#include "src/crypto/xqc_aead.h"
 
 #ifdef WORDS_BIGENDIAN
 #  define bswap64(N) (N)

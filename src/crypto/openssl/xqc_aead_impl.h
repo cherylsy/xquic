@@ -4,67 +4,83 @@
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
 
+/**
+ * @author 不达 
+ * */
 
-typedef struct xqc_aead_st          xqc_aead_t ;
-typedef struct xqc_crypto_st        xqc_crypto_t ;
-typedef struct xqc_crypto_hp_st     xqc_crypto_hp_t;
+#ifndef XQC_CRYPTO_PRIVAYE
+#error "不要单独include，直接include crypto.h"
+#endif
 
+#define XQC_CRYPTO_CTX_TYPE_IMPL        const EVP_CIPHER  *
+ 
+#define XQC_AEAD_CTX_TYPE_IMPL          XQC_CRYPTO_CTX_TYPE_IMPL 
 
-// 这里我们目前所使用到的全部都是没有额外的开销的（除tag之外）
-#define XQC_AEAD_EXTRA_OVERHEAD_IMPL(obj,cln)            (0)
-// 
-#define XQC_AEAD_CTX_IMPL(obj)                   ((const EVP_CIPHER *) ((obj)->aead_ctx))
+// 目前我们所实现的所有的cipher都是不需要额外填充的。
+#define  XQC_CIPHER_OVERHEAD_IMPL(obj,cln)         (0)
+// 目前我们所实现的所有的cipher都是不需要额外填充的,因此overhead总是等于tag的长度。
+#define  XQC_AEAD_OVERHEAD_IMPL(obj,cln)           (0) + (obj)->taglen
 
-extern 
-ssize_t xqc_hp_mask(uint8_t *dest, size_t destlen, const xqc_crypto_hp_t  *ctx,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen);
+// do not call !!!
+#define DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher)    ({                   \
+    obj->ctx        = cipher ;                                          \
+    obj->keylen     = EVP_CIPHER_key_length(obj->ctx);                  \
+    obj->noncelen   = EVP_CIPHER_iv_length(obj->ctx);                   \
+})
 
-extern
-ssize_t xqc_decrypt(uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
-        size_t ciphertextlen, const xqc_crypto_t *ctx, const uint8_t *key,
+// do not call !!!
+#define DO_NOT_CALL_XQC_AEAD_INIT(obj,cipher,tgl)    ({                 \
+    DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
+    obj->taglen = (tgl);                                                \
+    obj->encrypt.xqc_encrypt_func = xqc_ossl_aead_encrypt;              \
+    obj->decrypt.xqc_decrypt_func = xqc_ossl_aead_decrypt;              \
+})
+
+// do not call !!!
+#define DO_NOT_CALL_XQC_CRYPTO_INIT(obj,cipher)     ({                  \
+    DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
+    obj->encrypt.xqc_encrypt_func = xqc_ossl_crypto_encrypt;            \
+})
+
+#define XQC_AEAD_INIT_AES_GCM_IMPL(obj,d,...)   ({                                  \
+    xqc_aead_t * ___aead  = (obj);                                                  \
+    DO_NOT_CALL_XQC_AEAD_INIT(___aead,EVP_aes_##d##_gcm(),EVP_GCM_TLS_TAG_LEN);     \
+})
+
+#define XQC_AEAD_INIT_CHACHA20_POLY1305_IMPL(obj,...) ({                                        \
+    xqc_aead_t * ___aead = (obj);                                                               \
+    DO_NOT_CALL_XQC_AEAD_INIT(___aead,EVP_chacha20_poly1305(),EVP_CHACHAPOLY_TLS_TAG_LEN);      \
+})
+
+#define XQC_CRYPTO_INIT_AES_CTR_IMPL(obj,d,...) ({                      \
+    xqc_crypto_t * ___crypto = (obj);                                   \
+    DO_NOT_CALL_XQC_CRYPTO_INIT(___crypto,EVP_aes_##d##_ctr());         \
+})
+
+#define XQC_CRYPTO_INIT_CHACHA20_IMPL(obj,...)  ({                      \
+    xqc_crypto_t * ___crypto = (obj);                                   \
+    DO_NOT_CALL_XQC_CRYPTO_INIT(___crypto,EVP_chacha20());              \
+})
+
+/*** extern encrtpt */
+
+ssize_t 
+xqc_ossl_aead_decrypt(const xqc_aead_t *ctx, uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+        size_t ciphertextlen,const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);
-extern 
+
 ssize_t 
-xqc_encrypt(uint8_t *dest, size_t destlen, const uint8_t *plaintext,
-        size_t plaintextlen, const xqc_crypto_t *ctx, const uint8_t *key,
+xqc_ossl_aead_encrypt(const xqc_aead_t *ctx,uint8_t *dest, size_t destlen, const uint8_t *plaintext,
+        size_t plaintextlen,  const uint8_t *key,
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen) ;
 
-// obj is (xqc_crypto_t *)
-#define XQC_INIT_CRYPTO_IMPL(obj)               do {                \
-    (obj)->encrypt.xqc_encrypt_func = xqc_encrypt;                  \
-    (obj)->decrypt.xqc_decrypt_func = xqc_decrypt;                  \
-}while(0)
+ssize_t
+xqc_ossl_crypto_encrypt(const xqc_crypto_t*ctx,uint8_t *dest, size_t destlen, 
+        const uint8_t *plaintext,size_t plaintextlen,
+        const uint8_t *key, size_t keylen, const uint8_t *sample,
+        size_t samplelen);
 
-// obj is (xqc_crypto_hp_mask_t*)
-#define XQC_INIT_CRYPTO_HP_MASK_IMPL(obj)        do{  obj->hp_mask.xqc_hp_mask_func =  xqc_hp_mask;} while(0)
-
-
-#define XQC_AEAD_COMMON_OP(obj,c,tgl)   do {                \
-    const EVP_CIPHER    * ___cipher = c ;                   \
-    xqc_crypto_t        * ___crypto = (xqc_crypto_t*)(obj); \
-    ___crypto->aead_ctx             = ___cipher;            \
-    ___crypto->taglen               = (tgl);                \
-    ___crypto->keylen   = EVP_CIPHER_key_length(___cipher); \
-    ___crypto->noncelen = EVP_CIPHER_iv_length(___cipher);  \
-}while(0)
-
-
-#define XQC_AEAD_INIT_AES_GCM_IMPL(obj,d)  ({                               \
-    XQC_AEAD_COMMON_OP(obj,EVP_aes_##d##_gcm(),EVP_GCM_TLS_TAG_LEN);        \
-    0;                                                                      \
-})
-
-#define XQC_AEAD_INIT_AES_CTR_IMPL(obj,d) ({                                \
-    XQC_AEAD_COMMON_OP(obj,EVP_aes_##d##_ctr(),EVP_GCM_TLS_TAG_LEN);        \
-    0;                                                                      \
-})
-
-#define XQC_AEAD_INIT_CHACHA20_POLY1305_IMPL(obj,...) ({                                \
-    XQC_AEAD_COMMON_OP(obj,EVP_chacha20_poly1305(),EVP_CHACHAPOLY_TLS_TAG_LEN);         \
-    0;                                                                                  \
-})
 
 #endif 

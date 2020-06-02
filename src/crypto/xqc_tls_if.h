@@ -12,7 +12,6 @@
 #include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_packet.h"
 
-
 typedef struct {
     const uint8_t *stateless_reset_token;
     const uint8_t *rand;
@@ -22,8 +21,8 @@ typedef struct {
 
 struct xqc_tls_context 
 {
-    xqc_crypto_t    aead;
-    xqc_crypto_hp_t hp;
+    xqc_aead_t      aead;
+    xqc_crypto_t    hp;
     xqc_digist_t    prf;
 };
 
