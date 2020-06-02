@@ -127,7 +127,6 @@ int xqc_to_tls_handshake(xqc_connection_t *conn, const void * buf, size_t buf_le
     return 0;//need finish
 }
 
-
 static
 int xqc_client_tls_handshake(xqc_connection_t *conn)
 {
@@ -364,99 +363,4 @@ int xqc_recv_client_initial_cb(xqc_connection_t * conn,
         void *user_data)
 {
     return xqc_recv_client_hello_derive_key(conn, dcid);
-}
-
-
-ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-    xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
-    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest,destlen,plaintext,plaintextlen,key,keylen,nonce,noncelen,ad,adlen);
-    if(nwrite < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_encrypt failed|ret code:%d |", nwrite);
-        return XQC_ERR_CALLBACK_FAILURE;
-    }
-    return nwrite;
-}
-
-ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-    xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
-    ssize_t nwrite = xqc_aead_decrypt(&ctx->aead,dest, destlen, ciphertext, ciphertextlen,
-            key, keylen, nonce, noncelen, ad, adlen);
-
-    if(nwrite < 0){
-        return XQC_ERR_TLS_DECRYPT;
-    }
-    return nwrite;
-
-}
-
-ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-
-    xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
-    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest, destlen, plaintext, plaintextlen , key, keylen,
-                nonce, noncelen,  ad, adlen);
-    if(nwrite < 0){
-        return XQC_ERR_CALLBACK_FAILURE;
-    }
-    return nwrite;
-}
-
-ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-    xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
-    ssize_t nwrite = xqc_aead_decrypt(&ctx->aead,dest, destlen, ciphertext, ciphertextlen,
-            key, keylen, nonce, noncelen, ad, adlen);
-    if(nwrite < 0){
-        return XQC_ERR_TLS_DECRYPT;
-    }
-    return nwrite;
-
-}
-
-ssize_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data)
-{
-
-    xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
-    ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp,dest,destlen,XQC_FAKE_HP_MASK,sizeof(XQC_FAKE_HP_MASK)-1,key,keylen,sample,samplelen);
-    if(nwrite < 0){
-        return XQC_ERR_CALLBACK_FAILURE;
-    }
-    return nwrite;
-}
-
-ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data)
-{
-
-    xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
-    ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp,dest,destlen,XQC_FAKE_HP_MASK,sizeof(XQC_FAKE_HP_MASK)-1,key,keylen,sample,samplelen);
-    if(nwrite < 0){
-        return XQC_ERR_CALLBACK_FAILURE;
-    }
-    return nwrite;
 }

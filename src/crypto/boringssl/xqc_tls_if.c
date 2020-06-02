@@ -7,6 +7,9 @@
 #include "src/transport/xqc_cid.h"
 #include "src/common/xqc_log.h"
 #include "src/crypto/xqc_crypto_material.h"
+#include "src/crypto/xqc_tls_cb.h"
+#include "src/crypto/xqc_transport_params.h"
+#include "src/crypto/xqc_tls_stack_cb.h"
 
 static 
 xqc_int_t 
@@ -212,8 +215,8 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
         uint8_t private_secret[INITIAL_SECRET_MAX_LEN]={0} ; 
         // 在此处，我们只安装 client 的init rx 和 tx 密钥, 注意这里和 xqc_set_read_secret对应的部分是相反的 。不要尝试合并 
         if(conn->conn_type == XQC_CONN_TYPE_CLIENT) {
-            
-            xqc_initial_crypto_ctx(conn);
+
+            xqc_init_initial_crypto_ctx(conn);
             
             // 初始化服务端密钥
             if(!xqc_generate_initial_secret(&conn->tlsref.hs_crypto_ctx,private_secret,sizeof(private_secret),conn, /** server_secret */ 1)) {
@@ -341,6 +344,7 @@ xqc_add_handshake_data (SSL *ssl, enum ssl_encryption_level_t level,
 
     memcpy(p_data->data, data, len);
     xqc_list_add_tail(& p_data->list_head, &pktns->msg_cb_head) ;
+    return 1;
 }
 
 int 
@@ -386,7 +390,7 @@ again:
                 return -1;
             case SSL_ERROR_EARLY_DATA_REJECTED :
             {
-                xqc_conn_early_data_reject(conn);
+                conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_REJECT ;
                 // reset the state 
                 SSL_reset_early_data_reject(ssl);
                 xqc_log(conn->log, XQC_LOG_INFO, "| TLS handshake reject 0-RTT :%s|");
@@ -397,6 +401,12 @@ again:
                 xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
                 return -1;
         }
+    }
+
+
+    // only set in XQC_TLS_EARLY_DATA_UNKNOWN
+    if(conn->tlsref.early_data_status == XQC_TLS_EARLY_DATA_UNKNOWN) {
+        conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_ACCEPT ;
     }
 
     // invoke callback error  
@@ -420,20 +430,50 @@ xqc_client_initial_cb(xqc_connection_t *conn)
         if(conn->tlsref.resumption) {
             SSL_set_early_data_enabled(ssl,1);
         }
+        conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_UNKNOWN ;
     }
 
-    
+    const unsigned char  *out;
+    size_t  outlen;
+    int rv = xqc_serialize_client_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,&out,&outlen);
+    if(rv != 0) {
+        return rv ;
+    }
+
+    rv = SSL_set_quic_transport_params(ssl,out,outlen);
+    // free it 
+    xqc_transport_parames_serialization_free((void*)out);
+    // boringssl call return 1 on success  while xqc_call return 0 on success , weird 
+    if( rv != 1 ) { 
+        return -1;
+    }
 
     // add_transport_paraments 
-
     return xqc_do_handshake(conn);
 }
 
+static 
+enum ssl_encryption_level_t convert_to_bss_level(xqc_encrypt_level_t level)
+{
+    switch(level)
+    {
+    case XQC_ENC_LEV_INIT :
+        return ssl_encryption_initial ;
+    case XQC_ENC_LEV_0RTT :
+        return ssl_encryption_early_data;
+    case XQC_ENC_LEV_HSK  :
+        return ssl_encryption_handshake ;
+    case XQC_ENC_LEV_1RTT:
+    default:
+        return ssl_encryption_application;
+    }
+}
+
 int 
-xqc_recv_crypto_data_cb2(xqc_connection_t *conn, 
-        xqc_encrypt_level_t encrypt_level ,
+xqc_recv_crypto_data_cb(xqc_connection_t *conn, 
         uint64_t offset,
         const uint8_t *data, size_t datalen,
+        xqc_encrypt_level_t encrypt_level ,
         void *user_data)
 {
 
@@ -441,118 +481,27 @@ xqc_recv_crypto_data_cb2(xqc_connection_t *conn,
     (void) offset ;
 
     SSL * ssl = conn->xc_ssl ;
-    if(SSL_provide_quic_data(ssl,encrypt_level,data,datalen) != 1 ) {
+    if( SSL_provide_quic_data(ssl,convert_to_bss_level(encrypt_level),data,datalen) != 1 ) {
         return -1 ;
     }
-
-    if(!xqc_conn_get_handshake_completed(conn)) {
+    
+    if( !xqc_conn_get_handshake_completed(conn) ) {
         if(xqc_do_handshake(conn) != 0) {
             return -1;
         }
     }
-
     return 0 ;
 }
 
 
 int 
-xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
-{
-    if( conn->tlsref.flags & XQC_CONN_FLAG_EARLY_DATA_REJECTED ) { return XQC_TLS_EARLY_DATA_REJECT ;}
-    return XQC_TLS_EARLY_DATA_ACCEPT;
+xqc_tls_is_early_data_accepted(xqc_connection_t * conn){
+    return conn->tlsref.early_data_status ;
 }
 
-
-/** for encrypt or decrypt */
-
-static 
-ssize_t xqc_encrypt_impl(const xqc_tls_context_t * ctx ,
-    uint8_t *dest,size_t destlen, 
-    const uint8_t *plaintext,size_t plaintextlen, 
-    const uint8_t *key,size_t keylen, 
-    const uint8_t *nonce, size_t noncelen, 
-    const uint8_t *ad,size_t adlen,
-    void *user_data
-)
+int xqc_recv_client_initial_cb(xqc_connection_t * conn,
+        xqc_cid_t *dcid,
+        void *user_data)
 {
-
-}
-
-
-static 
-ssize_t xqc_decrypt_impl(const xqc_tls_context_t * ctx ,
-    uint8_t *dest,size_t destlen, 
-    const uint8_t *ciphertext,size_t ciphertextlen, 
-    const uint8_t *key,size_t keylen, 
-    const uint8_t *nonce, size_t noncelen, 
-    const uint8_t *ad,size_t adlen,
-    void *user_data
-)
-{
-
-}
-
-static 
-ssize_t xqc_hp_mask_impl(const xqc_tls_context_t * ctx ,
-    uint8_t *dest, size_t destlen,
-    const uint8_t *key, size_t keylen, const uint8_t *sample,
-    size_t samplelen, void *user_data
-)
-{
-    static  uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
-    return xqc_encrypt_impl(ctx,dest,destlen,PLAINTEXT,sizeof(PLAINTEXT) - 1 ,key,keylen,sample,samplelen,NULL,0,user_data);
-}
-
-ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-    return xqc_encrypt_impl(&conn->tlsref.hs_crypto_ctx,dest,destlen,plaintext,plaintextlen,key,keylen,nonce,noncelen,ad,adlen,user_data);
-}
-
-ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-    return xqc_decrypt_impl(&conn->tlsref.hs_crypto_ctx,dest,destlen,ciphertext,ciphertextlen,key,keylen,nonce,noncelen,ad,adlen,user_data);
-}
-
-ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-    return xqc_encrypt_impl(&conn->tlsref.crypto_ctx,dest,destlen,plaintext,plaintextlen,key,keylen,nonce,noncelen,ad,adlen,user_data);
-}
-
-ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
-{
-    return xqc_decrypt_impl(&conn->tlsref.crypto_ctx,dest,destlen,ciphertext,ciphertextlen,key,keylen,nonce,noncelen,ad,adlen,user_data);
-}
-
-ssize_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data)
-{
-    return xqc_hp_mask_impl(&conn->tlsref.hs_crypto_ctx,dest,destlen,key,keylen,sample,samplelen,user_data);
-}
-
-ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data)
-{
-    return xqc_hp_mask_impl(&conn->tlsref.crypto_ctx,dest,destlen,key,keylen,sample,samplelen,user_data);
+    return 0 ;
 }

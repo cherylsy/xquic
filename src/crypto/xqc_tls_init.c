@@ -283,22 +283,31 @@ SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config
 
     // This makes OpenSSL client not send CCS after an initial
     // ClientHello.
+    #ifdef SSL_OP_ENABLE_MIDDLEBOX_COMPAT
     SSL_CTX_clear_options(ssl_ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
+    #endif 
 
-
+#ifndef OPENSSL_IS_BORINGSSL
     if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|create ssl error|SSL_CTX_set_ciphersuites:%s|", ERR_error_string(ERR_get_error(), NULL));
-
+        xqc_log(engine->log, XQC_LOG_ERROR, "|create ssl error|SSL_CTX_set_ciphersuites:%s|%s ", ERR_error_string(ERR_get_error(), NULL),xs_config->ciphers);
         //exit(EXIT_FAILURE);
         return NULL;
     }
+#endif //OPENSSL_IS_BORINGSSL
 
+
+
+#ifdef OPENSSL_IS_BORINGSSL
+    if (SSL_CTX_set1_curves_list(ssl_ctx, xs_config->groups) != 1) {
+#else 
     if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
+#endif 
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         //exit(EXIT_FAILURE);
         return NULL;
     }
 
+#ifndef OPENSSL_IS_BORINGSSL
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_QUIC_HACK);
     //SSL_CTX_set_default_verify_paths(ssl_ctx);
 
@@ -311,6 +320,7 @@ SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config
         //exit(EXIT_FAILURE);
         return NULL;
     }
+#endif // OPENSSL_IS_BORINGSSL
 
     SSL_CTX_set_session_cache_mode(
             ssl_ctx, SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
@@ -331,23 +341,40 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
 
     long ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
         SSL_OP_SINGLE_ECDH_USE |
-        SSL_OP_CIPHER_SERVER_PREFERENCE |
-        SSL_OP_NO_ANTI_REPLAY;
+        SSL_OP_CIPHER_SERVER_PREFERENCE 
+    #ifdef SSL_OP_NO_ANTI_REPLAY
+        | SSL_OP_NO_ANTI_REPLAY
+    #endif
+        ;
+        
 
     SSL_CTX_set_options(ssl_ctx, ssl_opts);
+    #ifdef SSL_OP_ENABLE_MIDDLEBOX_COMPAT
     SSL_CTX_clear_options(ssl_ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
+    #endif // SSL_OP_ENABLE_MIDDLEBOX_COMPAT
 
+#ifdef OPENSSL_IS_BORINGSSL
+    if (SSL_CTX_set_cipher_list(ssl_ctx, xs_config->ciphers) != 1) {
+#else
     if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
+#endif 
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set_ciphersuites| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
-
+#ifdef OPENSSL_IS_BORINGSSL
+    if(SSL_CTX_set1_curves_list(ssl_ctx,xs_config->groups) != 1) {
+#else  // OPENSSL_IS_BORINGSSL
     if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
+#endif //
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
-    SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS | SSL_MODE_QUIC_HACK);
+    SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS 
+    #ifndef OPENSSL_IS_BORINGSSL
+    | SSL_MODE_QUIC_HACK
+    #endif // 
+    );
     SSL_CTX_set_default_verify_paths(ssl_ctx);
 
     SSL_CTX_set_alpn_select_cb(ssl_ctx, xqc_alpn_select_proto_cb, (void *)&(engine->ssl_config));
@@ -368,6 +395,7 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
         goto fail;
     }
 
+#ifndef OPENSSL_IS_BORINGSSL
     if (SSL_CTX_add_custom_ext(
                 ssl_ctx, XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS,
                 SSL_EXT_CLIENT_HELLO | SSL_EXT_TLS1_3_ENCRYPTED_EXTENSIONS,
@@ -376,9 +404,10 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_check_private_key| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
-
     SSL_CTX_set_max_early_data(ssl_ctx, XQC_UINT32_MAX);//The max_early_data parameter specifies the maximum amount of early data in bytes that is permitted to be sent on a single connection
+#endif 
 
+   
     if(xs_config -> session_ticket_key_len == 0 || xs_config -> session_ticket_key_data == NULL){
         xqc_log(engine->log, XQC_LOG_WARN, "| read ssl session ticket key error|");
     }else{
@@ -502,9 +531,13 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag)
     }else{
         SSL_set_accept_state(ssl);
     }
+    
+#ifndef OPENSSL_IS_BORINGSSL
     SSL_set_msg_callback(ssl, xqc_msg_cb);
     SSL_set_msg_callback_arg(ssl, conn);
     SSL_set_key_callback(ssl, xqc_tls_key_cb, conn);
+#endif 
+
     return ssl;
 }
 

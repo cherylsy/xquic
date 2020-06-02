@@ -141,14 +141,16 @@ int xqc_set_early_data_cb(xqc_connection_t * conn, xqc_early_data_cb_t  early_da
 }
 
 
-
 int xqc_new_session_cb(SSL *ssl, SSL_SESSION *session)
 {
     xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
+
+#ifndef OPENSSL_IS_BORINGSSL
     if (SSL_SESSION_get_max_early_data(session) != XQC_UINT32_MAX) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|max_early_data_size is not 0xffffffff|");
         return -1;
     }
+#endif // OPENSSL_IS_BORINGSSL
 
     int ret = 0;
     if(conn->tlsref.save_session_cb != NULL){

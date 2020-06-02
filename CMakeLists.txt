@@ -115,7 +115,6 @@ set(
 set (
     CRYPTO_SOURCE
     "src/crypto/xqc_tls_init.c"
-    "src/crypto/xqc_tls_cb.c"
     "src/crypto/xqc_tls_0rtt.c"
     "src/crypto/xqc_tls_if.c"
     "src/crypto/xqc_crypto_material.c"
@@ -123,6 +122,7 @@ set (
     "src/crypto/xqc_hkdf.c"
     "src/crypto/xqc_transport_params.c"
     "src/crypto/xqc_crypto.c"
+    "src/crypto/xqc_tls_cb.c"
 )
 
 if(XQC_OPENSSL_IS_BORINGSSL)
@@ -131,6 +131,7 @@ set (
     ${CRYPTO_SOURCE}
     "src/crypto/boringssl/xqc_hkdf.c"
     "src/crypto/boringssl/xqc_crypto.c"
+    "src/crypto/boringssl/xqc_tls_if.c"
 )
 else()
 set(

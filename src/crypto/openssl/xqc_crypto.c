@@ -36,8 +36,6 @@ xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
         size_t samplelen)
 {
 
-    static   uint8_t PLAINTEXT[] = "\x00\x00\x00\x00\x00";
-
     EVP_CIPHER_CTX  * actx = EVP_CIPHER_CTX_new();
     if (actx == NULL) {
         return -1;
@@ -50,13 +48,8 @@ xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
     size_t outlen = 0;
     int len;
 
-    if (EVP_EncryptUpdate(actx, dest, &len, PLAINTEXT, sizeof(PLAINTEXT) - 1) !=
+    if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen ) !=
             1) {
-        goto err;
-    }
-
-    //assert(len == 5);
-    if(len != 5){
         goto err;
     }
 

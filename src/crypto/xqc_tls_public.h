@@ -194,7 +194,6 @@ typedef enum {
 
 
 
-
 typedef struct {
     xqc_client_initial client_initial;
     xqc_recv_client_initial recv_client_initial;
@@ -334,6 +333,8 @@ struct xqc_tlsref
     xqc_tls_context_t       hs_crypto_ctx;          
     xqc_tls_context_t       crypto_ctx;     /* prf and aead */
     uint32_t                last_cipher_id ; // last cipher id 
+
+    int16_t                 early_data_status;
 
     xqc_pktns_t             initial_pktns; // initial packet space key
     xqc_pktns_t             hs_pktns; // handshake packet space  key

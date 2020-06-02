@@ -326,6 +326,16 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
     return 0;
 }
 
+/*
+ * conn_client_validate_transport_params validates |params| as client.
+ * |params| must be sent with Encrypted Extensions.
+ *
+ * This function returns 0 if it succeeds, or one of the following
+ * negative error codes:
+ *
+ * XQC_ERR_VERSION_NEGOTIATION
+ *     The negotiated version is invalid.
+ */
 
 static
 int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
