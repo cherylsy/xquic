@@ -334,8 +334,6 @@ struct xqc_tlsref
     xqc_tls_context_t       crypto_ctx;     /* prf and aead */
     uint32_t                last_cipher_id ; // last cipher id 
 
-    int16_t                 early_data_status;
-
     xqc_pktns_t             initial_pktns; // initial packet space key
     xqc_pktns_t             hs_pktns; // handshake packet space  key
     xqc_pktns_t             pktns; //application packet space key

@@ -390,7 +390,6 @@ again:
                 return -1;
             case SSL_ERROR_EARLY_DATA_REJECTED :
             {
-                conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_REJECT ;
                 // reset the state 
                 SSL_reset_early_data_reject(ssl);
                 xqc_log(conn->log, XQC_LOG_INFO, "| TLS handshake reject 0-RTT :%s|");
@@ -403,10 +402,12 @@ again:
         }
     }
 
-
-    // only set in XQC_TLS_EARLY_DATA_UNKNOWN
-    if(conn->tlsref.early_data_status == XQC_TLS_EARLY_DATA_UNKNOWN) {
-        conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_ACCEPT ;
+    const uint8_t * peer_transport_params ;
+    size_t outlen;
+    SSL_get_peer_quic_transport_params(ssl,&peer_transport_params,&outlen);
+    
+    if(XQC_LIKELY(outlen > 0)) {
+        xqc_on_client_recv_peer_transport_params(conn,peer_transport_params,outlen);
     }
 
     // invoke callback error  
@@ -423,14 +424,10 @@ xqc_client_initial_cb(xqc_connection_t *conn)
 {
     SSL * ssl = conn->xc_ssl ;
 
-    if(conn->tlsref.initial) 
-    {
+    if(conn->tlsref.initial) {
         conn->tlsref.initial = 0 ;
         SSL_set_quic_method(ssl,&xqc_ssl_quic_method);
-        if(conn->tlsref.resumption) {
-            SSL_set_early_data_enabled(ssl,1);
-            conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_UNKNOWN ;
-        }
+        SSL_set_early_data_enabled(ssl,1);
     }
 
     const unsigned char  *out;
@@ -489,13 +486,14 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
             return -1;
         }
     }
+
     return 0 ;
 }
 
 
 int 
 xqc_tls_is_early_data_accepted(xqc_connection_t * conn){
-    return conn->tlsref.early_data_status ;
+    return SSL_early_data_accepted(conn->xc_ssl);
 }
 
 int xqc_recv_client_initial_cb(xqc_connection_t * conn,
