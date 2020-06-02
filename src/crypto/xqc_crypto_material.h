@@ -117,4 +117,5 @@ int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
 
 /** -------utils---------*/
 
+int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid );
 #endif //XQC_CRYPTO_MATERIAL_H_

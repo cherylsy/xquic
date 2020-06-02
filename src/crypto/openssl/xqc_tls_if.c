@@ -205,6 +205,7 @@ int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
         xqc_log(conn->log, XQC_LOG_ERROR, "|save crypto data to tls buffer error|");
         return -1;
     }
+
     if (!xqc_conn_get_handshake_completed(conn)) {
 
         if(conn->conn_type == XQC_CONN_TYPE_SERVER){
@@ -262,101 +263,11 @@ int xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
 
 }
 
-
 int xqc_client_initial_cb(xqc_connection_t *conn)
 {
     return xqc_client_tls_handshake(conn);
 }
 
-static 
-int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
-{
-    int rv;
-
-    uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0}, secret[INITIAL_SECRET_MAX_LEN]={0};
-    rv = xqc_derive_initial_secret(
-            initial_secret, sizeof(initial_secret), dcid,
-            (const uint8_t *)(XQC_INITIAL_SALT),
-            strlen(XQC_INITIAL_SALT));
-    if (rv != 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|derive_initial_secret() failed|");
-        return -1;
-    }
-
-    xqc_init_initial_crypto_ctx(conn);
-
-    rv = xqc_derive_server_initial_secret(secret, sizeof(secret),
-            initial_secret,
-            sizeof(initial_secret));
-    if (rv != 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|derive_server_initial_secret() failed|");
-        return -1;
-    }
-
-    char key[16], iv[16], hp[16];
-
-    ssize_t keylen = xqc_derive_packet_protection_key(
-            key, sizeof(key), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
-    if (keylen < 0) {
-        return -1;
-    }
-
-    ssize_t ivlen = xqc_derive_packet_protection_iv(
-            iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
-    if (ivlen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed|");
-        return -1;
-    }
-
-    ssize_t hplen = xqc_derive_header_protection_key(
-            hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
-    if (hplen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed|");
-        return -1;
-    }
-    //need log
-
-    if(xqc_conn_install_initial_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|install initial key error|");
-        return -1;
-    }
-
-    rv = xqc_derive_client_initial_secret(secret, sizeof(secret),
-            initial_secret,
-            sizeof(initial_secret));
-    if (rv != 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_client_initial_secret error|");
-        return -1;
-    }
-
-    keylen = xqc_derive_packet_protection_key(
-            key, sizeof(key), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
-    if (keylen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_key error|");
-        return -1;
-    }
-
-    ivlen = xqc_derive_packet_protection_iv(
-            iv, sizeof(iv), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
-    if (ivlen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv error|");
-        return -1;
-    }
-
-    hplen = xqc_derive_header_protection_key(
-            hp, sizeof(hp), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
-    if (hplen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key error|");
-        return -1;
-    }
-
-    if(xqc_conn_install_initial_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_install_initial_rx_keys error|");
-        return -1;
-    }
-
-    return 0;
-}
 
 int xqc_recv_client_initial_cb(xqc_connection_t * conn,
         xqc_cid_t *dcid,
