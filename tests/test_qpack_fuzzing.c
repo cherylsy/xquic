@@ -512,6 +512,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         ret = xqc_h3_request_send_headers(h3_request, &user_stream->http_header, header_only);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %zd\n", ret);
+            if(ret != -XQC_EAGAIN)g_should_exit = 1;
         } else {
             //printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
@@ -531,6 +532,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return 0;
         } else if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
+            g_should_exit = 1;
             return ret;
         } else if(ret == 0){
             break;

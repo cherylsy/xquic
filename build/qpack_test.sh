@@ -30,8 +30,21 @@ clear_log
 #echo "[6]测试qpack 动态表 name value index 编码:"
 #echo "[7]测试qpack 动态表 name index 编码:"
 #echo "[8]测试qpack 动态表 draining:"
-./test_qpack_client | grep "qpack test" 
-grep_qpack_test_result
+./test_qpack_client | grep "qpack test" | grep "..."
+#grep_qpack_test_result
 grep_err_log|grep -v xqc_conn_check_token
 
-killall test_qpack_server
+
+killall test_qpack_server 2>&1 > /dev/null
+clear_log
+killall test_server 2>&1 > /dev/null
+./test_server -e > /dev/null &
+sleep 1
+./test_qpack_fuzzing -a 127.0.0.1 -p 8443 -C 100 -c 1 -s 1000 -q 10 -m 0 -b 1024  2>&1 > /dev/null
+grep_err_log|grep -v xqc_conn_check_token
+if grep "\[error\]" clog >/dev/null;then
+    echo "qpack fuzzing test ...>>>>>>>> failed"
+else
+    echo "qpack fuzzing test ...>>>>>>>> pass"
+fi
+killall test_server  2> /dev/null
