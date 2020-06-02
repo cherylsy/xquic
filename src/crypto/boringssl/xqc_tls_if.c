@@ -377,8 +377,8 @@ int xqc_do_handshake(xqc_connection_t *conn)
 {
     SSL *ssl = conn->xc_ssl ;
     int rv ;
-    ERR_clear_error();
 again:
+    ERR_clear_error();
     rv = SSL_do_handshake(ssl);
     if(rv <= 0) {
         switch(SSL_get_error(ssl, rv)) {
@@ -429,8 +429,8 @@ xqc_client_initial_cb(xqc_connection_t *conn)
         SSL_set_quic_method(ssl,&xqc_ssl_quic_method);
         if(conn->tlsref.resumption) {
             SSL_set_early_data_enabled(ssl,1);
+            conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_UNKNOWN ;
         }
-        conn->tlsref.early_data_status = XQC_TLS_EARLY_DATA_UNKNOWN ;
     }
 
     const unsigned char  *out;
@@ -447,7 +447,6 @@ xqc_client_initial_cb(xqc_connection_t *conn)
     if( rv != 1 ) { 
         return -1;
     }
-
     // add_transport_paraments 
     return xqc_do_handshake(conn);
 }
