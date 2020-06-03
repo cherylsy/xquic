@@ -129,6 +129,7 @@ int g_test_new_create = 1;
 int g_test_mode = 0;
 int g_req_body_len = (1024 * 1);
 int g_process_num = 1;
+int g_should_exit = 0;
 
 user_conn_t * g_cur_user_conn = NULL;
 
@@ -178,6 +179,7 @@ static uint64_t g_process_count_array[NGX_PROCESS_NUM];
 int benchmark_run(client_ctx_t *ctx , int conn_num);
 int  light_benchmark(client_ctx_t * ctx);
 uint32_t ngx_murmur_hash2(u_char *data, size_t len);
+int test_qpack_fuzzing(client_ctx_t * ctx);
 
 static inline uint64_t now()
 {
@@ -510,6 +512,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         ret = xqc_h3_request_send_headers(h3_request, &user_stream->http_header, header_only);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %zd\n", ret);
+            if(ret != -XQC_EAGAIN)g_should_exit = 1;
         } else {
             //printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
@@ -529,6 +532,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return 0;
         } else if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
+            g_should_exit = 1;
             return ret;
         } else if(ret == 0){
             break;
@@ -715,6 +719,11 @@ xqc_client_engine_callback(int fd, short what, void *arg)
     client_ctx_t *ctx = (client_ctx_t *) arg;
 
     xqc_engine_main_logic(ctx->engine);
+
+    if(g_user_stats.conc_conn_count == 0 && g_should_exit == 1){
+
+        event_base_loopbreak(ctx->eb);
+    }
 }
 
 static void xqc_client_concurrent_callback(int fd, short what, void *arg){
@@ -727,17 +736,12 @@ static void xqc_client_concurrent_callback(int fd, short what, void *arg){
     event_add(ctx->ev_conc, &tv);
 
     if(g_test_mode == 0){
-        if(ctx->cur_conn_num < g_conn_num){
-            if(benchmark_run(ctx, g_conn_num - ctx->cur_conn_num ) < 0){
-                printf("create connection failed\n");
-            }
-        }
+       test_qpack_fuzzing(ctx);
+
     }else if(g_test_mode == 1){
         if(g_user_stats.total_stream_count % 10000 == 0){
-            printf("******** create 10000 streams, calltime:%lu\n", now());
         }
         if(ctx->cur_conn_num >= g_max_conn_num){
-            printf("******* current conn num:%d, max conn num:%d\n", ctx->cur_conn_num, g_max_conn_num);
         }else{
             light_benchmark(ctx);
 #if 0
@@ -1237,6 +1241,34 @@ int client_create_stream(client_ctx_t * ctx, user_conn_t *user_conn){
     return 0;
 }
 
+int test_qpack_fuzzing(client_ctx_t * ctx){
+
+    if(g_should_exit == 1){
+
+        return 0;
+    }
+
+    if(g_cur_user_conn == NULL){
+        g_cur_user_conn = client_create_connection(ctx);
+        if(g_cur_user_conn == NULL){
+            printf("create connection error\n");
+        }
+    }
+    if(client_create_stream(ctx, g_cur_user_conn) < 0){
+        printf("create stream error\n");
+    }
+
+    printf("create stream:%d\n", g_cur_user_conn->total_stream_num);
+
+    if(g_cur_user_conn->total_stream_num >= g_stream_num_per_conn){
+        g_should_exit = 1;
+    }
+
+    return 0;
+
+
+}
+
 int  light_benchmark(client_ctx_t * ctx){
 
     if(g_cur_user_conn == NULL){
@@ -1368,9 +1400,9 @@ void print_stat_thread(void){
 
             int i = 0;
             for(i = 0; i < NGX_PROCESS_NUM; i++){
-                printf("proc_n:%d\t hash_count:%lu\n",i,g_process_count_array[i]);
+                //printf("proc_n:%d\t hash_count:%lu\n",i,g_process_count_array[i]);
             }
-            printf("\n");
+            //printf("\n");
         }
 
         n_second++;
@@ -1391,7 +1423,7 @@ int parse_args(int argc, char *argv[]){
             "-s stream num per conn, default 10 \n"
             "-q qpack header key_value num ,default 10\n"
             "-b http request body length , default 1024\n"
-            "-m test mode: 0 test concurrent, 1 test new create mode, default 1\n"
+            "-m test mode: 0 test qpack fuzzing, 1 test new create mode, default 1\n"
             "-P process num: default 1");
     sleep(1);
     while((ch = getopt(argc, argv, "a:p:c:C:s:q:m:b:P:t:")) != -1){
