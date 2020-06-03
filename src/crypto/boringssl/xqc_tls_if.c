@@ -292,7 +292,8 @@ int xqc_configure_quic(xqc_connection_t *conn)
 
     SSL_set_quic_method(ssl,&xqc_ssl_quic_method);
     SSL_set_early_data_enabled(ssl,1);
-
+    
+    
     switch(conn->conn_type)
     {
     case XQC_CONN_TYPE_CLIENT:{
@@ -304,6 +305,7 @@ int xqc_configure_quic(xqc_connection_t *conn)
     }
     case XQC_CONN_TYPE_SERVER:{
         rv = xqc_serialize_server_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,&out,&outlen);
+        SSL_set_quic_early_data_context(ssl,out,outlen);
         if(rv != 0) {
             return rv;
         }
