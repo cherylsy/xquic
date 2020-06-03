@@ -8,15 +8,13 @@ set(CMAKE_C_STANDARD 11 )
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_MODULE_PATH       "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-set(COMMON_FLAGS            "-Werror -Wall -Wno-deprecated  -Wno-unused -Wno-pointer-sign -Wno-format-security ")
+set(COMMON_FLAGS            "-Wall -Wno-deprecated  -Wno-unused -Wno-unused-variable -Wno-pointer-sign -Wno-format-security ")
 
 set(COMMON_RELEASE_FLAGS    "-DNDEBUG")
 set(COMMON_MIN_FLAGS        " ${COMMON_RELEASE_FLAGS} -Os -ffunction-sections -fdata-sections -fvisibility=hidden")
 set(COMMON_DEBUG_FLAGS      " -O0")
 if(GCOV)
-    set(COMMON_DEBUG_FLAGS "${COMMON_DEBUG_FLAGS} -fprofile-arcs -ftest-coverage")
+    set(COMMON_DEBUG_FLAGS "${COMMON_DEBUG_FksLAGS} -fprofile-arcs -ftest-coverage")
 endif()
 
 if (CMAKE_BUILD_TYPE STREQUAL Release)
@@ -25,20 +23,19 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Debug)
     set(DYNAMIC_COMPILE_FLAGS ${COMMON_DEBUG_FLAGS})
 elseif(CMAKE_BUILD_TYPE STREQUAL Minsizerel)
     set(DYNAMIC_COMPILE_FLAGS ${COMMON_MIN_FLAGS})
-	set(DYMAMIC_LINX_OPTION "-Wl,--gc-sections")
+	set(DYMAMIC_LINK_OPTION "-Wl,--gc-sections")
 endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} ${DYNAMIC_COMPILE_FLAGS}")
 
 if(ANDROID)
-    set(DYMAMIC_LINX_OPTION "${DYMAMIC_LINX_OPTION} -lm -llog")
+    set(DYMAMIC_LINK_OPTION "${DYMAMIC_LINK_OPTION} -lm -llog")
     if(NOT ANDROID_TOOLCHAIN_ROOT)
         message(FATAL_ERROR  "You Must Define DANDROID_TOOLCHAIN_ROOT")
     endif()
 endif()
 
 include(CMakeOptions.txt)
-
 
 if (XQC_BUILD_OPENSSL)
     set(XQC_TLS_BUILD_WITH_OPENSSL 1)
@@ -49,17 +46,17 @@ if (XQC_BUILD_OPENSSL)
         set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
         add_subdirectory(external/openssl-cmake)
     endif()
-    set(DYMAMIC_LINX_OPTION 
+    set(DYMAMIC_LINK_OPTION 
         ssl 
         crypto 
-        ${DYMAMIC_LINX_OPTION}
+        ${DYMAMIC_LINK_OPTION}
         )
 elseif(XQC_EXISTS_OPENSSL)
     if(not XQC_EXISTS_OPENSSL_INCLUDE_DIR or not XQC_EXISTS_OPENSSL_BINARY )
         message(FATAL_ERROR  "You Must DEFINE XQC_EXISTS_OPENSSL_INCLUDE_DIR and XQC_EXISTS_OPENSSL_BINARY")
     endif()
     include_directories(XQC_EXISTS_OPENSSL_INCLUDE_DIR)
-    set(DYMAMIC_LINX_OPTION "${XQC_EXISTS_OPENSSL_BINARY} ${DYMAMIC_LINX_OPTION}")
+    set(DYMAMIC_LINK_OPTION "${XQC_EXISTS_OPENSSL_BINARY} ${DYMAMIC_LINK_OPTION}")
 else()
     message(FATAL_ERROR  "There Must Exists one tls impl")
 endif()
@@ -143,8 +140,6 @@ set(
 )
 endif()
 
-
-
 set(
     COMMON_SOURCES
 
@@ -177,41 +172,30 @@ add_library(
 
 target_link_libraries(
     xquic 
-    ssl
-    crypto
+    ${DYMAMIC_LINK_OPTION}
     -pthread
-    ${DYMAMIC_LINX_OPTION}
 )
 
+if (XQC_ENABLE_TESING)
+    set(CMAKE_MODULE_PATH       "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+    find_package(CUnit REQUIRED)
+    include_directories(${CUNIT_INCLUDE_DIR})
+    enable_testing()
+    add_subdirectory(tests)
+endif()
 
+if (XQC_BUILD_SAMPLE)
+    add_subdirectory(third_party/libevent)
+    include_directories(third_party/libevent/include  ${CMAKE_CURRENT_BINARY_DIR}/third_party/libevent/include )
+    add_executable(test_client tests/test_client.c)
+    add_executable(test_server tests/test_server.c)
+    add_executable(test_qpack_server tests/test_qpack_server.c)
+    add_executable(test_qpack_client tests/test_qpack_client.c)
+    add_executable(xquic_bench benchmark/xquic_bench.c)
+    target_link_libraries(test_client xquic event )
+    target_link_libraries(test_server xquic event)
+    target_link_libraries(test_qpack_server xquic event )
+    target_link_libraries(test_qpack_client xquic event)
+    target_link_libraries(xquic_bench xquic event)
+endif()
 
-link_directories(
-  /usr/local/lib
-  /usr/lib
-)
-INCLUDE_DIRECTORIES(
-  /usr/local/include/
-  /usr/include
-)
-
-add_executable(
-    test_client 
-    "tests/test_client.c"
-)
-
-add_executable(
-    test_server 
-    "tests/test_server.c"
-)
-
-target_link_libraries(
-    test_client
-    xquic
-    -levent
-)
-
-target_link_libraries(
-    test_server
-    xquic
-    -levent
-)

@@ -25,7 +25,7 @@ int printf_null(const char *format, ...)
 
 #define TEST_DROP (g_drop_rate != 0 && rand() % 1000 < g_drop_rate)
 
-#define TEST_SERVER_ADDR "11.158.143.180"
+#define TEST_SERVER_ADDR "127.0.0.1"
 #define TEST_SERVER_PORT 8443
 
 

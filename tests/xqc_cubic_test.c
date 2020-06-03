@@ -1,8 +1,8 @@
 
 #include "xqc_cubic_test.h"
-#include "congestion_control/xqc_cubic.h"
+#include "src/congestion_control/xqc_cubic.h"
 #include <stdio.h>
-#include "common/xqc_time.h"
+#include "src/common/xqc_time.h"
 void
 print_cubic (xqc_cubic_t *cubic)
 {

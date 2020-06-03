@@ -1,7 +1,7 @@
 
 #include "xqc_recv_record_test.h"
-#include "transport/xqc_packet.h"
-#include "transport/xqc_recv_record.h"
+#include "src/transport/xqc_packet.h"
+#include "src/transport/xqc_recv_record.h"
 #include <string.h>
 #include <CUnit/CUnit.h>
 #include <stdio.h>

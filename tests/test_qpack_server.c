@@ -5,9 +5,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <event2/event.h>
-#include "include/xquic_typedef.h"
-#include "include/xquic.h"
-#include "http3/xqc_h3_request.h"
+#include "xquic/xquic_typedef.h"
+#include "xquic/xquic.h"
+#include "src/http3/xqc_h3_request.h"
 
 int printf_null(const char *format, ...)
 {

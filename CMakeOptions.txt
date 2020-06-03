@@ -1,6 +1,8 @@
 # CMakeOptions
-
+l
 option(ENABLE_DEBUG                     "Turn on debug output"  ON)
 option(XQC_BUILD_OPENSSL                "Turn on OpenSSL"       ON)
-option(XQC_OPENSSL_IS_BORINGSSL         "Using Boringssl"       OFF)
-
+option(XQC_OPENSSL_IS_BORINGSSL         "Using Boringssl"       ON)
+option(XQC_ENABLE_TESTING               "Enable Testing"        ON)
+option(XQC_BUILD_SAMPLE                 "Build Sample"          ON)
+option(GCOV                             "Test Coverage"         OFF)
