@@ -353,14 +353,13 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
     SSL_CTX_clear_options(ssl_ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
     #endif // SSL_OP_ENABLE_MIDDLEBOX_COMPAT
 
-#ifdef OPENSSL_IS_BORINGSSL
-    if (SSL_CTX_set_cipher_list(ssl_ctx, xs_config->ciphers) != 1) {
-#else
+#ifndef OPENSSL_IS_BORINGSSL
     if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
-#endif 
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set_ciphersuites| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
+#endif 
+
 #ifdef OPENSSL_IS_BORINGSSL
     if(SSL_CTX_set1_curves_list(ssl_ctx,xs_config->groups) != 1) {
 #else  // OPENSSL_IS_BORINGSSL

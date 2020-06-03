@@ -283,6 +283,44 @@ SSL_QUIC_METHOD  xqc_ssl_quic_method =
 
 
 static 
+int xqc_configure_quic(xqc_connection_t *conn)
+{
+    SSL *ssl = conn->xc_ssl ;
+    const unsigned char  *out;
+    size_t  outlen;
+    int rv ;
+
+    SSL_set_quic_method(ssl,&xqc_ssl_quic_method);
+    SSL_set_early_data_enabled(ssl,1);
+
+    switch(conn->conn_type)
+    {
+    case XQC_CONN_TYPE_CLIENT:{
+        rv = xqc_serialize_client_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,&out,&outlen);
+        if(rv != 0) {
+            return rv ;
+        }
+        break;
+    }
+    case XQC_CONN_TYPE_SERVER:{
+        rv = xqc_serialize_server_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,&out,&outlen);
+        if(rv != 0) {
+            return rv;
+        }
+        break;
+    }
+    }
+    rv = SSL_set_quic_transport_params(ssl,out,outlen);
+    // free it 
+    xqc_transport_parames_serialization_free((void*)out);
+    // boringssl call return 1 on success  while xqc_call return 0 on success , weird 
+    if(rv != 1) {
+        return -1 ;
+    }
+    return 0;
+}
+
+static 
 int xqc_do_handshake(xqc_connection_t *conn)
 {
     SSL *ssl = conn->xc_ssl ;
@@ -302,7 +340,7 @@ again:
             {
                 // reset the state 
                 SSL_reset_early_data_reject(ssl);
-                xqc_log(conn->log, XQC_LOG_INFO, "| TLS handshake reject 0-RTT :%s|");
+                xqc_log(conn->log, XQC_LOG_INFO, "| TLS handshake reject 0-RTT|");
                 // resume handshake 
                 goto again ;
             }
@@ -321,8 +359,13 @@ again:
     size_t outlen;
     SSL_get_peer_quic_transport_params(ssl,&peer_transport_params,&outlen);
     
-    if(XQC_LIKELY(outlen > 0)) {
-        xqc_on_client_recv_peer_transport_params(conn,peer_transport_params,outlen);
+    if(XQC_LIKELY(outlen > 0)) 
+    {
+        if(conn->conn_type == XQC_CONN_TYPE_SERVER) {
+            xqc_on_server_recv_peer_transport_params(conn,peer_transport_params,outlen);
+        }else {
+            xqc_on_client_recv_peer_transport_params(conn,peer_transport_params,outlen);
+        }
     }
 
     // invoke callback error  
@@ -336,30 +379,12 @@ again:
 /** for xquic */
 int 
 xqc_client_initial_cb(xqc_connection_t *conn)
-{
-    SSL * ssl = conn->xc_ssl ;
-
+{   
     if(conn->tlsref.initial) {
         conn->tlsref.initial = 0 ;
-        SSL_set_quic_method(ssl,&xqc_ssl_quic_method);
-        SSL_set_early_data_enabled(ssl,1);
+        xqc_configure_quic(conn);
     }
-
-    const unsigned char  *out;
-    size_t  outlen;
-    int rv = xqc_serialize_client_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,&out,&outlen);
-    if(rv != 0) {
-        return rv ;
-    }
-
-    rv = SSL_set_quic_transport_params(ssl,out,outlen);
-    // free it 
-    xqc_transport_parames_serialization_free((void*)out);
-    // boringssl call return 1 on success  while xqc_call return 0 on success , weird 
-    if( rv != 1 ) { 
-        return -1;
-    }
-    // add_transport_paraments 
+    
     return xqc_do_handshake(conn);
 }
 
@@ -387,6 +412,10 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
         xqc_encrypt_level_t encrypt_level ,
         void *user_data)
 {
+    if(conn->tlsref.initial) {
+        conn->tlsref.initial = 0 ;
+        xqc_configure_quic(conn);
+    }
 
     (void) user_data ;
     (void) offset ;
