@@ -29,7 +29,10 @@ endif()
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} ${DYNAMIC_COMPILE_FLAGS}")
 
 if(ANDROID)
-    set(DYMAMIC_LINK_OPTION "${DYMAMIC_LINK_OPTION} -lm -llog")
+    set(DYMAMIC_LINK_OPTION 
+		${DYMAMIC_LINK_OPTION}
+		-lm
+		-llog)
     if(NOT ANDROID_TOOLCHAIN_ROOT)
         message(FATAL_ERROR  "You Must Define DANDROID_TOOLCHAIN_ROOT")
     endif()
