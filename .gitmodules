@@ -1,3 +1,9 @@
 [submodule "external/openssl-cmake"]
 	path = external/openssl-cmake
 	url = git@gitlab.alibaba-inc.com:quic/openssl-cmake.git
+[submodule "third_party/boringssl"]
+	path = third_party/boringssl
+	url = https://github.com/google/boringssl.git
+[submodule "third_party/libevent"]
+	path = third_party/libevent
+	url = https://github.com/libevent/libevent.git
