@@ -26,56 +26,56 @@ grep_err_log() {
 #grep_err_log
 
 clear_log
-echo -e "流读通知失败 ...\c"
+echo -e "stream read notify fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 12 >> clog
 echo ">>>>>>>> pass:1"
 grep_err_log|grep -v xqc_process_read_streams|grep -v xqc_h3_stream_read_notify|grep -v xqc_process_conn_close_frame
 
 clear_log
-echo -e "创建流失败 ...\c"
+echo -e "create stream fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 11 >> clog
 echo ">>>>>>>> pass:1"
 grep_err_log|grep -v xqc_stream_create
 
 clear_log
-echo -e "不合法的packet ...\c"
+echo -e "illegal packet ...\c"
 ./test_client -s 1024000 -l d -t 2 -E -x 10|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "接收到重复的包 ...\c"
+echo -e "duplicate packet ...\c"
 ./test_client -s 1024000 -l d -t 2 -E -x 9|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "接收到不存在连接的包 ...\c"
+echo -e "packet with wrong cid ...\c"
 ./test_client -s 1024000 -l d -t 2 -E -x 8|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "创建连接失败 ...\c"
+echo -e "create connection fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 7 >> clog
 echo ">>>>>>>> pass:1"
 grep_err_log|grep -v xqc_client_connect
 
 clear_log
-echo -e "socket读失败 ...\c"
+echo -e "socket recv fail ...\c"
 ./test_client -s 1024000 -l d -t 2 -E -x 6|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "socket写失败 ...\c"
+echo -e "socket send fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 5|grep ">>>>>>>> pass"
 grep_err_log|grep -v "write_socket error"
 
 clear_log
-echo -e "验证Token失效 ...\c"
+echo -e "verify Token fail ...\c"
 rm -f xqc_token
 ./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log|grep -v xqc_conn_check_token
 
 clear_log
-echo -e "验证Token生效 ...\c"
+echo -e "verify Token success ...\c"
 ./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log
 
@@ -85,7 +85,7 @@ echo -e "fin only ...\c"
 grep_err_log
 
 clear_log
-echo -e "主动关闭连接 ...\c"
+echo -e "user close connection ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 2 >> clog
 if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "====>.*CONNECTION_CLOSE" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
@@ -95,7 +95,7 @@ fi
 grep_err_log
 
 clear_log
-echo -e "出错关闭连接 ...\c"
+echo -e "close connection with error ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 3 >> clog
 if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "====>.*CONNECTION_CLOSE" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
@@ -116,7 +116,7 @@ fi
 grep_err_log|grep -v stream
 
 clear_log
-echo -e "验证1RTT ...\c"
+echo -e "1RTT ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -1 >> clog
 if grep "early_data_flag:0" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
@@ -126,7 +126,7 @@ fi
 grep_err_log
 
 clear_log
-echo -e "验证0RTT accept ...\c"
+echo -e "0RTT accept ...\c"
 ./test_client -s 1024000 -l d -t 1 -E >> clog
 if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
@@ -136,7 +136,7 @@ fi
 grep_err_log
 
 clear_log
-echo -e "重启server验证0RTT reject ...\c"
+echo -e "0RTT reject. restart server ....\c"
 killall test_server
 ./test_server -l e -e > /dev/null &
 sleep 1
@@ -149,22 +149,22 @@ fi
 grep_err_log
 
 clear_log
-echo -e "GET请求 ...\c"
+echo -e "GET request ...\c"
 ./test_client -l d -t 1 -E -G|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "发送1K ...\c"
+echo -e "send 1K data ...\c"
 ./test_client -s 1024 -l d -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "发送1M ...\c"
+echo -e "send 1M data ...\c"
 ./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "发送10M ...\c"
+echo -e "send 10M data ...\c"
 ./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
 grep_err_log
 
@@ -194,12 +194,12 @@ echo -e "Cubic without pacing ...\c"
 grep_err_log
 
 clear_log
-echo -e "流级流控 ...\c"
+echo -e "stream level flow control ...\c"
 ./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "连接级流控 ...\c"
+echo -e "connection level flow control ...\c"
 ./test_client -s 512000 -l e -t 3 -E -n 10 >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 10 ]]; then
     echo ">>>>>>>> pass:1"
@@ -209,7 +209,7 @@ fi
 grep_err_log
 
 clear_log
-echo -e "流并发流控 ...\c"
+echo -e "stream concurrency flow control ...\c"
 ./test_client -s 1 -l e -t 2 -E -P 1025 -G >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 1024 ]]; then
     echo ">>>>>>>> pass:1"
@@ -219,17 +219,17 @@ fi
 grep_err_log|grep -v stream
 
 clear_log
-echo -e "1%丢包率 ...\c"
+echo -e "1% loss ...\c"
 ./test_client -s 10240000 -l e -t 4 -E -d 10|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "3%丢包率 ...\c"
+echo -e "3% loss ...\c"
 ./test_client -s 10240000 -l e -t 4 -E -d 30|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
-echo -e "10%丢包率 ...\c"
+echo -e "10% loss ...\c"
 ./test_client -s 10240000 -l e -t 10 -E -d 100|grep ">>>>>>>> pass"
 grep_err_log
 
