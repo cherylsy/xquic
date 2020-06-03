@@ -179,7 +179,7 @@ target_link_libraries(
     -pthread
 )
 
-if (XQC_ENABLE_TESING)
+if (XQC_ENABLE_TESTING)
     set(CMAKE_MODULE_PATH       "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
     find_package(CUnit REQUIRED)
     include_directories(${CUNIT_INCLUDE_DIR})
