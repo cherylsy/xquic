@@ -75,7 +75,6 @@ struct iovec {
 };
 #endif
 
-
-#define XQC_EXPORT_API   __attribute__((visibility("default"))) 
+#define XQC_EXPORT_PUBLIC_API   __attribute__((visibility("default"))) 
 
 #endif /*_XQUIC_TYPEDEF_H_INCLUDED_*/
