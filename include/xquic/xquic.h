@@ -294,11 +294,13 @@ void xqc_server_set_conn_settings(xqc_conn_settings_t settings);
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
+XQC_EXPORT_PUBLIC_API
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
                                 xqc_engine_ssl_config_t * ssl_config,
                                 xqc_engine_callback_t engine_callback,
                                 void *user_data);
 
+XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);
 
 
@@ -313,6 +315,7 @@ void xqc_engine_destroy(xqc_engine_t *engine);
  * @param conn_ssl_config For handshake
  * @return scid of the connection; user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
+XQC_EXPORT_PUBLIC_API
 xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           xqc_conn_settings_t conn_settings,
                           unsigned char *token, unsigned token_len,
@@ -321,22 +324,26 @@ xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           const struct sockaddr *peer_addr,
                           socklen_t peer_addrlen);
 
+XQC_EXPORT_PUBLIC_API
 int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * Get cid in hex, end with '\0'
  * @param cid means scid
  */
+XQC_EXPORT_PUBLIC_API
 unsigned char* xqc_scid_str(const xqc_cid_t *cid);
 
 /**
  * Get errno when h3_conn_close_notify, HTTP_NO_ERROR(0x100) For no-error
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);
 
 /**
  * Server should set user_data when h3_conn_create_notify callbacks
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
                                void *user_data);
 
@@ -345,6 +352,7 @@ void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
  * @param peer_addr_len is a return value
  * @return peer addr
  */
+XQC_EXPORT_PUBLIC_API
 struct sockaddr* xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
                                            socklen_t *peer_addr_len);
 
@@ -353,6 +361,7 @@ struct sockaddr* xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
  * @param local_addr_len is a return value
  * @return local addr
  */
+XQC_EXPORT_PUBLIC_API
 struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
                                            socklen_t *local_addr_len);
 
@@ -360,11 +369,13 @@ struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
  * Send PING to peer, if ack received, h3_conn_ping_acked will callback with user_data
  * @return 0 for success, <0 for error
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
 
 /**
  * @param user_data For request
  */
+XQC_EXPORT_PUBLIC_API
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
                                         xqc_cid_t *cid,
                                         void *user_data);
@@ -372,34 +383,40 @@ xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
 /**
  * User can get xqc_request_stats_t before request destroyed
  */
+XQC_EXPORT_PUBLIC_API
 xqc_request_stats_t xqc_h3_request_get_stats(xqc_h3_request_t *h3_request);
 
 /**
  * Server should set user_data when h3_request_create_notify callbacks
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                                   void *user_data);
 
 /**
  * Get connection's user_data by request
  */
+XQC_EXPORT_PUBLIC_API
 void* xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request);
 
 /**
  * Get stream ID by request
  */
+XQC_EXPORT_PUBLIC_API
 xqc_stream_id_t xqc_h3_stream_id(xqc_h3_request_t *h3_request);
 
 /**
  * Send RESET_STREAM to peer, h3_request_close_notify will callback when request destroyed
  * @retval 0 for success, <0 for error
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_h3_request_close (xqc_h3_request_t *h3_request);
 
 /**
  * @param fin 1:without body
  * @return 发送成功的字节数，<0 出错
  */
+XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
                                     xqc_http_headers_t *headers,
                                     uint8_t fin);
@@ -408,6 +425,7 @@ ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
  * @param fin 1:没有多余的body需要发送
  * @return 发送成功的字节数，-XQC_EAGAIN下次尝试写, <0 出错
  */
+XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
                                  unsigned char *data,
                                  size_t data_size,
@@ -417,6 +435,7 @@ ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
  * @param fin 1:without body
  * @return 用户应该拷贝到自己的内存，NULL 出错
  */
+XQC_EXPORT_PUBLIC_API
 xqc_http_headers_t *
 xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request,
                             uint8_t *fin);
@@ -426,6 +445,7 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request,
  * @param fin 1：body已全部读取完
  * @return 读取到的长度，<0 出错
  */
+XQC_EXPORT_PUBLIC_API
 ssize_t
 xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
                          unsigned char *recv_buf,
@@ -446,6 +466,7 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
  * @param conn_ssl_config For handshake
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
+XQC_EXPORT_PUBLIC_API
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
                        xqc_conn_settings_t conn_settings,
                        unsigned char *token, unsigned token_len,
@@ -458,16 +479,19 @@ xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
  * Send CONNECTION_CLOSE to peer, conn_close_notify will callback when connection destroyed
  * @return 0 for success, <0 for error
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * Get errno when conn_close_notify, 0 For no-error
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_conn_get_errno(xqc_connection_t *conn);
 
 /**
  * Server should set user_data when conn_create_notify callbacks
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_conn_set_user_data(xqc_connection_t *conn,
                            void *user_data);
 
@@ -476,6 +500,7 @@ void xqc_conn_set_user_data(xqc_connection_t *conn,
  * @param peer_addr_len is a return value
  * @return peer addr
  */
+XQC_EXPORT_PUBLIC_API
 struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
                                        socklen_t *peer_addr_len);
 
@@ -484,6 +509,7 @@ struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
  * @param local_addr_len is a return value
  * @return local addr
  */
+XQC_EXPORT_PUBLIC_API
 struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
                                         socklen_t *local_addr_len);
 
@@ -491,17 +517,20 @@ struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
  * Send PING to peer, if ack received, conn_ping_acked will callback with user_data
  * @return 0 for success, <0 for error
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
 
 /**
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_is_ready_to_send_early_data(xqc_connection_t * conn);
 
 /**
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
+XQC_EXPORT_PUBLIC_API
 xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
                                  xqc_cid_t *cid,
                                  void *user_data);
@@ -509,29 +538,34 @@ xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
 /**
  * Server should set user_data when stream_create_notify callbacks
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_stream_set_user_data(xqc_stream_t *stream,
                               void *user_data);
 
 /**
  * Get connection's user_data by stream
  */
+XQC_EXPORT_PUBLIC_API
 void* xqc_get_conn_user_data_by_stream(xqc_stream_t *stream);
 
 /**
  * Get stream ID
  */
+XQC_EXPORT_PUBLIC_API
 xqc_stream_id_t xqc_stream_id(xqc_stream_t *stream);
 
 /**
  * Send RESET_STREAM to peer, stream_close_notify will callback when stream destroyed
  * @retval 0 for success, <0 for error
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_stream_close (xqc_stream_t *stream);
 
 /**
  * Recv data in stream.
  * @return bytes read, <0 for error
  */
+XQC_EXPORT_PUBLIC_API
 ssize_t xqc_stream_recv (xqc_stream_t *stream,
                          unsigned char *recv_buf,
                          size_t recv_buf_size,
@@ -542,6 +576,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
  * @param fin  0 or 1,  1 - final data block send in this stream.
  * @return bytes sent, -XQC_EAGAIN try next time, <0 for error
  */
+XQC_EXPORT_PUBLIC_API
 ssize_t xqc_stream_send (xqc_stream_t *stream,
                          unsigned char *send_data,
                          size_t send_data_size,
@@ -557,6 +592,7 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
  * @param recv_time   UDP packet recieved time in microsecond
  * @param user_data   connection user_data, server is NULL
  */
+XQC_EXPORT_PUBLIC_API
 int xqc_engine_packet_process (xqc_engine_t *engine,
                                const unsigned char *packet_in_buf,
                                size_t packet_in_size,
@@ -570,33 +606,42 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 /**
  * user should call after a number of packet processed in xqc_engine_packet_process
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_engine_finish_recv (xqc_engine_t *engine);//call after recv loop, may destory connection when error
+
+XQC_EXPORT_PUBLIC_API
 void xqc_engine_recv_batch (xqc_engine_t *engine, xqc_connection_t *conn);//call after recv a batch packets, do not destory connection
 
 /**
  * Process all connections, user should call when timer expire
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_engine_main_logic (xqc_engine_t *engine);
 
 /**
  * Get dcid and scid before process packet
  */
+XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
                                unsigned char *buf, size_t size);
-xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
-unsigned char* xqc_dcid_str(const xqc_cid_t *cid);
-uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
+
+XQC_EXPORT_PUBLIC_API xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
+
+XQC_EXPORT_PUBLIC_API unsigned char* xqc_dcid_str(const xqc_cid_t *cid);
+XQC_EXPORT_PUBLIC_API uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
 
 
 /**
  * User should call xqc_conn_continue_send when write event ready
  */
+XQC_EXPORT_PUBLIC_API 
 int xqc_conn_continue_send(xqc_engine_t *engine,
                            xqc_cid_t *cid);
 
 /**
  * User can get xqc_conn_stats_t by cid
  */
+XQC_EXPORT_PUBLIC_API
 xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
                                     xqc_cid_t *cid);
 #ifdef __cplusplus
