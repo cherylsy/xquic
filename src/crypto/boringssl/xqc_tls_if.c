@@ -372,6 +372,7 @@ again:
     if( xqc_conn_handshake_completed(conn) != 0 ) {
         return -1 ;
     }
+
     return 0;
 }
 
@@ -389,7 +390,7 @@ xqc_client_initial_cb(xqc_connection_t *conn)
 }
 
 static 
-enum ssl_encryption_level_t convert_to_bss_level(xqc_encrypt_level_t level)
+enum ssl_encryption_level_t convert_to_bssl_level(xqc_encrypt_level_t level)
 {
     switch(level)
     {
@@ -421,17 +422,20 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
     (void) offset ;
 
     SSL * ssl = conn->xc_ssl ;
-    if( SSL_provide_quic_data(ssl,convert_to_bss_level(encrypt_level),data,datalen) != 1 ) {
+    if( SSL_provide_quic_data(ssl,convert_to_bssl_level(encrypt_level),data,datalen) != 1 ) {
+        xqc_log(conn->log,XQC_LOG_ERROR,"| SSL_provide_quic_data failed[level:%d]|",encrypt_level);
         return -1 ;
     }
     
     if( !xqc_conn_get_handshake_completed(conn) ) {
         if(xqc_do_handshake(conn) != 0) {
+            xqc_log(conn->log,XQC_LOG_ERROR,"| xqc_do_handshake failed |");
             return -1;
         }
     }else 
     {
         if( SSL_process_quic_post_handshake(ssl) != 1 ) {
+            xqc_log(conn->log,XQC_LOG_ERROR,"| SSL_process_quic_post_handshake failed |");
             return -1;
         }
     }
