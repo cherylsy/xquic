@@ -32,14 +32,15 @@ platform=$(echo $platform | tr A-Z a-z )
 if [ x"$platform" == xios ] ; then 
 	if [ x"$IOS_CMAKE_TOOLCHAIN" == x ] ; then
 		echo "必须定义一个IOS_CMAKE_TOOLCHAIN:" 
-		read IOS_CMAKE_TOOLCHAIN
-		if [ x"$IOS_CMAKE_TOOLCHAIN" == x ] ; then 
-			exit 0
-		fi
+		exit 0
 	fi
 	archs=${ios_archs[@]} 
 	configures="-DDEPLOYMENT_TARGET=10.0  -DCMAKE_BUILD_TYPE=Minsizerel -DXQC_ENABLE_TESTING=OFF -DXQC_BUILD_SAMPLE=OFF -DGCOV=OFF -DCMAKE_TOOLCHAIN_FILE=${IOS_CMAKE_TOOLCHAIN} -DENABLE_BITCODE=0 -DXQC_NO_SHARED=1" 
 elif [ x"$platform" == xandroid ] ; then 
+	if [ x"$ANDROID_NDK" == x ] ; then 
+		echo "必须定义ANDROID_NDK" 
+		exit 0 	
+	fi	
 	archs=${android_archs[@]}
 	configures="-DCMAKE_BUILD_TYPE=Minsizerel -DXQC_ENABLE_TESTING=OFF -DXQC_BUILD_SAMPLE=OFF -DGCOV=OFF -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DANDROID_STL=c++_shared -DANDROID_NATIVE_API_LEVEL=android-21"
 else 
