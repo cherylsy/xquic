@@ -82,16 +82,16 @@ do
 	rm -rf third_party
 	
 	echo "编译$i 架构"
-	#cmake  $configures  $(generate_plat_spec $i ) -DLIBRARY_OUTPUT_PATH=`pwd`/outputs/ .. 
-	#make -j 4
-	#if [ $? != 0 ] ; then
-#		exit 0
-#	fi
-#
-#	if [ ! -d  ${artifact_dir}/$i ] ; then 
-#		mkdir -p ${artifact_dir}/$i  
-#	fi	
-#	cp -f `pwd`/outputs/*.a ${artifact_dir}/$i/ 
+	cmake  $configures  $(generate_plat_spec $i ) -DLIBRARY_OUTPUT_PATH=`pwd`/outputs/ .. 
+	make -j 4
+	if [ $? != 0 ] ; then
+		exit 0
+	fi
+
+	if [ ! -d  ${artifact_dir}/$i ] ; then 
+		mkdir -p ${artifact_dir}/$i  
+	fi	
+	cp -f `pwd`/outputs/*.a ${artifact_dir}/$i/ 
 
 done
 
