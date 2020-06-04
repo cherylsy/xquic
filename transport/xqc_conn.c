@@ -475,7 +475,9 @@ int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
     return XQC_OK;
 }
 
-int xqc_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest){
+
+int 
+xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest){
     int i = 0;
     //struct mmsghdr mmsg[XQC_MAX_SEND_MSG_ONCE];
     //memset(mmsg, 0, sizeof(mmsg));
@@ -578,7 +580,8 @@ int xqc_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int 
     return already_send;
 }
 
-void xqc_conn_send_packets_batch(xqc_connection_t *conn){
+void 
+xqc_conn_send_packets_batch(xqc_connection_t *conn){
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
     ssize_t ret;
 
@@ -587,7 +590,7 @@ void xqc_conn_send_packets_batch(xqc_connection_t *conn){
 
     int congest = 0; // 不过拥塞控制
     while(!(xqc_list_empty(head))){
-        int send_burst_count = xqc_send_burst_packets(conn, head, congest);
+        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest);
         if(send_burst_count != XQC_MAX_SEND_MSG_ONCE){
             break;
         }
@@ -596,7 +599,7 @@ void xqc_conn_send_packets_batch(xqc_connection_t *conn){
     head = &ctl->ctl_send_packets;
     congest = 1;
     while(!(xqc_list_empty(head))){
-        int send_burst_count = xqc_send_burst_packets(conn, head, congest);
+        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest);
         if(send_burst_count != XQC_MAX_SEND_MSG_ONCE){
             break;
         }
@@ -811,6 +814,24 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
 
     }
 }
+
+
+
+void
+xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn)
+{
+    xqc_list_head_t *head;
+    int congest = 1; /* need congestion control */
+
+    head = &conn->conn_send_ctl->ctl_lost_packets;
+    while(!(xqc_list_empty(head))){
+        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest);
+        if(send_burst_count != XQC_MAX_SEND_MSG_ONCE){
+            break;
+        }
+    }
+}
+
 
 void
 xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
