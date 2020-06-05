@@ -18,7 +18,7 @@ xqc_null_aead_encrypt(const xqc_aead_t * ctx,uint8_t *dest, size_t destlen, cons
 
 static
 ssize_t
- xqc_null_aead_decrypt(const xqc_aead_t * ctx,uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+xqc_null_aead_decrypt(const xqc_aead_t * ctx,uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
             size_t ciphertextlen, const uint8_t *key,
             size_t keylen, const uint8_t *nonce, size_t noncelen,
             const uint8_t *ad, size_t adlen)
