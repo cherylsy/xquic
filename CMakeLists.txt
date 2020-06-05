@@ -7,6 +7,7 @@ set (xquic_VERSION_MINOR 1)
 set(CMAKE_C_STANDARD 11 )
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(XQC_BINARY_TYPE SHARED)
 
 set(COMMON_FLAGS            "-Wall -Wno-deprecated  -Wno-unused -Wno-unused-variable -Wno-pointer-sign -Wno-format-security ")
 
@@ -163,9 +164,13 @@ set(
 
 )
 
+if (XQC_NO_SHARED)
+    set(XQC_BINARY_TYPE STATIC)
+endif()
+
 add_library(
     xquic
-    SHARED
+    ${BINARY_TYPE}
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${CRYPTO_SOURCE}
@@ -173,11 +178,13 @@ add_library(
     ${CONGESTION_CONTROL_SOURCES}
 )
 
+if (NOT XQC_NO_SHARED)
 target_link_libraries(
     xquic 
     ${DYMAMIC_LINK_OPTION}
     -pthread
 )
+endif()
 
 if (XQC_ENABLE_TESTING)
     set(CMAKE_MODULE_PATH       "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
