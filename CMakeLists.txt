@@ -42,7 +42,6 @@ endif()
 include(CMakeOptions.txt)
 
 if (XQC_BUILD_OPENSSL)
-    set(XQC_TLS_BUILD_WITH_OPENSSL 1)
     if(XQC_OPENSSL_IS_BORINGSSL) 
         add_subdirectory(third_party/boringssl)
         include_directories(third_party/boringssl/include)
