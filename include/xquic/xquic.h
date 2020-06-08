@@ -126,7 +126,7 @@ typedef struct xqc_h3_request_callbacks_s {
 } xqc_h3_request_callbacks_t;
 
 typedef struct xqc_congestion_control_callback_s {
-    size_t (*xqc_cong_ctl_size) ();
+    size_t (*xqc_cong_ctl_size) (void);
     void (*xqc_cong_ctl_init) (void *cong_ctl);
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
     void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes);
