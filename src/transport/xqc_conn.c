@@ -1,5 +1,5 @@
-
 #include <xquic/xquic.h>
+#include <errno.h>
 #include "src/http3/xqc_h3_stream.h"
 #include "src/http3/xqc_h3_conn.h"
 #include "src/common/xqc_algorithm.h"
