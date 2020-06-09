@@ -9,18 +9,12 @@ build_dir=$2
 artifact_dir=$3
 
 create_dir_or_exit(){
-	
 	if [ x"$2" == x ] ; then
 		echo "$1不能为空"
 		exit 1
-	fi 	
-
+	fi
 	if [ -d $2 ] ; then
-		echo "目录已存在,是否继续 [Y/N]"
-		read cont 
-		if [ x$cont != xY ] ; then 
-			exit 0
-		fi
+		echo "目录已存在"
 	else 
 		mkdir $2 
 		echo "创建$1目录($2) 成功" 
@@ -63,6 +57,7 @@ generate_plat_spec() {
 	fi
 	echo $plat_spec
 }
+
 create_dir_or_exit 构建 $build_dir
 # to absoulute path 
 build_dir=$cur_dir/$build_dir
