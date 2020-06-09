@@ -35,7 +35,7 @@ if [ x"$platform" == xios ] ; then
 		exit 0
 	fi
 	archs=${ios_archs[@]} 
-	configures="-DDEPLOYMENT_TARGET=10.0  -DCMAKE_BUILD_TYPE=Minsizerel -DXQC_ENABLE_TESTING=OFF -DXQC_BUILD_SAMPLE=OFF -DGCOV=OFF -DCMAKE_TOOLCHAIN_FILE=${IOS_CMAKE_TOOLCHAIN} -DENABLE_BITCODE=0 -DXQC_NO_SHARED=1" 
+	configures="-DXQC_OPENSSL_IS_BORINGSSL=on -DBORINGSSL_PREFIX=bs -DBORINGSSL_PREFIX_SYMBOLS=$cur_dir/bssl_symbols.txt  -DDEPLOYMENT_TARGET=10.0  -DCMAKE_BUILD_TYPE=Minsizerel -DXQC_ENABLE_TESTING=OFF -DXQC_BUILD_SAMPLE=OFF -DGCOV=OFF -DCMAKE_TOOLCHAIN_FILE=${IOS_CMAKE_TOOLCHAIN} -DENABLE_BITCODE=0 -DXQC_NO_SHARED=1" 
 elif [ x"$platform" == xandroid ] ; then 
 	if [ x"$ANDROID_NDK" == x ] ; then 
 		echo "必须定义ANDROID_NDK" 
@@ -103,7 +103,7 @@ make_fat() {
 	do
 		script="$script -arch $i $artifact_dir/$i/$1  "
 	done
-	script="$script -output $artifact_dir/$1"
+	script="$script -output $cur_dir/ios/xquic/xquic/Libs/$1"
 	$($script) 
 }
 
@@ -112,6 +112,12 @@ if [ x"$platform" == xios ] ; then
 	make_fat libxquic.a
 	make_fat libcrypto.a
 	make_fat libssl.a	
+
+	cp -f $cur_dir/include/xquic/*   $cur_dir/ios/xquic/xquic/Headers 
+	cp -f $build_dir/include/xquic/* $cur_dir/ios/xquic/xquic/Headers	
+
 fi
+
+
 
 	
