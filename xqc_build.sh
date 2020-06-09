@@ -104,12 +104,17 @@ make_fat() {
 
 
 if [ x"$platform" == xios ] ; then
+	if [ ! -d $cur_dir/ios/xquic/xquic/Headers ] ; then  
+		mkdir -p $cur_dir/ios/xquic/xquic/Headers 
+	fi
+	if [ ! -d $cur_dir/ios/xquic/xquic/Libs ] ; then
+		mkdir -p $cur_dir/ios/xquic/xquic/Libs
+	fi
 	make_fat libxquic.a
 	make_fat libcrypto.a
 	make_fat libssl.a	
-
-	cp -f $cur_dir/include/xquic/*   $cur_dir/ios/xquic/xquic/Headers 
-	cp -f $build_dir/include/xquic/* $cur_dir/ios/xquic/xquic/Headers	
+	cp -f $cur_dir/include/xquic/*   $cur_dir/ios/xquic/xquic/Headers/ 
+	cp -f $build_dir/include/xquic/* $cur_dir/ios/xquic/xquic/Headers/	
 
 fi
 

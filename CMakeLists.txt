@@ -27,6 +27,9 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Minsizerel)
 	set(DYMAMIC_LINK_OPTION "-Wl,--gc-sections")
 endif()
 
+
+add_custom_target(xquic_global)
+
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} ${DYNAMIC_COMPILE_FLAGS}")
 
 if(ANDROID)
@@ -45,14 +48,19 @@ if (XQC_BUILD_OPENSSL)
     if(XQC_OPENSSL_IS_BORINGSSL) 
         add_subdirectory(third_party/boringssl)
         include_directories(third_party/boringssl/include)
+        if (BORINGSSL_PREFIX)
+            add_definitions(-DBORINGSSL_PREFIX=${BORINGSSL_PREFIX})
+            add_dependencies(xquic_global boringssl_prefix_symbols)
+            include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/boringssl/symbol_prefix_include)
+        endif()
     else()
         set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
         add_subdirectory(external/openssl-cmake)
     endif()
     set(DYMAMIC_LINK_OPTION 
-        ssl 
-        crypto 
-        ${DYMAMIC_LINK_OPTION}
+            ssl 
+            crypto 
+            ${DYMAMIC_LINK_OPTION}
         )
 elseif(XQC_EXISTS_OPENSSL)
     if(not XQC_EXISTS_OPENSSL_INCLUDE_DIR or not XQC_EXISTS_OPENSSL_BINARY )
@@ -176,6 +184,8 @@ add_library(
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )
+
+add_dependencies(xquic xquic_global)
 
 if (NOT XQC_NO_SHARED)
 target_link_libraries(
