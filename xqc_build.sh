@@ -87,8 +87,8 @@ do
 	if [ ! -d  ${artifact_dir}/$i ] ; then 
 		mkdir -p ${artifact_dir}/$i  
 	fi	
-	cp -f `pwd`/outputs/*.a ${artifact_dir}/$i/ 
-
+	cp -f `pwd`/outputs/*.a 	${artifact_dir}/$i/ 
+	cp -f `pwd`/outputs/*.so	 ${artifact_dir}/$i/
 done
 
 
