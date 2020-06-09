@@ -606,21 +606,6 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = content_len, .iov_len = strlen(content_len)},
                     .flags  = 0,
             },
-            /*{
-                    .name   = {.iov_base = "Cookie", .iov_len = 6},
-                    .value  = {.iov_base = "cna=NvdTF0ieN2QCASp4SuLTmxi9; isg=BM3NGXkgr2HysAtNdjrv0n7G1-hHqgF8Xz0osQ9SGWTTBu241_oRTBu3dNz45xk0", .iov_len = 98},
-                    .flags  = 0,
-            },*/
-            /*{
-                    .name   = {.iov_base = "cookie", .iov_len = 6},
-                    .value  = {.iov_base = "cid2=1234; sid2=5678", .iov_len = 20},
-                    .flags  = 0,
-            },*/
-            /*{
-                    .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
-                    .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
-                    .flags  = 0,
-            },*/
     };
 
     if (g_header_cnt > 0) {

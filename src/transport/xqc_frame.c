@@ -93,12 +93,12 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
              *        |----|        new_frame  do not insert
              * |-------------------|new_frame
              */
-            xqc_log(conn->log, XQC_LOG_WARN, "|is overlap|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
+            xqc_log(conn->log, XQC_LOG_INFO, "|is overlap|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
         }
         if (new_frame->data_offset >= frame->data_offset && new_frame->data_length > 0 &&
             new_frame->data_offset + new_frame->data_length <= frame->data_offset + frame->data_length) {
-            xqc_log(conn->log, XQC_LOG_WARN, "|already recvd|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
+            xqc_log(conn->log, XQC_LOG_INFO, "|already recvd|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
             return -XQC_EDUP_FRAME;
         }
@@ -436,7 +436,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         if (xqc_conn_check_token(conn, conn->conn_token, conn->conn_token_len) == XQC_OK) {
             conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
         } else {
-            xqc_log(conn->log, XQC_LOG_WARN, "|check_token fail|conn:%p|%s|", conn, xqc_conn_addr_str(conn));
+            xqc_log(conn->log, XQC_LOG_INFO, "|check_token fail|conn:%p|%s|", conn, xqc_conn_addr_str(conn));
             /*unsigned char token[XQC_MAX_TOKEN_LEN];
             unsigned token_len = XQC_MAX_TOKEN_LEN;
             xqc_conn_gen_token(conn, token, &token_len);
@@ -691,7 +691,7 @@ xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
     }
 
     if (conn->conn_flow_ctl.fc_data_read + conn->conn_flow_ctl.fc_recv_windows_size <= data_limit) {
-        xqc_log(conn->log, XQC_LOG_WARN, "|cannot increase data_limit now|fc_max_data_can_recv:%ui|data_limit:%ui|fc_data_read:%ui|",
+        xqc_log(conn->log, XQC_LOG_INFO, "|cannot increase data_limit now|fc_max_data_can_recv:%ui|data_limit:%ui|fc_data_read:%ui|",
                 conn->conn_flow_ctl.fc_max_data_can_recv, data_limit, conn->conn_flow_ctl.fc_data_read);
         return XQC_OK;
     }
@@ -744,7 +744,7 @@ xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *p
     }
 
     if (stream->stream_data_in.next_read_offset + stream->stream_flow_ctl.fc_stream_recv_window_size <= stream_data_limit) {
-        xqc_log(conn->log, XQC_LOG_WARN, "|cannot increase data_limit now|fc_max_stream_data_can_recv:%ui|stream_data_limit:%ui|next_read_offset:%ui|stream_max_recv_offset:%ui|",
+        xqc_log(conn->log, XQC_LOG_INFO, "|cannot increase data_limit now|fc_max_stream_data_can_recv:%ui|stream_data_limit:%ui|next_read_offset:%ui|stream_max_recv_offset:%ui|",
                 stream->stream_flow_ctl.fc_max_stream_data_can_recv, stream_data_limit, stream->stream_data_in.next_read_offset, stream->stream_max_recv_offset);
         return XQC_OK;
     }
@@ -814,7 +814,7 @@ xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         conn->conn_flow_ctl.fc_max_data_can_send = max_data;
         conn->conn_flag &= ~XQC_CONN_FLAG_DATA_BLOCKED;
     } else {
-        xqc_log(conn->log, XQC_LOG_WARN, "|max_data too small|max_data:%ui|max_data_old:%ui|",
+        xqc_log(conn->log, XQC_LOG_INFO, "|max_data too small|max_data:%ui|max_data_old:%ui|",
                 max_data, conn->conn_flow_ctl.fc_max_data_can_send);
     }
 
@@ -860,7 +860,7 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
         stream->stream_flow_ctl.fc_max_stream_data_can_send = max_stream_data;
         stream->stream_flag &= ~XQC_STREAM_FLAG_DATA_BLOCKED;
     } else {
-        xqc_log(conn->log, XQC_LOG_WARN, "|max_stream_data too small|max_stream_data=%ui|max_stream_data_old=%ui|",
+        xqc_log(conn->log, XQC_LOG_INFO, "|max_stream_data too small|max_stream_data=%ui|max_stream_data_old=%ui|",
                 max_stream_data, stream->stream_flow_ctl.fc_max_stream_data_can_send);
     }
     return XQC_OK;

@@ -33,6 +33,14 @@ int printf_null(const char *format, ...)
 #define XQC_PACKET_TMP_BUF_LEN 1500
 
 #define XQC_MAX_TOKEN_LEN 32
+static int test_insert_result = 0;
+static int test_never_flag = 0;
+static int test_literial_result = 0;
+static int test_name_value_result = 0;
+static int test_name_idx_result = 0;
+static int test_static_result = 0;
+static int test_static_name_idx_result = 0;
+static int test_draining_result = 0;
 
 typedef struct user_stream_s {
     xqc_stream_t       *stream;
@@ -306,6 +314,59 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
     printf("send_count:%u, lost_count:%u, tlp_count:%u\n", stats.send_count, stats.lost_count, stats.tlp_count);
 
+    if(test_insert_result == 1){
+        printf("qpack test insert literial [1] ...>>>>>>>>  pass\n\n");
+    }else{
+        printf("qpack test insert literial [1] ...>>>>>>>> failed\n\n");
+    }
+
+    if(test_never_flag == 1){
+        printf("qpack test never flag [2] ...>>>>>>>> pass\n\n");
+    }else{
+        printf("qpack test never flag [2] ...>>>>>>>> failed\n\n");
+    }
+
+    if(test_literial_result == 1){
+        printf("qpack test literial [3] ...>>>>>>>> pass\n\n");
+        //if(g_test_name_idx_user_stream){
+            //xqc_client_request_send(g_test_name_idx_user_stream->h3_request, g_test_name_idx_user_stream, &g_test_name_idx_header, 1);
+        //}
+    }else{
+        printf("qpack test literial [3] ...>>>>>>>> failed\n\n");
+    }
+
+    if(test_static_result > 0){
+        printf("qpack test static name value index [4] ...>>>>>>>> pass\n\n");
+    }else{
+        printf("qpack test static name value index [4] ...>>>>>>>> failed\n\n");
+    }
+
+    if(test_static_name_idx_result > 0){
+        printf("qpack test static name index [5] ...>>>>>>>> pass\n\n");
+    }else{
+        printf("qpack test static name index [5] ...>>>>>>>> failed\n\n");
+    }
+
+
+    if(test_name_value_result > 0){
+        printf("qpack test name value index [6] ...>>>>>>>> pass\n\n");
+    }else{
+        printf("qpack test name value index [6] ...>>>>>>>> failed\n\n");
+    }
+
+    if(test_name_idx_result > 0){
+        printf("qpack test name index [7] ...>>>>>>>> pass\n\n");
+    }else{
+        printf("qpack test name index [7] ...>>>>>>>> failed\n\n");
+    }
+
+
+    if(test_draining_result > 0){
+        printf("qpack test draining [8] ...>>>>>>>> pass\n\n");
+    }else{
+        printf("qpack test draining [8] ...>>>>>>>> failed\n\n");
+    }
+
     free(user_conn);
     event_base_loopbreak(eb);
     return 0;
@@ -549,15 +610,15 @@ int xqc_encoder_check_insert_result(xqc_h3_conn_t * h3_conn, xqc_http_header_t *
 
     if(header->flags == 0){
         if(d_result.entry){
-            printf("***** qpack test insert literial [1] pass\n\n");
+            test_insert_result = 1;
         }else{
-            printf("----- qpack test insert literial [1] failed\n\n");
+            test_insert_result = 0;
         }
     }else{
         if(d_result.entry == NULL){
-            printf("***** qpack test never flag [2] pass\n\n");
+            test_never_flag = 1;
         }else{
-            printf("----- qpack test never flag [2] failed\n\n");
+            test_never_flag = 0;
         }
     }
 
@@ -604,7 +665,6 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
 
     return ret;
 }
-
 int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
 {
     DEBUG;
@@ -614,11 +674,6 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
     int success_flag = 0;
     int draining_flag = 0;
-    static int test_name_value_result = 0;
-    static int test_name_idx_result = 0;
-    static int test_static_result = 0;
-    static int test_static_name_idx_result = 0;
-    static int test_draining_result = 0;
     //if (user_stream->header_recvd == 0) {
     if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_http_headers_t *headers;
@@ -637,7 +692,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             printf("header name:%s value:%s\n",(char *)(headers->headers[i].name.iov_base), (char *)(headers->headers[i].value.iov_base));
             if((headers-> headers[i].name.iov_len != g_array_literial_header[i].name.iov_len) ||
                     (0 != memcmp(headers->headers[i].name.iov_base, g_array_literial_header[i].name.iov_base, headers->headers[i].name.iov_len) )){
-                success_flag++;
+                success_flag++;;
             }
 
 
@@ -686,6 +741,10 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
         }
 
+        if(success_flag == 0){
+
+            test_literial_result = 1;
+        }
 
         if(draining_flag == 4){
 
@@ -693,7 +752,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         }
 
         if(draining_flag == 1){
-            printf("***** qpack test draining [8] pass\n\n");
+            test_draining_result++;
         }
 
         xqc_h3_conn_t * h3_conn = h3_request->h3_stream->h3_conn;
@@ -748,42 +807,9 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
         }
 
 
-        if(success_flag == 0){
-            printf("***** qpack test literial [3] pass\n\n");
-
-            if(g_test_name_idx_user_stream){
-
-                //xqc_client_request_send(g_test_name_idx_user_stream->h3_request, g_test_name_idx_user_stream, &g_test_name_idx_header, 1);
-            }
-
-
-
-        }
-
         if(test_name_value_result < 0){
 
             printf("test_name_value_result value:%d\n", test_name_value_result);
-        }
-
-
-        if(test_name_value_result == 2){
-            test_name_value_result = -100;
-            printf("***** qpack test name value index [6] pass\n\n");
-        }
-
-        if(test_name_idx_result == 1){
-            test_name_idx_result = 0;
-            printf("***** qpack test name index [7] pass\n\n");
-        }
-
-        if(test_static_result == 1){
-            test_static_result = 0;
-            printf("***** qpack test static name value index [4] pass\n\n");
-        }
-
-        if(test_static_name_idx_result == 1){
-            test_static_name_idx_result = 0;
-            printf("***** qpack test static name index [5] pass\n\n");
         }
 
 
@@ -833,6 +859,7 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
     xqc_request_stats_t stats;
     stats = xqc_h3_request_get_stats(h3_request);
     printf("send_body_size:%zu, recv_body_size:%zu\n", stats.send_body_size, stats.recv_body_size);
+
 
     free(user_stream);
     return 0;

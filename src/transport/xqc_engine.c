@@ -736,7 +736,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 
     /* 对端的scid是本地的dcid */
     if (XQC_UNLIKELY(xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK)) {
-        xqc_log(engine->log, XQC_LOG_WARN, "|fail to parse cid|");
+        xqc_log(engine->log, XQC_LOG_INFO, "|fail to parse cid|");
         return -XQC_EILLPKT;
     }
     //xqc_log(engine->log, XQC_LOG_DEBUG, "|scid:%s|dcid:%s|", xqc_scid_str(&scid), xqc_dcid_str(&dcid));
@@ -776,7 +776,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             if (xqc_engine_schedule_reset(engine, peer_addr, peer_addrlen, recv_time) != XQC_OK) {
                 return -XQC_ECONN_NFOUND;
             }
-            xqc_log(engine->log, XQC_LOG_WARN, "|fail to find connection, send reset|size:%uz|scid:%s|",
+            xqc_log(engine->log, XQC_LOG_INFO, "|fail to find connection, send reset|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
             ret = xqc_conn_send_reset(engine, &scid, user_data, peer_addr, peer_addrlen);
             if (ret) {

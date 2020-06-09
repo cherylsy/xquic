@@ -30,7 +30,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     if (xqc_generate_cid(engine, &scid) != XQC_OK
         || xqc_generate_cid(engine, &dcid) != XQC_OK)
     {
-        xqc_log(engine->log, XQC_LOG_WARN,
+        xqc_log(engine->log, XQC_LOG_ERROR,
                 "|generate dcid or scid error|");
         goto fail;
     }
@@ -44,7 +44,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
                                                         no_crypto_flag, conn_ssl_config, user_data);
 
     if (xc == NULL) {
-        xqc_log(engine->log, XQC_LOG_WARN,
+        xqc_log(engine->log, XQC_LOG_ERROR,
                 "|create connection error|");
         goto fail;
     }
