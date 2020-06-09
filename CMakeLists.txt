@@ -169,7 +169,7 @@ endif()
 
 add_library(
     xquic
-    ${BINARY_TYPE}
+    ${XQC_BINARY_TYPE}
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${CRYPTO_SOURCE}
