@@ -1201,7 +1201,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
             return XQC_ERROR;
         }
         if (memcmp(&sa6->sin6_addr, in6, sizeof(struct in6_addr)) != 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|ipv6 not match|");
+            xqc_log(conn->log, XQC_LOG_WARN, "|ipv6 not match|");
             return XQC_ERROR;
         }
         pos += sizeof(struct in6_addr);
@@ -1216,7 +1216,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
         xqc_log(conn->log, XQC_LOG_DEBUG, "|peer_addr:%s|", inet_ntoa(sa4->sin_addr));
 
         if (memcmp(&sa4->sin_addr, pos, sizeof(struct in_addr)) != 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|ipv4 not match|token_addr:%s|", inet_ntoa(*in4));
+            xqc_log(conn->log, XQC_LOG_WARN, "|ipv4 not match|token_addr:%s|", inet_ntoa(*in4));
             return XQC_ERROR;
         }
         pos += sizeof(struct in_addr);
