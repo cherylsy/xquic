@@ -487,6 +487,9 @@ xqc_destroy_stream(xqc_stream_t *stream)
                 stream->stream_id, node->element.hash, node->element.value, node, node->next);
     }
 
+    xqc_stream_shutdown_write(stream);
+    xqc_stream_shutdown_read(stream);
+
     xqc_free(stream);
 }
 
@@ -1277,6 +1280,12 @@ xqc_process_read_streams (xqc_connection_t *conn)
     xqc_list_head_t *pos, *next;
 
     xqc_list_for_each_safe(pos, next, &conn->conn_read_streams) {
+        if (pos->next == pos) {
+            xqc_log(conn->log, XQC_LOG_FATAL, "|pos:%p|conn:%p|",
+                     pos, conn);
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return;
+        }
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|stream_id:%ui|conn:%p|",
                 stream->stream_flag, stream->stream_id, stream->stream_conn);
