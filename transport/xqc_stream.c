@@ -216,7 +216,7 @@ xqc_stream_do_send_flow_ctl(xqc_stream_t *stream)
     int ret = XQC_OK;
     /* connection level */
     if (stream->stream_conn->conn_flow_ctl.fc_data_sent + XQC_PACKET_OUT_SIZE > stream->stream_conn->conn_flow_ctl.fc_max_data_can_send) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_data:%ui|",
+        xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|xqc_stream_send|exceed max_data:%ui|",
                 stream->stream_conn->conn_flow_ctl.fc_max_data_can_send);
 
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
@@ -226,7 +226,7 @@ xqc_stream_do_send_flow_ctl(xqc_stream_t *stream)
 
     /* stream level */
     if (stream->stream_send_offset + XQC_PACKET_OUT_SIZE > stream->stream_flow_ctl.fc_max_stream_data_can_send) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_WARN, "|xqc_stream_send|exceed max_stream_data:%ui|",
+        xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|xqc_stream_send|exceed max_stream_data:%ui|",
                 stream->stream_flow_ctl.fc_max_stream_data_can_send);
 
         stream->stream_flag |= XQC_STREAM_FLAG_DATA_BLOCKED;
@@ -486,6 +486,9 @@ xqc_destroy_stream(xqc_stream_t *stream)
         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|stream_id:%ui|hash:%ui|value:%p|node:%p|next:%p|",
                 stream->stream_id, node->element.hash, node->element.value, node, node->next);
     }
+
+    xqc_stream_shutdown_write(stream);
+    xqc_stream_shutdown_read(stream);
 
     xqc_free(stream);
 }
@@ -1276,6 +1279,12 @@ xqc_process_read_streams (xqc_connection_t *conn)
     xqc_list_head_t *pos, *next;
 
     xqc_list_for_each_safe(pos, next, &conn->conn_read_streams) {
+        if (pos->next == pos) {
+            xqc_log(conn->log, XQC_LOG_FATAL, "|pos:%p|conn:%p|",
+                     pos, conn);
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return;
+        }
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|stream_id:%ui|conn:%p|",
                 stream->stream_flag, stream->stream_id, stream->stream_conn);
