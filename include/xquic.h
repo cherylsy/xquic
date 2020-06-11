@@ -471,6 +471,9 @@ int xqc_conn_get_errno(xqc_connection_t *conn);
 void xqc_conn_set_user_data(xqc_connection_t *conn,
                            void *user_data);
 
+void *xqc_conn_get_user_data(xqc_connection_t *conn);
+
+
 /**
  * Server should get peer addr when conn_create_notify callbacks
  * @param peer_addr_len is a return value

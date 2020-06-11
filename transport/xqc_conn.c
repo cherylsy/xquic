@@ -427,11 +427,21 @@ xqc_conn_destroy(xqc_connection_t *xc)
 
 }
 
-void xqc_conn_set_user_data(xqc_connection_t *conn,
+
+void 
+xqc_conn_set_user_data(xqc_connection_t *conn,
                             void *user_data)
 {
     conn->user_data = user_data;
 }
+
+
+void *
+xqc_conn_get_user_data(xqc_connection_t *conn)
+{
+    return conn->user_data;
+}
+
 
 struct sockaddr*
 xqc_conn_get_peer_addr(xqc_connection_t *conn,
