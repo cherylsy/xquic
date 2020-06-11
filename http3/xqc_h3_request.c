@@ -19,7 +19,7 @@ xqc_h3_request_create(xqc_engine_t *engine,
         return NULL;
     }
 
-    h3_conn = (xqc_h3_conn_t*)xqc_conn_get_user_data(stream->stream_conn);
+    h3_conn = (xqc_h3_conn_t*)stream->stream_conn->user_data;
 
     h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_HTTP3_STREAM_TYPE_REQUEST, user_data);
     if (!h3_stream) {
