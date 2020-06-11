@@ -136,7 +136,8 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
     ctl->ctl_packets_free = 0;
 }
 
-void xqc_send_ctl_info_circle_record(xqc_connection_t *conn){
+void 
+xqc_send_ctl_info_circle_record(xqc_connection_t *conn){
 
     if(conn->conn_type != XQC_CONN_TYPE_SERVER){
         return; //client do not need record
