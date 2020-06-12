@@ -11,6 +11,7 @@
 #include "common/xqc_memory_pool.h"
 #include "congestion_control/xqc_sample.h"
 
+
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn)
 {
@@ -798,9 +799,11 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
         //check if all pkts between the smallest and the largest are lost
         xqc_list_for_each(pos, &ctl->ctl_lost_packets) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_pkt.pkt_num >= smallest_lost_in_period->po_pkt.pkt_num && 
-                packet_out->po_pkt.pkt_num < largest_lost->po_pkt.pkt_num)
+            if (packet_out->po_pkt.pkt_num >= smallest_lost_in_period->po_pkt.pkt_num 
+                && packet_out->po_pkt.pkt_num < largest_lost->po_pkt.pkt_num) 
+            {   
                 lost_pkts_in_between++;
+            }
         }
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|InPresistentCongestion|largest.pn %ui|smallest.pn %ui"
             "|largest sent time %ui|smallest sent time %ui|lost pkts in between %ud|",
@@ -852,8 +855,9 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
             ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
         }
 
-        if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) &&
-                (packet_out->po_flag & XQC_POF_STREAM_UNACK)) {
+        if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) 
+            && (packet_out->po_flag & XQC_POF_STREAM_UNACK)) 
+        {
             for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
                 stream = packet_out->po_stream_frames[i].ps_stream;
                 if (stream != NULL) {
