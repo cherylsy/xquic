@@ -4,8 +4,8 @@
 #include <stddef.h>
 #include "xqc_common.h"
 
-#define XQC_LIST_POISON1  ((void *) 0x00100100)
-#define XQC_LIST_POISON2  ((void *) 0x00200200)
+#define XQC_LIST_POISON1  ((void *) 0x1)
+#define XQC_LIST_POISON2  ((void *) 0x2)
 
 /*
  * 参考linux内核链表的实现
