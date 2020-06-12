@@ -780,12 +780,12 @@ xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *lar
 int
 xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t congestion_period)
 {
-    xqc_list_head_t *pos;
+    xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out, *smallest_lost_in_period = NULL;
     unsigned lost_pkts_in_between = 0;
 
     //we should keep the ctl_lost_packets ordered by pkt_num to avoid this loop
-    xqc_list_for_each(pos, &ctl->ctl_lost_packets) {
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_lost_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (smallest_lost_in_period == NULL) {
             smallest_lost_in_period = packet_out;
@@ -797,7 +797,7 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
     //first of all, the sending interval between the smallest and the largest must be >= congestion_period
     if (largest_lost->po_sent_time - smallest_lost_in_period->po_sent_time >= congestion_period) {
         //check if all pkts between the smallest and the largest are lost
-        xqc_list_for_each(pos, &ctl->ctl_lost_packets) {
+        xqc_list_for_each_safe(pos, next, &ctl->ctl_lost_packets) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
             if (packet_out->po_pkt.pkt_num >= smallest_lost_in_period->po_pkt.pkt_num 
                 && packet_out->po_pkt.pkt_num < largest_lost->po_pkt.pkt_num) 

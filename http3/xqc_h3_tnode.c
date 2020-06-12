@@ -59,9 +59,9 @@ uint64_t xqc_tnode_hash_func(xqc_tnode_hash_table_t * table, uint64_t stream_id)
 xqc_http3_tnode_t * xqc_tnode_hash_find_by_id(xqc_tnode_hash_table_t * table, xqc_http3_node_id_t * nid){
     size_t index = xqc_tnode_hash_func(table, nid->id);
     xqc_list_head_t * head = &(table->list[index]);
-    xqc_list_head_t * pos;
+    xqc_list_head_t * pos, * next;
     xqc_http3_tnode_t * tnode;
-    xqc_list_for_each(pos, head){
+    xqc_list_for_each_safe(pos, next, head){
        tnode = xqc_list_entry( pos, xqc_http3_tnode_t, head_list);
        if(xqc_http3_node_id_eq(&tnode->nid, nid)){
            return tnode;
