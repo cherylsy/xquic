@@ -692,7 +692,8 @@ int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
 {
     size_t i;
 
-    if (params->v.ee.negotiated_version != conn->version) {
+    //todo: negotiated_version
+    /*if (params->v.ee.negotiated_version != conn->version) {
         return XQC_ERR_VERSION_NEGOTIATION;
     }
 
@@ -704,7 +705,7 @@ int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
 
     if (i == params->v.ee.len) {
         return XQC_ERR_VERSION_NEGOTIATION;
-    }
+    }*/
 
     if (conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY) {
         /* need finish recv retry packet

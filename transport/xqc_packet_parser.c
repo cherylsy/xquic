@@ -1222,15 +1222,15 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
             return -XQC_EILLPKT;
         }
     }
-    if (xqc_conn_version_check(c, version) != XQC_OK) {
+    /*if (xqc_conn_version_check(c, version) != XQC_OK) {
         xqc_log(c->log, XQC_LOG_WARN, "|version check err|");
         return -XQC_EILLPKT;
-    }
+    }*/
 
     /* version negotiation */
-    if (version == 0) {
+    /*if (version == 0) {
         return xqc_packet_parse_version_negotiation(c, packet_in);
-    }
+    }*/
 
     /* don't update packet_in->pos = pos here, need prefix inside*/
     /* long header common part finished */
