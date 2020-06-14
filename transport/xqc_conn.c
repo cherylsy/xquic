@@ -349,7 +349,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
-    xqc_log(xc->log, XQC_LOG_STATS, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|token_ok:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
+    xqc_log(xc->log, XQC_LOG_REPORT, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|token_ok:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
             xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count, xc->conn_send_ctl->ctl_recv_count,
             xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
@@ -1007,7 +1007,7 @@ xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
         return size;
     }
 
-    xqc_log(engine->log, XQC_LOG_WARN, "|<==|xqc_conn_send_reset ok|size:%d|", size);
+    xqc_log(engine->log, XQC_LOG_INFO, "|<==|xqc_conn_send_reset ok|size:%d|", size);
     return XQC_OK;
 }
 
@@ -1033,7 +1033,7 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         return size;
     }
 
-    xqc_log(engine->log, XQC_LOG_WARN, "|<==|xqc_conn_send_retry ok|size:%d|", size);
+    xqc_log(engine->log, XQC_LOG_INFO, "|<==|xqc_conn_send_retry ok|size:%d|", size);
     return XQC_OK;
 }
 
@@ -1135,7 +1135,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
         xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
         return -XQC_ECONN_NFOUND;
     }
-    xqc_log(conn->log, XQC_LOG_WARN, "|conn:%p|", conn);
+    xqc_log(conn->log, XQC_LOG_INFO, "|conn:%p|", conn);
     if(engine->eng_callback.write_mmsg){
         xqc_conn_send_packets_batch(conn);
     }else{
@@ -1185,7 +1185,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
         return XQC_ERROR;
     }
     if (token_len == 0) {
-        xqc_log(conn->log, XQC_LOG_WARN, "|token empty|");
+        xqc_log(conn->log, XQC_LOG_INFO, "|token empty|");
         return XQC_ERROR;
     }
     /*printf("xqc_conn_check_token token:\n");
@@ -1201,7 +1201,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
             return XQC_ERROR;
         }
         if (memcmp(&sa6->sin6_addr, in6, sizeof(struct in6_addr)) != 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|ipv6 not match|");
+            xqc_log(conn->log, XQC_LOG_WARN, "|ipv6 not match|");
             return XQC_ERROR;
         }
         pos += sizeof(struct in6_addr);
@@ -1216,7 +1216,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
         xqc_log(conn->log, XQC_LOG_DEBUG, "|peer_addr:%s|", inet_ntoa(sa4->sin_addr));
 
         if (memcmp(&sa4->sin_addr, pos, sizeof(struct in_addr)) != 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|ipv4 not match|token_addr:%s|", inet_ntoa(*in4));
+            xqc_log(conn->log, XQC_LOG_WARN, "|ipv4 not match|token_addr:%s|", inet_ntoa(*in4));
             return XQC_ERROR;
         }
         pos += sizeof(struct in_addr);
@@ -1227,7 +1227,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
 
     xqc_msec_t now = xqc_now() / 1000000;
     if (*expire < now) {
-        xqc_log(conn->log, XQC_LOG_WARN, "|token_expire|expire:%ud|now:%ui|", *expire, now);
+        xqc_log(conn->log, XQC_LOG_INFO, "|token_expire|expire:%ud|now:%ui|", *expire, now);
         return XQC_ERROR;
     }
     else if (*expire - now <= XQC_TOKEN_UPDATE_DELTA) {

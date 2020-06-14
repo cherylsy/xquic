@@ -2,6 +2,10 @@
 #define _XQC_H_LIST_INCLUED_
 
 #include <stddef.h>
+#include "xqc_common.h"
+
+#define XQC_LIST_POISON1  ((void *) 0x1)
+#define XQC_LIST_POISON2  ((void *) 0x2)
 
 /*
  * 参考linux内核链表的实现
@@ -41,8 +45,32 @@ static inline void xqc_init_list_head(xqc_list_head_t *list)
     list->next = list;
 }
 
+static inline int __xqc_list_add_valid(xqc_list_head_t *node, xqc_list_head_t *prev, xqc_list_head_t *next)
+{
+    if (next->prev != prev || prev->next != next || node == prev || node == next) {
+        return XQC_FALSE;
+    }
+    return XQC_TRUE;
+}
+
+static inline int __xqc_list_del_entry_valid(xqc_list_head_t *entry)
+{
+    xqc_list_head_t *prev, *next;
+
+    prev = entry->prev;
+    next = entry->next;
+
+    if (next == XQC_LIST_POISON1 || prev == XQC_LIST_POISON2 || prev->next != entry || next->prev != entry) {
+        return XQC_FALSE;
+    }
+    return XQC_TRUE;
+}
+
 static inline void __xqc_list_add(xqc_list_head_t *node, xqc_list_head_t *prev, xqc_list_head_t *next)
 {
+    if (!__xqc_list_add_valid(node, prev, next)) {
+        return;
+    }
     next->prev = node;
     node->next = next;
     node->prev = prev;
@@ -65,14 +93,19 @@ static inline void __xqc_list_del(xqc_list_head_t * prev, xqc_list_head_t * next
     prev->next = next;
 }
 
-static inline void xqc_list_del(xqc_list_head_t *entry)
+static inline void __xqc_list_del_entry(xqc_list_head_t *entry)
 {
+    if (!__xqc_list_del_entry_valid(entry)) {
+        return;
+    }
     __xqc_list_del(entry->prev, entry->next);
 }
 
-static inline void __xqc_list_del_entry(xqc_list_head_t *entry)
+static inline void xqc_list_del(xqc_list_head_t *entry)
 {
-    __xqc_list_del(entry->prev, entry->next);
+    __xqc_list_del_entry(entry);
+    entry->next = XQC_LIST_POISON1;
+    entry->prev = XQC_LIST_POISON2;
 }
 
 static inline void xqc_list_del_init(xqc_list_head_t *entry)
