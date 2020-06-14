@@ -16,7 +16,7 @@
 #define QPACK_MAX_TABLE_CAPACITY (16*1024)
 #define DEFAULT_MAX_DTABLE_SIZE (4*1024)
 #define DEFAULT_QPACK_BLOCK_STREAM (64)
-#define DEFAULT_QPACK_HASH_TABLE_SIZE (8*1024)
+#define DEFAULT_QPACK_HASH_TABLE_SIZE (128)  //(8*1024) -> 4096/32
 
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 #define XQC_HTTP3_QPACK_INT_MAX ((1ull << 62) - 1)

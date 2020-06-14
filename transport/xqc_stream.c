@@ -1251,7 +1251,8 @@ xqc_process_write_streams (xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_write_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, write_stream_list);
         if (stream->stream_flag & XQC_STREAM_FLAG_DATA_BLOCKED
-            || conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) {
+            || conn->conn_flag & XQC_CONN_FLAG_DATA_BLOCKED) 
+        {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|DATA_BLOCKED|stream_id:%ui|conn:%p|",
                     stream->stream_id, stream->stream_conn);
             continue;

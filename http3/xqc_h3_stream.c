@@ -371,12 +371,12 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|stream_type:%d|stream_id:%ui|conn:%p|",
             h3_stream->h3_stream_type, h3_stream->stream->stream_id, stream->stream_conn);
 
-    ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+    ret = xqc_h3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
     if (ret < 0) {
         if(ret == -XQC_EAGAIN){
             return ret;
         }else{
-            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_http3_send_frame_buffer error|%d|", ret);
+            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_h3_send_frame_buffer error|%d|", ret);
             return ret;
         }
     }
