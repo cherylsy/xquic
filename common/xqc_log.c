@@ -1,5 +1,9 @@
 #include "xqc_log.h"
 
+#ifdef PRINT_MALLOC
+FILE *g_malloc_info_fp;
+#endif
+
 int xqc_open_log_file_default(void *user_data)
 {
     return 0;
