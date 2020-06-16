@@ -4,14 +4,28 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+#ifdef PRINT_MALLOC
+extern FILE *g_malloc_info_fp;
+#include <unistd.h>
+#define xqc_init_print() \
+do { \
+    if (g_malloc_info_fp) break; \
+    char buff[1024]; \
+    snprintf(buff, sizeof(buff), "malloc_free_%d", getpid()); \
+    g_malloc_info_fp = fopen(buff, "w+");\
+} while(0)
+#endif
+
 /*
  * 收口动态内存分配和回收、以便日后可以做一些控制和统计
  * 暂时只做调用转交
  * */
 #ifdef PRINT_MALLOC
 #define xqc_malloc(size) ({\
+    xqc_init_print();\
     void *p = malloc((size));\
-    printf("PRINT_MALLOC %p %zu %s:%d\n", p, (size_t)(size), __FILE__, __LINE__);\
+    fprintf(g_malloc_info_fp, "PRINT_MALLOC %p %zu %s:%d\n", p, (size_t)(size), __FILE__, __LINE__);\
     (p);\
     })
 #else
@@ -23,8 +37,9 @@ static inline void* xqc_malloc(size_t size)
 
 #ifdef PRINT_MALLOC
 #define xqc_calloc(count, size) ({\
+    xqc_init_print();\
     void *p = calloc(count, size);\
-    printf("PRINT_MALLOC %p %zu %s:%d\n", p, size, __FILE__, __LINE__);\
+    fprintf(g_malloc_info_fp, "PRINT_MALLOC %p %zu %s:%d\n", p, size, __FILE__, __LINE__);\
     (p);\
     })
 #else
@@ -42,7 +57,8 @@ static inline void* xqc_realloc(void* ptr, size_t size)
 static inline void xqc_free(void* ptr)
 {
 #ifdef PRINT_MALLOC
-    printf("PRINT_FREE %p\n", ptr);
+    xqc_init_print();\
+    fprintf(g_malloc_info_fp, "PRINT_FREE %p\n", ptr);
     free(ptr);
     return;
 #endif

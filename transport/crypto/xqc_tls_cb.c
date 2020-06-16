@@ -10,17 +10,52 @@
 #include "xqc_crypto.h"
 #include "xqc_tls_0rtt.h"
 #include "xqc_tls_init.h"
+
+void xqc_tls_print_secret(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg)
+{
+    char secret_hex[65] = {0}, client_random_hex[65] = {0}, label[100] = {0};
+    char client_random[32];
+    size_t out_len = 32;
+    out_len = SSL_get_client_random(ssl, client_random, out_len);
+    xqc_hex_dump(client_random_hex, client_random, out_len);
+    xqc_hex_dump(secret_hex, secret, secretlen);
+    switch (name) {
+        case SSL_KEY_CLIENT_EARLY_TRAFFIC:
+            snprintf(label, sizeof(label), "%s", "CLIENT_EARLY_TRAFFIC_SECRET");
+            break;
+        case SSL_KEY_CLIENT_HANDSHAKE_TRAFFIC:
+            snprintf(label, sizeof(label), "%s", "CLIENT_HANDSHAKE_TRAFFIC_SECRET");
+            break;
+        case SSL_KEY_SERVER_HANDSHAKE_TRAFFIC:
+            snprintf(label, sizeof(label), "%s", "SERVER_HANDSHAKE_TRAFFIC_SECRET");
+            break;
+        case SSL_KEY_CLIENT_APPLICATION_TRAFFIC:
+            snprintf(label, sizeof(label), "%s", "CLIENT_TRAFFIC_SECRET_0");
+            break;
+        case SSL_KEY_SERVER_APPLICATION_TRAFFIC:
+            snprintf(label, sizeof(label), "%s", "SERVER_TRAFFIC_SECRET_0");
+            break;
+        default:
+            snprintf(label, sizeof(label), "%s", "error");
+    }
+    printf("%s %s %s\n", label, client_random_hex, secret_hex);
+
+    return;
+}
+
 /*
  * key callback
  *@param
  *@return 0 mearns error, no zero means no error
  */
-
 int xqc_do_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg)
 {
     int rv;
     xqc_connection_t *conn = (xqc_connection_t *)arg;
 
+#ifdef XQC_PRINT_SECRET
+    xqc_tls_print_secret(ssl, name, secret, secretlen, arg);
+#endif
     //printf("xqc_tls_key_cb: %d\n", name);
     //hex_print((char *)secret, secretlen);
     switch (name) {

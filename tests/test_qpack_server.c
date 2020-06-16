@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <event2/event.h>
+#include <signal.h>
 #include "include/xquic_typedef.h"
 #include "include/xquic.h"
 #include "http3/xqc_h3_request.h"
@@ -614,9 +615,17 @@ ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_
     return write(ctx->log_fd, buf, count);
 }
 
+void stop(int signo)
+{
+    event_base_loopbreak(eb);
+    xqc_engine_destroy(ctx.engine);
+    fflush(stdout);
+    exit(0);
+}
+
 int main(int argc, char *argv[]) {
     printf("Usage: %s %d\n", argv[0], XQC_QUIC_VERSION);
-
+    signal (SIGINT, stop);
     int rc;
 
     int server_port = TEST_PORT;

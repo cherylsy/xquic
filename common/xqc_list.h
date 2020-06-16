@@ -60,6 +60,9 @@ static inline int __xqc_list_del_entry_valid(xqc_list_head_t *entry)
     prev = entry->prev;
     next = entry->next;
 
+    if (prev == NULL || next == NULL) {
+        return XQC_FALSE;
+    }
     if (next == XQC_LIST_POISON1 || prev == XQC_LIST_POISON2 || prev->next != entry || next->prev != entry) {
         return XQC_FALSE;
     }
