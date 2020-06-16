@@ -204,7 +204,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
     xqc_pkt_num_space_t pns;
     xqc_packet_out_t *packet_out;
     xqc_pkt_type_t pkt_type;
-    xqc_list_head_t *pos;
+    xqc_list_head_t *pos, *next;
 
     int ret;
 
@@ -219,7 +219,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                 pkt_type = XQC_PTYPE_SHORT_HEADER;
             }
 
-            xqc_list_for_each(pos, &conn->conn_send_ctl->ctl_send_packets) {
+            xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
                 packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
                 if (packet_out->po_pkt.pkt_type == pkt_type) {
                     ret = xqc_write_ack_to_one_packet(conn, packet_out, pns);

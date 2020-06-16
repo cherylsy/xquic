@@ -1361,11 +1361,17 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_data(xqc_h3_stream_t * h3_st
 
 #define XQC_HTTP3_SEND_BUF_COMPLETE 0
 
-int xqc_http3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head){ //return 1 means send buf completely, return 0 means buf data send imcompletely
 
+/**
+ * return 1 means send buf completely, return 0 means buf data send imcompletely
+ */
+int 
+xqc_h3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head)
+{
     xqc_list_head_t *pos, *next;
     xqc_h3_frame_send_buf_t * send_buf = NULL;
     int ret = XQC_HTTP3_SEND_BUF_COMPLETE;
+
     xqc_list_for_each_safe(pos, next, head){
         send_buf = xqc_list_entry(pos, xqc_h3_frame_send_buf_t, list_head);
 
@@ -1398,7 +1404,7 @@ int xqc_http3_frame_data_buffer_and_send(xqc_h3_stream_t * h3_stream, xqc_h3_fra
     }
 
     int data_len = send_buf->data_len;
-    ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+    ret = xqc_h3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
 
     if(ret == XQC_HTTP3_SEND_BUF_COMPLETE || ret == -XQC_EAGAIN ){
         return data_len;
@@ -1485,7 +1491,7 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
 
 }
 ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
-    int ret = xqc_http3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
+    int ret = xqc_h3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
 
     if(ret == -XQC_EAGAIN){
         return -XQC_EAGAIN;

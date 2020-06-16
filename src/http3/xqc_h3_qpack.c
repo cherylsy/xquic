@@ -1579,10 +1579,10 @@ int xqc_http3_qpack_hash_find(xqc_qpack_hash_table_t * table, xqc_http3_ringdata
 
     xqc_list_head_t *head = &(table->list[hash_index]);
 
-    xqc_list_head_t * pos;
+    xqc_list_head_t * pos, * next;
     xqc_http3_qpack_entry * entry;
 
-    xqc_list_for_each(pos, head){
+    xqc_list_for_each_safe(pos, next, head){
 
         entry = xqc_list_entry(pos, xqc_http3_qpack_entry, head_list);
         if( (name_len == entry->nv.name_len &&  0 == xqc_http3_ringdata_cmp(rdata, entry->nv.name_index, name, entry->nv.name_len) ) ){
@@ -2063,8 +2063,8 @@ int xqc_http3_qpack_encoder_insert_unack_header(xqc_h3_stream_t * qenc_stream, x
 
     xqc_list_head_t * p_hb_list = &encoder->unack_stream_head;
 
-    xqc_list_head_t * pos;
-    xqc_list_for_each(pos, p_hb_list){
+    xqc_list_head_t * pos, * next;
+    xqc_list_for_each_safe(pos, next, p_hb_list){
         xqc_qpack_unack_header_block *p_ublock = xqc_list_entry(pos, xqc_qpack_unack_header_block, header_block_list);
 
         if(unack_block->min_rcnt  < p_ublock->min_rcnt){

@@ -1608,4 +1608,5 @@ int main(int argc, char *argv[]) {
 
 
     event_base_dispatch(ctx->eb);
+    xqc_engine_destroy(ctx->engine);
 }

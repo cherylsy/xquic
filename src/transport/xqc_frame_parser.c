@@ -390,10 +390,10 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     unsigned char *p_range_count;
     unsigned range_count = 0, first_ack_range, gap, acks, gap_bits, acks_bits, need;
 
-    xqc_list_head_t* pos;
+    xqc_list_head_t *pos, *next;
     xqc_pktno_range_node_t *range_node;
 
-    /*xqc_list_for_each(pos, &recv_record->list_head) {
+    /*xqc_list_for_each_safe(pos, next, &recv_record->list_head) {
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
         //printf("xqc_gen_ack_frame low:%llu, high=%llu\n", range_node->pktno_range.low, range_node->pktno_range.high);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",
@@ -401,7 +401,7 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     }*/
 
     xqc_pktno_range_node_t *first_range = NULL;
-    xqc_list_for_each(pos, &recv_record->list_head) {
+    xqc_list_for_each_safe(pos, next, &recv_record->list_head) {
         first_range = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
         break;
     }
@@ -461,7 +461,7 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     dst_buf += xqc_vint_len(first_ack_range_bits);
 
     int is_first = 1;
-    xqc_list_for_each(pos, &recv_record->list_head) { //from second node
+    xqc_list_for_each_safe(pos, next, &recv_record->list_head) { //from second node
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
 
         xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",

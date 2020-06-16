@@ -642,11 +642,11 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         } else {
             conn->last_ticked_time = now;
 
-            xqc_conn_retransmit_lost_packets(conn);
-
             if(engine->eng_callback.write_mmsg){
+                xqc_conn_retransmit_lost_packets_batch(conn);
                 xqc_conn_send_packets_batch(conn);
             }else{
+                xqc_conn_retransmit_lost_packets(conn);
                 xqc_conn_send_packets(conn);
             }
 
