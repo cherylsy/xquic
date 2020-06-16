@@ -30,40 +30,44 @@ include_directories(
     "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
+
 set(
+
     HTTP3_SOURCES
 
-    http3/xqc_h3_conn.c
-    http3/xqc_h3_stream.c
-    http3/xqc_h3_request.c
-    http3/xqc_h3_frame.c
-    http3/xqc_h3_tnode.c
-    http3/xqc_h3_qpack.c
-    http3/xqc_h3_ringbuf.c
-    http3/xqc_h3_qpack_token.c
-    http3/xqc_h3_huffman_data.c
-    http3/xqc_h3_qpack_huffman.c
+    "src/http3/xqc_h3_conn.c"
+    "src/http3/xqc_h3_stream.c"
+    "src/http3/xqc_h3_request.c"
+    "src/http3/xqc_h3_frame.c"
+    "src/http3/xqc_h3_tnode.c"
+    "src/http3/xqc_h3_qpack.c"
+    "src/http3/xqc_h3_ringbuf.c"
+    "src/http3/xqc_h3_qpack_token.c"
+    "src/http3/xqc_h3_huffman_data.c"
+    "src/http3/xqc_h3_qpack_huffman.c"
 )
 
+
 set(
+
     TRANSPORT_SOURCES
 
-    transport/xqc_engine.c
-    transport/xqc_conn.c
-    transport/xqc_client.c
-    transport/xqc_cid.c
-    transport/xqc_packet_parser.c
-    transport/xqc_frame_parser.c
-    transport/xqc_stream.c
-    transport/xqc_packet_out.c
-    transport/xqc_packet_in.c
-    transport/xqc_send_ctl.c
-    transport/xqc_packet.c
-    transport/xqc_frame.c
-    transport/xqc_recv_record.c
-    transport/xqc_wakeup_pq.c
-    transport/xqc_pacing.c
-    transport/xqc_utils.c
+    "src/transport/xqc_engine.c"
+    "src/transport/xqc_conn.c"
+    "src/transport/xqc_client.c"
+    "src/transport/xqc_cid.c"
+    "src/transport/xqc_packet_parser.c"
+    "src/transport/xqc_frame_parser.c"
+    "src/transport/xqc_stream.c"
+    "src/transport/xqc_packet_out.c"
+    "src/transport/xqc_packet_in.c"
+    "src/transport/xqc_send_ctl.c"
+    "src/transport/xqc_packet.c"
+    "src/transport/xqc_frame.c"
+    "src/transport/xqc_recv_record.c"
+    "src/transport/xqc_wakeup_pq.c"
+    "src/transport/xqc_pacing.c"
+    "src/transport/xqc_utils.c"
 
     "src/crypto/xqc_tls_init.c"
     "src/crypto/xqc_tls_0rtt.c"
@@ -83,20 +87,20 @@ set(
 set(
     COMMON_SOURCES
 
-    common/xqc_random.c
-    common/xqc_variable_len_int.c
-    common/xqc_str.c
-    common/xqc_log.c
+    "src/common/xqc_random.c"
+    "src/common/xqc_variable_len_int.c"
+    "src/common/xqc_str.c"
+    "src/common/xqc_log.c"
 )
 
 set(
     CONGESTION_CONTROL_SOURCES
 
-    congestion_control/xqc_new_reno.c
-    congestion_control/xqc_cubic.c
-    congestion_control/xqc_bbr.c
-    congestion_control/xqc_window_filter.c
-    congestion_control/xqc_sample.c
+    "src/congestion_control/xqc_new_reno.c"
+    "src/congestion_control/xqc_cubic.c"
+    "src/congestion_control/xqc_bbr.c"
+    "src/congestion_control/xqc_window_filter.c"
+    "src/congestion_control/xqc_sample.c"
 )
 
 add_library(
