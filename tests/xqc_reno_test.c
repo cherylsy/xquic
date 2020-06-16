@@ -19,12 +19,14 @@ xqc_test_reno ()
     xqc_msec_t now = xqc_now();
 
     xqc_new_reno_t reno;
-    xqc_reno_cb.xqc_cong_ctl_init(&reno);
+    xqc_msec_t delay = 100;
+    xqc_cc_params_t params = {.init_cwnd = 10};
+    xqc_reno_cb.xqc_cong_ctl_init(&reno, params);
     print_reno(&reno);
 
     //slow start
     for (int i = 0; i < 10; ++i) {
-        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, 1000);
+        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, now + delay, 1000);
         now += 1000000;
         print_reno(&reno);
     }
@@ -35,7 +37,7 @@ xqc_test_reno ()
 
     //congestion avoid
     for (int i = 0; i < 10; ++i) {
-        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, 1000);
+        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, now + delay, 1000);
         now += 1000000;
         print_reno(&reno);
     }

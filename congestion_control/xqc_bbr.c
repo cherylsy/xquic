@@ -87,7 +87,7 @@ static void xqc_bbr_init_pacing_rate(xqc_bbr_t *bbr,xqc_sample_t *sampler)
     bbr->pacing_rate = bbr->pacing_gain * bandwidth;
 }
 
-static void xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler)
+static void xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
     memset(bbr, 0, sizeof(*bbr));

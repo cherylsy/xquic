@@ -125,18 +125,25 @@ typedef struct xqc_h3_request_callbacks_s {
     xqc_h3_request_notify_pt        h3_request_close_notify; /* 关闭时回调，用户可以回收资源 */
 } xqc_h3_request_callbacks_t;
 
+typedef struct xqc_cc_params_s {
+    uint32_t    customize_on;
+    uint32_t    init_cwnd;
+    uint64_t    expect_bw;
+    uint64_t    max_expect_bw;
+} xqc_cc_params_t;
+
 typedef struct xqc_congestion_control_callback_s {
     size_t (*xqc_cong_ctl_size) ();
-    void (*xqc_cong_ctl_init) (void *cong_ctl);
+    void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_cc_params_t cc_params);
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
-    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes);
+    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t n_bytes);
     uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
     //For BBR
     void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
-    void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+    void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
     void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl);
@@ -246,11 +253,11 @@ typedef struct xqc_http_headers_s {
     size_t                  capacity; /* User does't care */
 } xqc_http_headers_t;
 
-/* For client */
 typedef struct xqc_conn_settings_s {
-    int     pacing_on; /* default: 0 */
+    int                         pacing_on; /* default: 0 */
+    int                         ping_on;    /* client sends PING to keepalive, default:0 */
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
-    int     ping_on;    /* client sends PING to keepalive, default:0 */
+    xqc_cc_params_t             cc_params;
 } xqc_conn_settings_t;
 
 typedef enum {

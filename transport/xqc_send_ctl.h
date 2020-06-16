@@ -254,7 +254,7 @@ int
 xqc_send_ctl_is_app_limited();
 
 void
-xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet);
+xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now);
 
 void
 xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl);

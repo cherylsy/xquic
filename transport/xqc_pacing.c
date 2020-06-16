@@ -10,7 +10,7 @@ xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
     pacing->next_send_time = 0;
     pacing->timer_expire = 0;
     pacing->on = pacing_on;
-    if (ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
         pacing->on = 1;
     }
 }
@@ -24,7 +24,7 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
     /* see linux kernel tcp_update_pacing_rate(struct sock *sk) */
     uint64_t pacing_rate;
     uint64_t cwnd;
-    if (ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
         pacing_rate = ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong);
         //xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|zzl-cwnd == pacing: %ui|", pacing_rate);
         return pacing_rate;
@@ -57,7 +57,7 @@ static uint64_t
 xqc_pacing_bw_estimate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
 {
     uint64_t bw_estimate;
-    if (ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
         bw_estimate = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
         return bw_estimate;
     }

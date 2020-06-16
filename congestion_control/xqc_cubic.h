@@ -5,13 +5,15 @@
 #include "include/xquic.h"
 
 typedef struct {
-    uint64_t        cwnd;
-    uint64_t        tcp_cwnd; /* 按照Reno算法计算得的cwnd */
-    uint64_t        last_max_cwnd;
-    uint64_t        ssthresh;
-    uint64_t        bic_origin_point; /* 新的Wmax保活点 */
-    double          bic_K;
+    uint32_t        init_cwnd;
+    uint32_t        cwnd;       /* 当前的窗口大小 */
+    uint32_t        tcp_cwnd;   /* 按照Reno算法计算得的cwnd */
+    uint32_t        last_max_cwnd; /* 丢包降窗前的窗口 */
+    uint32_t        ssthresh;   /* 慢启动阈值 */
+    uint32_t        bic_origin_point; /* Wmax饱和点 */
+    double          bic_K;      /* 代表从W增长到Wmax的时间周期 */
     xqc_msec_t      epoch_start; /* 拥塞状态切换开始的时刻 */
+    xqc_msec_t      min_rtt;
 } xqc_cubic_t;
 
 extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;

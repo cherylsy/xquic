@@ -56,9 +56,10 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     send_ctl->ctl_cong = xqc_pcalloc(conn->conn_pool, send_ctl->ctl_cong_callback->xqc_cong_ctl_size());
 
     if (conn->conn_settings.cong_ctrl_callback.xqc_cong_ctl_init_bbr) {
-        send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr(send_ctl->ctl_cong, &send_ctl->sampler);
+        send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr(send_ctl->ctl_cong,
+                                                           &send_ctl->sampler, conn->conn_settings.cc_params);
     } else {
-        send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong);
+        send_ctl->ctl_cong_callback->xqc_cong_ctl_init(send_ctl->ctl_cong, conn->conn_settings.cc_params);
     }
 
     xqc_pacing_init(&send_ctl->ctl_pacing, conn->conn_settings.pacing_on, send_ctl);
@@ -164,7 +165,7 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn){
     xqc_bbr_t *bbr = NULL;
     int mode = 0;
     xqc_msec_t min_rtt = 0;
-    if(conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr){
+    if(conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_bbr){
         bbr = (xqc_bbr_t*)(conn_send_ctl->ctl_cong);
         bw = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(conn_send_ctl->ctl_cong);
         pacing_rate = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(conn_send_ctl->ctl_cong);
@@ -496,7 +497,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
             }
 
-            xqc_send_ctl_on_packet_acked(ctl, packet_out);
+            xqc_send_ctl_on_packet_acked(ctl, packet_out, ack_recv_time);
 
             //remove from unacked list
             xqc_send_ctl_remove_unacked(packet_out, ctl);
@@ -843,7 +844,7 @@ xqc_send_ctl_is_app_limited()
  * OnPacketAckedCC
  */
 void
-xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet)
+xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now)
 {
     xqc_stream_t *stream;
     xqc_packet_out_t *packet_out = acked_packet;
@@ -911,7 +912,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
 
     if (ctl->ctl_cong_callback->xqc_cong_ctl_on_ack) {
         ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet->po_sent_time,
-                                                    acked_packet->po_used_size);
+                                                    now, acked_packet->po_used_size);
     }
 }
 
