@@ -80,6 +80,8 @@ set(test_TLS_REKEY
   xqc_tls_cb_test.c
 )
 
+include_directories(${CMAKE_SOURCE_DIR}/libs/openssl/include/ )
+
 add_executable(run_xqc_tests
   ${test_SOURCES}
 )
