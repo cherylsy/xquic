@@ -4,124 +4,67 @@ project (xquic)
 set (xquic_VERSION_MAJOR 0)
 set (xquic_VERSION_MINOR 1)
 
-set(CMAKE_C_STANDARD 11 )
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(XQC_BINARY_TYPE SHARED)
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-set(COMMON_FLAGS            "-Wall -Wno-deprecated  -Wno-unused -Wno-unused-variable -Wno-pointer-sign -Wno-format-security ")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC ")
 
-set(COMMON_RELEASE_FLAGS    "-DNDEBUG")
-set(COMMON_MIN_FLAGS        " ${COMMON_RELEASE_FLAGS} -Os -ffunction-sections -fdata-sections -fvisibility=hidden")
-set(COMMON_DEBUG_FLAGS      " -O0")
-if(GCOV)
-    set(COMMON_DEBUG_FLAGS "${COMMON_DEBUG_FksLAGS} -fprofile-arcs -ftest-coverage")
+if(GCOV STREQUAL "on")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
 endif()
 
-if (CMAKE_BUILD_TYPE STREQUAL Release)
-    set(DYNAMIC_COMPILE_FLAGS ${COMMON_RELEASE_FLAGS})
-elseif(CMAKE_BUILD_TYPE STREQUAL Debug)
-    set(DYNAMIC_COMPILE_FLAGS ${COMMON_DEBUG_FLAGS})
-elseif(CMAKE_BUILD_TYPE STREQUAL Minsizerel)
-    set(DYNAMIC_COMPILE_FLAGS ${COMMON_MIN_FLAGS})
-	set(DYMAMIC_LINK_OPTION "-Wl,--gc-sections")
-endif()
-
-
-add_custom_target(xquic_global)
-
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} ${DYNAMIC_COMPILE_FLAGS}")
-
-if(ANDROID)
-    set(DYMAMIC_LINK_OPTION 
-		${DYMAMIC_LINK_OPTION}
-		-lm
-		-llog)
-    if(NOT ANDROID_TOOLCHAIN_ROOT)
-        message(FATAL_ERROR  "You Must Define DANDROID_TOOLCHAIN_ROOT")
+if(ANDROID_ABI OR PLATFORM MATCHES "mac")
+    if(PLATFORM STREQUAL "mac32")
+        set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
     endif()
 endif()
+
+configure_file (
+    xqc_configure.h.in
+    xqc_configure.h
+)
 
 include(CMakeOptions.txt)
 
-if (XQC_BUILD_OPENSSL)
-    if(XQC_OPENSSL_IS_BORINGSSL) 
-        add_subdirectory(third_party/boringssl)
-        include_directories(third_party/boringssl/include)
-        if (BORINGSSL_PREFIX)
-            add_definitions(-DBORINGSSL_PREFIX=${BORINGSSL_PREFIX})
-            add_dependencies(xquic_global boringssl_prefix_symbols)
-            include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/boringssl/symbol_prefix_include)
-        endif()
-    else()
-        set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
-        add_subdirectory(external/openssl-cmake)
-    endif()
-    set(DYMAMIC_LINK_OPTION 
-            ssl 
-            crypto 
-            ${DYMAMIC_LINK_OPTION}
-        )
-elseif(XQC_EXISTS_OPENSSL)
-    if(not XQC_EXISTS_OPENSSL_INCLUDE_DIR or not XQC_EXISTS_OPENSSL_BINARY )
-        message(FATAL_ERROR  "You Must DEFINE XQC_EXISTS_OPENSSL_INCLUDE_DIR and XQC_EXISTS_OPENSSL_BINARY")
-    endif()
-    include_directories(XQC_EXISTS_OPENSSL_INCLUDE_DIR)
-    set(DYMAMIC_LINK_OPTION "${XQC_EXISTS_OPENSSL_BINARY} ${DYMAMIC_LINK_OPTION}")
-else()
-    message(FATAL_ERROR  "There Must Exists one tls impl")
-endif()
-
-
-configure_file (xqc_configure.h.in include/xquic/xqc_configure.h  @ONLY)
-
 include_directories(
-    include/ 
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${CMAKE_CURRENT_BINARY_DIR}/include
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
 set(
-
     HTTP3_SOURCES
 
-    "src/http3/xqc_h3_conn.c"
-    "src/http3/xqc_h3_stream.c"
-    "src/http3/xqc_h3_request.c"
-    "src/http3/xqc_h3_frame.c"
-    "src/http3/xqc_h3_tnode.c"
-    "src/http3/xqc_h3_qpack.c"
-    "src/http3/xqc_h3_ringbuf.c"
-    "src/http3/xqc_h3_qpack_token.c"
-    "src/http3/xqc_h3_huffman_data.c"
-    "src/http3/xqc_h3_qpack_huffman.c"
+    http3/xqc_h3_conn.c
+    http3/xqc_h3_stream.c
+    http3/xqc_h3_request.c
+    http3/xqc_h3_frame.c
+    http3/xqc_h3_tnode.c
+    http3/xqc_h3_qpack.c
+    http3/xqc_h3_ringbuf.c
+    http3/xqc_h3_qpack_token.c
+    http3/xqc_h3_huffman_data.c
+    http3/xqc_h3_qpack_huffman.c
 )
 
 set(
-
     TRANSPORT_SOURCES
 
-    "src/transport/xqc_engine.c"
-    "src/transport/xqc_conn.c"
-    "src/transport/xqc_client.c"
-    "src/transport/xqc_cid.c"
-    "src/transport/xqc_packet_parser.c"
-    "src/transport/xqc_frame_parser.c"
-    "src/transport/xqc_stream.c"
-    "src/transport/xqc_packet_out.c"
-    "src/transport/xqc_packet_in.c"
-    "src/transport/xqc_send_ctl.c"
-    "src/transport/xqc_packet.c"
-    "src/transport/xqc_frame.c"
-    "src/transport/xqc_recv_record.c"
-    "src/transport/xqc_wakeup_pq.c"
-    "src/transport/xqc_pacing.c"
-    "src/transport/xqc_utils.c"
-    )
+    transport/xqc_engine.c
+    transport/xqc_conn.c
+    transport/xqc_client.c
+    transport/xqc_cid.c
+    transport/xqc_packet_parser.c
+    transport/xqc_frame_parser.c
+    transport/xqc_stream.c
+    transport/xqc_packet_out.c
+    transport/xqc_packet_in.c
+    transport/xqc_send_ctl.c
+    transport/xqc_packet.c
+    transport/xqc_frame.c
+    transport/xqc_recv_record.c
+    transport/xqc_wakeup_pq.c
+    transport/xqc_pacing.c
+    transport/xqc_utils.c
 
-
-set (
-    CRYPTO_SOURCE
     "src/crypto/xqc_tls_init.c"
     "src/crypto/xqc_tls_0rtt.c"
     "src/crypto/xqc_tls_if.c"
@@ -131,90 +74,168 @@ set (
     "src/crypto/xqc_transport_params.c"
     "src/crypto/xqc_crypto.c"
     "src/crypto/xqc_tls_cb.c"
-)
-
-if(XQC_OPENSSL_IS_BORINGSSL)
-set (
-    CRYPTO_SOURCE 
-    ${CRYPTO_SOURCE}
-    "src/crypto/boringssl/xqc_hkdf.c"
-    "src/crypto/boringssl/xqc_crypto.c"
-    "src/crypto/boringssl/xqc_tls_if.c"
-)
-else()
-set(
-    CRYPTO_SOURCE 
-    ${CRYPTO_SOURCE}
     "src/crypto/openssl/xqc_hkdf.c"
     "src/crypto/openssl/xqc_crypto.c"
     "src/crypto/openssl/xqc_tls_if.c"
-)
-endif()
+
+    )
 
 set(
     COMMON_SOURCES
 
-    "src/common/xqc_random.c"
-    "src/common/xqc_variable_len_int.c"
-    "src/common/xqc_str.c"
-    "src/common/xqc_log.c"
+    common/xqc_random.c
+    common/xqc_variable_len_int.c
+    common/xqc_str.c
+    common/xqc_log.c
 )
 
 set(
     CONGESTION_CONTROL_SOURCES
 
-    "src/congestion_control/xqc_new_reno.c"
-    "src/congestion_control/xqc_cubic.c"
-    "src/congestion_control/xqc_bbr.c"
-    "src/congestion_control/xqc_window_filter.c"
-    "src/congestion_control/xqc_sample.c"
-
+    congestion_control/xqc_new_reno.c
+    congestion_control/xqc_cubic.c
+    congestion_control/xqc_bbr.c
+    congestion_control/xqc_window_filter.c
+    congestion_control/xqc_sample.c
 )
-
-if (XQC_NO_SHARED)
-    set(XQC_BINARY_TYPE STATIC)
-endif()
 
 add_library(
     xquic
-    ${XQC_BINARY_TYPE}
+
+    #STATIC
+    SHARED
+
+
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
-    ${CRYPTO_SOURCE}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )
 
-add_dependencies(xquic xquic_global)
+add_library(
+    xquic_openssl
 
-if (NOT XQC_NO_SHARED)
-target_link_libraries(
-    xquic 
-    ${DYMAMIC_LINK_OPTION}
-    -pthread
+    #STATIC
+    SHARED
+    ${HTTP3_SOURCES}
+    ${TRANSPORT_SOURCES}
+    ${COMMON_SOURCES}
+    ${CONGESTION_CONTROL_SOURCES}
 )
+
+
+if(ANDROID_ABI STREQUAL "arm64-v8a")
+    target_link_libraries(
+       xquic
+       "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
+       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
+       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
+       "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libcrypto.a
+            "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(ANDROID_ABI STREQUAL "x86")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,--whole-archive"
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-x86/lib/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-x86/lib/libcrypto.a
+            "-Wl,--no-whole-archive"
+    )
+    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
+    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
+elseif(PLATFORM MATCHES "mac")
+    target_link_libraries(
+            xquic
+            "-ldl -Wl,-all_load"
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+            "-Wl,-noall_load"
+            -lpthread
+    )
+else()
+    target_link_libraries(
+        xquic
+        "-ldl -Wl,--whole-archive"
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        "-Wl,--no-whole-archive"
+        -lpthread
+    )
+
+    target_link_libraries(
+        xquic_openssl
+        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/script/xquic.lds"
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        "-Wl,--no-whole-archive"
+        -lpthread
+    )
+
 endif()
 
-if (XQC_ENABLE_TESTING)
-    set(CMAKE_MODULE_PATH       "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-    find_package(CUnit REQUIRED)
-    include_directories(${CUNIT_INCLUDE_DIR})
-    enable_testing()
-    add_subdirectory(tests)
+# Strip binary for release builds
+if (CMAKE_BUILD_TYPE STREQUAL Release)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND ${CMAKE_STRIP} libxquic.so)
+endif ()
+
+##### for unit test #########
+find_package(CUnit 2.1)
+enable_testing()
+set(HAVE_CUNIT ${CUNIT_FOUND})
+if(HAVE_CUNIT)
+  add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND})
 endif()
 
-if (XQC_BUILD_SAMPLE)
-    add_subdirectory(third_party/libevent)
-    include_directories(third_party/libevent/include  ${CMAKE_CURRENT_BINARY_DIR}/third_party/libevent/include )
-    add_executable(test_client tests/test_client.c)
-    add_executable(test_server tests/test_server.c)
-    add_executable(test_qpack_server tests/test_qpack_server.c)
-    add_executable(test_qpack_client tests/test_qpack_client.c)
-    add_executable(xquic_bench benchmark/xquic_bench.c)
-    target_link_libraries(test_client xquic event )
-    target_link_libraries(test_server xquic event)
-    target_link_libraries(test_qpack_server xquic event )
-    target_link_libraries(test_qpack_client xquic event)
-    target_link_libraries(xquic_bench xquic event)
+add_subdirectory(tests)
+
+add_executable(test_server tests/test_server.c)
+add_executable(test_client tests/test_client.c)
+add_executable(test_qpack_server tests/test_qpack_server.c)
+add_executable(test_qpack_client tests/test_qpack_client.c)
+add_executable(test_qpack_fuzzing tests/test_qpack_fuzzing.c)
+add_executable(xquic_bench benchmark/xquic_bench.c)
+#add_executable(xquic_client tests/axp/xquic_client.c tests/axp/axquic.c)
+#add_executable(xquic_server tests/axp/xquic_server.c tests/axp/axquic.c)
+#add_executable(test        tests/main.c)
+
+include_directories( /usr/local/include )
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
+include_directories(./transport/crypto/)
+include_directories(${CMAKE_SOURCE_DIR}/)
+link_directories( /usr/local/lib )
+link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
+
+if(PLATFORM STREQUAL "mac32")
+    target_link_libraries(test_server xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
+    target_link_libraries(test_client xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
+else()
+    target_link_libraries(test_server xquic -levent -lm)
+    target_link_libraries(test_client xquic -levent -lm)
 endif()
+
+target_link_libraries(test_qpack_client xquic -levent -lm)
+target_link_libraries(test_qpack_server xquic -levent -lm)
+target_link_libraries(test_qpack_fuzzing xquic -levent -lm)
+target_link_libraries(xquic_bench xquic -levent -lm)
+
+#target_link_libraries(xquic_client xquic -levent -lm)
+#target_link_libraries(xquic_server xquic -levent -lm)
+#target_link_libraries(test xquic -lssl )
+#target_link_libraries(test xquic -lcrypto)
+
 
