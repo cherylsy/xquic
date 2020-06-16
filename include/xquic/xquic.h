@@ -142,9 +142,9 @@ typedef struct xqc_congestion_control_callback_s {
     void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl);
 } xqc_cong_ctrl_callback_t;
 
-extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
-extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;
-extern const xqc_cong_ctrl_callback_t xqc_reno_cb;
+XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
+XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;
+XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_reno_cb;
 
 /**
  * @struct xqc_config_t
