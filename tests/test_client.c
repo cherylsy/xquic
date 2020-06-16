@@ -552,7 +552,7 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
         printf(">>>>>>>> pass:%d\n", pass);
     }
     if (g_test_case == 14/*测试秒开率*/ ) {
-        printf("first_frame_time: %llu, start_time: %llu\n", user_stream->first_frame_time, user_stream->start_time);
+        printf("first_frame_time: %"PRIu64", start_time: %"PRIu64"\n", user_stream->first_frame_time, user_stream->start_time);
         xqc_msec_t t = user_stream->first_frame_time - user_stream->start_time + 200000/*服务端处理耗时*/;
         printf("\033[33m>>>>>>>> first_frame pass:%d time:%"PRIu64"\033[0m\n", t <= 1000000 ? 1 : 0, t);
     }
