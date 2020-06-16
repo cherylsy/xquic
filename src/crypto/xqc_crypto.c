@@ -13,7 +13,7 @@ xqc_null_aead_encrypt(const xqc_aead_t * ctx,uint8_t *dest, size_t destlen, cons
     if(XQC_LIKELY(dest != plaintext)) {
         memmove(dest,plaintext,plaintextlen);
     }
-    return plaintextlen + xqc_crypto_overhead(ctx,plaintextlen);
+    return plaintextlen + xqc_aead_overhead(ctx,plaintextlen);
 }
 
 static
@@ -23,7 +23,7 @@ xqc_null_aead_decrypt(const xqc_aead_t * ctx,uint8_t *dest, size_t destlen, cons
             size_t keylen, const uint8_t *nonce, size_t noncelen,
             const uint8_t *ad, size_t adlen)
 {
-    size_t length = ciphertextlen - xqc_crypto_overhead(ctx,ciphertextlen);
+    size_t length = ciphertextlen - xqc_aead_overhead(ctx,ciphertextlen);
     if(XQC_LIKELY(dest != ciphertext)) {
         memmove(dest,ciphertext,length);
     }

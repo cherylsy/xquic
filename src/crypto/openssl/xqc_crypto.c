@@ -78,9 +78,9 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
         const uint8_t *ad, size_t adlen)
 {
 
-    ssize_t taglen = xqc_crypto_taglen(aead);
+    ssize_t taglen = xqc_aead_taglen(aead);
 
-    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_crypto_overhead(aead,destlen) ) {
+    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead,destlen) ) {
         return -1;
     }
 
@@ -144,7 +144,7 @@ xqc_ossl_aead_encrypt(const xqc_aead_t * aead,uint8_t *dest, size_t destlen, con
         const uint8_t *ad, size_t adlen)
 {
 
-    ssize_t taglen = xqc_crypto_taglen(aead);
+    ssize_t taglen = xqc_aead_taglen(aead);
     // not enough space 
     if( destlen <  plaintextlen + xqc_aead_overhead(aead,plaintextlen) ) {
         return -1;

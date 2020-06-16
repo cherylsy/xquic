@@ -33,17 +33,9 @@ typedef struct xqc_crypto_st        xqc_crypto_t ;
 #define xqc_crypto_key_length(obj)      ((obj)->keylen)
 #define xqc_crypto_iv_length(obj)       ((obj)->noncelen)
 
-// 加密开销，一般来说是受影响的因素包括padding大小和tag的长度。
-#define xqc_crypto_overhead(obj,cln)    _Generic((obj),         \
-    const xqc_crypto_t *  :  xqc_cipher_overhead(obj,cln),      \
-    const xqc_aead_t *    :  xqc_aead_overhead(obj,cln)         \
-)              
 
 // tag长度,一般我们不会对crypto求taglen，因为是没有意义的。这里的0后续可以修改为 XQC_UN_REACHABLE
-#define xqc_crypto_taglen(obj)          _Generic((obj),         \
-    const xqc_crypto_t *   :  0 ,                               \
-    const xqc_aead_t *     :  (obj)->taglen                     \
-)
+#define xqc_aead_taglen(obj)         (obj)->taglen
 
 // 这里我们暂时只需要如下几种加密算法的实现
 // 所有的初始化都需要完整的填充所有数据。
