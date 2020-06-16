@@ -4,6 +4,8 @@ android_archs=(armeabi-v7a arm64-v8a x86_64)
 ios_archs=(armv7 arm64 x86_64)
 cur_dir=$(cd "$(dirname "$0")";pwd)
 
+cp -f $cur_dir/cmake/CMakeLists.txt  $cur_dir/CMakeLists.txt 
+
 platform=$1
 build_dir=$2
 artifact_dir=$3
