@@ -1,11 +1,11 @@
 #ifndef xqc_common_test_h
 #define xqc_common_test_h
 
-#include "common/xqc_queue.h"
-#include "common/xqc_hash.h"
-#include "include/xquic.h"
-#include "common/xqc_log.h"
-#include "transport/xqc_engine.h"
+#include "src/common/xqc_queue.h"
+#include "src/common/xqc_hash.h"
+#include "xquic/xquic.h"
+#include "src/common/xqc_log.h"
+#include "src/transport/xqc_engine.h"
 
 void xqc_test_common();
 

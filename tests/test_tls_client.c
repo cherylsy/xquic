@@ -5,14 +5,13 @@
 #include <CUnit/Basic.h>
 #include <CUnit/CUnit.h>
 
-#include "xqc_cmake_config.h"
-#include "include/xquic.h"
+#include "xquic/xquic.h"
 #include <event2/event.h>
 #include <memory.h>
-#include "xqc_tls_init.h"
-#include "transport/crypto/xqc_tls_public.h"
-#include "include/xquic_typedef.h"
-#include "transport/xqc_conn.h"
+#include "src/crypto/xqc_tls_init.h"
+#include "src/crypto/xqc_tls_public.h"
+#include "xquic/xquic_typedef.h"
+#include "src/transport/xqc_conn.h"
 
 
 
@@ -63,7 +62,7 @@ int send_buf_packet( xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encryp
             hex_print(pkt_header, TEST_PKT_HEADER_LEN);
 #endif
 
-            printf("do encrypt %d bytes\n", buf->data_len);
+            printf("do encrypt %zu bytes\n", buf->data_len);
             hex_print(pkt_data, buf->data_len);
 
             size_t nwrite = encrypt_func(conn, pkt_data, sizeof(send_buf) - TEST_PKT_HEADER_LEN, pkt_data, buf->data_len, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_header, TEST_PKT_HEADER_LEN, NULL);
@@ -77,7 +76,7 @@ int send_buf_packet( xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encryp
             hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
 #endif
             int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
-            printf("client send data:%d\n", nwrite + TEST_PKT_HEADER_LEN);
+            printf("client send data:%lu\n", nwrite + TEST_PKT_HEADER_LEN);
             hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
 
             buf->data_len  = 0;

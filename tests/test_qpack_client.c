@@ -7,13 +7,13 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include "include/xquic.h"
-#include "http3/xqc_h3_frame.h"
-#include "http3/xqc_h3_stream.h"
-#include "http3/xqc_h3_qpack.h"
-#include "http3/xqc_h3_conn.h"
-#include "http3/xqc_h3_request.h"
-#include "include/xquic_typedef.h"
+#include "xquic/xquic.h"
+#include "src/http3/xqc_h3_frame.h"
+#include "src/http3/xqc_h3_stream.h"
+#include "src/http3/xqc_h3_qpack.h"
+#include "src/http3/xqc_h3_conn.h"
+#include "src/http3/xqc_h3_request.h"
+#include "xquic/xquic_typedef.h"
 
 int printf_null(const char *format, ...)
 {

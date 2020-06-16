@@ -11,11 +11,11 @@
 #include <inttypes.h>
 #include <pthread.h>
 //#include <cstdio>
-#include "include/xquic.h"
-#include "include/xquic_typedef.h"
-#include "transport/crypto/xqc_tls_public.h"
-#include "transport/xqc_conn.h"
-#include "transport/xqc_engine.h"
+#include <xquic/xquic.h>
+#include <xquic/xquic_typedef.h>
+#include "src/crypto/xqc_tls_public.h"
+#include "src/transport/xqc_conn.h"
+#include "src/transport/xqc_engine.h"
 
 //#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 

@@ -1,16 +1,16 @@
 
 #include <CUnit/CUnit.h>
-#include "include/xquic.h"
-#include "transport/xqc_packet.h"
-#include "common/xqc_log.h"
-#include "transport/xqc_engine.h"
-#include "transport/xqc_cid.h"
-#include "include/xquic_typedef.h"
-#include "common/xqc_str.h"
-#include "common/xqc_timer.h"
-#include "transport/xqc_conn.h"
-#include "congestion_control/xqc_new_reno.h"
-#include "transport/xqc_packet_parser.h"
+#include "xquic/xquic.h"
+#include "src/transport/xqc_packet.h"
+#include "src/common/xqc_log.h"
+#include "src/transport/xqc_engine.h"
+#include "src/transport/xqc_cid.h"
+#include "xquic/xquic_typedef.h"
+#include "src/common/xqc_str.h"
+#include "src/common/xqc_timer.h"
+#include "src/transport/xqc_conn.h"
+#include "src/congestion_control/xqc_new_reno.h"
+#include "src/transport/xqc_packet_parser.h"
 #include "xqc_common_test.h"
 
 
