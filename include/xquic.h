@@ -128,8 +128,8 @@ typedef struct xqc_h3_request_callbacks_s {
 typedef struct xqc_cc_params_s {
     uint32_t    customize_on;
     uint32_t    init_cwnd;
-    uint64_t    expect_bw;
-    uint64_t    max_expect_bw;
+    uint32_t    expect_bw;
+    uint32_t    max_expect_bw;
 } xqc_cc_params_t;
 
 typedef struct xqc_congestion_control_callback_s {
