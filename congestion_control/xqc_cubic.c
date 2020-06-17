@@ -1,20 +1,21 @@
+/*
+ * CUBIC based on https://tools.ietf.org/html/rfc8312
+ */
 
 #include "xqc_cubic.h"
 #include <math.h>
 
-/* https://tools.ietf.org/html/rfc8312 */
+#define XQC_FAST_CONVERGENCE    1
+#define XQC_MSS                 1232
+#define XQC_BETA_CUBIC          718     // 718/1024=0.7 浮点运算性能差，避免浮点运算
+#define XQC_BETA_CUBIC_SCALE    1024
+#define XQC_C_CUBIC             410     // 410/1024=0.4
+#define XQC_CUBE_SCALE          40      // 2^40=1024 * 1024^3
+#define XQC_MICROS_PER_SECOND   1000000 // 1s=1000000us
 
-#define XQC_FAST_CONVERGENCE 1
-#define XQC_MSS 1232
-#define XQC_BETA_CUBIC 718 // 718/1024=0.7 浮点运算性能差，避免浮点运算
-#define XQC_BETA_CUBIC_SCALE 1024
-#define XQC_C_CUBIC 410 // 410/1024=0.4
-#define XQC_CUBE_SCALE 40 //2^40=1024 * 1024^3
-#define XQC_MICROS_PER_SECOND 1000000 //1s=1000000us
-
-#define XQC_kMinWindow (4 * XQC_MSS)
-#define XQC_kMaxWindow (100 * XQC_MSS)
-#define XQC_kInitialWindow (32 * XQC_MSS)
+#define XQC_kMinWindow          (4 * XQC_MSS)
+#define XQC_kMaxWindow          (100 * XQC_MSS)
+#define XQC_kInitialWindow      (32 * XQC_MSS)
 
 #define xqc_max(a, b) ((a) > (b) ? (a) : (b))
 #define xqc_min(a, b) ((a) < (b) ? (a) : (b))
@@ -35,7 +36,7 @@ static void
 xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_msec_t now)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
-    uint64_t t; //ms
+    uint64_t t; //单位ms
     uint64_t offs; // offs = |t - K|
     // delta = C*(t-K)^3
     uint64_t delta, bic_target;
@@ -117,8 +118,9 @@ xqc_cubic_init (void *cong_ctl, xqc_cc_params_t cc_params)
     }
 }
 
-/* https://tools.ietf.org/html/rfc8312#section-4.6
- * Fast Convergence & Multiplicative Decrease */
+/*
+ * Decrease CWND when lost detected
+ */
 static void
 xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
 {
@@ -142,6 +144,9 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
     cubic->ssthresh = xqc_max(cubic->cwnd, XQC_kMinWindow);
 }
 
+/*
+ * Increase CWND when packet acked
+ */
 static void
 xqc_cubic_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t acked_bytes)
 {
