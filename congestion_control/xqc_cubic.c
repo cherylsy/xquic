@@ -3,17 +3,24 @@
 #include <math.h>
 
 /* https://tools.ietf.org/html/rfc8312 */
+
+#define XQC_FAST_CONVERGENCE 1
 #define XQC_MSS 1232
-#define XQC_BETA_CUBIC 0.7f
-#define XQC_C_CUBIC 0.4f
+#define XQC_BETA_CUBIC 718 // 718/1024=0.7 浮点运算性能差，避免浮点运算
+#define XQC_BETA_CUBIC_SCALE 1024
+#define XQC_C_CUBIC 410 // 410/1024=0.4
+#define XQC_CUBE_SCALE 40 //2^40=1024 * 1024^3
+#define XQC_MICROS_PER_SECOND 1000000 //1s=1000000us
 
 #define XQC_kMinWindow (4 * XQC_MSS)
 #define XQC_kMaxWindow (100 * XQC_MSS)
 #define XQC_kInitialWindow (32 * XQC_MSS)
 
 #define xqc_max(a, b) ((a) > (b) ? (a) : (b))
+#define xqc_min(a, b) ((a) < (b) ? (a) : (b))
 
-static int fast_convergence = 1;
+const static uint64_t cube_factor =
+        (1ull << XQC_CUBE_SCALE) / XQC_C_CUBIC / XQC_MSS;
 
 /*
  * Compute congestion window to use.
@@ -25,13 +32,13 @@ static int fast_convergence = 1;
  * beta为窗口降低系数
  */
 static void
-xqc_cubic_update(void *cong_ctl, uint32_t n_bytes, xqc_msec_t now)
+xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_msec_t now)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
-    double offs; /* offs = |t - K| */
-    /* delta = C*(t-K)^3 */
-    uint32_t delta, bic_target;
-    double t;
+    uint64_t t; //ms
+    uint64_t offs; // offs = |t - K|
+    // delta = C*(t-K)^3
+    uint64_t delta, bic_target;
 
     // First ACK after a loss event.
     if (cubic->epoch_start == 0) {
@@ -43,21 +50,28 @@ xqc_cubic_update(void *cong_ctl, uint32_t n_bytes, xqc_msec_t now)
             cubic->bic_K = 0;
             cubic->bic_origin_point = cubic->cwnd;
         } else {
-            cubic->bic_K = cbrt((double)(cubic->last_max_cwnd - cubic->cwnd) / XQC_C_CUBIC / XQC_MSS);
+            /* K = cubic_root(W_max*(1-beta_cubic)/C) = cubic_root((W_max-cwnd)/C)
+             * cube_factor = (1ull << XQC_CUBE_SCALE) / XQC_C_CUBIC / XQC_MSS
+             *             = 2^40 / (410 * MSS) = 2^30 / (410/1024*MSS)
+             *             = 2^30 / (C*MSS)
+             */
+            cubic->bic_K = cbrt(cube_factor * (cubic->last_max_cwnd - cubic->cwnd));
             cubic->bic_origin_point = cubic->last_max_cwnd;
         }
     }
 
-    t = (double)(now + cubic->min_rtt - cubic->epoch_start) / 1000000.f;
+    // t = elapsed_time * 1024 / 1000000 微秒转换为毫秒，乘1024为了后面能用位操作
+    t = (now + cubic->min_rtt - cubic->epoch_start) << 10 / XQC_MICROS_PER_SECOND;
 
-    /* 求| t - bic_K |  */
+    // 求|t - K|
     if (t < cubic->bic_K) {
         offs = cubic->bic_K - t;
     } else {
         offs = t - cubic->bic_K;
     }
 
-    delta = XQC_C_CUBIC * offs * offs * offs * XQC_MSS;
+    // delta = 410/1024 * off/1024 * off/1024 * off/1024 * MSS
+    delta = (XQC_C_CUBIC * offs * offs * offs * XQC_MSS) >> XQC_CUBE_SCALE;
 
     if (t < cubic->bic_K) {
         bic_target = cubic->bic_origin_point - delta;
@@ -65,9 +79,12 @@ xqc_cubic_update(void *cong_ctl, uint32_t n_bytes, xqc_msec_t now)
         bic_target = cubic->bic_origin_point + delta;
     }
 
-    if (cubic->tcp_cwnd > bic_target) {
-        bic_target = cubic->tcp_cwnd;
-    }
+    /* CUBIC最大增长速率为1.5x per RTT. 即每2个ack增加1个窗口
+	 */
+    bic_target = xqc_min(bic_target, cubic->cwnd + acked_bytes / 2);
+
+    // 取TCP reno的cwnd 和 cubic的cwnd 的最大值
+    bic_target = xqc_max(cubic->tcp_cwnd, bic_target);
 
     if (bic_target == 0) {
         bic_target = cubic->init_cwnd;
@@ -86,18 +103,18 @@ static void
 xqc_cubic_init (void *cong_ctl, xqc_cc_params_t cc_params)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
+    cubic->epoch_start = 0;
+    cubic->cwnd = XQC_kInitialWindow;
+    cubic->tcp_cwnd = XQC_kInitialWindow;
+    cubic->last_max_cwnd = XQC_kInitialWindow;
+    cubic->ssthresh = 0xFFFFFFFF;
+
     if (cc_params.customize_on) {
         cc_params.init_cwnd *= XQC_MSS;
         cubic->init_cwnd =
                 cc_params.init_cwnd >= XQC_kMinWindow && cc_params.init_cwnd <= XQC_kMaxWindow ?
                 cc_params.init_cwnd : XQC_kInitialWindow;
     }
-
-    cubic->epoch_start = 0;
-    cubic->cwnd = cubic->init_cwnd;
-    cubic->tcp_cwnd = cubic->init_cwnd;
-    cubic->last_max_cwnd = cubic->init_cwnd;
-    cubic->ssthresh = 0xFFFFFFFF;
 }
 
 /* https://tools.ietf.org/html/rfc8312#section-4.6
@@ -110,22 +127,23 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
     cubic->epoch_start = 0;
 
     // should we make room for others
-    if (fast_convergence && cubic->cwnd < cubic->last_max_cwnd){
+    if (XQC_FAST_CONVERGENCE && cubic->cwnd < cubic->last_max_cwnd){
         cubic->last_max_cwnd = cubic->cwnd;
-        cubic->cwnd = cubic->cwnd * (1.0f + XQC_BETA_CUBIC) / 2.0f;
+        //cubic->cwnd = cubic->cwnd * (1.0f + XQC_BETA_CUBIC) / 2.0f
+        cubic->cwnd = cubic->cwnd * (XQC_BETA_CUBIC_SCALE + XQC_BETA_CUBIC) / 2 / XQC_BETA_CUBIC_SCALE;
     } else {
         cubic->last_max_cwnd = cubic->cwnd;
     }
 
     //Multiplicative Decrease
-    cubic->cwnd *= XQC_BETA_CUBIC;
+    cubic->cwnd = cubic->cwnd * XQC_BETA_CUBIC / XQC_BETA_CUBIC_SCALE;
     cubic->tcp_cwnd = cubic->cwnd;
     //threshold is at least XQC_kMinWindow
     cubic->ssthresh = xqc_max(cubic->cwnd, XQC_kMinWindow);
 }
 
 static void
-xqc_cubic_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t n_bytes)
+xqc_cubic_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t acked_bytes)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
 
@@ -141,8 +159,8 @@ xqc_cubic_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t
         cubic->cwnd += XQC_MSS;
     } else {
         //congestion avoidance
-        cubic->tcp_cwnd += XQC_MSS * n_bytes / cubic->tcp_cwnd;
-        xqc_cubic_update(cong_ctl, n_bytes, sent_time);
+        cubic->tcp_cwnd += XQC_MSS * acked_bytes / cubic->tcp_cwnd;
+        xqc_cubic_update(cong_ctl, acked_bytes, now);
     }
 }
 
