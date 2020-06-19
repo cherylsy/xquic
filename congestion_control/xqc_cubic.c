@@ -3,25 +3,25 @@
  */
 
 #include "xqc_cubic.h"
+#include "common/xqc_config.h"
 #include <math.h>
 
 #define XQC_FAST_CONVERGENCE    1
-#define XQC_MSS                 1232
+#define XQC_CUBIC_MSS           1460
 #define XQC_BETA_CUBIC          718     // 718/1024=0.7 浮点运算性能差，避免浮点运算
 #define XQC_BETA_CUBIC_SCALE    1024
 #define XQC_C_CUBIC             410     // 410/1024=0.4
-#define XQC_CUBE_SCALE          40      // 2^40=1024 * 1024^3
+#define XQC_CUBE_SCALE          40u     // 2^40=1024 * 1024^3
 #define XQC_MICROS_PER_SECOND   1000000 // 1s=1000000us
+#define XQC_TIME_SCALE          10u
+#define XQC_MAX_SSTHRESH        0xFFFFFFFF
 
-#define XQC_kMinWindow          (4 * XQC_MSS)
-#define XQC_kMaxWindow          (100 * XQC_MSS)
-#define XQC_kInitialWindow      (32 * XQC_MSS)
+#define XQC_kMinWindow          (4 * XQC_CUBIC_MSS)
+#define XQC_kMaxWindow          (100 * XQC_CUBIC_MSS)
+#define XQC_kInitialWindow      (32 * XQC_CUBIC_MSS)
 
-#define xqc_max(a, b) ((a) > (b) ? (a) : (b))
-#define xqc_min(a, b) ((a) < (b) ? (a) : (b))
-
-const static uint64_t cube_factor =
-        (1ull << XQC_CUBE_SCALE) / XQC_C_CUBIC / XQC_MSS;
+const static uint64_t xqc_cube_factor =
+        (1ull << XQC_CUBE_SCALE) / XQC_C_CUBIC / XQC_CUBIC_MSS;
 
 /*
  * Compute congestion window to use.
@@ -56,13 +56,13 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_msec_t now)
              *             = 2^40 / (410 * MSS) = 2^30 / (410/1024*MSS)
              *             = 2^30 / (C*MSS)
              */
-            cubic->bic_K = cbrt(cube_factor * (cubic->last_max_cwnd - cubic->cwnd));
+            cubic->bic_K = cbrt(xqc_cube_factor * (cubic->last_max_cwnd - cubic->cwnd));
             cubic->bic_origin_point = cubic->last_max_cwnd;
         }
     }
 
     // t = elapsed_time * 1024 / 1000000 微秒转换为毫秒，乘1024为了后面能用位操作
-    t = (now + cubic->min_rtt - cubic->epoch_start) << 10 / XQC_MICROS_PER_SECOND;
+    t = (now + cubic->min_rtt - cubic->epoch_start) << XQC_TIME_SCALE / XQC_MICROS_PER_SECOND;
 
     // 求|t - K|
     if (t < cubic->bic_K) {
@@ -71,8 +71,8 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_msec_t now)
         offs = t - cubic->bic_K;
     }
 
-    // delta = 410/1024 * off/1024 * off/1024 * off/1024 * MSS
-    delta = (XQC_C_CUBIC * offs * offs * offs * XQC_MSS) >> XQC_CUBE_SCALE;
+    // 410/1024 * off/1024 * off/1024 * off/1024 * MSS
+    delta = (XQC_C_CUBIC * offs * offs * offs * XQC_CUBIC_MSS) >> XQC_CUBE_SCALE;
 
     if (t < cubic->bic_K) {
         bic_target = cubic->bic_origin_point - delta;
@@ -80,8 +80,7 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_msec_t now)
         bic_target = cubic->bic_origin_point + delta;
     }
 
-    /* CUBIC最大增长速率为1.5x per RTT. 即每2个ack增加1个窗口
-	 */
+    // CUBIC最大增长速率为1.5x per RTT. 即每2个ack增加1个窗口
     bic_target = xqc_min(bic_target, cubic->cwnd + acked_bytes / 2);
 
     // 取TCP reno的cwnd 和 cubic的cwnd 的最大值
@@ -94,12 +93,18 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_msec_t now)
     cubic->cwnd = bic_target;
 }
 
+/*
+ * 返回拥塞算法结构体大小
+ */
 size_t
 xqc_cubic_size ()
 {
     return sizeof(xqc_cubic_t);
 }
 
+/*
+ * 拥塞算法初始化
+ */
 static void
 xqc_cubic_init (void *cong_ctl, xqc_cc_params_t cc_params)
 {
@@ -108,10 +113,10 @@ xqc_cubic_init (void *cong_ctl, xqc_cc_params_t cc_params)
     cubic->cwnd = XQC_kInitialWindow;
     cubic->tcp_cwnd = XQC_kInitialWindow;
     cubic->last_max_cwnd = XQC_kInitialWindow;
-    cubic->ssthresh = 0xFFFFFFFF;
+    cubic->ssthresh = XQC_MAX_SSTHRESH;
 
     if (cc_params.customize_on) {
-        cc_params.init_cwnd *= XQC_MSS;
+        cc_params.init_cwnd *= XQC_CUBIC_MSS;
         cubic->init_cwnd =
                 cc_params.init_cwnd >= XQC_kMinWindow && cc_params.init_cwnd <= XQC_kMaxWindow ?
                 cc_params.init_cwnd : XQC_kInitialWindow;
@@ -131,16 +136,16 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
     // should we make room for others
     if (XQC_FAST_CONVERGENCE && cubic->cwnd < cubic->last_max_cwnd){
         cubic->last_max_cwnd = cubic->cwnd;
-        //cubic->cwnd = cubic->cwnd * (1.0f + XQC_BETA_CUBIC) / 2.0f
-        cubic->cwnd = cubic->cwnd * (XQC_BETA_CUBIC_SCALE + XQC_BETA_CUBIC) / 2 / XQC_BETA_CUBIC_SCALE;
+        // (1.0f + XQC_BETA_CUBIC) / 2.0f 转换为位运算
+        cubic->cwnd = cubic->cwnd * (XQC_BETA_CUBIC_SCALE + XQC_BETA_CUBIC) / (2 * XQC_BETA_CUBIC_SCALE);
     } else {
         cubic->last_max_cwnd = cubic->cwnd;
     }
 
-    //Multiplicative Decrease
+    // Multiplicative Decrease
     cubic->cwnd = cubic->cwnd * XQC_BETA_CUBIC / XQC_BETA_CUBIC_SCALE;
     cubic->tcp_cwnd = cubic->cwnd;
-    //threshold is at least XQC_kMinWindow
+    // threshold is at least XQC_kMinWindow
     cubic->ssthresh = xqc_max(cubic->cwnd, XQC_kMinWindow);
 }
 
@@ -159,16 +164,19 @@ xqc_cubic_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t
     }
 
     if (cubic->cwnd < cubic->ssthresh) {
-        //slow start
-        cubic->tcp_cwnd += XQC_MSS;
-        cubic->cwnd += XQC_MSS;
+        // slow start
+        cubic->tcp_cwnd += XQC_CUBIC_MSS;
+        cubic->cwnd += XQC_CUBIC_MSS;
     } else {
-        //congestion avoidance
-        cubic->tcp_cwnd += XQC_MSS * acked_bytes / cubic->tcp_cwnd;
+        // congestion avoidance
+        cubic->tcp_cwnd += XQC_CUBIC_MSS * XQC_CUBIC_MSS / cubic->tcp_cwnd;
         xqc_cubic_update(cong_ctl, acked_bytes, now);
     }
 }
 
+/*
+ * 返回拥塞窗口
+ */
 uint32_t
 xqc_cubic_get_cwnd (void *cong_ctl)
 {
@@ -176,6 +184,9 @@ xqc_cubic_get_cwnd (void *cong_ctl)
     return cubic->cwnd;
 }
 
+/*
+ * 检测到一个RTT内所有包都丢失时回调，重置拥塞窗口
+ */
 void
 xqc_cubic_reset_cwnd (void *cong_ctl)
 {
@@ -186,6 +197,9 @@ xqc_cubic_reset_cwnd (void *cong_ctl)
     cubic->last_max_cwnd = cubic->init_cwnd;
 }
 
+/*
+ * 是否处于慢启动阶段
+ */
 int32_t
 xqc_cubic_in_slow_start (void *cong_ctl)
 {
@@ -194,11 +208,11 @@ xqc_cubic_in_slow_start (void *cong_ctl)
 }
 
 const xqc_cong_ctrl_callback_t xqc_cubic_cb = {
-        .xqc_cong_ctl_size      = xqc_cubic_size,
-        .xqc_cong_ctl_init      = xqc_cubic_init,
-        .xqc_cong_ctl_on_lost   = xqc_cubic_on_lost,
-        .xqc_cong_ctl_on_ack    = xqc_cubic_on_ack,
-        .xqc_cong_ctl_get_cwnd  = xqc_cubic_get_cwnd,
-        .xqc_cong_ctl_reset_cwnd = xqc_cubic_reset_cwnd,
+        .xqc_cong_ctl_size          = xqc_cubic_size,
+        .xqc_cong_ctl_init          = xqc_cubic_init,
+        .xqc_cong_ctl_on_lost       = xqc_cubic_on_lost,
+        .xqc_cong_ctl_on_ack        = xqc_cubic_on_ack,
+        .xqc_cong_ctl_get_cwnd      = xqc_cubic_get_cwnd,
+        .xqc_cong_ctl_reset_cwnd    = xqc_cubic_reset_cwnd,
         .xqc_cong_ctl_in_slow_start = xqc_cubic_in_slow_start,
 };
