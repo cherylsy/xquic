@@ -3,7 +3,7 @@
  */
 
 #include "src/congestion_control/xqc_cubic.h"
-#include "common/xqc_config.h"
+#include "src/common/xqc_config.h"
 #include <math.h>
 
 #define XQC_CUBIC_FAST_CONVERGENCE  1
