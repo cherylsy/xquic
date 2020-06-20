@@ -75,7 +75,7 @@ xqc_reno_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t 
     }
 }
 
-uint32_t
+uint64_t
 xqc_reno_get_cwnd (void *cong_ctl)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);

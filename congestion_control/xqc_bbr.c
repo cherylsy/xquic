@@ -657,7 +657,7 @@ static void xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
 //           bbr->pacing_rate, bbr->congestion_window, xqc_bbr_max_bw(bbr), sampler->is_app_limited, bbr->mode);
 }
 
-static uint32_t xqc_bbr_get_cwnd(void *cong_ctl)
+static uint64_t xqc_bbr_get_cwnd(void *cong_ctl)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t*)(cong_ctl);
 //    printf("==========xqc_bbr_get_cwnd cwnd %u, bandwidth %u, min_rtt %llu\n",bbr->congestion_window, xqc_bbr_max_bw(bbr), bbr->min_rtt);

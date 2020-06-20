@@ -29,4 +29,6 @@
 #define XQC_MAX_UINT64_VALUE  (uint64_t) 0xffffffffffffffff
 #define XQC_MAX_INT64_VALUE   (uint64_t) 0x7fffffffffffffff
 
+#define XQC_MICROS_PER_SECOND   1000000 // 1s=1000000us
+
 #endif /*_XQC_H_CONFIG_INCLUDED_*/

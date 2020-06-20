@@ -133,12 +133,19 @@ typedef struct xqc_cc_params_s {
 } xqc_cc_params_t;
 
 typedef struct xqc_congestion_control_callback_s {
+    /* 初始化时回调，用于分配内存 */
     size_t (*xqc_cong_ctl_size) ();
+    /* 连接初始化时回调，支持传入拥塞算法参数 */
     void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_cc_params_t cc_params);
+    /* 核心回调，检测到丢包时回调，按照算法策略降低拥塞窗口 */
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
+    /* 核心回调，报文被ack时回调，按照算法策略增加拥塞窗口 */
     void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t n_bytes);
-    uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+    /* 发包时回调，用于判断包是否能发送 */
+    uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+    /* 检测到一个RTT内所有包都丢失时回调，重置拥塞窗口 */
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
+    /* 判断是否在慢启动阶段 */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
     //For BBR
