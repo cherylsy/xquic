@@ -113,6 +113,10 @@ typedef struct xqc_bbr_s{
     bool                just_exit_recovery_mode;
     xqc_msec_t          recovery_start_time;
     bool                packet_conservation;
+    uint32_t            expect_bw;
+    bool                enable_expect_bw;
+    uint32_t            max_expect_bw;
+    bool                enable_max_expect_bw;
 }xqc_bbr_t;
 extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 
