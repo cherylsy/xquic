@@ -1,10 +1,10 @@
 
 #include "xqc_stream_frame_test.h"
 #include <CUnit/CUnit.h>
-#include "transport/xqc_conn.h"
-#include "transport/xqc_engine.h"
-#include "transport/xqc_frame.h"
-#include "transport/xqc_stream.h"
+#include "src/transport/xqc_conn.h"
+#include "src/transport/xqc_engine.h"
+#include "src/transport/xqc_frame.h"
+#include "src/transport/xqc_stream.h"
 #include "xqc_common_test.h"
 
 void
