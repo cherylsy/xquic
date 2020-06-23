@@ -1117,7 +1117,7 @@ void usage(int argc, char *argv[]) {
 "   -E    Echo check on. Compare sent data with received data.\n"
 "   -d    Drop rate ‰.\n"
 "   -u    Url. default https://test.xquic.com/path/resource\n"
-"   -H    Header. eg. key=value\n"
+"   -H    Header. eg. key:value\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
 "   -N    No crypt\n"
