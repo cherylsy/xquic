@@ -27,7 +27,7 @@ extern "C" {
 
 #define XQC_TLS_AEAD_OVERHEAD_MAX_LEN 16
 
-#define XQC_MAX_SEND_MSG_ONCE  1025
+#define XQC_MAX_SEND_MSG_ONCE  32
 
 typedef void (*xqc_set_event_timer_pt)(void *engine_user_data, xqc_msec_t wake_after);
 
