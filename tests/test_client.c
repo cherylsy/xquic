@@ -1210,7 +1210,7 @@ void usage(int argc, char *argv[]) {
 "   -p    Server port.\n"
 "   -P    Number of Parallel requests per single connection. Default 1.\n"
 "   -n    Total number of requests to send. Defaults 1.\n"
-"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic\n"
+"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2\n"
 "   -C    Pacing on.\n"
 "   -t    Connection timeout. Default 3 seconds.\n"
 "   -T    Transport layer. No HTTP3.\n"
@@ -1226,7 +1226,7 @@ void usage(int argc, char *argv[]) {
 "   -h    Host & sni. eg. test.xquic.com\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
-"   -N    No crypt\n"
+"   -N    No encryption\n"
 "   -6    IPv6\n"
 , prog);
 }
@@ -1276,9 +1276,11 @@ int main(int argc, char *argv[]) {
                 printf("option req_max :%s\n", optarg);
                 g_req_max = atoi(optarg);
                 break;
-            case 'c': //拥塞算法 r:reno b:bbr c:cubic
-                printf("option cong_ctl :%s\n", optarg);
+            case 'c': //拥塞算法 r:reno b:bbr c:cubic B:bbr2
                 c_cong_ctl = optarg[0];
+                if (strncmp("bbr2", optarg, 4) == 0)
+                    c_cong_ctl = 'B';
+                printf("option cong_ctl : %c: %s\n", c_cong_ctl, optarg);
                 break;
             case 'C': //pacing on
                 printf("option pacing :%s\n", "on");
@@ -1425,8 +1427,10 @@ int main(int argc, char *argv[]) {
         cong_ctrl = xqc_reno_cb;
     } else if (c_cong_ctl == 'c') {
         cong_ctrl = xqc_cubic_cb;
+    } else if (c_cong_ctl == 'B') {
+        cong_ctrl = xqc_bbr2_cb;
     } else {
-        printf("unknown cong_ctrl, option is b, r, c\n");
+        printf("unknown cong_ctrl, option is b, r, c, B\n");
         return -1;
     }
 

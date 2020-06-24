@@ -42,6 +42,7 @@ typedef struct xqc_h3_context_s xqc_h3_context_t;
 typedef struct xqc_sample_s xqc_sample_t;
 typedef struct xqc_ssl_session_ticket_key_s xqc_ssl_session_ticket_key_t;
 typedef struct xqc_memory_pool_s xqc_memory_pool_t;
+typedef struct xqc_bbr_info_interface_s xqc_bbr_info_interface_t;
 
 typedef uint64_t xqc_msec_t;
 

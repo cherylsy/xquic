@@ -1,6 +1,5 @@
-#ifndef _XQC_BBR_H_INCLUDED_
-#define _XQC_BBR_H_INCLUDED_
-
+#ifndef _XQC_BBR2_H_INCLUDED_
+#define _XQC_BBR2_H_INCLUDED_
 
 #include <xquic/xquic.h>
 #include <xquic/xquic_typedef.h>
@@ -14,23 +13,46 @@ typedef char bool;
 
 typedef enum {
     /* Start phase quickly to fill pipe */
-            BBR_STARTUP,
+            BBR2_STARTUP,
     /* After reaching maximum bandwidth, lower pacing rate to drain the queue*/
-            BBR_DRAIN,
+            BBR2_DRAIN,
     /* Steady pahse */
-            BBR_PROBE_BW,
+            BBR2_PROBE_BW,
     /* Slow down to empty the buffer to probe real min rtt */
-            BBR_PROBE_RTT,
-}xqc_bbr_mode;
+            BBR2_PROBE_RTT,
+}xqc_bbr2_mode;
 
+/*
+               packet loss
+   BBR2_OPEN --------------> BBR2_RECOVERY
+
+                  a new pkt acked
+   BBR2_RECOVERY ----------------> BBR2_OPEN
+
+   BBR2_OPEN         persistent congestion
+   BBR2_RECOVERY  --------------------------->  BBR2_LOSS
+
+                 a new pkt acked
+   BBR2_LOSS ---------------------> BBR2_OPEN
+*/
 typedef enum {
-        BBR_NOT_IN_RECOVERY=0,
-        BBR_IN_RECOVERY,
-}xqc_bbr_recovery_mode;
+    BBR2_OPEN = 0,
+    BBR2_RECOVERY,
+    BBR2_LOSS,
+}xqc_bbr2_recovery_mode;
 
-typedef struct xqc_bbr_s{
+/* How does the incoming ACK stream relate to our bandwidth probing? */
+typedef enum {
+	BBR2_ACKS_INIT,		  /* not probing; not getting probe feedback */
+	BBR2_ACKS_REFILLING,	  /* sending at est. bw to fill pipe */
+	BBR2_ACKS_PROBE_STARTING,  /* inflight rising to probe bw */
+	BBR2_ACKS_PROBE_FEEDBACK,  /* getting feedback from bw probing */
+	BBR2_ACKS_PROBE_STOPPING,  /* stopped probing; still getting feedback */
+}xqc_bbr2_ack_phase;
+
+typedef struct xqc_bbr2_s{
     /*Current mode */
-    xqc_bbr_mode        mode;
+    xqc_bbr2_mode        mode;
     /*State of the sender */
     xqc_send_ctl_t      *send_ctl;
     /*Minimum rrt in the time window, in usec */
@@ -42,7 +64,7 @@ typedef struct xqc_bbr_s{
     /*Time to exit PROBE_RTT */
     xqc_msec_t          probe_rtt_round_done_stamp;
     /*Maximum bandwidth byte/sec */
-    xqc_win_filter_t    bandwidth;
+    //xqc_win_filter_t    bandwidth;
     /*Count round trips during the connection */
     uint32_t            round_cnt;
     /*Start of an measurement? */
@@ -110,16 +132,52 @@ typedef struct xqc_bbr_s{
     xqc_msec_t          last_round_trip_time;
 
     /*adjust cwnd in loss recovery*/
-    xqc_bbr_recovery_mode               recovery_mode;
-    bool                just_enter_recovery_mode;
-    bool                just_exit_recovery_mode;
+    xqc_bbr2_recovery_mode               recovery_mode;
     xqc_msec_t          recovery_start_time;
     bool                packet_conservation;
-    uint32_t            expect_bw;
-    bool                enable_expect_bw;
-    uint32_t            max_expect_bw;
-    bool                enable_max_expect_bw;
-}xqc_bbr_t;
-extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
+    xqc_msec_t loss_start_time;
+
+    /*BBRv2 State*/
+    bool loss_in_cycle;	/* packet loss in this cycle? */
+    uint32_t loss_round_delivered; /* scb->tx.delivered ending loss round */
+    uint32_t undo_bw_lo;	     /* bw_lo before latest losses */
+    uint32_t undo_inflight_lo;    /* inflight_lo before latest losses */
+    uint32_t undo_inflight_hi;    /* inflight_hi before latest losses */
+    uint32_t bw_latest;	 /* max delivered bw in last round trip */
+    uint32_t bw_lo;		 /* lower bound on sending bandwidth */
+    uint32_t bw_hi[2];	 /* upper bound of sending bandwidth range*/
+    uint32_t inflight_latest; /* max delivered data in last round trip */
+    uint32_t inflight_lo;	 /* lower bound of inflight data range */
+    uint32_t inflight_hi;	 /* upper bound of inflight data range */
+    uint32_t bw_probe_up_cnt; /* packets delivered per inflight_hi incr */
+    uint32_t bw_probe_up_acks;  /* packets (S)ACKed since inflight_hi incr */
+    uint8_t bw_probe_up_rounds; /* cwnd-limited rounds in PROBE_UP */
+    uint32_t probe_wait_us;	 /* PROBE_DOWN until next clock-driven probe */
+    bool bw_probe_samples;    /* rate samples reflect bw probing? */
+    bool prev_probe_too_high; /* did last PROBE_UP go too high? */
+    bool stopped_risky_probe; /* last PROBE_UP stopped due to risk? */
+    uint8_t rounds_since_probe;  /* packet-timed rounds since probed bw */
+    bool loss_round_start;    /* loss_round_delivered round trip? */
+    bool loss_in_round;       /* loss marked in this round trip? */
+    xqc_bbr2_ack_phase ack_phase;	       /* bbr_ack_phase: meaning of ACKs */
+    uint8_t loss_events_in_round; /* losses in STARTUP round */
+
+    uint64_t probe_rtt_min_us;
+    uint64_t probe_rtt_min_us_stamp;
+}xqc_bbr2_t;
+
+typedef enum {
+    BBR2_BW_PROBE_UP		= 0,  /* push up inflight to probe for bw/vol */
+	BBR2_BW_PROBE_DOWN	= 1,  /* drain excess inflight from the queue */
+	BBR2_BW_PROBE_CRUISE	= 2,  /* use pipe, w/ headroom in queue/pipe */
+	BBR2_BW_PROBE_REFILL	= 3,  /* v2: refill the pipe again to 100% */
+}xqc_bbr2_pacing_gain_phase;
+
+typedef struct xqc_bbr2_context_s {
+    uint32_t sample_bw;
+    uint32_t target_cwnd;
+}xqc_bbr2_context_t;
+
+extern const xqc_cong_ctrl_callback_t xqc_bbr2_cb;
 
 #endif

@@ -9,6 +9,7 @@ xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
     pacing->burst_num = 0;
     pacing->next_send_time = 0;
     pacing->timer_expire = 0;
+    pacing->ideal_next_packet_send_time = 0;
     pacing->on = pacing_on;
     if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
         pacing->on = 1;
@@ -113,10 +114,30 @@ void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
 
     --pacing->lumpy_tokens;
 
+    uint64_t now = xqc_now();
+
     if (pacing->pacing_limited) {
-        pacing->ideal_next_packet_send_time = pacing->ideal_next_packet_send_time + delay;
+        //if current time is already ahead of 2x delay + next_scheduled_time,
+        //we have to correct the next_scheduled_time which is probably obselete.
+        //Otherwise, pacing may not work properly.
+        /*i.e: BBR: probe_rtt leads the sender to be limited by CWND. Therefore,
+          there will be some "bubbles" between packets. 
+          i.e. p1, p2, p3, b1, b2, b3, b4, p4
+                           |cwnd limited|
+          For p4, p4.next_scheduled_time should be b4.next_scheduled_time + delay.
+          However, the next_scheduled_time is not updated during the cwnd limited period.
+          Thus, it is still p3.next_scheduled_time. 
+          Tracking how many bubbles we have in that period is kind of complicated, so
+          we use current time to approximate b4.next_scheduled_time.
+        */
+        /*We can not simply use xqc_now() + delay to update the next_scheduled_time.
+          It's not correct when there are packets sent in burst.
+        */
+        if (pacing->ideal_next_packet_send_time + 4 * delay < now)
+            pacing->ideal_next_packet_send_time = now;
+        pacing->ideal_next_packet_send_time += delay;
     } else {
-        pacing->ideal_next_packet_send_time = xqc_max(pacing->ideal_next_packet_send_time + delay, xqc_now() + delay);
+        pacing->ideal_next_packet_send_time = xqc_max(pacing->ideal_next_packet_send_time + delay, now + delay);
     }
 
     /*
@@ -132,8 +153,7 @@ void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
         pacing->pacing_limited = 0;
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|delay:%ud|delta:%i|pacing_limited:%d|pacing_rate:%ui|burst_tokens:%ud|lumpy_tokens:%ud|",
-            delay, (int64_t)pacing->ideal_next_packet_send_time - xqc_now(), pacing->pacing_limited, pacing_rate,
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|delay:%ud|next_sending_time:%ui|pacing_limited:%d|pacing_rate:%ui|burst_tokens:%ud|lumpy_tokens:%ud|", delay, pacing->ideal_next_packet_send_time, pacing->pacing_limited, pacing_rate,
             ctl->ctl_pacing.burst_tokens, ctl->ctl_pacing.lumpy_tokens);
 }
 
@@ -150,27 +170,16 @@ uint64_t xqc_pacing_time_until_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
     }
 
     uint64_t time_now = xqc_now();
-    if (pacing->ideal_next_packet_send_time > time_now + 1000) {
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,"|ideal_next_packet_send_time:%ui|now: %ui|", 
+        pacing->ideal_next_packet_send_time, time_now);
+    if (pacing->ideal_next_packet_send_time > time_now) {
         return pacing->ideal_next_packet_send_time - time_now;
     }
-    //xqc_log(conn->log, XQC_LOG_DEBUG,"|ideal_next_packet_send_time:%ui|", pacing->ideal_next_packet_send_time);
     return 0;
 }
 
 int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
                          xqc_connection_t *conn, xqc_packet_out_t *packet_out) {
-
-//     uint64_t smallest_bandwidth = 1.2 * 1000000 / 8;
-//    uint64_t pacing_rate = xqc_pacing_rate_calc(pacing, ctl);
-
-//    if (pacing_rate < smallest_bandwidth)
-//        return true;
-
-    if (packet_out->po_flag & XQC_POF_LOST) {
-        pacing->burst_tokens = 0;
-        return true;
-    }
-
 
     if (ctl->ctl_bytes_in_flight == 0) {
         pacing->burst_tokens = XQC_MAX_BURST_NUM;
@@ -178,10 +187,12 @@ int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
 
     // check timer
     if (xqc_send_pacing_timer_isset(ctl, XQC_TIMER_PACING)) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|Timer is not set!");
         return false;
     }
 
     uint64_t delay = xqc_pacing_time_until_send(pacing, ctl, conn, packet_out);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing_delay: %ud!", delay);
 
     // check it is infinit
     if (delay == INFINITE_TIME) {

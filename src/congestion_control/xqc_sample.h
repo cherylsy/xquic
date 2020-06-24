@@ -39,6 +39,11 @@ typedef struct xqc_sample_s{
 
     xqc_msec_t po_sent_time;
 
+    /*For BBRv2*/
+    uint32_t prior_lost;
+    uint64_t tx_in_flight;
+    uint32_t lost_pkts;
+
 } xqc_sample_t;
 
 bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_msec_t now);

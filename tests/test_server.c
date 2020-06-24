@@ -834,7 +834,7 @@ void usage(int argc, char *argv[]) {
 "Options:\n"
 "   -p    Server port.\n"
 "   -e    Echo. Send received body.\n"
-"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic\n"
+"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2\n"
 "   -C    Pacing on.\n"
 "   -s    Body size to send.\n"
 "   -w    Write received body to file.\n"
@@ -874,8 +874,10 @@ int main(int argc, char *argv[]) {
                 g_echo = 1;
                 break;
             case 'c': //拥塞算法 r:reno b:bbr c:cubic
-                printf("option cong_ctl :%s\n", optarg);
                 c_cong_ctl = optarg[0];
+                if (strncmp("bbr2", optarg, 4) == 0)
+                    c_cong_ctl = 'B';
+                printf("option cong_ctl : %c: %s\n", c_cong_ctl, optarg);
                 break;
             case 'C': //pacing on
                 printf("option pacing :%s\n", "on");
@@ -994,6 +996,8 @@ int main(int argc, char *argv[]) {
         cong_ctrl = xqc_reno_cb;
     } else if (c_cong_ctl == 'c') {
         cong_ctrl = xqc_cubic_cb;
+    } else if (c_cong_ctl == 'B') {
+        cong_ctrl = xqc_bbr2_cb;
     } else {
         printf("unknown cong_ctrl, option is b, r, c\n");
         return -1;

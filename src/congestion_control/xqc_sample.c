@@ -25,6 +25,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
     sampler->interval = xqc_max(sampler->ack_elapse, sampler->send_elapse);
 
     sampler->delivered = send_ctl->ctl_delivered - sampler->prior_delivered;
+    sampler->lost_pkts = send_ctl->ctl_lost_pkts_number - sampler->prior_lost;
 
     /* Normally we expect interval >= MinRTT.
         * Note that rate may still be over-estimated when a spuriously
@@ -62,7 +63,10 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
 
     /* Update info using the newest packet: */
     // if it's the ACKs from the first RTT round, we use the sample anyway
+
     if (sampler->prior_delivered == 0 || (packet->po_delivered > sampler->prior_delivered)) {
+        sampler->prior_lost = packet->po_lost;
+        sampler->tx_in_flight = packet->po_tx_in_flight;
         sampler->prior_delivered = packet->po_delivered;
         sampler->prior_time = packet->po_delivered_time;
         sampler->is_app_limited = packet->po_is_app_limited;
@@ -80,9 +84,12 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
 
 void xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
+    uint8_t not_cwnd_limited = 0;
+    uint32_t cwnd = send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong);
+    if (send_ctl->ctl_bytes_in_flight < cwnd)
+        not_cwnd_limited = (cwnd - send_ctl->ctl_bytes_in_flight) >= 1200; //QUIC MSS
     if (/* We are not limited by CWND. */
-        send_ctl->ctl_bytes_in_flight <
-        send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong) &&
+        not_cwnd_limited &&
         /* We have no packet to send. */
         xqc_list_empty(&send_ctl->ctl_send_packets) &&
         /* All lost packets have been retransmitted. */
@@ -102,4 +109,6 @@ void xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, xqc_m
     packet_out->po_first_sent_time = ctl->ctl_first_sent_time;
     packet_out->po_delivered = ctl->ctl_delivered;
     packet_out->po_is_app_limited = ctl->ctl_app_limited > 0 ? 1 : 0;
+    packet_out->po_lost = ctl->ctl_lost_pkts_number;
+    packet_out->po_tx_in_flight = ctl->ctl_bytes_in_flight + packet_out->po_used_size;
 }

@@ -814,6 +814,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         return -XQC_ESOCKET;
     }
     conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
+    xqc_log(conn->log, XQC_LOG_INFO, "on sent mark! %ud", 1);
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
 
     return sent;

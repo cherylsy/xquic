@@ -47,7 +47,7 @@ configure_file (
 include_directories(
     include
     "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_BINARY_DIR}/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
 )
 
 
@@ -141,6 +141,7 @@ set(
     "src/congestion_control/xqc_bbr.c"
     "src/congestion_control/xqc_window_filter.c"
     "src/congestion_control/xqc_sample.c"
+    "src/congestion_control/xqc_bbr2.c"
 )
 
 add_library(
