@@ -125,18 +125,32 @@ typedef struct xqc_h3_request_callbacks_s {
     xqc_h3_request_notify_pt        h3_request_close_notify; /* 关闭时回调，用户可以回收资源 */
 } xqc_h3_request_callbacks_t;
 
+typedef struct xqc_cc_params_s {
+    uint32_t    customize_on;
+    uint32_t    init_cwnd;
+    uint32_t    expect_bw;
+    uint32_t    max_expect_bw;
+} xqc_cc_params_t;
+
 typedef struct xqc_congestion_control_callback_s {
-    size_t (*xqc_cong_ctl_size) (void);
-    void (*xqc_cong_ctl_init) (void *cong_ctl);
+    /* 初始化时回调，用于分配内存 */
+    size_t (*xqc_cong_ctl_size) ();
+    /* 连接初始化时回调，支持传入拥塞算法参数 */
+    void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_cc_params_t cc_params);
+    /* 核心回调，检测到丢包时回调，按照算法策略降低拥塞窗口 */
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
-    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes);
-    uint32_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+    /* 核心回调，报文被ack时回调，按照算法策略增加拥塞窗口 */
+    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t n_bytes);
+    /* 发包时回调，用于判断包是否能发送 */
+    uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+    /* 检测到一个RTT内所有包都丢失时回调，重置拥塞窗口 */
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
+    /* 判断是否在慢启动阶段 */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
     //For BBR
     void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
-    void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+    void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
     void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl);
@@ -246,11 +260,11 @@ typedef struct xqc_http_headers_s {
     size_t                  capacity; /* User does't care */
 } xqc_http_headers_t;
 
-/* For client */
 typedef struct xqc_conn_settings_s {
-    int     pacing_on; /* default: 0 */
+    int                         pacing_on; /* default: 0 */
+    int                         ping_on;    /* client sends PING to keepalive, default:0 */
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
-    int     ping_on;    /* client sends PING to keepalive, default:0 */
+    xqc_cc_params_t             cc_params;
 } xqc_conn_settings_t;
 
 typedef enum {
@@ -634,7 +648,7 @@ XQC_EXPORT_PUBLIC_API uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine
 /**
  * User should call xqc_conn_continue_send when write event ready
  */
-XQC_EXPORT_PUBLIC_API 
+XQC_EXPORT_PUBLIC_API
 int xqc_conn_continue_send(xqc_engine_t *engine,
                            xqc_cid_t *cid);
 

@@ -9,8 +9,12 @@ xqc_bssl_aead_decrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen, co
         const uint8_t *ad, size_t adlen)
 {
     EVP_AEAD_CTX * decrypt = EVP_AEAD_CTX_new(aead->ctx,key,keylen,aead->taglen);
+    if(XQC_UNLIKELY(NULL == decrypt)) {
+        return -1;
+    }
     size_t outlen;
     int rv = EVP_AEAD_CTX_open(decrypt,dest,&outlen,destlen,nonce,noncelen,ciphertext,ciphertextlen,ad,adlen);
+    EVP_AEAD_CTX_free(decrypt);
     if(rv != 1) {
         return -1;
     }
@@ -24,8 +28,12 @@ xqc_bssl_aead_encrypt(const xqc_aead_t * aead,uint8_t *dest, size_t destlen, con
         const uint8_t *ad, size_t adlen) 
 {
     EVP_AEAD_CTX * encrypt = EVP_AEAD_CTX_new(aead->ctx,key,keylen,aead->taglen);
+    if(XQC_UNLIKELY(NULL == encrypt)) {
+        return -1;
+    }
     size_t outlen;
     int rv = EVP_AEAD_CTX_seal(encrypt,dest,&outlen,destlen,nonce,noncelen,plaintext,plaintextlen,ad,adlen);
+    EVP_AEAD_CTX_free(encrypt);
     if(rv != 1) {
         return -1;
     }

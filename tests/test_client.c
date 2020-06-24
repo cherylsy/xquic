@@ -1322,8 +1322,9 @@ int main(int argc, char *argv[]) {
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   pacing_on,
-            .cong_ctrl_callback = cong_ctrl,
             .ping_on    =   0,
+            .cong_ctrl_callback = cong_ctrl,
+            //.cc_params  =   {.init_cwnd = 32,},
     };
 
     eb = event_base_new();

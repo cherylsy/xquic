@@ -21,7 +21,7 @@ xqc_reno_size ()
 }
 
 static void
-xqc_reno_init (void *cong_ctl)
+xqc_reno_init (void *cong_ctl, xqc_cc_params_t cc_params)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
 
@@ -57,7 +57,7 @@ xqc_reno_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
 }
 
 static void
-xqc_reno_on_ack (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes)
+xqc_reno_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t n_bytes)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
     if (xqc_reno_in_recovery(cong_ctl, sent_time)) {
@@ -75,7 +75,7 @@ xqc_reno_on_ack (void *cong_ctl, xqc_msec_t sent_time, uint32_t n_bytes)
     }
 }
 
-uint32_t
+uint64_t
 xqc_reno_get_cwnd (void *cong_ctl)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
