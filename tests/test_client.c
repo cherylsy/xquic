@@ -108,7 +108,7 @@ char g_read_file[64];
 char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
-char g_url[256];
+char g_url[2048];
 char g_headers[MAX_HEADER][256];
 int g_header_cnt = 0;
 int g_ping_id = 1;
@@ -1226,7 +1226,7 @@ int main(int argc, char *argv[]) {
                 printf("option url :%s\n", optarg);
                 snprintf(g_url, sizeof(g_url), optarg);
                 g_spec_url = 1;
-                sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
+                sscanf(g_url,"%[^://]://%[^/]%s", g_scheme, g_host, g_path);
                 //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
                 break;
             case 'H': //请求header
