@@ -1245,8 +1245,9 @@ int xqc_http3_stream_check_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_str
 }
 
 
-xqc_h3_frame_send_buf_t * xqc_create_h3_frame_send_buf(size_t buf_len){
-
+xqc_h3_frame_send_buf_t * 
+xqc_h3_frame_create_send_buf(size_t buf_len)
+{
     xqc_h3_frame_send_buf_t * p_buf = xqc_malloc(sizeof(xqc_h3_frame_send_buf_t) + buf_len);
     if(p_buf == NULL){
         return NULL;
@@ -1285,7 +1286,7 @@ int xqc_http3_stream_send_buf_del(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send
 
 int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type){
 
-    xqc_h3_frame_send_buf_t * send_buf = xqc_create_h3_frame_send_buf(1);
+    xqc_h3_frame_send_buf_t * send_buf = xqc_h3_frame_create_send_buf(1);
 
     if(send_buf == NULL){
         return -XQC_H3_EMALLOC;
@@ -1309,7 +1310,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_header(xqc_h3_stream_t * h3_
 
     int hd_len = xqc_http3_frame_write_hd_len(&hd);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd.length);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf( hd_len + hd.length);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1339,7 +1340,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_frame_data(xqc_h3_stream_t * h3_st
 
     int hd_len = xqc_http3_frame_write_hd_len(&hd);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd.length);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf( hd_len + hd.length);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1423,7 +1424,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_push_promise(xqc_h3_stream_t * h3_
 
     int hd_len = xqc_http3_frame_write_hd_len(&hd);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( hd_len + hd.length);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf( hd_len + hd.length);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1490,7 +1491,11 @@ ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, s
     return data_len;
 
 }
-ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
+
+
+ssize_t 
+xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin)
+{
     int ret = xqc_h3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
 
     if(ret == -XQC_EAGAIN){
@@ -1624,9 +1629,9 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_settings(xqc_h3_stream_t * h3_stre
 
     int total_len = xqc_http3_frame_write_settings_len(&hd->length, &fr_setting);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf( total_len);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf( total_len);
     if(send_buf == NULL){
-        xqc_log(h3_stream->stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_create_h3_frame_send_buf error|");
+        xqc_log(h3_stream->stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_h3_frame_create_send_buf error|");
         return send_buf;
     }
 
@@ -1666,7 +1671,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_cancel_push(xqc_h3_stream_t * h3_s
 
     int total_len = xqc_http3_frame_write_cancel_push_len(&hd->length, fr);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf(total_len);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf(total_len);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1698,7 +1703,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_max_push_id(xqc_h3_stream_t * h3_s
 
     int total_len = xqc_http3_frame_write_max_push_id_len(&hd->length, fr);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf(total_len);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf(total_len);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1735,7 +1740,7 @@ xqc_h3_frame_send_buf_t * xqc_http3_init_wrap_priority(xqc_h3_stream_t * h3_stre
 
     int total_len = xqc_http3_frame_write_priority_len(&hd->length, fr_priority);
 
-    xqc_h3_frame_send_buf_t *send_buf = xqc_create_h3_frame_send_buf(total_len);
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf(total_len);
     if(send_buf == NULL){
         return send_buf;
     }
@@ -1857,7 +1862,7 @@ ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * 
     ssize_t send_sum = 0; // means data send or buffer success
     ssize_t offset = 0; // means read data offset
 
-    xqc_h3_frame_send_buf_t * send_buf =xqc_create_h3_frame_send_buf(data_len);
+    xqc_h3_frame_send_buf_t * send_buf = xqc_h3_frame_create_send_buf(data_len);
 
     if(send_buf == NULL){
         return -XQC_H3_EMALLOC;
