@@ -26,7 +26,7 @@ grep_err_log() {
     #grep "retrans rate:" slog|grep -v "retrans rate:0.0000"
 }
 
-echo "server_ip: ${server_ip}, port:${server_port}:"
+echo "server_ip: ${server_ip}, port:${server_port}"
 
 clear_log
 echo -e "stream read notify fail ...\c"
