@@ -1,7 +1,9 @@
 #ifndef _XQC_H_LIST_INCLUED_
 #define _XQC_H_LIST_INCLUED_
 
+
 #include <stddef.h>
+#include <assert.h>
 #include "xqc_common.h"
 
 #define XQC_LIST_POISON1  ((void *) 0x1)
