@@ -47,6 +47,8 @@ static inline void xqc_init_list_head(xqc_list_head_t *list)
 
 static inline int __xqc_list_add_valid(xqc_list_head_t *node, xqc_list_head_t *prev, xqc_list_head_t *next)
 {
+    assert(next->prev == prev && prev->next == next && node != prev && node != next);
+
     if (next->prev != prev || prev->next != next || node == prev || node == next) {
         return XQC_FALSE;
     }
@@ -59,6 +61,12 @@ static inline int __xqc_list_del_entry_valid(xqc_list_head_t *entry)
 
     prev = entry->prev;
     next = entry->next;
+
+    assert(prev != NULL && next != NULL);
+    assert(next != XQC_LIST_POISON1 
+           && prev != XQC_LIST_POISON2
+           && prev->next == entry 
+           && next->prev == entry);
 
     if (prev == NULL || next == NULL) {
         return XQC_FALSE;
