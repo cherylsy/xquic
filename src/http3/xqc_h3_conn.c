@@ -55,8 +55,13 @@ xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
     return xqc_conn_close(engine, cid);
 }
 
-int 
-xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
+xqc_connection_t *  
+xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn)
+{
+    return  XQC_LIKELY(h3_conn) ? h3_conn->conn : NULL ;
+}
+
+int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
     int ret = xqc_conn_get_errno(h3_conn->conn);
     return ret == 0 ? HTTP_NO_ERROR : ret;
