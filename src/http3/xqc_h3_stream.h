@@ -129,7 +129,7 @@ int
 xqc_h3_stream_read_state_init(xqc_http3_stream_read_state * read_state);
 
 int
-xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream);
+xqc_h3_stream_create_control_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream);
 
 ssize_t
 xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin);

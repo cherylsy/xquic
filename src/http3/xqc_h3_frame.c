@@ -1275,7 +1275,7 @@ int xqc_http3_stream_send_buf_add(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send
 
     xqc_list_add_tail(&send_buf->list_head, &h3_stream->send_frame_data_buf);
 
-    return 0;
+    return XQC_OK;
 }
 
 int xqc_http3_stream_send_buf_del(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send_buf_t * send_buf){
@@ -1286,8 +1286,9 @@ int xqc_http3_stream_send_buf_del(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send
 }
 
 
-int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type){
-
+int 
+xqc_h3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type)
+{
     xqc_h3_frame_send_buf_t * send_buf = xqc_h3_frame_create_send_buf(1);
 
     if(send_buf == NULL){
@@ -1296,10 +1297,10 @@ int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t 
     send_buf->data[0] = stream_type;
 
     int ret = xqc_http3_stream_send_buf_add(h3_stream, send_buf);
-    if(ret < 0){
+    if(ret != XQC_OK){
         return ret;
     }
-    return 0;
+    return XQC_OK;
 }
 
 

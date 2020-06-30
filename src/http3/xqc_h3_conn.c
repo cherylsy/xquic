@@ -55,7 +55,8 @@ xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
     return xqc_conn_close(engine, cid);
 }
 
-int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
+int 
+xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
     int ret = xqc_conn_get_errno(h3_conn->conn);
     return ret == 0 ? HTTP_NO_ERROR : ret;
@@ -74,10 +75,18 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->conn = conn;
     h3_conn->log = conn->log;
     h3_conn->user_data = user_data;
+
+    h3_conn->control_stream_in = NULL;
+    h3_conn->control_stream_out = NULL;
+
     h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
-    xqc_http3_qpack_encoder_init(&h3_conn->qenc, QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, DEFAULT_QPACK_BLOCK_STREAM, DEFAULT_QPACK_HASH_TABLE_SIZE, h3_conn);
-    xqc_http3_qpack_decoder_init(&h3_conn->qdec, QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, DEFAULT_QPACK_BLOCK_STREAM, h3_conn);
+    xqc_http3_qpack_encoder_init(&h3_conn->qenc, 
+                        QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, 
+                        DEFAULT_QPACK_BLOCK_STREAM, DEFAULT_QPACK_HASH_TABLE_SIZE, h3_conn);
+    xqc_http3_qpack_decoder_init(&h3_conn->qdec, 
+                        QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, 
+                        DEFAULT_QPACK_BLOCK_STREAM, h3_conn);
 
     xqc_init_list_head(&h3_conn->block_stream_head);
     h3_conn->qdec_stream = NULL;
@@ -197,9 +206,9 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_dat
     conn->user_data = h3_conn;
     xqc_log(conn->log, XQC_LOG_DEBUG, "|create h3 conn success|");
 
-    ret = xqc_h3_stream_create_control(h3_conn, NULL);
+    ret = xqc_h3_stream_create_control_stream(h3_conn, NULL);
     if (ret) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_control error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_create_control_stream error|");
         return ret;
     }
 
