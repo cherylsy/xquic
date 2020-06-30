@@ -67,12 +67,12 @@ typedef enum {
 
 
 typedef enum {
-  XQC_HTTP3_HTTP_STATE_NONE,
-  XQC_HTTP3_HTTP_STATE_BEGIN,
-  XQC_HTTP3_HTTP_STATE_HEADERS,
-  XQC_HTTP3_HTTP_STATE_DATA,
-  XQC_HTTP3_HTTP_STATE_TRAILERS,
-  XQC_HTTP3_HTTP_STATE_END,
+    XQC_HTTP3_HTTP_STATE_NONE,
+    XQC_HTTP3_HTTP_STATE_BEGIN,
+    XQC_HTTP3_HTTP_STATE_HEADERS,
+    XQC_HTTP3_HTTP_STATE_DATA,
+    XQC_HTTP3_HTTP_STATE_TRAILERS,
+    XQC_HTTP3_HTTP_STATE_END,
 } xqc_http3_stream_http_state;
 
 typedef enum {
@@ -81,14 +81,6 @@ typedef enum {
     XQC_HTTP3_HTTP_EVENT_MSG_END,
 } xqc_http3_stream_http_event;
 
-#if 0
-typedef struct xqc_data_buf{
-
-    xqc_list_head_t list_head;
-    size_t data_len;
-    char data[];
-}xqc_data_buf_t;
-#endif
 
 typedef enum {
     XQC_HTTP3_NO_FIN    = 0x00,

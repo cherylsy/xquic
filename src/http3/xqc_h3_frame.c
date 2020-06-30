@@ -457,7 +457,7 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
         case XQC_HTTP3_STREAM_TYPE_PUSH:
 
             if(fin){
-                h3_stream -> flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
+                h3_stream->flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
             }
             nconsumed = xqc_http3_conn_read_push(h3_conn, &push_nproc, h3_stream, src, srclen, fin);
             break;
