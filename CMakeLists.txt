@@ -42,7 +42,6 @@ set(
     "src/http3/xqc_h3_stream.c"
     "src/http3/xqc_h3_request.c"
     "src/http3/xqc_h3_frame.c"
-    "src/http3/xqc_h3_tnode.c"
     "src/http3/xqc_h3_qpack.c"
     "src/http3/xqc_h3_ringbuf.c"
     "src/http3/xqc_h3_qpack_token.c"
