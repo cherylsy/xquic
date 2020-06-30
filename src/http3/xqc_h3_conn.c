@@ -81,8 +81,6 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->conn = conn;
     h3_conn->log = conn->log;
     h3_conn->user_data = user_data;
-    /* replace with h3_conn */
-    conn->user_data = h3_conn;
 
     h3_conn->control_stream_in = NULL;
     h3_conn->control_stream_out = NULL;
@@ -107,6 +105,9 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
         }
         h3_conn->flags |= XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+    /* replace with h3_conn */
+    conn->user_data = h3_conn;
 
     return h3_conn;
 fail:
