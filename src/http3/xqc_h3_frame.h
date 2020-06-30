@@ -5,6 +5,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <xquic/xquic.h>
+#include <xquic/xquic_typedef.h>
 
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
