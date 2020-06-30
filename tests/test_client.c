@@ -1324,7 +1324,8 @@ int main(int argc, char *argv[]) {
             .pacing_on  =   pacing_on,
             .ping_on    =   0,
             .cong_ctrl_callback = cong_ctrl,
-            //.cc_params  =   {.init_cwnd = 32,},
+            .cc_params  =   {.customize_on = 1, .init_cwnd = 32,},
+            .so_sndbuf  =   1024*1024,
     };
 
     eb = event_base_new();

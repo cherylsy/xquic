@@ -265,6 +265,7 @@ typedef struct xqc_conn_settings_s {
     int                         ping_on;    /* client sends PING to keepalive, default:0 */
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
     xqc_cc_params_t             cc_params;
+    uint32_t                    so_sndbuf; /* socket option SO_SNDBUF, 0 for unlimited */
 } xqc_conn_settings_t;
 
 typedef enum {
