@@ -350,6 +350,13 @@ XQC_EXPORT_PUBLIC_API
 unsigned char* xqc_scid_str(const xqc_cid_t *cid);
 
 /**
+ * Return quic_connection on which h3_conn rely
+ * @param h3_conn http3 connection 
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_connection_t *  xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn);
+
+/**
  * Get errno when h3_conn_close_notify, HTTP_NO_ERROR(0x100) For no-error
  */
 XQC_EXPORT_PUBLIC_API
