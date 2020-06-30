@@ -61,7 +61,8 @@ xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn)
     return  XQC_LIKELY(h3_conn) ? h3_conn->conn : NULL ;
 }
 
-int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
+int 
+xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
     int ret = xqc_conn_get_errno(h3_conn->conn);
     return ret == 0 ? HTTP_NO_ERROR : ret;
@@ -104,6 +105,9 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
         }
         h3_conn->flags |= XQC_HTTP3_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+    /* replace with h3_conn */
+    conn->user_data = h3_conn;
 
     return h3_conn;
 fail:
@@ -161,8 +165,8 @@ int
 xqc_h3_conn_send_settings(xqc_h3_conn_t *h3_conn)
 {
     int ret;
-
     xqc_http3_conn_settings settings;
+
     memset(&settings, 0, sizeof(settings));
     ret = xqc_http3_stream_write_settings(h3_conn->control_stream_out, &settings);
     if (ret < 0) {
@@ -190,8 +194,6 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_dat
         return -XQC_H3_ECREATE_CONN;
     }
 
-    /* 替换为h3的上下文 */
-    conn->user_data = h3_conn;
     xqc_log(conn->log, XQC_LOG_DEBUG, "|create h3 conn success|");
 
     ret = xqc_h3_stream_create_control_stream(h3_conn, NULL);
@@ -212,7 +214,7 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_dat
         return ret;
     }
 
-    //send SETTINGS
+    /* send SETTINGS */
     ret = xqc_h3_conn_send_settings(h3_conn);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_send_settings error|");

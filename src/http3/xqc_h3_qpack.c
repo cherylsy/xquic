@@ -730,7 +730,10 @@ xqc_h3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc,
     return 0;
 }
 
-int xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc){
+
+int 
+xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc)
+{
     xqc_http3_qpack_context_free(&qenc->ctx);
     xqc_http3_qpack_read_state_free(&qenc->rstate);
     xqc_qpack_hash_table_free(&qenc->dtable_hash);
