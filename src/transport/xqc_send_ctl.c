@@ -1126,7 +1126,6 @@ xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, 
         if (stream->stream_close_time <= now) {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
             xqc_list_del_init(pos);
-            xqc_list_del_init(&stream->all_stream_list);
             xqc_destroy_stream(stream);
         } else {
             min_expire = xqc_min(min_expire, stream->stream_close_time);

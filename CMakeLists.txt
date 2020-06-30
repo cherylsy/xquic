@@ -4,9 +4,11 @@ project (xquic)
 set (xquic_VERSION_MAJOR 0)
 set (xquic_VERSION_MINOR 1)
 
+set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC ")
+set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC ")
 
 if(GCOV STREQUAL "on")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage")
@@ -40,7 +42,6 @@ set(
     "src/http3/xqc_h3_stream.c"
     "src/http3/xqc_h3_request.c"
     "src/http3/xqc_h3_frame.c"
-    "src/http3/xqc_h3_tnode.c"
     "src/http3/xqc_h3_qpack.c"
     "src/http3/xqc_h3_ringbuf.c"
     "src/http3/xqc_h3_qpack_token.c"

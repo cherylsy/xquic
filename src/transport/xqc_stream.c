@@ -359,9 +359,7 @@ xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id,
 }
 
 xqc_stream_t *
-xqc_stream_create (xqc_engine_t *engine,
-                   xqc_cid_t *cid,
-                  void *user_data)
+xqc_stream_create (xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
 {
     xqc_connection_t *conn;
     xqc_stream_t *stream;
@@ -441,7 +439,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     return stream;
 
 error:
-    xqc_list_del_init(&stream->all_stream_list);
+
     xqc_destroy_stream(stream);
     return NULL;
 }
@@ -474,6 +472,8 @@ xqc_destroy_stream(xqc_stream_t *stream)
     if (stream->stream_if->stream_close_notify) {
         stream->stream_if->stream_close_notify(stream, stream->user_data);
     }
+
+    xqc_list_del_init(&stream->all_stream_list);
 
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
 

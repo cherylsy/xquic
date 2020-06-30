@@ -5,7 +5,9 @@
 #include <string.h>
 #include <sys/types.h>
 #include <xquic/xquic.h>
-#include "src/http3/xqc_h3_tnode.h"
+#include <xquic/xquic_typedef.h>
+#include "src/common/xqc_list.h"
+
 
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
@@ -127,8 +129,6 @@ typedef struct {
 
 typedef struct {
   xqc_http3_frame_hd hd;
-  xqc_http3_pri_elem_type pt;
-  xqc_http3_elem_dep_type dt;
   int64_t pri_elem_id;
   int64_t elem_dep_id;
   uint32_t weight;
@@ -253,7 +253,7 @@ ssize_t xqc_http3_write_headers(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t *h3_str
 ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin);
 ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len);
 
-int xqc_http3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type);
+int xqc_h3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type);
 int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint8_t fin);
 int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
 

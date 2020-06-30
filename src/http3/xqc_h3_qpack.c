@@ -634,7 +634,10 @@ void xqc_http3_qpack_context_free(xqc_http3_qpack_context * ctx){
 
 
 
-int xqc_http3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, uint64_t max_table_capacity, uint64_t max_dtable_size, uint64_t max_blocked, xqc_h3_conn_t * h3_conn){
+int 
+xqc_h3_qpack_decoder_init(xqc_http3_qpack_decoder *qdec, 
+    uint64_t max_table_capacity, uint64_t max_dtable_size, uint64_t max_blocked, xqc_h3_conn_t * h3_conn)
+{
     qdec->state = XQC_HTTP3_QPACK_ES_STATE_OPCODE;
     qdec->opcode = 0;
     xqc_http3_qpack_read_state_init(&qdec->rstate);
@@ -693,8 +696,11 @@ void xqc_qpack_hash_table_free(xqc_qpack_hash_table_t * htable){
     }
 }
 
-int xqc_http3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, uint64_t max_table_capacity, uint64_t max_dtable_size,
-        uint64_t max_blocked, size_t hash_table_size, xqc_h3_conn_t * h3_conn){
+int 
+xqc_h3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc, 
+    uint64_t max_table_capacity, uint64_t max_dtable_size,
+    uint64_t max_blocked, size_t hash_table_size, xqc_h3_conn_t * h3_conn)
+{
 
     memset(qenc, 0, sizeof(xqc_http3_qpack_encoder));
     xqc_http3_qpack_context_init(&qenc->ctx, max_table_capacity, max_dtable_size, max_blocked);

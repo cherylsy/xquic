@@ -27,7 +27,7 @@ typedef enum {
     XQC_HTTP3_STREAM_TYPE_QPACK_DECODER = 0x03,
     XQC_HTTP3_STREAM_TYPE_REQUEST       = 0x10,
     XQC_HTTP3_STREAM_TYPE_UNKNOWN = 0xFF,
-}xqc_http3_stream_type;
+}xqc_h3_stream_type;
 
 
 typedef enum {
@@ -67,12 +67,12 @@ typedef enum {
 
 
 typedef enum {
-  XQC_HTTP3_HTTP_STATE_NONE,
-  XQC_HTTP3_HTTP_STATE_BEGIN,
-  XQC_HTTP3_HTTP_STATE_HEADERS,
-  XQC_HTTP3_HTTP_STATE_DATA,
-  XQC_HTTP3_HTTP_STATE_TRAILERS,
-  XQC_HTTP3_HTTP_STATE_END,
+    XQC_HTTP3_HTTP_STATE_NONE,
+    XQC_HTTP3_HTTP_STATE_BEGIN,
+    XQC_HTTP3_HTTP_STATE_HEADERS,
+    XQC_HTTP3_HTTP_STATE_DATA,
+    XQC_HTTP3_HTTP_STATE_TRAILERS,
+    XQC_HTTP3_HTTP_STATE_END,
 } xqc_http3_stream_http_state;
 
 typedef enum {
@@ -81,14 +81,6 @@ typedef enum {
     XQC_HTTP3_HTTP_EVENT_MSG_END,
 } xqc_http3_stream_http_event;
 
-#if 0
-typedef struct xqc_data_buf{
-
-    xqc_list_head_t list_head;
-    size_t data_len;
-    char data[];
-}xqc_data_buf_t;
-#endif
 
 typedef enum {
     XQC_HTTP3_NO_FIN    = 0x00,
@@ -97,39 +89,36 @@ typedef enum {
 }xqc_h3_data_buf_fin_flag_t;
 
 typedef struct xqc_h3_stream_s {
-    xqc_stream_t        *stream;
-    xqc_h3_conn_t       *h3_conn;
-    xqc_http3_stream_type h3_stream_type;
-    xqc_h3_request_t    *h3_request;
-    void                *user_data;
+    xqc_stream_t                   *stream;
+    xqc_h3_conn_t                  *h3_conn;
+    xqc_h3_stream_type              h3_stream_type;
+    xqc_h3_request_t               *h3_request;
+    void                           *user_data;
 
-    xqc_http3_stream_read_state read_state;
-    xqc_http3_stream_type type;
-    xqc_http3_stream_flag flags;
+    xqc_http3_stream_read_state     read_state;
+    xqc_http3_stream_flag           flags;
 
-    xqc_http3_stream_http_state rx_http_state;
-    xqc_http3_stream_http_state tx_http_state;
+    xqc_http3_stream_http_state     rx_http_state;
+    xqc_http3_stream_http_state     tx_http_state;
 
-    xqc_list_head_t     send_frame_data_buf;
-    uint64_t            send_buf_count;
+    xqc_list_head_t                 send_frame_data_buf;
+    uint64_t                        send_buf_count;
 
-    xqc_list_head_t     recv_data_buf;
-    xqc_list_head_t     recv_body_data_buf;
+    xqc_list_head_t                 recv_data_buf;
+    xqc_list_head_t                 recv_body_data_buf;
     xqc_http3_qpack_stream_context  qpack_sctx;
 
-    xqc_list_head_t     unack_block_list;
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-    xqc_http3_tnode_t     *tnode;
-#endif
-    uint32_t            header_sent; //compressed header size
-    uint32_t            header_recvd; //compressed header size
+    xqc_list_head_t                 unack_block_list;
+
+    uint32_t                        header_sent; //compressed header size
+    uint32_t                        header_recvd; //compressed header size
 
 } xqc_h3_stream_t;
 
 extern const xqc_stream_callbacks_t h3_stream_callbacks;
 
 xqc_h3_stream_t *
-xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_http3_stream_type h3_stream_type, void *user_data);
+xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type h3_stream_type, void *user_data);
 
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream);
@@ -138,7 +127,7 @@ int
 xqc_h3_stream_read_state_init(xqc_http3_stream_read_state * read_state);
 
 int
-xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream);
+xqc_h3_stream_create_control_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream);
 
 ssize_t
 xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_size, uint8_t fin);
@@ -152,5 +141,5 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
 ssize_t
 xqc_h3_stream_recv_data(xqc_h3_stream_t *stream, unsigned char *recv_buf, size_t recv_buf_size, uint8_t *fin);
 
-int xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream, xqc_http3_stream_type stream_type);
+int xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream, xqc_h3_stream_type stream_type);
 #endif /* _XQC_H3_STREAM_H_INCLUDED_ */

@@ -4,7 +4,6 @@
 #include <xquic/xquic_typedef.h>
 #include "src/transport/xqc_conn.h"
 #include "src/http3/xqc_h3_stream.h"
-#include "src/http3/xqc_h3_tnode.h"
 #include "src/http3/xqc_h3_qpack.h"
 
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
@@ -52,11 +51,6 @@ struct xqc_h3_conn_s {
 
     xqc_list_head_t         block_stream_head;
     //xqc_list_head_t         unack_stream_head;
-
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-    xqc_http3_tnode_t       *tnode_root;
-    xqc_tnode_hash_table_t  tnode_hash;
-#endif
 };
 
 
