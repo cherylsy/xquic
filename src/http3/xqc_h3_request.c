@@ -14,6 +14,7 @@ xqc_h3_request_create(xqc_engine_t *engine,
     xqc_h3_stream_t *h3_stream;
     xqc_h3_request_t *h3_request;
     xqc_h3_conn_t *h3_conn;
+
     stream = xqc_stream_create(engine, cid, NULL);
     if (!stream) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_stream_create error|");
@@ -45,15 +46,16 @@ int
 xqc_h3_headers_move_element(xqc_http_headers_t * dest, xqc_http_headers_t *src){
 
     size_t new_capacity = dest->count + src->count;
-    if(dest->capacity < new_capacity){
 
-        if(xqc_http_headers_realloc_buf(dest, new_capacity) < 0){
+    if (dest->capacity < new_capacity) {
+
+        if (xqc_http_headers_realloc_buf(dest, new_capacity) < 0) {
             return -XQC_QPACK_SAVE_HEADERS_ERROR;
         }
     }
 
     int i = 0;
-    for(i = 0; i < src->count; i++){
+    for (i = 0; i < src->count; i++) {
 
         xqc_http_header_t * dest_header = & dest->headers[dest->count + i];
         xqc_http_header_t * src_header = & src->headers[i];
@@ -75,19 +77,17 @@ xqc_h3_headers_free(xqc_http_headers_t *headers){
     int i = 0;
     xqc_http_header_t * header;
 
-    if(headers->headers == NULL){
+    if (headers->headers == NULL) {
         return;
     }
 
-    for(i = 0; i < headers->count; i++){
+    for (i = 0; i < headers->count; i++) {
         header = & headers->headers[i];
-        if(header->name.iov_base)
-        {
+        if (header->name.iov_base) {
             xqc_free(header->name.iov_base);
             header->name.iov_base = NULL;
         }
-        if(header->value.iov_base)
-        {
+        if (header->value.iov_base) {
             xqc_free(header->value.iov_base);
             header->value.iov_base = NULL;
         }
@@ -113,7 +113,7 @@ void
 xqc_h3_request_header_free(xqc_h3_request_header_t * h3_header)
 {
     int i = 0;
-    for(i = 0; i < 2; i++){
+    for (i = 0; i < 2; i++) {
         xqc_h3_headers_free(&h3_header->headers[i]);
     }
 }
@@ -156,7 +156,7 @@ xqc_h3_request_header_initial(xqc_h3_request_header_t * h3_header)
     h3_header->read_flag = XQC_H3_REQUEST_HEADER_DATA_NONE;
     h3_header->writing_cursor = 0;
 
-    for(i = 0; i < 2; i++){
+    for(i = 0; i < 2; i++) {
         xqc_h3_headers_initial(&h3_header->headers[i]);
     }
 }
@@ -255,17 +255,19 @@ xqc_http_headers_t *
 xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
 {
     *fin = 0;
-    if(h3_request->flag & XQC_H3_REQUEST_HEADER_FIN){
+    if (h3_request->flag & XQC_H3_REQUEST_HEADER_FIN) {
         *fin = 1;
     }
-    if(h3_request->h3_header.read_flag != XQC_H3_REQUEST_HEADER_DATA_NONE ){
+
+    if (h3_request->h3_header.read_flag != XQC_H3_REQUEST_HEADER_DATA_NONE ) {
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
                 "|stream_id:%ui|fin:%d|flag:%d|conn:%p|",
                 h3_request->h3_stream->stream->stream_id, *fin,
                 h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3_conn->conn);
+
         uint8_t read_cursor = h3_request->h3_header.read_flag - 1;
         h3_request->h3_header.read_flag = XQC_H3_REQUEST_HEADER_DATA_NONE;
-        //need set headers flag
+        /* need set headers flag */
         return &h3_request->h3_header.headers[read_cursor];
     }
     return NULL;
@@ -302,18 +304,18 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
 int 
 xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header){
 
-    if(h3_header->read_flag == XQC_H3_REQUEST_HEADER_DATA_NONE){
+    if (h3_header->read_flag == XQC_H3_REQUEST_HEADER_DATA_NONE) {
         h3_header->read_flag = 1 << h3_header->writing_cursor ;
-        h3_header->writing_cursor = (h3_header->writing_cursor + 1)&XQC_H3_REQUEST_HEADER_MASK;
-        //clear
-    }else{
+        h3_header->writing_cursor = 1 - h3_header->writing_cursor;
+        /* clear */
+    } else {
 
-        if(h3_header->read_flag == 1 << h3_header->writing_cursor){
-            //impossible
+        if (h3_header->read_flag == 1 << h3_header->writing_cursor) {
+            /* impossible */
             return -XQC_H3_EPROC_REQUEST;
         }
         xqc_http_headers_t * src_headers = &h3_header->headers[h3_header->writing_cursor];
-        xqc_http_headers_t * dest_headers = &h3_header->headers[(h3_header->writing_cursor + 1) & XQC_H3_REQUEST_HEADER_MASK];
+        xqc_http_headers_t * dest_headers = &h3_header->headers[1 - h3_header->writing_cursor];
         int ret = xqc_h3_headers_move_element( dest_headers, src_headers);
         if(ret < 0){
             return ret;

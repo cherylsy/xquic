@@ -19,7 +19,6 @@ typedef enum{
 }xqc_h3_request_header_read_flag;
 
 
-#define XQC_H3_REQUEST_HEADER_MASK 1
 typedef struct xqc_h3_request_header{
     xqc_http_headers_t headers[2]; //
     uint8_t read_flag;
