@@ -126,8 +126,6 @@ typedef struct {
 
 typedef struct {
   xqc_http3_frame_hd hd;
-  xqc_http3_pri_elem_type pt;
-  xqc_http3_elem_dep_type dt;
   int64_t pri_elem_id;
   int64_t elem_dep_id;
   uint32_t weight;
