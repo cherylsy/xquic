@@ -33,24 +33,23 @@ typedef enum {
 } xqc_http3_conn_flag;
 
 struct xqc_h3_conn_s {
-    xqc_connection_t        *conn;
-    xqc_log_t               *log;
-    void                    *user_data;
-    xqc_h3_stream_t         *control_stream_out;
-    xqc_h3_stream_t         *control_stream_in;
+    xqc_connection_t           *conn;
+    xqc_log_t                  *log;
+    void                       *user_data;
+    xqc_h3_stream_t            *control_stream_out;
+    xqc_h3_stream_t            *control_stream_in;
 
-    xqc_http3_conn_flag     flags;
-    xqc_h3_conn_callbacks_t h3_conn_callbacks;
-    uint64_t                max_stream_id_recvd;
-    uint64_t                goaway_stream_id;
+    xqc_http3_conn_flag         flags;
+    xqc_h3_conn_callbacks_t     h3_conn_callbacks;
+    uint64_t                    max_stream_id_recvd;
+    uint64_t                    goaway_stream_id;
 
-    xqc_http3_qpack_decoder qdec;
-    xqc_http3_qpack_encoder qenc;
-    xqc_h3_stream_t         *qdec_stream;
-    xqc_h3_stream_t         *qenc_stream;
+    xqc_http3_qpack_decoder     qdec;
+    xqc_http3_qpack_encoder     qenc;
+    xqc_h3_stream_t            *qdec_stream;
+    xqc_h3_stream_t            *qenc_stream;
 
-    xqc_list_head_t         block_stream_head;
-    //xqc_list_head_t         unack_stream_head;
+    xqc_list_head_t             block_stream_head;
 };
 
 
