@@ -4,7 +4,6 @@
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_stream.h"
 #include "src/crypto/xqc_tls_public.h"
-#include "src/http3/xqc_h3_tnode.h"
 #include "src/http3/xqc_h3_request.h"
 #include "src/common/xqc_list.h"
 #include "src/common/xqc_id_hash.h"
