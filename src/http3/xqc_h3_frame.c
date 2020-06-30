@@ -348,11 +348,11 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
                 return -XQC_H3_INVALID_STREAM;
             }
             h3_conn->flags |= XQC_HTTP3_CONN_FLAG_CONTROL_OPENED;
-            h3_stream->type = XQC_HTTP3_STREAM_TYPE_CONTROL;
+            h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_CONTROL;
             read_state->state = XQC_HTTP3_CTRL_STREAM_STATE_FRAME_TYPE;
             break;
         case XQC_HTTP3_STREAM_TYPE_PUSH:
-            h3_stream->type = XQC_HTTP3_STREAM_TYPE_PUSH;
+            h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_PUSH;
             read_state->state = XQC_HTTP3_PUSH_STREAM_STATE_PUSH_ID;
             break;
         case XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER:
@@ -361,7 +361,7 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
                 return -XQC_H3_INVALID_STREAM;
             }
             h3_conn->flags |= XQC_HTTP3_CONN_FLAG_QPACK_ENCODER_OPENED;
-            h3_stream->type = XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER;
+            h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER;
             break;
         case XQC_HTTP3_STREAM_TYPE_QPACK_DECODER:
             if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED) {
@@ -369,11 +369,11 @@ ssize_t xqc_http3_read_control_stream_type(xqc_h3_conn_t * h3_conn, xqc_h3_strea
                 return -XQC_H3_INVALID_STREAM;
             }
             h3_conn->flags |= XQC_HTTP3_CONN_FLAG_QPACK_DECODER_OPENED;
-            h3_stream->type = XQC_HTTP3_STREAM_TYPE_QPACK_DECODER;
+            h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_QPACK_DECODER;
             break;
 
         default:
-            h3_stream->type = XQC_HTTP3_STREAM_TYPE_UNKNOWN;
+            h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_UNKNOWN;
             break;
     }
 
@@ -446,7 +446,7 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
         }
     }
 
-    switch(h3_stream->type){
+    switch(h3_stream->h3_stream_type){
 
         case XQC_HTTP3_STREAM_TYPE_CONTROL:
             if(fin){
@@ -478,10 +478,12 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
         case XQC_HTTP3_STREAM_TYPE_UNKNOWN:
             nconsumed = (ssize_t)srclen;
             //need stop stream
-            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|read unknown stream type:%d |", h3_stream->type);
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, 
+                            "|read unknown stream type:%d |", h3_stream->h3_stream_type);
             break;
         default:
-            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|read error stream type:%d |", h3_stream->type);
+            xqc_log(h3_conn->log, XQC_LOG_ERROR, 
+                            "|read error stream type:%d |", h3_stream->h3_stream_type);
             return -XQC_H3_DECODE_ERROR;
     }
 
