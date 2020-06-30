@@ -370,7 +370,6 @@ xqc_conn_destroy(xqc_connection_t *xc)
     /* destroy streams, must before conn_close_notify */
     xqc_list_for_each_safe(pos, next, &xc->conn_all_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
-        xqc_list_del_init(pos);
         xqc_destroy_stream(stream);
     }
 
