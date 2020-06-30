@@ -10,10 +10,12 @@
 #include "src/transport/xqc_engine.h"
 
 
-int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
+int 
+xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream)
+{
 #ifdef XQC_HTTP3_PRIORITY_ENABLE
     xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
-    xqc_http3_stream_type h3_stream_type = h3_stream->h3_stream_type;
+    xqc_h3_stream_type h3_stream_type = h3_stream->h3_stream_type;
     if(h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST || h3_stream_type == XQC_HTTP3_STREAM_TYPE_PUSH ){
         xqc_stream_t * stream = h3_stream->stream;
         xqc_http3_node_id_t nid;
@@ -46,7 +48,7 @@ int xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream){
 }
 
 xqc_h3_stream_t *
-xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_http3_stream_type h3_stream_type, void *user_data)
+xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type h3_stream_type, void *user_data)
 {
     xqc_h3_stream_t *h3_stream;
 
@@ -151,7 +153,11 @@ xqc_h3_stream_create_control(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream)
     return XQC_OK;
 }
 
-int xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream, xqc_http3_stream_type stream_type){
+
+int 
+xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream, 
+    xqc_h3_stream_type stream_type)
+{
     if (!stream) {
         xqc_stream_type_t stream_type;
         if (h3_conn->conn->conn_type == XQC_CONN_TYPE_CLIENT) {
