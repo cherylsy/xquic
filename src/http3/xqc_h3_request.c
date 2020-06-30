@@ -65,7 +65,7 @@ xqc_h3_headers_move_element(xqc_http_headers_t * dest, xqc_http_headers_t *src){
         src_header->value.iov_base = NULL;
     }
 
-    return 0;
+    return XQC_OK;
 }
 
 
@@ -310,7 +310,7 @@ xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header){
 
         if(h3_header->read_flag == 1 << h3_header->writing_cursor){
             //impossible
-            return -1;
+            return -XQC_H3_EPROC_REQUEST;
         }
         xqc_http_headers_t * src_headers = &h3_header->headers[h3_header->writing_cursor];
         xqc_http_headers_t * dest_headers = &h3_header->headers[(h3_header->writing_cursor + 1) & XQC_H3_REQUEST_HEADER_MASK];
@@ -323,7 +323,7 @@ xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header){
     /* should clear write header */
     xqc_h3_headers_free(&h3_header->headers[h3_header->writing_cursor]);
 
-    return 0;
+    return XQC_OK;
 
 }
 
