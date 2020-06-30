@@ -506,7 +506,7 @@ int xqc_decoder_check_insert_result(xqc_http3_qpack_decoder * decoder, xqc_http_
 
 
 int xqc_encoder_check_header_can_be_ref(xqc_h3_conn_t * h3_conn, xqc_http_header_t * header){
-    xqc_http3_qpack_encoder * encoder = xqc_get_http3_qpack_encoder(h3_conn);
+    xqc_http3_qpack_encoder * encoder = xqc_h3_conn_get_qpack_encoder(h3_conn);
 
     char * name = header->name.iov_base;
 
@@ -535,7 +535,7 @@ int xqc_encoder_check_header_can_be_ref(xqc_h3_conn_t * h3_conn, xqc_http_header
 
 int xqc_encoder_check_insert_result(xqc_h3_conn_t * h3_conn, xqc_http_header_t * header){
 
-    xqc_http3_qpack_encoder * encoder = xqc_get_http3_qpack_encoder(h3_conn);
+    xqc_http3_qpack_encoder * encoder = xqc_h3_conn_get_qpack_encoder(h3_conn);
 
     char * name = header->name.iov_base;
 
