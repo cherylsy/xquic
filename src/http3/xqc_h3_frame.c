@@ -17,10 +17,6 @@ ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3
 int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_push * fr);
 int xqc_http3_stream_check_rx_http_state(xqc_h3_stream_t * stream, xqc_http3_stream_http_event event);
 
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_priority *fr);
-#endif
-
 int xqc_http3_conn_call_begin_headers(xqc_h3_conn_t * h3_conn,xqc_h3_stream_t * h3_stream);
 int xqc_http3_conn_call_begin_trailers(xqc_h3_conn_t * h3_conn,xqc_h3_stream_t * h3_stream);
 int xqc_http3_handle_header_data(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
@@ -697,14 +693,6 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 ++p;
                 ++nconsumed;
 
-
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-                rv = xqc_http3_conn_on_control_priority(h3_conn, &rstate->fr.priority);
-                if(rv != 0){
-
-                    return rv;
-                }
-#endif
 
                 xqc_http3_stream_read_state_clear(rstate);
                 break;
@@ -1784,60 +1772,6 @@ xqc_h3_stream_t * xqc_http3_find_stream(xqc_h3_conn_t * h3_conn, uint64_t stream
 
     return (xqc_h3_stream_t *)(stream->user_data);
 }
-
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-xqc_http3_tnode_t * xqc_http3_tnode_find_ascendant(xqc_http3_tnode_t * tnode, xqc_http3_node_id_t * nid){
-    for(tnode = tnode->parent; tnode && !xqc_http3_node_id_eq(nid, &tnode->nid); tnode = tnode->parent);
-    return tnode;
-}
-
-
-xqc_http3_tnode_t * xqc_http3_find_tnode(xqc_h3_conn_t * conn, xqc_http3_node_id_t *nid){
-
-    xqc_http3_tnode_t * tnode = xqc_tnode_hash_find_by_id(&conn->tnode_hash, nid);
-    if(tnode == NULL){
-        tnode = xqc_http3_create_tnode(&conn->tnode_hash, nid, XQC_HTTP3_DEFAULT_WEIGHT, conn->tnode_root);
-    }
-    return tnode;
-}
-
-int xqc_http3_conn_on_control_priority(xqc_h3_conn_t * conn, xqc_http3_frame_priority *fr){
-    xqc_http3_node_id_t nid, dep_nid;
-    xqc_http3_tnode_t * dep_tnode = NULL, *tnode = NULL;
-    int rv = 0;
-
-    xqc_http3_node_id_init(&nid, (int)(fr->pt), fr->pri_elem_id);
-    xqc_http3_node_id_init(&dep_nid, (int)(fr->dt), fr->elem_dep_id);
-
-    if(xqc_http3_node_id_eq(&nid, &dep_nid)){
-        return -XQC_H3_PRIORITY_ERROR;
-    }
-
-    tnode = xqc_http3_find_tnode(conn, &nid);
-    if(tnode == NULL){
-        return -XQC_H3_PRIORITY_ERROR;
-    }
-    tnode->weight = fr->weight;
-
-    dep_tnode = xqc_http3_find_tnode(conn, &dep_nid);
-    if(dep_tnode == NULL){
-        return -XQC_H3_PRIORITY_ERROR;
-    }
-
-    xqc_http3_tnode_remove_tree(tnode);
-
-    if(fr->exclusive){
-        rv = xqc_http3_tnode_insert_exclusive(tnode, dep_tnode);
-        if(rv != 0){
-            return -XQC_H3_PRIORITY_ERROR;
-        }
-    }else{
-        xqc_http3_tnode_insert(tnode, dep_tnode);
-    }
-
-    return 0;
-}
-#endif
 
 int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_push * fr){
 

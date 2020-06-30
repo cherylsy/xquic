@@ -81,31 +81,16 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 
     h3_conn->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
 
-    xqc_http3_qpack_encoder_init(&h3_conn->qenc, 
+    xqc_h3_qpack_encoder_init(&h3_conn->qenc, 
                         QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, 
                         DEFAULT_QPACK_BLOCK_STREAM, DEFAULT_QPACK_HASH_TABLE_SIZE, h3_conn);
-    xqc_http3_qpack_decoder_init(&h3_conn->qdec, 
+    xqc_h3_qpack_decoder_init(&h3_conn->qdec, 
                         QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, 
                         DEFAULT_QPACK_BLOCK_STREAM, h3_conn);
 
     xqc_init_list_head(&h3_conn->block_stream_head);
     h3_conn->qdec_stream = NULL;
     h3_conn->qenc_stream = NULL;
-
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-    if(xqc_tnode_hash_create(&h3_conn->tnode_hash, XQC_TNODE_HASH_SIZE) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode hash table failed|");
-        goto fail;
-    }
-
-    xqc_http3_node_id_t nid;
-    xqc_http3_node_id_init(&nid, XQC_HTTP3_NODE_ID_TYPE_ROOT, 0);
-    h3_conn->tnode_root = xqc_http3_create_tnode(&h3_conn->tnode_hash, &nid, XQC_HTTP3_DEFAULT_WEIGHT, NULL );
-    if(h3_conn->tnode_root == NULL){
-        xqc_log(conn->log, XQC_LOG_ERROR, "|create tnode root failed|");
-        goto fail;
-    }
-#endif
 
     if (h3_conn->h3_conn_callbacks.h3_conn_create_notify) {
         if (h3_conn->h3_conn_callbacks.h3_conn_create_notify(h3_conn, &h3_conn->conn->scid, user_data)) {
@@ -131,15 +116,13 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 
     xqc_http3_qpack_decoder_free(&h3_conn->qdec);
     xqc_http3_qpack_encoder_free(&h3_conn->qenc);
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-    xqc_tnode_free_hash_table(&h3_conn->tnode_hash);
-#endif
 
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
     xqc_free(h3_conn);
 }
 
-int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
+int 
+xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
 {
     return xqc_conn_send_ping(engine, cid, user_data);
 }

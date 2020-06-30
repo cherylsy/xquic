@@ -359,9 +359,7 @@ xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id,
 }
 
 xqc_stream_t *
-xqc_stream_create (xqc_engine_t *engine,
-                   xqc_cid_t *cid,
-                  void *user_data)
+xqc_stream_create (xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
 {
     xqc_connection_t *conn;
     xqc_stream_t *stream;

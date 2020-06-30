@@ -10,43 +10,6 @@
 #include "src/transport/xqc_engine.h"
 
 
-int 
-xqc_http3_stream_link_tnode(xqc_h3_stream_t * h3_stream)
-{
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
-    xqc_h3_stream_type h3_stream_type = h3_stream->h3_stream_type;
-    if(h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST || h3_stream_type == XQC_HTTP3_STREAM_TYPE_PUSH ){
-        xqc_stream_t * stream = h3_stream->stream;
-        xqc_http3_node_id_t nid;
-        nid.id = stream->stream_id;
-        if(h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST){
-            nid.type = XQC_HTTP3_NODE_ID_TYPE_STREAM;
-        }else if (h3_stream_type == XQC_HTTP3_STREAM_TYPE_PUSH){
-            nid.type = XQC_HTTP3_NODE_ID_TYPE_PUSH;
-        }else{
-            return -1;
-        }
-
-        h3_stream->tnode = xqc_tnode_hash_find_by_id(&h3_conn->tnode_hash, &nid);
-        if(h3_stream->tnode == NULL){
-            h3_stream->tnode = xqc_http3_create_tnode(&h3_conn->tnode_hash, &nid, XQC_HTTP3_DEFAULT_WEIGHT, h3_conn->tnode_root);
-        }
-        if (h3_stream->tnode == NULL){
-            return -1;
-        }else{
-            //h3_stream->tnode->h3_stream = h3_stream;
-        }
-
-    }else{
-
-        h3_stream->tnode = NULL;
-        return 0;
-    }
-#endif
-    return 0;
-}
-
 xqc_h3_stream_t *
 xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream_type h3_stream_type, void *user_data)
 {
@@ -82,17 +45,6 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3_conn, xqc_stream_t *stream, xqc_h3_stream
 
     stream->stream_flag |= XQC_STREAM_FLAG_HAS_H3;
 
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-    //get tnode
-    if(h3_conn->conn->conn_type == XQC_CONN_TYPE_SERVER){
-        if(xqc_http3_stream_link_tnode(h3_stream) < 0){
-            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|stream link tnode error|");
-            return NULL;
-        }
-    }
-#endif
-
-
     return h3_stream;
 }
 
@@ -112,11 +64,7 @@ xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
     xqc_h3_stream_free_data_buf(h3_stream);
 
     xqc_http3_stream_clear_unack_and_block_stream_list(h3_stream);
-#ifdef XQC_HTTP3_PRIORITY_ENABLE
-    if(h3_stream->tnode){
-        xqc_http3_tnode_free(h3_stream->tnode);
-    }
-#endif
+
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|",
             h3_stream->stream->stream_id, h3_stream->h3_stream_type);
     xqc_free(h3_stream);
@@ -324,12 +272,6 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
             h3_stream->h3_stream_type = XQC_HTTP3_STREAM_TYPE_CONTROL;
             h3_conn->control_stream_in = h3_stream;
         }*/
-        if(h3_conn->conn->conn_type == XQC_CONN_TYPE_SERVER){
-            if(xqc_http3_stream_link_tnode(h3_stream) < 0){
-                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|stream link tnode error|");
-                return -XQC_H3_EPRI_TREE;
-            }
-        }
     }
 
     if(h3_stream->stream->stream_type == XQC_CLI_UNI || h3_stream->stream->stream_type == XQC_SVR_UNI){
