@@ -41,13 +41,44 @@ xqc_h3_request_create(xqc_engine_t *engine,
 }
 
 
-int xqc_http_headers_free(xqc_http_headers_t *headers){
+int 
+xqc_h3_headers_move_element(xqc_http_headers_t * dest, xqc_http_headers_t *src){
+
+    size_t new_capacity = dest->count + src->count;
+    if(dest->capacity < new_capacity){
+
+        if(xqc_http_headers_realloc_buf(dest, new_capacity) < 0){
+            return -XQC_QPACK_SAVE_HEADERS_ERROR;
+        }
+    }
+
+    int i = 0;
+    for(i = 0; i < src->count; i++){
+
+        xqc_http_header_t * dest_header = & dest->headers[dest->count + i];
+        xqc_http_header_t * src_header = & src->headers[i];
+        dest_header->name = src_header->name;
+        dest_header->value = src_header->value;
+        dest_header->flags = src_header->flags;
+
+        src_header->name.iov_base = NULL;
+        src_header->value.iov_base = NULL;
+    }
+
+    return XQC_OK;
+}
+
+
+void 
+xqc_h3_headers_free(xqc_http_headers_t *headers){
 
     int i = 0;
     xqc_http_header_t * header;
+
     if(headers->headers == NULL){
-        return 0;
+        return;
     }
+
     for(i = 0; i < headers->count; i++){
         header = & headers->headers[i];
         if(header->name.iov_base)
@@ -66,19 +97,26 @@ int xqc_http_headers_free(xqc_http_headers_t *headers){
     headers->headers = NULL;
     headers->count = 0;
     headers->capacity = 0;
-
-    return 0;
 }
 
-int xqc_h3_request_header_free(xqc_h3_request_header_t * h3_header){
 
+void 
+xqc_h3_headers_initial(xqc_http_headers_t *headers)
+{
+    headers->headers = NULL;
+    headers->count = 0;
+    headers->capacity = 0;
+}
+
+
+void 
+xqc_h3_request_header_free(xqc_h3_request_header_t * h3_header)
+{
     int i = 0;
     for(i = 0; i < 2; i++){
-        xqc_http_headers_free(&h3_header->headers[i]);
+        xqc_h3_headers_free(&h3_header->headers[i]);
     }
-    return 0;
 }
-
 
 
 void
@@ -92,7 +130,9 @@ xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
     xqc_free(h3_request);
 }
 
-int xqc_h3_request_close (xqc_h3_request_t *h3_request)
+
+int 
+xqc_h3_request_close (xqc_h3_request_t *h3_request)
 {
     xqc_connection_t *conn = h3_request->h3_stream->h3_conn->conn;
     xqc_stream_t *stream = h3_request->h3_stream->stream;
@@ -109,21 +149,15 @@ int xqc_h3_request_close (xqc_h3_request_t *h3_request)
     return XQC_OK;
 }
 
-void xqc_http_headers_initial(xqc_http_headers_t *headers){
-
-    headers->headers = NULL;
-    headers->count = 0;
-    headers->capacity = 0;
-}
-
-void xqc_h3_request_header_initial(xqc_h3_request_header_t * h3_header){
-
+void 
+xqc_h3_request_header_initial(xqc_h3_request_header_t * h3_header)
+{
     int i = 0;
     h3_header->read_flag = XQC_H3_REQUEST_HEADER_DATA_NONE;
     h3_header->writing_cursor = 0;
 
     for(i = 0; i < 2; i++){
-        xqc_http_headers_initial(&h3_header->headers[i]);
+        xqc_h3_headers_initial(&h3_header->headers[i]);
     }
 }
 
@@ -170,18 +204,6 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
                              void *user_data)
 {
     h3_request->user_data = user_data;
-}
-
-void*
-xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request)
-{
-    return h3_request->h3_stream->h3_conn->user_data;
-}
-
-xqc_stream_id_t
-xqc_h3_stream_id(xqc_h3_request_t *h3_request)
-{
-    return h3_request->h3_stream->stream->stream_id;
 }
 
 ssize_t
@@ -277,34 +299,8 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
 }
 
 
-int xqc_http_headers_move_element(xqc_http_headers_t * dest, xqc_http_headers_t *src){
-
-    size_t new_capacity = dest->count + src->count;
-    if(dest->capacity < new_capacity){
-
-        if(xqc_http_headers_realloc_buf(dest, new_capacity) < 0){
-            return -XQC_QPACK_SAVE_HEADERS_ERROR;
-        }
-    }
-
-
-    int i = 0;
-    for(i = 0; i < src->count; i++){
-
-        xqc_http_header_t * dest_header = & dest->headers[dest->count + i];
-        xqc_http_header_t * src_header = & src->headers[i];
-        dest_header->name = src_header->name;
-        dest_header->value = src_header->value;
-        dest_header->flags = src_header->flags;
-
-        src_header->name.iov_base = NULL;
-        src_header->value.iov_base = NULL;
-    }
-
-    return 0;
-}
-
-int xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header){
+int 
+xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header){
 
     if(h3_header->read_flag == XQC_H3_REQUEST_HEADER_DATA_NONE){
         h3_header->read_flag = 1 << h3_header->writing_cursor ;
@@ -314,18 +310,35 @@ int xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header){
 
         if(h3_header->read_flag == 1 << h3_header->writing_cursor){
             //impossible
-            return -1;
+            return -XQC_H3_EPROC_REQUEST;
         }
         xqc_http_headers_t * src_headers = &h3_header->headers[h3_header->writing_cursor];
         xqc_http_headers_t * dest_headers = &h3_header->headers[(h3_header->writing_cursor + 1) & XQC_H3_REQUEST_HEADER_MASK];
-        int ret = xqc_http_headers_move_element( dest_headers, src_headers);
+        int ret = xqc_h3_headers_move_element( dest_headers, src_headers);
         if(ret < 0){
             return ret;
         }
     }
 
-    xqc_http_headers_free(&h3_header->headers[h3_header->writing_cursor]);//should clear write header
+    /* should clear write header */
+    xqc_h3_headers_free(&h3_header->headers[h3_header->writing_cursor]);
 
-    return 0;
+    return XQC_OK;
 
 }
+
+
+xqc_stream_id_t
+xqc_h3_stream_id(xqc_h3_request_t *h3_request)
+{
+    return h3_request->h3_stream->stream->stream_id;
+}
+
+
+void*
+xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request)
+{
+    return h3_request->h3_stream->h3_conn->user_data;
+}
+
+
