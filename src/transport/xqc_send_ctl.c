@@ -207,6 +207,11 @@ xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     int can = 1;
     unsigned congestion_window =
             conn->conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(conn->conn_send_ctl->ctl_cong);
+
+    if (conn->conn_settings.so_sndbuf > 0) {
+        congestion_window = xqc_min(congestion_window, conn->conn_settings.so_sndbuf);
+    }
+
     if (conn->conn_send_ctl->ctl_bytes_in_flight + packet_out->po_used_size > congestion_window) {
         can = 0;
     }
