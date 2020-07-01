@@ -1057,7 +1057,7 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
 }
 
 
-#ifdef (XQC_VERSION_NEGOTIATION)
+#if (XQC_VERSION_NEGOTIATION)
 /*
  * 版本检查
  * */
