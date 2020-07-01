@@ -68,9 +68,9 @@ typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_
 /* user_data is a parameter of xqc_engine_packet_process */
 typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
 
-//session save callback
+/* session save callback */
 typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_user_data);
-//transport parameters save callback
+/* transport parameters save callback */
 typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, void *conn_user_data);
 
 /* log interface */
@@ -86,43 +86,43 @@ typedef struct xqc_log_callbacks_s {
 /* transport layer */
 typedef struct xqc_conn_callbacks_s {
     /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_conn_notify_pt          conn_create_notify; /* required for server, optional for client */
+    xqc_conn_notify_pt          conn_create_notify;         /* required for server, optional for client */
     /* 连接关闭时回调,用户可以回收资源 */
     xqc_conn_notify_pt          conn_close_notify;
     /* for handshake done */
-    xqc_handshake_finished_pt   conn_handshake_finished;  /* optional */
+    xqc_handshake_finished_pt   conn_handshake_finished;    /* optional */
     /* ping is acked */
-    xqc_conn_ping_ack_notify_pt conn_ping_acked; /* optional */
+    xqc_conn_ping_ack_notify_pt conn_ping_acked;            /* optional */
 } xqc_conn_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_conn_callbacks_s {
     /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_h3_conn_notify_pt          h3_conn_create_notify; /* required for server, optional for client */
+    xqc_h3_conn_notify_pt          h3_conn_create_notify;       /* required for server, optional for client */
     /* 连接关闭时回调,用户可以回收资源 */
     xqc_h3_conn_notify_pt          h3_conn_close_notify;
     /* for handshake done */
     xqc_h3_handshake_finished_pt   h3_conn_handshake_finished;  /* optional */
     /* ping is acked */
-    xqc_h3_conn_ping_ack_notify_pt h3_conn_ping_acked; /* optional */
+    xqc_h3_conn_ping_ack_notify_pt h3_conn_ping_acked;          /* optional */
 } xqc_h3_conn_callbacks_t;
 
 /* transport layer */
 typedef struct xqc_stream_callbacks_s {
-    xqc_stream_notify_pt        stream_read_notify; /* 可读时回调，用户可以继续调用读接口 */
-    xqc_stream_notify_pt        stream_write_notify; /* 可写时回调，用户可以继续调用写接口 */
-    xqc_stream_notify_pt        stream_create_notify;  /* required for server, optional for client，
+    xqc_stream_notify_pt        stream_read_notify;     /* 可读时回调，用户可以继续调用读接口 */
+    xqc_stream_notify_pt        stream_write_notify;    /* 可写时回调，用户可以继续调用写接口 */
+    xqc_stream_notify_pt        stream_create_notify;   /* required for server, optional for client，
                                                          * 请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_stream_notify_pt        stream_close_notify;   /* 关闭时回调，用户可以回收资源 */
+    xqc_stream_notify_pt        stream_close_notify;    /* 关闭时回调，用户可以回收资源 */
 } xqc_stream_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_request_callbacks_s {
-    xqc_h3_request_read_notify_pt   h3_request_read_notify; /* 可读时回调，用户可以继续调用读接口，读headers或body */
-    xqc_h3_request_notify_pt        h3_request_write_notify; /* 可写时回调，用户可以继续调用写接口,写headers或body */
-    xqc_h3_request_notify_pt        h3_request_create_notify; /* required for server, optional for client，
-                                                            * 请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_h3_request_notify_pt        h3_request_close_notify; /* 关闭时回调，用户可以回收资源 */
+    xqc_h3_request_read_notify_pt   h3_request_read_notify;     /* 可读时回调，用户可以继续调用读接口，读headers或body */
+    xqc_h3_request_notify_pt        h3_request_write_notify;    /* 可写时回调，用户可以继续调用写接口,写headers或body */
+    xqc_h3_request_notify_pt        h3_request_create_notify;   /* required for server, optional for client，
+                                                                 * 请求创建完成后回调，用户可以创建自己的请求上下文 */
+    xqc_h3_request_notify_pt        h3_request_close_notify;    /* 关闭时回调，用户可以回收资源 */
 } xqc_h3_request_callbacks_t;
 
 typedef struct xqc_cc_params_s {
@@ -148,7 +148,7 @@ typedef struct xqc_congestion_control_callback_s {
     /* 判断是否在慢启动阶段 */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
-    //For BBR
+    /* For BBR */
     void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
     void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
@@ -170,8 +170,8 @@ typedef struct xqc_config_s {
     size_t  conns_hash_bucket_size;
     size_t  conns_active_pq_capacity;
     size_t  conns_wakeup_pq_capacity;
-    uint32_t  support_version_list[XQC_SUPPORT_VERSION_MAX]; /*支持的版本列表*/
-    uint32_t  support_version_count; /*版本列表数量*/
+    uint32_t  support_version_list[XQC_SUPPORT_VERSION_MAX];/* 支持的版本列表 */
+    uint32_t  support_version_count;                        /* 版本列表数量 */
     uint8_t   cid_len;
 } xqc_config_t;
 
@@ -186,13 +186,13 @@ typedef enum {
  */
 typedef struct xqc_engine_callback_s {
     /* for event loop */
-    xqc_set_event_timer_pt      set_event_timer; /* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
+    xqc_set_event_timer_pt      set_event_timer;/* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
 
     /* for socket write */
-    xqc_socket_write_pt         write_socket; /* 用户实现socket写接口 */
+    xqc_socket_write_pt         write_socket;   /* 用户实现socket写接口 */
 
     /* for send_mmsg write*/
-    xqc_send_mmsg_pt            write_mmsg; /*批量发送接口*/
+    xqc_send_mmsg_pt            write_mmsg;     /*批量发送接口*/
 
     /* for server, callback when server accept a new connection */
     xqc_server_accept_pt        server_accept;
@@ -226,49 +226,50 @@ typedef struct xqc_engine_callback_s {
 #define XQC_ALPN_TRANSPORT "transport"
 
 typedef struct xqc_engine_ssl_config_s {
-    char       *private_key_file; /* For server */
-    char       *cert_file; /* For server */
+    char       *private_key_file;           /* For server */
+    char       *cert_file;                  /* For server */
     char       *ciphers;
     char       *groups;
     //uint32_t   timeout;
-    char       *session_ticket_key_data; /* For server */
-    size_t     session_ticket_key_len; /* For server */
+    char       *session_ticket_key_data;    /* For server */
+    size_t     session_ticket_key_len;      /* For server */
 
-    char       *alpn_list; /* For server */
-    int        alpn_list_len; /* For server */
+    char       *alpn_list;                  /* For server */
+    int        alpn_list_len;               /* For server */
 } xqc_engine_ssl_config_t;
 
 typedef struct xqc_conn_ssl_config_s {
-    char       *session_ticket_data; /* For client, client should Use the domain as the key to save */
-    size_t     session_ticket_len;  /* For client */
-    char       *transport_parameter_data; /* For client, client should Use the domain as the key to save */
-    size_t     transport_parameter_data_len; /* For client */
+    char       *session_ticket_data;            /* For client, client should Use the domain as the key to save */
+    size_t     session_ticket_len;              /* For client */
+    char       *transport_parameter_data;       /* For client, client should Use the domain as the key to save */
+    size_t     transport_parameter_data_len;    /* For client */
 
-    char       *alpn; /* User does't care */
+    char       *alpn;                           /* User does't care */
 } xqc_conn_ssl_config_t;
 
 
 typedef struct xqc_http_header_s {
     struct iovec        name;
     struct iovec        value;
-    uint8_t             flags; /* 1:do not compress this header */
+    uint8_t             flags;          /* 1:do not compress this header */
 } xqc_http_header_t;
 
 typedef struct xqc_http_headers_s {
     xqc_http_header_t       *headers;
     size_t                  count;
-    size_t                  capacity; /* User does't care */
+    size_t                  capacity;   /* User does't care */
 } xqc_http_headers_t;
 
 typedef struct xqc_conn_settings_s {
-    int                         pacing_on; /* default: 0 */
-    int                         ping_on;    /* client sends PING to keepalive, default:0 */
+    int                         pacing_on;          /* default: 0 */
+    int                         ping_on;            /* client sends PING to keepalive, default:0 */
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
     xqc_cc_params_t             cc_params;
+    uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
 } xqc_conn_settings_t;
 
 typedef enum {
-    XQC_0RTT_NONE, /* without 0RTT */
+    XQC_0RTT_NONE,      /* without 0RTT */
     XQC_0RTT_ACCEPT,
     XQC_0RTT_REJECT,
 } xqc_0rtt_flag_t;
@@ -287,9 +288,9 @@ typedef struct xqc_conn_stats_s {
 typedef struct xqc_request_stats_s {
     size_t      send_body_size;
     size_t      recv_body_size;
-    size_t      send_header_size; //compressed header size
-    size_t      recv_header_size; //compressed header size
-    int         stream_err; /* 0 For no-error */
+    size_t      send_header_size;   /* compressed header size */
+    size_t      recv_header_size;   /* compressed header size */
+    int         stream_err;         /* 0 For no-error */
 } xqc_request_stats_t;
 
 /**
@@ -626,12 +627,16 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 
 /**
  * user should call after a number of packet processed in xqc_engine_packet_process
+ * call after recv a batch packets, may destory connection when error
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_engine_finish_recv (xqc_engine_t *engine);//call after recv loop, may destory connection when error
+void xqc_engine_finish_recv (xqc_engine_t *engine);
 
+/**
+ * call after recv a batch packets, do not destory connection
+ */
 XQC_EXPORT_PUBLIC_API
-void xqc_engine_recv_batch (xqc_engine_t *engine, xqc_connection_t *conn);//call after recv a batch packets, do not destory connection
+void xqc_engine_recv_batch (xqc_engine_t *engine, xqc_connection_t *conn);
 
 /**
  * Process all connections, user should call when timer expire
