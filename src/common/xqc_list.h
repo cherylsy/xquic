@@ -47,43 +47,12 @@ static inline void xqc_init_list_head(xqc_list_head_t *list)
     list->next = list;
 }
 
-static inline int __xqc_list_add_valid(xqc_list_head_t *node, xqc_list_head_t *prev, xqc_list_head_t *next)
-{
-    assert(next->prev == prev && prev->next == next && node != prev && node != next);
-
-    if (next->prev != prev || prev->next != next || node == prev || node == next) {
-        return XQC_FALSE;
-    }
-    return XQC_TRUE;
-}
-
-static inline int __xqc_list_del_entry_valid(xqc_list_head_t *entry)
-{
-    xqc_list_head_t *prev, *next;
-
-    prev = entry->prev;
-    next = entry->next;
-
-    assert(prev != NULL && next != NULL);
-    assert(next != XQC_LIST_POISON1 
-           && prev != XQC_LIST_POISON2
-           && prev->next == entry 
-           && next->prev == entry);
-
-    if (prev == NULL || next == NULL) {
-        return XQC_FALSE;
-    }
-    if (next == XQC_LIST_POISON1 || prev == XQC_LIST_POISON2 || prev->next != entry || next->prev != entry) {
-        return XQC_FALSE;
-    }
-    return XQC_TRUE;
-}
-
 static inline void __xqc_list_add(xqc_list_head_t *node, xqc_list_head_t *prev, xqc_list_head_t *next)
 {
-    if (!__xqc_list_add_valid(node, prev, next)) {
-        return;
-    }
+#if (XQC_DEBUG)
+    assert(next->prev == prev && prev->next == next && node != prev && node != next);
+#endif
+
     next->prev = node;
     node->next = next;
     node->prev = prev;
@@ -108,9 +77,19 @@ static inline void __xqc_list_del(xqc_list_head_t * prev, xqc_list_head_t * next
 
 static inline void __xqc_list_del_entry(xqc_list_head_t *entry)
 {
-    if (!__xqc_list_del_entry_valid(entry)) {
-        return;
-    }
+#if (XQC_DEBUG)
+    xqc_list_head_t *prev, *next;
+
+    prev = entry->prev;
+    next = entry->next;
+
+    assert(prev != NULL && next != NULL);
+    assert(next != XQC_LIST_POISON1 
+           && prev != XQC_LIST_POISON2
+           && prev->next == entry 
+           && next->prev == entry);
+#endif
+
     __xqc_list_del(entry->prev, entry->next);
 }
 
