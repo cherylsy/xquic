@@ -985,7 +985,7 @@ int main(int argc, char *argv[]) {
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   pacing_on,
             .cong_ctrl_callback = cong_ctrl,
-            .cc_params  =   {.init_cwnd = 32,},
+            .cc_params  =   {.customize_on = 1, .init_cwnd = 32,},
     };
     xqc_server_set_conn_settings(conn_settings);
 
