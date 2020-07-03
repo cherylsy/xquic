@@ -688,7 +688,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     xqc_vec_t *hp = NULL;
 
     if (XQC_ENC_LEV_0RTT == encrypt_level) {
-        if(xqc_is_early_data_accepted(conn) == XQC_FALSE) {
+        if(xqc_crypto_is_early_data_accepted(conn) == XQC_FALSE) {
             //printf("early data not decrypt");
             xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_do_decrypt_pkt|early data not decrypt");
             return XQC_EARLY_DATA_REJECT;

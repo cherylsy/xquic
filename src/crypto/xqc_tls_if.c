@@ -12,7 +12,7 @@
  *@return XQC_FALSE means reject, XQC_TRUE means early accepted
  *
  */
-int xqc_is_early_data_accepted(xqc_connection_t * conn) {
+int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn) {
 #ifndef OPENSSL_IS_BORINGSSL
     if(SSL_get_early_data_status(conn->xc_ssl) == SSL_EARLY_DATA_ACCEPTED) {
 #else

@@ -527,8 +527,8 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
 /* return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept */
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
-/* 用于判断early data 是否被接受, XQC_TRUE 表示0RTT的数据可以被接受和解析, XQC_FALSE表示0RTT的数据被拒绝 */
-int xqc_is_early_data_accepted(xqc_connection_t * conn);
+/* return XQC_TRUE for early data accepted, XQC_FALSE for early data rejected */
+int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn);
 
 // create crypto nonce
 void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,uint64_t pkt_num) ;
