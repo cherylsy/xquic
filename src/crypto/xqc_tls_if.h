@@ -19,7 +19,7 @@ typedef struct {
 } xqc_pkt_stateless_reset;
 
 
-struct xqc_tls_context 
+struct xqc_tls_context
 {
     xqc_aead_t      aead;
     xqc_crypto_t    hp;
@@ -525,14 +525,12 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen, void *user_data);
 
-
-
+/* Return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept */
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
+/* Include BORINGSSL and OPENSSL. return XQC_TRUE for early data accepted, XQC_FALSE for early data rejected */
+int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn);
 
-/** ------- utils --------*/ 
-
-
-// create crypto nonce 
+// create crypto nonce
 void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,uint64_t pkt_num) ;
 int xqc_conn_prepare_key_update(xqc_connection_t * conn);
 int xqc_start_key_update(xqc_connection_t * conn);

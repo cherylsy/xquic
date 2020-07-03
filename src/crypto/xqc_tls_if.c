@@ -9,18 +9,17 @@
 
 
 /*
- *@return XQC_FALSE means not reject, XQC_TRUE means early reject
+ *@return XQC_FALSE means reject, XQC_TRUE means early accepted
  *
  */
-int xqc_is_early_data_reject(xqc_connection_t * conn)
-{
-    if(conn->tlsref.resumption  == 0){
+int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn) {
+#ifndef OPENSSL_IS_BORINGSSL
+    if(SSL_get_early_data_status(conn->xc_ssl) == SSL_EARLY_DATA_ACCEPTED) {
+#else
+    if(xqc_tls_is_early_data_accepted(conn) == XQC_TLS_EARLY_DATA_ACCEPT) {
+#endif
         return XQC_TRUE;
-    }
-
-    if((conn->tlsref.flags & XQC_CONN_FLAG_EARLY_DATA_REJECTED) != 0){
-        return XQC_TRUE;
-    }else{
+    } else {
         return XQC_FALSE;
     }
 }
@@ -45,7 +44,6 @@ int xqc_is_ready_to_send_early_data(xqc_connection_t * conn)
     }
     return XQC_TRUE;
 }
-
 
 int xqc_free_pktns_list_buffer(xqc_pktns_t * p_pktns){
 
@@ -100,7 +98,7 @@ int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid )
 }
 
 
-static 
+static
 int xqc_judge_ckm_null(xqc_crypto_km_t * ckm)//if null return 0, both key and iv not null return 1, else return -1;
 {
     if((ckm->key.base == NULL && ckm->key.len == 0) && (ckm->iv.base == NULL && ckm->iv.len == 0)){

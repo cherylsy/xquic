@@ -334,7 +334,9 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
 int xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
 {
     DEBUG;
-    printf("ping_id:%d\n",*(int*)ping_user_data);
+    if (ping_user_data) {
+        printf("ping_id:%d\n", *(int *) ping_user_data);
+    }
     return 0;
 }
 
@@ -382,7 +384,9 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
 int xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
 {
     DEBUG;
-    printf("ping_id:%d\n",*(int*)ping_user_data);
+    if (ping_user_data) {
+        printf("ping_id:%d\n", *(int *) ping_user_data);
+    }
     return 0;
 }
 
