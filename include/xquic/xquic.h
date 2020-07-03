@@ -134,7 +134,7 @@ typedef struct xqc_cc_params_s {
 
 typedef struct xqc_congestion_control_callback_s {
     /* 初始化时回调，用于分配内存 */
-    size_t (*xqc_cong_ctl_size) ();
+    size_t (*xqc_cong_ctl_size) (void);
     /* 连接初始化时回调，支持传入拥塞算法参数 */
     void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_cc_params_t cc_params);
     /* 核心回调，检测到丢包时回调，按照算法策略降低拥塞窗口 */
