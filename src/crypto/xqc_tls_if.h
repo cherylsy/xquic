@@ -525,9 +525,9 @@ ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen, void *user_data);
 
-/* return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept */
+/* Return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept */
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
-/* return XQC_TRUE for early data accepted, XQC_FALSE for early data rejected */
+/* Include BORINGSSL and OPENSSL. return XQC_TRUE for early data accepted, XQC_FALSE for early data rejected */
 int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn);
 
 // create crypto nonce
