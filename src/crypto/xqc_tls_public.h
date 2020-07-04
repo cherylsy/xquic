@@ -330,9 +330,9 @@ struct xqc_tlsref
     xqc_alpn_num            alpn_num;
     uint64_t                flags; //record handshake completed or recv retry packet
 
-    xqc_tls_context_t       hs_crypto_ctx;          
+    xqc_tls_context_t       hs_crypto_ctx;
     xqc_tls_context_t       crypto_ctx;     /* prf and aead */
-    uint32_t                last_cipher_id ; // last cipher id 
+    uint32_t                last_cipher_id ; // last cipher id
 
     xqc_pktns_t             initial_pktns; // initial packet space key
     xqc_pktns_t             hs_pktns; // handshake packet space  key
@@ -356,6 +356,7 @@ struct xqc_tlsref
 
     xqc_save_session_cb_t   save_session_cb;
     xqc_save_tp_cb_t        save_tp_cb;
+    xqc_cert_verify_cb_t    cert_verify_cb; /*now only for borring ssl*/
     void *                  tp_user_data;
     void *                  session_user_data;
 

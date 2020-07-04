@@ -73,6 +73,9 @@ typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_us
 /* transport parameters save callback */
 typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, void *conn_user_data);
 
+/* client certificate verify callbacks, if verify success return 1, verify failed return 0 */
+typedef int  (*xqc_cert_verify_cb_t)(unsigned char *certs[],size_t cert_len[],size_t certs_len, void * conn_user_data);
+
 /* log interface */
 typedef struct xqc_log_callbacks_s {
     /* return 0 for success, <0 for error */
@@ -220,6 +223,9 @@ typedef struct xqc_engine_callback_s {
 
     /* for client, save transport parameter data, Use the domain as the key to save */
     xqc_save_tp_cb_t            save_tp_cb;
+
+    /* for client , verify certificate */
+    xqc_cert_verify_cb_t        cert_verify_cb;
 } xqc_engine_callback_t;
 
 #define XQC_ALPN_HTTP3 "http3-1"
@@ -243,6 +249,7 @@ typedef struct xqc_conn_ssl_config_s {
     size_t     session_ticket_len;              /* For client */
     char       *transport_parameter_data;       /* For client, client should Use the domain as the key to save */
     size_t     transport_parameter_data_len;    /* For client */
+    int        cert_verify_flag;                /*Flag for client certificate verify , now only boringssl lib support cert_verify_flag*/
 
     char       *alpn;                           /* User does't care */
 } xqc_conn_ssl_config_t;
@@ -351,7 +358,7 @@ unsigned char* xqc_scid_str(const xqc_cid_t *cid);
 
 /**
  * Return quic_connection on which h3_conn rely
- * @param h3_conn http3 connection 
+ * @param h3_conn http3 connection
  */
 XQC_EXPORT_PUBLIC_API
 xqc_connection_t *  xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn);

@@ -210,6 +210,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
     tlsref->save_session_cb = engine->eng_callback.save_session_cb;
     tlsref->save_tp_cb = engine->eng_callback.save_tp_cb;
+    tlsref->cert_verify_cb = engine->eng_callback.cert_verify_cb;
 
     xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
     if( (config->transport_parameter_data_len > 0) && (config->transport_parameter_data != NULL)){
@@ -273,6 +274,47 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     return 0;
 }
 
+#ifdef OPENSSL_IS_BORINGSSL
+
+#define XQC_MAX_VERIFY_DEPTH 100
+int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
+
+    int i = 0;
+    size_t certs_len = 0;
+
+    SSL *ssl =  X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
+
+    unsigned char * certs[XQC_MAX_VERIFY_DEPTH];
+    size_t cert_len[XQC_MAX_VERIFY_DEPTH];
+
+    const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
+
+    certs_len = sk_CRYPTO_BUFFER_num(chain);
+
+    if(certs_len > XQC_MAX_VERIFY_DEPTH){
+        preverify_ok = 0;
+        return preverify_ok;
+    }
+
+    for(i = 0; i < certs_len; i++){
+        CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
+        certs[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
+        cert_len[i] = (size_t)CRYPTO_BUFFER_len(buffer);
+    }
+
+    if(conn->tlsref.cert_verify_cb != NULL){
+        if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, conn->user_data) == 0){
+            preverify_ok = 0;
+        }else{
+            preverify_ok = 1;
+        }
+    }
+
+    return preverify_ok;
+}
+#endif
+
 //need finish session save
 SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config_t *xs_config)
 {
@@ -285,7 +327,7 @@ SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config
     // ClientHello.
     #ifdef SSL_OP_ENABLE_MIDDLEBOX_COMPAT
     SSL_CTX_clear_options(ssl_ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
-    #endif 
+    #endif
 
 #ifndef OPENSSL_IS_BORINGSSL
     if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
@@ -299,9 +341,9 @@ SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config
 
 #ifdef OPENSSL_IS_BORINGSSL
     if (SSL_CTX_set1_curves_list(ssl_ctx, xs_config->groups) != 1) {
-#else 
+#else
     if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
-#endif 
+#endif
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         //exit(EXIT_FAILURE);
         return NULL;
@@ -341,12 +383,12 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
 
     long ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
         SSL_OP_SINGLE_ECDH_USE |
-        SSL_OP_CIPHER_SERVER_PREFERENCE 
+        SSL_OP_CIPHER_SERVER_PREFERENCE
     #ifdef SSL_OP_NO_ANTI_REPLAY
         | SSL_OP_NO_ANTI_REPLAY
     #endif
         ;
-        
+
 
     SSL_CTX_set_options(ssl_ctx, ssl_opts);
     #ifdef SSL_OP_ENABLE_MIDDLEBOX_COMPAT
@@ -358,7 +400,7 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set_ciphersuites| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
-#endif 
+#endif
 
 #ifdef OPENSSL_IS_BORINGSSL
     if(SSL_CTX_set1_curves_list(ssl_ctx,xs_config->groups) != 1) {
@@ -369,10 +411,10 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
         goto fail;
     }
 
-    SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS 
+    SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS
     #ifndef OPENSSL_IS_BORINGSSL
     | SSL_MODE_QUIC_HACK
-    #endif // 
+    #endif //
     );
     SSL_CTX_set_default_verify_paths(ssl_ctx);
 
@@ -404,9 +446,9 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
         goto fail;
     }
     SSL_CTX_set_max_early_data(ssl_ctx, XQC_UINT32_MAX);//The max_early_data parameter specifies the maximum amount of early data in bytes that is permitted to be sent on a single connection
-#endif 
+#endif
 
-   
+
     if(xs_config -> session_ticket_key_len == 0 || xs_config -> session_ticket_key_data == NULL){
         xqc_log(engine->log, XQC_LOG_WARN, "| read ssl session ticket key error|");
     }else{
@@ -530,12 +572,12 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag)
     }else{
         SSL_set_accept_state(ssl);
     }
-    
+
 #ifndef OPENSSL_IS_BORINGSSL
     SSL_set_msg_callback(ssl, xqc_msg_cb);
     SSL_set_msg_callback_arg(ssl, conn);
     SSL_set_key_callback(ssl, xqc_tls_key_cb, conn);
-#endif 
+#endif
 
     return ssl;
 }
@@ -591,6 +633,14 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
         if(xqc_read_session_data(ssl, conn, sc->session_ticket_data, sc->session_ticket_len) == 0){
             conn->tlsref.resumption = XQC_TRUE;
         }
+    }
+
+    if(sc->cert_verify_flag) { //default 0
+#ifndef OPENSSL_IS_BORINGSSL
+
+#else
+        SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback);/*xqc_cert_verify_callback only for boringssl*/
+#endif
     }
 
     return ssl;
