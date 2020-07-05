@@ -10,7 +10,7 @@
 #include "src/transport/xqc_engine.h"
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_transport_params.h"
-
+#include "src/http3/xqc_h3_conn.h"
 /*
  * initial ssl config
  *@return 0 means successful
@@ -285,6 +285,19 @@ int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
     SSL *ssl =  X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
 
+    void * user_data = NULL;
+    /*
+     * http3 创建的时候将传输层connection的user_data替换成h3_conn，传递给应用回调时的user_data需要取h3_conn的user_data
+     * 非http3时则默认传递传输层connection的user_data给应用
+     * 此处的user_data强转类型时容易出错，需要注意
+     */
+    if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM){
+        xqc_h3_conn_t * h3_conn = (xqc_h3_conn_t *)(conn->user_data);
+        user_data = h3_conn->user_data;
+    } else {
+        user_data = conn->user_data;
+    }
+
     unsigned char * certs[XQC_MAX_VERIFY_DEPTH];
     size_t cert_len[XQC_MAX_VERIFY_DEPTH];
 
@@ -304,7 +317,7 @@ int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
     }
 
     if(conn->tlsref.cert_verify_cb != NULL){
-        if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, conn->user_data) == 0){
+        if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) == 0){
             preverify_ok = 0;
         }else{
             preverify_ok = 1;
