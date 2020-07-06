@@ -73,7 +73,7 @@ typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_us
 /* transport parameters save callback */
 typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, void *conn_user_data);
 
-/* client certificate verify callbacks, if verify success return 1, verify failed return 0 */
+/* client certificate verify callbacks, if verify success return 0, verify failed return -1*/
 typedef int  (*xqc_cert_verify_cb_t)(unsigned char *certs[],size_t cert_len[],size_t certs_len, void * conn_user_data);
 
 /* log interface */

@@ -317,7 +317,7 @@ int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
     }
 
     if(conn->tlsref.cert_verify_cb != NULL){
-        if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) == 0){
+        if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) < 0){
             preverify_ok = 0;
         }else{
             preverify_ok = 1;
