@@ -282,48 +282,55 @@ int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
     int i = 0;
     size_t certs_len = 0;
 
-    SSL *ssl =  X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-    xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
+    if(preverify_ok == 0) {
 
-    void * user_data = NULL;
-    /*
-     * http3 创建的时候将传输层connection的user_data替换成h3_conn，传递给应用回调时的user_data需要取h3_conn的user_data
-     * 非http3时则默认传递传输层connection的user_data给应用
-     * 此处的user_data强转类型时容易出错，需要注意
-     */
-    if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM){
-        xqc_h3_conn_t * h3_conn = (xqc_h3_conn_t *)(conn->user_data);
-        user_data = h3_conn->user_data;
-    } else {
-        user_data = conn->user_data;
-    }
+        int err_code = X509_STORE_CTX_get_error(ctx);
+        if( err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
+                err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) {
 
-    unsigned char * certs[XQC_MAX_VERIFY_DEPTH];
-    size_t cert_len[XQC_MAX_VERIFY_DEPTH];
+            SSL *ssl =  X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+            xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
 
-    const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
+            void * user_data = NULL;
+            /*
+             * http3 创建的时候将传输层connection的user_data替换成h3_conn，传递给应用回调时的user_data需要取h3_conn的user_data
+             * 非http3时则默认传递传输层connection的user_data给应用
+             * 此处的user_data强转类型时容易出错，需要注意
+             */
+            if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
+                xqc_h3_conn_t * h3_conn = (xqc_h3_conn_t *)(conn->user_data);
+                user_data = h3_conn->user_data;
+            } else {
+                user_data = conn->user_data;
+            }
 
-    certs_len = sk_CRYPTO_BUFFER_num(chain);
+            unsigned char * certs[XQC_MAX_VERIFY_DEPTH];
+            size_t cert_len[XQC_MAX_VERIFY_DEPTH];
 
-    if(certs_len > XQC_MAX_VERIFY_DEPTH){
-        preverify_ok = 0;
-        return preverify_ok;
-    }
+            const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
 
-    for(i = 0; i < certs_len; i++){
-        CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
-        certs[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
-        cert_len[i] = (size_t)CRYPTO_BUFFER_len(buffer);
-    }
+            certs_len = sk_CRYPTO_BUFFER_num(chain);
 
-    if(conn->tlsref.cert_verify_cb != NULL){
-        if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) < 0){
-            preverify_ok = 0;
-        }else{
-            preverify_ok = 1;
+            if(certs_len > XQC_MAX_VERIFY_DEPTH) {//imposible
+                preverify_ok = 0;
+                return preverify_ok;
+            }
+
+            for(i = 0; i < certs_len; i++) {
+                CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
+                certs[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
+                cert_len[i] = (size_t)CRYPTO_BUFFER_len(buffer);
+            }
+
+            if(conn->tlsref.cert_verify_cb != NULL) {
+                if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) < 0){
+                    preverify_ok = 0;
+                }else{
+                    preverify_ok = 1;
+                }
+            }
         }
     }
-
     return preverify_ok;
 }
 #endif
@@ -649,9 +656,8 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
     }
 
     if(sc->cert_verify_flag) { //default 0
-#ifndef OPENSSL_IS_BORINGSSL
-
-#else
+#ifdef OPENSSL_IS_BORINGSSL
+        X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname));
         SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback);/*xqc_cert_verify_callback only for boringssl*/
 #endif
     }
