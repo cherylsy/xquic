@@ -284,12 +284,20 @@ int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
 
     if(preverify_ok == 0) {
 
+        SSL *ssl =  X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+        xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
+
+        if((ssl == NULL) || conn == NULL) {
+            if(conn) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed because ssl NULL|");
+                XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
+            }
+            return preverify_ok;
+        }
+
         int err_code = X509_STORE_CTX_get_error(ctx);
         if( err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
                 err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) {
-
-            SSL *ssl =  X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-            xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
 
             void * user_data = NULL;
             /*
@@ -329,6 +337,9 @@ int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
                     preverify_ok = 1;
                 }
             }
+        } else { /*other err_code*/
+            xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed with err_code:%d|", err_code);
+            XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
         }
     }
     return preverify_ok;

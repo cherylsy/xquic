@@ -17,6 +17,7 @@ typedef enum
     TRA_PROTOCOL_VIOLATION         =  0xA,
     TRA_INVALID_MIGRATION          =  0xC,
     TRA_CRYPTO_BUFFER_EXCEEDED     =  0xD,
+    TRA_HS_CERTIFICATE_VERIFY_FAIL =  0x1FE,//for handshake certifacate verify error
     TRA_CRYPTO_ERROR               =  0x1FF,//0x1XX
 } xqc_trans_err_code_t;
 
