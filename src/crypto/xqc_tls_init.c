@@ -10,6 +10,7 @@
 #include "src/transport/xqc_engine.h"
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_transport_params.h"
+#include "src/http3/xqc_h3_conn.h"
 
 /*
  * initial ssl config
@@ -210,6 +211,7 @@ int xqc_client_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, char *
 
     tlsref->save_session_cb = engine->eng_callback.save_session_cb;
     tlsref->save_tp_cb = engine->eng_callback.save_tp_cb;
+    tlsref->cert_verify_cb = engine->eng_callback.cert_verify_cb;
 
     xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
     if( (config->transport_parameter_data_len > 0) && (config->transport_parameter_data != NULL)){
@@ -273,6 +275,78 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
     return 0;
 }
 
+#ifdef OPENSSL_IS_BORINGSSL
+#define XQC_MAX_VERIFY_DEPTH 100  /* 证书链的最大深度默认是100 */
+int
+xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
+{
+    int i = 0, err_code = 0;
+    size_t certs_array_len = 0;
+    unsigned char * certs_array[XQC_MAX_VERIFY_DEPTH];
+    size_t cert_len_array[XQC_MAX_VERIFY_DEPTH];
+    void * user_data = NULL;
+
+    if (preverify_ok == XQC_SSL_FAIL) {
+        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+        xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
+
+        if ((ssl == NULL) || (conn == NULL)) {
+            if (conn) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed because ssl NULL|");
+                XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
+            }
+            return preverify_ok;
+        }
+
+        err_code = X509_STORE_CTX_get_error(ctx);
+        if (err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
+            || err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
+        {
+            /*
+             * http3 创建的时候将传输层connection的user_data替换成h3_conn，传递给应用回调时的user_data需要取h3_conn的user_data
+             * 非http3时则默认传递传输层connection的user_data给应用
+             * 此处的user_data强转类型时容易出错，需要注意
+             */
+            if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
+                xqc_h3_conn_t * h3_conn = (xqc_h3_conn_t *)(conn->user_data);
+                user_data = h3_conn->user_data;
+
+            } else {
+                user_data = conn->user_data;
+            }
+
+            const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
+            certs_array_len = sk_CRYPTO_BUFFER_num(chain);
+
+            if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
+                preverify_ok = XQC_SSL_FAIL;
+                return preverify_ok;
+            }
+
+            for (i = 0; i < certs_array_len; i++) {
+                CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
+                certs_array[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
+                cert_len_array[i] = (size_t)CRYPTO_BUFFER_len(buffer);
+            }
+
+            if (conn->tlsref.cert_verify_cb != NULL) {
+                if (conn->tlsref.cert_verify_cb(certs_array, cert_len_array, certs_array_len, user_data) < 0) {
+                    preverify_ok = XQC_SSL_FAIL;
+
+                } else {
+                    preverify_ok = XQC_SSL_SUCCESS;
+                }
+            }
+
+        } else { /* other err_code should log */
+            xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed with err_code:%d|", err_code);
+            XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
+        }
+    }
+    return preverify_ok;
+}
+#endif
+
 //need finish session save
 SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config_t *xs_config)
 {
@@ -285,7 +359,7 @@ SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config
     // ClientHello.
     #ifdef SSL_OP_ENABLE_MIDDLEBOX_COMPAT
     SSL_CTX_clear_options(ssl_ctx, SSL_OP_ENABLE_MIDDLEBOX_COMPAT);
-    #endif 
+    #endif
 
 #ifndef OPENSSL_IS_BORINGSSL
     if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
@@ -298,10 +372,10 @@ SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config
 
 
 #ifdef OPENSSL_IS_BORINGSSL
-    if (SSL_CTX_set1_curves_list(ssl_ctx, xs_config->groups) != 1) {
-#else 
-    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
-#endif 
+    if (SSL_CTX_set1_curves_list(ssl_ctx, xs_config->groups) != XQC_SSL_SUCCESS) {
+#else
+    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != XQC_SSL_SUCCESS) {
+#endif
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         //exit(EXIT_FAILURE);
         return NULL;
@@ -341,12 +415,12 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
 
     long ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS) |
         SSL_OP_SINGLE_ECDH_USE |
-        SSL_OP_CIPHER_SERVER_PREFERENCE 
+        SSL_OP_CIPHER_SERVER_PREFERENCE
     #ifdef SSL_OP_NO_ANTI_REPLAY
         | SSL_OP_NO_ANTI_REPLAY
     #endif
         ;
-        
+
 
     SSL_CTX_set_options(ssl_ctx, ssl_opts);
     #ifdef SSL_OP_ENABLE_MIDDLEBOX_COMPAT
@@ -354,25 +428,25 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
     #endif // SSL_OP_ENABLE_MIDDLEBOX_COMPAT
 
 #ifndef OPENSSL_IS_BORINGSSL
-    if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
+    if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set_ciphersuites| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
-#endif 
+#endif
 
 #ifdef OPENSSL_IS_BORINGSSL
-    if(SSL_CTX_set1_curves_list(ssl_ctx,xs_config->groups) != 1) {
+    if (SSL_CTX_set1_curves_list(ssl_ctx,xs_config->groups) != XQC_SSL_SUCCESS) {
 #else  // OPENSSL_IS_BORINGSSL
-    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
+    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != XQC_SSL_SUCCESS) {
 #endif //
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
-    SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS 
+    SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS
     #ifndef OPENSSL_IS_BORINGSSL
     | SSL_MODE_QUIC_HACK
-    #endif // 
+    #endif //
     );
     SSL_CTX_set_default_verify_paths(ssl_ctx);
 
@@ -384,12 +458,12 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
         goto fail;
     }
 
-    if (SSL_CTX_use_certificate_chain_file(ssl_ctx, xs_config->cert_file) != 1) {
+    if (SSL_CTX_use_certificate_chain_file(ssl_ctx, xs_config->cert_file) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_use_PrivateKey_file| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
-    if (SSL_CTX_check_private_key(ssl_ctx) != 1) {
+    if (SSL_CTX_check_private_key(ssl_ctx) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_check_private_key| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
@@ -399,14 +473,14 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
                 ssl_ctx, XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS,
                 SSL_EXT_CLIENT_HELLO | SSL_EXT_TLS1_3_ENCRYPTED_EXTENSIONS,
                 xqc_server_transport_params_add_cb, xqc_transport_params_free_cb, nullptr,
-                xqc_server_transport_params_parse_cb, nullptr) != 1) {
+                xqc_server_transport_params_parse_cb, nullptr) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_check_private_key| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
     SSL_CTX_set_max_early_data(ssl_ctx, XQC_UINT32_MAX);//The max_early_data parameter specifies the maximum amount of early data in bytes that is permitted to be sent on a single connection
-#endif 
+#endif
 
-   
+
     if(xs_config -> session_ticket_key_len == 0 || xs_config -> session_ticket_key_data == NULL){
         xqc_log(engine->log, XQC_LOG_WARN, "| read ssl session ticket key error|");
     }else{
@@ -530,12 +604,12 @@ SSL * xqc_create_ssl(xqc_engine_t * engine, xqc_connection_t * conn , int flag)
     }else{
         SSL_set_accept_state(ssl);
     }
-    
+
 #ifndef OPENSSL_IS_BORINGSSL
     SSL_set_msg_callback(ssl, xqc_msg_cb);
     SSL_set_msg_callback_arg(ssl, conn);
     SSL_set_key_callback(ssl, xqc_tls_key_cb, conn);
-#endif 
+#endif
 
     return ssl;
 }
@@ -591,6 +665,15 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
         if(xqc_read_session_data(ssl, conn, sc->session_ticket_data, sc->session_ticket_len) == 0){
             conn->tlsref.resumption = XQC_TRUE;
         }
+    }
+
+    if (sc->cert_verify_flag) { /* cert_verify_flag default value is 0 */
+#ifdef OPENSSL_IS_BORINGSSL
+        if (X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname)) != XQC_SSL_SUCCESS) {
+            xqc_log(conn->log,  XQC_LOG_DEBUG, "|centificate verify set hostname failed |");  /* hostname set failed need log */
+        }
+        SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback); /* xqc_cert_verify_callback only for boringssl */
+#endif
     }
 
     return ssl;
