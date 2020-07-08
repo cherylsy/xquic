@@ -294,7 +294,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             }
         } else {
             xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
-            ret = XQC_OK;
+            ret = XQC_OK; /* STREAM frame retransmitted after stream is closed */
             goto error;
         }
     }

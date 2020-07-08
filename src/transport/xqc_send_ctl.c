@@ -235,8 +235,12 @@ xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *
         packet_out->po_origin->po_origin_ref_cnt--;
         xqc_send_ctl_remove_unacked(packet_out, ctl);
         xqc_send_ctl_insert_free(&packet_out->po_list, &ctl->ctl_free_packets, ctl);
+        if (packet_out->po_origin->po_origin_ref_cnt == 0) {
+            xqc_send_ctl_remove_unacked(packet_out->po_origin, ctl);
+            xqc_send_ctl_insert_free(&packet_out->po_origin->po_list, &ctl->ctl_free_packets, ctl);
+        }
     }
-    /* remove original if reference count is 0 */
+    /* remove original if it's reference count is 0 */
     else if (packet_out->po_origin == NULL && packet_out->po_origin_ref_cnt == 0) {
         xqc_send_ctl_remove_unacked(packet_out, ctl);
         xqc_send_ctl_insert_free(&packet_out->po_list, &ctl->ctl_free_packets, ctl);
