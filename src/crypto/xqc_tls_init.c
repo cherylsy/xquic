@@ -276,17 +276,17 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
 }
 
 #ifdef OPENSSL_IS_BORINGSSL
-#define XQC_MAX_VERIFY_DEPTH 100
+#define XQC_MAX_VERIFY_DEPTH 100  /* 证书链的最大深度默认是100 */
 int
 xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
     int i = 0, err_code = 0;
-    size_t certs_len = 0;
-    unsigned char * certs[XQC_MAX_VERIFY_DEPTH];
-    size_t cert_len[XQC_MAX_VERIFY_DEPTH];
+    size_t certs_array_len = 0;
+    unsigned char * certs_array[XQC_MAX_VERIFY_DEPTH];
+    size_t cert_len_array[XQC_MAX_VERIFY_DEPTH];
     void * user_data = NULL;
 
-    if (preverify_ok == 0) {
+    if (preverify_ok == XQC_SSL_FAIL) {
         SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
         xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
 
@@ -316,25 +316,25 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
             }
 
             const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
-            certs_len = sk_CRYPTO_BUFFER_num(chain);
+            certs_array_len = sk_CRYPTO_BUFFER_num(chain);
 
-            if (certs_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
-                preverify_ok = 0;
+            if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
+                preverify_ok = XQC_SSL_FAIL;
                 return preverify_ok;
             }
 
-            for (i = 0; i < certs_len; i++) {
+            for (i = 0; i < certs_array_len; i++) {
                 CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
-                certs[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
-                cert_len[i] = (size_t)CRYPTO_BUFFER_len(buffer);
+                certs_array[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
+                cert_len_array[i] = (size_t)CRYPTO_BUFFER_len(buffer);
             }
 
             if (conn->tlsref.cert_verify_cb != NULL) {
-                if (conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) < 0) {
-                    preverify_ok = 0;
+                if (conn->tlsref.cert_verify_cb(certs_array, cert_len_array, certs_array_len, user_data) < 0) {
+                    preverify_ok = XQC_SSL_FAIL;
 
                 } else {
-                    preverify_ok = 1;
+                    preverify_ok = XQC_SSL_SUCCESS;
                 }
             }
 
@@ -372,9 +372,9 @@ SSL_CTX *xqc_create_client_ssl_ctx( xqc_engine_t * engine, xqc_engine_ssl_config
 
 
 #ifdef OPENSSL_IS_BORINGSSL
-    if (SSL_CTX_set1_curves_list(ssl_ctx, xs_config->groups) != 1) {
+    if (SSL_CTX_set1_curves_list(ssl_ctx, xs_config->groups) != XQC_SSL_SUCCESS) {
 #else
-    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
+    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != XQC_SSL_SUCCESS) {
 #endif
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         //exit(EXIT_FAILURE);
@@ -428,16 +428,16 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
     #endif // SSL_OP_ENABLE_MIDDLEBOX_COMPAT
 
 #ifndef OPENSSL_IS_BORINGSSL
-    if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != 1) {
+    if (SSL_CTX_set_ciphersuites(ssl_ctx, xs_config->ciphers) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set_ciphersuites| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 #endif
 
 #ifdef OPENSSL_IS_BORINGSSL
-    if(SSL_CTX_set1_curves_list(ssl_ctx,xs_config->groups) != 1) {
+    if (SSL_CTX_set1_curves_list(ssl_ctx,xs_config->groups) != XQC_SSL_SUCCESS) {
 #else  // OPENSSL_IS_BORINGSSL
-    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != 1) {
+    if (SSL_CTX_set1_groups_list(ssl_ctx, xs_config->groups) != XQC_SSL_SUCCESS) {
 #endif //
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_set1_groups_list failed| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
@@ -458,12 +458,12 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
         goto fail;
     }
 
-    if (SSL_CTX_use_certificate_chain_file(ssl_ctx, xs_config->cert_file) != 1) {
+    if (SSL_CTX_use_certificate_chain_file(ssl_ctx, xs_config->cert_file) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_use_PrivateKey_file| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
 
-    if (SSL_CTX_check_private_key(ssl_ctx) != 1) {
+    if (SSL_CTX_check_private_key(ssl_ctx) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_check_private_key| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
@@ -473,7 +473,7 @@ SSL_CTX * xqc_create_server_ssl_ctx(xqc_engine_t * engine, xqc_engine_ssl_config
                 ssl_ctx, XQC_TLSEXT_QUIC_TRANSPORT_PARAMETERS,
                 SSL_EXT_CLIENT_HELLO | SSL_EXT_TLS1_3_ENCRYPTED_EXTENSIONS,
                 xqc_server_transport_params_add_cb, xqc_transport_params_free_cb, nullptr,
-                xqc_server_transport_params_parse_cb, nullptr) != 1) {
+                xqc_server_transport_params_parse_cb, nullptr) != XQC_SSL_SUCCESS) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|SSL_CTX_check_private_key| error info:%s|", ERR_error_string(ERR_get_error(), NULL));
         goto fail;
     }
@@ -669,7 +669,9 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
 
     if (sc->cert_verify_flag) { /* cert_verify_flag default value is 0 */
 #ifdef OPENSSL_IS_BORINGSSL
-        X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname));
+        if (X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname)) != XQC_SSL_SUCCESS) {
+            xqc_log(conn->log,  XQC_LOG_DEBUG, "|centificate verify set hostname failed |");  /* hostname set failed need log */
+        }
         SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback); /* xqc_cert_verify_callback only for boringssl */
 #endif
     }
