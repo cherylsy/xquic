@@ -310,6 +310,7 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
             if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
                 xqc_h3_conn_t * h3_conn = (xqc_h3_conn_t *)(conn->user_data);
                 user_data = h3_conn->user_data;
+
             } else {
                 user_data = conn->user_data;
             }
