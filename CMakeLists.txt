@@ -138,9 +138,6 @@ if(ANDROID_ABI STREQUAL "arm64-v8a")
        ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
        "-Wl,--no-whole-archive"
     )
-    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
-    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
-    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
 elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
     target_link_libraries(
             xquic
@@ -149,9 +146,6 @@ elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
             ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libcrypto.a
             "-Wl,--no-whole-archive"
     )
-    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
-    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
-    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
 elseif(ANDROID_ABI STREQUAL "x86")
     target_link_libraries(
             xquic
@@ -160,9 +154,6 @@ elseif(ANDROID_ABI STREQUAL "x86")
             ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-x86/lib/libcrypto.a
             "-Wl,--no-whole-archive"
     )
-    #link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl)
-    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.so.3)
-    #link_libraries( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.so.3)
 elseif(PLATFORM MATCHES "mac")
     target_link_libraries(
             xquic
@@ -215,9 +206,6 @@ add_executable(test_qpack_server tests/test_qpack_server.c)
 add_executable(test_qpack_client tests/test_qpack_client.c)
 add_executable(test_qpack_fuzzing tests/test_qpack_fuzzing.c)
 add_executable(xquic_bench benchmark/xquic_bench.c)
-#add_executable(xquic_client tests/axp/xquic_client.c tests/axp/axquic.c)
-#add_executable(xquic_server tests/axp/xquic_server.c tests/axp/axquic.c)
-#add_executable(test        tests/main.c)
 
 include_directories( /usr/local/include )
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
@@ -238,10 +226,5 @@ target_link_libraries(test_qpack_client xquic -levent -lm)
 target_link_libraries(test_qpack_server xquic -levent -lm)
 target_link_libraries(test_qpack_fuzzing xquic -levent -lm)
 target_link_libraries(xquic_bench xquic -levent -lm)
-
-#target_link_libraries(xquic_client xquic -levent -lm)
-#target_link_libraries(xquic_server xquic -levent -lm)
-#target_link_libraries(test xquic -lssl )
-#target_link_libraries(test xquic -lcrypto)
 
 

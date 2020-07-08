@@ -26,6 +26,10 @@ typedef struct xqc_str_s
 
 #define xqc_str_equal(s1, s2)  ((s1).len == (s2).len && memcmp((s1).data, (s2).data, (s1).len) == 0)
 
+#define xqc_tolower(c)      (unsigned char) ((c >= 'A' && c <= 'Z') ? (c | 0x20) : c)
+#define xqc_toupper(c)      (unsigned char) ((c >= 'a' && c <= 'z') ? (c & ~0x20) : c)
+
+
 #define xqc_memzero(buf, n)       (void) memset(buf, 0, n)
 #define xqc_memset(buf, c, n)     (void) memset(buf, c, n)
 
@@ -37,13 +41,13 @@ typedef struct xqc_str_s
 unsigned char *xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len);
 
 static inline void
-xqc_str_tolower(char *str, size_t len)
+xqc_str_tolower(unsigned char *dst, unsigned char *src, size_t n)
 {
-    for (int i = 0; i < len; i++) {
-        if (*str >= 'A' && *str <= 'Z') {
-            *str = *str + (char)32;
-        }
-        str++;
+    while (n) {
+        *dst = xqc_tolower(*src);
+        dst++;
+        src++;
+        n--;
     }
 }
 
