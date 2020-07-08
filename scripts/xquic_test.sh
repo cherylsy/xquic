@@ -25,10 +25,10 @@ make -j
 ./tests/run_tests | tee -a xquic_test.log
 
 # "case test..."
-sh ../script/case_test.sh | tee -a xquic_test.log
+sh ../scripts/case_test.sh | tee -a xquic_test.log
 
 # "qpack test..."
-sh ../script/qpack_test.sh | tee -a xquic_test.log
+sh ../scripts/qpack_test.sh | tee -a xquic_test.log
 
 #批量输出所有文件的覆盖率和工程覆盖率统计
 gcovr -r .. | tee -a xquic_test.log
