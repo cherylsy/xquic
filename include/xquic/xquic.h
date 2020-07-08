@@ -249,7 +249,7 @@ typedef struct xqc_conn_ssl_config_s {
     size_t     session_ticket_len;              /* For client */
     char       *transport_parameter_data;       /* For client, client should Use the domain as the key to save */
     size_t     transport_parameter_data_len;    /* For client */
-    int        cert_verify_flag;                /*Flag for client certificate verify , now only boringssl lib support cert_verify_flag*/
+    int        cert_verify_flag;                /* For client certificate verify flag, now only boringssl lib support cert_verify_flag */
 
     char       *alpn;                           /* User does't care */
 } xqc_conn_ssl_config_t;

@@ -11,6 +11,7 @@
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_transport_params.h"
 #include "src/http3/xqc_h3_conn.h"
+
 /*
  * initial ssl config
  *@return 0 means successful
@@ -275,31 +276,32 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
 }
 
 #ifdef OPENSSL_IS_BORINGSSL
-
 #define XQC_MAX_VERIFY_DEPTH 100
-int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
-
-    int i = 0;
+int
+xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
+{
+    int i = 0, err_code = 0;
     size_t certs_len = 0;
+    unsigned char * certs[XQC_MAX_VERIFY_DEPTH];
+    size_t cert_len[XQC_MAX_VERIFY_DEPTH];
+    void * user_data = NULL;
 
-    if(preverify_ok == 0) {
-
-        SSL *ssl =  X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    if (preverify_ok == 0) {
+        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
         xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
 
-        if((ssl == NULL) || conn == NULL) {
-            if(conn) {
+        if ((ssl == NULL) || (conn == NULL)) {
+            if (conn) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed because ssl NULL|");
                 XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
             }
             return preverify_ok;
         }
 
-        int err_code = X509_STORE_CTX_get_error(ctx);
-        if( err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY ||
-                err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY) {
-
-            void * user_data = NULL;
+        err_code = X509_STORE_CTX_get_error(ctx);
+        if (err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
+            || err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
+        {
             /*
              * http3 创建的时候将传输层connection的user_data替换成h3_conn，传递给应用回调时的user_data需要取h3_conn的user_data
              * 非http3时则默认传递传输层connection的user_data给应用
@@ -312,32 +314,30 @@ int xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx){
                 user_data = conn->user_data;
             }
 
-            unsigned char * certs[XQC_MAX_VERIFY_DEPTH];
-            size_t cert_len[XQC_MAX_VERIFY_DEPTH];
-
             const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
-
             certs_len = sk_CRYPTO_BUFFER_num(chain);
 
-            if(certs_len > XQC_MAX_VERIFY_DEPTH) {//imposible
+            if (certs_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
                 preverify_ok = 0;
                 return preverify_ok;
             }
 
-            for(i = 0; i < certs_len; i++) {
+            for (i = 0; i < certs_len; i++) {
                 CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
                 certs[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
                 cert_len[i] = (size_t)CRYPTO_BUFFER_len(buffer);
             }
 
-            if(conn->tlsref.cert_verify_cb != NULL) {
-                if(conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) < 0){
+            if (conn->tlsref.cert_verify_cb != NULL) {
+                if (conn->tlsref.cert_verify_cb(certs, cert_len, certs_len, user_data) < 0) {
                     preverify_ok = 0;
-                }else{
+
+                } else {
                     preverify_ok = 1;
                 }
             }
-        } else { /*other err_code*/
+
+        } else { /* other err_code should log */
             xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed with err_code:%d|", err_code);
             XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
         }
@@ -666,10 +666,10 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
         }
     }
 
-    if(sc->cert_verify_flag) { //default 0
+    if (sc->cert_verify_flag) { /* cert_verify_flag default value is 0 */
 #ifdef OPENSSL_IS_BORINGSSL
         X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname));
-        SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback);/*xqc_cert_verify_callback only for boringssl*/
+        SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback); /* xqc_cert_verify_callback only for boringssl */
 #endif
     }
 
