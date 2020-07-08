@@ -79,10 +79,12 @@ int
 xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size);
 
 int
-xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 int
-xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
-int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out, char * enc_pkt, size_t *enc_pkt_len );
+xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+
+int
+xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out, unsigned char *enc_pkt, size_t *enc_pkt_len);
 
 #endif /* _XQC_PACKET_PARSER_H_INCLUDED_ */
