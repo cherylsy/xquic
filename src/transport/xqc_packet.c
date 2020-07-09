@@ -151,9 +151,7 @@ xqc_packet_process_single(xqc_connection_t *c,
     }
     unsigned char *last = packet_in->last;
 
-    //printf("recv crypto data :%d\n", packet_in->last - packet_in->pos);
-    //hex_print(packet_in->pos, packet_in->last - packet_in->pos);
-    ret = xqc_do_decrypt_pkt(c, packet_in);
+    ret = xqc_packet_decrypt(c, packet_in);
     if (ret == XQC_OK) {
         xqc_log(c->log, XQC_LOG_DEBUG, "|pkt_type:%s|pkt_num:%ui|",
                 xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num);

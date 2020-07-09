@@ -10,7 +10,53 @@
 #include "src/transport/xqc_stream.h"
 
 xqc_packet_out_t *
-xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
+xqc_packet_out_create()
+{
+    xqc_packet_out_t *packet_out;
+    packet_out = xqc_calloc(1, sizeof(xqc_packet_out_t));
+    if (!packet_out) {
+        goto error;
+    }
+
+    packet_out->po_buf = xqc_malloc(XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE);
+    if (!packet_out->po_buf) {
+        goto error;
+    }
+
+    return packet_out;
+
+error:
+    if (packet_out) {
+        xqc_free(packet_out->po_buf);
+        xqc_free(packet_out);
+    }
+    return NULL;
+}
+
+void
+xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src)
+{
+    unsigned char *po_buf = dst->po_buf;
+    xqc_memcpy(dst, src, sizeof(xqc_packet_out_t));
+
+    xqc_packet_out_t *origin = src->po_origin == NULL ? src : src->po_origin;
+
+    /* pointers should carefully assigned in xqc_packet_out_copy */
+    dst->po_buf = po_buf;
+    xqc_memcpy(dst->po_buf, src->po_buf, src->po_used_size);
+    if (src->po_ppktno) {
+        dst->po_ppktno = dst->po_buf + (src->po_ppktno - src->po_buf);
+    }
+    if (src->po_payload) {
+        dst->po_payload = dst->po_buf + (src->po_payload - src->po_buf);
+    }
+    dst->po_origin = origin;
+    origin->po_origin_ref_cnt++;
+    dst->po_ping_user_data = src->po_ping_user_data;
+}
+
+xqc_packet_out_t *
+xqc_packet_out_get(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
 {
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
@@ -27,14 +73,8 @@ xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
         goto set_packet;
     }
 
-
-    packet_out = xqc_calloc(1, sizeof(xqc_packet_out_t));
+    packet_out = xqc_packet_out_create();
     if (!packet_out) {
-        return NULL;
-    }
-
-    packet_out->po_buf = xqc_malloc(XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE);
-    if (!packet_out->po_buf) {
         return NULL;
     }
 
@@ -52,7 +92,7 @@ set_packet:
 }
 
 void
-xqc_destroy_packet_out(xqc_packet_out_t *packet_out)
+xqc_packet_out_destroy(xqc_packet_out_t *packet_out)
 {
     xqc_free(packet_out->po_buf);
     xqc_free(packet_out);
@@ -109,9 +149,9 @@ xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type)
         pkt_type = xqc_state_to_pkt_type(conn);
     }
 
-    packet_out = xqc_create_packet_out(conn->conn_send_ctl, pkt_type);
+    packet_out = xqc_packet_out_get(conn->conn_send_ctl, pkt_type);
     if (packet_out == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_packet_out error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_out_get error|");
         return NULL;
     }
 
@@ -126,8 +166,7 @@ xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type)
     return packet_out;
 
 error:
-    xqc_send_ctl_remove_send(&packet_out->po_list);
-    xqc_send_ctl_insert_free(&packet_out->po_list, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
+    xqc_maybe_recycle_packet_out(packet_out, conn);
     return NULL;
 }
 
@@ -158,10 +197,7 @@ xqc_write_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type, unsigned need)
     return packet_out;
 
 error:
-    if (packet_out->po_used_size == 0) {
-        xqc_send_ctl_remove_send(&packet_out->po_list);
-        xqc_send_ctl_insert_free(&packet_out->po_list, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
-    }
+    xqc_maybe_recycle_packet_out(packet_out, conn);
     return NULL;
 }
 
@@ -276,7 +312,7 @@ xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_ping_frame error|");
         goto error;
     }
-    packet_out->ping_user_data = user_data;
+    packet_out->po_ping_user_data = user_data;
 
     packet_out->po_used_size += ret;
 

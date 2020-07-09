@@ -29,6 +29,7 @@ typedef enum {
     XQC_POF_ENCRYPTED        = 1 << 3,
     XQC_POF_TLP              = 1 << 4,
     XQC_POF_STREAM_UNACK     = 1 << 5,
+    XQC_POF_NO_RETRANS       = 1 << 6,
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {
@@ -37,37 +38,45 @@ typedef struct xqc_po_stream_frame_s {
     unsigned char           ps_is_reset; /* 是否是RESET STREAM frame */
 } xqc_po_stream_frame_t;
 
-typedef struct xqc_packet_out_s
-{
+typedef struct xqc_packet_out_s {
     xqc_packet_t            po_pkt;
     xqc_list_head_t         po_list;
-    unsigned char           *po_buf;
+
+    /* pointers should carefully assign in xqc_packet_out_copy */
+    unsigned char          *po_buf;
+    unsigned char          *po_ppktno;
+    unsigned char          *po_payload;
+    xqc_packet_out_t       *po_origin;          /* point to original packet before retransmitted */
+    void                   *po_ping_user_data;  /* 上层用于区别哪个ping被ack */
+
     unsigned int            po_buf_size;
     unsigned int            po_used_size;
-    unsigned char           *po_encrypt_buf;
-    unsigned int            po_encrypt_buf_size;
     xqc_packet_out_flag_t   po_flag;
-    unsigned char           *p_data;
-    unsigned char           *ppktno;
     /* Largest Acknowledged in ACK frame, if there is no ACK frame, it should be 0 */
     xqc_packet_number_t     po_largest_ack;
     xqc_msec_t              po_sent_time;
     xqc_frame_type_bit_t    po_frame_types;
     /* stream frame 关联的stream */
     xqc_po_stream_frame_t   po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO];
-
-    uint64_t                po_delivered; /* 在发送packet P之前已经标记为发送完毕的数据量 */
-    xqc_msec_t              po_delivered_time; /* 在发送packet P之前最后一个被ack的包的时间 */
+    uint32_t                po_origin_ref_cnt;  /* reference count of original packet */
+    uint32_t                po_acked;
+    uint64_t                po_delivered;       /* 在发送packet P之前已经标记为发送完毕的数据量 */
+    xqc_msec_t              po_delivered_time;  /* 在发送packet P之前最后一个被ack的包的时间 */
     xqc_msec_t              po_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
     unsigned char           po_is_app_limited;
-    void                    *ping_user_data; /* 上层用于区别哪个ping被ack */
 } xqc_packet_out_t;
 
 xqc_packet_out_t *
-xqc_create_packet_out (xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
+xqc_packet_out_create();
 
 void
-xqc_destroy_packet_out(xqc_packet_out_t *packet_out);
+xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src);
+
+xqc_packet_out_t *
+xqc_packet_out_get(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
+
+void
+xqc_packet_out_destroy(xqc_packet_out_t *packet_out);
 
 void
 xqc_maybe_recycle_packet_out(xqc_packet_out_t *packet_out, xqc_connection_t *conn);

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ../build
+
 server_ip=$1
 server_port=$2
 
@@ -249,3 +251,4 @@ grep_err_log
 
 #killall test_server
 
+cd -

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ../build
+
 > xquic_test.log
 
 #生成证书
@@ -23,10 +25,10 @@ make -j
 ./tests/run_tests | tee -a xquic_test.log
 
 # "case test..."
-sh ./case_test.sh | tee -a xquic_test.log
+sh ../scripts/case_test.sh | tee -a xquic_test.log
 
 # "qpack test..."
-sh ./qpack_test.sh | tee -a xquic_test.log
+sh ../scripts/qpack_test.sh | tee -a xquic_test.log
 
 #批量输出所有文件的覆盖率和工程覆盖率统计
 gcovr -r .. | tee -a xquic_test.log
@@ -57,3 +59,4 @@ echo -e "\033[32m qpack test passed:$passed failed:$failed \033[0m"
 echo -e "\nCode Coverage:                             Lines    Exec  Cover"
 cat xquic_test.log | grep "TOTAL"
 
+cd -

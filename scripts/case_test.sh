@@ -3,6 +3,8 @@
 #macOS
 #export EVENT_NOKQUEUE=1
 
+cd ../build
+
 # 另一个终端启动server
 killall test_server 2> /dev/null
 ./test_server -l e -e > /dev/null &
@@ -234,3 +236,5 @@ echo -e "10% loss ...\c"
 grep_err_log
 
 killall test_server
+
+cd -

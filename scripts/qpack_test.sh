@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd ../build
+
 # 另一个终端启动server
 killall test_qpack_server 2> /dev/null
 ./test_qpack_server  > /dev/null &
@@ -48,3 +50,5 @@ else
     echo "qpack fuzzing test ...>>>>>>>> pass"
 fi
 killall test_server  2> /dev/null
+
+cd -

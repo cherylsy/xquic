@@ -221,10 +221,10 @@ xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
     }
     dst_buf += dcid_len;
 
-    packet_out->ppktno = dst_buf;
+    packet_out->po_ppktno = dst_buf;
 
     dst_buf += xqc_write_packet_number(dst_buf, packet_number, packet_number_bits);//packet_number update when send
-    packet_out->p_data = dst_buf;
+    packet_out->po_payload = dst_buf;
 
     return need;
 }
@@ -308,9 +308,9 @@ xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
             || packet_out->po_pkt.pkt_type == XQC_PTYPE_HSK
             || packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT) {
 
-        unsigned char *plength = packet_out->ppktno - XQC_LONG_HEADER_LENGTH_BYTE;
+        unsigned char *plength = packet_out->po_ppktno - XQC_LONG_HEADER_LENGTH_BYTE;
 
-        unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno;
+        unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->po_ppktno;
 
         xqc_vint_write(plength, length, 0x01, 2);
     }
@@ -384,9 +384,9 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
 
     dst_buf += XQC_LONG_HEADER_LENGTH_BYTE; //Length update when write frame
 
-    packet_out->ppktno = dst_buf;
+    packet_out->po_ppktno = dst_buf;
     dst_buf += xqc_write_packet_number(dst_buf, packet_number, pktno_bits); //packet_number update when send
-    packet_out->p_data = dst_buf;
+    packet_out->po_payload = dst_buf;
 
     return dst_buf - begin;
 
@@ -485,7 +485,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     /* packet number */
     /* decrypt payload */
-    /* process in xqc_do_decrypt_pkt */
+    /* process in xqc_packet_decrypt */
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
@@ -553,7 +553,8 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     return XQC_OK;
 }
 
-int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out, char * enc_pkt, size_t *enc_pkt_len ){
+int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out, unsigned char *enc_pkt, size_t *enc_pkt_len)
+{
     xqc_pktns_t *p_pktns;
     xqc_encrypt_t encrypt_func;
     xqc_hp_mask_t hp_mask;
@@ -592,89 +593,68 @@ int xqc_do_encrypt_pkt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         return -XQC_EILLPKT;
     }
 
-    uint8_t nonce[XQC_NONCE_LEN];
+    unsigned char nonce[XQC_NONCE_LEN];
     xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, packet_out->po_pkt.pkt_num);
 
-#if 0
-    printf("before encrypt:total_len:%d, hdlen = %d, packet_out->po_pkt.pkt_num:%d\n", packet_out->po_used_size, packet_out->p_data - packet_out->po_buf, packet_out->po_pkt.pkt_num);
-    hex_print( packet_out->po_buf,  packet_out->po_used_size);
-
-    printf("encrypt_level :%d, key len:%d, iv len:%d, hp len:%d\n", encrypt_level, p_ckm->key.len, p_ckm->iv.len, tx_hp->len);
-    hex_print(p_ckm->key.base, p_ckm->key.len);
-    hex_print(p_ckm->iv.base, p_ckm->iv.len);
-    hex_print(tx_hp->base, tx_hp->len);
-#endif
     unsigned char *pkt_hd = packet_out->po_buf;
-    unsigned int hdlen = (packet_out->p_data - packet_out->po_buf);
+    unsigned int hdlen = (packet_out->po_payload - packet_out->po_buf);
     unsigned int payloadlen = packet_out->po_used_size - hdlen;
-    unsigned char *payload = packet_out->p_data;
+    unsigned char *payload = packet_out->po_payload;
     int pktno_len = (packet_out->po_buf[0] & XQC_PKT_NUMLEN_MASK) + 1;
 
-    memcpy(enc_pkt, pkt_hd, hdlen);//copy header to buf
+    memcpy(enc_pkt, pkt_hd, hdlen);/* copy header to buf */
 
-    //refresh header length
+    /* refresh header length */
     if (encrypt_level == XQC_ENC_LEV_INIT || encrypt_level == XQC_ENC_LEV_0RTT ||
         encrypt_level == XQC_ENC_LEV_HSK) {
-        uint8_t *plength = enc_pkt + (packet_out->ppktno - XQC_LONG_HEADER_LENGTH_BYTE - packet_out->po_buf);
-        uint32_t length = packet_out->po_buf + packet_out->po_used_size - packet_out->ppktno ;
+        unsigned char *plength = enc_pkt + (packet_out->po_ppktno - XQC_LONG_HEADER_LENGTH_BYTE - packet_out->po_buf);
+        uint32_t length = packet_out->po_buf + packet_out->po_used_size - packet_out->po_ppktno ;
         length += xqc_aead_overhead(&p_ctx->aead,length);
         xqc_vint_write(plength, length, 0x01, 2);
     }
 
-    //int nwrite = encrypt_func(conn,  payload, payloadlen + conn->tlsref.aead_overhead, payload, payloadlen, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_hd, hdlen, NULL);
-    int nwrite = encrypt_func(conn, enc_pkt + hdlen, *(enc_pkt_len) - hdlen, payload, payloadlen,
+    ssize_t nwrite = encrypt_func(conn, enc_pkt + hdlen, *(enc_pkt_len) - hdlen, payload, payloadlen,
                               p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, enc_pkt, hdlen, NULL);
 
     if (nwrite < 0 || nwrite != (payloadlen + xqc_aead_overhead(&p_ctx->aead,payloadlen))) {
-        //printf("encrypt error \n");
-        xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|%d|", nwrite);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|%z|", nwrite);
         return -XQC_EENCRYPT;
     }
 
     *enc_pkt_len = nwrite + hdlen;
 
-    uint8_t mask[XQC_HP_SAMPLELEN];
-    uint8_t *ppktno = enc_pkt + (packet_out->ppktno - packet_out->po_buf);
+    unsigned char mask[XQC_HP_SAMPLELEN];
+    unsigned char *po_ppktno = enc_pkt + (packet_out->po_ppktno - packet_out->po_buf);
 
-    nwrite = hp_mask(conn, mask, sizeof(mask), tx_hp->base, tx_hp->len, ppktno + 4, XQC_HP_SAMPLELEN, NULL);
+    nwrite = hp_mask(conn, mask, sizeof(mask), tx_hp->base, tx_hp->len, po_ppktno + 4, XQC_HP_SAMPLELEN, NULL);
 
     if (nwrite < XQC_HP_MASKLEN) {
         return -XQC_EENCRYPT;
     }
-#if 0
 
-    printf("hp base : %d\n", tx_hp->len);
-    hex_print(tx_hp->base, tx_hp->len);
-    printf("hp_mask mask:%d, sample offset = %d\n", nwrite, packet_out->ppktno + 4 - packet_out->po_buf);
-    hex_print(mask,nwrite);
-    hex_print(packet_out->ppktno + 4, XQC_HP_SAMPLELEN);
-#endif
     xqc_pkt_type_t pkt_type = packet_out->po_pkt.pkt_type;
     unsigned char *p = enc_pkt;
     if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
-        *p = (uint8_t) (*p ^ (mask[0] & 0x1f));
+        *p = (unsigned char) (*p ^ (mask[0] & 0x1f));
     } else {
-        *p = (uint8_t) (*p ^ (mask[0] & 0x0f));
+        *p = (unsigned char) (*p ^ (mask[0] & 0x0f));
     }
 
-    p = ppktno;
+    p = po_ppktno;
     int i = 0;
     for (i = 0; i < pktno_len; ++i) {
         *(p + i) ^= mask[i + 1];
     }
     return XQC_OK;
-
-
-
 }
 
-int xqc_do_encrypt_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+int xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     conn->enc_pkt_len = sizeof(conn->enc_pkt);
-    return xqc_do_encrypt_pkt_buf(conn, packet_out, conn->enc_pkt, &conn->enc_pkt_len);
+    return xqc_packet_encrypt_buf(conn, packet_out, conn->enc_pkt, &conn->enc_pkt_len);
 }
 
-int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_pkt_type_t pkt_type = packet_in->pi_pkt.pkt_type;
     xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
@@ -690,7 +670,7 @@ int xqc_do_decrypt_pkt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     if (XQC_ENC_LEV_0RTT == encrypt_level) {
         if(xqc_crypto_is_early_data_accepted(conn) == XQC_FALSE) {
             //printf("early data not decrypt");
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_do_decrypt_pkt|early data not decrypt");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_packet_decrypt|early data not decrypt");
             return XQC_EARLY_DATA_REJECT;
         }
     }
