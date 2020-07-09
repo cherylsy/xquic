@@ -38,30 +38,32 @@ typedef struct xqc_po_stream_frame_s {
     unsigned char           ps_is_reset; /* 是否是RESET STREAM frame */
 } xqc_po_stream_frame_t;
 
-typedef struct xqc_packet_out_s
-{
+typedef struct xqc_packet_out_s {
     xqc_packet_t            po_pkt;
     xqc_list_head_t         po_list;
-    unsigned char           *po_buf;
+
+    /* pointers should carefully assign in xqc_packet_out_copy */
+    unsigned char          *po_buf;
+    unsigned char          *po_ppktno;
+    unsigned char          *po_payload;
+    xqc_packet_out_t       *po_origin;          /* point to original packet before retransmitted */
+    void                   *po_ping_user_data;  /* 上层用于区别哪个ping被ack */
+
     unsigned int            po_buf_size;
     unsigned int            po_used_size;
     xqc_packet_out_flag_t   po_flag;
-    unsigned char           *po_payload;
-    unsigned char           *po_ppktno;
     /* Largest Acknowledged in ACK frame, if there is no ACK frame, it should be 0 */
     xqc_packet_number_t     po_largest_ack;
     xqc_msec_t              po_sent_time;
     xqc_frame_type_bit_t    po_frame_types;
     /* stream frame 关联的stream */
     xqc_po_stream_frame_t   po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO];
-    xqc_packet_out_t        *po_origin;         /* point to original packet before retransmitted */
     uint32_t                po_origin_ref_cnt;  /* reference count of original packet */
     uint32_t                po_acked;
     uint64_t                po_delivered;       /* 在发送packet P之前已经标记为发送完毕的数据量 */
     xqc_msec_t              po_delivered_time;  /* 在发送packet P之前最后一个被ack的包的时间 */
     xqc_msec_t              po_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
     unsigned char           po_is_app_limited;
-    void                    *po_ping_user_data; /* 上层用于区别哪个ping被ack */
 } xqc_packet_out_t;
 
 xqc_packet_out_t *

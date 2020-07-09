@@ -38,14 +38,21 @@ xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src)
 {
     unsigned char *po_buf = dst->po_buf;
     xqc_memcpy(dst, src, sizeof(xqc_packet_out_t));
+
+    xqc_packet_out_t *origin = src->po_origin == NULL ? src : src->po_origin;
+
+    /* pointers should carefully assigned in xqc_packet_out_copy */
     dst->po_buf = po_buf;
     xqc_memcpy(dst->po_buf, src->po_buf, src->po_used_size);
-    if (src->po_payload) {
-        dst->po_payload = dst->po_buf + (src->po_payload - src->po_buf);
-    }
     if (src->po_ppktno) {
         dst->po_ppktno = dst->po_buf + (src->po_ppktno - src->po_buf);
     }
+    if (src->po_payload) {
+        dst->po_payload = dst->po_buf + (src->po_payload - src->po_buf);
+    }
+    dst->po_origin = origin;
+    origin->po_origin_ref_cnt++;
+    dst->po_ping_user_data = src->po_ping_user_data;
 }
 
 xqc_packet_out_t *

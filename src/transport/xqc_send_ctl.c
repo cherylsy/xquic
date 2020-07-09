@@ -141,18 +141,18 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
 void 
 xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
 {
-    if(conn->conn_type != XQC_CONN_TYPE_SERVER){
+    if (conn->conn_type != XQC_CONN_TYPE_SERVER) {
         return; /* client do not need record */
     }
-    xqc_send_ctl_t * conn_send_ctl = conn->conn_send_ctl;
-    xqc_send_ctl_info_t *ctl_info  = &conn_send_ctl->ctl_info;
+    xqc_send_ctl_t *conn_send_ctl = conn->conn_send_ctl;
+    xqc_send_ctl_info_t *ctl_info = &conn_send_ctl->ctl_info;
 
     xqc_msec_t now = xqc_now();
-    if(ctl_info->record_interval < 10000){ /* 最低10ms间隔，避免日志泛滥 */
+    if (ctl_info->record_interval < 10000) { /* 最低10ms间隔，避免日志泛滥 */
         return;
     }
 
-    if(ctl_info->last_record_time + ctl_info->record_interval > now){ /* 未到记录时间 */
+    if (ctl_info->last_record_time + ctl_info->record_interval > now) { /* 未到记录时间 */
         return;
     }
     ctl_info->last_record_time = now;
@@ -164,7 +164,7 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
     xqc_bbr_t *bbr = NULL;
     int mode = 0;
     xqc_msec_t min_rtt = 0;
-    if(conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_bbr){
+    if (conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
         bbr = (xqc_bbr_t*)(conn_send_ctl->ctl_cong);
         bw = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(conn_send_ctl->ctl_cong);
         pacing_rate = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(conn_send_ctl->ctl_cong);
@@ -232,16 +232,19 @@ xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *
 {
     /* remove retransmitted if original is acked */
     if (packet_out->po_origin && packet_out->po_origin->po_acked) {
-        packet_out->po_origin->po_origin_ref_cnt--;
+        if (packet_out->po_origin->po_origin_ref_cnt == 0) {
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|po_origin_ref_cnt too small|");
+        } else {
+            packet_out->po_origin->po_origin_ref_cnt--;
+        }
         xqc_send_ctl_remove_unacked(packet_out, ctl);
         xqc_send_ctl_insert_free(&packet_out->po_list, &ctl->ctl_free_packets, ctl);
         if (packet_out->po_origin->po_origin_ref_cnt == 0) {
             xqc_send_ctl_remove_unacked(packet_out->po_origin, ctl);
             xqc_send_ctl_insert_free(&packet_out->po_origin->po_list, &ctl->ctl_free_packets, ctl);
         }
-    }
-    /* remove original if it's reference count is 0 */
-    else if (packet_out->po_origin == NULL && packet_out->po_origin_ref_cnt == 0) {
+    } else if (packet_out->po_origin == NULL && packet_out->po_origin_ref_cnt == 0) {
+        /* remove original if it's reference count is 0 */
         xqc_send_ctl_remove_unacked(packet_out, ctl);
         xqc_send_ctl_insert_free(&packet_out->po_list, &ctl->ctl_free_packets, ctl);
     }
@@ -256,10 +259,7 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
         return;
     }
 
-    xqc_packet_out_t *origin = packet_out->po_origin == NULL ? packet_out : packet_out->po_origin;
     xqc_packet_out_copy(new_po, packet_out);
-    new_po->po_origin = origin;
-    origin->po_origin_ref_cnt++;
 
     xqc_send_ctl_insert_lost(&new_po->po_list, &ctl->ctl_lost_packets);
     ctl->ctl_packets_used++;
@@ -277,6 +277,7 @@ xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
             stream = packet_out->po_stream_frames[i].ps_stream;
             if (stream != NULL) {
                 stream->stream_unacked_pkt++;
+                /* Update stream state */
                 if (stream->stream_state_send == XQC_SEND_STREAM_ST_READY) {
                     stream->stream_state_send = XQC_SEND_STREAM_ST_SEND;
                 }
@@ -305,14 +306,14 @@ xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
                 } else {
                     stream->stream_unacked_pkt--;
                 }
+                /* Update stream state */
+                if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_SENT) {
+                    stream->stream_state_send = XQC_SEND_STREAM_ST_DATA_RECVD;
+                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream enter DATA RECVD|");
+                    xqc_stream_maybe_need_close(stream);
+                }
             } else {
                 break;
-            }
-
-            if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_SENT) {
-                stream->stream_state_send = XQC_SEND_STREAM_ST_DATA_RECVD;
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream enter DATA RECVD|");
-                xqc_stream_maybe_need_close(stream);
             }
         }
         packet_out->po_flag &= ~XQC_POF_STREAM_UNACK;
