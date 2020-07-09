@@ -1,6 +1,6 @@
 #!/bin/sh
 
-android_archs=(armeabi-v7a arm64-v8a x86_64)
+android_archs=(armeabi-v7a arm64-v8a)
 ios_archs=(armv7 arm64 x86_64)
 cur_dir=$(cd "$(dirname "$0")";pwd)
 
