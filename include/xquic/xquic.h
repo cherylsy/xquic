@@ -443,7 +443,7 @@ int xqc_h3_request_close (xqc_h3_request_t *h3_request);
 
 /**
  * @param fin 1:without body
- * @return 发送成功的字节数，<0 出错
+ * @return Bytes sent，<0 for error
  */
 XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
@@ -451,8 +451,8 @@ ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
                                     uint8_t fin);
 
 /**
- * @param fin 1:没有多余的body需要发送
- * @return 发送成功的字节数，-XQC_EAGAIN下次尝试写, <0 出错
+ * @param fin 1:Request finish
+ * @return Bytes sent，-XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
@@ -462,7 +462,7 @@ ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
 
 /**
  * @param fin 1:without body
- * @return 用户应该拷贝到自己的内存，NULL 出错
+ * @return user should copy headers to your own memory，NULL for error
  */
 XQC_EXPORT_PUBLIC_API
 xqc_http_headers_t *
@@ -471,8 +471,8 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request,
 
 
 /**
- * @param fin 1：body已全部读取完
- * @return 读取到的长度，<0 出错
+ * @param fin 1:Request finished
+ * @return Bytes read，-XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
 ssize_t
@@ -592,7 +592,7 @@ int xqc_stream_close (xqc_stream_t *stream);
 
 /**
  * Recv data in stream.
- * @return bytes read, <0 for error
+ * @return bytes read, -XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
 ssize_t xqc_stream_recv (xqc_stream_t *stream,

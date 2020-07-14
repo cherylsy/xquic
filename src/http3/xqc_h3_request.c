@@ -281,7 +281,12 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
 {
     ssize_t n_recv;
     n_recv = xqc_h3_stream_recv_data(h3_request->h3_stream, recv_buf, recv_buf_size, fin);
-    if (n_recv < 0) {
+    if (n_recv == -XQC_EAGAIN) {
+        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
+                "|xqc_h3_stream_recv_data eagain|stream_id:%ui|ret:%z|conn:%p|",
+                h3_request->h3_stream->stream->stream_id, n_recv, h3_request->h3_stream->h3_conn->conn);
+        return -XQC_EAGAIN;
+    } else if (n_recv < 0) {
         xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
                 "|xqc_h3_stream_recv_data error|stream_id:%ui|ret:%z|conn:%p|",
                 h3_request->h3_stream->stream->stream_id, n_recv, h3_request->h3_stream->h3_conn->conn);

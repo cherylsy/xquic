@@ -480,7 +480,9 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
     ssize_t read_sum = 0;
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
-        if (read < 0) {
+        if (read == -XQC_EAGAIN) {
+            break;
+        } else if (read < 0) {
             printf("xqc_stream_recv error %zd\n", read);
             return read;
         }
@@ -786,7 +788,9 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     ssize_t read_sum = 0;
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
-        if (read < 0) {
+        if (read == -XQC_EAGAIN) {
+            break;
+        } else if (read < 0) {
             printf("xqc_h3_request_recv_body error %zd\n", read);
             return read;
         }

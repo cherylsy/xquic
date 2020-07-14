@@ -225,7 +225,7 @@ xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, siz
             n_recved += recv_buf_left;
             h3_data_buf->already_consume += recv_buf_left;
             recv_buf_left = 0;
-            return n_recved;
+            break;
         } else {
             memcpy(recv_buf + n_recved, h3_data_buf->data + h3_data_buf->already_consume, h3_data_buf_left);
             n_recved += h3_data_buf_left;
@@ -237,11 +237,11 @@ xqc_h3_stream_recv_data(xqc_h3_stream_t *h3_stream, unsigned char *recv_buf, siz
             xqc_list_del_init(pos);
             xqc_free(h3_data_buf);
             if (0 == recv_buf_left) {
-                return n_recved;
+                break;
             }
         }
     }
-    return n_recved;
+    return (n_recved == 0 && *fin == 0) ? -XQC_EAGAIN : n_recved;
 }
 
 int
@@ -334,7 +334,7 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
     if (h3_stream->h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST && (h3_stream->flags & XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY)) {
         ret = h3_stream->h3_request->request_if->h3_request_write_notify(h3_stream->h3_request,
                                                                          h3_stream->h3_request->user_data);
-        if (ret) {
+        if (ret < 0 && ret != -XQC_EAGAIN) {
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|h3_request_write_notify error|%d|", ret);
             return ret;
         }
@@ -399,9 +399,10 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             buff_size = data_buf->buf_len - data_buf->data_len;
 
             read = xqc_stream_recv(stream, buff, buff_size, &fin);
-
-            if(read < 0){
-                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
+            if (read == -XQC_EAGAIN) {
+                break;
+            } else if (read < 0) {
+                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
                 return read;
             }
             xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%d|", read, fin);
@@ -412,7 +413,9 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             unsigned char buff[XQC_SIZE_4K] = {0};
             buff_size = XQC_SIZE_4K;
             read = xqc_stream_recv(stream, buff, buff_size, &fin);
-            if (read < 0) {
+            if (read == -XQC_EAGAIN) {
+                break;
+            } else if (read < 0) {
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
                 return read;
             }
@@ -444,7 +447,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             return -XQC_H3_EPARAM;
         }
         ret = h3_request->request_if->h3_request_read_notify(h3_request, h3_request->user_data, flag);
-        if (ret) {
+        if (ret < 0 && ret != -XQC_EAGAIN) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|stream_id:%ui|conn:%p|",
                     ret, h3_stream->stream->stream_id, h3_conn->conn);
             return ret;
