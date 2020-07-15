@@ -225,8 +225,8 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
 
     const unsigned char *out;
     size_t outlen;
-    int rv = xqc_serialize_client_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
-                                                   &out, &outlen);
+    int rv = xqc_serialize_client_transport_params(conn,
+            XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &out, &outlen);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|serialize client transport params error|");
         return XQC_ERROR;
@@ -239,7 +239,8 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     }
 
     xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
-    if ((config->transport_parameter_data_len > 0) && (config->transport_parameter_data != NULL)) {
+    if ((config->transport_parameter_data_len > 0) 
+        && (config->transport_parameter_data != NULL)) {
         xqc_transport_params_t params;
         memset(&params, 0, sizeof(xqc_transport_params_t));
         if (xqc_read_transport_params(config->transport_parameter_data,
@@ -302,8 +303,8 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, xqc_engine_
 
     const unsigned char *out;
     size_t outlen;
-    int rv = xqc_serialize_server_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
-                                                   &out, &outlen);
+    int rv = xqc_serialize_server_transport_params(conn,
+            XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &out, &outlen);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|serialize server transport params error|");
         return XQC_ERROR;
