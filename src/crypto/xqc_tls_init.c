@@ -217,15 +217,16 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
 
     xqc_trans_settings_t *settings = &conn->local_settings;
     if (no_crypto_flag == 1) {
-        settings->no_crypto = 1;
+        settings->no_crypto = XQC_TRUE;  /* no_crypto 1 means do not crypto*/
 
     } else {
-        settings->no_crypto = 0;
+        settings->no_crypto = XQC_FALSE;
     }
 
     const unsigned char *out;
     size_t outlen;
-    int rv = xqc_serialize_client_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &out, &outlen);
+    int rv = xqc_serialize_client_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
+                                                   &out, &outlen);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|serialize client transport params error|");
         return XQC_ERROR;
@@ -245,7 +246,8 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
                     config->transport_parameter_data_len, &params) == XQC_OK) {
             int ret = xqc_conn_set_early_remote_transport_params(conn, &params);
             if (ret != XQC_OK) {
-                xqc_log(conn->log, XQC_LOG_DEBUG, "| set early remote transport params failed | error_code:%d |", ret);
+                xqc_log(conn->log, XQC_LOG_DEBUG, 
+                        "| set early remote transport params failed | error_code:%d |", ret);
             }
 
         } else {
@@ -300,7 +302,8 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, xqc_engine_
 
     const unsigned char *out;
     size_t outlen;
-    int rv = xqc_serialize_server_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &out, &outlen);
+    int rv = xqc_serialize_server_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
+                                                   &out, &outlen);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|serialize server transport params error|");
         return XQC_ERROR;
@@ -458,7 +461,9 @@ xqc_create_server_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_conf
     }
 
 #ifndef OPENSSL_IS_BORINGSSL
-    /* The max_early_data parameter specifies the maximum amount of early data in bytes that is permitted to be sent on a single connection */
+    /* The max_early_data parameter specifies the maximum amount of early data in bytes
+     * that is permitted to be sent on a single connection
+     */
     SSL_CTX_set_max_early_data(ssl_ctx, XQC_UINT32_MAX);
 #endif
     if (xs_config -> session_ticket_key_len == 0 || xs_config -> session_ticket_key_data == NULL) {
@@ -637,7 +642,8 @@ SSL * xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn, char
 
     conn->tlsref.resumption = XQC_FALSE;
     if (sc->session_ticket_data && sc->session_ticket_len > 0) {
-        if (xqc_read_session_data(ssl, conn, sc->session_ticket_data, sc->session_ticket_len) == XQC_OK) {
+        if (xqc_read_session_data(ssl, conn, sc->session_ticket_data, sc->session_ticket_len)
+            == XQC_OK) {
             conn->tlsref.resumption = XQC_TRUE;
 #ifndef OPENSSL_IS_BORINGSSL
             SSL_set_quic_early_data_enabled(ssl, 1);
