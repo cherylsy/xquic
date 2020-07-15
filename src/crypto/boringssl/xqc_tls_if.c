@@ -40,36 +40,6 @@ xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , s
     return 1 ;
 }
 
-/**
- *  return one on success 
- * */
-static 
-xqc_int_t 
-xqc_derive_packet_protection(
-    const xqc_tls_context_t * ctx, const uint8_t *secret, size_t secretlen , 
-    uint8_t * key , size_t * keylen ,  /** [*len] 是值结果参数 */
-    uint8_t * iv , size_t * ivlen   ,
-    uint8_t * hp , size_t * hplen   ,
-    xqc_log_t * log)
-{
-
-    if((*keylen = xqc_derive_packet_protection_key( key, *keylen, secret, secretlen, ctx)) < 0) {
-        xqc_log(log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_key failed|ret code:%d|", keylen);
-        return 0;
-    }
-
-    if((*ivlen = xqc_derive_packet_protection_iv(iv, *ivlen, secret, secretlen, ctx)) < 0 ){
-        xqc_log(log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
-        return 0;
-    }
-
-    if((*hplen = xqc_derive_header_protection_key(hp, *hplen, secret, secretlen, ctx )) < 0){
-        xqc_log(log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed| ret code:%d|", hplen);
-        return 0;
-    }
-
-    return 1;
-}
 
 /**
  *  

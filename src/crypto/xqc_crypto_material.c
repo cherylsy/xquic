@@ -26,8 +26,8 @@ int xqc_crypto_km_new(xqc_crypto_km_t * p_ckm, const uint8_t *key,
 
 }
 
-static 
-int xqc_negotiated_aead_and_prf(xqc_tls_context_t *ctx, uint32_t cipher_id)
+int
+xqc_negotiated_aead_and_prf(xqc_tls_context_t *ctx, uint32_t cipher_id)
 {
     switch(cipher_id)
     {
@@ -603,4 +603,34 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
     }
 
     return 0;
+}
+
+
+/*
+ * notice: return one on success, return 0 on fail
+ */
+xqc_int_t
+xqc_derive_packet_protection(
+    const xqc_tls_context_t *ctx, const uint8_t *secret, size_t secretlen,
+    uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+    uint8_t *iv, size_t *ivlen,
+    uint8_t *hp, size_t *hplen,
+    xqc_log_t *log)
+{
+    if ((*keylen = xqc_derive_packet_protection_key(key, *keylen, secret, secretlen, ctx)) < 0) {
+        xqc_log(log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_key failed|ret code:%d|", keylen);
+        return XQC_SSL_FAIL;
+    }
+
+    if ((*ivlen = xqc_derive_packet_protection_iv(iv, *ivlen, secret, secretlen, ctx)) < 0) {
+        xqc_log(log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
+        return XQC_SSL_FAIL;
+    }
+
+    if ((*hplen = xqc_derive_header_protection_key(hp, *hplen, secret, secretlen, ctx)) < 0) {
+        xqc_log(log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed| ret code:%d|", hplen);
+        return XQC_SSL_FAIL;
+    }
+
+    return XQC_SSL_SUCCESS;
 }

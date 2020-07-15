@@ -67,7 +67,7 @@ xqc_int_t xqc_crypto_init_null(xqc_crypto_t * crypto);
 
 // private ，不推荐直接调用。
 #define xqc_cipher_overhead(obj,cln)                XQC_CIPHER_OVERHEAD_IMPL((obj),cln)
-#define xqc_aead_overhead(obj,cln)                  XQC_AEAD_OVERHEAD_IMPL((obj),cln)
+#define xqc_aead_overhead(obj,cln)                  (XQC_AEAD_OVERHEAD_IMPL((obj),cln))
 
 // crypto单指不做认证的加密
 #define XQC_CRYPTO_CTX_TYPE     XQC_CRYPTO_CTX_TYPE_IMPL
