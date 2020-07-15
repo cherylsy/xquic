@@ -4,8 +4,15 @@ project (xquic)
 set (xquic_VERSION_MAJOR 0)
 set (xquic_VERSION_MINOR 1)
 
+if (NOT CMAKE_BUILD_TYPE)
 set(CMAKE_BUILD_TYPE Release)
+endif()
+
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+if (NOT BABASSL_PATH)
+set(BABASSL_PATH "/usr/local/babassl")
+endif()
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -g -O2 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC ")
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Werror -Wall -Wno-unused -Wno-pointer-sign -Wno-format-security -DNDEBUG_PRINT -DNPRINT_MALLOC -DXQC_DEBUG ")
@@ -134,32 +141,32 @@ if(ANDROID_ABI STREQUAL "arm64-v8a")
     target_link_libraries(
        xquic
        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
-       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libssl.a
-       ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm64/lib/libcrypto.a
+       ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm64/lib/libssl.a
+       ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm64/lib/libcrypto.a
        "-Wl,--no-whole-archive"
     )
 elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
     target_link_libraries(
             xquic
             "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
-            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libssl.a
-            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-arm/lib/libcrypto.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm/lib/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm/lib/libcrypto.a
             "-Wl,--no-whole-archive"
     )
 elseif(ANDROID_ABI STREQUAL "x86")
     target_link_libraries(
             xquic
             "-ldl -Wl,--whole-archive"
-            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-x86/lib/libssl.a
-            ${CMAKE_CURRENT_SOURCE_DIR}/../openssl/android-x86/lib/libcrypto.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-x86/lib/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-x86/lib/libcrypto.a
             "-Wl,--no-whole-archive"
     )
 elseif(PLATFORM MATCHES "mac")
     target_link_libraries(
             xquic
             "-ldl -Wl,-all_load"
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libssl.a
+            ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libcrypto.a
             "-Wl,-noall_load"
             -lpthread
     )
@@ -167,8 +174,8 @@ else()
     target_link_libraries(
         xquic
         "-ldl -Wl,--whole-archive"
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        ${BABASSL_PATH}/lib/libssl.a
+        ${BABASSL_PATH}/lib/libcrypto.a
         "-Wl,--no-whole-archive"
         -lpthread
     )
@@ -176,8 +183,8 @@ else()
     target_link_libraries(
         xquic_openssl
         "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libssl.a
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/libcrypto.a
+        ${BABASSL_PATH}/lib/libssl.a
+        ${BABASSL_PATH}/lib/libcrypto.a
         "-Wl,--no-whole-archive"
         -lpthread
     )
@@ -189,6 +196,11 @@ if (CMAKE_BUILD_TYPE STREQUAL Release)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
             COMMAND ${CMAKE_STRIP} libxquic.so)
 endif ()
+
+include_directories( /usr/local/include )
+include_directories( ${BABASSL_PATH}/include )
+include_directories(${CMAKE_SOURCE_DIR}/)
+
 
 ##### for unit test #########
 find_package(CUnit 2.1)
@@ -207,12 +219,8 @@ add_executable(test_qpack_client tests/test_qpack_client.c)
 add_executable(test_qpack_fuzzing tests/test_qpack_fuzzing.c)
 add_executable(xquic_bench benchmark/xquic_bench.c)
 
-include_directories( /usr/local/include )
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl/include/ )
-include_directories(./transport/crypto/)
-include_directories(${CMAKE_SOURCE_DIR}/)
 link_directories( /usr/local/lib )
-link_directories( ${CMAKE_CURRENT_SOURCE_DIR}/libs/openssl) 
+link_directories( ${BABASSL_PATH}/lib/) 
 
 if(PLATFORM STREQUAL "mac32")
     target_link_libraries(test_server xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
@@ -226,5 +234,4 @@ target_link_libraries(test_qpack_client xquic -levent -lm)
 target_link_libraries(test_qpack_server xquic -levent -lm)
 target_link_libraries(test_qpack_fuzzing xquic -levent -lm)
 target_link_libraries(xquic_bench xquic -levent -lm)
-
 

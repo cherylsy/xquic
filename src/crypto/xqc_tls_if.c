@@ -458,28 +458,29 @@ ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
 
 }
 
-ssize_t do_in_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data)
+ssize_t
+xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
+   const uint8_t *key, size_t keylen, const uint8_t *sample,
+   size_t samplelen, void *user_data)
 {
-
-    xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
-    ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp,dest,destlen,XQC_FAKE_HP_MASK,sizeof(XQC_FAKE_HP_MASK)-1,key,keylen,sample,samplelen);
-    if(nwrite < 0){
+    xqc_tls_context_t *ctx = &conn->tlsref.hs_crypto_ctx;
+    ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp, dest, destlen, XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK)-1, key, keylen, sample, samplelen);
+    if (nwrite < 0) {
         return XQC_ERR_CALLBACK_FAILURE;
     }
     return nwrite;
 }
 
-ssize_t do_hp_mask(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data)
+ssize_t
+xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
+    const uint8_t *key, size_t keylen, const uint8_t *sample,
+    size_t samplelen, void *user_data)
 {
-
-    xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
-    ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp,dest,destlen,XQC_FAKE_HP_MASK,sizeof(XQC_FAKE_HP_MASK)-1,key,keylen,sample,samplelen);
-    if(nwrite < 0){
+    xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx;
+    ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp, dest, destlen, XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK)-1, key, keylen, sample, samplelen);
+    if (nwrite < 0) {
         return XQC_ERR_CALLBACK_FAILURE;
     }
     return nwrite;
 }
+
