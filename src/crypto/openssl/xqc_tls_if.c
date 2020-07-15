@@ -15,7 +15,10 @@ xqc_server_tls_handshake(xqc_connection_t * conn)
     int rv = 0;
     SSL *ssl = conn->xc_ssl;
     
-    /* SSL_do_handshake return 1 means handshake complete, 0 means should check error code, <0 means a fatal error */
+    /* SSL_do_handshake return 1 means handshake complete, 
+     * 0 means should check error code,
+     * <0 means a fatal error, check error code to get detail information.
+     */
     rv = SSL_do_handshake(ssl);
     if (rv <= 0) {
         int err = SSL_get_error(ssl, rv);
@@ -24,16 +27,20 @@ xqc_server_tls_handshake(xqc_connection_t * conn)
         case SSL_ERROR_WANT_WRITE:
             return XQC_OK;
         case SSL_ERROR_SSL:
-            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|",
+                    ERR_error_string(ERR_get_error(), NULL));
             return XQC_ERROR;
         default:
-            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|",
+                    ERR_error_string(ERR_get_error(), NULL));
             return XQC_ERROR;
         }
     }
 
     if (xqc_conn_handshake_completed(conn) != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error: handshake completed callback return error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, 
+                "|TLS handshake error: handshake completed callback return error|");
+        return XQC_ERROR;
     }
     return XQC_OK;
 
@@ -65,10 +72,12 @@ int xqc_read_tls(SSL *ssl)
                 return 0;
             case SSL_ERROR_SSL:
             case SSL_ERROR_ZERO_RETURN:
-                xqc_log(conn->log, XQC_LOG_ERROR, "|TLS read error:%s|", ERR_error_string(ERR_get_error(), NULL));
+                xqc_log(conn->log, XQC_LOG_ERROR, "|TLS read error:%s|",
+                        ERR_error_string(ERR_get_error(), NULL));
                 return XQC_ERR_CRYPTO;
             default:
-                xqc_log(conn->log, XQC_LOG_ERROR, "|TLS read error:%s|", ERR_error_string(ERR_get_error(), NULL));
+                xqc_log(conn->log, XQC_LOG_ERROR, "|TLS read error:%s|",
+                        ERR_error_string(ERR_get_error(), NULL));
                 return XQC_ERR_CRYPTO;
         }
     }
@@ -103,7 +112,8 @@ xqc_client_tls_handshake(xqc_connection_t *conn)
     SSL *ssl = conn->xc_ssl;
     ERR_clear_error();
 
-    if (conn->tlsref.initial && conn->tlsref.resumption && SSL_SESSION_get_max_early_data(SSL_get_session(ssl))) {
+    if (conn->tlsref.initial && conn->tlsref.resumption 
+        && SSL_SESSION_get_max_early_data(SSL_get_session(ssl))) {
         conn->tlsref.initial = 0;
     }
     rv = SSL_do_handshake(ssl);
@@ -114,10 +124,12 @@ xqc_client_tls_handshake(xqc_connection_t *conn)
         case SSL_ERROR_WANT_WRITE:
             return XQC_OK;
         case SSL_ERROR_SSL:
-            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|",
+                    ERR_error_string(ERR_get_error(), NULL));
             return XQC_ERROR;
         default:
-            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|", ERR_error_string(ERR_get_error(), NULL));
+            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|",
+                    ERR_error_string(ERR_get_error(), NULL));
             return XQC_ERROR;
         }
     }
@@ -129,7 +141,8 @@ xqc_client_tls_handshake(xqc_connection_t *conn)
     if (XQC_LIKELY(outlen > 0)) {
         int ret = xqc_on_client_recv_peer_transport_params(conn, peer_transport_params, outlen);
         if (ret != XQC_OK) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|client receive perr transport parameter error, ret:%d|", ret);
+            xqc_log(conn->log, XQC_LOG_ERROR,
+                    "|client receive perr transport parameter error, ret:%d|", ret);
             return XQC_ERROR;
         }
     }
@@ -163,8 +176,10 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
     xqc_encrypt_level_t encrypt_level, void *user_data)
 {
     SSL *ssl = conn->xc_ssl;
-    if (SSL_provide_quic_data(ssl, xqc_convert_to_bssl_level(encrypt_level), data, datalen) != XQC_SSL_SUCCESS) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| SSL_provide_quic_data failed[level:%d]|", encrypt_level);
+    if (SSL_provide_quic_data(ssl, xqc_convert_to_bssl_level(encrypt_level), 
+                data, datalen) != XQC_SSL_SUCCESS) {
+        xqc_log(conn->log, XQC_LOG_ERROR, 
+                "| SSL_provide_quic_data failed[level:%d]|", encrypt_level);
         return XQC_ERROR;
     }
 
@@ -261,7 +276,8 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
     case ssl_encryption_initial:
     case ssl_encryption_early_data:
         if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len, key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len,
+                                              key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
@@ -277,7 +293,8 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
                 xqc_negotiated_aead_and_prf(&conn->tlsref.crypto_ctx, NID_undef);  /* 更新client明文模式下的加密函数 */
             }
 
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len, key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len,
+                                              key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
@@ -291,7 +308,8 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
 
     case ssl_encryption_handshake:
         if (read_secret != NULL) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len, key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len,
+                                              key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
@@ -310,12 +328,14 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
                 if (XQC_LIKELY(outlen > 0)) {
                     int ret = xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
                     if (ret != XQC_OK) {
-                        xqc_log(conn->log, XQC_LOG_ERROR, "|server receive perr transport parameter error, ret:%d|", ret);
+                        xqc_log(conn->log, XQC_LOG_ERROR,
+                                "|server receive perr transport parameter error, ret:%d|", ret);
                         return XQC_SSL_FAIL;
                     }
                 }
             }
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len, key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len, key, 
+                                                &keylen, iv, &ivlen, hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
@@ -331,7 +351,8 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
         break;
     case ssl_encryption_application:
         if (read_secret != NULL) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len, key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len, key,
+                                              &keylen, iv, &ivlen, hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
@@ -341,7 +362,8 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
             }
         }
         if (write_secret != NULL) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len, key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len, key,
+                                              &keylen, iv, &ivlen, hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
