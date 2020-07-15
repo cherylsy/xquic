@@ -181,7 +181,7 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
         ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %zd\n", ret);
-            return ret;
+            return 0;
         } else {
             user_stream->send_offset += ret;
             printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
@@ -254,7 +254,7 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
             break;
         } else if (read < 0) {
             printf("xqc_stream_recv error %zd\n", read);
-            return read;
+            return 0;
         }
         read_sum += read;
 
@@ -420,7 +420,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
-            return ret;
+            return 0;
         } else {
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
@@ -522,7 +522,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             break;
         } else if (read < 0) {
             printf("xqc_h3_request_recv_body error %zd\n", read);
-            return read;
+            return 0;
         }
         //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
         read_sum += read;
@@ -558,7 +558,8 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
 
 ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size,
                         const struct sockaddr *peer_addr,
-                        socklen_t peer_addrlen) {
+                        socklen_t peer_addrlen)
+{
     //DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
     ssize_t res;
@@ -568,6 +569,12 @@ ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size
         errno = 0;
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         //printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
+        if (res < 0) {
+            printf("xqc_server_write_socket err %zd %s\n", res, strerror(errno));
+            if (errno == EAGAIN) {
+                res = XQC_SOCKET_EAGAIN;
+            }
+        }
     } while ((res < 0) && (errno == EINTR));
 
     return res;

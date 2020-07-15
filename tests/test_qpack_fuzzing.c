@@ -202,7 +202,7 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 }
 
-int save_session_cb( char * data, size_t data_len, void *user_data)
+void save_session_cb( char * data, size_t data_len, void *user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     //printf("save_session_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -212,14 +212,14 @@ int save_session_cb( char * data, size_t data_len, void *user_data)
     if(data_len != write_size){
         printf("save _session_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 
-int save_tp_cb(char * data, size_t data_len, void * user_data)
+void save_tp_cb(char * data, size_t data_len, void * user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     //printf("save_tp_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -229,10 +229,10 @@ int save_tp_cb(char * data, size_t data_len, void * user_data)
     if(data_len != write_size){
         printf("save _tp_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
@@ -533,10 +533,8 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         } else if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
             g_should_exit = 1;
-            return ret;
-        } else if(ret == 0){
-            break;
-        }else {
+            return 0;
+        } else {
             user_stream->send_offset += ret;
             //printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
@@ -607,7 +605,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             break;
         } else if (read < 0) {
             printf("xqc_h3_request_recv_body error %zd\n", read);
-            return read;
+            return 0;
         }
 
         //hex_print(buff, read);

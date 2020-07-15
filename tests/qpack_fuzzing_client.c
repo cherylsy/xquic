@@ -98,31 +98,31 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 }
 
-int save_session_cb( char * data, size_t data_len, void *user_data)
+void save_session_cb( char * data, size_t data_len, void *user_data)
 {
     FILE * fp  = fopen("test_session", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
         printf("save _session_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 
-int save_tp_cb(char * data, size_t data_len, void * user_data)
+void save_tp_cb(char * data, size_t data_len, void * user_data)
 {
     FILE * fp = fopen("tp_localhost", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
         printf("save _tp_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
@@ -199,6 +199,9 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
 
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
+            if (errno == EAGAIN) {
+                res = XQC_SOCKET_EAGAIN;
+            }
         }
         //hex_print(buf, res);
     } while ((res < 0) && (errno == EINTR));
@@ -958,9 +961,6 @@ int main(int argc, char *argv[]) {
     }
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
-
-    //xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
-    //xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
     memset(g_fuzzing_data, 'a', sizeof(g_fuzzing_data));
 

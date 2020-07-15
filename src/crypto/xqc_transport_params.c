@@ -717,15 +717,12 @@ int xqc_write_transport_params(xqc_connection_t * conn,
             params->initial_max_stream_data_uni,
             params->initial_max_data,
             params->max_ack_delay);
-    if(tp_data_len == -1){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| write tp data error | ret code:%d |", tp_data_len);
+    if (tp_data_len == -1) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|write tp data error|ret code:%d|", tp_data_len);
         return -1;
     }
-    if(conn -> tlsref.save_tp_cb != NULL){
-        if(conn -> tlsref.save_tp_cb(tp_buf, tp_data_len, xqc_conn_get_user_data(conn)) < 0){
-            xqc_log(conn->log, XQC_LOG_ERROR, "| save tp data error |");
-            return -1;
-        }
+    if (conn->tlsref.save_tp_cb != NULL) {
+        conn->tlsref.save_tp_cb(tp_buf, tp_data_len, xqc_conn_get_user_data(conn));
     }
 
     return 0;

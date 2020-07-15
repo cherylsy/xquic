@@ -323,9 +323,9 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
 
     ret = xqc_h3_send_frame_buffer(h3_stream, &h3_stream->send_frame_data_buf);
     if (ret < 0) {
-        if(ret == -XQC_EAGAIN){
-            return ret;
-        }else{
+        if (ret == -XQC_EAGAIN) {
+            return XQC_OK;
+        } else {
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|xqc_h3_send_frame_buffer error|%d|", ret);
             return ret;
         }
@@ -403,7 +403,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
                 break;
             } else if (read < 0) {
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
-                return read;
+                return XQC_OK;
             }
             xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%d|", read, fin);
 
@@ -417,7 +417,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
                 break;
             } else if (read < 0) {
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
-                return read;
+                return XQC_OK;
             }
             xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%d|", read, fin);
 
@@ -447,7 +447,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             return -XQC_H3_EPARAM;
         }
         ret = h3_request->request_if->h3_request_read_notify(h3_request, h3_request->user_data, flag);
-        if (ret < 0 && ret != -XQC_EAGAIN) {
+        if (ret < 0) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|stream_id:%ui|conn:%p|",
                     ret, h3_stream->stream->stream_id, h3_conn->conn);
             return ret;

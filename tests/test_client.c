@@ -134,7 +134,7 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 }
 
-int save_session_cb( char * data, size_t data_len, void *user_data)
+void save_session_cb( char * data, size_t data_len, void *user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("save_session_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -144,14 +144,14 @@ int save_session_cb( char * data, size_t data_len, void *user_data)
     if(data_len != write_size){
         printf("save _session_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 
-int save_tp_cb(char * data, size_t data_len, void * user_data)
+void save_tp_cb(char * data, size_t data_len, void * user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("save_tp_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -161,10 +161,10 @@ int save_tp_cb(char * data, size_t data_len, void * user_data)
     if(data_len != write_size){
         printf("save _tp_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
@@ -237,11 +237,14 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
         errno = 0;
         //res = write(fd, buf, size);
         if (TEST_DROP) return size;
-        if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return -1;}
+        if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
+            if (errno == EAGAIN) {
+                res = XQC_SOCKET_EAGAIN;
+            }
         }
     } while ((res < 0) && (errno == EINTR));
     /*socklen_t tmp = sizeof(struct sockaddr_in);
@@ -331,13 +334,13 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
-int xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
+void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
 {
     DEBUG;
     if (ping_user_data) {
         printf("ping_id:%d\n", *(int *) ping_user_data);
     }
-    return 0;
+    return;
 }
 
 void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
@@ -381,13 +384,12 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
-int xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
+void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
 {
     DEBUG;
     if (ping_user_data) {
         printf("ping_id:%d\n", *(int *) ping_user_data);
     }
-    return 0;
 }
 
 int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
@@ -432,7 +434,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
         ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_stream_send error %zd\n", ret);
-            return (int)ret;
+            return 0;
         } else {
             user_stream->send_offset += ret;
             printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
@@ -484,7 +486,7 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
             break;
         } else if (read < 0) {
             printf("xqc_stream_recv error %zd\n", read);
-            return read;
+            return 0;
         }
 
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
@@ -695,7 +697,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return 0;
         } else if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
-            return ret;
+            return 0;
         } else {
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
@@ -792,7 +794,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
             break;
         } else if (read < 0) {
             printf("xqc_h3_request_recv_body error %zd\n", read);
-            return read;
+            return 0;
         }
 
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {

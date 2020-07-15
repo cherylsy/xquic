@@ -450,6 +450,12 @@ ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size,
     do {
         errno = 0;
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
+        if (res < 0) {
+            printf("xqc_server_send err %zd %s\n", res, strerror(errno));
+            if (errno == EAGAIN) {
+                res = XQC_SOCKET_EAGAIN;
+            }
+        }
         printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
     } while ((res < 0) && (errno == EINTR));
 

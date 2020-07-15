@@ -475,10 +475,8 @@ int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
 
 
 int 
-xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest){
-    int i = 0;
-    //struct mmsghdr mmsg[XQC_MAX_SEND_MSG_ONCE];
-    //memset(mmsg, 0, sizeof(mmsg));
+xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest)
+{
     struct iovec iov_array[XQC_MAX_SEND_MSG_ONCE];
     char enc_pkt_array[XQC_MAX_SEND_MSG_ONCE][XQC_PACKET_OUT_SIZE_EXT];
     int burst_can_send = 0;
@@ -492,7 +490,7 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
     xqc_list_for_each_safe(pos, next, head) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
-        if(congest){
+        if (congest) {
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 /* 优先级高的包一定在前面 */
                 if (!xqc_send_ctl_can_send(conn, packet_out)) {
@@ -516,60 +514,55 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
         iov_array[burst_can_send].iov_len = XQC_PACKET_OUT_SIZE_EXT;
 
         //ret = xqc_do_encrypt_pkt_buf(conn, packet_out, iov_array[burst_can_send].iov_base, &iov_array[burst_can_send].iov_len);
-        ret = xqc_conn_enc_packet(conn, packet_out, iov_array[burst_can_send].iov_base, 
+        ret = xqc_conn_enc_packet(conn, packet_out, iov_array[burst_can_send].iov_base,
                                   &iov_array[burst_can_send].iov_len, now);
-        if(ret < 0){
+        if (ret < 0) {
             return ret;
         }
 
         burst_can_send++;
 
-        if(burst_can_send >= XQC_MAX_SEND_MSG_ONCE){
+        if (burst_can_send >= XQC_MAX_SEND_MSG_ONCE) {
             burst_can_send = XQC_MAX_SEND_MSG_ONCE;
             break;
         }
     }
 
-    if(burst_can_send == 0){
+    if (burst_can_send == 0) {
         return burst_can_send;
     }
 
-    ret = conn->engine->eng_callback.write_mmsg(xqc_conn_get_user_data(conn), iov_array, burst_can_send, (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
-    if(ret < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| error send msg|");
-
-#ifdef __linux__
-        if(errno != EAGAIN) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception, errno:%d|", errno);
+    ret = conn->engine->eng_callback.write_mmsg(xqc_conn_get_user_data(conn), iov_array, burst_can_send,
+                                                (struct sockaddr *) conn->peer_addr, conn->peer_addrlen);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|error send mmsg|");
+        if (ret == XQC_SOCKET_ERROR) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception, close connection|");
             conn->conn_state = XQC_CONN_STATE_CLOSED;
         }
-#endif
         return ret;
     }
 
-    if(ret != burst_can_send){
-
-        xqc_log(conn->log, XQC_LOG_ERROR, "| error send msg|");
+    if (ret != burst_can_send) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|error send msg|");
     }
 
     int already_send = ret;
     int remove_count = 0;//remove from send
     xqc_list_for_each_safe(pos, next, head) {
-        if(remove_count >= already_send){
+        if (remove_count >= already_send) {
             break;
         }
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
         xqc_send_ctl_remove_send(&packet_out->po_list);
         packet_out->po_flag &= ~XQC_POF_ENCRYPTED; //pkt num no longer save
-        if(XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+        if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             xqc_send_ctl_insert_unacked(packet_out,
                                         &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
                                         conn->conn_send_ctl);
-        }else{
-
+        } else {
             xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
-
         }
         remove_count++;
     }
@@ -752,12 +745,11 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types), now);
 
-#ifdef __linux__
-        if (errno != EAGAIN) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception, errno:%d|", errno);
+        if (sent == XQC_SOCKET_ERROR) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|socket exception, close connection|");
             conn->conn_state = XQC_CONN_STATE_CLOSED;
         }
-#endif
+
         return -XQC_ESOCKET;
     }
     conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
@@ -1163,9 +1155,9 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
         return -XQC_ECONN_NFOUND;
     }
     xqc_log(conn->log, XQC_LOG_INFO, "|conn:%p|", conn);
-    if(engine->eng_callback.write_mmsg){
+    if (engine->eng_callback.write_mmsg) {
         xqc_conn_send_packets_batch(conn);
-    }else{
+    } else {
         xqc_conn_send_packets(conn);
     }
     xqc_engine_main_logic_internal(conn->engine, conn);

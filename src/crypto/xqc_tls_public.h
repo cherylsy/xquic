@@ -357,9 +357,9 @@ struct xqc_tlsref
 
     xqc_tls_callbacks_t    callbacks;
 
-    xqc_save_session_cb_t   save_session_cb;
-    xqc_save_tp_cb_t        save_tp_cb;
-    xqc_cert_verify_cb_t    cert_verify_cb; /* now only for borring ssl */
+    xqc_save_session_pt     save_session_cb;
+    xqc_save_trans_param_pt save_tp_cb;
+    xqc_cert_verify_pt      cert_verify_cb; /* now only for borring ssl */
     void *                  tp_user_data;
     void *                  session_user_data;
 

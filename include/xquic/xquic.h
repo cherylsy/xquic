@@ -19,23 +19,46 @@
 extern "C" {
 #endif
 
-#define XQC_QUIC_VERSION 1
-#define XQC_SUPPORT_VERSION_MAX 64
+#define XQC_QUIC_VERSION                1
+#define XQC_SUPPORT_VERSION_MAX         64
 
 #define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 #define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
+#define XQC_TLS_AEAD_OVERHEAD_MAX_LEN   16
 
-#define XQC_TLS_AEAD_OVERHEAD_MAX_LEN 16
+#define XQC_MAX_SEND_MSG_ONCE           32
 
-#define XQC_MAX_SEND_MSG_ONCE  32
+#define XQC_SOCKET_ERROR                -1
+#define XQC_SOCKET_EAGAIN               -2
+
+typedef enum {
+    XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
+    XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
+} xqc_request_notify_flag_t;
 
 typedef void (*xqc_set_event_timer_pt)(void *engine_user_data, xqc_msec_t wake_after);
 
 typedef void (*xqc_save_token_pt)(void *conn_user_data, const unsigned char *token, uint32_t token_len);
 
+/* session save callback */
+typedef void (*xqc_save_session_pt)(char *data, size_t data_len, void *conn_user_data);
+
+/* transport parameters save callback */
+typedef void (*xqc_save_trans_param_pt)(char *data, size_t data_len, void *conn_user_data);
+
+typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
+
+typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
+
+typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
+
+typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
+
 /*
- * warning: server's user_data is NULL when send a reset packet
- * return bytes sent, <0 for error
+ * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
+ * Return bytes sent.
+ * XQC_SOCKET_ERROR for error, xquic will destroy the connection
+ * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket write event is ready
  */
 typedef ssize_t (*xqc_socket_write_pt)(void *conn_user_data, unsigned char *buf, size_t size,
                                        const struct sockaddr *peer_addr,
@@ -45,43 +68,27 @@ typedef ssize_t (*xqc_send_mmsg_pt)(void *conn_user_data, struct iovec *msg_iov,
                                         socklen_t peer_addrlen);
 
 
-typedef enum {
-    XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
-    XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
-} xqc_request_notify_flag_t;
+/* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */
+typedef int (*xqc_cert_verify_pt)(unsigned char *certs[],size_t cert_len[],size_t certs_len, void * conn_user_data);
 
 /*
- * return 0 for success, <0 for error
+ * Callbacks below return -1 for fatal error, e.g. malloc fail, xquic will close the connection, return 0 otherwise
  */
 typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
 typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data);
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
 typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag);
-
-typedef int (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
-typedef int (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
-
-typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
-typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
-
-/* user_data is a parameter of xqc_engine_packet_process */
+/* user_data is the parameter of xqc_engine_packet_process */
 typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
 
-/* session save callback */
-typedef int  (*xqc_save_session_cb_t)(char *data, size_t data_len, void *conn_user_data);
-/* transport parameters save callback */
-typedef int  (*xqc_save_tp_cb_t)(char *data, size_t data_len, void *conn_user_data);
-
-/* client certificate verify callbacks, if verify success return 0, verify failed return -1*/
-typedef int  (*xqc_cert_verify_cb_t)(unsigned char *certs[],size_t cert_len[],size_t certs_len, void * conn_user_data);
 
 /* log interface */
 typedef struct xqc_log_callbacks_s {
-    /* return 0 for success, <0 for error */
+    /* return 0 for success, -1 for error */
     int (*xqc_open_log_file)(void *engine_user_data);
     int (*xqc_close_log_file)(void *engine_user_data);
-    /* return bytes write, <0 for error*/
+    /* return bytes write, -1 for error*/
     ssize_t (*xqc_write_log_file)(void *engine_user_data, const void *buf, size_t size);
     xqc_log_level_t log_level;
 } xqc_log_callbacks_t;
@@ -195,7 +202,7 @@ typedef struct xqc_engine_callback_s {
     xqc_socket_write_pt         write_socket;   /* 用户实现socket写接口 */
 
     /* for send_mmsg write*/
-    xqc_send_mmsg_pt            write_mmsg;     /*批量发送接口*/
+    xqc_send_mmsg_pt            write_mmsg;     /* 批量发送接口 */
 
     /* for server, callback when server accept a new connection */
     xqc_server_accept_pt        server_accept;
@@ -219,13 +226,13 @@ typedef struct xqc_engine_callback_s {
     xqc_save_token_pt           save_token;
 
     /* for client, save session data, Use the domain as the key to save */
-    xqc_save_session_cb_t       save_session_cb;
+    xqc_save_session_pt         save_session_cb;
 
     /* for client, save transport parameter data, Use the domain as the key to save */
-    xqc_save_tp_cb_t            save_tp_cb;
+    xqc_save_trans_param_pt     save_tp_cb;
 
     /* for client , verify certificate */
-    xqc_cert_verify_cb_t        cert_verify_cb;
+    xqc_cert_verify_pt          cert_verify_cb;
 } xqc_engine_callback_t;
 
 #define XQC_ALPN_HTTP3 "http3-1"
