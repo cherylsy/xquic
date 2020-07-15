@@ -269,20 +269,25 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
 
 
 #define XQC_MAX_KNP_LEN  64
-    uint8_t key[XQC_MAX_KNP_LEN] = {0}, iv[XQC_MAX_KNP_LEN] = {0}, hp[XQC_MAX_KNP_LEN] = {0};
-    size_t keylen = XQC_MAX_KNP_LEN, ivlen = XQC_MAX_KNP_LEN, hplen = XQC_MAX_KNP_LEN;
+    uint8_t key[XQC_MAX_KNP_LEN] = {0}, iv[XQC_MAX_KNP_LEN] = {0},
+            hp[XQC_MAX_KNP_LEN] = {0};
+    size_t keylen = XQC_MAX_KNP_LEN, ivlen = XQC_MAX_KNP_LEN,
+           hplen = XQC_MAX_KNP_LEN;
 #undef XQC_MAX_KNP_LEN
     switch (level) {
     case ssl_encryption_initial:
     case ssl_encryption_early_data:
         if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len,
-                                              key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,
+                                              read_secret, secret_len, key,
+                                              &keylen, iv, &ivlen, hp,
+                                              &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
 
-            if (xqc_conn_install_early_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            if (xqc_conn_install_early_keys(conn, key, keylen, iv, ivlen, hp, hplen)
+                != XQC_OK) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|install early keys error|");
                 return XQC_SSL_FAIL;
             }
@@ -290,16 +295,19 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
 
         } else {
             if (conn->local_settings.no_crypto == 1) {
-                xqc_negotiated_aead_and_prf(&conn->tlsref.crypto_ctx, NID_undef);  /* 更新client明文模式下的加密函数 */
+                /* 更新client明文模式下的加密函数 */
+                xqc_negotiated_aead_and_prf(&conn->tlsref.crypto_ctx, NID_undef);  
             }
 
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len,
-                                              key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret,
+                                              secret_len, key, &keylen, iv, &ivlen,
+                                              hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
 
-            if (xqc_conn_install_early_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            if (xqc_conn_install_early_keys(conn, key, keylen, iv, ivlen, hp, hplen)
+                != XQC_OK) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|install early keys error|");
                 return XQC_SSL_FAIL;
             }
@@ -308,13 +316,15 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
 
     case ssl_encryption_handshake:
         if (read_secret != NULL) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len,
-                                              key, &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret,
+                                              secret_len, key, &keylen, iv, &ivlen, 
+                                              hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
 
-            if (xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            if (xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv, ivlen, hp,
+                                                   hplen) != XQC_OK) {
                 return XQC_SSL_FAIL;
             }
         }
@@ -326,7 +336,8 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
 
 
                 if (XQC_LIKELY(outlen > 0)) {
-                    int ret = xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
+                    int ret = xqc_on_server_recv_peer_transport_params(conn, 
+                            peer_transport_params, outlen);
                     if (ret != XQC_OK) {
                         xqc_log(conn->log, XQC_LOG_ERROR,
                                 "|server receive perr transport parameter error, ret:%d|", ret);
@@ -334,40 +345,47 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
                     }
                 }
             }
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len, key, 
-                                                &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret,
+                                              secret_len, key, &keylen, iv, &ivlen, 
+                                              hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
-            if (xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            if (xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) 
+                != XQC_OK) {
                 return XQC_SSL_FAIL;
             }
         }
 
         if (conn->local_settings.no_crypto == 1) {
-            xqc_negotiated_aead_and_prf(&conn->tlsref.crypto_ctx, NID_undef);  /* 更新明文模式下的加密函数 */
+            /* 更新明文模式下的加密函数 */
+            xqc_negotiated_aead_and_prf(&conn->tlsref.crypto_ctx, NID_undef);  
         }
 
         break;
     case ssl_encryption_application:
         if (read_secret != NULL) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret, secret_len, key,
-                                              &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, read_secret,
+                                              secret_len, key, &keylen, iv, &ivlen, 
+                                              hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
 
-            if (xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            if (xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen)
+                != XQC_OK) {
                 return XQC_SSL_FAIL;
             }
         }
         if (write_secret != NULL) {
-            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret, secret_len, key,
-                                              &keylen, iv, &ivlen, hp, &hplen, conn->log);
+            rv = xqc_derive_packet_protection(&conn->tlsref.crypto_ctx, write_secret,
+                                              secret_len, key, &keylen, iv, &ivlen, 
+                                              hp, &hplen, conn->log);
             if (rv != XQC_SSL_SUCCESS) {
                 return XQC_SSL_FAIL;
             }
-            if (xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            if (xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) 
+                != XQC_OK) {
                 return XQC_SSL_FAIL;
             }
         }
