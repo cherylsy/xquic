@@ -83,7 +83,7 @@ grep_err_log
 
 clear_log
 echo -e "fin only ...\c"
-./test_client -s 1024000 -l d -t 1 -E -x 4 |grep ">>>>>>>> pass"
+./test_client -s 5120 -l d -t 1 -E -x 4 |grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log

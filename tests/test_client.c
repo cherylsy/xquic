@@ -430,8 +430,12 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
         }
     }
 
+    int fin = 1;
+    if (g_test_case == 4) { //test fin_only
+        fin = 0;
+    }
     if (user_stream->send_offset < user_stream->send_body_len) {
-        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
+        ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
         if (ret < 0) {
             printf("xqc_stream_send error %zd\n", ret);
             return 0;
@@ -440,6 +444,15 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
             printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
         }
     }
+    if (g_test_case == 4) { //test fin_only
+        if (user_stream->send_offset == user_stream->send_body_len) {
+            fin = 1;
+            usleep(200*1000);
+            ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
+            printf("xqc_stream_send sent:%zd, offset=%"PRIu64", fin=1\n", ret, user_stream->send_offset);
+        }
+    }
+
     return 0;
 }
 
@@ -706,6 +719,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (g_test_case == 4) { //test fin_only
         if (user_stream->send_offset == user_stream->send_body_len) {
             fin = 1;
+            usleep(200*1000);
             ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64", fin=1\n", ret, user_stream->send_offset);
         }
