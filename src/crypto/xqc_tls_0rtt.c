@@ -118,7 +118,7 @@ int xqc_read_session( SSL * ssl, xqc_connection_t *conn, char * filename)
     return -1;
 }
 
-int xqc_set_save_session_cb(xqc_engine_t  *engine, xqc_cid_t *cid, xqc_save_session_cb_t  cb, void * user_data)
+int xqc_set_save_session_cb(xqc_engine_t *engine, xqc_cid_t *cid, xqc_save_session_pt cb, void * user_data)
 {
     xqc_connection_t * conn = xqc_engine_conns_hash_find(engine, cid, 's');
     conn->tlsref.save_session_cb = cb;
@@ -126,7 +126,7 @@ int xqc_set_save_session_cb(xqc_engine_t  *engine, xqc_cid_t *cid, xqc_save_sess
     return 0;
 }
 
-int xqc_set_save_tp_cb(xqc_engine_t *engine, xqc_cid_t * cid, xqc_save_tp_cb_t  cb, void * user_data)
+int xqc_set_save_tp_cb(xqc_engine_t *engine, xqc_cid_t * cid, xqc_save_trans_param_pt cb, void * user_data)
 {
     xqc_connection_t * conn = xqc_engine_conns_hash_find(engine, cid, 's');
     conn->tlsref.save_tp_cb = cb;
@@ -168,7 +168,7 @@ int xqc_new_session_cb(SSL *ssl, SSL_SESSION *session)
             xqc_log(conn->log, XQC_LOG_ERROR, "|save new session  error|");
             ret = -1;
         }else{
-            ret = conn->tlsref.save_session_cb(p_data, data_len, xqc_conn_get_user_data(conn));
+            conn->tlsref.save_session_cb(p_data, data_len, xqc_conn_get_user_data(conn));
         }
         BIO_free(m_f); //free
         return ret;

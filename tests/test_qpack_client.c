@@ -104,31 +104,31 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 }
 
-int save_session_cb( char * data, size_t data_len, void *user_data)
+void save_session_cb( char * data, size_t data_len, void *user_data)
 {
     FILE * fp  = fopen("test_session", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
         printf("save _session_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 
-int save_tp_cb(char * data, size_t data_len, void * user_data)
+void save_tp_cb(char * data, size_t data_len, void * user_data)
 {
     FILE * fp = fopen("tp_localhost", "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
         printf("save _tp_cb error\n");
         fclose(fp);
-        return -1;
+        return;
     }
     fclose(fp);
-    return 0;
+    return;
 }
 
 void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
@@ -204,6 +204,9 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
         printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
+            if (errno == EAGAIN) {
+                res = XQC_SOCKET_EAGAIN;
+            }
         }
     } while ((res < 0) && (errno == EINTR));
     /*socklen_t tmp = sizeof(struct sockaddr_in);
@@ -793,7 +796,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
                 ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
                 if (ret < 0) {
                     printf("xqc_h3_request_send_body error %d\n", ret);
-                    return ret;
+                    return 0;
                 } else {
                     user_stream->send_offset += ret;
                     //printf("xqc_h3_request_send_body offset=%llu\n", user_stream->send_offset);
@@ -840,6 +843,12 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     ssize_t read;
     do {
         read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+        if (read == -XQC_EAGAIN) {
+            break;
+        } else if (read < 0) {
+            printf("xqc_h3_request_recv_body error %zd\n", read);
+            return read;
+        }
         printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
@@ -1157,9 +1166,6 @@ int main(int argc, char *argv[]) {
     }
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
-
-    //xqc_set_save_session_cb(ctx.engine, cid, (xqc_save_session_cb_t)save_session_cb, cid);
-    //xqc_set_save_tp_cb(ctx.engine, cid, (xqc_save_tp_cb_t) save_tp_cb, cid);
 
     user_stream_t *user_stream = create_user_stream(ctx.engine, user_conn, cid) ;
     user_stream_t *user_stream1 = create_user_stream(ctx.engine, user_conn, cid) ;
