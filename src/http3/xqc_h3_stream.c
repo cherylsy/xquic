@@ -334,7 +334,7 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
     if (h3_stream->h3_stream_type == XQC_HTTP3_STREAM_TYPE_REQUEST && (h3_stream->flags & XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY)) {
         ret = h3_stream->h3_request->request_if->h3_request_write_notify(h3_stream->h3_request,
                                                                          h3_stream->h3_request->user_data);
-        if (ret < 0 && ret != -XQC_EAGAIN) {
+        if (ret < 0) {
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|h3_request_write_notify error|%d|", ret);
             return ret;
         }
