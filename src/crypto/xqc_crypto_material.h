@@ -118,4 +118,14 @@ int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
 /** -------utils---------*/
 
 int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid );
+
+xqc_int_t xqc_derive_packet_protection(
+    const xqc_tls_context_t *ctx, const uint8_t *secret, size_t secretlen,
+    uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+    uint8_t *iv, size_t *ivlen,
+    uint8_t *hp, size_t *hplen,
+    xqc_log_t *log);
+
+int xqc_negotiated_aead_and_prf(xqc_tls_context_t *ctx, uint32_t cipher_id);
+
 #endif //XQC_CRYPTO_MATERIAL_H_
