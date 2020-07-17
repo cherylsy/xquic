@@ -2658,10 +2658,10 @@ literal:
 }
 
 
-ssize_t xqc_http3_stream_write_header_block( xqc_h3_stream_t * qenc_stream, xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
-        xqc_http_headers_t * headers, int fin){
-
-
+ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t * qenc_stream, 
+    xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
+    xqc_http_headers_t * headers, int fin)
+{
     int rv = 0, i = 0;
     xqc_var_buf_t *pp_buf = NULL ;
     xqc_var_buf_t *pp_h_data = NULL;
@@ -2706,7 +2706,7 @@ ssize_t xqc_http3_stream_write_header_block( xqc_h3_stream_t * qenc_stream, xqc_
     }
 
     rv = pp_h_data->used_len;
-    // hex_print(pp_h_data->data, pp_h_data->used_len);
+
     if(p_enc_buf->used_len > 0){
         send_size = xqc_http3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
         if(send_size != p_enc_buf->used_len){

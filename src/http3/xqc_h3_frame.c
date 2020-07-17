@@ -831,7 +831,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 
     uint8_t *p = src, *end = src + srclen;
     if (h3_stream->rx_http_state == XQC_HTTP3_HTTP_STATE_NONE){
-        h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_BEGIN;//
+        h3_stream->rx_http_state = XQC_HTTP3_HTTP_STATE_BEGIN;
     }
 
     xqc_http3_stream_read_state *rstate = &h3_stream->read_state;
