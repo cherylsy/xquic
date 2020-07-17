@@ -164,21 +164,25 @@ xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_
 ssize_t
 xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin)
 {
-    ssize_t  n_write = 0;
-    xqc_h3_conn_t *h3_conn = h3_stream->h3_conn;
+    ssize_t         n_write = 0;
+    xqc_h3_conn_t  *h3_conn = h3_stream->h3_conn;
+
     h3_stream->flags |= XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
-    //QPACK
-    //gen HEADERS frame
-    n_write = xqc_http3_write_headers(h3_conn, h3_stream, headers, fin);
-    if(n_write < 0){
+
+    /* QPACK & gen HEADERS frame */
+    n_write = xqc_h3_write_headers(h3_conn, h3_stream, headers, fin);
+    if (n_write < 0){
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|n_write:%z error|stream_id:%ui|", n_write, h3_stream->stream->stream_id);
         XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, n_write);
     }
+
     h3_stream->header_sent += n_write;
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|n_write:%z|stream_id:%ui|fin:%d|conn:%p|flag:%s|",
             n_write, h3_stream->stream->stream_id, fin, h3_conn->conn, xqc_conn_flag_2_str(h3_conn->conn->conn_flag));
     h3_stream->flags &= ~XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
+
     xqc_engine_main_logic_internal(h3_conn->conn->engine, h3_conn->conn);
+
     return n_write;
 }
 

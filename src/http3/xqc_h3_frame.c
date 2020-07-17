@@ -1299,8 +1299,10 @@ ssize_t xqc_http3_stream_write_push_promise(xqc_h3_stream_t * h3_stream, uint64_
 
 }
 
-ssize_t xqc_http3_write_headers(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin){
-
+ssize_t 
+xqc_h3_write_headers(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
+    xqc_http_headers_t *headers, uint8_t fin)
+{
     ssize_t n_write = 0;
 
     xqc_http3_qpack_encoder * encoder = &h3_conn->qenc;
