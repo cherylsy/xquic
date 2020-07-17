@@ -274,6 +274,8 @@ struct xqc_connection_s{
     xqc_cid_t               dcid; /* 对端cid */
     xqc_cid_t               scid; /* 本地cid */
     xqc_cid_t               ocid; /* original connection id */
+    unsigned char           dcid_str[XQC_MAX_CID_LEN * 2 + 1];
+    unsigned char           scid_str[XQC_MAX_CID_LEN * 2 + 1];
 
     unsigned char           peer_addr[sizeof(struct sockaddr_in6)],
                             local_addr[sizeof(struct sockaddr_in6)];

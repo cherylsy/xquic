@@ -357,13 +357,6 @@ XQC_EXPORT_PUBLIC_API
 int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
- * Get cid in hex, end with '\0'
- * @param cid means scid
- */
-XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_scid_str(const xqc_cid_t *cid);
-
-/**
  * Return quic_connection on which h3_conn rely
  * @param h3_conn http3 connection
  */
@@ -665,10 +658,25 @@ XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
                                unsigned char *buf, size_t size);
 
-XQC_EXPORT_PUBLIC_API xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
 
-XQC_EXPORT_PUBLIC_API unsigned char* xqc_dcid_str(const xqc_cid_t *cid);
-XQC_EXPORT_PUBLIC_API uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
+/**
+ * Get scid in hex, end with '\0'
+ * @param scid is returned from xqc_connect or xqc_h3_connect
+ * @return user should copy return buffer to your own memory if you will access in the future
+ */
+XQC_EXPORT_PUBLIC_API
+unsigned char* xqc_scid_str(const xqc_cid_t *scid);
+
+XQC_EXPORT_PUBLIC_API
+unsigned char* xqc_dcid_str(const xqc_cid_t *dcid);
+
+XQC_EXPORT_PUBLIC_API
+unsigned char* xqc_dcid_str_by_scid(xqc_engine_t *engine, xqc_cid_t *scid);
+
+XQC_EXPORT_PUBLIC_API
+uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
 
 
 /**

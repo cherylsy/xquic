@@ -2,6 +2,7 @@
 #include <xquic/xquic.h>
 #include "src/transport/xqc_cid.h"
 #include "src/transport/xqc_engine.h"
+#include "src/transport/xqc_conn.h"
 #include "src/common/xqc_random.h"
 
 xqc_int_t 
@@ -59,17 +60,29 @@ static unsigned char g_scid_buf[XQC_MAX_CID_LEN * 2 + 1];
 static unsigned char g_dcid_buf[XQC_MAX_CID_LEN * 2 + 1];
 
 unsigned char*
-xqc_dcid_str(const xqc_cid_t *cid)
+xqc_dcid_str(const xqc_cid_t *dcid)
 {
-    xqc_hex_dump(g_dcid_buf, cid->cid_buf, cid->cid_len);
-    g_dcid_buf[cid->cid_len * 2] = '\0';
+    xqc_hex_dump(g_dcid_buf, dcid->cid_buf, dcid->cid_len);
+    g_dcid_buf[dcid->cid_len * 2] = '\0';
     return g_dcid_buf;
 }
 
 unsigned char*
-xqc_scid_str(const xqc_cid_t *cid)
+xqc_scid_str(const xqc_cid_t *scid)
 {
-    xqc_hex_dump(g_scid_buf, cid->cid_buf, cid->cid_len);
-    g_scid_buf[cid->cid_len * 2] = '\0';
+    xqc_hex_dump(g_scid_buf, scid->cid_buf, scid->cid_len);
+    g_scid_buf[scid->cid_len * 2] = '\0';
     return g_scid_buf;
+}
+
+unsigned char*
+xqc_dcid_str_by_scid(xqc_engine_t *engine, xqc_cid_t *scid)
+{
+    xqc_connection_t *conn;
+    conn = xqc_engine_conns_hash_find(engine, scid, 's');
+    if (!conn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
+        return NULL;
+    }
+    return conn->dcid_str;
 }
