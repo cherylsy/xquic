@@ -78,12 +78,11 @@ xqc_scid_str(const xqc_cid_t *scid)
 unsigned char*
 xqc_dcid_str_by_scid(xqc_engine_t *engine, xqc_cid_t *scid)
 {
-    memset(g_dcid_buf, 0, sizeof(g_dcid_buf));
     xqc_connection_t *conn;
     conn = xqc_engine_conns_hash_find(engine, scid, 's');
     if (!conn) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
-        return g_dcid_buf;
+        return NULL;
     }
-    return xqc_dcid_str(&conn->dcid);
+    return conn->dcid_str;
 }

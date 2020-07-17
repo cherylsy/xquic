@@ -168,6 +168,10 @@ xqc_conn_create(xqc_engine_t *engine,
     xc->conn_pool = pool;
     xqc_cid_copy(&(xc->dcid), dcid);
     xqc_cid_copy(&(xc->scid), scid);
+    xqc_hex_dump(xc->scid_str, scid->cid_buf, scid->cid_len);
+    xc->scid_str[scid->cid_len * 2] = '\0';
+    xqc_hex_dump(xc->dcid_str, dcid->cid_buf, dcid->cid_len);
+    xc->dcid_str[dcid->cid_len * 2] = '\0';
     xc->engine = engine;
     xc->log = engine->log;
     xc->conn_callbacks = *callbacks;
