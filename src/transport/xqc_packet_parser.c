@@ -721,13 +721,6 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         return -XQC_EDECRYPT;
     }
 
-#if 0
-    printf("recv %d bytes, encrypt_level :%d, key len:%d, iv len:%d, hp len:%d\n", packet_in->buf_size ,encrypt_level, ckm->key.len, ckm->iv.len, hp->len);
-    hex_print(ckm->key.base, ckm->key.len);
-    hex_print(ckm->iv.base, ckm->iv.len);
-    hex_print(hp->base, hp->len);
-#endif
-
     unsigned char *pkt = (unsigned char*)packet_in->buf;
     size_t pkt_num_offset = packet_in->pi_pkt.pkt_num_offset;
     size_t sample_offset = pkt_num_offset + 4;
@@ -745,15 +738,6 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         return nwrite;
     }
 
-#if 0
-    printf("hp base : %d\n", hp->len);
-    hex_print(hp->base, hp->len);
-
-    printf("hp_mask mask:%d, sample_offset=%d\n", nwrite, sample_offset);
-    hex_print(mask,nwrite);
-    hex_print(pkt+sample_offset, XQC_HP_SAMPLELEN);
-#endif
-
     if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
         header_decrypt[0] = (uint8_t) (header_decrypt[0] ^ (mask[0] & 0x1f));
     } else {
@@ -769,11 +753,6 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     header_len = pkt_num_offset + packet_number_len;
-
-#if 0
-    printf("decrypt header len:%d\n", header_len);
-    hex_print(header_decrypt, header_len);
-#endif
 
     xqc_packet_parse_packet_number(header_decrypt + pkt_num_offset, packet_number_len, &packet_in->pi_pkt.pkt_num);
 

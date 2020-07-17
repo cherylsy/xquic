@@ -206,13 +206,60 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
     h3_request->user_data = user_data;
 }
 
+
+/**
+ * HTTP/3 request send headers.
+ * Put pesudo headers in the front of list.
+ * @param headers       an array of headers
+ * @param fin           headers only
+ */
 ssize_t
 xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers, uint8_t fin)
 {
     if (!headers) {
         return -XQC_H3_EPARAM;
     }
-    return xqc_h3_stream_send_headers(h3_request->h3_stream, headers, fin);
+
+    /* move pesudo headers in the front of list */
+    xqc_http_headers_t new_headers;
+    xqc_http_headers_t *headers_in = &new_headers;
+
+    headers_in->headers = xqc_malloc(headers->count * sizeof(xqc_http_header_t));
+    if (headers_in->headers == NULL) {
+        return -XQC_H3_EMALLOC;
+    }
+
+    headers_in->capacity = headers->count;
+
+    /* copy pesudo headers first */
+    int i = 0, pt = 0;
+    for (i = 0; i < headers->count; i++) {
+        if (headers->headers[i].name.iov_len > 0 && *((unsigned char *)headers->headers[i].name.iov_base) == ':') {
+            headers_in->headers[pt].name = headers->headers[i].name;
+            headers_in->headers[pt].value = headers->headers[i].value;
+            headers_in->headers[pt].flags = headers->headers[i].flags;
+            pt++;
+        }
+    }
+
+    /* copy other headers */
+    for (i = 0; i < headers->count; i++) {
+        if (headers->headers[i].name.iov_len > 0 && *((unsigned char *)headers->headers[i].name.iov_base) != ':') {
+            headers_in->headers[pt].name = headers->headers[i].name;
+            headers_in->headers[pt].value = headers->headers[i].value;
+            headers_in->headers[pt].flags = headers->headers[i].flags;
+            pt++;
+        }
+    }
+
+    headers_in->count = pt;
+
+    ssize_t ret = xqc_h3_stream_send_headers(h3_request->h3_stream, headers_in, fin);
+
+    /* free headers_in->headers */
+    xqc_free(headers_in->headers);
+
+    return ret;
 }
 
 ssize_t
