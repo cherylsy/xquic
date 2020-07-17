@@ -234,7 +234,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
     /* copy pesudo headers first */
     int i = 0, pt = 0;
     for (i = 0; i < headers->count; i++) {
-        if (headers->headers[i].name.iov_len > 0 && headers->headers[i].name.iov_base[0] == ':') {
+        if (headers->headers[i].name.iov_len > 0 && *((unsigned char *)headers->headers[i].name.iov_base) == ':') {
             headers_in->headers[pt].name = headers->headers[i].name;
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
@@ -244,7 +244,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
 
     /* copy other headers */
     for (i = 0; i < headers->count; i++) {
-        if (headers->headers[i].name.iov_len > 0 && headers->headers[i].name.iov_base[0] != ':') {
+        if (headers->headers[i].name.iov_len > 0 && *((unsigned char *)headers->headers[i].name.iov_base) != ':') {
             headers_in->headers[pt].name = headers->headers[i].name;
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
