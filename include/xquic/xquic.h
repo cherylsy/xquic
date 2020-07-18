@@ -401,6 +401,13 @@ struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
 XQC_EXPORT_PUBLIC_API
 int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
 
+
+/**
+ * @return 1 for can send 0rtt, 0 for cannot send 0rtt
+ */
+XQC_EXPORT_PUBLIC_API
+int xqc_h3_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn);
+
 /**
  * @param user_data For request
  */
