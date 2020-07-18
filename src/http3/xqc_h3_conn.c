@@ -136,7 +136,7 @@ xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
     return xqc_conn_send_ping(engine, cid, user_data);
 }
 
-int xqc_h3_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn)
+int xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn)
 {
     if (h3_conn->conn->tlsref.resumption) {
         return 1;
