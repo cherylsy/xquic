@@ -56,21 +56,6 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|select apln number:%d|", conn->tlsref.alpn_num);
 
-#if 0
-    int version = conn->version ;
-    // Just select alpn for now.
-    switch (version) {
-        case XQC_QUIC_VERSION:
-            alpn = XQC_ALPN_V1;
-            alpnlen = strlen(XQC_ALPN_V1);
-            break;
-        default:
-            return SSL_TLSEXT_ERR_NOACK;
-    }
-    *out = (const uint8_t *)(alpn + 1);
-    *outlen = alpn[0];
-#endif
-
 
     return SSL_TLSEXT_ERR_OK;
 }

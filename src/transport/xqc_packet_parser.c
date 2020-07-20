@@ -329,7 +329,7 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             const unsigned char *dcid, unsigned char dcid_len,
                             const unsigned char *scid, unsigned char scid_len,
                             const unsigned char *token, unsigned token_len,
-                            unsigned ver,
+                            xqc_proto_version_t ver,
                             unsigned char pktno_bits)
 {
     unsigned char *dst_buf = packet_out->po_buf;
@@ -357,9 +357,13 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
     first_byte |= pktno_bits;
     *dst_buf++ = first_byte;
 
+    memcpy(dst_buf, xqc_proto_version_field[ver], XQC_PROTO_VERSION_LEN);
+    dst_buf += XQC_PROTO_VERSION_LEN;
+#if 0
     ver = htonl(ver);
     memcpy(dst_buf, &ver, sizeof(ver));
     dst_buf += sizeof(ver);
+#endif
 
     *dst_buf = dcid_len;
     dst_buf++;

@@ -149,6 +149,10 @@ xqc_conn_create(xqc_engine_t *engine,
                 void *user_data,
                 xqc_conn_type_t type)
 {
+    if (settings->proto_version == XQC_IDRAFT_INIT_VER) {
+        return NULL;
+    }
+
     xqc_connection_t *xc = NULL;
     xqc_memory_pool_t *pool = xqc_create_pool(engine->config->conn_pool_size);
 
@@ -178,7 +182,7 @@ xqc_conn_create(xqc_engine_t *engine,
 
     xc->conn_settings = *settings;
     xc->user_data = user_data;
-    xc->version = XQC_QUIC_VERSION;
+    xc->version = settings->proto_version;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
     xc->conn_flag = 0;

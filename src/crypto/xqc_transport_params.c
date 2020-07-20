@@ -824,8 +824,10 @@ xqc_serialize_server_transport_params(xqc_connection_t * conn, xqc_transport_par
         return -1;
     }
 
-    params.v.ee.len = 1;
-    params.v.ee.supported_versions[0] = XQC_QUIC_VERSION; // just use XQC VERSION
+    params.v.ee.len = 2;
+    params.v.ee.supported_versions[0] = xqc_proto_version_value[XQC_IDRAFT_VER_29]; 
+    params.v.ee.supported_versions[1] = xqc_proto_version_value[XQC_IDRAFT_INIT_VER];
+
     uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 
     ssize_t nwrite = xqc_encode_transport_params(

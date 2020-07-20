@@ -22,6 +22,44 @@ extern "C" {
 #define XQC_QUIC_VERSION                1
 #define XQC_SUPPORT_VERSION_MAX         64
 
+/* support version for drafts */
+#define XQC_QUIC_DRAFT_VERSION_29       0xff00001d
+
+typedef enum xqc_proto_version_s {
+
+    XQC_IDRAFT_INIT_VER,            /* placeholder */
+
+    XQC_IDRAFT_VER_27,              /* IETF Draft-27 */
+    XQC_IDRAFT_VER_28,              /* IETF Draft-28 */
+    XQC_IDRAFT_VER_29,              /* IETF Draft-29 */
+
+    XQC_IDRAFT_VER_NEGOTIATION,     /* Special version for version negotiation. */
+
+    XQC_VERSION_MAX
+} xqc_proto_version_t;
+
+#define XQC_PROTO_VERSION_LEN 4
+
+const unsigned char xqc_proto_version_field[XQC_VERSION_MAX][XQC_PROTO_VERSION_LEN] = {
+
+    [XQC_IDRAFT_INIT_VER] = { 0, 0, 0, 1 },
+    [XQC_IDRAFT_VER_27] = { 0xFF, 0, 0, 27, },
+    [XQC_IDRAFT_VER_28] = { 0xFF, 0, 0, 28, },
+    [XQC_IDRAFT_VER_29] = { 0xFF, 0, 0, 29, },
+    [XQC_IDRAFT_VER_NEGOTIATION] = { 0x00, 0x00, 0x00, 0x00, },
+};
+
+uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
+
+    0x00000001,
+    0xFF00001B,
+    0xFF00001C,
+    0xFF00001D,
+    0x00000000,
+};
+
+
+
 #define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 #define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
 #define XQC_TLS_AEAD_OVERHEAD_MAX_LEN   16
@@ -280,6 +318,7 @@ typedef struct xqc_conn_settings_s {
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
     xqc_cc_params_t             cc_params;
     uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
+    xqc_proto_version_t         proto_version;      /* QUIC protocol version */
 } xqc_conn_settings_t;
 
 typedef enum {
