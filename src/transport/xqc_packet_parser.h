@@ -3,6 +3,7 @@
 #define _XQC_PACKET_PARSER_H_INCLUDED_
 
 #include <xquic/xquic_typedef.h>
+#include <xquic/xquic.h>
 #include "src/transport/xqc_packet_in.h"
 #include "src/transport/xqc_packet_out.h"
 
