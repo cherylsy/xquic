@@ -154,7 +154,7 @@ xqc_h3_stream_send(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t data_
     n_write = xqc_stream_send(h3_stream->stream, data, data_size, fin);
     if (n_write < 0) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_stream_send error|%z|", n_write);
-        XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, n_write);
+        XQC_H3_CONN_ERR(h3_conn, H3_INTERNAL_ERROR, n_write);
     }
     xqc_engine_main_logic_internal(h3_stream->h3_conn->conn->engine, h3_stream->h3_conn->conn);
     return n_write;
@@ -173,7 +173,7 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     n_write = xqc_h3_write_headers(h3_conn, h3_stream, headers, fin);
     if (n_write < 0){
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|n_write:%z error|stream_id:%ui|", n_write, h3_stream->stream->stream_id);
-        XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, n_write);
+        XQC_H3_CONN_ERR(h3_conn, H3_INTERNAL_ERROR, n_write);
     }
 
     h3_stream->header_sent += n_write;
@@ -201,7 +201,7 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
     } else if (n_write < 0) {
         xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_data error|%z|stream_id:%ui|data_size:%uz|fin:%d|",
                 h3_stream->stream->stream_id, n_write, data_size, fin);
-        XQC_H3_CONN_ERR(h3_stream->h3_conn, HTTP_INTERNAL_ERROR, n_write);
+        XQC_H3_CONN_ERR(h3_stream->h3_conn, H3_INTERNAL_ERROR, n_write);
     }
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|data_size:%uz|n_write:%z|fin:%d|conn:%p|",
             h3_stream->stream->stream_id, data_size, n_write, fin, h3_stream->h3_conn->conn);
@@ -278,7 +278,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
         processed = xqc_http3_conn_read_uni(h3_conn, h3_stream, data, data_size, fin);
         if(processed < 0 || processed != data_size) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_uni error|%z|", processed);
-            XQC_H3_CONN_ERR(h3_conn, HTTP_FRAME_ERROR, -XQC_H3_EPROC_CONTROL);
+            XQC_H3_CONN_ERR(h3_conn, H3_FRAME_ERROR, -XQC_H3_EPROC_CONTROL);
             return -XQC_H3_EPROC_CONTROL;
 
         }
@@ -287,7 +287,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
         processed = xqc_http3_conn_read_bidi(h3_conn, h3_stream, data, data_size, fin);
         if (processed < 0) { //process error
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_bidi error|%z|", processed);
-            XQC_H3_CONN_ERR(h3_conn, HTTP_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
+            XQC_H3_CONN_ERR(h3_conn, H3_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
             return -XQC_H3_EPROC_REQUEST;
         }
         xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_conn_read_bidi|%z|", processed);
@@ -301,7 +301,7 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
                 return XQC_OK;
             }else{
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_bidi error, read data not completely");
-                XQC_H3_CONN_ERR(h3_conn, HTTP_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
+                XQC_H3_CONN_ERR(h3_conn, H3_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
                 return -XQC_H3_EPROC_REQUEST;
             }
 
@@ -370,7 +370,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
 
     if (h3_conn->flags & XQC_HTTP3_CONN_FLAG_GOAWAY_RECVD && stream->stream_id >= h3_conn->goaway_stream_id) {
         //send stop_sending
-        return xqc_write_stop_sending_to_packet(h3_conn->conn, stream, HTTP_REQUEST_CANCELLED);
+        return xqc_write_stop_sending_to_packet(h3_conn->conn, stream, H3_REQUEST_CANCELLED);
     }
 
 
@@ -428,7 +428,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             ret = xqc_h3_stream_process_in(h3_stream, buff, read, fin);
             if (ret < 0) {
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_in error|%d|", ret);
-                XQC_H3_CONN_ERR(h3_conn, HTTP_INTERNAL_ERROR, ret);
+                XQC_H3_CONN_ERR(h3_conn, H3_INTERNAL_ERROR, ret);
                 return ret;
             }
 

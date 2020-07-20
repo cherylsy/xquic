@@ -21,26 +21,25 @@ typedef enum
     TRA_CRYPTO_ERROR               =  0x1FF, /* 0x1XX */
 } xqc_trans_err_code_t;
 
-/* https://tools.ietf.org/html/draft-ietf-quic-http-23#section-8.1 */
+/* https://tools.ietf.org/html/draft-ietf-quic-http-29#section-8.1 */
 typedef enum
 {
-    HTTP_NO_ERROR                   = 0x100,
-    HTTP_GENERAL_PROTOCOL_ERROR     = 0x101,
-    HTTP_INTERNAL_ERROR             = 0x102,
-    HTTP_STREAM_CREATION_ERROR      = 0x103,
-    HTTP_CLOSED_CRITICAL_STREAM     = 0x104,
-    HTTP_FRAME_UNEXPECTED           = 0x105,
-    HTTP_FRAME_ERROR                = 0x106,
-    HTTP_EXCESSIVE_LOAD             = 0x107,
-    HTTP_ID_ERROR                   = 0x108,
-    HTTP_SETTINGS_ERROR             = 0x109,
-    HTTP_MISSING_SETTINGS           = 0x10A,
-    HTTP_REQUEST_REJECTED           = 0x10B,
-    HTTP_REQUEST_CANCELLED          = 0x10C,
-    HTTP_REQUEST_INCOMPLETE         = 0x10D,
-    HTTP_EARLY_RESPONSE             = 0x10E,
-    HTTP_CONNECT_ERROR              = 0x10F,
-    HTTP_VERSION_FALLBACK           = 0x110,
+    H3_NO_ERROR                   = 0x100,
+    H3_GENERAL_PROTOCOL_ERROR     = 0x101,
+    H3_INTERNAL_ERROR             = 0x102,
+    H3_STREAM_CREATION_ERROR      = 0x103,
+    H3_CLOSED_CRITICAL_STREAM     = 0x104,
+    H3_FRAME_UNEXPECTED           = 0x105,
+    H3_FRAME_ERROR                = 0x106,
+    H3_EXCESSIVE_LOAD             = 0x107,
+    H3_ID_ERROR                   = 0x108,
+    H3_SETTINGS_ERROR             = 0x109,
+    H3_MISSING_SETTINGS           = 0x10A,
+    H3_REQUEST_REJECTED           = 0x10B,
+    H3_REQUEST_CANCELLED          = 0x10C,
+    H3_REQUEST_INCOMPLETE         = 0x10D,
+    H3_CONNECT_ERROR              = 0x10F,
+    H3_VERSION_FALLBACK           = 0x110,
 } xqc_h3_err_code_t;
 
 
