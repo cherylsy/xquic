@@ -384,7 +384,7 @@ int main(int argc, char *argv[]){
     int rc = xqc_client_setup_initial_crypto_context(&conn, &dcid);
     //CU_ASSERT( rc == 0);
 
-    conn.version = XQC_QUIC_VERSION;
+    conn.version = XQC_IDRAFT_VER_29;
     run(&conn, &dcid);
 
     close(g_sock);

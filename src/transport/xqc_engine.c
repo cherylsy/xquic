@@ -20,6 +20,17 @@
 #include "src/transport/xqc_utils.h"
 #include "src/http3/xqc_h3_qpack_token.h"
 
+
+uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
+
+    0x00000001,
+    0xFF00001B,
+    0xFF00001C,
+    0xFF00001D,
+    0x00000000,
+};
+
+
 xqc_config_t default_client_config = {
         .conn_pool_size = 4096,
         .streams_hash_bucket_size = 1024,
@@ -27,7 +38,7 @@ xqc_config_t default_client_config = {
         .conns_active_pq_capacity = 128,
         .conns_wakeup_pq_capacity = 128,
         .support_version_count = 1,
-        .support_version_list[0] = XQC_QUIC_VERSION,
+        .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
         .cid_len = XQC_DEFAULT_CID_LEN,
 };
 
@@ -38,7 +49,7 @@ xqc_config_t default_server_config = {
         .conns_active_pq_capacity = 1024,
         .conns_wakeup_pq_capacity = 16*1024,
         .support_version_count = 1,
-        .support_version_list[0] = XQC_QUIC_VERSION,
+        .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
         .cid_len = XQC_DEFAULT_CID_LEN,
 };
 

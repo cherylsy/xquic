@@ -300,16 +300,17 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
                 return XQC_ERR_INVALID_ARGUMENT;
             }
             /* TODO Fix this; not sure how to handle them correctly */
-            params->v.ch.initial_version = conn->version;
+            params->v.ch.initial_version = xqc_proto_version_value[conn->version];
             break;
         case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
             if (!(conn->conn_type == XQC_CONN_TYPE_SERVER)) {
                 return XQC_ERR_INVALID_ARGUMENT;
             }
             /* TODO Fix this; not sure how to handle them correctly */
-            params->v.ee.negotiated_version = conn->version;
+            params->v.ee.negotiated_version = xqc_proto_version_value[XQC_IDRAFT_VER_29];
             params->v.ee.len = 1;
-            params->v.ee.supported_versions[0] = conn->version;
+            params->v.ee.supported_versions[0] = xqc_proto_version_value[XQC_IDRAFT_VER_29];
+
             break;
         default:
             return XQC_ERR_INVALID_ARGUMENT;
@@ -343,12 +344,23 @@ int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
 {
     size_t i;
 
-    if (params->v.ee.negotiated_version != conn->version) {
+    xqc_log(conn->log, XQC_LOG_DEBUG, 
+            "|xqc_conn_client_validate_transport_params|%d|%d|%d|", 
+            params->v.ee.negotiated_version, 
+            xqc_proto_version_value[conn->version], 
+            conn->version);
+
+
+    if (params->v.ee.negotiated_version != xqc_proto_version_value[conn->version]) {
         return XQC_ERR_VERSION_NEGOTIATION;
     }
 
     for (i = 0; i < params->v.ee.len; ++i) {
-        if (params->v.ee.supported_versions[i] == conn->version) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, 
+                "|xqc_conn_client_validate_transport_params|%d|%d|", 
+                i, params->v.ee.supported_versions[i]);
+
+        if (params->v.ee.supported_versions[i] == xqc_proto_version_value[conn->version]) {
             break;
         }
     }
@@ -824,9 +836,8 @@ xqc_serialize_server_transport_params(xqc_connection_t * conn, xqc_transport_par
         return -1;
     }
 
-    params.v.ee.len = 2;
-    params.v.ee.supported_versions[0] = xqc_proto_version_value[XQC_IDRAFT_VER_29]; 
-    params.v.ee.supported_versions[1] = xqc_proto_version_value[XQC_IDRAFT_INIT_VER];
+    params.v.ee.len = 1;
+    params.v.ee.supported_versions[0] = XQC_IDRAFT_VER_29_VALUE; 
 
     uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 

@@ -40,23 +40,13 @@ typedef enum xqc_proto_version_s {
 
 #define XQC_PROTO_VERSION_LEN 4
 
-const unsigned char xqc_proto_version_field[XQC_VERSION_MAX][XQC_PROTO_VERSION_LEN] = {
+extern uint32_t xqc_proto_version_value[];
 
-    [XQC_IDRAFT_INIT_VER] = { 0, 0, 0, 1 },
-    [XQC_IDRAFT_VER_27] = { 0xFF, 0, 0, 27, },
-    [XQC_IDRAFT_VER_28] = { 0xFF, 0, 0, 28, },
-    [XQC_IDRAFT_VER_29] = { 0xFF, 0, 0, 29, },
-    [XQC_IDRAFT_VER_NEGOTIATION] = { 0x00, 0x00, 0x00, 0x00, },
-};
+#define XQC_IDRAFT_INIT_VER_VALUE   0x00000001
+#define XQC_IDRAFT_VER_27_VALUE     0xFF00001B
+#define XQC_IDRAFT_VER_28_VALUE     0xFF00001C
+#define XQC_IDRAFT_VER_29_VALUE     0xFF00001D
 
-uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
-
-    0x00000001,
-    0xFF00001B,
-    0xFF00001C,
-    0xFF00001D,
-    0x00000000,
-};
 
 
 

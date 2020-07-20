@@ -18,8 +18,8 @@ xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , s
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0} ;
     int rv = 
     xqc_derive_initial_secret(initial_secret, sizeof(initial_secret), &conn->dcid,
-            (const uint8_t *)(XQC_INITIAL_SALT),
-            strlen(XQC_INITIAL_SALT));
+            (const uint8_t *)(xqc_crypto_initial_salt[conn->version]),
+            strlen(xqc_crypto_initial_salt[conn->version]));
     
     if(XQC_UNLIKELY(rv != 0)) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive_initial_secret() failed|");

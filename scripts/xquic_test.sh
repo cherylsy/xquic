@@ -17,7 +17,7 @@ sudo yum -y install python-lxml > /dev/null
 sudo pip install gcovr > /dev/null
 
 #编译开启Code Coverage
-cmake -DGCOV=on ..
+cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug ..
 #make clean
 make -j
 

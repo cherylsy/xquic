@@ -149,7 +149,7 @@ xqc_conn_create(xqc_engine_t *engine,
                 void *user_data,
                 xqc_conn_type_t type)
 {
-    if (settings->proto_version == XQC_IDRAFT_INIT_VER) {
+    if (type == XQC_CONN_TYPE_CLIENT && settings->proto_version == XQC_IDRAFT_INIT_VER) {
         return NULL;
     }
 
@@ -182,7 +182,7 @@ xqc_conn_create(xqc_engine_t *engine,
 
     xc->conn_settings = *settings;
     xc->user_data = user_data;
-    xc->version = settings->proto_version;
+    xc->version = ((type == XQC_CONN_TYPE_SERVER) ? XQC_IDRAFT_INIT_VER : settings->proto_version);
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
     xc->conn_flag = 0;
@@ -1061,7 +1061,7 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
 }
 
 
-#if (XQC_VERSION_NEGOTIATION)
+
 /*
  * 版本检查
  * */
@@ -1069,22 +1069,31 @@ int
 xqc_conn_version_check(xqc_connection_t *c, uint32_t version)
 {
     xqc_engine_t* engine = c->engine;
+    int i = 0;
+
     if (engine->eng_type == XQC_ENGINE_SERVER) {
         uint32_t *list = engine->config->support_version_list;
         uint32_t count = engine->config->support_version_count;
         if (xqc_uint32_list_find(list, count, version) == -1) {
-            xqc_conn_send_version_negotiation(c); /*发送version negotiation*/
+            // xqc_conn_send_version_negotiation(c); /*发送version negotiation*/
             return -XQC_EPROTO;
         }
 
-        /*版本号不匹配*/
-        if (c->version != version) {
-            return -XQC_EPROTO;
+        for (i = 0; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
+            if (xqc_proto_version_value[i] == version) {
+                c->version = i;
+                return XQC_OK;
+            }
         }
+
+        return -XQC_EPROTO;
     }
 
     return XQC_OK;
 }
+
+
+#if (XQC_VERSION_NEGOTIATION)
 
 /*
  * 发送版本协商协议
