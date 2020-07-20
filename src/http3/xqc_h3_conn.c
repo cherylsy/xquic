@@ -65,7 +65,7 @@ int
 xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
     int ret = xqc_conn_get_errno(h3_conn->conn);
-    return ret == 0 ? HTTP_NO_ERROR : ret;
+    return ret == 0 ? H3_NO_ERROR : ret;
 }
 
 xqc_h3_conn_t *

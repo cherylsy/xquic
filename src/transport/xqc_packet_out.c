@@ -343,7 +343,7 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code)
         return -XQC_EWRITE_PKT;
     }
 
-    ret = xqc_gen_conn_close_frame(packet_out, err_code, err_code >= HTTP_NO_ERROR ? 1:0, 0);
+    ret = xqc_gen_conn_close_frame(packet_out, err_code, err_code >= H3_NO_ERROR ? 1:0, 0);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_conn_close_frame error|");
         goto error;

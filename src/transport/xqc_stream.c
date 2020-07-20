@@ -507,7 +507,7 @@ xqc_stream_close (xqc_stream_t *stream)
         return XQC_OK;
     }
 
-    ret = xqc_write_reset_stream_to_packet(conn, stream, HTTP_REQUEST_CANCELLED, stream->stream_send_offset);
+    ret = xqc_write_reset_stream_to_packet(conn, stream, H3_REQUEST_CANCELLED, stream->stream_send_offset);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_reset_stream_to_packet error|%d|", ret);
         XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
