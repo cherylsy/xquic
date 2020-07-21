@@ -5,7 +5,7 @@
 #include "src/crypto/xqc_tls_public.h"
 #include "src/transport/xqc_conn.h"
 
-#define XQC_ALPN_V1 "\x7http3-1\x9transport"
+#define XQC_ALPN_V1 "\x5h3-29\x9transport"
 #define XQC_ALPN_LIST XQC_ALPN_V1
 
 typedef enum {
