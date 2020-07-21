@@ -1247,3 +1247,31 @@ xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsi
 
     return XQC_OK;
 }
+
+
+int
+xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+    unsigned need = 1; /* only need 1 byte */
+    
+    if (need > packet_out->po_buf_size - packet_out->po_used_size) {
+        return -XQC_ENOBUF;
+    }
+    *dst_buf++ = 0x1e;
+    
+    packet_out->po_frame_types |= XQC_FRAME_BIT_HANDSHAKE_DONE;
+
+    return dst_buf - begin;
+}
+
+int
+xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in)
+{
+    ++packet_in->pos;
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_HANDSHAKE_DONE;
+    return XQC_OK;
+}
+
+

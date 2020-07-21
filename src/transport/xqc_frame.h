@@ -23,6 +23,7 @@ typedef enum {
     XQC_FRAME_PATH_CHALLENGE,
     XQC_FRAME_PATH_RESPONSE,
     XQC_FRAME_CONNECTION_CLOSE,
+    XQC_FRAME_HANDSHAKE_DONE,
     XQC_FRAME_Extension,
     XQC_FRAME_NUM,
 } xqc_frame_type_t;
@@ -47,6 +48,7 @@ typedef enum {
     XQC_FRAME_BIT_PATH_CHALLENGE    = 1 << XQC_FRAME_PATH_CHALLENGE,
     XQC_FRAME_BIT_PATH_RESPONSE     = 1 << XQC_FRAME_PATH_RESPONSE,
     XQC_FRAME_BIT_CONNECTION_CLOSE  = 1 << XQC_FRAME_CONNECTION_CLOSE,
+    XQC_FRAME_BIT_HANDSHAKE_DONE    = 1 << XQC_FRAME_HANDSHAKE_DONE,
     XQC_FRAME_BIT_Extension         = 1 << XQC_FRAME_Extension,
     XQC_FRAME_BIT_NUM               = 1 << XQC_FRAME_NUM,
 } xqc_frame_type_bit_t;
@@ -134,5 +136,9 @@ xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
 
 xqc_int_t
 xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
+xqc_int_t
+xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+
 
 #endif /* _XQC_FRAME_H_INCLUDED_ */

@@ -224,6 +224,8 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             case 0x1c ... 0x1d:
                 ret = xqc_process_conn_close_frame(conn, packet_in);
                 break;
+            case 0x1e:
+                ret = 
             default:
                 xqc_log(conn->log, XQC_LOG_ERROR, "|unknown frame type|");
                 return -XQC_EILLPKT;
@@ -912,3 +914,26 @@ xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     return XQC_OK;
 }
+
+
+xqc_int_t
+xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    if (XQC_ENGINE_SERVER == conn->engine->eng_type) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_process_handshake_done_frame error, server recv HANDSHAKE_DONE|");
+        return TRA_PROTOCOL_VIOLATION;
+    }
+
+    int ret = xqc_parse_handshake_done_frame(packet_in);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_process_handshake_done_frame error|");
+        return ret;
+    }
+
+    conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD;
+
+    return ret;
+}
+
