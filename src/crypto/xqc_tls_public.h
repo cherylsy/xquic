@@ -74,8 +74,6 @@
   "\x09\xa0"
 
 
-#define XQC_INITIAL_SALT_LEN                        20
-
 extern const char *xqc_crypto_initial_salt[];
 
 
