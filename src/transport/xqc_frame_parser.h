@@ -82,4 +82,8 @@ int xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *t
 
 int xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsigned *token_len);
 
+int xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out);
+
+int xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in);
+
 #endif /*_XQC_FRAME_PARSER_H_INCLUDED_*/

@@ -685,3 +685,26 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
     return XQC_OK;
 }
 
+
+/* [Transport] 12.4, HANDSHAKE_DONE only send in 1-RTT packet */
+int
+xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn)
+{
+    int n_written = 0;
+    xqc_packet_out_t *packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);  
+    if (packet_out == NULL) {
+        return -XQC_EWRITE_PKT;
+    }
+
+    n_written = xqc_gen_handshake_done_frame(packet_out);
+    if (n_written < 0) {
+        xqc_maybe_recycle_packet_out(packet_out, conn);
+        return n_written;
+    }
+
+    packet_out->po_used_size += n_written;
+
+    return XQC_OK;
+}
+
+
