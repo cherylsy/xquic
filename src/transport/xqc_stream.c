@@ -608,7 +608,40 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
 }
 
 
-int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
+int
+xqc_conn_check_handshake_complete(xqc_connection_t * conn)
+{
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
+        conn->conn_state == XQC_CONN_STATE_ESTABED &&
+        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) 
+    {
+        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
+
+        /* send handshake_done */
+        if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
+
+            int ret = xqc_write_handshake_done_frame_to_packet(conn);
+            if (ret < 0) {
+                xqc_log(conn->log, XQC_LOG_WARN, "|write_handshake_done err|");
+                return ret;
+            }
+        }
+
+        xqc_tls_free_msg_cb_buffer(conn);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
+        xqc_conn_handshake_complete(conn);
+
+        if (conn->conn_callbacks.conn_handshake_finished) {
+            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
+        }
+    }
+
+    return XQC_OK;
+}
+
+
+int 
+xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 {
     XQC_DEBUG_PRINT
     xqc_encrypt_level_t encrypt_level = stream->stream_encrypt_level;
@@ -678,16 +711,9 @@ int xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
         conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
     }
 
-    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
-        conn->conn_state == XQC_CONN_STATE_ESTABED &&
-        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) {
-        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
-        xqc_tls_free_msg_cb_buffer(conn);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
-        xqc_conn_handshake_complete(conn);
-        if (conn->conn_callbacks.conn_handshake_finished) {
-            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
-        }
+    int ret = xqc_conn_check_handshake_complete(conn);
+    if (ret < 0) {
+        return ret;
     }
 
     xqc_stream_shutdown_read(stream);
@@ -866,29 +892,9 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
     }
 
-    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
-        conn->conn_state == XQC_CONN_STATE_ESTABED &&
-        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) 
-    {
-        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
-
-        /* send handshake_done */
-        if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-
-            int ret = xqc_write_handshake_done_frame_to_packet(conn);
-            if (ret < 0) {
-                xqc_log(conn->log, XQC_LOG_WARN, "|write_handshake_done err|");
-                return ret;
-            }
-        }
-
-        xqc_tls_free_msg_cb_buffer(conn);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
-        xqc_conn_handshake_complete(conn);
-
-        if (conn->conn_callbacks.conn_handshake_finished) {
-            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
-        }
+    ret = xqc_conn_check_handshake_complete(conn);
+    if (ret < 0) {
+        return ret;
     }
 
     xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG,
