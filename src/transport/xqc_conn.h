@@ -251,6 +251,17 @@ typedef struct {
     xqc_msec_t              fc_last_window_update_time;
 } xqc_conn_flow_ctl_t;
 
+#ifdef XQC_PRINT_SECRET
+#define XQC_SECRET_HEX_MAX 129
+typedef enum xqc_secret_type_s {
+    CLIENT_EARLY_TRAFFIC_SECRET,
+    CLIENT_HANDSHAKE_TRAFFIC_SECRET,
+    SERVER_HANDSHAKE_TRAFFIC_SECRET,
+    CLIENT_TRAFFIC_SECRET_0,
+    SERVER_TRAFFIC_SECRET_0,
+    SECRET_TYPE_NUM,
+} xqc_secret_type_t;
+#endif
 
 struct xqc_connection_s{
     xqc_conn_callbacks_t    conn_callbacks;
@@ -331,6 +342,11 @@ struct xqc_connection_s{
     uint32_t                wakeup_pq_index;
 
     uint64_t                conn_err;
+
+#ifdef XQC_PRINT_SECRET
+    unsigned char           client_ramdom_hex[XQC_SECRET_HEX_MAX];
+    unsigned char           secret_hex[SECRET_TYPE_NUM][XQC_SECRET_HEX_MAX];
+#endif
 };
 
 const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);
