@@ -22,8 +22,7 @@ extern "C" {
 #define XQC_QUIC_VERSION                1
 #define XQC_SUPPORT_VERSION_MAX         64
 
-/* support version for drafts */
-#define XQC_QUIC_DRAFT_VERSION_29       0xff00001d
+/* support version for IETF drafts */
 
 typedef enum xqc_proto_version_s {
 

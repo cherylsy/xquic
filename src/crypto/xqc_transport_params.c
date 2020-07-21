@@ -46,10 +46,11 @@ ssize_t xqc_encode_transport_params(uint8_t *dest, size_t destlen,
 
     switch (exttype) {
         case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
-            vlen = sizeof(uint32_t);
             break;
+
         case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
-            vlen = sizeof(uint32_t) + 1 + params->v.ee.len * sizeof(uint32_t);
+
+            /* stateless_reset_token length */
             if (params->stateless_reset_token_present) {
                 len += 20;
             }
@@ -122,19 +123,6 @@ ssize_t xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     }
 
     p = dest;
-
-    switch (exttype) {
-        case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
-            p = xqc_put_uint32be(p, params->v.ch.initial_version);
-            break;
-        case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
-            p = xqc_put_uint32be(p, params->v.ee.negotiated_version);
-            *p++ = (uint8_t)(params->v.ee.len * sizeof(uint32_t));
-            for (i = 0; i < params->v.ee.len; ++i) {
-                p = xqc_put_uint32be(p, params->v.ee.supported_versions[i]);
-            }
-            break;
-    }
 
     p = xqc_put_uint16be(p, (uint16_t)(len - vlen - sizeof(uint16_t)));
 
@@ -299,17 +287,11 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
             if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
                 return XQC_ERR_INVALID_ARGUMENT;
             }
-            /* TODO Fix this; not sure how to handle them correctly */
-            params->v.ch.initial_version = xqc_proto_version_value[conn->version];
             break;
         case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
             if (!(conn->conn_type == XQC_CONN_TYPE_SERVER)) {
                 return XQC_ERR_INVALID_ARGUMENT;
             }
-            /* TODO Fix this; not sure how to handle them correctly */
-            params->v.ee.negotiated_version = xqc_proto_version_value[XQC_IDRAFT_VER_29];
-            params->v.ee.len = 1;
-            params->v.ee.supported_versions[0] = xqc_proto_version_value[XQC_IDRAFT_VER_29];
 
             break;
         default:
@@ -435,38 +417,7 @@ int xqc_decode_transport_params(xqc_transport_params_t *params,
 
     p = data;
     end = data + datalen;
-
-    switch (exttype) {
-        case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
-            if ((size_t)(end - p) < sizeof(uint32_t)) {
-                return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
-            }
-            params->v.ch.initial_version = xqc_get_uint32(p);
-            p += sizeof(uint32_t);
-            vlen = sizeof(uint32_t);
-            break;
-        case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
-            if ((size_t)(end - p) < sizeof(uint32_t) + 1) {
-                return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
-            }
-            params->v.ee.negotiated_version = xqc_get_uint32(p);
-            p += sizeof(uint32_t);
-            supported_versionslen = *p++;
-            if ((size_t)(end - p) < supported_versionslen ||
-                    supported_versionslen % sizeof(uint32_t)) {
-                return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
-            }
-            params->v.ee.len = supported_versionslen / sizeof(uint32_t);
-            for (i = 0; i < supported_versionslen;
-                    i += sizeof(uint32_t), p += sizeof(uint32_t)) {
-                params->v.ee.supported_versions[i / sizeof(uint32_t)] =
-                    xqc_get_uint32(p);
-            }
-            vlen = sizeof(uint32_t) + 1 + supported_versionslen;
-            break;
-        default:
-            return XQC_ERR_INVALID_ARGUMENT;
-    }
+    vlen = 0;
 
     if ((size_t)(end - p) < sizeof(uint16_t)) {
         return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
