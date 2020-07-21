@@ -370,11 +370,6 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
 
     memcpy(dst_buf, xqc_proto_version_field[ver], XQC_PROTO_VERSION_LEN);
     dst_buf += XQC_PROTO_VERSION_LEN;
-#if 0
-    ver = htonl(ver);
-    memcpy(dst_buf, &ver, sizeof(ver));
-    dst_buf += sizeof(ver);
-#endif
 
     *dst_buf = dcid_len;
     dst_buf++;

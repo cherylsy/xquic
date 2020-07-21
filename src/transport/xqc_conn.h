@@ -192,16 +192,6 @@ typedef struct {
 
 /* For Handshake */
 typedef struct {
-    union {
-        struct {
-            uint32_t initial_version;
-        } ch;
-        struct {
-            uint32_t negotiated_version;
-            uint32_t supported_versions[63];
-            size_t len;
-        } ee;
-    } v;
     xqc_preferred_addr_t    preferred_address;
 
     xqc_cid_t               original_connection_id;

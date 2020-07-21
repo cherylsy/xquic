@@ -41,7 +41,7 @@ ssize_t xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     uint8_t *p;
     size_t len = 2 /* transport parameters length */;
     size_t i;
-    size_t vlen;
+    size_t vlen = 0;
     size_t preferred_addrlen = 0;
 
     switch (exttype) {
@@ -306,51 +306,14 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
         params->original_connection_id_present = 0;
     }
 
-    return 0;
+    return XQC_OK;
 }
 
-/*
- * conn_client_validate_transport_params validates |params| as client.
- * |params| must be sent with Encrypted Extensions.
- *
- * This function returns 0 if it succeeds, or one of the following
- * negative error codes:
- *
- * XQC_ERR_VERSION_NEGOTIATION
- *     The negotiated version is invalid.
- */
 
-static
-int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
+static int 
+xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
         const xqc_transport_params_t *params)
 {
-    size_t i;
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, 
-            "|xqc_conn_client_validate_transport_params|%d|%d|%d|", 
-            params->v.ee.negotiated_version, 
-            xqc_proto_version_value[conn->version], 
-            conn->version);
-
-
-    if (params->v.ee.negotiated_version != xqc_proto_version_value[conn->version]) {
-        return XQC_ERR_VERSION_NEGOTIATION;
-    }
-
-    for (i = 0; i < params->v.ee.len; ++i) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, 
-                "|xqc_conn_client_validate_transport_params|%d|%d|", 
-                i, params->v.ee.supported_versions[i]);
-
-        if (params->v.ee.supported_versions[i] == xqc_proto_version_value[conn->version]) {
-            break;
-        }
-    }
-
-    if (i == params->v.ee.len) {
-        return XQC_ERR_VERSION_NEGOTIATION;
-    }
-
     if (conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY) {
         /* need finish recv retry packet
            if (!params->original_connection_id_present) {
@@ -362,7 +325,7 @@ int xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
            */
     }
 
-    return 0;
+    return XQC_OK;
 }
 
 static
@@ -786,9 +749,6 @@ xqc_serialize_server_transport_params(xqc_connection_t * conn, xqc_transport_par
     if(rv != 0) {
         return -1;
     }
-
-    params.v.ee.len = 1;
-    params.v.ee.supported_versions[0] = XQC_IDRAFT_VER_29_VALUE; 
 
     uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
 
