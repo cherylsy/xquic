@@ -104,6 +104,16 @@ xqc_conn_state_2_str(xqc_conn_state_t state)
     return conn_state_2_str[state];
 }
 
+#ifdef XQC_PRINT_SECRET
+static const char * const xqc_secret_type_2_str[SECRET_TYPE_NUM] = {
+        [CLIENT_EARLY_TRAFFIC_SECRET]           = "CLIENT_EARLY_TRAFFIC_SECRET",
+        [CLIENT_HANDSHAKE_TRAFFIC_SECRET]       = "CLIENT_HANDSHAKE_TRAFFIC_SECRET",
+        [SERVER_HANDSHAKE_TRAFFIC_SECRET]       = "SERVER_HANDSHAKE_TRAFFIC_SECRET",
+        [CLIENT_TRAFFIC_SECRET_0]               = "CLIENT_TRAFFIC_SECRET_0",
+        [SERVER_TRAFFIC_SECRET_0]               = "SERVER_TRAFFIC_SECRET_0",
+};
+#endif
+
 void xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
     memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
@@ -1401,6 +1411,17 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
             xqc_conn_early_data_accept(conn);
         }
     }
+
+#ifdef XQC_PRINT_SECRET
+    unsigned char secret_str[3 * SECRET_TYPE_NUM * XQC_SECRET_HEX_MAX];
+    int n_write = 0;
+    secret_str[0] = '\n';
+    n_write += 1;
+    for (xqc_secret_type_t i = CLIENT_EARLY_TRAFFIC_SECRET; i < SECRET_TYPE_NUM; i++) {
+        n_write += snprintf(secret_str + n_write, sizeof(secret_str), "%s %s %s\n", xqc_secret_type_2_str[i], conn->client_ramdom_hex, conn->secret_hex[i]);
+    }
+    xqc_log(conn->log, XQC_LOG_REPORT, "|print secret|%s|", secret_str);
+#endif
     return XQC_OK;
 }
 

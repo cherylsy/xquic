@@ -257,11 +257,45 @@ int xqc_recv_client_initial_cb(xqc_connection_t * conn,
     return xqc_recv_client_hello_derive_key(conn, dcid);
 }
 
+#ifdef XQC_PRINT_SECRET
+static void
+xqc_tls_print_secret(SSL *ssl, xqc_connection_t *conn, enum ssl_encryption_level_t level,
+                    const unsigned char *read_secret, const unsigned char *write_secret, size_t secretlen)
+{
+    if (strlen((const char*)conn->client_ramdom_hex) == 0) {
+        unsigned char client_random[33] = {0};
+        size_t out_len = 32;
+        out_len = SSL_get_client_random(ssl, client_random, out_len);
+        xqc_hex_dump(conn->client_ramdom_hex, client_random, out_len);
+    }
+
+    if (level == ssl_encryption_early_data) {
+        if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+            xqc_hex_dump(conn->secret_hex[CLIENT_EARLY_TRAFFIC_SECRET], write_secret, secretlen);
+        }
+    } else if (level == ssl_encryption_handshake) {
+        if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+            xqc_hex_dump(conn->secret_hex[CLIENT_HANDSHAKE_TRAFFIC_SECRET], write_secret, secretlen);
+            xqc_hex_dump(conn->secret_hex[SERVER_HANDSHAKE_TRAFFIC_SECRET], read_secret, secretlen);
+        }
+    } else if (level == ssl_encryption_application) {
+        if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {
+            xqc_hex_dump(conn->secret_hex[CLIENT_TRAFFIC_SECRET_0], write_secret, secretlen);
+            xqc_hex_dump(conn->secret_hex[SERVER_TRAFFIC_SECRET_0], read_secret, secretlen);
+        }
+    }
+}
+#endif
+
 static int
 xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
     const uint8_t *read_secret, const uint8_t *write_secret, size_t secret_len)
 {
     xqc_connection_t *conn = (xqc_connection_t *) SSL_get_app_data(ssl);
+
+#ifdef XQC_PRINT_SECRET
+    xqc_tls_print_secret(ssl, conn, level, read_secret, write_secret, secret_len);
+#endif
 
     int rv = 0;
     /* call it every time */
