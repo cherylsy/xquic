@@ -1011,7 +1011,6 @@ user_stream_t * create_user_stream(xqc_engine_t * engine, user_conn_t *user_conn
 }
 
 int main(int argc, char *argv[]) {
-    printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
     int rc;
 
@@ -1091,6 +1090,7 @@ int main(int argc, char *argv[]) {
             //.cong_ctrl_callback = xqc_reno_cb,
             .cong_ctrl_callback = xqc_cubic_cb,
             //.cong_ctrl_callback = xqc_bbr_cb,
+            .proto_version = XQC_IDRAFT_VER_29,
     };
 
     eb = event_base_new();

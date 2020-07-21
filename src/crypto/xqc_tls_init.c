@@ -671,8 +671,8 @@ int xqc_client_setup_initial_crypto_context( xqc_connection_t *conn, xqc_cid_t *
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0}, secret[INITIAL_SECRET_MAX_LEN]={0};
     rv = xqc_derive_initial_secret(
             initial_secret, sizeof(initial_secret), dcid,
-            (const uint8_t *)(XQC_INITIAL_SALT),
-            strlen(XQC_INITIAL_SALT));
+            (const uint8_t *)(xqc_crypto_initial_salt[conn->version]),
+            strlen(xqc_crypto_initial_salt[conn->version]));
     if (rv != 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "| derive initial secret failed | ");
         return -1;

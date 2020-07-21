@@ -18,6 +18,17 @@
 
 #define XQC_RESET_TOKEN_LEN 16
 
+static const unsigned char xqc_proto_version_field[XQC_VERSION_MAX][XQC_PROTO_VERSION_LEN] = {
+
+    [XQC_IDRAFT_INIT_VER] = { 0, 0, 0, 1 },
+    [XQC_IDRAFT_VER_27] = { 0xFF, 0, 0, 27, },
+    [XQC_IDRAFT_VER_28] = { 0xFF, 0, 0, 28, },
+    [XQC_IDRAFT_VER_29] = { 0xFF, 0, 0, 29, },
+    [XQC_IDRAFT_VER_NEGOTIATION] = { 0x00, 0x00, 0x00, 0x00, },
+};
+
+
+
 unsigned
 xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits)
 {
@@ -329,7 +340,7 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             const unsigned char *dcid, unsigned char dcid_len,
                             const unsigned char *scid, unsigned char scid_len,
                             const unsigned char *token, unsigned token_len,
-                            unsigned ver,
+                            xqc_proto_version_t ver,
                             unsigned char pktno_bits)
 {
     unsigned char *dst_buf = packet_out->po_buf;
@@ -357,9 +368,8 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
     first_byte |= pktno_bits;
     *dst_buf++ = first_byte;
 
-    ver = htonl(ver);
-    memcpy(dst_buf, &ver, sizeof(ver));
-    dst_buf += sizeof(ver);
+    memcpy(dst_buf, xqc_proto_version_field[ver], XQC_PROTO_VERSION_LEN);
+    dst_buf += XQC_PROTO_VERSION_LEN;
 
     *dst_buf = dcid_len;
     dst_buf++;
@@ -1187,10 +1197,11 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
             return -XQC_EILLPKT;
         }
     }
-    /*if (xqc_conn_version_check(c, version) != XQC_OK) {
+
+    if (xqc_conn_version_check(c, version) != XQC_OK) {
         xqc_log(c->log, XQC_LOG_WARN, "|version check err|");
         return -XQC_EILLPKT;
-    }*/
+    }
 
     /* version negotiation */
     /*if (version == 0) {

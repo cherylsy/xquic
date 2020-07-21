@@ -74,6 +74,9 @@
   "\x09\xa0"
 
 
+extern const char *xqc_crypto_initial_salt[];
+
+
 typedef enum {
     XQC_ALPN_DEFAULT_NUM = 0,
     XQC_ALPN_HTTP3_NUM = 1,

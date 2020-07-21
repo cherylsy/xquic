@@ -27,8 +27,8 @@ int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t 
 
 
 
-/*select aplication layer proto, now only just support XQC_ALPN_V1
- *
+/**
+ * select aplication layer proto, now only just support XQC_ALPN_V1
  */
 int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
         unsigned char *outlen, const unsigned char *in,
@@ -46,30 +46,24 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
     uint8_t * alpn = (uint8_t *)(*out);
     uint8_t alpn_len = *outlen;
 
-    if(alpn_len == strlen(XQC_ALPN_TRANSPORT) && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0){
-        conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
-    }else{
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn|%*s|", alpn_len, alpn);
+
+    if (alpn_len == strlen(XQC_ALPN_HTTP3) && memcmp(alpn, XQC_ALPN_HTTP3, alpn_len) == 0) {
+
         conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+
+    } else if (alpn_len == strlen(XQC_ALPN_TRANSPORT) && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0) {
+
+        conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
+
+    } else {
+
+        return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
 
     xqc_conn_server_on_alpn(conn);
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|select apln number:%d|", conn->tlsref.alpn_num);
-
-#if 0
-    int version = conn->version ;
-    // Just select alpn for now.
-    switch (version) {
-        case XQC_QUIC_VERSION:
-            alpn = XQC_ALPN_V1;
-            alpnlen = strlen(XQC_ALPN_V1);
-            break;
-        default:
-            return SSL_TLSEXT_ERR_NOACK;
-    }
-    *out = (const uint8_t *)(alpn + 1);
-    *outlen = alpn[0];
-#endif
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn number:%d|", conn->tlsref.alpn_num);
 
 
     return SSL_TLSEXT_ERR_OK;

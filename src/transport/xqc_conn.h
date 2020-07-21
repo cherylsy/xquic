@@ -192,16 +192,6 @@ typedef struct {
 
 /* For Handshake */
 typedef struct {
-    union {
-        struct {
-            uint32_t initial_version;
-        } ch;
-        struct {
-            uint32_t negotiated_version;
-            uint32_t supported_versions[63];
-            size_t len;
-        } ee;
-    } v;
     xqc_preferred_addr_t    preferred_address;
 
     xqc_cid_t               original_connection_id;
@@ -268,7 +258,7 @@ struct xqc_connection_s{
     xqc_conn_settings_t     conn_settings;
     xqc_engine_t           *engine;
 
-    uint32_t                version;
+    xqc_proto_version_t     version;
     uint32_t                discard_vn_flag; /*当客户端收到来自服务器的非VN包或者收到VN包并处理后，设置该标志*/
 
     xqc_cid_t               dcid; /* 对端cid */

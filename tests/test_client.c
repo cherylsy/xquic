@@ -1350,6 +1350,7 @@ int main(int argc, char *argv[]) {
             .cong_ctrl_callback = cong_ctrl,
             .cc_params  =   {.customize_on = 1, .init_cwnd = 32,},
             .so_sndbuf  =   1024*1024,
+            .proto_version = XQC_IDRAFT_VER_29,
     };
 
     eb = event_base_new();

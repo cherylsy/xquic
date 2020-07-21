@@ -636,7 +636,6 @@ void stop(int signo)
 }
 
 int main(int argc, char *argv[]) {
-    printf("Usage: %s %d\n", argv[0], XQC_QUIC_VERSION);
     signal (SIGINT, stop);
     int rc;
 

@@ -22,6 +22,33 @@ extern "C" {
 #define XQC_QUIC_VERSION                1
 #define XQC_SUPPORT_VERSION_MAX         64
 
+/* support version for IETF drafts */
+
+typedef enum xqc_proto_version_s {
+
+    XQC_IDRAFT_INIT_VER,            /* placeholder */
+
+    XQC_IDRAFT_VER_27,              /* IETF Draft-27 */
+    XQC_IDRAFT_VER_28,              /* IETF Draft-28 */
+    XQC_IDRAFT_VER_29,              /* IETF Draft-29 */
+
+    XQC_IDRAFT_VER_NEGOTIATION,     /* Special version for version negotiation. */
+
+    XQC_VERSION_MAX
+} xqc_proto_version_t;
+
+#define XQC_PROTO_VERSION_LEN 4
+
+extern uint32_t xqc_proto_version_value[];
+
+#define XQC_IDRAFT_INIT_VER_VALUE   0x00000001
+#define XQC_IDRAFT_VER_27_VALUE     0xFF00001B
+#define XQC_IDRAFT_VER_28_VALUE     0xFF00001C
+#define XQC_IDRAFT_VER_29_VALUE     0xFF00001D
+
+
+
+
 #define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 #define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
 #define XQC_TLS_AEAD_OVERHEAD_MAX_LEN   16
@@ -235,8 +262,8 @@ typedef struct xqc_engine_callback_s {
     xqc_cert_verify_pt          cert_verify_cb;
 } xqc_engine_callback_t;
 
-#define XQC_ALPN_HTTP3 "http3-1"
-#define XQC_ALPN_TRANSPORT "transport"
+#define XQC_ALPN_HTTP3      "h3-29"
+#define XQC_ALPN_TRANSPORT  "transport"
 
 typedef struct xqc_engine_ssl_config_s {
     char       *private_key_file;           /* For server */
@@ -280,6 +307,7 @@ typedef struct xqc_conn_settings_s {
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
     xqc_cc_params_t             cc_params;
     uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
+    xqc_proto_version_t         proto_version;      /* QUIC protocol version */
 } xqc_conn_settings_t;
 
 typedef enum {
