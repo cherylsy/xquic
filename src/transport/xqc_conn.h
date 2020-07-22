@@ -377,8 +377,6 @@ int xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 void xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
 void xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn);
 
-void xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn);
-
 void xqc_conn_send_probe_packets(xqc_connection_t *conn);
 
 int xqc_conn_check_handshake_completed(xqc_connection_t *conn);

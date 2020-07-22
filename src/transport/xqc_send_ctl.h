@@ -160,11 +160,10 @@ static inline int
 xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
 {
     if (ctl->ctl_packets_used < ctl->ctl_packets_used_max) {
-        return 1;
+        return XQC_TRUE;
     }
-    return 0;
+    return XQC_FALSE;
 }
-
 
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn);
@@ -183,6 +182,21 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
 
 int
 xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+
+void
+xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
+
+void
+xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+
+void
+xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+
+void
+xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+
+void
+xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
 
 void
 xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);

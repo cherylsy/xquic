@@ -266,7 +266,7 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
     packet_out->po_flag |= XQC_POF_NO_RETRANS;
 }
 
-static inline void
+void
 xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)
@@ -293,7 +293,7 @@ xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
     }
 }
 
-static inline void
+void
 xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if (packet_out->po_flag & XQC_POF_STREAM_UNACK) {
@@ -320,7 +320,7 @@ xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
     }
 }
 
-static inline void
+void
 xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT) && XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
@@ -329,7 +329,7 @@ xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out
     }
 }
 
-static inline void
+void
 xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if (packet_out->po_flag & XQC_POF_IN_FLIGHT) {
@@ -579,7 +579,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 need_del_record = 1;
             }
 
-            if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+            if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) && (packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
                 stream_frame_acked = 1;
                 xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
             }

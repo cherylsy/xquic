@@ -793,7 +793,11 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
-        packet_out->po_flag |= XQC_POF_LOST;
+
+        /* If not a TLP packet, mark it LOST */
+        if (!(packet_out->po_flag & XQC_POF_TLP)) {
+            packet_out->po_flag |= XQC_POF_LOST;
+        }
 
         if (xqc_pacing_is_on(&conn->conn_send_ctl->ctl_pacing)) {
             if (!xqc_pacing_can_write(&conn->conn_send_ctl->ctl_pacing, conn->conn_send_ctl, conn, packet_out)) {
@@ -811,10 +815,6 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
         if (ret < 0) {
             return;
         }
-
-//        if (xqc_pacing_is_on(&conn->conn_send_ctl->ctl_pacing) && (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)) {
-//            xqc_pacing_on_packet_sent(&conn->conn_send_ctl->ctl_pacing, conn->conn_send_ctl, conn->conn_send_ctl->ctl_conn, packet_out);
-//        }
 
         xqc_send_ctl_remove_lost(&packet_out->po_list);
         xqc_send_ctl_insert_unacked(packet_out,
@@ -841,34 +841,6 @@ xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn)
     }
 }
 
-
-void
-xqc_conn_retransmit_unacked_crypto(xqc_connection_t *conn)
-{
-    xqc_packet_out_t *packet_out;
-    xqc_list_head_t *pos, *next;
-    xqc_pkt_num_space_t pns;
-    ssize_t ret;
-
-    for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
-        xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
-            packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_flag & XQC_POF_NO_RETRANS) {
-                continue;
-            }
-            if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO) {
-                xqc_log(conn->log, XQC_LOG_DEBUG, "|pkt_type:%s|pkt_num:%ui|frame:%s|",
-                        xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type), packet_out->po_pkt.pkt_num,
-                        xqc_frame_type_2_str(packet_out->po_frame_types));
-                packet_out->po_flag |= XQC_POF_LOST;
-                ret = xqc_conn_send_one_packet(conn, packet_out);
-                if (ret < 0) {
-                    return;
-                }
-            }
-        }
-    }
-}
 
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#section-6.3.2
@@ -906,7 +878,9 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_flag & XQC_POF_NO_RETRANS) {
+            if ((packet_out->po_flag & XQC_POF_NO_RETRANS)
+                || (packet_out->po_origin && packet_out->po_origin->po_acked))
+            {
                 continue;
             }
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
@@ -916,17 +890,12 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                         conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
                         xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                         xqc_frame_type_2_str(packet_out->po_frame_types));
-                ret = xqc_conn_send_one_packet(conn, packet_out);
-                if (ret < 0) {
-                    return;
-                }
+
+                xqc_send_ctl_decrease_inflight(conn->conn_send_ctl, packet_out);
+                xqc_send_ctl_decrease_unacked_stream_ref(conn->conn_send_ctl, packet_out);
+                xqc_send_ctl_copy_to_lost(packet_out, conn->conn_send_ctl);
 
                 if(pns >= XQC_PNS_01RTT){ //握手报文不能够受每次重传报文个数的限制，否则握手报文传输不完整，无法生成加密key，也没有办法回复ack
-                    /* 重新插入尾部，保持unack队列里按pkt_num排序 */
-                    xqc_send_ctl_remove_unacked(packet_out, conn->conn_send_ctl);
-                    xqc_send_ctl_insert_unacked(packet_out,
-                                                &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
-                                                conn->conn_send_ctl);
                     if (++cnt >= probe_num) {
                         return;
                     }
