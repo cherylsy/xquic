@@ -167,6 +167,11 @@ echo -e "GET request ...\c"
 grep_err_log
 
 clear_log
+echo -e "client initial version setting ...\c"
+./test_client -s 1024 -l d -t 1 -E -x 17 |grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "send 1K data ...\c"
 ./test_client -s 1024 -l d -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log
