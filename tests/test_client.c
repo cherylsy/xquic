@@ -1356,6 +1356,11 @@ int main(int argc, char *argv[]) {
             .proto_version = XQC_IDRAFT_VER_29,
     };
 
+    /* check initial version */
+    if (g_test_case == 17) {
+        conn_settings.proto_version = XQC_IDRAFT_INIT_VER;
+    }
+
     eb = event_base_new();
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
