@@ -144,64 +144,42 @@ typedef enum {
     XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD  = 1 << XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD_SHIFT,
 }xqc_conn_flag_t;
 
-typedef enum {
-    XQC_TRANS_PARAM_ORININAL_CONNECTION_ID = 0,
-    XQC_TRANS_PARAM_IDLE_TIMEOUT = 1,
-    XQC_TRANS_PARAM_STATELESS_RESET_TOKEN = 2,
-    XQC_TRANS_PARAM_MAX_PACKET_SIZE = 3,
-    XQC_TRANS_PARAM_MAX_DATA = 4,
-    XQC_TRANS_PARAM_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL = 5,
-    XQC_TRANS_PARAM_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE = 6,
-    XQC_TRANS_PARAM_INITIAL_MAX_STREAM_DATA_UNI = 7,
-    XQC_TRANS_PARAM_INITIAL_MAX_STREAMS_BIDI = 8,
-    XQC_TRANS_PARAM_INITIAL_MAX_STREAMS_UNI = 9,
-    XQC_TRANS_PARAM_ACK_DELAY_EXPONENT = 10,
-    XQC_TRANS_PARAM_MAX_ACK_DELAY = 11,
-    XQC_TRANS_PARAM_DISABLE_MIGRATION = 12,
-    XQC_TRANS_PARAM_PREFERRED_ADDRESS = 13,
-    XQC_TRANS_PARAM_MAX_TRANS_PARAM_ID
-}xqc_trans_param_id_t;
 
 typedef enum {
     XQC_IPV4 = 4,
     XQC_IPV6 = 6,
     XQC_IP_VERSION_MAX = 15
-}xqc_ip_version_t;
-
-typedef struct {
-    xqc_ip_version_t    ip_version;
-    unsigned char       ip_address[8];
-    uint16_t            port;
-    xqc_cid_t           connection_id;
-    unsigned char       stateless_reset_token[16];
-}xqc_preferred_address_t;
+} xqc_ip_version_t;
 
 
 typedef struct {
-    xqc_cid_t cid;
-    /* ip_addresslen is the length of ip_address. */
-    size_t ip_addresslen;
-    uint16_t port;
-    /* ip_version is the version of IP address.  It should be one of the
-     * defined values in :type:`xqc_ip_version`.
-     *:enum:`XQC_IP_VERSION_NONE` indicates that no preferred
-     *address is set and the other fields are ignored. */
-    uint8_t ip_version;
-    uint8_t ip_address[255];
-    uint8_t stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
+    uint8_t     ipv4[4];    
+    uint16_t    ipv4_port;
+    uint8_t     ipv6[16];
+    uint16_t    ipv6_port;
+    xqc_cid_t   cid;
+    uint8_t     stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
 } xqc_preferred_addr_t;
+
+#define XQC_PREFERRED_ADDR_IPV4_LEN         4
+#define XQC_PREFERRED_ADDR_IPV4_PORT_LEN    2
+#define XQC_PREFERRED_ADDR_IPV6_LEN         16
+#define XQC_PREFERRED_ADDR_IPV6_PORT_LEN    2
+
 
 
 /* For Handshake */
 typedef struct {
     xqc_preferred_addr_t    preferred_address;
+    uint8_t                 preferred_address_present;
 
-    xqc_cid_t               original_connection_id;
+    xqc_cid_t               original_dest_connection_id;
+    uint8_t                 original_dest_connection_id_present;
+
     xqc_msec_t              idle_timeout;
-    //xqc_buf_t               stateless_reset_token;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
-    uint64_t                max_packet_size;
+    uint64_t                max_udp_payload_size;
     uint64_t                initial_max_data;
     uint64_t                initial_max_stream_data_bidi_local;
     uint64_t                initial_max_stream_data_bidi_remote;
@@ -210,10 +188,18 @@ typedef struct {
     uint64_t                initial_max_streams_uni;
     uint64_t                ack_delay_exponent;
     xqc_msec_t              max_ack_delay;
-    xqc_flag_t              disable_migration;
-    uint8_t                 original_connection_id_present;
-    uint8_t                 no_crypto;
+    xqc_flag_t              disable_active_migration;
+    uint64_t                active_connection_id_limit;
+    xqc_cid_t               initial_source_connection_id;
+    uint8_t                 initial_source_connection_id_present;
+    xqc_cid_t               retry_source_connection_id;
+    uint8_t                 retry_source_connection_id_present;
+
+    uint64_t                no_crypto;
 } xqc_transport_params_t;
+
+#define XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT 8
+
 
 
 typedef struct {
@@ -221,7 +207,7 @@ typedef struct {
     xqc_msec_t              idle_timeout;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
-    uint64_t                max_packet_size;
+    uint64_t                max_udp_payload_size;
     uint64_t                max_data;
     uint64_t                max_stream_data_bidi_local;
     uint64_t                max_stream_data_bidi_remote;
@@ -230,9 +216,9 @@ typedef struct {
     uint64_t                max_streams_uni;
     uint64_t                ack_delay_exponent;
     xqc_msec_t              max_ack_delay;
-    xqc_flag_t              disable_migration;
-    uint8_t                 original_connection_id_present;
-    uint16_t                no_crypto;
+    xqc_flag_t              disable_active_migration;
+    uint64_t                active_connection_id_limit;
+    uint64_t                no_crypto;
 } xqc_trans_settings_t;
 
 

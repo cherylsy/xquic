@@ -131,7 +131,8 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_stream_data_uni = 1024*1024;
     settings->max_streams_bidi = 1024;
     settings->max_streams_uni = 1024;
-    settings->max_packet_size = XQC_MAX_PKT_SIZE;
+    settings->max_udp_payload_size = XQC_MAX_PKT_SIZE;
+    settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
 
     memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
 }
