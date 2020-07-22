@@ -84,7 +84,12 @@ grep_err_log
 clear_log
 echo -e "test application delay ...\c"
 rm -f xqc_token
-./test_client -s 5120 -l d -t 1 -E -x 16|grep ">>>>>>>> pass"
+./test_client -s 5120 -l d -t 1 -E -x 16 >> clog
+if test "$(grep -e "xqc_packet_process_single.*NEW_TOKEN" clog |wc -l)" -gt 1 >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
 grep_err_log
 
 clear_log
