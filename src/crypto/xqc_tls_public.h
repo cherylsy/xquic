@@ -141,24 +141,6 @@ typedef enum {
 
 #define XQC_CONN_TIMEOUT 30
 
-typedef enum {
-    XQC_TRANSPORT_PARAM_ORIGINAL_CONNECTION_ID = 0x0000,
-    XQC_TRANSPORT_PARAM_IDLE_TIMEOUT = 0x0001,
-    XQC_TRANSPORT_PARAM_STATELESS_RESET_TOKEN = 0x0002,
-    XQC_TRANSPORT_PARAM_MAX_PACKET_SIZE = 0x0003,
-    XQC_TRANSPORT_PARAM_INITIAL_MAX_DATA = 0x0004,
-    XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL = 0x0005,
-    XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE = 0x0006,
-    XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAM_DATA_UNI = 0x0007,
-    XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAMS_BIDI = 0x0008,
-    XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAMS_UNI = 0x0009,
-    XQC_TRANSPORT_PARAM_ACK_DELAY_EXPONENT = 0x000a,
-    XQC_TRANSPORT_PARAM_MAX_ACK_DELAY = 0x000b,
-    XQC_TRANSPORT_PARAM_DISABLE_MIGRATION = 0x000c,
-    XQC_TRANSPORT_PARAM_PREFERRED_ADDRESS = 0x000d,
-    XQC_TRANSPORT_PARAM_NO_CRYPTO = 0x1000,
-} xqc_transport_param_id;
-
 
 typedef enum {
     XQC_IP_VERSION_NONE = 0,
@@ -172,25 +154,6 @@ typedef enum {
     XQC_PKT_FLAG_KEY_PHASE = 0x04
 } xqc_pkt_flag;
 
-#if 0
-typedef struct {
-    xqc_cid_t               original_connection_id;
-    xqc_msec_t              idle_timeout;
-    xqc_buf_t               stateless_reset_token;
-    uint32_t                max_packet_size;
-    uint64_t                initial_max_data;
-    uint64_t                initial_max_stream_data_bidi_local;
-    uint64_t                initial_max_stream_data_bidi_remote;
-    uint64_t                initial_max_stream_data_uni;
-    uint64_t                initial_max_streams_bidi;
-    uint64_t                initial_max_streams_uni;
-    uint32_t                ack_delay_exponent;
-    xqc_msec_t              max_ack_delay;
-    xqc_flag_t              disable_migration;
-    xqc_preferred_address_t preferred_addr;
-    uint16_t                no_crypto;
-} xqc_transport_params_t;
-#endif
 
 
 typedef enum {
