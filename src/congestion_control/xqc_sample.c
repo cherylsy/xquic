@@ -53,7 +53,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
 /* Update rs when packet is SACKed or ACKed. */
 void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send_ctl_t *send_ctl, xqc_msec_t now)
 {
-    if(packet->po_delivered_time == 0) {
+    if (packet->po_delivered_time == 0) {
         xqc_log(send_ctl->ctl_conn->log, XQC_LOG_ERROR, "|packet:%ui already acked|", packet->po_pkt.pkt_num);
         return; /* P already SACKed */
     }
@@ -62,7 +62,7 @@ void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send
 
     /* Update info using the newest packet: */
     // if it's the ACKs from the first RTT round, we use the sample anyway
-    if(sampler->prior_delivered == 0 || (packet->po_delivered > sampler->prior_delivered)) {
+    if (sampler->prior_delivered == 0 || (packet->po_delivered > sampler->prior_delivered)) {
         sampler->prior_delivered = packet->po_delivered;
         sampler->prior_time = packet->po_delivered_time;
         sampler->is_app_limited = packet->po_is_app_limited;
