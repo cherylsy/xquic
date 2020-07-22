@@ -82,6 +82,12 @@ echo -e "verify Token success ...\c"
 grep_err_log
 
 clear_log
+echo -e "test application delay ...\c"
+rm -f xqc_token
+./test_client -s 5120 -l d -t 1 -E -x 16|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "fin only ...\c"
 ./test_client -s 5120 -l d -t 1 -E -x 4 |grep ">>>>>>>> pass"
 grep_err_log

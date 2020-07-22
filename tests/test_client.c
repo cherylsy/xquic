@@ -172,6 +172,9 @@ void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("xqc_client_save_token use client ip as the key. h3[%d]\n", user_conn->h3);
 
+    if (g_test_case == 16) { /* test application delay */
+        usleep(300*1000);
+    }
     int fd = open("./xqc_token", O_TRUNC | O_CREAT | O_WRONLY, S_IRWXU);
     if (fd < 0) {
         printf("save token error %s\n", strerror(errno));
