@@ -296,7 +296,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     }
 
     if ((size_t)(p - dest) != len) {
-        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     return (ssize_t)len;
