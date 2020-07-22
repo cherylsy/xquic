@@ -355,6 +355,10 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
     unsigned char bits;
     unsigned int vlen;
 
+    if (!xqc_check_proto_version_valid(ver)) {
+        return -XQC_EPROTO;
+    }
+
     if (need > dst_buf_size) {
         return -XQC_ENOBUF;
     }

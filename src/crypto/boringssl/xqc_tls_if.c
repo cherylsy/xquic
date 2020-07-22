@@ -16,8 +16,12 @@ xqc_int_t
 xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , size_t length , xqc_connection_t *conn , xqc_int_t server_secret)
 {
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0} ;
-    int rv = 
-    xqc_derive_initial_secret(initial_secret, sizeof(initial_secret), &conn->dcid,
+
+    if (!xqc_check_proto_version_valid(conn->version)) {
+        return XQC_ERR_PROTO;
+    }
+
+    int rv = xqc_derive_initial_secret(initial_secret, sizeof(initial_secret), &conn->dcid,
             (const uint8_t *)(xqc_crypto_initial_salt[conn->version]),
             strlen(xqc_crypto_initial_salt[conn->version]));
     

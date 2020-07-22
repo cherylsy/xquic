@@ -23,9 +23,10 @@
 #include "src/transport/xqc_wakeup_pq.h"
 
 xqc_conn_settings_t default_conn_settings = {
-        .pacing_on  =   0,
-        .ping_on    =   0,
-        .so_sndbuf  =   0,
+        .pacing_on      = 0,
+        .ping_on        = 0,
+        .so_sndbuf      = 0,
+        .proto_version  = XQC_IDRAFT_VER_29,
 };
 
 void
@@ -36,6 +37,10 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     default_conn_settings.pacing_on = settings.pacing_on;
     default_conn_settings.ping_on = settings.ping_on;
     default_conn_settings.so_sndbuf = settings.so_sndbuf;
+
+    if (xqc_check_proto_version_valid(settings.proto_version)) {
+        default_conn_settings.proto_version = settings.proto_version;
+    }
 }
 
 static char g_conn_flag_buf[256];
@@ -115,7 +120,8 @@ static const char * const xqc_secret_type_2_str[SECRET_TYPE_NUM] = {
 };
 #endif
 
-void xqc_conn_init_trans_param(xqc_connection_t *conn)
+void 
+xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
     memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
 
@@ -137,7 +143,8 @@ void xqc_conn_init_trans_param(xqc_connection_t *conn)
     memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
 }
 
-void xqc_conn_init_flow_ctl(xqc_connection_t *conn)
+void 
+xqc_conn_init_flow_ctl(xqc_connection_t *conn)
 {
     xqc_conn_flow_ctl_t *flow_ctl = &conn->conn_flow_ctl;
     xqc_trans_settings_t * settings = & conn->local_settings;
@@ -161,8 +168,10 @@ xqc_conn_create(xqc_engine_t *engine,
                 void *user_data,
                 xqc_conn_type_t type)
 {
-    if (type == XQC_CONN_TYPE_CLIENT && settings->proto_version == XQC_IDRAFT_INIT_VER) {
-        return NULL;
+    if (type == XQC_CONN_TYPE_CLIENT
+        && !xqc_check_proto_version_valid(settings->proto_version)) 
+    {
+        settings->proto_version = XQC_IDRAFT_VER_29;
     }
 
     xqc_connection_t *xc = NULL;
@@ -194,7 +203,7 @@ xqc_conn_create(xqc_engine_t *engine,
 
     xc->conn_settings = *settings;
     xc->user_data = user_data;
-    xc->version = ((type == XQC_CONN_TYPE_SERVER) ? XQC_IDRAFT_INIT_VER : settings->proto_version);
+    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
     xc->conn_flag = 0;
@@ -1052,15 +1061,17 @@ xqc_conn_version_check(xqc_connection_t *c, uint32_t version)
     xqc_engine_t* engine = c->engine;
     int i = 0;
 
-    if (engine->eng_type == XQC_ENGINE_SERVER) {
+    if (c->conn_type == XQC_CONN_TYPE_SERVER && c->version == XQC_IDRAFT_INIT_VER) {
+
         uint32_t *list = engine->config->support_version_list;
         uint32_t count = engine->config->support_version_count;
+
         if (xqc_uint32_list_find(list, count, version) == -1) {
-            // xqc_conn_send_version_negotiation(c); /*发送version negotiation*/
+            /* xqc_conn_send_version_negotiation(c); */
             return -XQC_EPROTO;
         }
 
-        for (i = 0; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
+        for (i = XQC_IDRAFT_INIT_VER + 1; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
             if (xqc_proto_version_value[i] == version) {
                 c->version = i;
                 return XQC_OK;
