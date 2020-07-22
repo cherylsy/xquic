@@ -37,6 +37,9 @@ typedef enum xqc_proto_version_s {
     XQC_VERSION_MAX
 } xqc_proto_version_t;
 
+#define xqc_check_proto_version_valid(ver) \
+        ((ver) > XQC_IDRAFT_INIT_VER && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
+
 #define XQC_PROTO_VERSION_LEN 4
 
 extern uint32_t xqc_proto_version_value[];

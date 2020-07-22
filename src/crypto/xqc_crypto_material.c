@@ -521,6 +521,11 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
     int rv;
 
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0}, secret[INITIAL_SECRET_MAX_LEN]={0};
+
+    if (!xqc_check_proto_version_valid(conn->version)) {
+        return XQC_ERR_PROTO;
+    }
+
     rv = xqc_derive_initial_secret(
             initial_secret, sizeof(initial_secret), dcid,
             (const uint8_t *)(xqc_crypto_initial_salt[conn->version]),
