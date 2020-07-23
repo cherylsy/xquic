@@ -14,6 +14,10 @@ if (NOT BABASSL_PATH)
 set(BABASSL_PATH "/usr/local/babassl")
 endif()
 
+if(XQC_OPENSSL_IS_BORINGSSL)
+    include_directories(third_party/boringssl/include)
+endif()
+
 if(XQC_PRINT_SECRET)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_PRINT_SECRET")
 endif()
@@ -35,8 +39,6 @@ configure_file (
     xqc_configure.h.in
     xqc_configure.h
 )
-
-include(CMakeOptions.txt)
 
 include_directories(
     include
@@ -81,6 +83,10 @@ set(
     "src/transport/xqc_wakeup_pq.c"
     "src/transport/xqc_pacing.c"
     "src/transport/xqc_utils.c"
+)
+
+set (
+    CRYPTO_SOURCE
 
     "src/crypto/xqc_tls_init.c"
     "src/crypto/xqc_tls_0rtt.c"
@@ -92,11 +98,27 @@ set(
     "src/crypto/xqc_crypto.c"
     "src/crypto/xqc_tls_cb.c"
     "src/crypto/xqc_tls_public.c"
+)
+
+if(XQC_OPENSSL_IS_BORINGSSL)
+set (
+    CRYPTO_SOURCE
+
+    ${CRYPTO_SOURCE}
+    "src/crypto/boringssl/xqc_hkdf.c"
+    "src/crypto/boringssl/xqc_crypto.c"
+    "src/crypto/boringssl/xqc_tls_if.c"
+)
+else()
+set(
+    CRYPTO_SOURCE
+
+    ${CRYPTO_SOURCE}
     "src/crypto/openssl/xqc_hkdf.c"
     "src/crypto/openssl/xqc_crypto.c"
     "src/crypto/openssl/xqc_tls_if.c"
-
-    )
+)
+endif()
 
 set(
     COMMON_SOURCES
@@ -126,74 +148,39 @@ add_library(
 
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
-    ${COMMON_SOURCES}
-    ${CONGESTION_CONTROL_SOURCES}
-)
-
-add_library(
-    xquic_openssl
-
-    #STATIC
-    SHARED
-    ${HTTP3_SOURCES}
-    ${TRANSPORT_SOURCES}
+    ${CRYPTO_SOURCE}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )
 
 
-if(ANDROID_ABI STREQUAL "arm64-v8a")
+if(XQC_OPENSSL_IS_BORINGSSL)
     target_link_libraries(
-       xquic
-       "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
-       ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm64/lib/libssl.a
-       ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm64/lib/libcrypto.a
-       "-Wl,--no-whole-archive"
-    )
-elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
-    target_link_libraries(
-            xquic
-            "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
-            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm/lib/libssl.a
-            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-arm/lib/libcrypto.a
-            "-Wl,--no-whole-archive"
-    )
-elseif(ANDROID_ABI STREQUAL "x86")
-    target_link_libraries(
-            xquic
-            "-ldl -Wl,--whole-archive"
-            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-x86/lib/libssl.a
-            ${CMAKE_CURRENT_SOURCE_DIR}/../BabaSSL/android-x86/lib/libcrypto.a
-            "-Wl,--no-whole-archive"
+        xquic
+        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/ssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/crypto/libcrypto.a
+        "-Wl,--no-whole-archive"
+        -lpthread
     )
 elseif(PLATFORM MATCHES "mac")
     target_link_libraries(
-            xquic
-            "-ldl -Wl,-all_load"
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libssl.a
-            ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libcrypto.a
-            "-Wl,-noall_load"
-            -lpthread
+        xquic
+        "-ldl -Wl,-all_load"
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libcrypto.a
+        "-Wl,-noall_load"
+        -lpthread
     )
 else()
     target_link_libraries(
         xquic
-        "-ldl -Wl,--whole-archive"
-        ${BABASSL_PATH}/lib/libssl.a
-        ${BABASSL_PATH}/lib/libcrypto.a
-        "-Wl,--no-whole-archive"
-        -lpthread
-    )
-
-    target_link_libraries(
-        xquic_openssl
         "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
         ${BABASSL_PATH}/lib/libssl.a
         ${BABASSL_PATH}/lib/libcrypto.a
         "-Wl,--no-whole-archive"
         -lpthread
     )
-
 endif()
 
 # Strip binary for release builds
