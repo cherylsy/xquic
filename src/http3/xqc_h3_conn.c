@@ -11,8 +11,8 @@ xqc_h3_conn_settings_t default_h3_conn_settings = {
         .max_pushes                 = 0,
         .max_header_list_size       = 0,
         .num_placeholders           = 0,
-        .qpack_blocked_streams      = 0,
-        .qpack_max_table_capacity   = 0,
+        .qpack_blocked_streams      = DEFAULT_QPACK_BLOCK_STREAM,
+        .qpack_max_table_capacity   = QPACK_MAX_TABLE_CAPACITY,
 };
 
 xqc_cid_t *
@@ -118,12 +118,12 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 
     h3_conn->h3_conn_settings = default_h3_conn_settings;
 
-    xqc_h3_qpack_encoder_init(&h3_conn->qenc, 
-                        QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, 
-                        DEFAULT_QPACK_BLOCK_STREAM, DEFAULT_QPACK_HASH_TABLE_SIZE, h3_conn);
-    xqc_h3_qpack_decoder_init(&h3_conn->qdec, 
-                        QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE, 
-                        DEFAULT_QPACK_BLOCK_STREAM, h3_conn);
+    xqc_h3_qpack_encoder_init(&h3_conn->qenc,
+                        h3_conn->h3_conn_settings.qpack_max_table_capacity, DEFAULT_MAX_DTABLE_SIZE,
+                        h3_conn->h3_conn_settings.qpack_blocked_streams, DEFAULT_QPACK_HASH_TABLE_SIZE, h3_conn);
+    xqc_h3_qpack_decoder_init(&h3_conn->qdec,
+                        h3_conn->h3_conn_settings.qpack_max_table_capacity, DEFAULT_MAX_DTABLE_SIZE,
+                        h3_conn->h3_conn_settings.qpack_blocked_streams, h3_conn);
 
     xqc_init_list_head(&h3_conn->block_stream_head);
     h3_conn->qdec_stream = NULL;
