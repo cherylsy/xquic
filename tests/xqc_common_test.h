@@ -36,7 +36,7 @@ static inline xqc_engine_t* test_create_engine()
 {
     def_engine_ssl_config;
     xqc_engine_callback_t callback = {
-            .log_callbacks = null_log_cb,
+            .log_callbacks = xqc_null_log_cb,
             .write_socket = null_socket_write,
             .set_event_timer = null_set_event_timer,
     };

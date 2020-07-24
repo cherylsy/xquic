@@ -16,6 +16,20 @@ sudo yum -y install python-pip > /dev/null
 sudo yum -y install python-lxml > /dev/null
 sudo pip install gcovr > /dev/null
 
+rm -f CMakeCache.txt
+
+if [[ $1 == "XQC_OPENSSL_IS_BORINGSSL" ]]; then
+    #compile boringssl
+    mkdir -p ../third_party/boringssl/build
+    cd ../third_party/boringssl/build
+    cmake -DBUILD_SHARED_LIBS=0 -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" ..
+    make ssl crypto
+    cd -
+
+    cmake -DXQC_OPENSSL_IS_BORINGSSL=1 ..
+fi
+
+
 #编译开启Code Coverage
 cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug ..
 #make clean
@@ -58,5 +72,7 @@ echo -e "\033[32m qpack test passed:$passed failed:$failed \033[0m"
 
 echo -e "\nCode Coverage:                             Lines    Exec  Cover"
 cat xquic_test.log | grep "TOTAL"
+
+rm -f CMakeCache.txt
 
 cd -
