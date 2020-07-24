@@ -1,7 +1,6 @@
 #!/bin/bash
 
 function generate_cert() {
-    #生成证书
     if [[ ! -f "server.key" || ! -f "server.crt" ]]; then
     keyfile=server.key
     certfile=server.crt
@@ -10,7 +9,7 @@ function generate_cert() {
 }
 
 function install_gcov_tool() {
-    #安装批量输出工具，否则只能按单个文件输出结果
+    #install gcovr which can output code coverage summary
     sudo yum -y install python-pip > /dev/null
     sudo yum -y install python-lxml > /dev/null
     sudo pip install gcovr > /dev/null
@@ -20,6 +19,9 @@ function install_gcov_tool() {
 function do_compile() {
     rm -f CMakeCache.txt
     if [[ $1 == "XQC_OPENSSL_IS_BORINGSSL" ]]; then
+        #boringssl compiling depends on GO
+        sudo yum install go
+
         #compile boringssl
         mkdir -p ../third_party/boringssl/build
         cd ../third_party/boringssl/build
@@ -30,7 +32,7 @@ function do_compile() {
         cmake -DXQC_OPENSSL_IS_BORINGSSL=1 ..
     fi
 
-    #编译开启Code Coverage
+    #turn on Code Coverage
     cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug ..
     #make clean
     make -j
@@ -50,12 +52,11 @@ function run_test_case() {
 }
 
 function run_gcov() {
-    #批量输出所有文件的覆盖率和工程覆盖率统计
+    #output coverage summary
     gcovr -r .. | tee -a xquic_test.log
 }
 
 function output_summary() {
-    #最终结果输出
     echo "=============summary=============="
     echo -e "unit test:"
     cat xquic_test.log | grep "Test:"
