@@ -732,7 +732,7 @@ xqc_decode_one_trans_param(xqc_transport_params_t *params, xqc_transport_params_
         return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
     
-    int ret = xqc_decode_param_func_list[param_type](params, exttype, p, end, param_type, param_len);
+    int ret = xqc_decode_param_func_list[param_index](params, exttype, p, end, param_type, param_len);
     if (ret < 0) {
         return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
