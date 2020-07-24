@@ -358,6 +358,14 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
+    xqc_h3_conn_settings_t settings = {
+            .qpack_max_table_capacity = 100,
+            .qpack_blocked_streams = 100,
+            .num_placeholders = 100,
+            .max_header_list_size = 100,
+            .max_pushes = 100,
+    };
+    xqc_h3_conn_set_h3_settings(conn, settings);
     printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(conn));
     return 0;
 }
