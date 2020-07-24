@@ -210,20 +210,12 @@ typedef struct {
 } xqc_http3_stream_read_state;
 
 
-typedef struct {
-  uint64_t max_header_list_size;
-  uint64_t num_placeholders;
-  uint64_t max_pushes;
-  uint64_t qpack_max_table_capacity;
-  uint64_t qpack_blocked_streams;
-} xqc_http3_conn_settings;
-
 typedef struct { //把这个结构体简化下
     xqc_http3_frame fr;
 
     union{
         struct {
-            xqc_http3_conn_settings *local_settings;
+            xqc_h3_conn_settings_t *local_settings;
         }settings;
         struct {
             char * data;
@@ -234,28 +226,33 @@ typedef struct { //把这个结构体简化下
 
 
 
-int xqc_http3_stream_write_settings(xqc_h3_stream_t * h3_stream, xqc_http3_conn_settings * settings );
+int xqc_http3_stream_write_settings(xqc_h3_stream_t *h3_stream, xqc_h3_conn_settings_t *settings);
 
-ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin);
+ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t *h3_stream, char *data, ssize_t data_len, uint8_t fin);
 
-ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin);
+ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t *h3_stream, char *data, ssize_t data_len, uint8_t fin);
 
-ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen);
+ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, uint8_t *src, size_t srclen);
 
-ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, uint8_t fin);
+ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, uint8_t *src, size_t srclen,
+                                 uint8_t fin);
 
-int xqc_h3_send_frame_buffer(xqc_h3_stream_t * h3_stream, xqc_list_head_t * head);
+int xqc_h3_send_frame_buffer(xqc_h3_stream_t *h3_stream, xqc_list_head_t *head);
 
 int xqc_h3_stream_free_data_buf(xqc_h3_stream_t *h3_stream);
 
-ssize_t xqc_h3_write_headers(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers, uint8_t fin);
+ssize_t xqc_h3_write_headers(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers,
+                             uint8_t fin);
 
-ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin);
-ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len);
+ssize_t xqc_http3_conn_read_uni(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, uint8_t *src, size_t srclen,
+                                int fin);
+ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t *h3_stream, char *data, ssize_t data_len);
 
-int xqc_h3_uni_stream_write_stream_type(xqc_h3_stream_t * h3_stream, uint8_t stream_type);
-int xqc_buf_to_tail(xqc_list_head_t * phead , char * data, int data_len, uint8_t fin);
-int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream);
+int xqc_h3_uni_stream_write_stream_type(xqc_h3_stream_t *h3_stream, uint8_t stream_type);
 
-xqc_data_buf_t * xqc_create_data_buf(int buf_size, int data_len);
+int xqc_buf_to_tail(xqc_list_head_t *phead, char *data, int data_len, uint8_t fin);
+
+int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream);
+
+xqc_data_buf_t *xqc_create_data_buf(int buf_size, int data_len);
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

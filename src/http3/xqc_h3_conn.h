@@ -19,6 +19,8 @@ typedef struct xqc_h3_stream_s xqc_h3_stream_t;
     }                                                           \
 } while(0)                                                      \
 
+extern xqc_h3_conn_settings_t default_h3_conn_settings;
+
 typedef enum {
     XQC_HTTP3_CONN_FLAG_SETTINGS_RECVED     = 1 << 0,
     XQC_HTTP3_CONN_FLAG_CONTROL_OPENED      = 1 << 1,
@@ -50,6 +52,8 @@ struct xqc_h3_conn_s {
     xqc_h3_stream_t            *qenc_stream;
 
     xqc_list_head_t             block_stream_head;
+
+    xqc_h3_conn_settings_t      h3_conn_settings;
 };
 
 

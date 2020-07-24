@@ -358,6 +358,12 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
+    if (g_test_case == 18) { /* test h3 settings */
+        xqc_h3_conn_settings_t settings = {
+                .max_pushes = 100,
+        };
+        xqc_h3_conn_set_settings(conn, settings);
+    }
     printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(conn));
     return 0;
 }

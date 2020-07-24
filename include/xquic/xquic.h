@@ -313,6 +313,14 @@ typedef struct xqc_conn_settings_s {
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
 } xqc_conn_settings_t;
 
+typedef struct xqc_h3_conn_settings_s {
+    uint64_t max_header_list_size;
+    uint64_t num_placeholders;
+    uint64_t max_pushes;
+    uint64_t qpack_max_table_capacity;
+    uint64_t qpack_blocked_streams;
+} xqc_h3_conn_settings_t;
+
 typedef enum {
     XQC_0RTT_NONE,      /* without 0RTT */
     XQC_0RTT_ACCEPT,
@@ -406,6 +414,13 @@ int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);
 XQC_EXPORT_PUBLIC_API
 void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
                                void *user_data);
+
+/**
+ * User can set h3 settings when h3_conn_create_notify callbacks
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
+                              xqc_h3_conn_settings_t h3_conn_settings);
 
 /**
  * Server should get peer addr when h3_conn_create_notify callbacks

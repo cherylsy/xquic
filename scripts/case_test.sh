@@ -186,11 +186,11 @@ if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev
 else
     echo ">>>>>>>> pass:0"
 fi
+rm -f test_session
 grep_err_log
 
 clear_log
 echo -e "no crypto ...\c"
-rm -f test_session
 ./test_client -s 1024000 -l d -N -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log
 
@@ -202,6 +202,16 @@ grep_err_log
 clear_log
 echo -e "client initial version setting ...\c"
 ./test_client -s 1024 -l d -t 1 -E -x 17 |grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "set h3 settings ...\c"
+./test_client -s 1024 -l d -t 1 -E -x 18 >> clog
+if grep -e "xqc_h3_conn_send_settings.*success.*max_pushes:100" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
 grep_err_log
 
 clear_log
