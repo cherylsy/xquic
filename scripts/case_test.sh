@@ -139,6 +139,17 @@ fi
 grep_err_log
 
 clear_log
+echo -e "without session ticket ...\c"
+rm -f test_session
+./test_client -s 1024000 -l e -t 1 -E >> clog
+if grep "early_data_flag:0" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
+grep_err_log
+
+clear_log
 echo -e "0RTT accept ...\c"
 ./test_client -s 1024000 -l e -t 1 -E >> clog
 if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
@@ -159,6 +170,28 @@ if grep "early_data_flag:2" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev
 else
     echo ">>>>>>>> pass:0"
 fi
+grep_err_log
+
+clear_log
+echo -e "transport only ...\c"
+rm -f test_session
+./test_client -s 1024000 -l d -T -t 1 -E|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "transport 0RTT ...\c"
+./test_client -s 1024000 -l e -T -t 1 -E >> clog
+if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
+grep_err_log
+
+clear_log
+echo -e "no crypto ...\c"
+rm -f test_session
+./test_client -s 1024000 -l d -N -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
