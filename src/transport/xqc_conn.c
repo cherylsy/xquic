@@ -295,19 +295,29 @@ xqc_conn_server_create(xqc_engine_t *engine,
 {
     xqc_connection_t *conn;
 
-    //暂时不生成新cid
-    /*xqc_cid_t new_scid;
-    *//* server generates it's own cid *//*
-    if (xqc_generate_cid(engine, &new_scid) != XQC_OK) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
-        return NULL;
-    }*/
+    if (engine->config->cid_negotiate) {
+        /* server generates it's own cid */
 
-    conn = xqc_conn_create(engine, dcid, /*&new_scid,*/ scid,
-                           callbacks,
-                           settings,
-                           user_data,
-                           XQC_CONN_TYPE_SERVER);
+        xqc_cid_t new_scid;
+        if (xqc_generate_cid(engine, &new_scid) != XQC_OK) {
+            xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
+            return NULL;
+        }
+
+        conn = xqc_conn_create(engine, dcid, &new_scid,
+                               callbacks,
+                               settings,
+                               user_data,
+                               XQC_CONN_TYPE_SERVER);
+    } else {
+
+        conn = xqc_conn_create(engine, dcid, scid,
+                               callbacks,
+                               settings,
+                               user_data,
+                               XQC_CONN_TYPE_SERVER);
+    }
+
 
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");

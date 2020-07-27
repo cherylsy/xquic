@@ -66,6 +66,7 @@ int g_send_body_size_defined;
 int g_save_body;
 int g_read_body;
 int g_spec_url;
+int g_test_case;
 int g_ipv6;
 char g_write_file[256];
 char g_read_file[256];
@@ -840,6 +841,7 @@ void usage(int argc, char *argv[]) {
 "   -r    Read sending body from file. priority e > s > r\n"
 "   -l    Log level. e:error d:debug.\n"
 "   -u    Url. default https://test.xquic.com/path/resource\n"
+"   -x    Test case ID\n"
 "   -6    IPv6\n"
 , prog);
 }
@@ -860,7 +862,7 @@ int main(int argc, char *argv[]) {
     int pacing_on = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:6")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6")) != -1){
         switch(ch)
         {
             case 'p':
@@ -908,6 +910,10 @@ int main(int argc, char *argv[]) {
                 g_spec_url = 1;
                 sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
                 //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
+                break;
+            case 'x': //test case id
+                printf("option test case id: %s\n", optarg);
+                g_test_case = atoi(optarg);
                 break;
             case '6': //IPv6
                 printf("option IPv6 :%s\n", "on");
@@ -1003,6 +1009,22 @@ int main(int argc, char *argv[]) {
     eb = event_base_new();
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
+
+    /* test server cid negotiate */
+    if (g_test_case == 1) {
+        xqc_config_t config;
+        if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
+            return -1;
+        }
+
+        config.cid_negotiate = 1;
+        config.cid_len = 12;
+
+        if (xqc_set_engine_config(&config, XQC_ENGINE_SERVER) < 0) {
+            printf("set engine config error\n");
+            return -1;
+        }
+    }
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, &ctx);
 

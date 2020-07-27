@@ -40,6 +40,7 @@ XQUIC_VERS_1.0 {
         xqc_engine_finish_recv;
         xqc_engine_recv_batch;
         xqc_engine_main_logic;
+        xqc_engine_get_default_config;
         xqc_packet_parse_cid;
         xqc_cid_is_equal;
         xqc_dcid_str;
