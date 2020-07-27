@@ -1012,20 +1012,18 @@ int main(int argc, char *argv[]) {
 
     /* test server cid negotiate */
     if (g_test_case == 1) {
-        xqc_config_t *config = xqc_engine_config_create(XQC_ENGINE_SERVER);
-        if (config == NULL) {
+        xqc_config_t config;
+        if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
             return -1;
         }
 
-        config->cid_negotiate = 1;
-        config->cid_len = 12;
+        config.cid_negotiate = 1;
+        config.cid_len = 12;
 
-        if (xqc_set_engine_config(config, XQC_ENGINE_SERVER) < 0) {
+        if (xqc_set_engine_config(&config, XQC_ENGINE_SERVER) < 0) {
             printf("set engine config error\n");
             return -1;
         }
-
-        xqc_engine_config_destroy(config);
     }
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, &ctx);

@@ -92,6 +92,18 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
     return XQC_OK;
 }
 
+
+int
+xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type)
+{
+    if (engine_type == XQC_ENGINE_SERVER) {
+        return xqc_set_config(config, &default_server_config);
+    } else {
+        return xqc_set_config(config, &default_client_config);
+    }
+}
+
+
 int
 xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type)
 {
