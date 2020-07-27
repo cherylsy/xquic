@@ -167,6 +167,14 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     ssize_t         n_write = 0;
     xqc_h3_conn_t  *h3_conn = h3_stream->h3_conn;
 
+    //header size constrains
+    uint64_t fields_size = xqc_h3_uncompressed_fields_size(headers);
+    uint64_t max_field_section_size = h3_conn->peer_h3_conn_settings.max_field_section_size;
+    if (fields_size > max_field_section_size) {
+        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|fields_size:%ui|exceed|SETTINGS_MAX_FIELD_SECTION_SIZE:%ui|", fields_size, max_field_section_size);
+        return -XQC_H3_INVALID_HEADER;
+    }
+
     h3_stream->flags |= XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
 
     /* QPACK & gen HEADERS frame */

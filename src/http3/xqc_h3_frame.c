@@ -1455,23 +1455,15 @@ xqc_http3_init_wrap_settings(xqc_h3_stream_t *h3_stream, xqc_h3_conn_settings_t 
 
     size_t i = 0;
     fr_setting.niv = 0;
-    if(setting->max_header_list_size){
-        fr_setting.iv[fr_setting.niv].id = XQC_HTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE;
-        fr_setting.iv[fr_setting.niv].value = setting->max_header_list_size;
-        ++fr_setting.niv;
-    }
-    if(setting->num_placeholders){
-        fr_setting.iv[fr_setting.niv].id = XQC_HTTP3_SETTINGS_ID_NUM_PLACEHOLDERS;
-        fr_setting.iv[fr_setting.niv].value = setting->num_placeholders;
-
+    if(setting->max_field_section_size){
+        fr_setting.iv[fr_setting.niv].id = XQC_HTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE;
+        fr_setting.iv[fr_setting.niv].value = setting->max_field_section_size;
         ++fr_setting.niv;
     }
     if(setting->qpack_max_table_capacity){
         fr_setting.iv[fr_setting.niv].id = XQC_HTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY;
         fr_setting.iv[fr_setting.niv].value = setting->qpack_max_table_capacity;
-
         ++fr_setting.niv;
-
     }
     if(setting->qpack_blocked_streams){
         fr_setting.iv[fr_setting.niv].id = XQC_HTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS;
@@ -1609,6 +1601,23 @@ int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_p
 
 int xqc_http3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv){
 
+    switch (iv->id) {
+        case XQC_HTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE:
+            if (conn->peer_h3_conn_settings.max_field_section_size == XQC_H3_SETTINGS_UNSET) {
+                conn->peer_h3_conn_settings.max_field_section_size = iv->value;
+            }
+            break;
+        case XQC_HTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY:
+            /* TODO */
+            break;
+        case XQC_HTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS:
+            /* TODO */
+            break;
+        default:
+            /* An implementation MUST ignore the contents for any SETTINGS identifier it does not understand. */
+            break;
+    }
+
     xqc_log(conn->log, XQC_LOG_DEBUG, "|id:%ui|value:%ui|", iv->id, iv->value);
     return 0;
 }
@@ -1643,6 +1652,15 @@ ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * 
 
     return data_len;
 
+}
+
+uint64_t
+xqc_h3_uncompressed_fields_size(xqc_http_headers_t *headers) {
+    uint64_t fields_size = 0;
+    for (int i = 0; i < headers->count; i++) {
+        fields_size += headers->headers[i].name.iov_len + headers->headers[i].value.iov_len + 32;
+    }
+    return fields_size;
 }
 
 
