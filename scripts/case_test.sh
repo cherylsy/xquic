@@ -195,6 +195,14 @@ echo -e "no crypto ...\c"
 grep_err_log
 
 clear_log
+echo -e "server cid negotiate ...\c"
+killall test_server
+./test_server -l e -e -x 1 > /dev/null &
+sleep 1
+./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "GET request ...\c"
 ./test_client -l d -t 1 -E -G|grep ">>>>>>>> pass"
 grep_err_log

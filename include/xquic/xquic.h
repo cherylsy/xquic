@@ -706,6 +706,17 @@ XQC_EXPORT_PUBLIC_API
 void xqc_engine_main_logic (xqc_engine_t *engine);
 
 /**
+ * Create engine config.
+ * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_config_t *xqc_engine_config_create(xqc_engine_type_t engine_type);
+
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_config_destroy(xqc_config_t *config);
+
+
+/**
  * Get dcid and scid before process packet
  */
 XQC_EXPORT_PUBLIC_API

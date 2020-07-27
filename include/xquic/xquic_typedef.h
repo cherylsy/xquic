@@ -50,7 +50,7 @@ typedef int32_t         xqc_int_t;
 typedef uint32_t        xqc_uint_t;
 typedef intptr_t        xqc_flag_t;
 
-#define XQC_MAX_CID_LEN 18
+#define XQC_MAX_CID_LEN 20
 #define XQC_MIN_CID_LEN 4
 typedef struct xqc_cid_s
 {
