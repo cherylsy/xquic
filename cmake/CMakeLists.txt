@@ -130,6 +130,7 @@ set (
     "src/crypto/xqc_transport_params.c"
     "src/crypto/xqc_crypto.c"
     "src/crypto/xqc_tls_cb.c"
+    "src/crypto/xqc_tls_public.c"
 )
 
 if(XQC_OPENSSL_IS_BORINGSSL)
