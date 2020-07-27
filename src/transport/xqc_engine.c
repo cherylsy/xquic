@@ -40,6 +40,7 @@ xqc_config_t default_client_config = {
         .support_version_count = 1,
         .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
         .cid_len = XQC_DEFAULT_CID_LEN,
+        .cid_negotiate = 0,
 };
 
 xqc_config_t default_server_config = {
@@ -51,6 +52,7 @@ xqc_config_t default_server_config = {
         .support_version_count = 1,
         .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
         .cid_len = XQC_DEFAULT_CID_LEN,
+        .cid_negotiate = 0,
 };
 
 int
@@ -84,6 +86,9 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
     } else if (src->cid_len > XQC_MAX_CID_LEN) {
         return XQC_ERROR;
     }
+
+    dst->cid_negotiate = src->cid_negotiate;
+
     return XQC_OK;
 }
 
