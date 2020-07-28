@@ -450,7 +450,7 @@ static int
 xqc_decode_max_idle_timeout(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
                                        const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
-    XQC_DECODE_VINT_VALUE(&params->idle_timeout, p, end);
+    XQC_DECODE_VINT_VALUE(&params->max_idle_timeout, p, end);
 }
 
 static int
