@@ -176,7 +176,7 @@ typedef struct {
     xqc_cid_t               original_dest_connection_id;
     uint8_t                 original_dest_connection_id_present;
 
-    xqc_msec_t              idle_timeout;
+    xqc_msec_t              max_idle_timeout;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
     uint64_t                max_udp_payload_size;
@@ -204,7 +204,7 @@ typedef struct {
 
 typedef struct {
     xqc_preferred_addr_t    preferred_address;
-    xqc_msec_t              idle_timeout;
+    xqc_msec_t              max_idle_timeout;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
     uint64_t                max_udp_payload_size;
