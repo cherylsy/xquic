@@ -14,7 +14,7 @@ typedef enum xqc_pkt_num_space
 {
     XQC_PNS_INIT = 0,
     XQC_PNS_HSK = 1,
-    XQC_PNS_01RTT = 2,
+    XQC_PNS_APP_DATA = 2,
     XQC_PNS_N = 3,
 } xqc_pkt_num_space_t;
 

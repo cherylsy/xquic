@@ -48,11 +48,11 @@ xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type)
         case XQC_PTYPE_INIT:
             return XQC_PNS_INIT;
         case XQC_PTYPE_0RTT:
-            return XQC_PNS_01RTT;
+            return XQC_PNS_APP_DATA;
         case XQC_PTYPE_HSK:
             return XQC_PNS_HSK;
         case XQC_PTYPE_SHORT_HEADER:
-            return XQC_PNS_01RTT;
+            return XQC_PNS_APP_DATA;
         default:
             return XQC_PNS_N;
     }

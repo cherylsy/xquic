@@ -27,7 +27,7 @@
  */
 #define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
 
-#define XQC_MAX_PKT_SIZE  65527 //quic protocol define
+#define XQC_MAX_UDP_PAYLOAD_SIZE 65527 //quic protocol define
 
 #define XQC_STATELESS_RESET_TOKENLEN 16
 #define XQC_MAX_TOKEN_LEN 32

@@ -265,7 +265,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     uint8_t cid_len = c->engine->config->cid_len;
 
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
-    packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
+    packet_in->pi_pkt.pkt_pns = XQC_PNS_APP_DATA;
 
     if (XQC_BUFF_LEFT_SIZE(pos, packet_in->last) < 1 + cid_len) {
         return -XQC_ENOBUF;
@@ -540,7 +540,7 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|0-RTT|");
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_0RTT;
-    packet_in->pi_pkt.pkt_pns = XQC_PNS_01RTT;
+    packet_in->pi_pkt.pkt_pns = XQC_PNS_APP_DATA;
 
     //TODO: 0RTT丢包重传会触发错误
     /*if ((++c->zero_rtt_count) > XQC_PACKET_0RTT_MAX_COUNT) {

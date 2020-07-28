@@ -130,14 +130,14 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     //TODO: 临时值
-    settings->idle_timeout = 120000; //must > XQC_PING_TIMEOUT
+    settings->max_idle_timeout = 120000; //must > XQC_PING_TIMEOUT
     settings->max_data = 1*1024*1024;
     settings->max_stream_data_bidi_local = 5*1024*1024;
     settings->max_stream_data_bidi_remote = 5*1024*1024;
     settings->max_stream_data_uni = 1024*1024;
     settings->max_streams_bidi = 1024;
     settings->max_streams_uni = 1024;
-    settings->max_udp_payload_size = XQC_MAX_PKT_SIZE;
+    settings->max_udp_payload_size = XQC_MAX_UDP_PAYLOAD_SIZE;
     settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
 
     memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
@@ -914,7 +914,7 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                 xqc_send_ctl_decrease_unacked_stream_ref(conn->conn_send_ctl, packet_out);
                 xqc_send_ctl_copy_to_lost(packet_out, conn->conn_send_ctl);
 
-                if(pns >= XQC_PNS_01RTT){ //握手报文不能够受每次重传报文个数的限制，否则握手报文传输不完整，无法生成加密key，也没有办法回复ack
+                if (pns >= XQC_PNS_APP_DATA){ //握手报文不能够受每次重传报文个数的限制，否则握手报文传输不完整，无法生成加密key，也没有办法回复ack
                     if (++cnt >= probe_num) {
                         return;
                     }
@@ -999,7 +999,10 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         }
     }
 
-    if (conn->conn_close_count < 3) {
+    /** [Transport] 10.3.  Immediate Close, During the closing period, an endpoint that sends a CONNECTION_CLOSE
+        frame SHOULD respond to any incoming packet that can be decrypted with another packet containing a CONNECTION_CLOSE
+        frame.  Such an endpoint SHOULD limit the number of packets it generates containing a CONNECTION_CLOSE frame. */
+    if (conn->conn_close_count < MAX_RSP_CONN_CLOSE_CNT) {
         ret = xqc_write_conn_close_to_packet(conn, conn->conn_err);
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_conn_close_to_packet error|ret:%d|", ret);
@@ -1211,7 +1214,7 @@ xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
             conn_stats.early_data_flag = XQC_0RTT_REJECT;
         }
     }
-    xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_01RTT], conn_stats.ack_info, sizeof(conn_stats.ack_info));
+    xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_APP_DATA], conn_stats.ack_info, sizeof(conn_stats.ack_info));
     return conn_stats;
 }
 

@@ -40,7 +40,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     xqc_send_ctl_timer_init(send_ctl);
 
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
-                           now + send_ctl->ctl_conn->local_settings.idle_timeout * 1000);
+                           now + send_ctl->ctl_conn->local_settings.max_idle_timeout * 1000);
 
     if (conn->conn_settings.ping_on && conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_PING, now + XQC_PING_TIMEOUT * 1000);
@@ -437,7 +437,7 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
 {
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out;
-    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[XQC_PNS_01RTT]) {
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[XQC_PNS_APP_DATA]) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT) {
             xqc_send_ctl_remove_unacked(packet_out, ctl);
@@ -605,7 +605,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     }
 
     if (update_rtt) {
-        if (pns == XQC_PNS_01RTT) {
+        if (pns == XQC_PNS_APP_DATA) {
             xqc_send_ctl_update_rtt(ctl, &ctl->ctl_latest_rtt, ack_info->ack_delay);
         } else {
             /* 握手包回ack会有比较大延迟，计算srtt时忽略ack_delay, 得到真正耗时，避免重传 */
@@ -986,7 +986,7 @@ xqc_send_ctl_get_earliest_time_of_last_sent_ack_eliciting_packet(xqc_send_ctl_t 
 {
     xqc_msec_t time = ctl->ctl_time_of_last_sent_ack_eliciting_packet[XQC_PNS_INIT];
     *pns_ret = XQC_PNS_INIT;
-    for ( xqc_pkt_num_space_t pns = XQC_PNS_HSK; pns <= XQC_PNS_01RTT; ++pns) {
+    for ( xqc_pkt_num_space_t pns = XQC_PNS_HSK; pns <= XQC_PNS_APP_DATA; ++pns) {
         if (ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns] != 0 &&
                 (time == 0 || ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns] < time) ) {
             time = ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns];
@@ -1059,7 +1059,7 @@ xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pn
 {
     xqc_msec_t time = ctl->ctl_loss_time[XQC_PNS_INIT];
     *pns_ret = XQC_PNS_INIT;
-    for ( xqc_pkt_num_space_t pns = XQC_PNS_HSK; pns <= XQC_PNS_01RTT; ++pns) {
+    for ( xqc_pkt_num_space_t pns = XQC_PNS_HSK; pns <= XQC_PNS_APP_DATA; ++pns) {
         if (ctl->ctl_loss_time[pns] != 0 &&
                 (time == 0 || ctl->ctl_loss_time[pns] < time) ) {
             time = ctl->ctl_loss_time[pns];
