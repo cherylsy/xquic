@@ -27,7 +27,7 @@
  */
 #define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
 
-#define XQC_MAX_PKT_SIZE  65527 //quic protocol define
+#define XQC_MAX_UDP_PAYLOAD_SIZE 65527 //quic protocol define
 
 #define XQC_STATELESS_RESET_TOKENLEN 16
 #define XQC_MAX_TOKEN_LEN 32
@@ -38,6 +38,8 @@
 #define XQC_MAX_PACKET_PROCESS_BATCH 100 //xqc_engine_packet_process最多积累个数
 
 #define XQC_MAX_RECV_WINDOW (16*1024*1024)
+
+static const uint32_t MAX_RSP_CONN_CLOSE_CNT = 3;
 
 /* 调试时候用，会删掉 */
 #ifdef DEBUG_PRINT
@@ -98,7 +100,7 @@ typedef enum {
     XQC_CONN_FLAG_TICKING_SHIFT,
     XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT,
     XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT        = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_HSK),
-    XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT      = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_01RTT),
+    XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT      = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_APP_DATA),
     XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
     XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR_SHIFT,
@@ -176,7 +178,7 @@ typedef struct {
     xqc_cid_t               original_dest_connection_id;
     uint8_t                 original_dest_connection_id_present;
 
-    xqc_msec_t              idle_timeout;
+    xqc_msec_t              max_idle_timeout;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
     uint64_t                max_udp_payload_size;
@@ -204,7 +206,7 @@ typedef struct {
 
 typedef struct {
     xqc_preferred_addr_t    preferred_address;
-    xqc_msec_t              idle_timeout;
+    xqc_msec_t              max_idle_timeout;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
     uint64_t                max_udp_payload_size;

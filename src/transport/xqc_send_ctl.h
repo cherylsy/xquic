@@ -22,7 +22,7 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
 
 /*
  * A connection will time out if no packets are sent or received for a
-   period longer than the time specified in the idle_timeout transport
+   period longer than the time specified in the max_idle_timeout transport
    parameter (see Section 10).  However, state in middleboxes might time
    out earlier than that.  Though REQ-5 in [RFC4787] recommends a 2
    minute timeout interval, experience shows that sending packets every
@@ -35,7 +35,7 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
 typedef enum {
     XQC_TIMER_ACK_INIT,
     XQC_TIMER_ACK_HSK = XQC_TIMER_ACK_INIT + XQC_PNS_HSK,
-    XQC_TIMER_ACK_01RTT = XQC_TIMER_ACK_INIT + XQC_PNS_01RTT,
+    XQC_TIMER_ACK_01RTT = XQC_TIMER_ACK_INIT + XQC_PNS_APP_DATA,
     XQC_TIMER_LOSS_DETECTION,
     XQC_TIMER_IDLE,
     XQC_TIMER_DRAINING,

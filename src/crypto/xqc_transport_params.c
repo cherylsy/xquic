@@ -15,8 +15,7 @@ xqc_transport_params_copy_from_settings(xqc_transport_params_t *dest,
     dest->initial_max_data = src->max_data;
     dest->initial_max_streams_bidi = src->max_streams_bidi;
     dest->initial_max_streams_uni = src->max_streams_uni;
-
-    dest->idle_timeout = src->idle_timeout;
+    dest->max_idle_timeout = src->max_idle_timeout;
     dest->max_udp_payload_size = src->max_udp_payload_size;
     dest->stateless_reset_token_present = src->stateless_reset_token_present;
     if (src->stateless_reset_token_present) {
@@ -46,10 +45,10 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
                xqc_put_varint_len(params->original_dest_connection_id.cid_len) + 
                params->original_dest_connection_id.cid_len;
     }
-    if (params->idle_timeout) {
+    if (params->max_idle_timeout) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_MAX_IDLE_TIMEOUT) + 
-               xqc_put_varint_len(xqc_put_varint_len(params->idle_timeout)) +
-               xqc_put_varint_len(params->idle_timeout);
+               xqc_put_varint_len(xqc_put_varint_len(params->max_idle_timeout)) +
+               xqc_put_varint_len(params->max_idle_timeout);
     }
     if (XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS == exttype 
         && params->stateless_reset_token_present) 
@@ -58,7 +57,7 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
                xqc_put_varint_len(XQC_STATELESS_RESET_TOKENLEN) + 
                XQC_STATELESS_RESET_TOKENLEN;
     }
-    if (params->max_udp_payload_size != XQC_MAX_PKT_SIZE) {
+    if (params->max_udp_payload_size != XQC_MAX_UDP_PAYLOAD_SIZE) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_MAX_UDP_PAYLOAD_SIZE) + 
                xqc_put_varint_len(xqc_put_varint_len(params->max_udp_payload_size)) +
                xqc_put_varint_len(params->max_udp_payload_size);
@@ -188,9 +187,9 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
                        params->original_dest_connection_id.cid_len);
     }
 
-    if (params->idle_timeout) {
+    if (params->max_idle_timeout) {
         p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_MAX_IDLE_TIMEOUT, 
-                                 params->idle_timeout);
+                                 params->max_idle_timeout);
     }
 
     if (XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS == exttype 
@@ -201,7 +200,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
         p = xqc_cpymem(p, params->stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
     }
 
-    if (params->max_udp_payload_size != XQC_MAX_PKT_SIZE) {
+    if (params->max_udp_payload_size != XQC_MAX_UDP_PAYLOAD_SIZE) {
         p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_MAX_UDP_PAYLOAD_SIZE, 
                                  params->max_udp_payload_size);
     }
@@ -313,7 +312,7 @@ void xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
     dest->max_data = src->initial_max_data;
     dest->max_streams_bidi = src->initial_max_streams_bidi;
     dest->max_streams_uni = src->initial_max_streams_uni;
-    dest->idle_timeout = src->idle_timeout;
+    dest->max_idle_timeout = src->max_idle_timeout;
     dest->max_udp_payload_size = src->max_udp_payload_size;
     dest->stateless_reset_token_present = src->stateless_reset_token_present;
     if (src->stateless_reset_token_present) {
@@ -451,7 +450,7 @@ static int
 xqc_decode_max_idle_timeout(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
                                        const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
-    XQC_DECODE_VINT_VALUE(&params->idle_timeout, p, end);
+    XQC_DECODE_VINT_VALUE(&params->max_idle_timeout, p, end);
 }
 
 static int
@@ -757,10 +756,10 @@ xqc_decode_transport_params(xqc_transport_params_t *params,
     /* Set default values */
     params->preferred_address_present = 0;
     params->original_dest_connection_id_present = 0;
-    params->idle_timeout = 0;
+    params->max_idle_timeout = 0;
 
     params->stateless_reset_token_present = 0;
-    params->max_udp_payload_size = XQC_MAX_PKT_SIZE;
+    params->max_udp_payload_size = XQC_MAX_UDP_PAYLOAD_SIZE;
 
     params->initial_max_data = 0;
     params->initial_max_streams_bidi = 0;
