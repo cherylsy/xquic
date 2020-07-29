@@ -2841,7 +2841,7 @@ int xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_
 }
 
 int
-xqc_http3_check_malformed_headers(xqc_h3_stream_t * h3_stream)
+xqc_h3_check_malformed_headers(xqc_h3_stream_t * h3_stream)
 {
     uint8_t cursor = h3_stream->h3_request->h3_header.writing_cursor;
     xqc_http_headers_t *headers = &h3_stream->h3_request->h3_header.headers[cursor];
@@ -2924,8 +2924,8 @@ int xqc_http3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,  xqc_h3_strea
             }
             //h3_request->flag |= XQC_H3_REQUEST_HEADER_CAN_READ;
 
-            if (XQC_OK != xqc_http3_check_malformed_headers(h3_stream)) {
-                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_check_malformed_headers error|");
+            if (XQC_OK != xqc_h3_check_malformed_headers(h3_stream)) {
+                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_check_malformed_headers error|");
                 return -XQC_H3_INVALID_HEADER;
             }
 
