@@ -97,7 +97,7 @@ int g_echo_check;
 int g_drop_rate;
 int g_spec_url;
 int g_is_get;
-//currently, the maximum used test case id is 15
+//currently, the maximum used test case id is 19
 //please keep this comment updated if you are adding more test cases. :-D
 int g_test_case;
 int g_ipv6;
@@ -364,6 +364,14 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *
         };
         xqc_h3_conn_set_settings(conn, settings);
     }
+
+    if (g_test_case == 19) { /* test header size constraints */
+        xqc_h3_conn_settings_t settings = {
+                .max_field_section_size = 100,
+        };
+        xqc_h3_conn_set_settings(conn, settings);
+    }
+        
     printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(conn));
     return 0;
 }

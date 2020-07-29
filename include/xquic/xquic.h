@@ -315,8 +315,7 @@ typedef struct xqc_conn_settings_s {
 } xqc_conn_settings_t;
 
 typedef struct xqc_h3_conn_settings_s {
-    uint64_t max_header_list_size;
-    uint64_t num_placeholders;
+    uint64_t max_field_section_size;
     uint64_t max_pushes;
     uint64_t qpack_max_table_capacity;
     uint64_t qpack_blocked_streams;

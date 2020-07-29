@@ -223,6 +223,17 @@ fi
 grep_err_log
 
 clear_log
+echo -e "header size constraints ...\c"
+./test_client -s 1024 -l d -t 1 -E -x 19 -n 2 >> clog
+if grep -e "xqc_h3_stream_send_headers.*fields_size.*exceed.*SETTINGS_MAX_FIELD_SECTION_SIZE.*" slog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
+grep_err_log|grep -v xqc_h3_stream_send_headers
+
+
+clear_log
 echo -e "send 1K data ...\c"
 ./test_client -s 1024 -l d -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log

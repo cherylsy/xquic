@@ -141,8 +141,7 @@ typedef struct {
 } xqc_http3_frame_cancel_push;
 
 typedef enum {
-  XQC_HTTP3_SETTINGS_ID_MAX_HEADER_LIST_SIZE = 0x06,
-  XQC_HTTP3_SETTINGS_ID_NUM_PLACEHOLDERS = 0x09,
+  XQC_HTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE = 0x06,
   XQC_HTTP3_SETTINGS_ID_QPACK_MAX_TABLE_CAPACITY = 0x01,
   XQC_HTTP3_SETTINGS_ID_QPACK_BLOCKED_STREAMS = 0x07,
 } xqc_http3_settings_id;
@@ -255,4 +254,7 @@ int xqc_buf_to_tail(xqc_list_head_t *phead, char *data, int data_len, uint8_t fi
 int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream);
 
 xqc_data_buf_t *xqc_create_data_buf(int buf_size, int data_len);
+
+uint64_t xqc_h3_uncompressed_fields_size(xqc_http_headers_t *headers);
+
 #endif /* _XQC_H3_FRAME_H_INCLUDED_ */

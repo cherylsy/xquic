@@ -6,6 +6,8 @@
 #include "src/http3/xqc_h3_stream.h"
 #include "src/http3/xqc_h3_qpack.h"
 
+#define XQC_H3_SETTINGS_UNSET XQC_MAX_UINT64_VALUE
+
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 
@@ -53,9 +55,9 @@ struct xqc_h3_conn_s {
 
     xqc_list_head_t             block_stream_head;
 
-    xqc_h3_conn_settings_t      h3_conn_settings;
+    xqc_h3_conn_settings_t      local_h3_conn_settings; //set by user for sending to the peer 
+    xqc_h3_conn_settings_t      peer_h3_conn_settings;  //receive from peer
 };
-
 
 extern const xqc_conn_callbacks_t h3_conn_callbacks;
 
