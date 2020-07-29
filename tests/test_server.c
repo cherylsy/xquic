@@ -335,13 +335,18 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .flags  = 0,
             },
             {
-                    .name   = {.iov_base = "host", .iov_len = 4},
-                    .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
+                    .name   = {.iov_base = ":path", .iov_len = 5},
+                    .value  = {.iov_base = g_path, .iov_len = strlen(g_path)},
                     .flags  = 0,
             },
             {
-                    .name   = {.iov_base = ":path", .iov_len = 5},
-                    .value  = {.iov_base = g_path, .iov_len = strlen(g_path)},
+                    .name   = {.iov_base = ":status", .iov_len = 7},
+                    .value  = {.iov_base = "200", .iov_len = 3},
+                    .flags  = 0,
+            },
+            {
+                    .name   = {.iov_base = "host", .iov_len = 4},
+                    .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
                     .flags  = 0,
             },
             {
@@ -354,11 +359,6 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                     .value  = {.iov_base = "512", .iov_len = 3},
                     .flags  = 0,
             },*/
-            {
-                    .name   = {.iov_base = ":status", .iov_len = 7},
-                    .value  = {.iov_base = "200", .iov_len = 3},
-                    .flags  = 0,
-            },
             /*{
                     .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
                     .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
