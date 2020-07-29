@@ -296,9 +296,9 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t
         if (processed < 0) { //process error
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_conn_read_bidi error|%z|", processed);
             if (processed == -XQC_H3_INVALID_HEADER) {
-                XQC_H3_CONN_ERR(h3_conn, HTTP_GENERAL_PROTOCOL_ERROR, -XQC_H3_EPROC_REQUEST);
+                XQC_H3_CONN_ERR(h3_conn, H3_GENERAL_PROTOCOL_ERROR, -XQC_H3_EPROC_REQUEST);
             } else {
-                XQC_H3_CONN_ERR(h3_conn, HTTP_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
+                XQC_H3_CONN_ERR(h3_conn, H3_FRAME_ERROR, -XQC_H3_EPROC_REQUEST);
             }
             return -XQC_H3_EPROC_REQUEST;
         }

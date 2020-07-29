@@ -816,25 +816,6 @@ int xqc_http3_handle_recv_data_buf(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3
     return 0;
 }
 
-int xqc_http3_check_malformed_headers(xqc_h3_stream_t * h3_stream){
-    uint8_t read_cursor = h3_stream->h3_request->h3_header.read_flag - 1;
-    xqc_http_headers_t *headers = &h3_stream->h3_request->h3_header.headers[read_cursor];
-
-    //Malformed Requests and Responses: pseudo-header fields after regular-header fields.
-    int regular_header_fields_exist_flag = 0;
-    for (int i = 0; i < headers->count; i++) {
-        char* name = (char*)headers->headers[i].name.iov_base;
-        if(name[0] == ':') {
-            if(regular_header_fields_exist_flag) {
-                return XQC_ERROR;
-            }
-        } else {
-           regular_header_fields_exist_flag = 1;
-        }
-    }
-    return XQC_OK;
-}
-
 
 ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, uint8_t fin){
 
@@ -965,12 +946,6 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                 if(nread < 0){
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
                     return nread;
-                }
-
-                int ret = xqc_http3_check_malformed_headers(h3_stream);
-                if (ret) {
-                    xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_check_malformed_headers error, r_state:%d|", rstate->state);
-                    return -XQC_H3_INVALID_HEADER;
                 }
 
                 p += nread;
