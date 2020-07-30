@@ -16,6 +16,8 @@
 #include "src/crypto/xqc_tls_public.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_engine.h"
+#include "src/common/xqc_hash.h"
+
 
 //#define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -177,7 +179,6 @@ static uint64_t g_process_count_array[NGX_PROCESS_NUM];
 
 int benchmark_run(client_ctx_t *ctx , int conn_num);
 int  light_benchmark(client_ctx_t * ctx);
-uint32_t ngx_murmur_hash2(u_char *data, size_t len);
 
 static inline uint64_t now()
 {
@@ -737,17 +738,12 @@ static void xqc_client_concurrent_callback(int fd, short what, void *arg){
         }
     }else if(g_test_mode == 1){
         if(g_user_stats.total_stream_count % 10000 == 0){
-            printf("******** create 10000 streams, calltime:%lu\n", now());
+            printf("******** create %"PRIu64" streams, calltime:%lu\n", g_user_stats.total_stream_count, now());
         }
         if(ctx->cur_conn_num >= g_max_conn_num){
             printf("******* current conn num:%d, max conn num:%d\n", ctx->cur_conn_num, g_max_conn_num);
         }else{
             light_benchmark(ctx);
-#if 0
-            if(benchmark_run(ctx, g_conn_num) < 0){
-                printf("create connection failed1\n");
-            }
-#endif
         }
 
     }
@@ -910,27 +906,6 @@ client_ctx_t * client_create_context_new(){
 }
 
 
-//no need ?
-#if 0
-int client_close_stream(user_stream_t *user_stream){
-
-    int fin = 1;
-    ssize_t send_success = xqc_stream_send(user_stream->stream, NULL, 0, fin);
-
-    if (send_success == 1) {
-        return 0;
-    }
-
-    if (send_success == -XQC_EAGAIN) {
-        return -EAGAIN;
-    }
-
-    return send_success;
-
-}
-#endif
-
-
 user_conn_t * client_create_connection(client_ctx_t * ctx){
     xqc_engine_t * engine = ctx->engine;
     user_conn_t *user_conn = malloc(sizeof(user_conn_t));
@@ -1001,7 +976,7 @@ user_conn_t * client_create_connection(client_ctx_t * ctx){
     //for test dcid hash
     xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, cid, 's');
 
-    uint32_t hash = ngx_murmur_hash2(conn->dcid.cid_buf, conn->dcid.cid_len);
+    uint32_t hash = xqc_murmur_hash2(conn->dcid.cid_buf, conn->dcid.cid_len);
 
     g_process_count_array[hash% NGX_PROCESS_NUM]++;
 
@@ -1348,39 +1323,6 @@ int client_print_stats(){
     return 0;
 }
 
-void print_stat_thread(void){
-
-    while(1){
-        client_print_stats();
-        static int n_second = 0;
-
-        if(n_second % 10 == 0){
-            g_session_len = read_file_data(g_session_ticket_data, sizeof(g_session_ticket_data), "test_session");
-            //g_tp_len = read_file_data(g_tp_data, sizeof(g_tp_data), "tp_localhost");
-            if(g_session_len <= 0){
-                printf("*********g_session_len :%d, g_tp_len:%d\n", g_session_len, g_tp_len);
-            }
-
-            g_token_len = xqc_client_read_token(g_token, sizeof(g_token));
-            if(g_token_len < 0){
-                g_token_len = 0;
-            }
-        }
-
-        if(n_second % 30 == 0){
-
-            int i = 0;
-            for(i = 0; i < NGX_PROCESS_NUM; i++){
-                printf("proc_n:%d\t hash_count:%lu\n",i,g_process_count_array[i]);
-            }
-            printf("\n");
-        }
-
-        n_second++;
-        sleep(1);
-    }
-}
-
 int parse_args(int argc, char *argv[]){
 
     int ch = 0;
@@ -1442,9 +1384,9 @@ int parse_args(int argc, char *argv[]){
             case 'm':
                 g_test_mode = atoi(optarg);
                 if(atoi(optarg) == 0){
-                    printf("test mode : 测试并发模式\n");
+                    printf("test mode : concurrent mode\n");
                 }else if(atoi(optarg) == 1){
-                    printf("test mode : 测试新建模式\n");
+                    printf("test mode : create connections mode\n");
                 }else{
                     printf("error mode :%s", optarg);
                     return -1;
@@ -1464,49 +1406,7 @@ int parse_args(int argc, char *argv[]){
 
 }
 
-uint32_t ngx_murmur_hash2(u_char *data, size_t len)
-{
-    uint32_t  h, k;
-
-    h = 0 ^ len;
-
-    while (len >= 4) {
-        k  = data[0];
-        k |= data[1] << 8;
-        k |= data[2] << 16;
-        k |= data[3] << 24;
-
-        k *= 0x5bd1e995;
-        k ^= k >> 24;
-        k *= 0x5bd1e995;
-
-        h *= 0x5bd1e995;
-        h ^= k;
-
-        data += 4;
-        len -= 4;
-    }
-
-    switch (len) {
-        case 3:
-            h ^= data[2] << 16;
-        case 2:
-            h ^= data[1] << 8;
-        case 1:
-            h ^= data[0];
-            h *= 0x5bd1e995;
-    }
-
-    h ^= h >> 13;
-    h *= 0x5bd1e995;
-    h ^= h >> 15;
-
-    return h;
-}
-
 int main(int argc, char *argv[]) {
-
-    //printf("Usage: %s XQC_QUIC_VERSION:%d\n", argv[0], XQC_QUIC_VERSION);
 
     int rc;
     memset(g_server_addr, 0, sizeof(g_server_addr));
@@ -1564,19 +1464,6 @@ int main(int argc, char *argv[]) {
         printf("ctx create error\n");
         exit(0);
     }
-#if 0
-    if(benchmark_run(ctx, g_conn_num) < 0){
-        printf("***************benchmark_run failed\n");
-    }
-#endif
-
-    pthread_t id;
-    int ret = pthread_create(&id, NULL, (void *)print_stat_thread, NULL);
-    if(ret != 0){
-        printf ("Create pthread error!\n");
-        exit(0);
-    }
-
 
     event_base_dispatch(ctx->eb);
 }
