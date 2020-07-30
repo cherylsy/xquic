@@ -221,6 +221,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             case 0x16 ... 0x17:
                 ret = xqc_process_streams_blocked_frame(conn, packet_in);
                 break;
+            case 0x18:
+                ret = xqc_process_new_conn_id_frame(conn, packet_in);
+                break;
             case 0x1c ... 0x1d:
                 ret = xqc_process_conn_close_frame(conn, packet_in);
                 break;
@@ -551,6 +554,23 @@ xqc_process_ping_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     return XQC_OK;
 }
+
+
+xqc_int_t
+xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    xqc_int_t ret;
+
+    ret = xqc_parse_new_conn_id_frame(packet_in);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_parse_conn_close_frame error|");
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
 
 xqc_int_t
 xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
