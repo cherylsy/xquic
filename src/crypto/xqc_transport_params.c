@@ -350,7 +350,9 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
     }
 
     xqc_transport_params_copy_from_settings(params, &conn->local_settings);
-    if ((conn->conn_type == XQC_CONN_TYPE_SERVER) && (conn->tlsref.flags & XQC_CONN_FLAG_OCID_PRESENT)) {
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER 
+        && conn->ocid.cid_len > 0) 
+    {
         xqc_cid_init(&params->original_dest_connection_id, conn->ocid.cid_buf,
                 conn->ocid.cid_len);
         params->original_dest_connection_id_present = 1;
