@@ -564,7 +564,7 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     ret = xqc_parse_new_conn_id_frame(packet_in);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR,
-                "|xqc_parse_conn_close_frame error|");
+                "|xqc_parse_new_conn_id_frame error|");
         return ret;
     }
 
