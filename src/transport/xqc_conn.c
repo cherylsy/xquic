@@ -324,16 +324,16 @@ xqc_conn_server_create(xqc_engine_t *engine,
         return NULL;
     }
 
-    if(xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0){
-        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to tls_initial|");
-        goto fail;
-    }
-
     xqc_cid_copy(&conn->ocid, scid);
     xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
     xqc_memcpy(conn->peer_addr, peer_addr, peer_addrlen);
     conn->local_addrlen = local_addrlen;
     conn->peer_addrlen = peer_addrlen;
+
+    if (xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|fail to tls_initial|");
+        goto fail;
+    }
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 

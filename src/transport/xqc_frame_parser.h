@@ -38,6 +38,8 @@ int xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_
 
 int xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_info_t *ack_info);
 
+int xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in);
+
 int xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, uint64_t err_code, int is_app, int frame_type);
 
 int xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code);
