@@ -538,7 +538,6 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
             /* If not a TLP packet, mark it LOST */
             if (!(packet_out->po_flag & XQC_POF_TLP)) {
                 packet_out->po_flag |= XQC_POF_LOST;
-                xqc_log(conn->log, XQC_LOG_DEBUG,"=====%d========%d",packet_out->po_flag, __LINE__);
             }
             xqc_log(conn->log, XQC_LOG_DEBUG,
                     "|retransmit_lost_packets|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
