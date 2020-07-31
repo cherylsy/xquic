@@ -512,9 +512,13 @@ int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
     return XQC_OK;
 }
 
+typedef enum {
+    XQC_SEND_TYPE_NORMAL,
+    XQC_SEND_TYPE_RETRANS,
+} xqc_send_type_t;
 
 int 
-xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest)
+xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest, xqc_send_type_t send_type)
 {
     struct iovec iov_array[XQC_MAX_SEND_MSG_ONCE];
     char enc_pkt_array[XQC_MAX_SEND_MSG_ONCE][XQC_PACKET_OUT_SIZE_EXT];
@@ -523,16 +527,32 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+    unsigned inflight = ctl->ctl_bytes_in_flight;
     ssize_t ret;
 
     xqc_msec_t now = xqc_now();
     xqc_list_for_each_safe(pos, next, head) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
+        if (send_type == XQC_SEND_TYPE_RETRANS) {
+            /* If not a TLP packet, mark it LOST */
+            if (!(packet_out->po_flag & XQC_POF_TLP)) {
+                packet_out->po_flag |= XQC_POF_LOST;
+            }
+            xqc_log(conn->log, XQC_LOG_DEBUG,
+                    "|retransmit_lost_packets|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
+                    conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
+                    xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
+                    xqc_frame_type_2_str(packet_out->po_frame_types));
+        }
+
         if (congest) {
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 /* 优先级高的包一定在前面 */
-                if (!xqc_send_ctl_can_send(conn, packet_out)) {
+                if (!xqc_send_ctl_can_send(conn, packet_out) ||
+                    inflight + packet_out->po_used_size > ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong))
+                {
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|can not send|");
                     break;
                 }
 
@@ -546,6 +566,7 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
                         xqc_pacing_on_packet_sent(&ctl->ctl_pacing, ctl, ctl->ctl_conn, packet_out);
                     }
                 }
+                inflight += packet_out->po_used_size;
             }
         }
 
@@ -620,7 +641,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn){
 
     int congest = 0; // 不过拥塞控制
     while(!(xqc_list_empty(head))){
-        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest);
+        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_NORMAL);
         if(send_burst_count != XQC_MAX_SEND_MSG_ONCE){
             break;
         }
@@ -629,7 +650,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn){
     head = &ctl->ctl_send_packets;
     congest = 1;
     while(!(xqc_list_empty(head))){
-        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest);
+        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_NORMAL);
         if(send_burst_count != XQC_MAX_SEND_MSG_ONCE){
             break;
         }
@@ -734,7 +755,7 @@ int xqc_conn_enc_packet(xqc_connection_t *conn,
 
     packet_out->po_sent_time = current_time;
 
-    packet_out->po_flag &= XQC_POF_ENCRYPTED;
+    packet_out->po_flag |= XQC_POF_ENCRYPTED;
 
     return 0;
 }
@@ -849,11 +870,11 @@ void
 xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn)
 {
     xqc_list_head_t *head;
-    int congest = 1; /* need congestion control */
+    int congest = 0; /* no congestion control */
 
     head = &conn->conn_send_ctl->ctl_lost_packets;
     while(!(xqc_list_empty(head))){
-        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest);
+        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_RETRANS);
         if(send_burst_count != XQC_MAX_SEND_MSG_ONCE){
             break;
         }
