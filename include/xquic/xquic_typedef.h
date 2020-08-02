@@ -37,6 +37,7 @@ typedef struct xqc_stream_frame_s xqc_stream_frame_t;
 typedef struct xqc_ssl_config xqc_ssl_config_t;
 typedef struct xqc_h3_request_s xqc_h3_request_t;
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
+typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 typedef struct xqc_sample_s xqc_sample_t;
 typedef struct xqc_ssl_session_ticket_key_s xqc_ssl_session_ticket_key_t;
 typedef struct xqc_memory_pool_s xqc_memory_pool_t;

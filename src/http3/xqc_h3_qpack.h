@@ -14,14 +14,16 @@
 #include "src/http3/xqc_h3_qpack_huffman.h"
 
 
-#define XQC_QPACK_MAX_TABLE_CAPACITY          (4*1024)
-#define XQC_QPACK_DEFAULT_MAX_DTABLE_SIZE     (4*1024)
-#define XQC_QPACK_DEFAULT_BLOCK_STREAM        (64)
-#define XQC_QPACK_DEFAULT_HASH_TABLE_SIZE     (128)  //(8*1024) -> 4096/32
+#define XQC_QPACK_MAX_TABLE_CAPACITY            (4*1024)
+#define XQC_QPACK_DEFAULT_MAX_DTABLE_SIZE       (4*1024)
+#define XQC_QPACK_DEFAULT_BLOCK_STREAM          (64)
+#define XQC_QPACK_DEFAULT_HASH_TABLE_SIZE       (128)  //(8*1024) -> 4096/32
 
-typedef struct xqc_h3_stream_s xqc_h3_stream_t;
-#define XQC_HTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
-#define XQC_HTTP3_QPACK_ENTRY_OVERHEAD 32
+#define XQC_QPACK_PREFIXED_INT_BITMASK(n)       ((1LL << n) - 1)
+#define XQC_QPACK_PREFIXED_INT_BASE             128
+
+#define XQC_QPACK_INT_MAX                       ((1ull << 62) - 1)
+#define XQC_QPACK_ENTRY_OVERHEAD                32
 
 #define XQC_VAR_BUF_INIT_SIZE 256
 #define XQC_VAR_INT_LEN 16

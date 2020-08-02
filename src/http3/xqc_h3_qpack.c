@@ -12,7 +12,7 @@
 
 
 static size_t xqc_table_space(size_t namelen, size_t valuelen) {
-    return XQC_HTTP3_QPACK_ENTRY_OVERHEAD + namelen + valuelen;
+    return XQC_QPACK_ENTRY_OVERHEAD + namelen + valuelen;
 }
 
 
@@ -217,11 +217,11 @@ ssize_t xqc_http3_qpack_read_varint(uint64_t *pdest, uint8_t *begin, uint8_t *en
         if(shift > 62){
             return -XQC_QPACK_DECODER_VARINT_ERROR;
         }
-        if((XQC_HTTP3_QPACK_INT_MAX >> shift) < add){
+        if((XQC_QPACK_INT_MAX >> shift) < add){
             return -XQC_QPACK_DECODER_VARINT_ERROR;//bigger than max varint
         }
         add <<= shift;
-        if(XQC_HTTP3_QPACK_INT_MAX - add < n){
+        if(XQC_QPACK_INT_MAX - add < n){
             return -XQC_QPACK_DECODER_VARINT_ERROR; //too big
         }
 
@@ -405,7 +405,7 @@ int xqc_http3_qpack_encoder_write_literal(xqc_http3_qpack_encoder * encoder, xqc
 
 int xqc_http3_qpack_encoder_write_header_block_prefix(xqc_http3_qpack_encoder *encoder, xqc_var_buf_t *p_buf, size_t ricnt, size_t base){
 
-    size_t max_ents = encoder->ctx.max_table_capacity/XQC_HTTP3_QPACK_ENTRY_OVERHEAD;
+    size_t max_ents = encoder->ctx.max_table_capacity / XQC_QPACK_ENTRY_OVERHEAD;
 
     size_t encricnt =  (ricnt == 0) ? 0 : ((ricnt %(2 * max_ents))+1); //absidx means ricnt in a [abs/(2*max_ents)*(2*max_ents, (1+abs/(2*max_ents))*2*max_ents], encrint only record offset
 
@@ -470,11 +470,11 @@ ssize_t xqc_qpack_read_varint(int *fin, xqc_http3_qpack_read_state *rstate, uint
         if(shift > 62){ //shift means already read bits
             return -XQC_QPACK_DECODER_VARINT_ERROR;//need return error
         }
-        if((XQC_HTTP3_QPACK_INT_MAX >> shift) < add){
+        if((XQC_QPACK_INT_MAX >> shift) < add){
             return -XQC_QPACK_DECODER_VARINT_ERROR;//bigger than max varint
         }
         add <<= shift;
-        if(XQC_HTTP3_QPACK_INT_MAX - add < n){
+        if(XQC_QPACK_INT_MAX - add < n){
             return -XQC_QPACK_DECODER_VARINT_ERROR; //too big
         }
 
@@ -504,7 +504,7 @@ int xqc_http3_qpack_decoder_reconstruct_ricnt(xqc_http3_qpack_decoder *decoder, 
         *dest = 0;
         return 0;
     }
-    max_ents = decoder->ctx.max_table_capacity / XQC_HTTP3_QPACK_ENTRY_OVERHEAD;
+    max_ents = decoder->ctx.max_table_capacity / XQC_QPACK_ENTRY_OVERHEAD;
 
     full = 2*max_ents;
 
@@ -612,7 +612,7 @@ int xqc_http3_qpack_context_init(xqc_http3_qpack_context * ctx, uint64_t max_tab
     ctx->dtable_size = 0;
     ctx->dtable_sum = 0;
 
-    size_t nmemb = max_table_capacity/XQC_HTTP3_QPACK_ENTRY_OVERHEAD;
+    size_t nmemb = max_table_capacity / XQC_QPACK_ENTRY_OVERHEAD;
     int ret = 0;
     ret = xqc_http3_ringdata_init(&ctx->dtable_data, max_dtable_size);
     if(ret < 0){
@@ -1484,9 +1484,6 @@ int xqc_qpack_write_number(xqc_var_buf_t **pp_buf, uint8_t fb, uint64_t num, siz
 }
 
 
-#define XQC_QPACK_PREFIXED_INT_BITMASK(n)   ((1LL << n) - 1)
-#define XQC_QPACK_PREFIXED_INT_BASE         128
-
 /*
  * https://tools.ietf.org/html/rfc7541#section-5.1
  * Pseudocode to represent an integer I is as follows:
@@ -1512,7 +1509,7 @@ xqc_h3_qpack_encode_prefixed_integer(unsigned char *buf,
         return -XQC_H3_EQPACK_ENCODE;
     }
 
-    if (prefixed_int < XQC_QPACK_PREFIXED_INT_BITMASK(n)){ 
+    if (prefixed_int < XQC_QPACK_PREFIXED_INT_BITMASK(n)) { 
         /* encode I on N bits */
 
         *pos |= (unsigned char)(prefixed_int & XQC_QPACK_PREFIXED_INT_BITMASK(n));
@@ -1555,7 +1552,7 @@ xqc_h3_qpack_encode_prefixed_integer(unsigned char *buf,
  *    +---+---+---+-------------------+
  */
 int 
-xqc_h3_qpack_stream_write_set_dtable_cap(xqc_h3_stream_t * qenc_stream, 
+xqc_h3_qpack_encoder_write_set_dtable_cap(xqc_h3_stream_t * qenc_stream, 
     xqc_http3_qpack_encoder * encoder)
 {
     xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf(4);
@@ -1587,27 +1584,33 @@ err:
 }
 
 
-int xqc_http3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, size_t cap){ //缓存大小调整，在调整大的时候扩大缓存的实现暂未实现, 调整小时不缩小缓存的内存
-
+/* lack of downsizing implemention */
+int 
+xqc_h3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, size_t cap)
+{
     xqc_http3_qpack_entry *ent;
     size_t i;
     ssize_t ret;
     xqc_http3_qpack_context *ctx = &decoder->ctx;
 
-    if(cap > ctx->max_table_capacity){
+    xqc_log(decoder->h3_conn->log, XQC_LOG_DEBUG, 
+                "|qpack_decoder_set_dtable_cap, capacity:%d|origin cap:%ui|", 
+                cap, ctx->max_dtable_size);
+
+    if (cap > ctx->max_table_capacity) {
         return -XQC_QPACK_SET_DTABLE_CAP_ERROR;
     }
 
     ctx->max_dtable_size = cap;
 
-    if(ctx->max_dtable_size > ctx->dtable_data.capacity){
+    if (ctx->max_dtable_size > ctx->dtable_data.capacity) {
         ret = xqc_http3_qpack_encoder_expand_dtable_size(ctx, ctx->max_dtable_size);
-        if(ret < 0){
+        if (ret < 0) {
             return -XQC_QPACK_SET_DTABLE_CAP_ERROR;
         }
     }
 
-    while(ctx->dtable_size > cap){
+    while (ctx->dtable_size > cap) {
 
         i = xqc_http3_ringbuf_len(&ctx->dtable);
         ent = (xqc_http3_qpack_entry *)xqc_http3_ringbuf_get(&ctx->dtable, i - 1);
@@ -1624,11 +1627,9 @@ int xqc_http3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, si
         }
 
         xqc_http3_ringbuf_pop_back(&ctx->dtable);
-
     }
 
-    //xqc_log(decoder->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:set dtable capacity, capacity:%d|", cap);
-    return 0;
+    return XQC_OK;
 }
 
 int xqc_http3_qpack_decoder_rel2abs(xqc_http3_qpack_decoder * decoder, xqc_http3_qpack_read_state * rstate){
@@ -1924,7 +1925,7 @@ ssize_t xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * s
                     return p - src;
                 }
                 if(decoder->opcode == XQC_HTTP3_QPACK_ES_OPCODE_SET_DTABLE_CAP){
-                    rv = xqc_http3_qpack_decoder_set_dtable_cap(decoder, decoder->rstate.left); //need check little than SETTINGS_QPACK_MAX_TABLE_CAPACITY
+                    rv = xqc_h3_qpack_decoder_set_dtable_cap(decoder, decoder->rstate.left); //need check little than SETTINGS_QPACK_MAX_TABLE_CAPACITY
                     if(rv < 0){
                         goto fail;
                     }
