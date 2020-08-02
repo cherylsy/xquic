@@ -1631,8 +1631,12 @@ int xqc_http3_conn_on_max_push_id(xqc_h3_conn_t * conn, uint64_t push_id){
     return 0;
 }
 
-ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len){
-    if(data_len <= 0){
+
+ssize_t 
+xqc_h3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, 
+    char * data, ssize_t data_len)
+{
+    if (data_len <= 0) {
         return data_len;
     }
 
@@ -1642,7 +1646,7 @@ ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * 
 
     xqc_h3_frame_send_buf_t * send_buf = xqc_h3_frame_create_send_buf(data_len);
 
-    if(send_buf == NULL){
+    if (send_buf == NULL) {
         return -XQC_H3_EMALLOC;
     }
     memcpy(send_buf->data, data, data_len); //send raw data, no frame
@@ -1650,12 +1654,11 @@ ssize_t xqc_http3_qpack_encoder_stream_send(xqc_h3_stream_t * h3_stream, char * 
     send_buf->fin_flag = 0;
 
     int ret = xqc_h3_frame_data_buffer_and_send(h3_stream, send_buf);
-    if(ret < 0){
+    if (ret < 0) {
         return ret;
     }
 
     return data_len;
-
 }
 
 uint64_t
