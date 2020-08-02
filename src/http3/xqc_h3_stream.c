@@ -135,6 +135,15 @@ xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream,
     }
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|stream_type:%d|", stream->stream_id, stream_type);
 
+    /* Set Dynamic Table Capacity */
+    if (stream_type == XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER) {
+
+        if (xqc_h3_qpack_stream_write_set_dtable_cap(h3_conn->qenc_stream, &h3_conn->qenc) < 0) {
+            xqc_log(h3_conn->log, XQC_LOG_WARN, "|xqc_h3_qpack_stream_write_set_dtable_cap err|", stream->stream_id, stream_type);
+            return -XQC_H3_EQPACK_ENCODE;
+        }
+    }
+
     return XQC_OK;
 }
 

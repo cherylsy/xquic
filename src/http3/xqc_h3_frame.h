@@ -238,6 +238,9 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_str
 
 int xqc_h3_send_frame_buffer(xqc_h3_stream_t *h3_stream, xqc_list_head_t *head);
 
+xqc_h3_frame_send_buf_t * xqc_h3_frame_create_send_buf(size_t buf_len);
+int xqc_h3_stream_send_buf_add(xqc_h3_stream_t * h3_stream, xqc_h3_frame_send_buf_t * send_buf);
+
 int xqc_h3_stream_free_data_buf(xqc_h3_stream_t *h3_stream);
 
 ssize_t xqc_h3_write_headers(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, xqc_http_headers_t *headers,

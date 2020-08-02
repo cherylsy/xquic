@@ -1482,27 +1482,110 @@ int xqc_qpack_write_number(xqc_var_buf_t **pp_buf, uint8_t fb, uint64_t num, siz
     return 0;
 
 }
-int xqc_http3_qpack_encoder_write_set_dtable_cap(xqc_http3_qpack_encoder *encoder, xqc_var_buf_t ** p_enc_buf, size_t cap){
 
+
+#define XQC_QPACK_PREFIXED_INT_BITMASK(n)   ((1LL << n) - 1)
+#define XQC_QPACK_PREFIXED_INT_BASE         128
+
+/*
+ https://tools.ietf.org/html/rfc7541#section-5.1
+ Pseudocode to represent an integer I is as follows:
+
+ if I < 2^N - 1, encode I on N bits
+ else
+     encode (2^N - 1) on N bits
+     I = I - (2^N - 1)
+     while I >= 128
+          encode (I % 128 + 128) on 8 bits
+          I = I / 128
+     encode I on 8 bits
+
+
+ * @retval encode length
+ */
+ssize_t
+xqc_h3_qpack_encode_prefixed_integer(unsigned char *buf, 
+    size_t buf_size, int n, uint64_t prefixed_int)
+{
+    unsigned char *pos = buf, *end = buf + buf_size;
+    if (n > 8 || pos + 1 > end) {
+        return -XQC_H3_EQPACK_ENCODE;
+    }
+
+    if (prefixed_int < XQC_QPACK_PREFIXED_INT_BITMASK(n)){ 
+        /* encode I on N bits */
+
+        *pos |= (unsigned char)(prefixed_int & XQC_QPACK_PREFIXED_INT_BITMASK(n));
+        pos++;
+        return pos - buf;
+    }
+
+    *pos |= XQC_QPACK_PREFIXED_INT_BITMASK(n);
+    pos++;
+
+    prefixed_int -= XQC_QPACK_PREFIXED_INT_BITMASK(n);
+
+    while (prefixed_int >= XQC_QPACK_PREFIXED_INT_BASE) {
+
+        if (pos + 1 > end) {
+            return -XQC_H3_EQPACK_ENCODE;
+        }
+
+        *pos = prefixed_int % XQC_QPACK_PREFIXED_INT_BASE + XQC_QPACK_PREFIXED_INT_BASE;
+        pos++;
+        prefixed_int = prefixed_int / XQC_QPACK_PREFIXED_INT_BASE;
+    }
+
+    if (pos + 1 > end) {
+        return -XQC_H3_EQPACK_ENCODE;
+    }
+
+    *pos = (unsigned char)prefixed_int;
+    pos++;
+    
+    return pos - buf;
+}
+
+/*
+     4.3.1.  Set Dynamic Table Capacity
+
+       0   1   2   3   4   5   6   7
+     +---+---+---+---+---+---+---+---+
+     | 0 | 0 | 1 |   Capacity (5+)   |
+     +---+---+---+-------------------+
+ */
+int 
+xqc_h3_qpack_stream_write_set_dtable_cap(xqc_h3_stream_t * qenc_stream, 
+    xqc_http3_qpack_encoder * encoder)
+{
+    xqc_h3_frame_send_buf_t *send_buf = xqc_h3_frame_create_send_buf(4);
     xqc_http3_qpack_context *ctx = &encoder->ctx;
 
-    if(ctx->max_table_capacity < cap){
-        return -XQC_QPACK_SET_DTABLE_CAP_ERROR;
+    int ret = XQC_OK;
+    if (send_buf == NULL) {
+        return -XQC_H3_EMALLOC;
     }
 
-    if(ctx->dtable_size < cap){ //只支持设置大，如果设置小则不做动作
-        ctx->max_dtable_size = cap;
-        return xqc_qpack_write_number(p_enc_buf, 0x20, cap, 5);
-
-    }else{
-
-
-
+    send_buf->data[0] = 0x20;
+    ret = xqc_h3_qpack_encode_prefixed_integer(send_buf->data, send_buf->buf_len, 
+                                5, ctx->max_table_capacity);
+    if (ret < 0) {
+        goto err;
+    }
+    send_buf->data_len = ret;
+    
+    ret = xqc_h3_stream_send_buf_add(qenc_stream, send_buf);
+    if (ret < 0) {
+        goto err;
     }
 
-    return 0;
+    return XQC_OK;
 
+err:
+    xqc_free(send_buf);
+    return ret;
 }
+
 
 int xqc_http3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, size_t cap){ //缓存大小调整，在调整大的时候扩大缓存的实现暂未实现, 调整小时不缩小缓存的内存
 
