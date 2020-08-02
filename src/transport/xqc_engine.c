@@ -367,6 +367,10 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
+    engine->h3_ctx = xqc_h3_context_create();
+    if (engine->h3_ctx == NULL) {
+        goto fail;
+    }
     xqc_qpack_init_static_token_index();
 
     return engine;
@@ -471,6 +475,11 @@ xqc_engine_destroy(xqc_engine_t *engine)
 
     if (engine->log) {
         xqc_log_release(engine->log);
+    }
+
+    if (engine->h3_ctx) {
+        xqc_h3_context_free(engine->h3_ctx);
+        engine->h3_ctx = NULL;
     }
 
     xqc_free(engine);

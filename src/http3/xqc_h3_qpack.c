@@ -727,7 +727,7 @@ xqc_h3_qpack_encoder_init(xqc_http3_qpack_encoder *qenc,
     }
 
     qenc->h3_conn = h3_conn;
-    return 0;
+    return XQC_OK;
 }
 
 

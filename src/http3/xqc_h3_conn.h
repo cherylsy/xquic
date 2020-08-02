@@ -10,6 +10,7 @@
 
 typedef struct xqc_h3_conn_s xqc_h3_conn_t;
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
+typedef struct xqc_h3_context_s xqc_h3_context_t;
 
 /* Send CONNECTION_CLOSE with err if ret is an h3 retcode */
 #define XQC_H3_CONN_ERR(h3_conn, err, ret) do {                 \
@@ -61,6 +62,12 @@ struct xqc_h3_conn_s {
 
 extern const xqc_conn_callbacks_t h3_conn_callbacks;
 
+struct xqc_h3_context_s {
+    uint64_t                    qpack_encoder_max_table_capacity;
+    uint64_t                    qpack_decoder_max_table_capacity;
+};
+
+
 static inline void *
 xqc_conn_get_user_data(xqc_connection_t *conn)
 {
@@ -82,7 +89,6 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
 
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn);
-
 
 
 #endif /* _XQC_H3_CONN_H_INCLUDED_ */

@@ -37,6 +37,8 @@ typedef struct xqc_engine_s {
     xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
     xqc_ssl_session_ticket_key_t  session_ticket_key;
 
+    xqc_h3_context_t       *h3_ctx;
+
     xqc_engine_flag_t       engine_flag;
 #define XQC_RESET_CNT_ARRAY_LEN 16384
     uint8_t                 reset_sent_cnt[XQC_RESET_CNT_ARRAY_LEN]; /* remote addr hash */

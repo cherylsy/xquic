@@ -14,7 +14,7 @@
 #include "src/http3/xqc_h3_qpack_huffman.h"
 
 
-#define XQC_QPACK_MAX_TABLE_CAPACITY            (4*1024)
+#define XQC_QPACK_MAX_TABLE_CAPACITY            (16*1024)
 #define XQC_QPACK_DEFAULT_MAX_DTABLE_SIZE       (4*1024)
 #define XQC_QPACK_DEFAULT_BLOCK_STREAM          (64)
 #define XQC_QPACK_DEFAULT_HASH_TABLE_SIZE       (128)  //(8*1024) -> 4096/32
@@ -368,7 +368,7 @@ int xqc_http_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity);
 int xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, size_t cap);
 
 xqc_var_buf_t * xqc_var_buf_create(size_t capacity);
-int xqc_h3_qpack_stream_write_set_dtable_cap(xqc_h3_stream_t * qenc_stream, 
+int xqc_h3_qpack_encoder_write_set_dtable_cap(xqc_h3_stream_t * qenc_stream, 
     xqc_http3_qpack_encoder * encoder);
 int xqc_http3_stream_clear_unack_and_block_stream_list(xqc_h3_stream_t * h3_stream);
 #endif
