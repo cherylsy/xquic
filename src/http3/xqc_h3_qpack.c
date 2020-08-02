@@ -2658,7 +2658,8 @@ literal:
 }
 
 
-ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t * qenc_stream, 
+ssize_t 
+xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream, 
     xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
     xqc_http_headers_t * headers, int fin)
 {
@@ -2708,7 +2709,7 @@ ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
     rv = pp_h_data->used_len;
 
     if(p_enc_buf->used_len > 0){
-        send_size = xqc_http3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
+        send_size = xqc_h3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
         if(send_size != p_enc_buf->used_len){
             rv = -XQC_QPACK_SEND_ERROR;
             goto fail;
@@ -2813,7 +2814,7 @@ int xqc_http3_qpack_decoder_write_header_ack(xqc_h3_stream_t * qdec_stream, uint
 
     xqc_http3_qpack_put_varint(buf, stream_id, 7);
 
-    ssize_t ret = xqc_http3_qpack_encoder_stream_send(qdec_stream, buf, len);
+    ssize_t ret = xqc_h3_qpack_encoder_stream_send(qdec_stream, buf, len);
 
     if(ret != len){
         //need log
@@ -2821,7 +2822,8 @@ int xqc_http3_qpack_decoder_write_header_ack(xqc_h3_stream_t * qdec_stream, uint
     return 0;
 }
 
-int xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_stream, size_t insert_count){
+int 
+xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_stream, size_t insert_count){
 
     size_t len = xqc_http3_qpack_put_varint_len(insert_count, 6);
 
@@ -2831,12 +2833,12 @@ int xqc_http3_qpack_decoder_write_insert_count_increment(xqc_h3_stream_t * qdec_
 
     xqc_http3_qpack_put_varint(buf, insert_count, 6);
 
-    ssize_t ret = xqc_http3_qpack_encoder_stream_send(qdec_stream, buf, len);
+    ssize_t ret = xqc_h3_qpack_encoder_stream_send(qdec_stream, buf, len);
 
     if(ret != len){
         //need log
     }
-    return 0;
+    return XQC_OK;
 
 }
 

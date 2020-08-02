@@ -108,6 +108,8 @@ typedef enum
 #define XQC_H3_CONTROL_DECODE_ERROR     820 //control stream 解码错误，如遇到无法识别的frame type
 #define XQC_H3_CONTROL_DECODE_INVALID   821  // control stream decoder invalid, 例如剩余长度非法
 #define XQC_H3_PRIORITY_ERROR   822 //优先级相关错误
+#define XQC_H3_SETTING_ERROR    823 //SETTING相关错误
+
 
 #define XQC_H3_INVALID_FRAME_TYPE   830
 #define XQC_H3_UNSUPPORT_FRAME_TYPE 831
