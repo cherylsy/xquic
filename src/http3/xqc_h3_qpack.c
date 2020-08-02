@@ -1488,19 +1488,19 @@ int xqc_qpack_write_number(xqc_var_buf_t **pp_buf, uint8_t fb, uint64_t num, siz
 #define XQC_QPACK_PREFIXED_INT_BASE         128
 
 /*
- https://tools.ietf.org/html/rfc7541#section-5.1
- Pseudocode to represent an integer I is as follows:
-
- if I < 2^N - 1, encode I on N bits
- else
-     encode (2^N - 1) on N bits
-     I = I - (2^N - 1)
-     while I >= 128
-          encode (I % 128 + 128) on 8 bits
-          I = I / 128
-     encode I on 8 bits
-
-
+ * https://tools.ietf.org/html/rfc7541#section-5.1
+ * Pseudocode to represent an integer I is as follows:
+ *
+ * if I < 2^N - 1, encode I on N bits
+ * else
+ *    encode (2^N - 1) on N bits
+ *    I = I - (2^N - 1)
+ *    while I >= 128
+ *         encode (I % 128 + 128) on 8 bits
+ *         I = I / 128
+ *    encode I on 8 bits
+ *
+ *
  * @retval encode length
  */
 ssize_t
@@ -1547,12 +1547,12 @@ xqc_h3_qpack_encode_prefixed_integer(unsigned char *buf,
 }
 
 /*
-     4.3.1.  Set Dynamic Table Capacity
-
-       0   1   2   3   4   5   6   7
-     +---+---+---+---+---+---+---+---+
-     | 0 | 0 | 1 |   Capacity (5+)   |
-     +---+---+---+-------------------+
+ *    4.3.1.  Set Dynamic Table Capacity
+ *
+ *      0   1   2   3   4   5   6   7
+ *    +---+---+---+---+---+---+---+---+
+ *    | 0 | 0 | 1 |   Capacity (5+)   |
+ *    +---+---+---+-------------------+
  */
 int 
 xqc_h3_qpack_stream_write_set_dtable_cap(xqc_h3_stream_t * qenc_stream, 
