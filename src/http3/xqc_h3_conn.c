@@ -9,8 +9,8 @@
 xqc_h3_conn_settings_t default_local_h3_conn_settings = {
         .max_pushes                 = 0,
         .max_field_section_size     = 0,
-        .qpack_blocked_streams      = 0,
-        .qpack_max_table_capacity   = 0,
+        .qpack_blocked_streams      = XQC_QPACK_DEFAULT_BLOCK_STREAM,
+        .qpack_max_table_capacity   = XQC_QPACK_MAX_TABLE_CAPACITY,
 };
 
 xqc_h3_conn_settings_t default_peer_h3_conn_settings = {
@@ -123,11 +123,11 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     h3_conn->peer_h3_conn_settings = default_peer_h3_conn_settings;
 
     xqc_h3_qpack_encoder_init(&h3_conn->qenc,
-                        QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE,
-                        DEFAULT_QPACK_BLOCK_STREAM, DEFAULT_QPACK_HASH_TABLE_SIZE, h3_conn);
+                        XQC_QPACK_MAX_TABLE_CAPACITY, XQC_QPACK_DEFAULT_MAX_DTABLE_SIZE,
+                        XQC_QPACK_DEFAULT_BLOCK_STREAM, XQC_QPACK_DEFAULT_HASH_TABLE_SIZE, h3_conn);
     xqc_h3_qpack_decoder_init(&h3_conn->qdec,
-                        QPACK_MAX_TABLE_CAPACITY, DEFAULT_MAX_DTABLE_SIZE,
-                        DEFAULT_QPACK_BLOCK_STREAM, h3_conn);
+                        XQC_QPACK_MAX_TABLE_CAPACITY, XQC_QPACK_DEFAULT_MAX_DTABLE_SIZE,
+                        XQC_QPACK_DEFAULT_BLOCK_STREAM, h3_conn);
 
     xqc_init_list_head(&h3_conn->block_stream_head);
     h3_conn->qdec_stream = NULL;
@@ -209,9 +209,9 @@ int
 xqc_h3_conn_send_settings(xqc_h3_conn_t *h3_conn)
 {
     int ret;
-    ret = xqc_http3_stream_write_settings(h3_conn->control_stream_out, &h3_conn->local_h3_conn_settings);
+    ret = xqc_h3_stream_write_settings(h3_conn->control_stream_out, &h3_conn->local_h3_conn_settings);
     if (ret < 0) {
-        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_stream_write_settings error|");
+        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_write_settings error|");
         return ret;
     }
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|qpack_blocked_streams:%ui|qpack_max_table_capacity:%ui|"

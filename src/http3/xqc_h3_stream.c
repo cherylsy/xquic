@@ -121,11 +121,11 @@ xqc_h3_stream_create_qpack_stream(xqc_h3_conn_t *h3_conn, xqc_stream_t * stream,
 
     xqc_h3_stream_t *h3_stream = xqc_h3_stream_create(h3_conn, stream, stream_type, NULL);
 
-    if(stream_type == XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER){
+    if (stream_type == XQC_HTTP3_STREAM_TYPE_QPACK_ENCODER) {
         h3_conn->qenc_stream = h3_stream;
-    }else if(stream_type == XQC_HTTP3_STREAM_TYPE_QPACK_DECODER){
+    } else if (stream_type == XQC_HTTP3_STREAM_TYPE_QPACK_DECODER) {
         h3_conn->qdec_stream = h3_stream;
-    }else{
+    } else {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|xqc_create_qpack_stream error|");
         return -XQC_H3_ECREATE_STREAM;
     }
@@ -167,7 +167,7 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     ssize_t         n_write = 0;
     xqc_h3_conn_t  *h3_conn = h3_stream->h3_conn;
 
-    //header size constrains
+    /* header size constrains */
     uint64_t fields_size = xqc_h3_uncompressed_fields_size(headers);
     uint64_t max_field_section_size = h3_conn->peer_h3_conn_settings.max_field_section_size;
     if (fields_size > max_field_section_size) {
@@ -201,13 +201,13 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3_stream, unsigned char *data, size_t 
     ssize_t n_write = 0;
 
     h3_stream->flags |= XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
-    n_write = xqc_http3_write_frame_data(h3_stream, data, data_size, fin);
+    n_write = xqc_h3_stream_write_frame_data(h3_stream, data, data_size, fin);
     if (n_write == -XQC_EAGAIN) {
-        xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|xqc_http3_write_frame_data eagain|stream_id:%ui|data_size:%uz|fin:%d|",
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|xqc_h3_stream_write_frame_data eagain|stream_id:%ui|data_size:%uz|fin:%d|",
                 h3_stream->stream->stream_id, data_size, fin);
         return n_write;
     } else if (n_write < 0) {
-        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_write_frame_data error|%z|stream_id:%ui|data_size:%uz|fin:%d|",
+        xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|xqc_h3_stream_write_frame_data error|%z|stream_id:%ui|data_size:%uz|fin:%d|",
                 h3_stream->stream->stream_id, n_write, data_size, fin);
         XQC_H3_CONN_ERR(h3_stream->h3_conn, H3_INTERNAL_ERROR, n_write);
     }

@@ -225,9 +225,9 @@ typedef struct { //把这个结构体简化下
 
 
 
-int xqc_http3_stream_write_settings(xqc_h3_stream_t *h3_stream, xqc_h3_conn_settings_t *settings);
+int xqc_h3_stream_write_settings(xqc_h3_stream_t *h3_stream, xqc_h3_conn_settings_t *settings);
 
-ssize_t xqc_http3_write_frame_data(xqc_h3_stream_t *h3_stream, char *data, ssize_t data_len, uint8_t fin);
+ssize_t xqc_h3_stream_write_frame_data(xqc_h3_stream_t *h3_stream, char *data, ssize_t data_len, uint8_t fin);
 
 ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t *h3_stream, char *data, ssize_t data_len, uint8_t fin);
 

@@ -14,10 +14,10 @@
 #include "src/http3/xqc_h3_qpack_huffman.h"
 
 
-#define QPACK_MAX_TABLE_CAPACITY (16*1024)
-#define DEFAULT_MAX_DTABLE_SIZE (4*1024)
-#define DEFAULT_QPACK_BLOCK_STREAM (64)
-#define DEFAULT_QPACK_HASH_TABLE_SIZE (128)  //(8*1024) -> 4096/32
+#define XQC_QPACK_MAX_TABLE_CAPACITY          (16*1024)
+#define XQC_QPACK_DEFAULT_MAX_DTABLE_SIZE     (4*1024)
+#define XQC_QPACK_DEFAULT_BLOCK_STREAM        (64)
+#define XQC_QPACK_DEFAULT_HASH_TABLE_SIZE     (128)  //(8*1024) -> 4096/32
 
 typedef struct xqc_h3_stream_s xqc_h3_stream_t;
 #define XQC_HTTP3_QPACK_INT_MAX ((1ull << 62) - 1)
@@ -333,7 +333,7 @@ typedef enum {
 } xqc_http3_qpack_decode_flag;
 
 
-ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t *qenc_stream ,xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
+ssize_t xqc_h3_stream_write_header_block(xqc_h3_stream_t *qenc_stream ,xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
         xqc_http_headers_t * headers, int fin);
 ssize_t xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xqc_http3_qpack_stream_context *sctx,
         xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin);

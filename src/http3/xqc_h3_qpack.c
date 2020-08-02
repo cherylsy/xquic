@@ -2658,7 +2658,8 @@ literal:
 }
 
 
-ssize_t xqc_http3_stream_write_header_block(xqc_h3_stream_t * qenc_stream, 
+ssize_t 
+xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream, 
     xqc_h3_stream_t *stream, xqc_http3_qpack_encoder * encoder,
     xqc_http_headers_t * headers, int fin)
 {
