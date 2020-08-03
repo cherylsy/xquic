@@ -60,7 +60,7 @@ int xqc_read_tls(SSL *ssl)
         if (rv == 1) {
             if(conn->conn_type == XQC_CONN_TYPE_SERVER){
                 xqc_log(conn->log, XQC_LOG_ERROR, "|Read  bytes from TLS crypto stream|");
-                return XQC_ERR_PROTO;
+                return -XQC_ERR_PROTO;
             }else{
                 continue;
             }
@@ -74,11 +74,11 @@ int xqc_read_tls(SSL *ssl)
             case SSL_ERROR_ZERO_RETURN:
                 xqc_log(conn->log, XQC_LOG_ERROR, "|TLS read error:%s|",
                         ERR_error_string(ERR_get_error(), NULL));
-                return XQC_ERR_CRYPTO;
+                return -XQC_ERR_CRYPTO;
             default:
                 xqc_log(conn->log, XQC_LOG_ERROR, "|TLS read error:%s|",
                         ERR_error_string(ERR_get_error(), NULL));
-                return XQC_ERR_CRYPTO;
+                return -XQC_ERR_CRYPTO;
         }
     }
     return 0;

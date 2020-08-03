@@ -270,15 +270,15 @@ int xqc_conn_install_early_keys(xqc_connection_t *conn, const uint8_t *key,
 {
 
     if(conn->tlsref.early_hp.base != NULL && conn->tlsref.early_hp.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(conn->tlsref.early_ckm.key.base != NULL && conn->tlsref.early_ckm.key.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(conn->tlsref.early_ckm.iv.base != NULL && conn->tlsref.early_ckm.iv.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(xqc_vec_assign(& conn->tlsref.early_hp, pn, pnlen) < 0){
@@ -305,13 +305,13 @@ int xqc_conn_install_handshake_tx_keys(xqc_connection_t *conn, const uint8_t *ke
     int rv;
 
     if (pktns->tx_hp.base != NULL && pktns->tx_hp.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->tx_ckm.key.base != NULL && pktns->tx_ckm.key.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->tx_ckm.iv.base != NULL && pktns->tx_ckm.iv.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
 
@@ -336,13 +336,13 @@ int xqc_conn_install_handshake_rx_keys(xqc_connection_t *conn, const uint8_t *ke
     int rv;
 
     if (pktns->rx_hp.base != NULL && pktns->rx_hp.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->rx_ckm.key.base != NULL && pktns->rx_ckm.key.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->rx_ckm.iv.base != NULL && pktns->rx_ckm.iv.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     //need finish refresh crypto_rx_offset_base
@@ -369,13 +369,13 @@ int xqc_conn_install_tx_keys(xqc_connection_t *conn, const uint8_t *key,
     int rv;
 
     if (pktns->tx_hp.base != NULL && pktns->tx_hp.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->tx_ckm.key.base != NULL && pktns->tx_ckm.key.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->tx_ckm.iv.base != NULL && pktns->tx_ckm.iv.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(xqc_vec_assign(& pktns->tx_hp, pn, pnlen) < 0){
@@ -399,13 +399,13 @@ int xqc_conn_install_rx_keys(xqc_connection_t *conn, const uint8_t *key,
     int rv;
 
     if (pktns->rx_hp.base != NULL && pktns->rx_hp.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->rx_ckm.key.base != NULL && pktns->rx_ckm.key.len > 0) {
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
     if(pktns->rx_ckm.iv.base != NULL && pktns->rx_ckm.iv.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     /* TODO This must be done once */
@@ -454,15 +454,15 @@ int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
     xqc_tlsref_t * tlsref = &conn->tlsref;
 
     if(tlsref->flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(tlsref->new_tx_ckm.key.base != NULL && tlsref->new_tx_ckm.key.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(tlsref->new_tx_ckm.iv.base != NULL && tlsref->new_tx_ckm.iv.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
 
@@ -487,15 +487,15 @@ int xqc_conn_update_rx_key(xqc_connection_t *conn, const uint8_t *key,
     xqc_tlsref_t * tlsref = &conn->tlsref;
 
     if(tlsref->flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(tlsref->new_rx_ckm.key.base != NULL && tlsref->new_rx_ckm.key.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
     if(tlsref->new_rx_ckm.iv.base != NULL && tlsref->new_rx_ckm.iv.len > 0){
-        return XQC_ERR_INVALID_STATE;
+        return -XQC_ERR_INVALID_STATE;
     }
 
 
@@ -523,7 +523,7 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0}, secret[INITIAL_SECRET_MAX_LEN]={0};
 
     if (!xqc_check_proto_version_valid(conn->version)) {
-        return XQC_ERR_PROTO;
+        return -XQC_ERR_PROTO;
     }
 
     rv = xqc_derive_initial_secret(

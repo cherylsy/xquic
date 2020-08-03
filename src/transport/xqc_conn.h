@@ -147,13 +147,6 @@ typedef enum {
 }xqc_conn_flag_t;
 
 
-typedef enum {
-    XQC_IPV4 = 4,
-    XQC_IPV6 = 6,
-    XQC_IP_VERSION_MAX = 15
-} xqc_ip_version_t;
-
-
 typedef struct {
     uint8_t     ipv4[4];    
     uint16_t    ipv4_port;

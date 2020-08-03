@@ -175,7 +175,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     /* calculate encoding length */
     len += xqc_transport_params_calc_length(exttype, params);
     if (destlen < len) {
-        return XQC_ERR_NOBUF;
+        return -XQC_ERR_NOBUF;
     }
 
     /* start writing */
@@ -295,7 +295,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     }
 
     if ((size_t)(p - dest) != len) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     return (ssize_t)len;
@@ -336,17 +336,17 @@ int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
     switch (exttype) {
         case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
             if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-                return XQC_ERR_INVALID_ARGUMENT;
+                return -XQC_ERR_INVALID_ARGUMENT;
             }
             break;
         case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
             if (!(conn->conn_type == XQC_CONN_TYPE_SERVER)) {
-                return XQC_ERR_INVALID_ARGUMENT;
+                return -XQC_ERR_INVALID_ARGUMENT;
             }
 
             break;
         default:
-            return XQC_ERR_INVALID_ARGUMENT;
+            return -XQC_ERR_INVALID_ARGUMENT;
     }
 
     xqc_transport_params_copy_from_settings(params, &conn->local_settings);
@@ -378,10 +378,10 @@ xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
     if (conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY) {
         /* need finish recv retry packet
            if (!params->original_connection_id_present) {
-           return XQC_ERR_TRANSPORT_PARAM;
+           return -XQC_ERR_TRANSPORT_PARAM;
            }
            if (!xqc_cid_eq(&conn->rcid, &params->original_connection_id)) {
-           return XQC_ERR_TRANSPORT_PARAM;
+           return -XQC_ERR_TRANSPORT_PARAM;
            }
            */
     }
@@ -396,24 +396,25 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
     int rv;
 
     switch (exttype) {
-        case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
-            if (!(conn->conn_type == XQC_CONN_TYPE_SERVER)) {
-                return XQC_ERR_INVALID_ARGUMENT;
-            }
-            /* TODO At the moment, we only support one version, and there is
-               no validation here. */
-            break;
-        case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
-            if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-                return XQC_ERR_INVALID_ARGUMENT;
-            }
-            rv = xqc_conn_client_validate_transport_params(conn, params);
-            if (rv != 0) {
-                return rv;
-            }
-            break;
-        default:
-            return XQC_ERR_INVALID_ARGUMENT;
+
+    case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
+        if (!(conn->conn_type == XQC_CONN_TYPE_SERVER)) {
+            return -XQC_ERR_INVALID_ARGUMENT;
+        }
+        break;
+
+    case XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS:
+        if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
+            return -XQC_ERR_INVALID_ARGUMENT;
+        }
+        rv = xqc_conn_client_validate_transport_params(conn, params);
+        if (rv != 0) {
+            return rv;
+        }
+        break;
+
+    default:
+        return -XQC_ERR_INVALID_ARGUMENT;
     }
 
     xqc_settings_copy_from_transport_params(&conn->remote_settings, params);
@@ -429,7 +430,7 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
     do { \
         ssize_t nread = xqc_vint_read((p), (end), (dst)); \
         if (nread < 0) { \
-            return XQC_ERR_MALFORMED_TRANSPORT_PARAM; \
+            return -XQC_ERR_MALFORMED_TRANSPORT_PARAM; \
         } \
         return XQC_OK; \
     } while(0) 
@@ -440,7 +441,7 @@ xqc_decode_original_dest_cid(xqc_transport_params_t *params, xqc_transport_param
                                        const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     if (exttype != XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     xqc_cid_init(&params->original_dest_connection_id, p, param_len);
@@ -460,13 +461,13 @@ xqc_decode_stateless_token(xqc_transport_params_t *params, xqc_transport_params_
                                        const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     if (exttype != XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     if ((size_t)(end - p) < sizeof(params->stateless_reset_token) || 
         param_len != sizeof(params->stateless_reset_token))
     {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     memcpy(params->stateless_reset_token, p, param_len);
@@ -530,7 +531,7 @@ xqc_decode_ack_delay_exponent(xqc_transport_params_t *params, xqc_transport_para
     ssize_t nread = xqc_vint_read(p, end, &params->ack_delay_exponent);
     /* [TRANSPORT] Values above 20 are invalid */
     if (nread < 0 || params->ack_delay_exponent > 20) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
     return XQC_OK;
 }
@@ -548,7 +549,7 @@ xqc_decode_disable_active_migration(xqc_transport_params_t *params, xqc_transpor
 {
     ssize_t nread = xqc_vint_read(p, end, &params->disable_active_migration);
     if (nread < 0) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     params->disable_active_migration = 1;
@@ -560,16 +561,16 @@ xqc_decode_preferred_address(xqc_transport_params_t *params, xqc_transport_param
                                        const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     if (exttype != XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     if ((end - p) < param_len) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     /* IPv4 addr */
     if ((end - p) < XQC_PREFERRED_ADDR_IPV4_LEN + XQC_PREFERRED_ADDR_IPV4_PORT_LEN) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     memcpy(&params->preferred_address.ipv4, p, sizeof(params->preferred_address.ipv4));
@@ -581,7 +582,7 @@ xqc_decode_preferred_address(xqc_transport_params_t *params, xqc_transport_param
 
     /* IPv6 addr */
     if ((end - p) < XQC_PREFERRED_ADDR_IPV6_LEN + XQC_PREFERRED_ADDR_IPV6_PORT_LEN) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     memcpy(&params->preferred_address.ipv6, p, sizeof(params->preferred_address.ipv6));
@@ -593,14 +594,14 @@ xqc_decode_preferred_address(xqc_transport_params_t *params, xqc_transport_param
 
     /* cid len */
     if ((end - p) < 1) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     params->preferred_address.cid.cid_len = *p++;
     if (params->preferred_address.cid.cid_len > XQC_MAX_CID_LEN
         || (end - p) < params->preferred_address.cid.cid_len) 
     {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     /* cid */
@@ -612,7 +613,7 @@ xqc_decode_preferred_address(xqc_transport_params_t *params, xqc_transport_param
 
     /* stateless reset token */
     if ((end - p) < XQC_STATELESS_RESET_TOKENLEN) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }    
     memcpy(params->preferred_address.stateless_reset_token, p,
             sizeof(params->preferred_address.stateless_reset_token));
@@ -699,7 +700,7 @@ xqc_trans_param_get_index(uint64_t param_type)
         return XQC_TRANSPORT_PARAM_PROTOCOL_MAX + param_type - XQC_TRANSPORT_PARAM_NO_CRYPTO;
 
     } else {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 }
 
@@ -717,25 +718,25 @@ xqc_decode_one_trans_param(xqc_transport_params_t *params, xqc_transport_params_
     /* read param type */
     ssize_t nread = xqc_vint_read(p, end, &param_type);
     if (nread < 0) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
     p += nread;
 
     /* read param len */
     nread = xqc_vint_read(p, end, &param_len);
     if (nread < 0 || param_len == 0 || p + nread + param_len > end ) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
     p += nread;
 
     int param_index = xqc_trans_param_get_index(param_type);
     if (param_index < 0) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
     
     int ret = xqc_decode_param_func_list[param_index](params, exttype, p, end, param_type, param_len);
     if (ret < 0) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
     p += param_len;
 
@@ -790,7 +791,7 @@ xqc_decode_transport_params(xqc_transport_params_t *params,
     }
     
     if (end != p) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     return XQC_OK;
@@ -876,7 +877,7 @@ int xqc_conn_set_early_remote_transport_params(
     xqc_connection_t *conn, const xqc_transport_params_t *params)
 {
   if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-    return XQC_ERR_INVALID_STATE;
+    return -XQC_ERR_INVALID_STATE;
   }
 
   xqc_settings_copy_from_transport_params(&conn->remote_settings, params);
@@ -895,19 +896,19 @@ xqc_serialize_client_transport_params(xqc_connection_t * conn, xqc_transport_par
     /* initialize params */
     int rv = xqc_conn_get_local_transport_params(conn, &params, exttype);
     if (rv != XQC_OK) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     uint8_t * buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
     if (buf == NULL) {
-        return XQC_ERR_NOBUF;
+        return -XQC_ERR_NOBUF;
     }
 
     ssize_t nwrite = xqc_encode_transport_params(buf, XQC_TRANSPORT_PARAM_BUF_LEN, 
                                                  exttype, &params);
     if (nwrite < 0) {
         xqc_free((void*)(buf));
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     *out        = buf ;
@@ -925,12 +926,12 @@ xqc_serialize_server_transport_params(xqc_connection_t * conn, xqc_transport_par
     int rv = xqc_conn_get_local_transport_params(
                 conn, &params, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS);
     if (rv != XQC_OK) {
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     uint8_t *buf = xqc_malloc(XQC_TRANSPORT_PARAM_BUF_LEN);
     if (buf == NULL) {
-        return XQC_ERR_NOBUF;
+        return -XQC_ERR_NOBUF;
     }
 
     ssize_t nwrite = xqc_encode_transport_params(
@@ -938,7 +939,7 @@ xqc_serialize_server_transport_params(xqc_connection_t * conn, xqc_transport_par
                 &params);
     if (nwrite < 0) {
         xqc_free((void*)buf);
-        return XQC_ERR_MALFORMED_TRANSPORT_PARAM;
+        return -XQC_ERR_MALFORMED_TRANSPORT_PARAM;
     }
 
     *out    = buf;

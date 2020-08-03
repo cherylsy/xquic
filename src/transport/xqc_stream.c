@@ -220,7 +220,7 @@ xqc_stream_do_send_flow_ctl(xqc_stream_t *stream)
                 stream->stream_conn->conn_flow_ctl.fc_max_data_can_send);
 
         stream->stream_conn->conn_flag |= XQC_CONN_FLAG_DATA_BLOCKED;
-          xqc_write_data_blocked_to_packet(stream->stream_conn, stream->stream_conn->conn_flow_ctl.fc_max_data_can_send);
+        xqc_write_data_blocked_to_packet(stream->stream_conn, stream->stream_conn->conn_flow_ctl.fc_max_data_can_send);
         ret = -XQC_ECONN_BLOCKED;
     }
 
@@ -230,7 +230,7 @@ xqc_stream_do_send_flow_ctl(xqc_stream_t *stream)
                 stream->stream_flow_ctl.fc_max_stream_data_can_send);
 
         stream->stream_flag |= XQC_STREAM_FLAG_DATA_BLOCKED;
-          xqc_write_stream_data_blocked_to_packet(stream->stream_conn, stream->stream_id,
+        xqc_write_stream_data_blocked_to_packet(stream->stream_conn, stream->stream_id,
                                                 stream->stream_flow_ctl.fc_max_stream_data_can_send);
         ret = -XQC_ESTREAM_BLOCKED;
     }
@@ -817,7 +817,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
                     ret = conn->tlsref.callbacks.client_initial(conn);
                     if(ret < 0){
                         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|client handshake initial packet error|");
-                        return XQC_TLS_CLIENT_INITIAL_ERROR;
+                        return -XQC_TLS_CLIENT_INITIAL_ERROR;
                     }
                 }
 

@@ -161,7 +161,7 @@ xqc_packet_process_single(xqc_connection_t *c,
             return ret;
         }
     } else {
-        if (ret == XQC_EARLY_DATA_REJECT) {
+        if (ret == -XQC_EARLY_DATA_REJECT) {
             xqc_log(c->log, XQC_LOG_DEBUG, "|decrypt early data reject, continue|");
             packet_in->pos = packet_in->last;
             return XQC_OK;
