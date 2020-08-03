@@ -19,6 +19,7 @@
 #include "src/crypto/xqc_tls_header.h"
 #include "src/transport/xqc_utils.h"
 #include "src/http3/xqc_h3_qpack_token.h"
+#include "src/http3/xqc_h3_conn.h"
 
 
 uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
