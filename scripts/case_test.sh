@@ -217,7 +217,7 @@ echo -e "set h3 settings ...\c"
 ./test_client -s 1024 -l d -t 1 -E -x 18 >> clog
 if grep -e "xqc_h3_conn_send_settings.*success.*qpack_blocked_streams:32" clog >/dev/null && \
    grep ">>>>>>>> pass:1" clog >/dev/null && \
-   grep -e "xqc_http3_conn_on_settings_entry_received.*id:7.*value:32" slog >/dev/null; then
+   grep -e "xqc_h3_conn_on_settings_entry_received.*id:7.*value:32" slog >/dev/null; then
     echo ">>>>>>>> pass:1"
 else
     echo ">>>>>>>> pass:0"
