@@ -534,6 +534,20 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
                          size_t recv_buf_size,
                          uint8_t *fin);
 
+
+/**
+ * @param value 0:disable dynamic table
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_h3_engine_set_dec_max_dtable_capacity(xqc_engine_t *engine, uint64_t value);
+
+/**
+ * @param value 0:disable dynamic table
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, uint64_t value);
+
+
 /* ************************************************************
  *  transport layer APIs, if you don't need application layer
  *************************************************************/

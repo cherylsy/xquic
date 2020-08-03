@@ -23,6 +23,8 @@ XQUIC_VERS_1.0 {
         xqc_h3_request_send_body;
         xqc_h3_request_recv_headers;
         xqc_h3_request_recv_body;
+        xqc_h3_engine_set_dec_max_dtable_capacity;
+        xqc_h3_engine_set_enc_max_dtable_capacity;
         xqc_connect;
         xqc_conn_close;
         xqc_conn_get_errno;
