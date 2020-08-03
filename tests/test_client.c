@@ -255,6 +255,37 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
     return res;
 }
 
+
+ssize_t xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
+                                const struct sockaddr *peer_addr,
+                                socklen_t peer_addrlen)
+{
+    const int MAX_SEG = 128;
+    user_conn_t *user_conn = (user_conn_t *) user;
+    ssize_t res = 0;
+    int fd = user_conn->fd;
+    struct mmsghdr mmsg[MAX_SEG];
+    memset(&mmsg, 0, sizeof(mmsg));
+    for (int i = 0; i < vlen; i++) {
+        mmsg[i].msg_hdr.msg_iov = &msg_iov[i];
+        mmsg[i].msg_hdr.msg_iovlen = 1;
+    }
+    do {
+        errno = 0;
+        if (TEST_DROP) return vlen;
+        if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
+        res = sendmmsg(fd, mmsg, vlen, 0);
+        if (res < 0) {
+            printf("sendmmsg err %zd %s\n", res, strerror(errno));
+            if (errno == EAGAIN) {
+                res = XQC_SOCKET_EAGAIN;
+            }
+        }
+    } while ((res < 0) && (errno == EINTR));
+    return res;
+}
+
+
 static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, unsigned int port)
 {
     int fd;
@@ -1373,6 +1404,9 @@ int main(int argc, char *argv[]) {
     /* check initial version */
     if (g_test_case == 17) {
         conn_settings.proto_version = XQC_IDRAFT_INIT_VER;
+    }
+    if (g_test_case == 20) { /* test sendmmsg */
+        callback.write_mmsg = xqc_client_write_mmsg;
     }
 
     eb = event_base_new();
