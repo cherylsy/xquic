@@ -7,7 +7,7 @@ cd ../build
 
 # 另一个终端启动server
 killall test_server 2> /dev/null
-./test_server -l e -e > /dev/null &
+./test_server -l d -e > /dev/null &
 sleep 1
 
 clear_log() {
@@ -162,7 +162,7 @@ grep_err_log
 clear_log
 echo -e "0RTT reject. restart server ....\c"
 killall test_server
-./test_server -l e -e > /dev/null &
+./test_server -l d -e > /dev/null &
 sleep 1
 ./test_client -s 1024000 -l d -t 1 -E >> clog
 if grep "early_data_flag:2" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
@@ -197,7 +197,7 @@ grep_err_log
 clear_log
 echo -e "server cid negotiate ...\c"
 killall test_server
-./test_server -l e -e -x 1 > /dev/null &
+./test_server -l d -e -x 1 > /dev/null &
 sleep 1
 ./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
 grep_err_log
@@ -215,7 +215,9 @@ grep_err_log
 clear_log
 echo -e "set h3 settings ...\c"
 ./test_client -s 1024 -l d -t 1 -E -x 18 >> clog
-if grep -e "xqc_h3_conn_send_settings.*success.*max_pushes:100" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
+if grep -e "xqc_h3_conn_send_settings.*success.*qpack_blocked_streams:32" clog >/dev/null && \
+   grep ">>>>>>>> pass:1" clog >/dev/null && \
+   grep -e "xqc_http3_conn_on_settings_entry_received.*id:7.*value:32" slog >/dev/null; then
     echo ">>>>>>>> pass:1"
 else
     echo ">>>>>>>> pass:0"
