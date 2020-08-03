@@ -535,11 +535,6 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
                          uint8_t *fin);
 
 
-XQC_EXPORT_PUBLIC_API
-xqc_h3_context_t * xqc_h3_context_create();
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_context_free(xqc_h3_context_t *ctx);
-
 /**
  * @param value 0:disable dynamic table
  */

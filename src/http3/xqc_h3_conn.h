@@ -91,4 +91,8 @@ void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn);
 
 
+xqc_h3_context_t * xqc_h3_context_create();
+void xqc_h3_context_free(xqc_h3_context_t *ctx);
+
+
 #endif /* _XQC_H3_CONN_H_INCLUDED_ */
