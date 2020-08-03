@@ -3,9 +3,7 @@
 
 #include <string.h>
 #include <stdint.h>
-
-#define XQC_OK 0
-#define XQC_ERROR -1
+#include <xquic/xqc_errno.h>
 
 #define XQC_TRUE 1
 #define XQC_FALSE 0

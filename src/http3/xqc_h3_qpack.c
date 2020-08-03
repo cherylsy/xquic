@@ -822,7 +822,7 @@ int xqc_qpack_decoder_emit_dynamic_indexed(xqc_http3_qpack_decoder *decoder, xqc
 
     nv->name = xqc_create_var_string(NULL, entry->nv.name_len);
     if(nv->name == NULL){
-        return XQC_H3_EMALLOC;
+        return -XQC_H3_EMALLOC;
     }
 
     xqc_http3_ringdata_copy_data(&decoder->ctx.dtable_data, entry->nv.name_index, entry->nv.name_len, nv->name->data, nv->name->strlen+1);
