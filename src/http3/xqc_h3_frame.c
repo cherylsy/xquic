@@ -10,7 +10,7 @@
 
 
 int xqc_http3_conn_on_max_push_id(xqc_h3_conn_t * conn, uint64_t push_id);
-int xqc_http3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv);
+int xqc_h3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv);
 
 ssize_t xqc_http3_conn_read_push(xqc_h3_conn_t * h3_conn, size_t *pnproc, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, uint8_t fin);
 int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_push * fr);
@@ -626,7 +626,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                     rstate->fr.settings.iv[0].value = (uint64_t)rvint->acc;
                     xqc_http3_varint_read_state_clear(rvint);
 
-                    rv = xqc_http3_conn_on_settings_entry_received( h3_conn, &rstate->fr.settings.iv[0]);
+                    rv = xqc_h3_conn_on_settings_entry_received( h3_conn, &rstate->fr.settings.iv[0]);
                     if (rv != 0){
                         return rv;
                     }
@@ -681,7 +681,7 @@ ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h
                 rstate->fr.settings.iv[0].value = (uint64_t)rvint->acc;
 
                 xqc_http3_varint_read_state_clear(rvint);
-                rv = xqc_http3_conn_on_settings_entry_received(h3_conn, &rstate->fr.settings.iv[0]);
+                rv = xqc_h3_conn_on_settings_entry_received(h3_conn, &rstate->fr.settings.iv[0]);
                 if(rv != 0){
                     return rv;
                 }
@@ -1605,7 +1605,8 @@ int xqc_http3_conn_on_cancel_push(xqc_h3_conn_t * conn, xqc_http3_frame_cancel_p
     return 0;
 }
 
-int xqc_http3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv){
+int 
+xqc_h3_conn_on_settings_entry_received(xqc_h3_conn_t * conn, xqc_http3_settings_entry * iv){
 
     switch (iv->id) {
         case XQC_HTTP3_SETTINGS_ID_MAX_FIELD_SECTION_SIZE:

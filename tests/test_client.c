@@ -391,7 +391,9 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *
     user_conn_t *user_conn = (user_conn_t *) user_data;
     if (g_test_case == 18) { /* test h3 settings */
         xqc_h3_conn_settings_t settings = {
-                .max_pushes = 100,
+                .max_field_section_size = 256,
+                .qpack_max_table_capacity = 4096,
+                .qpack_blocked_streams = 32,
         };
         xqc_h3_conn_set_settings(conn, settings);
     }
