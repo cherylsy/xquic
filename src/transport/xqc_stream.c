@@ -541,6 +541,10 @@ xqc_stream_t *
 xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
                    void *user_data)
 {
+    if (xqc_stream_do_create_flow_ctl(conn, stream_id, xqc_get_stream_type(stream_id)) != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_stream_do_create_flow_ctl error|");
+        return NULL;
+    }
     int64_t sid = stream_id >> 2u;
     if (xqc_stream_is_bidi(stream_id) && sid > conn->max_stream_id_bidi_remote) {
         xqc_insert_passive_stream_hash(conn, conn->max_stream_id_bidi_remote, stream_id);
