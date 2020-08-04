@@ -80,11 +80,10 @@ xqc_init_crypto_ctx(xqc_connection_t * conn,const SSL_CIPHER * cipher)
     if(XQC_LIKELY(cipher)) {
         xqc_tls_context_t * ctx = &conn->tlsref.crypto_ctx ;
         const uint32_t cipher_id = SSL_CIPHER_get_id(cipher) ;
-        if(ctx->aead.ctx == NULL || cipher_id != conn->tlsref.last_cipher_id){
+        if(ctx->aead.ctx == NULL){
             if(xqc_complete_crypto_ctx(ctx,cipher_id,conn->local_settings.no_crypto) != 0){
                 goto err ;
             }
-            conn->tlsref.last_cipher_id = cipher_id ;
         }
         return 0 ;
     }
@@ -104,7 +103,7 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uin
         return XQC_ERROR ;
     }
 
-    xqc_tls_context_t * ctx = &conn->tlsref.crypto_ctx_store[level];
+    xqc_tls_context_t * ctx = &conn->tlsref.crypto_ctx;
     if(XQC_UNLIKELY(ctx->aead.ctx != NULL)) {
         // no need update ;
         return XQC_OK ;
@@ -127,9 +126,7 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uin
     }
 
     if( xqc_negotiated_aead_and_prf(ctx,cipher_id) == XQC_OK ) {
-        if(xqc_derive_packet_protection(ctx,secret,secretlen,key,keylen,iv,ivlen,hp,hplen,conn->log) == XQC_SSL_SUCCESS) {
-            return XQC_OK ;
-        }
+        return XQC_OK ;
     }
     
     return XQC_ERROR;

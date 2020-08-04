@@ -298,10 +298,10 @@ struct xqc_tlsref
     uint8_t                 resumption;
     xqc_alpn_num            alpn_num;
     uint64_t                flags; //record handshake completed or recv retry packet
-
-    xqc_tls_context_t       hs_crypto_ctx;
-    xqc_tls_context_t       crypto_ctx;     /* prf and aead */
-    uint32_t                last_cipher_id ; // last cipher id
+   
+#define hs_crypto_ctx crypto_ctx_store[XQC_ENC_LEV_INIT] 
+#define crypto_ctx    crypto_ctx_store[XQC_ENC_MAX_LEVEL]
+    xqc_tls_context_t       crypto_ctx_store[XQC_ENC_MAX_LEVEL + 1] ;
 
     xqc_pktns_t             initial_pktns; // initial packet space key
     xqc_pktns_t             hs_pktns; // handshake packet space  key

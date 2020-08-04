@@ -576,8 +576,8 @@ int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_crypto_km_t *p_ckm = NULL;
     xqc_vec_t *tx_hp = NULL;
 
-    xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx;
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_out->po_pkt.pkt_type);
+    xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx;
 
     if (encrypt_level == XQC_ENC_LEV_INIT) {
         p_pktns = &conn->tlsref.initial_pktns;

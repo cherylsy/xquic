@@ -117,6 +117,12 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
             return 0;
         }
     }
+    
+    // 计算密钥套件所需的key nonce 和 hp
+    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
+        // log has done 
+        return 0;
+    }    
 
     switch(level)
     {
@@ -171,6 +177,12 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
             xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
             return XQC_SSL_FAIL;
         }
+    }
+
+    // 计算密钥套件所需的key nonce 和 hp
+    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
+        // log has done
+        return 0;
     }
 
     switch(level)

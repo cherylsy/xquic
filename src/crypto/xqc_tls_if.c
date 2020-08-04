@@ -477,7 +477,7 @@ xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
     const uint8_t *key, size_t keylen, const uint8_t *sample,
     size_t samplelen, void *user_data)
 {
-    xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx;
+    xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx;
     ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp, dest, destlen, XQC_FAKE_HP_MASK,
             sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen);
     if (nwrite < 0) {
