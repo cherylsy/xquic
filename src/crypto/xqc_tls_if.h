@@ -65,11 +65,11 @@ typedef struct {
  * `xqc_conn_set_initial_rx_keys`.
  *
  * This callback function must return 0 if it succeeds, or
- * :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the library call
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library call
  * return immediately.
  *
  * TODO: Define error code for TLS stack failure.  Suggestion:
- * XQC_ERR_CRYPTO.
+ * XQC_TLS_CRYPTO.
  */
 typedef int (*xqc_client_initial)(xqc_connection_t *conn);
 
@@ -86,11 +86,11 @@ typedef int (*xqc_client_initial)(xqc_connection_t *conn);
  * derive initial packet protection keys.
  *
  * The callback function must return 0 if it succeeds.  If an error
- * occurs, return :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the
+ * occurs, return :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the
  * library call return immediately.
  *
  * TODO: Define error code for TLS stack failure.  Suggestion:
- * XQC_ERR_CRYPTO.
+ * XQC_TLS_CRYPTO.
  */
 typedef int (*xqc_recv_client_initial)(xqc_connection_t *conn,
                                           xqc_cid_t *dcid,
@@ -111,11 +111,11 @@ typedef int (*xqc_recv_client_initial)(xqc_connection_t *conn,
  * The application should provide the given data to TLS stack.
  *
  * The callback function must return 0 if it succeeds.  If TLS stack
- * reported error, return :enum:`XQC_ERR_CRYPTO`.  If application
- * encounters fatal error, return :enum:`XQC_ERR_CALLBACK_FAILURE`
+ * reported error, return :enum:`XQC_TLS_CRYPTO`.  If application
+ * encounters fatal error, return :enum:`XQC_TLS_CALLBACK_FAILURE`
  * which makes the library call return immediately.  If the other
  * value is returned, it is treated as
- * :enum:`XQC_ERR_CALLBACK_FAILURE`.
+ * :enum:`XQC_TLS_CALLBACK_FAILURE`.
  */
 typedef int (*xqc_recv_crypto_data)(xqc_connection_t *conn, uint64_t offset,
                                        const uint8_t *data, size_t datalen,
@@ -129,7 +129,7 @@ typedef int (*xqc_recv_crypto_data)(xqc_connection_t *conn, uint64_t offset,
  * cryptographic handshake has completed.
  *
  * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
 typedef int (*xqc_handshake_completed)(xqc_connection_t *conn, void *user_data);
@@ -144,7 +144,7 @@ typedef int (*xqc_handshake_completed)(xqc_connection_t *conn, void *user_data);
  * only sent by server, this callback function is used by client only.
  *
  * The callback function must return 0 if it succeeds, or
- * :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the library call
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library call
  * return immediately.
  */
 typedef int (*xqc_recv_version_negotiation)(xqc_connection_t *conn,
@@ -170,7 +170,7 @@ typedef int (*xqc_recv_version_negotiation)(xqc_connection_t *conn,
  * |dest| and |plaintext| may point to the same buffer.
  *
  * The callback function must return the number of bytes written to
- * |dest|, or :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the
+ * |dest|, or :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the
  * library call return immediately.
  */
 typedef ssize_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
@@ -198,8 +198,8 @@ typedef ssize_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
  *
  * The callback function must return the number of bytes written to
  * |dest|.  If TLS stack fails to decrypt data, return
- * :enum:`XQC_ERR_TLS_DECRYPT`.  For any other errors, return
- * :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the library call
+ * :enum:`XQC_TLS_DECRYPT`.  For any other errors, return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library call
  * return immediately.
  */
 typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
@@ -226,7 +226,7 @@ typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
  * at least :macro:`XQC_HP_MASKLEN`.
  *
  * The callback function must return the number of bytes written to
- * |dest|, or :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the
+ * |dest|, or :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the
  * library call return immediately.
  */
 typedef ssize_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
@@ -247,7 +247,7 @@ typedef ssize_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
  * |datalen| may be 0 if and only if |fin| is nonzero.
  *
  * The callback function must return 0 if it succeeds, or
- * :enum:`XQC_ERR_CALLBACK_FAILURE` which makes the library return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library return
  * immediately.
  */
 typedef int (*xqc_recv_stream_data)(xqc_connection_t *conn, uint64_t stream_id,
@@ -266,7 +266,7 @@ typedef int (*xqc_recv_stream_data)(xqc_connection_t *conn, uint64_t stream_id,
  * stream_id and stream_user_data, and |datalen| never become 0.
  *
  * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library
+ * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
  * call return immediately.
  */
 typedef int (*xqc_acked_crypto_offset)(xqc_connection_t *conn, uint64_t offset,
@@ -290,7 +290,7 @@ typedef int (*xqc_acked_crypto_offset)(xqc_connection_t *conn, uint64_t offset,
  * in-flight, this callback function is not called for those data.
  *
  * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library
+ * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
  * call return immediately.
  */
 typedef int (*xqc_acked_stream_data_offset)(xqc_connection_t *conn,
@@ -308,7 +308,7 @@ typedef int (*xqc_acked_stream_data_offset)(xqc_connection_t *conn,
  * behaviour).
  *
  * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library
+ * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
  * call return immediately.
  */
 typedef int (*xqc_stream_open)(xqc_connection_t *conn, uint64_t stream_id,
@@ -323,7 +323,7 @@ typedef int (*xqc_stream_open)(xqc_connection_t *conn, uint64_t stream_id,
  * code of this closure.
  *
  * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library
+ * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
  * call return immediately.
  */
 /*typedef int (*xqc_stream_close)(xqc_connection_t *conn, uint64_t stream_id,
@@ -338,7 +338,7 @@ typedef int (*xqc_stream_open)(xqc_connection_t *conn, uint64_t stream_id,
  * packet header, and the stateless reset details are given in |sr|.
  *
  * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library
+ * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
  * call return immediately.
  */
 typedef int (*xqc_recv_stateless_reset)(xqc_connection_t *conn,
@@ -364,7 +364,7 @@ typedef int (*xqc_recv_stateless_reset)(xqc_connection_t *conn,
  * the library automatically.
  *
  * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
 typedef int (*xqc_recv_retry)(xqc_connection_t *conn,
@@ -380,7 +380,7 @@ typedef int (*xqc_recv_retry)(xqc_connection_t *conn,
  * endpoint can open.
  *
  * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
 typedef int (*xqc_extend_max_streams)(xqc_connection_t *conn,
@@ -395,7 +395,7 @@ typedef int (*xqc_extend_max_streams)(xqc_connection_t *conn,
  * how the provided random byte string is used.
  *
  * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
 typedef int (*xqc_rand)(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
@@ -414,7 +414,7 @@ typedef int (*xqc_rand)(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
  * token.
  *
  * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
 typedef int (*xqc_get_new_connection_id)(xqc_connection_t *conn, xqc_cid_t *cid,
@@ -429,7 +429,7 @@ typedef int (*xqc_get_new_connection_id)(xqc_connection_t *conn, xqc_cid_t *cid,
  * by remote endpoint.
  *
  * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
 typedef int (*xqc_remove_connection_id)(xqc_connection_t *conn,
@@ -447,7 +447,7 @@ typedef int (*xqc_remove_connection_id)(xqc_connection_t *conn,
  * using `xqc_conn_update_tx_key` and `ngtcp2_conn_update_rx_key`.
  *
  * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_ERR_CALLBACK_FAILURE` makes the library call return
+ * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
  * immediately.
  */
 typedef int (*xqc_update_key_t)(xqc_connection_t *conn, void *user_data);

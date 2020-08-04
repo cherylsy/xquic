@@ -685,7 +685,7 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         if(xqc_crypto_is_early_data_accepted(conn) == XQC_FALSE) {
             //printf("early data not decrypt");
             xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_packet_decrypt|early data not decrypt");
-            return -XQC_EARLY_DATA_REJECT;
+            return -XQC_TLS_DATA_REJECT;
         }
     }
 
@@ -978,7 +978,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     //xqc_destroy_stream(c->crypto_stream[XQC_ENC_LEV_INIT]);
     c->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(c, XQC_ENC_LEV_INIT, NULL);
 
-    if(c->tlsref.callbacks.recv_retry(c, &c->dcid) < 0) {
+    if (c->tlsref.callbacks.recv_retry(c, &c->dcid) < 0) {
         return -XQC_TLS_CLIENT_REINTIAL_ERROR;
     }
 
