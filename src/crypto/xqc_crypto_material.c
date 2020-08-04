@@ -92,6 +92,48 @@ err:
     return -1 ; 
 }
 
+xqc_int_t  
+xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uint8_t *secret, size_t secretlen,
+        uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+        uint8_t *iv, size_t *ivlen,
+        uint8_t *hp, size_t *hplen)
+{
+    uint32_t cipher_id ;
+
+    if(XQC_UNLIKELY(!conn || level >= XQC_ENC_MAX_LEVEL)) {
+        return XQC_ERROR ;
+    }
+
+    xqc_tls_context_t * ctx = &conn->tlsref.crypto_ctx_store[level];
+    if(XQC_UNLIKELY(ctx->aead.ctx != NULL)) {
+        // no need update ;
+        return XQC_OK ;
+    }
+
+    switch (level)
+    {
+    case XQC_ENC_LEV_INIT:
+        cipher_id = 0x03001301u ;
+        break;
+    case XQC_ENC_LEV_0RTT:
+    case XQC_ENC_LEV_1RTT:
+        // only data use no crypto 
+        cipher_id = conn->local_settings.no_crypto ? NID_undef : SSL_CIPHER_get_id(SSL_get_current_cipher(conn->xc_ssl));
+        break;
+    case XQC_ENC_LEV_HSK:
+    default:
+        cipher_id = SSL_CIPHER_get_id(SSL_get_current_cipher(conn->xc_ssl));
+        break;
+    }
+
+    if( xqc_negotiated_aead_and_prf(ctx,cipher_id) == XQC_OK ) {
+        if(xqc_derive_packet_protection(ctx,secret,secretlen,key,keylen,iv,ivlen,hp,hplen,conn->log) == XQC_SSL_SUCCESS) {
+            return XQC_OK ;
+        }
+    }
+    
+    return XQC_ERROR;
+}
 
 int xqc_derive_initial_secret(uint8_t *dest, size_t destlen,
         const  xqc_cid_t *cid, const uint8_t *salt,
