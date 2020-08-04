@@ -11,6 +11,42 @@
 #include "src/crypto/xqc_transport_params.h"
 #include "src/crypto/xqc_tls_stack_cb.h"
 
+/** utils */
+
+static
+enum ssl_encryption_level_t xqc_convert_to_bssl_level(xqc_encrypt_level_t level)
+{
+    switch(level)
+    {
+    case XQC_ENC_LEV_INIT :
+        return ssl_encryption_initial ;
+    case XQC_ENC_LEV_0RTT :
+        return ssl_encryption_early_data;
+    case XQC_ENC_LEV_HSK  :
+        return ssl_encryption_handshake ;
+    case XQC_ENC_LEV_1RTT:
+    default:
+        return ssl_encryption_application;
+    }
+}
+
+static
+xqc_encrypt_level_t  bssl_convert_to_xqc_level(enum ssl_encryption_level_t level)
+{
+    switch(level)
+    {
+    case ssl_encryption_initial :
+        return XQC_ENC_LEV_INIT;
+    case ssl_encryption_early_data:
+        return XQC_ENC_LEV_0RTT;
+    case ssl_encryption_handshake:
+        return XQC_ENC_LEV_HSK;
+    case ssl_encryption_application:
+    default:
+        return XQC_ENC_LEV_1RTT;
+    }
+}
+
 static 
 xqc_int_t 
 xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , size_t length , xqc_connection_t *conn , xqc_int_t server_secret)
@@ -58,7 +94,6 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
 {
 
     xqc_connection_t *  conn = (xqc_connection_t *) SSL_get_app_data(ssl);
-    xqc_tls_context_t * current_ctx = NULL;
 
 #define XQC_MAX_KNP_LEN  64 
     //TODO need check 64 bytes enough (XQC_MAX_KNP_LEN)
@@ -66,18 +101,12 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    switch(level)
-    {
-    case ssl_encryption_initial:
-    case ssl_encryption_early_data:
-    case ssl_encryption_handshake :
-       if( xqc_init_crypto_ctx (conn,cipher) != 0 ) {
-            xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_init_crypto_ctx failed|");
-            return 0 ;
-        }
-        break;
-    case ssl_encryption_application : 
-    {   
+    if(xqc_setup_crypto_ctx(conn,bssl_convert_to_xqc_level(level),secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen) != XQC_OK) {
+        xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
+        return XQC_SSL_FAIL;
+    }
+
+    if(level == ssl_encryption_application) {
         // store the read secret 
         if(conn->tlsref.rx_secret.base != NULL){ // should xqc_vec_free ? if rx_secret already has value, it means connection status error
             xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
@@ -87,14 +116,6 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
             xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
             return 0;
         }
-        break;
-    }
-    }
-
-    // 计算密钥套件所需的key nonce 和 hp
-    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-        // log has done 
-        return 0;
     }
 
     switch(level)
@@ -136,36 +157,20 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    switch(level)
-    {
-    case ssl_encryption_initial:
-    case ssl_encryption_early_data:
-    case ssl_encryption_handshake:
-    {
-        if( xqc_init_crypto_ctx (conn,cipher) != 0 ) {
-            xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_init_crypto_ctx failed|");
-            return 0 ;
-        }
-        break;
+    if(xqc_setup_crypto_ctx(conn,bssl_convert_to_xqc_level(level),secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen) != XQC_OK) {
+        xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
+        return XQC_SSL_FAIL;
     }
-    case ssl_encryption_application : 
-    {
+
+    if(level == ssl_encryption_application) {
         // store the write secret 
         if(conn->tlsref.tx_secret.base != NULL){ // should xqc_vec_free ? if rx_secret already has value, it means connection status error
             xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
         }
         if(xqc_vec_assign(&conn->tlsref.tx_secret, secret, secretlen) < 0){
             xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
-            return 0;
+            return XQC_SSL_FAIL;
         }
-        break;
-    }
-    }
-
-    // 计算密钥套件所需的key nonce 和 hp
-    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-        // log has done 
-        return 0;
     }
 
     switch(level)
