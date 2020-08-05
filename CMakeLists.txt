@@ -16,6 +16,7 @@ endif()
 
 if(XQC_OPENSSL_IS_BORINGSSL)
     include_directories(third_party/boringssl/include)
+    add_definitions(-DXQC_FIX_CRYPTO_CTX=1)
 endif()
 
 if(XQC_PRINT_SECRET)
