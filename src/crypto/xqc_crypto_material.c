@@ -123,7 +123,7 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn, xqc_encrypt_level_t level, const u
 
     if (xqc_negotiated_aead_and_prf(ctx, cipher_id) == XQC_OK) {
         // 计算密钥套件所需的key nonce 和 hp
-        if (xqc_derive_packet_protection(ctx, secret, secretlen, key, keylen, iv, ivlen, hp, hplen, conn->log)) {
+        if (xqc_derive_packet_protection(ctx, secret, secretlen, key, keylen, iv, ivlen, hp, hplen, conn->log) == XQC_SSL_SUCCESS) {
             return XQC_OK ; 
         }           
     }
