@@ -13,8 +13,8 @@
 
 /** utils */
 
-static
-enum ssl_encryption_level_t xqc_convert_to_bssl_level(xqc_encrypt_level_t level)
+static enum ssl_encryption_level_t 
+xqc_convert_xqc_to_bssl_level(xqc_encrypt_level_t level)
 {
     switch(level)
     {
@@ -30,8 +30,8 @@ enum ssl_encryption_level_t xqc_convert_to_bssl_level(xqc_encrypt_level_t level)
     }
 }
 
-static
-xqc_encrypt_level_t  bssl_convert_to_xqc_level(enum ssl_encryption_level_t level)
+static xqc_encrypt_level_t  
+xqc_convert_bssl_to_xqc_level(enum ssl_encryption_level_t level)
 {
     switch(level)
     {
@@ -101,12 +101,12 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    if(xqc_setup_crypto_ctx(conn,bssl_convert_to_xqc_level(level),secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen) != XQC_OK) {
+    if (xqc_setup_crypto_ctx(conn, xqc_convert_bssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
         return XQC_SSL_FAIL;
     }
 
-    if(level == ssl_encryption_application) {
+    if (level == ssl_encryption_application) {
         // store the read secret 
         if(conn->tlsref.rx_secret.base != NULL){ // should xqc_vec_free ? if rx_secret already has value, it means connection status error
             xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
@@ -157,13 +157,13 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    if((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) || 
+    if ((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) || 
             (level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) {
         const uint8_t * peer_transport_params ;
         size_t outlen;
         SSL_get_peer_quic_transport_params(ssl,&peer_transport_params,&outlen);
         
-        if(XQC_LIKELY(outlen > 0)) {
+        if (XQC_LIKELY(outlen > 0)) {
             if(conn->conn_type == XQC_CONN_TYPE_SERVER) {
                 xqc_on_server_recv_peer_transport_params(conn,peer_transport_params,outlen);
             }else {
@@ -172,12 +172,12 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
     }
 
-    if(xqc_setup_crypto_ctx(conn,bssl_convert_to_xqc_level(level),secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen) != XQC_OK) {
+    if (xqc_setup_crypto_ctx(conn, xqc_convert_bssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
         return XQC_SSL_FAIL;
     }
 
-    if(level == ssl_encryption_application) {
+    if (level == ssl_encryption_application) {
         // store the write secret 
         if(conn->tlsref.tx_secret.base != NULL){ // should xqc_vec_free ? if rx_secret already has value, it means connection status error
             xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");

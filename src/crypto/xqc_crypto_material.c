@@ -92,15 +92,15 @@ err:
 }
 
 xqc_int_t
-xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uint8_t *secret, size_t secretlen,
+xqc_setup_crypto_ctx(xqc_connection_t * conn, xqc_encrypt_level_t level, const uint8_t *secret, size_t secretlen,
         uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
         uint8_t *iv, size_t *ivlen,
         uint8_t *hp, size_t *hplen)
 {
     uint32_t cipher_id ;
 
-    if(XQC_UNLIKELY(!conn || level >= XQC_ENC_MAX_LEVEL)) {
-        return XQC_ERROR ;
+    if (XQC_UNLIKELY(!conn || level >= XQC_ENC_MAX_LEVEL)) {
+        return -XQC_EPARAM ;
     }
 
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx_store[level];    
@@ -121,14 +121,14 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uin
         break;
     }
 
-    if( xqc_negotiated_aead_and_prf(ctx,cipher_id) == XQC_OK ) {
+    if (xqc_negotiated_aead_and_prf(ctx,cipher_id) == XQC_OK) {
         // 计算密钥套件所需的key nonce 和 hp
         if(xqc_derive_packet_protection(ctx,secret,secretlen,key,keylen,iv,ivlen,hp,hplen,conn->log)) {
             return XQC_OK ; 
         }           
     }
     
-    return XQC_ERROR;
+    return -XQC_TLS_CRYPTO_CTX_NEGOTIATED_ERROR ;
 }
 
 int xqc_derive_initial_secret(uint8_t *dest, size_t destlen,
