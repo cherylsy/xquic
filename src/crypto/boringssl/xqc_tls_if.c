@@ -118,12 +118,6 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
     }
     
-    // 计算密钥套件所需的key nonce 和 hp
-    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-        // log has done 
-        return 0;
-    }    
-
     switch(level)
     {
     case ssl_encryption_early_data :
@@ -163,6 +157,21 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
+    if((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) || 
+            (level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) {
+        const uint8_t * peer_transport_params ;
+        size_t outlen;
+        SSL_get_peer_quic_transport_params(ssl,&peer_transport_params,&outlen);
+        
+        if(XQC_LIKELY(outlen > 0)) {
+            if(conn->conn_type == XQC_CONN_TYPE_SERVER) {
+                xqc_on_server_recv_peer_transport_params(conn,peer_transport_params,outlen);
+            }else {
+                xqc_on_client_recv_peer_transport_params(conn,peer_transport_params,outlen);
+            }
+        }
+    }
+
     if(xqc_setup_crypto_ctx(conn,bssl_convert_to_xqc_level(level),secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
         return XQC_SSL_FAIL;
@@ -177,12 +186,6 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
             xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
             return XQC_SSL_FAIL;
         }
-    }
-
-    // 计算密钥套件所需的key nonce 和 hp
-    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-        // log has done
-        return 0;
     }
 
     switch(level)

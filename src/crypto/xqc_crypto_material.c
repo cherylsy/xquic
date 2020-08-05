@@ -91,7 +91,7 @@ err:
     return -1 ; 
 }
 
-xqc_int_t  
+xqc_int_t
 xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uint8_t *secret, size_t secretlen,
         uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
         uint8_t *iv, size_t *ivlen,
@@ -103,12 +103,8 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uin
         return XQC_ERROR ;
     }
 
-    xqc_tls_context_t * ctx = &conn->tlsref.crypto_ctx;
-    if(XQC_UNLIKELY(ctx->aead.ctx != NULL)) {
-        // no need update ;
-        return XQC_OK ;
-    }
-
+    xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx_store[level];    
+    
     switch (level)
     {
     case XQC_ENC_LEV_INIT:
@@ -126,7 +122,10 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uin
     }
 
     if( xqc_negotiated_aead_and_prf(ctx,cipher_id) == XQC_OK ) {
-        return XQC_OK ;
+        // 计算密钥套件所需的key nonce 和 hp
+        if(xqc_derive_packet_protection(ctx,secret,secretlen,key,keylen,iv,ivlen,hp,hplen,conn->log)) {
+            return XQC_OK ; 
+        }           
     }
     
     return XQC_ERROR;
