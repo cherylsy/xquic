@@ -28,6 +28,8 @@ typedef struct xqc_crypto_st        xqc_crypto_t ;
 #define XQC_FAKE_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 #define XQC_FAKE_HP_MASK "\x00\x00\x00\x00\x00"
 
+// check if crypto_obj has been initiated 
+#define xqc_crypto_is_init(obj)           ((obj->encrypt.xqc_encrypt_func))
 
 // crypto 和 aead 共有 noncelen 和 keylen 字段。 
 #define xqc_crypto_key_length(obj)      ((obj)->keylen)

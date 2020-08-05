@@ -80,11 +80,10 @@ xqc_init_crypto_ctx(xqc_connection_t * conn,const SSL_CIPHER * cipher)
     if(XQC_LIKELY(cipher)) {
         xqc_tls_context_t * ctx = &conn->tlsref.crypto_ctx ;
         const uint32_t cipher_id = SSL_CIPHER_get_id(cipher) ;
-        if(ctx->aead.ctx == NULL || cipher_id != conn->tlsref.last_cipher_id){
-            if(xqc_complete_crypto_ctx(ctx,cipher_id,conn->local_settings.no_crypto) != 0){
+        if (ctx->aead.ctx == NULL) {
+            if(xqc_complete_crypto_ctx(ctx, cipher_id, conn->local_settings.no_crypto) != 0){
                 goto err ;
             }
-            conn->tlsref.last_cipher_id = cipher_id ;
         }
         return 0 ;
     }
@@ -92,6 +91,45 @@ err:
     return -1 ; 
 }
 
+xqc_int_t
+xqc_setup_crypto_ctx(xqc_connection_t * conn, xqc_encrypt_level_t level, const uint8_t *secret, size_t secretlen,
+    uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+    uint8_t *iv, size_t *ivlen,
+    uint8_t *hp, size_t *hplen)
+{
+    uint32_t cipher_id ;
+
+    if (XQC_UNLIKELY(!conn || level >= XQC_ENC_MAX_LEVEL)) {
+        return -XQC_EPARAM ;
+    }
+
+    xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx_store[level];    
+    
+    switch (level)
+    {
+    case XQC_ENC_LEV_INIT:
+        cipher_id = 0x03001301u ;
+        break;
+    case XQC_ENC_LEV_0RTT:
+    case XQC_ENC_LEV_1RTT:
+        // only data use no crypto 
+        cipher_id = conn->local_settings.no_crypto ? NID_undef : SSL_CIPHER_get_id(SSL_get_current_cipher(conn->xc_ssl));
+        break;
+    case XQC_ENC_LEV_HSK:
+    default:
+        cipher_id = SSL_CIPHER_get_id(SSL_get_current_cipher(conn->xc_ssl));
+        break;
+    }
+
+    if (xqc_negotiated_aead_and_prf(ctx, cipher_id) == XQC_OK) {
+        // 计算密钥套件所需的key nonce 和 hp
+        if (xqc_derive_packet_protection(ctx, secret, secretlen, key, keylen, iv, ivlen, hp, hplen, conn->log) == XQC_SSL_SUCCESS) {
+            return XQC_OK ; 
+        }           
+    }
+    
+    return -XQC_TLS_CRYPTO_CTX_NEGOTIATED_ERROR ;
+}
 
 int xqc_derive_initial_secret(uint8_t *dest, size_t destlen,
         const  xqc_cid_t *cid, const uint8_t *salt,

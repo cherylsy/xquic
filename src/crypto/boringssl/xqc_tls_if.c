@@ -11,6 +11,42 @@
 #include "src/crypto/xqc_transport_params.h"
 #include "src/crypto/xqc_tls_stack_cb.h"
 
+/** utils */
+
+static enum ssl_encryption_level_t 
+xqc_convert_xqc_to_bssl_level(xqc_encrypt_level_t level)
+{
+    switch(level)
+    {
+    case XQC_ENC_LEV_INIT :
+        return ssl_encryption_initial ;
+    case XQC_ENC_LEV_0RTT :
+        return ssl_encryption_early_data;
+    case XQC_ENC_LEV_HSK  :
+        return ssl_encryption_handshake ;
+    case XQC_ENC_LEV_1RTT:
+    default:
+        return ssl_encryption_application;
+    }
+}
+
+static xqc_encrypt_level_t  
+xqc_convert_bssl_to_xqc_level(enum ssl_encryption_level_t level)
+{
+    switch(level)
+    {
+    case ssl_encryption_initial :
+        return XQC_ENC_LEV_INIT;
+    case ssl_encryption_early_data:
+        return XQC_ENC_LEV_0RTT;
+    case ssl_encryption_handshake:
+        return XQC_ENC_LEV_HSK;
+    case ssl_encryption_application:
+    default:
+        return XQC_ENC_LEV_1RTT;
+    }
+}
+
 static 
 xqc_int_t 
 xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , size_t length , xqc_connection_t *conn , xqc_int_t server_secret)
@@ -58,7 +94,6 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
 {
 
     xqc_connection_t *  conn = (xqc_connection_t *) SSL_get_app_data(ssl);
-    xqc_tls_context_t * current_ctx = NULL;
 
 #define XQC_MAX_KNP_LEN  64 
     //TODO need check 64 bytes enough (XQC_MAX_KNP_LEN)
@@ -66,18 +101,12 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    switch(level)
-    {
-    case ssl_encryption_initial:
-    case ssl_encryption_early_data:
-    case ssl_encryption_handshake :
-       if( xqc_init_crypto_ctx (conn,cipher) != 0 ) {
-            xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_init_crypto_ctx failed|");
-            return 0 ;
-        }
-        break;
-    case ssl_encryption_application : 
-    {   
+    if (xqc_setup_crypto_ctx(conn, xqc_convert_bssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
+        xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
+        return XQC_SSL_FAIL;
+    }
+
+    if (level == ssl_encryption_application) {
         // store the read secret 
         if(conn->tlsref.rx_secret.base != NULL){ // should xqc_vec_free ? if rx_secret already has value, it means connection status error
             xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
@@ -87,16 +116,8 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
             xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
             return 0;
         }
-        break;
     }
-    }
-
-    // 计算密钥套件所需的key nonce 和 hp
-    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-        // log has done 
-        return 0;
-    }
-
+    
     switch(level)
     {
     case ssl_encryption_early_data :
@@ -136,36 +157,36 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    switch(level)
+    if ((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) 
+        || (level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) 
     {
-    case ssl_encryption_initial:
-    case ssl_encryption_early_data:
-    case ssl_encryption_handshake:
-    {
-        if( xqc_init_crypto_ctx (conn,cipher) != 0 ) {
-            xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_init_crypto_ctx failed|");
-            return 0 ;
+        const uint8_t * peer_transport_params ;
+        size_t outlen;
+        SSL_get_peer_quic_transport_params(ssl, &peer_transport_params, &outlen);
+        
+        if (XQC_LIKELY(outlen > 0)) {
+            if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
+                xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
+            } else {
+                xqc_on_client_recv_peer_transport_params(conn, peer_transport_params, outlen);
+            }
         }
-        break;
-    }
-    case ssl_encryption_application : 
-    {
-        // store the write secret 
-        if(conn->tlsref.tx_secret.base != NULL){ // should xqc_vec_free ? if rx_secret already has value, it means connection status error
-            xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
-        }
-        if(xqc_vec_assign(&conn->tlsref.tx_secret, secret, secretlen) < 0){
-            xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
-            return 0;
-        }
-        break;
-    }
     }
 
-    // 计算密钥套件所需的key nonce 和 hp
-    if(!xqc_derive_packet_protection(&conn->tlsref.crypto_ctx,secret,secretlen,key,&keylen,iv,&ivlen,hp,&hplen,conn->log)) {
-        // log has done 
-        return 0;
+    if (xqc_setup_crypto_ctx(conn, xqc_convert_bssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
+        xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
+        return XQC_SSL_FAIL;
+    }
+
+    if (level == ssl_encryption_application) {
+        // store the write secret 
+        if (conn->tlsref.tx_secret.base != NULL) { // should xqc_vec_free ? if rx_secret already has value, it means connection status error
+            xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
+        }
+        if (xqc_vec_assign(&conn->tlsref.tx_secret, secret, secretlen) < 0) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
+            return XQC_SSL_FAIL;
+        }
     }
 
     switch(level)
@@ -256,6 +277,9 @@ SSL_QUIC_METHOD  xqc_ssl_quic_method =
 };
 
 
+#define XQC_EARLY_DATA_CONTEXT          "xquic"
+#define XQC_EARLY_DATA_CONTEXT_LEN      (sizeof(XQC_EARLY_DATA_CONTEXT) - 1)
+
 static 
 int xqc_configure_quic(xqc_connection_t *conn)
 {
@@ -266,7 +290,6 @@ int xqc_configure_quic(xqc_connection_t *conn)
 
     SSL_set_quic_method(ssl,&xqc_ssl_quic_method);
     SSL_set_early_data_enabled(ssl,1);
-    
     
     switch(conn->conn_type)
     {
@@ -279,7 +302,7 @@ int xqc_configure_quic(xqc_connection_t *conn)
     }
     case XQC_CONN_TYPE_SERVER:{
         rv = xqc_serialize_server_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,&out,&outlen);
-        SSL_set_quic_early_data_context(ssl,out,outlen);
+        SSL_set_quic_early_data_context(ssl, (const uint8_t *)XQC_EARLY_DATA_CONTEXT, XQC_EARLY_DATA_CONTEXT_LEN);
         if(rv != 0) {
             return rv;
         }
