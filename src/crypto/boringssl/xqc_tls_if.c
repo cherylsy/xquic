@@ -157,17 +157,18 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    if ((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) || 
-            (level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) {
+    if ((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) 
+        || (level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) 
+    {
         const uint8_t * peer_transport_params ;
         size_t outlen;
-        SSL_get_peer_quic_transport_params(ssl,&peer_transport_params,&outlen);
+        SSL_get_peer_quic_transport_params(ssl, &peer_transport_params, &outlen);
         
         if (XQC_LIKELY(outlen > 0)) {
             if(conn->conn_type == XQC_CONN_TYPE_SERVER) {
-                xqc_on_server_recv_peer_transport_params(conn,peer_transport_params,outlen);
-            }else {
-                xqc_on_client_recv_peer_transport_params(conn,peer_transport_params,outlen);
+                xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
+            } else {
+                xqc_on_client_recv_peer_transport_params(conn, peer_transport_params, outlen);
             }
         }
     }
@@ -301,7 +302,7 @@ int xqc_configure_quic(xqc_connection_t *conn)
     }
     case XQC_CONN_TYPE_SERVER:{
         rv = xqc_serialize_server_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,&out,&outlen);
-        SSL_set_quic_early_data_context(ssl,(const uint8_t *)XQC_EARLY_DATA_CONTEXT,XQC_EARLY_DATA_CONTEXT_LEN);
+        SSL_set_quic_early_data_context(ssl, (const uint8_t *)XQC_EARLY_DATA_CONTEXT, XQC_EARLY_DATA_CONTEXT_LEN);
         if(rv != 0) {
             return rv;
         }
