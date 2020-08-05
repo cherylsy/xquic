@@ -300,8 +300,8 @@ struct xqc_tlsref
     uint64_t                flags; //record handshake completed or recv retry packet
    
 #define hs_crypto_ctx crypto_ctx_store[XQC_ENC_LEV_INIT] 
-#define crypto_ctx    crypto_ctx_store[XQC_ENC_MAX_LEVEL]
-    xqc_tls_context_t       crypto_ctx_store[XQC_ENC_MAX_LEVEL + 1] ;
+#define crypto_ctx    crypto_ctx_store[XQC_ENC_LEV_0RTT]
+    xqc_tls_context_t       crypto_ctx_store[XQC_ENC_MAX_LEVEL] ;
 
     xqc_pktns_t             initial_pktns; // initial packet space key
     xqc_pktns_t             hs_pktns; // handshake packet space  key
