@@ -297,7 +297,7 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
     xqc_tls_print_secret(ssl, conn, level, read_secret, write_secret, secret_len);
 #endif
 
-    int rv = 0;
+    int rv = XQC_SSL_SUCCESS;
     if (write_secret != NULL) {
         rv = xqc_set_write_secret(ssl,level,SSL_get_current_cipher(ssl),write_secret,secret_len);
     }
