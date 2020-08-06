@@ -544,4 +544,14 @@ int xqc_tls_free_msg_cb_buffer(xqc_connection_t * conn);
 int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config);
 
 
+// configure  quic related write secret , Call from TLS Stack
+int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
+    const SSL_CIPHER *cipher, const uint8_t *secret,
+    size_t secretlen);
+
+// configure  quic related write secret , Call from TLS Stack
+int xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
+    const SSL_CIPHER *cipher, const uint8_t *secret,
+    size_t secretlen);
+
 #endif
