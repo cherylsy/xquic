@@ -283,11 +283,11 @@ xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
 
     int rv = XQC_SSL_SUCCESS;
     if (write_secret != NULL) {
-        rv = xqc_set_write_secret(ssl,level,SSL_get_current_cipher(ssl),write_secret,secret_len);
+        rv = xqc_set_write_secret(ssl, level, SSL_get_current_cipher(ssl), write_secret,secret_len);
     }
 
     if (XQC_LIKELY(rv == XQC_SSL_SUCCESS) && read_secret != NULL) {
-        rv = xqc_set_read_secret(ssl,level,SSL_get_current_cipher(ssl),read_secret,secret_len);
+        rv = xqc_set_read_secret(ssl, level, SSL_get_current_cipher(ssl), read_secret, secret_len);
     }
 
     return rv ;
