@@ -6,6 +6,8 @@
 #include "src/crypto/xqc_tls_init.h"
 #include "src/crypto/xqc_tls_cb.h"
 #include "src/crypto/xqc_tls_stack_cb.h"
+#include "src/crypto/xqc_crypto_material.h"
+#include "src/crypto/xqc_transport_params.h"
 
 
 enum ssl_encryption_level_t 

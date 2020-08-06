@@ -154,29 +154,13 @@ xqc_client_tls_handshake(xqc_connection_t *conn)
     return XQC_OK;
 }
 
-static enum
-ssl_encryption_level_t xqc_convert_to_bssl_level(xqc_encrypt_level_t level)
-{
-    switch (level) {
-    case XQC_ENC_LEV_INIT:
-        return ssl_encryption_initial;
-    case XQC_ENC_LEV_0RTT:
-        return ssl_encryption_early_data;
-    case XQC_ENC_LEV_HSK:
-        return ssl_encryption_handshake;
-    case XQC_ENC_LEV_1RTT:
-    default:
-        return ssl_encryption_application;
-    }
-}
-
 int
 xqc_recv_crypto_data_cb(xqc_connection_t *conn,
     uint64_t offset, const uint8_t *data, size_t datalen,
     xqc_encrypt_level_t encrypt_level, void *user_data)
 {
     SSL *ssl = conn->xc_ssl;
-    if (SSL_provide_quic_data(ssl, xqc_convert_to_bssl_level(encrypt_level), 
+    if (SSL_provide_quic_data(ssl, xqc_convert_xqc_to_ssl_level(encrypt_level), 
                 data, datalen) != XQC_SSL_SUCCESS) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "| SSL_provide_quic_data failed[level:%d]|", encrypt_level);
