@@ -566,7 +566,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     if (level == ssl_encryption_application) {
         // store the read secret 
         if (conn->tlsref.rx_secret.base != NULL) { // should xqc_vec_free ? if rx_secret already has value, it means connection status error
-            xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|error rx_secret , may case memory leak |");
         }
 
         if (xqc_vec_assign(&conn->tlsref.rx_secret, secret, secretlen) < 0) {
@@ -637,7 +637,7 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     if (level == ssl_encryption_application) {
         // store the write secret 
         if (conn->tlsref.tx_secret.base != NULL) { // should xqc_vec_free ? if rx_secret already has value, it means connection status error
-            xqc_log(conn->log, XQC_LOG_WARN, "|error rx_secret , may case memory leak |");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|error rx_secret , may case memory leak |");
         }
         if (xqc_vec_assign(&conn->tlsref.tx_secret, secret, secretlen) < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
