@@ -13,40 +13,6 @@
 
 /** utils */
 
-static enum ssl_encryption_level_t 
-xqc_convert_xqc_to_bssl_level(xqc_encrypt_level_t level)
-{
-    switch(level)
-    {
-    case XQC_ENC_LEV_INIT :
-        return ssl_encryption_initial ;
-    case XQC_ENC_LEV_0RTT :
-        return ssl_encryption_early_data;
-    case XQC_ENC_LEV_HSK  :
-        return ssl_encryption_handshake ;
-    case XQC_ENC_LEV_1RTT:
-    default:
-        return ssl_encryption_application;
-    }
-}
-
-static xqc_encrypt_level_t  
-xqc_convert_bssl_to_xqc_level(enum ssl_encryption_level_t level)
-{
-    switch(level)
-    {
-    case ssl_encryption_initial :
-        return XQC_ENC_LEV_INIT;
-    case ssl_encryption_early_data:
-        return XQC_ENC_LEV_0RTT;
-    case ssl_encryption_handshake:
-        return XQC_ENC_LEV_HSK;
-    case ssl_encryption_application:
-    default:
-        return XQC_ENC_LEV_1RTT;
-    }
-}
-
 static 
 xqc_int_t 
 xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , size_t length , xqc_connection_t *conn , xqc_int_t server_secret)
@@ -79,6 +45,7 @@ xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , s
 
     return 1 ;
 }
+
 
 int 
 xqc_add_handshake_data (SSL *ssl, enum ssl_encryption_level_t level,
@@ -254,23 +221,6 @@ xqc_client_initial_cb(xqc_connection_t *conn)
     return xqc_do_handshake(conn);
 }
 
-static 
-enum ssl_encryption_level_t convert_to_bssl_level(xqc_encrypt_level_t level)
-{
-    switch(level)
-    {
-    case XQC_ENC_LEV_INIT :
-        return ssl_encryption_initial ;
-    case XQC_ENC_LEV_0RTT :
-        return ssl_encryption_early_data;
-    case XQC_ENC_LEV_HSK  :
-        return ssl_encryption_handshake ;
-    case XQC_ENC_LEV_1RTT:
-    default:
-        return ssl_encryption_application;
-    }
-}
-
 int 
 xqc_recv_crypto_data_cb(xqc_connection_t *conn, 
         uint64_t offset,
@@ -287,7 +237,7 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
     (void) offset ;
 
     SSL * ssl = conn->xc_ssl ;
-    if( SSL_provide_quic_data(ssl,convert_to_bssl_level(encrypt_level),data,datalen) != 1 ) {
+    if( SSL_provide_quic_data(ssl,xqc_convert_xqc_to_ssl_level(encrypt_level),data,datalen) != 1 ) {
         xqc_log(conn->log,XQC_LOG_ERROR,"| SSL_provide_quic_data failed[level:%d]|",encrypt_level);
         return -1 ;
     }

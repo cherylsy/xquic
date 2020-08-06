@@ -8,6 +8,42 @@
 #include "src/crypto/xqc_tls_stack_cb.h"
 
 
+enum ssl_encryption_level_t 
+xqc_convert_xqc_to_ssl_level(xqc_encrypt_level_t level)
+{
+    switch(level)
+    {
+    case XQC_ENC_LEV_INIT :
+        return ssl_encryption_initial ;
+    case XQC_ENC_LEV_0RTT :
+        return ssl_encryption_early_data;
+    case XQC_ENC_LEV_HSK  :
+        return ssl_encryption_handshake ;
+    case XQC_ENC_LEV_1RTT:
+    default:
+        return ssl_encryption_application;
+    }
+}
+
+xqc_encrypt_level_t  
+xqc_convert_ssl_to_xqc_level(enum ssl_encryption_level_t level)
+{
+    switch(level)
+    {
+    case ssl_encryption_initial :
+        return XQC_ENC_LEV_INIT;
+    case ssl_encryption_early_data:
+        return XQC_ENC_LEV_0RTT;
+    case ssl_encryption_handshake:
+        return XQC_ENC_LEV_HSK;
+    case ssl_encryption_application:
+    default:
+        return XQC_ENC_LEV_1RTT;
+    }
+}
+
+
+
 /*
  *@return XQC_FALSE means reject, XQC_TRUE means early accepted
  *
@@ -520,7 +556,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
-    if (xqc_setup_crypto_ctx(conn, xqc_convert_bssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
+    if (xqc_setup_crypto_ctx(conn, xqc_convert_ssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
         return XQC_SSL_FAIL;
     }
@@ -591,7 +627,7 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
     }
 
-    if (xqc_setup_crypto_ctx(conn, xqc_convert_bssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
+    if (xqc_setup_crypto_ctx(conn, xqc_convert_ssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
         return XQC_SSL_FAIL;
     }

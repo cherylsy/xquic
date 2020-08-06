@@ -554,4 +554,10 @@ int xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     const SSL_CIPHER *cipher, const uint8_t *secret,
     size_t secretlen);
 
+// convert xqc encrypt level to ssl encrypt level 
+enum ssl_encryption_level_t  xqc_convert_xqc_to_ssl_level(xqc_encrypt_level_t level);
+
+// convert ssl encrypt level to xqc encrypt level 
+xqc_encrypt_level_t  xqc_convert_ssl_to_xqc_level(enum ssl_encryption_level_t level);
+
 #endif
