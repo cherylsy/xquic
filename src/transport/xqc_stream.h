@@ -112,6 +112,7 @@ struct xqc_stream_s {
     xqc_encrypt_level_t     stream_encrypt_level;
     xqc_stream_data_in_t    stream_data_in;
     unsigned                stream_unacked_pkt;
+    int64_t                 stream_refcnt;
     xqc_send_stream_state_t stream_state_send;
     xqc_recv_stream_state_t stream_state_recv;
     xqc_msec_t              stream_close_time;
@@ -216,6 +217,10 @@ xqc_destroy_frame_list(xqc_list_head_t *head);
 
 void
 xqc_destroy_write_buff_list(xqc_list_head_t *head);
+
+void xqc_stream_refcnt_add(xqc_stream_t *stream);
+void xqc_stream_refcnt_del(xqc_stream_t *stream);
+
 
 #endif /* _XQC_STREAM_H_INCLUDED_ */
 
