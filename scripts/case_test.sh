@@ -309,7 +309,7 @@ grep_err_log
 
 clear_log
 echo -e "3% loss ...\c"
-./test_client -s 10240000 -l e -t 4 -E -d 30|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 7 -E -d 30|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
@@ -319,7 +319,7 @@ grep_err_log
 
 clear_log
 echo -e "sendmmsg with 10% loss ...\c"
-./test_client -s 10240000 -l e -t 10 -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 12 -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"
 grep_err_log
 
 killall test_server
