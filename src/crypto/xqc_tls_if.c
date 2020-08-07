@@ -15,12 +15,12 @@ xqc_convert_xqc_to_ssl_level(xqc_encrypt_level_t level)
 {
     switch(level)
     {
-    case XQC_ENC_LEV_INIT :
-        return ssl_encryption_initial ;
-    case XQC_ENC_LEV_0RTT :
+    case XQC_ENC_LEV_INIT:
+        return ssl_encryption_initial;
+    case XQC_ENC_LEV_0RTT:
         return ssl_encryption_early_data;
-    case XQC_ENC_LEV_HSK  :
-        return ssl_encryption_handshake ;
+    case XQC_ENC_LEV_HSK:
+        return ssl_encryption_handshake;
     case XQC_ENC_LEV_1RTT:
     default:
         return ssl_encryption_application;
@@ -32,7 +32,7 @@ xqc_convert_ssl_to_xqc_level(enum ssl_encryption_level_t level)
 {
     switch(level)
     {
-    case ssl_encryption_initial :
+    case ssl_encryption_initial:
         return XQC_ENC_LEV_INIT;
     case ssl_encryption_early_data:
         return XQC_ENC_LEV_0RTT;
