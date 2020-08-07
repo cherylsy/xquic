@@ -977,6 +977,12 @@ xqc_on_client_recv_peer_transport_params(xqc_connection_t * conn,const unsigned 
         }
     }
 
+    // update client no crypto 
+    if (params.no_crypto == 1) {
+        conn->remote_settings.no_crypto = 1 ;
+        conn->local_settings.no_crypto = 1 ;
+    }
+
     return 0;
 }
 
@@ -1002,7 +1008,7 @@ xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,const unsigned 
     }
 
     //save no crypto flag
-    if(params.no_crypto == 1){
+    if (params.no_crypto == 1) {
         conn->remote_settings.no_crypto = 1;
         conn->local_settings.no_crypto = 1;
     }
