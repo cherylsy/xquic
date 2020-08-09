@@ -569,7 +569,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
             xqc_log(conn->log, XQC_LOG_ERROR, "|error rx_secret , may case memory leak |");
         }
 
-        if (xqc_vec_assign(&conn->tlsref.rx_secret, secret, secretlen) < 0) {
+        if (xqc_vec_assign(&conn->tlsref.rx_secret, secret, secretlen) != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|error assign rx_secret |");
             return XQC_SSL_FAIL;
         }
@@ -580,17 +580,21 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     case ssl_encryption_early_data :
     {
         if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-            if (xqc_conn_install_early_keys(conn, key, keylen, iv, ivlen, hp, hplen) != 0) {
+            if (xqc_conn_install_early_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
                 return XQC_SSL_FAIL ;
             }
         }
         break ;
     }
     case ssl_encryption_handshake : 
-        xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen);
+        if (xqc_conn_install_handshake_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            return XQC_SSL_FAIL ;
+        }
         break;
     case ssl_encryption_application: 
-        xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen);
+        if (xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen)) {
+            return XQC_SSL_FAIL ;
+        }
         break;
     default:
         // no way 
@@ -619,13 +623,19 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
         const uint8_t * peer_transport_params ;
         size_t outlen;
         SSL_get_peer_quic_transport_params(ssl, &peer_transport_params, &outlen);
-        
+
+        xqc_int_t rv = XQC_OK;       
+ 
         if (XQC_LIKELY(outlen > 0)) {
             if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-                xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
+                rv = xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
             } else {
-                xqc_on_client_recv_peer_transport_params(conn, peer_transport_params, outlen);
+                rv = xqc_on_client_recv_peer_transport_params(conn, peer_transport_params, outlen);
             }
+        }
+
+        if (XQC_UNLIKELY(rv != XQC_OK)) {
+            return XQC_SSL_FAIL;
         }
     }
 
@@ -657,10 +667,14 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
         break ;
     }
     case ssl_encryption_handshake : 
-        xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen);
+        if (xqc_conn_install_handshake_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            return XQC_SSL_FAIL ;
+        }
         break;
     case ssl_encryption_application: 
-        xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen);
+        if (xqc_conn_install_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
+            return XQC_SSL_FAIL ;
+        }
         break;
     default:
         // no way 
