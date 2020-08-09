@@ -592,7 +592,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
         break;
     case ssl_encryption_application: 
-        if (xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen)) {
+        if (xqc_conn_install_rx_keys(conn, key, keylen, iv, ivlen, hp, hplen) != XQC_OK) {
             return XQC_SSL_FAIL ;
         }
         break;
