@@ -16,8 +16,10 @@ endif()
 
 if(XQC_OPENSSL_IS_BORINGSSL)
     include_directories(third_party/boringssl/include)
-    add_definitions(-DXQC_FIX_CRYPTO_CTX=1)
 endif()
+
+# TDOO remove this 
+add_definitions(-DXQC_FIX_CRYPTO_CTX=1)
 
 if(XQC_PRINT_SECRET)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_PRINT_SECRET")
