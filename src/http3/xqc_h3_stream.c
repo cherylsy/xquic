@@ -58,7 +58,7 @@ xqc_h3_stream_destroy(xqc_h3_stream_t *h3_stream)
     xqc_http3_qpack_stream_context_free(&h3_stream->qpack_sctx);
     xqc_h3_stream_free_data_buf(h3_stream);
 
-    xqc_http3_stream_clear_unack_and_block_stream_list(h3_stream);
+    xqc_h3_stream_clear_unack_and_block_stream_list(h3_stream);
 
     xqc_log(h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|",
             h3_stream->stream->stream_id, h3_stream->h3_stream_type);

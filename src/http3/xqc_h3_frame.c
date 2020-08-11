@@ -358,10 +358,10 @@ ssize_t xqc_http3_conn_read_qpack_encoder(xqc_h3_conn_t * conn,  uint8_t *src, s
 
 }
 
-ssize_t xqc_http3_conn_read_qpack_decoder(xqc_h3_conn_t *conn, int8_t *src, size_t srclen){
-
-    return xqc_http3_qpack_encoder_read_decoder( conn, src, srclen);
-
+ssize_t 
+xqc_h3_conn_read_qpack_decoder(xqc_h3_conn_t *conn, int8_t *src, size_t srclen)
+{
+    return xqc_h3_qpack_encoder_read_decoder(conn, src, srclen);
 }
 
 ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen, int fin){
@@ -425,7 +425,7 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
             if(fin){
                 return -XQC_H3_CLOSE_CRITICAL_STREAM;
             }
-            nconsumed = xqc_http3_conn_read_qpack_decoder(h3_conn, src, srclen);
+            nconsumed = xqc_h3_conn_read_qpack_decoder(h3_conn, src, srclen);
             break;
 
         case XQC_HTTP3_STREAM_TYPE_UNKNOWN:

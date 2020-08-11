@@ -407,6 +407,8 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
     stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
 
+    stream->stream_refcnt = 0;
+
     xqc_stream_set_flow_ctl(stream);
 
     xqc_init_list_head(&stream->stream_data_in.frames_tailq);
@@ -500,6 +502,7 @@ xqc_stream_close (xqc_stream_t *stream)
     xqc_connection_t *conn = stream->stream_conn;
     xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_send:%d|stream_state_recv:%d|conn:%p|conn_state:%s|",
             stream->stream_id, stream->stream_state_send, stream->stream_state_recv, conn, xqc_conn_state_2_str(conn->conn_state));
+
     if (stream->stream_state_send >= XQC_SEND_STREAM_ST_RESET_SENT) {
         return XQC_OK;
     }
@@ -1394,3 +1397,18 @@ xqc_destroy_write_buff_list(xqc_list_head_t *head)
         xqc_destroy_write_buff(write_buff);
     }
 }
+
+
+/* used to count reference */
+void
+xqc_stream_refcnt_add(xqc_stream_t *stream)
+{
+    stream->stream_refcnt++;
+}
+
+void
+xqc_stream_refcnt_del(xqc_stream_t *stream)
+{
+    stream->stream_refcnt--;
+}
+

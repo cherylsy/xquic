@@ -1181,11 +1181,21 @@ xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, 
 
     xqc_list_head_t *pos, *next;
     xqc_stream_t *stream;
-    xqc_msec_t min_expire = XQC_MAX_UINT64_VALUE;
+    xqc_msec_t min_expire = XQC_MAX_UINT64_VALUE, later = 0;
     xqc_list_for_each_safe(pos, next, &conn->conn_closing_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, closing_stream_list);
         if (stream->stream_close_time <= now) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
+#if 0
+            if (stream->stream_refcnt != 0) {
+                later = xqc_send_ctl_calc_pto(ctl);
+                min_expire = now + later;
+                
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|close later|stream_refcnt:%" PRIu64 "|now:%ui|delta:%ui|", 
+                          stream->stream_refcnt, stream->stream_id, stream->stream_type, now, later);
+                continue;
+            }
+#endif
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|stream close|", stream->stream_id, stream->stream_type);
             xqc_list_del_init(pos);
             xqc_destroy_stream(stream);
         } else {
