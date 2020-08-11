@@ -1185,6 +1185,7 @@ xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, 
     xqc_list_for_each_safe(pos, next, &conn->conn_closing_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, closing_stream_list);
         if (stream->stream_close_time <= now) {
+#if 0
             if (stream->stream_refcnt != 0) {
                 later = xqc_send_ctl_calc_pto(ctl);
                 min_expire = now + later;
@@ -1193,7 +1194,7 @@ xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, 
                           stream->stream_refcnt, stream->stream_id, stream->stream_type, now, later);
                 continue;
             }
-
+#endif
             xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|stream close|", stream->stream_id, stream->stream_type);
             xqc_list_del_init(pos);
             xqc_destroy_stream(stream);
