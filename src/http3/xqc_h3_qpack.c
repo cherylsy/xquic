@@ -2896,25 +2896,25 @@ xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
         xqc_h3_qpack_encoder_insert_unack_header(qenc_stream, stream, encoder, min_cnt, max_cnt);
     }
 ok:
-    if(encoded_section_buf){
+    if (encoded_section_buf) {
         xqc_free(encoded_section_buf);
     }
-    if(section_prefix){
+    if (section_prefix) {
         xqc_free(section_prefix);
     }
-    if(encoder_instr_buf){
+    if (encoder_instr_buf) {
         xqc_free(encoder_instr_buf);
     }
     return rv;
 
 fail:
-    if(encoded_section_buf){
+    if (encoded_section_buf) {
         xqc_free(encoded_section_buf);
     }
-    if(section_prefix){
+    if (section_prefix) {
         xqc_free(section_prefix);
     }
-    if(encoder_instr_buf){
+    if (encoder_instr_buf) {
         xqc_free(encoder_instr_buf);
     }
     return rv;
