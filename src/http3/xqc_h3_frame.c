@@ -349,7 +349,7 @@ ssize_t xqc_http3_conn_read_qpack_encoder(xqc_h3_conn_t * conn,  uint8_t *src, s
         xqc_qpack_decoder_block_stream_check_and_process(conn, conn->qdec.ctx.next_absidx);
 
         if(conn->qdec.written_icnt < conn->qdec.ctx.next_absidx){
-            xqc_http3_qpack_decoder_write_insert_count_increment(conn->qdec_stream, conn->qdec.ctx.next_absidx - conn->qdec.written_icnt);
+            xqc_h3_qpack_decoder_write_insert_count_increment(conn->qdec_stream, conn->qdec.ctx.next_absidx - conn->qdec.written_icnt);
             conn->qdec.written_icnt = conn->qdec.ctx.next_absidx;
 
         }
@@ -944,7 +944,7 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                     fin_flag |= XQC_HTTP3_FRAME_FIN;
                 }
 
-                nread = xqc_http3_handle_header_data_streaming(h3_conn, h3_stream, p, len, fin_flag);
+                nread = xqc_h3_handle_header_data_streaming(h3_conn, h3_stream, p, len, fin_flag);
 
                 if(nread < 0){
                     xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d|", rstate->state);
