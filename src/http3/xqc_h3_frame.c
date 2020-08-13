@@ -1323,8 +1323,10 @@ xqc_h3_write_headers(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream,
     return n_write;
 }
 
-ssize_t xqc_http3_write_frame_header(xqc_h3_stream_t * h3_stream, char * data, ssize_t data_len, uint8_t fin){
-
+ssize_t 
+xqc_h3_write_frame_header(xqc_h3_stream_t * h3_stream, 
+    char * data, ssize_t data_len, uint8_t fin)
+{
     if(data_len <= 0){
         return -XQC_H3_EPARAM;
     }

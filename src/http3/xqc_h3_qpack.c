@@ -2712,7 +2712,7 @@ xqc_h3_qpack_encoder_dtable_literal_write(xqc_http3_qpack_encoder *encoder,
 int 
 xqc_h3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream, 
     xqc_http3_qpack_encoder * encoder, size_t *pmax_index, size_t *pmin_index,
-    xqc_var_buf_t **pp_buf, xqc_var_buf_t **p_enc_buf, 
+    xqc_var_buf_t **encoded_section_buf, xqc_var_buf_t **encoder_instr_buf, 
     xqc_http_header_t * header, size_t base)
 {
     int baseIndex = 0;
@@ -2746,7 +2746,7 @@ xqc_h3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream,
         if(s_result.absidx != -1){//static name value
 
             //xqc_log(stream->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:static name_value_index, name:%s, value:%s, index:%d|", name, value, s_result.absidx);
-            rv = xqc_h3_qpack_encoder_write_static_indexed(encoder, pp_buf, s_result.absidx);
+            rv = xqc_h3_qpack_encoder_write_static_indexed(encoder, encoded_section_buf, s_result.absidx);
             return rv;
         }
 
@@ -2764,13 +2764,14 @@ xqc_h3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream,
                 int draining = xqc_h3_qpack_context_check_draining(&encoder->ctx, entry);
                 if(draining){
                     //xqc_log(stream->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:draining, name:%s, value:%s, index:%d|", name, value, entry->absidx);
-                    xqc_h3_qpack_encoder_dtable_duplicate(encoder, p_enc_buf, entry);
+                    xqc_h3_qpack_encoder_dtable_duplicate(encoder, encoder_instr_buf, entry);
                     goto literal;
                 }else{
                     //refernce and don't insert, refresh max ref index and min ref index
                     *pmax_index = xqc_max( *pmax_index, (entry->absidx + 1));
                     *pmin_index = xqc_min( *pmin_index, (entry->absidx + 1));
-                    rv = xqc_h3_qpack_encoder_write_dynamic_indexed(encoder, pp_buf, entry, base);
+                    rv = xqc_h3_qpack_encoder_write_dynamic_indexed(encoder, encoded_section_buf, 
+                                                                    entry, base);
                     //xqc_log(stream->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:name_value_index, name:%s, value:%s, index:%d|", name, value, entry->absidx);
                     return rv;
                 }
@@ -2780,10 +2781,12 @@ xqc_h3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream,
 
     if(s_result.name_absidx != -1){ //static name
         if(insert_flag){
-            xqc_h3_qpack_encoder_dtable_static_write(encoder, p_enc_buf, s_result.name_absidx, name, name_len, value, value_len);
+            xqc_h3_qpack_encoder_dtable_static_write(encoder, encoder_instr_buf, 
+                                            s_result.name_absidx, name, name_len, value, value_len);
         }
         //xqc_log(stream->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:static name_index, name:%s, value:%s, index:%d|", name, value, s_result.name_absidx);
-        rv = xqc_h3_qpack_encoder_write_static_indexed_name(encoder, pp_buf, s_result.name_absidx, value, value_len, flags);
+        rv = xqc_h3_qpack_encoder_write_static_indexed_name(encoder, encoded_section_buf, 
+                                            s_result.name_absidx, value, value_len, flags);
         return rv;
     }
 
@@ -2799,7 +2802,8 @@ xqc_h3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream,
                 goto literal;
             }else{
                 if(insert_flag){
-                    xqc_h3_qpack_encoder_dtable_dynamic_write(encoder, p_enc_buf, d_result.name_entry->absidx, name, name_len, value, value_len);
+                    xqc_h3_qpack_encoder_dtable_dynamic_write(encoder, encoder_instr_buf, 
+                                    d_result.name_entry->absidx, name, name_len, value, value_len);
                 }
 
                 //refresh max ref index and min ref index
@@ -2807,7 +2811,8 @@ xqc_h3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream,
                 *pmin_index = xqc_min( *pmin_index, (entry->absidx + 1));
 
                 //xqc_log(stream->h3_conn->log, XQC_LOG_INFO, "|qpack test case: mode:name_index, name:%s, value:%s, index:%d|", name, value, entry->absidx);
-                rv = xqc_h3_qpack_encoder_write_dynamic_indexed_name(encoder, pp_buf,  entry->absidx, base, value, value_len, flags );
+                rv = xqc_h3_qpack_encoder_write_dynamic_indexed_name(encoder, encoded_section_buf, 
+                                    entry->absidx, base, value, value_len, flags );
                 return rv;
             }
         }
@@ -2815,10 +2820,12 @@ xqc_h3_qpack_encoder_encode_nv(xqc_h3_stream_t *stream,
     }
 
 literal:
-    if(insert_flag){ //将插入的过程变成一个接口，避免流程过于难懂
-        xqc_h3_qpack_encoder_dtable_literal_write(encoder, p_enc_buf, name, name_len, value, value_len);
+    if (insert_flag) {
+        xqc_h3_qpack_encoder_dtable_literal_write(encoder, encoder_instr_buf, 
+                                                  name, name_len, value, value_len);
     }
-    xqc_http3_qpack_encoder_write_literal(encoder, pp_buf, header->flags, name, name_len, value, value_len);
+    xqc_http3_qpack_encoder_write_literal(encoder, encoded_section_buf, 
+                                          header->flags, name, name_len, value, value_len);
 
     return XQC_OK;
 }
@@ -2830,54 +2837,56 @@ xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
     xqc_http_headers_t * headers, int fin)
 {
     int rv = 0, i = 0;
-    xqc_var_buf_t *pp_buf = NULL ;
-    xqc_var_buf_t *pp_h_data = NULL;
-    xqc_var_buf_t *p_enc_buf = NULL;
+    xqc_var_buf_t *encoded_section_buf = NULL ;
+    xqc_var_buf_t *section_prefix = NULL;
+    xqc_var_buf_t *encoder_instr_buf = NULL;
 
-    pp_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
-    p_enc_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
+    encoded_section_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
+    encoder_instr_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
 
     size_t max_cnt = 0, min_cnt = XQC_MAX_SIZE_T;
     size_t base = encoder->ctx.next_absidx;;
 
     for(i = 0; i < headers->count; i++){
         rv = xqc_h3_qpack_encoder_encode_nv(stream, encoder, &max_cnt, &min_cnt, 
-                                            &pp_buf, &p_enc_buf, 
+                                            &encoded_section_buf, &encoder_instr_buf, 
                                             &headers->headers[i], base);
         if (rv != XQC_OK) {
             goto fail;
         }
     }
-    if (pp_buf->used_len == 0) {
+    if (encoded_section_buf->used_len == 0) {
         goto ok; //no need send data
     }
 
-    pp_h_data = xqc_var_buf_create((pp_buf)->used_len + XQC_VAR_INT_LEN * 2);
-    if (pp_h_data == NULL) {
+    section_prefix = xqc_var_buf_create((encoded_section_buf)->used_len + XQC_VAR_INT_LEN * 2);
+    if (section_prefix == NULL) {
         rv = -XQC_H3_EMALLOC;
         goto fail;
     }
 
-    rv = xqc_h3_qpack_encoder_write_header_block_prefix(encoder, pp_h_data, max_cnt, base);
+    rv = xqc_h3_qpack_encoder_write_header_block_prefix(encoder, section_prefix, max_cnt, base);
     if (rv < 0) {
         goto fail;
     }
 
-    pp_h_data = xqc_var_buf_save_data( pp_h_data, (pp_buf)->data, pp_buf->used_len);
+    section_prefix = xqc_var_buf_save_data(section_prefix, 
+                (encoded_section_buf)->data, encoded_section_buf->used_len);
 
 
-    ssize_t send_size = xqc_http3_write_frame_header(stream, pp_h_data->data, pp_h_data->used_len, fin );
+    ssize_t send_size = xqc_h3_write_frame_header(stream, section_prefix->data, section_prefix->used_len, fin );
 
-    if (send_size != pp_h_data->used_len) {
+    if (send_size != section_prefix->used_len) {
         rv = -XQC_QPACK_SEND_ERROR;
         goto fail;
     }
 
-    rv = pp_h_data->used_len;
+    rv = section_prefix->used_len;
 
-    if (p_enc_buf->used_len > 0) {
-        send_size = xqc_h3_qpack_encoder_stream_send(qenc_stream, p_enc_buf->data, p_enc_buf->used_len);
-        if(send_size != p_enc_buf->used_len){
+    if (encoder_instr_buf->used_len > 0) {
+        send_size = xqc_h3_qpack_encoder_stream_send(qenc_stream, 
+                            encoder_instr_buf->data, encoder_instr_buf->used_len);
+        if(send_size != encoder_instr_buf->used_len){
             rv = -XQC_QPACK_SEND_ERROR;
             goto fail;
         }
@@ -2887,27 +2896,26 @@ xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
         xqc_h3_qpack_encoder_insert_unack_header(qenc_stream, stream, encoder, min_cnt, max_cnt);
     }
 ok:
-    if(pp_buf){
-        xqc_free(pp_buf);
+    if(encoded_section_buf){
+        xqc_free(encoded_section_buf);
     }
-
-    if(pp_h_data){
-        xqc_free(pp_h_data);
+    if(section_prefix){
+        xqc_free(section_prefix);
     }
-    if(p_enc_buf){
-        xqc_free(p_enc_buf);
+    if(encoder_instr_buf){
+        xqc_free(encoder_instr_buf);
     }
     return rv;
-fail:
-    if(pp_buf){
-        xqc_free(pp_buf);
-    }
 
-    if(pp_h_data){
-        xqc_free(pp_h_data);
+fail:
+    if(encoded_section_buf){
+        xqc_free(encoded_section_buf);
     }
-    if(p_enc_buf){
-        xqc_free(p_enc_buf);
+    if(section_prefix){
+        xqc_free(section_prefix);
+    }
+    if(encoder_instr_buf){
+        xqc_free(encoder_instr_buf);
     }
     return rv;
 }
