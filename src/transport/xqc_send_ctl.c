@@ -171,10 +171,14 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
     xqc_msec_t min_rtt = 0;
 
     if (conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
-        bw = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(conn_send_ctl->ctl_cong);
-        pacing_rate = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(conn_send_ctl->ctl_cong);
-        mode = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->mode(conn_send_ctl->ctl_cong);
-        min_rtt = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->min_rtt(conn_send_ctl->ctl_cong);
+        bw = conn_send_ctl->ctl_cong_callback->
+             xqc_cong_ctl_get_bandwidth_estimate(conn_send_ctl->ctl_cong);
+        pacing_rate = conn_send_ctl->ctl_cong_callback->
+                      xqc_cong_ctl_get_pacing_rate(conn_send_ctl->ctl_cong);
+        mode = conn_send_ctl->ctl_cong_callback->
+               xqc_cong_ctl_info_cb->mode(conn_send_ctl->ctl_cong);
+        min_rtt = conn_send_ctl->ctl_cong_callback->
+                  xqc_cong_ctl_info_cb->min_rtt(conn_send_ctl->ctl_cong);
     }
     uint64_t srtt = conn_send_ctl->ctl_srtt;
     xqc_conn_log(conn, XQC_LOG_STATS,
@@ -602,8 +606,10 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
 
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-            ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns] = packet_out->po_sent_time;
-            ctl->ctl_last_sent_ack_eliciting_packet_number[pns] = packet_out->po_pkt.pkt_num;
+            ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns] = 
+            packet_out->po_sent_time;
+            ctl->ctl_last_sent_ack_eliciting_packet_number[pns] = 
+            packet_out->po_pkt.pkt_num;
             /*
              * The timer is also restarted
              * when sending a packet containing frames other than ACK or PADDING (an
@@ -613,21 +619,34 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
             /* TODO: xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->local_settings.idle_timeout * 1000); */
         }
 
-        /* add here RestartfromIdle here */
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|inflight:%ud|applimit:%ui|", ctl->ctl_bytes_in_flight, ctl->ctl_app_limited);
+        
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                "|inflight:%ud|applimit:%ui|", 
+                ctl->ctl_bytes_in_flight, ctl->ctl_app_limited);
         if (ctl->ctl_bytes_in_flight == 0 && ctl->ctl_app_limited > 0) {
             if (ctl->ctl_cong_callback->xqc_cong_ctl_restart_from_idle) {
                 /*Just for Debug*/
                 uint8_t mode, idle_restart;
-                mode = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->mode(ctl->ctl_cong);
-                idle_restart = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->idle_restart(ctl->ctl_cong);
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|BeforeRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
-                    mode, idle_restart, ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
-                    ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
+                mode = ctl->ctl_cong_callback->
+                       xqc_cong_ctl_info_cb->mode(ctl->ctl_cong);
+                idle_restart = ctl->ctl_cong_callback->
+                               xqc_cong_ctl_info_cb->
+                               idle_restart(ctl->ctl_cong);
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                        "|BeforeRestartFromIdle|mode %ud|idle %ud"
+                        "|bw %ud|pacing rate %ud|",
+                        mode, idle_restart, ctl->ctl_cong_callback->
+                        xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
+                        ctl->ctl_cong_callback->
+                        xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
+
                 ctl->ctl_cong_callback->xqc_cong_ctl_restart_from_idle(ctl->ctl_cong, ctl->ctl_delivered);
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|AfterRestartFromIdle|mode %ud|idle %ud|bw %ud|pacing rate %ud|",
-                    mode, idle_restart, ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
-                    ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
+
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                        "|AfterRestartFromIdle|mode %ud|"
+                        "idle %ud|bw %ud|pacing rate %ud|",
+                        mode, idle_restart, ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
+                        ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong));
             }
         }
 
@@ -759,41 +778,56 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         }
 
         ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
-        uint8_t mode, full_bw_reached, recovery_mode, round_start, packet_conservation, idle_restart;
+        uint8_t mode, full_bw_reached;
+        uint8_t recovery_mode, round_start;
+        uint8_t packet_conservation, idle_restart;
         float pacing_gain, cwnd_gain;
         uint64_t min_rtt, recovery_start_time;
-        mode = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->mode(ctl->ctl_cong);
-        full_bw_reached = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->full_bw_reached(ctl->ctl_cong);
-        recovery_mode = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->recovery_mode(ctl->ctl_cong);
-        round_start = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->round_start(ctl->ctl_cong);
-        packet_conservation = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->packet_conservation(ctl->ctl_cong);
-        idle_restart = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->idle_restart(ctl->ctl_cong);
-        pacing_gain = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->pacing_gain(ctl->ctl_cong);
-        cwnd_gain = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->cwnd_gain(ctl->ctl_cong);
-        min_rtt = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->min_rtt(ctl->ctl_cong);
-        recovery_start_time = ctl->ctl_cong_callback->xqc_cong_ctl_info_cb->recovery_start_time(ctl->ctl_cong);
+        mode = ctl->ctl_cong_callback->
+               xqc_cong_ctl_info_cb->mode(ctl->ctl_cong);
+        full_bw_reached = ctl->ctl_cong_callback->
+                          xqc_cong_ctl_info_cb->full_bw_reached(ctl->ctl_cong);
+        recovery_mode = ctl->ctl_cong_callback->
+                        xqc_cong_ctl_info_cb->recovery_mode(ctl->ctl_cong);
+        round_start = ctl->ctl_cong_callback->
+                      xqc_cong_ctl_info_cb->round_start(ctl->ctl_cong);
+        packet_conservation = ctl->ctl_cong_callback->
+                              xqc_cong_ctl_info_cb->
+                              packet_conservation(ctl->ctl_cong);
+        idle_restart = ctl->ctl_cong_callback->
+                       xqc_cong_ctl_info_cb->idle_restart(ctl->ctl_cong);
+        pacing_gain = ctl->ctl_cong_callback->
+                      xqc_cong_ctl_info_cb->pacing_gain(ctl->ctl_cong);
+        cwnd_gain = ctl->ctl_cong_callback->
+                    xqc_cong_ctl_info_cb->cwnd_gain(ctl->ctl_cong);
+        min_rtt = ctl->ctl_cong_callback->
+                  xqc_cong_ctl_info_cb->min_rtt(ctl->ctl_cong);
+        recovery_start_time = ctl->ctl_cong_callback->
+                              xqc_cong_ctl_info_cb->
+                              recovery_start_time(ctl->ctl_cong);
         xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO,
-                "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|cwnd:%ud|full_bw_reached:%ud"
-                "|inflight:%ud|srtt:%ui|latest_rtt:%ui|min_rtt:%ui|applimit:%ud|lost:%ud"
-                "|recovery:%ud|recovery_start:%ui|idle_restart:%ud|packet_conservation:%ud|round_start:%ud|",
-                mode,
-                ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
-                ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
+                "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|"
+                "cwnd:%ud|full_bw_reached:%ud|inflight:%ud|"
+                "srtt:%ui|latest_rtt:%ui|min_rtt:%ui|applimit:%ud|"
+                "lost:%ud|recovery:%ud|recovery_start:%ui|"
+                "idle_restart:%ud|packet_conservation:%ud|round_start:%ud|",
+                mode, ctl->ctl_cong_callback->
+                xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
+                ctl->ctl_cong_callback->
+                xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
                 ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong),
-                full_bw_reached,
-                ctl->ctl_bytes_in_flight,
+                full_bw_reached, ctl->ctl_bytes_in_flight,
                 ctl->ctl_srtt, ctl->ctl_latest_rtt, min_rtt,
                 ctl->sampler.is_app_limited, ctl->ctl_lost_count,
-                recovery_mode, recovery_start_time, idle_restart, packet_conservation,
-                round_start);
-        // xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO,
-        //         "|sock: 10086, est.bw: %ud, pacing_rate: %ud, cwnd: %ud, srtt: %ui, rack.rtt: %ui, min_rtt: %ui,"
-        //         "pacing_gain: %.2f, cwnd_gain: %.2f",
-        //         ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
-        //         ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
-        //         ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong),
-        //         ctl->ctl_srtt, ctl->ctl_latest_rtt, min_rtt,
-        //         pacing_gain, cwnd_gain);
+                recovery_mode, recovery_start_time, idle_restart, packet_conservation, round_start);
+        /*xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO,
+                "|sock: 10086, est.bw: %ud, pacing_rate: %ud, cwnd: %ud, srtt: %ui, rack.rtt: %ui, min_rtt: %ui,"
+                "pacing_gain: %.2f, cwnd_gain: %.2f",
+                ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong),
+                ctl->ctl_cong_callback->xqc_cong_ctl_get_pacing_rate(ctl->ctl_cong),
+                ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong),
+                ctl->ctl_srtt, ctl->ctl_latest_rtt, min_rtt,
+                pacing_gain, cwnd_gain);*/
 
         if(bw_record_flag){
             bw_after = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);

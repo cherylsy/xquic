@@ -66,11 +66,12 @@ typedef struct xqc_packet_out_s {
     xqc_msec_t              po_delivered_time;  /* 在发送packet P之前最后一个被ack的包的时间 */
     xqc_msec_t              po_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
     unsigned char           po_is_app_limited;
-    void                    *ping_user_data; /* 上层用于区别哪个ping被ack */
 
     /*For BBRv2*/
-    uint64_t po_tx_in_flight; /*the inflight bytes when the packet is sent (including itself)*/
-    uint32_t po_lost; /*how many packets have been lost when the packet is sent*/
+    /*the inflight bytes when the packet is sent (including itself)*/
+    uint64_t                po_tx_in_flight; 
+    /*how many packets have been lost when the packet is sent*/
+    uint32_t                po_lost; 
 } xqc_packet_out_t;
 
 xqc_packet_out_t *

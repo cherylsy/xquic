@@ -176,10 +176,6 @@ typedef struct xqc_cc_params_s {
     uint32_t    max_expect_bw;
 } xqc_cc_params_t;
 
-struct xqc_bbr_info_interface_s;
-typedef struct xqc_bbr_info_interface_s xqc_bbr_info_interface_t;
-
-
 typedef struct xqc_congestion_control_callback_s {
     /* 初始化时回调，用于分配内存 */
     size_t (*xqc_cong_ctl_size) (void);

@@ -139,7 +139,8 @@ typedef struct xqc_send_ctl_s {
    application-limited. */
     xqc_msec_t                  ctl_delivered_time; /* 当前packet P被ack的时间 */
     xqc_msec_t                  ctl_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
-    uint32_t    ctl_lost_pkts_number; /*how many packets have been lost so far?*/
+    /*how many packets have been lost so far?*/
+    uint32_t                    ctl_lost_pkts_number; 
 
     xqc_sample_t                sampler;
 
