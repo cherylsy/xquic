@@ -29,11 +29,11 @@ function do_compile() {
         make ssl crypto
         cd -
 
-        cmake -DXQC_OPENSSL_IS_BORINGSSL=1 ..
+        cmake -DXQC_OPENSSL_IS_BORINGSSL=1 -DXQC_ENABLE_TESTING=1 ..
     fi
 
     #turn on Code Coverage
-    cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug ..
+    cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug -DXQC_ENABLE_TESTING=1 ..
     #make clean
     make -j
 

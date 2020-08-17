@@ -198,6 +198,8 @@ include_directories(${CMAKE_SOURCE_DIR}/)
 
 
 ##### for unit test #########
+if (XQC_ENABLE_TESTING)
+
 find_package(CUnit 2.1)
 enable_testing()
 set(HAVE_CUNIT ${CUNIT_FOUND})
@@ -229,4 +231,6 @@ target_link_libraries(test_qpack_client xquic -levent -lm)
 target_link_libraries(test_qpack_server xquic -levent -lm)
 target_link_libraries(test_qpack_fuzzing xquic -levent -lm)
 target_link_libraries(xquic_bench xquic -levent -lm)
+
+endif()
 
