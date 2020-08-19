@@ -4,3 +4,6 @@
 [submodule "third_party/boringssl"]
 	path = third_party/boringssl
 url=git@gitlab.alibaba-inc.com:quic/boringssl.git
+[submodule "third_party/cunit"]
+	path = third_party/cunit
+	url = git@gitlab.alibaba-inc.com:quic/cunit.git

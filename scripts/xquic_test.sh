@@ -15,6 +15,20 @@ function install_gcov_tool() {
     sudo pip install gcovr > /dev/null
 }
 
+function install_cunit() {
+    if [[ ! -f "/usr/local/lib/libcunit.so.1.0.1" ]]; then
+        cd ../third_party/cunit/CUnit-2.1-3
+        libtoolize --force
+        aclocal
+        autoheader
+        automake --force-missing --add-missing
+        autoconf
+        ./configure
+        make
+        sudo make install
+        cd -
+    fi
+}
 
 function do_compile() {
     rm -f CMakeCache.txt
@@ -86,6 +100,7 @@ cd ../build
 
 generate_cert
 install_gcov_tool
+install_cunit
 
 #run boringssl
 do_compile "XQC_OPENSSL_IS_BORINGSSL"

@@ -1444,14 +1444,22 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
 int
 xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level)
 {
-    if (conn->undecrypt_count[encrypt_level] >= XQC_UNDECRYPT_PACKET_MAX) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|delay|exceed XQC_UNDECRYPT_PACKET_MAX|undecrypt_count:%ud|encrypt_level:%d|",
-                conn->undecrypt_count[encrypt_level], encrypt_level);
-        return -1;
+    if (conn->undecrypt_count[encrypt_level] >= XQC_UNDECRYPT_PACKET_MAX || packet_in->buf_size > XQC_MSS) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|delay|XQC_ELIMIT|undecrypt_count:%ud|encrypt_level:%d|buf_size:%ui|",
+                conn->undecrypt_count[encrypt_level], encrypt_level, packet_in->buf_size);
+        return -XQC_ELIMIT;
     }
+
     xqc_packet_in_t *new_packet = xqc_calloc(1, sizeof(xqc_packet_in_t));
+    if (new_packet == NULL) {
+        return -XQC_EMALLOC;
+    }
     new_packet->pi_pkt = packet_in->pi_pkt;
     new_packet->buf = xqc_malloc(XQC_MSS); //按照MSS申请
+    if (new_packet->buf == NULL) {
+        xqc_free(new_packet);
+        return -XQC_EMALLOC;
+    }
     new_packet->buf_size = packet_in->buf_size;
     xqc_memcpy((unsigned char *)new_packet->buf, packet_in->buf, packet_in->buf_size);
     new_packet->pos = (unsigned char *)new_packet->buf + (packet_in->pos - packet_in->buf);
