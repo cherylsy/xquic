@@ -20,7 +20,7 @@ function do_compile() {
     rm -f CMakeCache.txt
     if [[ $1 == "XQC_OPENSSL_IS_BORINGSSL" ]]; then
         #boringssl compiling depends on GO
-        sudo yum - y install go
+        sudo yum -y install go
 
         #compile boringssl
         mkdir -p ../third_party/boringssl/build
