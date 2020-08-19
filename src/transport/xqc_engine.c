@@ -402,14 +402,18 @@ xqc_engine_destroy(xqc_engine_t *engine)
         return;
     }
 
-    xqc_log(engine->log, XQC_LOG_DEBUG, "|begin|");
+    if (engine->log) {
+        xqc_log(engine->log, XQC_LOG_DEBUG, "|begin|");
+    }
 
     /* 必须先释放连接，再释放其他结构 */
     if (engine->conns_active_pq) {
         while (!xqc_pq_empty(engine->conns_active_pq)) {
             conn = xqc_conns_pq_pop_top_conn(engine->conns_active_pq);
             if (conn == NULL) {
-                xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
+                if (engine->log) {
+                    xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
+                }
                 continue;
             }
             conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
@@ -425,7 +429,9 @@ xqc_engine_destroy(xqc_engine_t *engine)
         while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
             xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
             if (el == NULL || el->conn == NULL) {
-                xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
+                if (engine->log) {
+                    xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
+                }
                 xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
                 continue;
             }
@@ -467,10 +473,10 @@ xqc_engine_destroy(xqc_engine_t *engine)
 
     xqc_tls_free_engine_config(&engine->ssl_config);
 
-    if(engine->ssl_ctx){
+    if (engine->ssl_ctx) {
         SSL_CTX_free(engine->ssl_ctx);
     }
-    if(engine->ssl_meth){
+    if (engine->ssl_meth) {
         BIO_meth_free(engine->ssl_meth);
     }
 
