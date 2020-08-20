@@ -657,11 +657,11 @@ xqc_decode_no_crypto(xqc_transport_params_t *params, xqc_transport_params_type_t
 
 
 /* decode value from p, and store value in the input params */
-typedef int (*xqc_decode_trans_param_func)(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
+typedef int (*xqc_trans_param_decode_func)(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
                                        const uint8_t *p, const uint8_t *end, 
                                        uint64_t param_type, uint64_t param_len);
 
-xqc_decode_trans_param_func xqc_decode_param_func_list[] = {
+xqc_trans_param_decode_func xqc_trans_param_decode_func_list[] = {
     xqc_decode_original_dest_cid, 
     xqc_decode_max_idle_timeout, 
     xqc_decode_stateless_token,
@@ -695,20 +695,20 @@ xqc_trans_param_get_index(uint64_t param_type)
     if (param_type < XQC_TRANSPORT_PARAM_PROTOCOL_MAX) {
         return param_type;
     } else if (param_type >= XQC_TRANSPORT_PARAM_NO_CRYPTO 
-               && param_type < XQC_TRANSPORT_PARAM_CUSTOMIZED_MAX)
+               && param_type < XQC_TRANSPORT_PARAM_UNKNOWN)
     {
         return XQC_TRANSPORT_PARAM_PROTOCOL_MAX + param_type - XQC_TRANSPORT_PARAM_NO_CRYPTO;
-
-    } else {
-        return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
+
+    return XQC_TRANSPORT_PARAM_UNKNOWN; 
 }
 
 /**
  * decode one param
  */
 static inline int
-xqc_decode_one_trans_param(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
+xqc_trans_param_decode_one(xqc_connection_t *conn, 
+    xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
     const uint8_t **start, const uint8_t *end)
 {
     const uint8_t* p = *start;
@@ -730,14 +730,16 @@ xqc_decode_one_trans_param(xqc_transport_params_t *params, xqc_transport_params_
     p += nread;
 
     int param_index = xqc_trans_param_get_index(param_type);
-    if (param_index < 0) {
-        return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
+
+    if (param_index != XQC_TRANSPORT_PARAM_UNKNOWN) {
+        int ret = xqc_trans_param_decode_func_list[param_index](params, exttype, p, end, param_type, param_len);
+        if (ret < 0) {
+            return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
+        }
+    } else {
+        xqc_log(conn->log, XQC_LOG_WARN, "|transport parameter: unknown type|%" PRIu64 "|", param_type);
     }
-    
-    int ret = xqc_decode_param_func_list[param_index](params, exttype, p, end, param_type, param_len);
-    if (ret < 0) {
-        return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
-    }
+
     p += param_len;
 
     *start = p;
@@ -747,8 +749,9 @@ xqc_decode_one_trans_param(xqc_transport_params_t *params, xqc_transport_params_
 
 
 static int
-xqc_decode_transport_params(xqc_transport_params_t *params,
-    xqc_transport_params_type_t exttype, const uint8_t *data, size_t datalen)
+xqc_trans_param_decode(xqc_connection_t *conn,
+    xqc_transport_params_t *params, xqc_transport_params_type_t exttype, 
+    const uint8_t *data, size_t datalen)
 {
     const uint8_t *p, *end;
     int ret = XQC_OK;
@@ -784,7 +787,7 @@ xqc_decode_transport_params(xqc_transport_params_t *params,
     params->no_crypto = 0;
 
     while (p < end) {
-        ret = xqc_decode_one_trans_param(params, exttype, &p, end);
+        ret = xqc_trans_param_decode_one(conn, params, exttype, &p, end);
         if (ret < 0) {
             return ret;
         }
@@ -952,26 +955,27 @@ xqc_serialize_server_transport_params(xqc_connection_t * conn, xqc_transport_par
 
 
 int 
-xqc_on_client_recv_peer_transport_params(xqc_connection_t * conn,const unsigned char *inbuf,size_t inlen)
+xqc_on_client_recv_peer_transport_params(xqc_connection_t * conn,
+    const unsigned char *inbuf,size_t inlen)
 {
     xqc_transport_params_t params;
 
-    int rv = xqc_decode_transport_params(
-            &params, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, inbuf, inlen);
+    int rv = xqc_trans_param_decode(conn,
+                &params, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, inbuf, inlen);
     if (rv != 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_decode_transport_params failed | ret code:%d |", rv);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_trans_param_decode failed| ret code:%d |", rv);
         return -1;
     }
 
     rv = xqc_conn_set_remote_transport_params(
             conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &params);
     if (rv != 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_conn_set_remote_transport_params failed | ret code:%d |", rv);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_set_remote_transport_params failed | ret code:%d |", rv);
         return -1;
     }
 
-    if(conn->tlsref.save_tp_cb != NULL){
-        if( xqc_write_transport_params(conn, &params) < 0){
+    if (conn->tlsref.save_tp_cb != NULL) {
+        if (xqc_write_transport_params(conn, &params) < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_transport_params failed|");
             return -1;
         }
@@ -987,17 +991,17 @@ xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,const unsigned 
     int rv;
     xqc_transport_params_t params;
 
-    rv = xqc_decode_transport_params(
+    rv = xqc_trans_param_decode(conn, 
             &params, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, inbuf, inlen);
     if (rv != 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_decode_transport_params | ret code :%d |", rv);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_trans_param_decode| ret code :%d |", rv);
         return -1;
     }
 
     rv = xqc_conn_set_remote_transport_params(
             conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &params);
     if (rv != 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_conn_set_remote_transport_params | ret code :%d|", rv);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_set_remote_transport_params| ret code :%d|", rv);
         return -1;
     }
 
