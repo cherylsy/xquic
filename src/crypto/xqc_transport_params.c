@@ -655,13 +655,6 @@ xqc_decode_no_crypto(xqc_transport_params_t *params, xqc_transport_params_type_t
     XQC_DECODE_VINT_VALUE(&params->no_crypto, p, end);
 }
 
-static int
-xqc_trans_param_decode_unknown(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
-{
-    xqc_log(log, level, ...)
-}
-
 
 /* decode value from p, and store value in the input params */
 typedef int (*xqc_trans_param_decode_func)(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
