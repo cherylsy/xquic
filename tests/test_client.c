@@ -1422,6 +1422,10 @@ int main(int argc, char *argv[]) {
     }
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, &ctx);
+    if (ctx.engine == NULL) {
+        printf("xqc_engine_create error\n");
+        return -1;
+    }
 
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));
