@@ -1287,6 +1287,12 @@ xqc_process_write_streams (xqc_connection_t *conn)
         }
         xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_write_notify|flag:%d|stream_id:%ui|conn:%p|",
                 stream->stream_flag, stream->stream_id, stream->stream_conn);
+        if (stream->stream_if->stream_write_notify == NULL) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify is NULL|flag:%d|stream_id:%ui|conn:%p|",
+                    stream->stream_flag, stream->stream_id, stream->stream_conn);
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return;
+        }
         ret = stream->stream_if->stream_write_notify(stream, stream->user_data);
         if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|stream_write_notify err:%d|flag:%d|stream_id:%ui|conn:%p|",
@@ -1314,6 +1320,12 @@ xqc_process_read_streams (xqc_connection_t *conn)
         stream = xqc_list_entry(pos, xqc_stream_t, read_stream_list);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_read_notify|flag:%d|stream_id:%ui|conn:%p|",
                 stream->stream_flag, stream->stream_id, stream->stream_conn);
+        if (stream->stream_if->stream_read_notify == NULL) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify is NULL|flag:%d|stream_id:%ui|conn:%p|",
+                    stream->stream_flag, stream->stream_id, stream->stream_conn);
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return;
+        }
         ret = stream->stream_if->stream_read_notify(stream, stream->user_data);
         if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|stream_read_notify err:%d|flag:%d|stream_id:%ui|conn:%p|",

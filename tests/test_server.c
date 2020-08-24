@@ -1026,6 +1026,10 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    /* test NULL stream callback */
+    if (g_test_case == 2) {
+        memset(&callback.stream_callbacks, 0, sizeof(callback.stream_callbacks));
+    }
     ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, &ctx);
 
     if(ctx.engine == NULL){
