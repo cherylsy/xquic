@@ -195,6 +195,20 @@ echo -e "no crypto ...\c"
 grep_err_log
 
 clear_log
+rm -f test_session
+echo -e "NULL stream callback ...\c"
+killall test_server
+./test_server -l d -e -x 2 > /dev/null &
+sleep 1
+./test_client -l d -T -E >> clog
+if grep "stream_read_notify is NULL" slog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
+rm -f test_session
+
+clear_log
 echo -e "server cid negotiate ...\c"
 killall test_server
 ./test_server -l d -e -x 1 > /dev/null &
@@ -314,7 +328,7 @@ grep_err_log
 
 clear_log
 echo -e "10% loss ...\c"
-./test_client -s 10240000 -l e -t 10 -E -d 100|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 12 -E -d 100|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
