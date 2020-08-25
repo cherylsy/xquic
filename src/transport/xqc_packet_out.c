@@ -383,8 +383,9 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
     packet_out->po_used_size += ret;
 
     /* new packet with index 0 */
-    packet_out->po_stream_frames[0].ps_stream = stream;
+    packet_out->po_stream_frames[0].ps_stream_id = stream->stream_id;
     packet_out->po_stream_frames[0].ps_is_reset = 1;
+    packet_out->po_stream_frames[0].ps_is_used = 1;
     if (stream->stream_state_send < XQC_SEND_STREAM_ST_RESET_SENT) {
         stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_SENT;
     }
@@ -670,12 +671,18 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
     packet_out->po_used_size += n_written;
 
     for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
-        if (packet_out->po_stream_frames[i].ps_stream == NULL) {
-            packet_out->po_stream_frames[i].ps_stream = stream;
+        if (packet_out->po_stream_frames[i].ps_is_used == 0) {
+            packet_out->po_stream_frames[i].ps_is_used = 1;
+            packet_out->po_stream_frames[i].ps_stream_id = stream->stream_id;
             if (fin && *send_data_written == payload_size) {
                 packet_out->po_stream_frames[i].ps_has_fin = 1;
                 stream->stream_flag |= XQC_STREAM_FLAG_FIN_WRITE;
             }
+            break;
+        }
+        if (i == XQC_MAX_STREAM_FRAME_IN_PO - 1) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|too many stream frames in a packet|");
+            return -XQC_ELIMIT;
         }
     }
 

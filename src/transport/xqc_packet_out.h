@@ -33,7 +33,8 @@ typedef enum {
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {
-    xqc_stream_t            *ps_stream;
+    xqc_stream_id_t         ps_stream_id;
+    unsigned char           ps_is_used;
     unsigned char           ps_has_fin; /* stream frame是否带fin */
     unsigned char           ps_is_reset; /* 是否是RESET STREAM frame */
 } xqc_po_stream_frame_t;
