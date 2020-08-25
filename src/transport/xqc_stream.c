@@ -492,6 +492,8 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_stream_shutdown_write(stream);
     xqc_stream_shutdown_read(stream);
 
+    stream->stream_flag |= XQC_STREAM_FLAG_CLOSED;
+
     xqc_free(stream);
 }
 

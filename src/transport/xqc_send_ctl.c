@@ -267,6 +267,26 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 }
 
 void
+xqc_send_ctl_on_reset_stream_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
+{
+    if (packet_out->po_frame_types & XQC_FRAME_BIT_RESET_STREAM) {
+        xqc_stream_t *stream;
+        for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+            if (packet_out->po_stream_frames[i].ps_is_used == 0) {
+                break;
+            }
+            stream = xqc_find_stream_by_id(packet_out->po_stream_frames[i].ps_stream_id, ctl->ctl_conn->streams_hash);
+            if (stream != NULL && packet_out->po_stream_frames[i].ps_is_reset) {
+                if (stream->stream_state_send == XQC_SEND_STREAM_ST_RESET_SENT) {
+                    stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_RECVD;
+                    xqc_stream_maybe_need_close(stream);
+                }
+            }
+        }
+    }
+}
+
+void
 xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM)
@@ -274,7 +294,10 @@ xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
     {
         xqc_stream_t *stream;
         for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
-            stream = packet_out->po_stream_frames[i].ps_stream;
+            if (packet_out->po_stream_frames[i].ps_is_used == 0) {
+                break;
+            }
+            stream = xqc_find_stream_by_id(packet_out->po_stream_frames[i].ps_stream_id, ctl->ctl_conn->streams_hash);
             if (stream != NULL) {
                 stream->stream_unacked_pkt++;
                 /* Update stream state */
@@ -285,8 +308,6 @@ xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
                     && stream->stream_state_send == XQC_SEND_STREAM_ST_SEND) {
                     stream->stream_state_send = XQC_SEND_STREAM_ST_DATA_SENT;
                 }
-            } else {
-                break;
             }
         }
         packet_out->po_flag |= XQC_POF_STREAM_UNACK;
@@ -299,7 +320,10 @@ xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
     if (packet_out->po_flag & XQC_POF_STREAM_UNACK) {
         xqc_stream_t *stream;
         for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
-            stream = packet_out->po_stream_frames[i].ps_stream;
+            if (packet_out->po_stream_frames[i].ps_is_used == 0) {
+                break;
+            }
+            stream = xqc_find_stream_by_id(packet_out->po_stream_frames[i].ps_stream_id, ctl->ctl_conn->streams_hash);
             if (stream != NULL) {
                 if (stream->stream_unacked_pkt == 0) {
                     xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|stream_unacked_pkt too small|");
@@ -312,8 +336,6 @@ xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
                     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream enter DATA RECVD|");
                     xqc_stream_maybe_need_close(stream);
                 }
-            } else {
-                break;
             }
         }
         packet_out->po_flag &= ~XQC_POF_STREAM_UNACK;
@@ -948,15 +970,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
         xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
 
         if (packet_out->po_frame_types & XQC_FRAME_BIT_RESET_STREAM) {
-            for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
-                stream = packet_out->po_stream_frames[i].ps_stream;
-                if (stream != NULL && packet_out->po_stream_frames[i].ps_is_reset) {
-                    if (stream->stream_state_send == XQC_SEND_STREAM_ST_RESET_SENT) {
-                        stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_RECVD;
-                        xqc_stream_maybe_need_close(stream);
-                    }
-                }
-            }
+            xqc_send_ctl_on_reset_stream_acked(ctl, packet_out);
         }
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO && packet_out->po_pkt.pkt_pns == XQC_PNS_HSK) {
             ctl->ctl_conn->conn_flag |= XQC_CONN_FLAG_HSK_ACKED;
