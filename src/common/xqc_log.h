@@ -115,7 +115,7 @@ xqc_log_time(char* buf)
 }
 
 static inline void
-xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *fmt, ...)
+xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...)
 {
     unsigned char buf[2048];
     unsigned char *p = buf;
@@ -145,7 +145,11 @@ xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *f
     /*外部有可能用printf %s打印，加上结束符，不计入总字节数中*/
     *p = '\0';
 
-    log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
+    if (log->log_callbacks->xqc_log_write_err) {
+        log->log_callbacks->xqc_log_write_err(log->user_data, buf, p - buf);
+    } else {
+        log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
+    }
 }
 
 
