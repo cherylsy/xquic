@@ -145,7 +145,9 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     /* may use printf("%s") outside, add '\0' and don't count into size */
     *p = '\0';
 
-    if (log->log_callbacks->xqc_log_write_err) {
+    if (level == XQC_LOG_STATS && log->log_callbacks->xqc_log_write_stat) {
+        log->log_callbacks->xqc_log_write_stat(log->user_data, buf, p - buf);
+    } else if (log->log_callbacks->xqc_log_write_err) {
         log->log_callbacks->xqc_log_write_err(log->user_data, buf, p - buf);
     } else {
         log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
