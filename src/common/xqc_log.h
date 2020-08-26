@@ -26,7 +26,7 @@
 
 
 static inline const char*
-xqc_log_leveL_str(xqc_log_level_t level)
+xqc_log_level_str(xqc_log_level_t level)
 {
     if (level == XQC_LOG_STATS) {
         return "stats";
@@ -121,28 +121,28 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     unsigned char *p = buf;
     unsigned char *last = buf + sizeof(buf);
 
-    /*时间*/
-    char time[64];
-    xqc_log_time(time);
-    p = xqc_sprintf(p, last, "[%s] ", time);
-    // struct timeval tv;
-    // gettimeofday(&tv, NULL);
-    // p = xqc_sprintf(p, last, "[%ud.%06ud] ", tv.tv_sec, tv.tv_usec);
+    /* do not need time & level if use outside log format */
+    if (log->log_callbacks->xqc_log_write_err == NULL) {
+        /* time */
+        char time[64];
+        xqc_log_time(time);
+        p = xqc_sprintf(p, last, "[%s] ", time);
 
-    /*日志等级*/
-    p = xqc_sprintf(p, last, "[%s] ", xqc_log_leveL_str(level));
+        /* log level */
+        p = xqc_sprintf(p, last, "[%s] ", xqc_log_level_str(level));
+    }
 
     p = xqc_sprintf(p, last, "|%s", func);
 
-    /*日志内容*/
+    /* log */
     va_list args;
     va_start(args, fmt);
     p = xqc_vsprintf(p, last, fmt, args);
     va_end(args);
 
-    /*换行*/
+    /* \n */
     *p++ = '\n';
-    /*外部有可能用printf %s打印，加上结束符，不计入总字节数中*/
+    /* may use printf("%s") outside, add '\0' and don't count into size */
     *p = '\0';
 
     if (log->log_callbacks->xqc_log_write_err) {
