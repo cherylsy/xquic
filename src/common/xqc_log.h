@@ -140,15 +140,22 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     p = xqc_vsprintf(p, last, fmt, args);
     va_end(args);
 
-    /* \n */
-    *p++ = '\n';
-    /* may use printf("%s") outside, add '\0' and don't count into size */
-    *p = '\0';
+    if (p + 2 < last) {
+        /* \n */
+        *p++ = '\n';
+        /* may use printf("%s") outside, add '\0' and don't count into size */
+        *p = '\0';
+    }
 
-    if (level == XQC_LOG_STATS && log->log_callbacks->xqc_log_write_stat) {
+    /* XQC_LOG_STATS & XQC_LOG_REPORT are levels for statistic */
+    if ((level == XQC_LOG_STATS || level == XQC_LOG_REPORT)
+        && log->log_callbacks->xqc_log_write_stat) 
+    {
         log->log_callbacks->xqc_log_write_stat(log->user_data, buf, p - buf);
+
     } else if (log->log_callbacks->xqc_log_write_err) {
         log->log_callbacks->xqc_log_write_err(log->user_data, buf, p - buf);
+
     } else {
         log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
     }
