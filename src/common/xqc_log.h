@@ -26,7 +26,7 @@
 
 
 static inline const char*
-xqc_log_leveL_str(xqc_log_level_t level)
+xqc_log_level_str(xqc_log_level_t level)
 {
     if (level == XQC_LOG_STATS) {
         return "stats";
@@ -115,37 +115,50 @@ xqc_log_time(char* buf)
 }
 
 static inline void
-xqc_log_implement(xqc_log_t *log, unsigned level,const char *func, const char *fmt, ...)
+xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...)
 {
     unsigned char buf[2048];
     unsigned char *p = buf;
     unsigned char *last = buf + sizeof(buf);
 
-    /*时间*/
-    char time[64];
-    xqc_log_time(time);
-    p = xqc_sprintf(p, last, "[%s] ", time);
-    // struct timeval tv;
-    // gettimeofday(&tv, NULL);
-    // p = xqc_sprintf(p, last, "[%ud.%06ud] ", tv.tv_sec, tv.tv_usec);
+    /* do not need time & level if use outside log format */
+    if (log->log_callbacks->xqc_log_write_err == NULL) {
+        /* time */
+        char time[64];
+        xqc_log_time(time);
+        p = xqc_sprintf(p, last, "[%s] ", time);
 
-    /*日志等级*/
-    p = xqc_sprintf(p, last, "[%s] ", xqc_log_leveL_str(level));
+        /* log level */
+        p = xqc_sprintf(p, last, "[%s] ", xqc_log_level_str(level));
+    }
 
     p = xqc_sprintf(p, last, "|%s", func);
 
-    /*日志内容*/
+    /* log */
     va_list args;
     va_start(args, fmt);
     p = xqc_vsprintf(p, last, fmt, args);
     va_end(args);
 
-    /*换行*/
-    *p++ = '\n';
-    /*外部有可能用printf %s打印，加上结束符，不计入总字节数中*/
-    *p = '\0';
+    if (p + 2 < last) {
+        /* \n */
+        *p++ = '\n';
+        /* may use printf("%s") outside, add '\0' and don't count into size */
+        *p = '\0';
+    }
 
-    log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
+    /* XQC_LOG_STATS & XQC_LOG_REPORT are levels for statistic */
+    if ((level == XQC_LOG_STATS || level == XQC_LOG_REPORT)
+        && log->log_callbacks->xqc_log_write_stat) 
+    {
+        log->log_callbacks->xqc_log_write_stat(log->user_data, buf, p - buf);
+
+    } else if (log->log_callbacks->xqc_log_write_err) {
+        log->log_callbacks->xqc_log_write_err(log->user_data, buf, p - buf);
+
+    } else {
+        log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
+    }
 }
 
 
