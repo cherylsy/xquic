@@ -579,7 +579,9 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
  
         if (XQC_LIKELY(outlen > 0)) {
             rv = xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
+
             if (XQC_UNLIKELY(rv != XQC_OK)) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_on_server_recv_peer_transport_params failed|");
                 return XQC_SSL_FAIL;
             }
         }
