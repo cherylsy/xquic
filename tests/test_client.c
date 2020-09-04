@@ -1192,6 +1192,7 @@ void usage(int argc, char *argv[]) {
 "   -d    Drop rate ‰.\n"
 "   -u    Url. default https://test.xquic.com/path/resource\n"
 "   -H    Header. eg. key:value\n"
+"   -h    Host & sni. eg. test.xquic.com\n"
 "   -G    GET on. Default is POST\n"
 "   -x    Test case ID\n"
 "   -N    No crypt\n"
@@ -1225,7 +1226,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:Gx:6N")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6N")) != -1){
         switch(ch)
         {
             case 'a':
@@ -1307,6 +1308,10 @@ int main(int argc, char *argv[]) {
                 printf("option header :%s\n", optarg);
                 snprintf(g_headers[g_header_cnt], sizeof(g_headers[g_header_cnt]), optarg);
                 g_header_cnt++;
+                break;
+            case 'h': /* host & sni */
+                printf("option host & sni :%s\n", optarg);
+                snprintf(g_host, sizeof(g_host), optarg);
                 break;
             case 'G': //Get请求
                 printf("option get :%s\n", "on");
@@ -1430,7 +1435,7 @@ int main(int argc, char *argv[]) {
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));
 
-    //是否使用http3
+    /* 是否使用http3 */
     user_conn->h3 = transport ? 0 : 1;
 
     user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
@@ -1482,7 +1487,7 @@ int main(int argc, char *argv[]) {
     xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
-        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
+        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, g_host, g_no_crypt,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
         cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
