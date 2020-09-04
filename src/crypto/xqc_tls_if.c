@@ -485,12 +485,15 @@ ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
     return nwrite;
 }
 
-ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
+
+ssize_t 
+xqc_do_decrypt(xqc_connection_t *conn, 
+    uint8_t *dest, size_t destlen, 
+    const uint8_t *ciphertext, size_t ciphertextlen, 
+    const uint8_t *key, size_t keylen, 
+    const uint8_t *nonce, size_t noncelen, 
+    const uint8_t *ad, size_t adlen, 
+    void *user_data)
 {
 
 #ifdef XQC_FIX_CRYPTO_CTX 
@@ -500,14 +503,19 @@ ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx;
 #endif
 
-    ssize_t nwrite = xqc_aead_decrypt(&ctx->aead,dest, destlen, ciphertext, ciphertextlen,
-            key, keylen, nonce, noncelen, ad, adlen);
-    if(nwrite < 0){
+    ssize_t nwrite = xqc_aead_decrypt(&ctx->aead, 
+                                      dest, destlen, 
+                                      ciphertext, ciphertextlen,
+                                      key, keylen, 
+                                      nonce, noncelen, 
+                                      ad, adlen);
+    if (nwrite < 0) {
         return -XQC_TLS_DECRYPT;
     }
-    return nwrite;
 
+    return nwrite;
 }
+
 
 ssize_t
 xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
@@ -557,6 +565,27 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     uint8_t key[XQC_MAX_KNP_LEN] = {0}, iv[XQC_MAX_KNP_LEN] = {0}, hp[XQC_MAX_KNP_LEN] = {0}; 
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
+
+
+    /* try to get transport parameter & get no_crypto flag */
+    if (level == ssl_encryption_early_data
+        && conn->conn_type == XQC_CONN_TYPE_SERVER) 
+    {
+        const uint8_t * peer_transport_params = NULL;
+        size_t outlen = 0;
+        SSL_get_peer_quic_transport_params(ssl, &peer_transport_params, &outlen);
+
+        xqc_int_t rv = XQC_OK;       
+ 
+        if (XQC_LIKELY(outlen > 0)) {
+            rv = xqc_on_server_recv_peer_transport_params(conn, peer_transport_params, outlen);
+
+            if (XQC_UNLIKELY(rv != XQC_OK)) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_on_server_recv_peer_transport_params failed|");
+                return XQC_SSL_FAIL;
+            }
+        }
+    }
 
     if (xqc_setup_crypto_ctx(conn, xqc_convert_ssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");

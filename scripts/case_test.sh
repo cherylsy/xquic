@@ -195,6 +195,16 @@ echo -e "no crypto ...\c"
 grep_err_log
 
 clear_log
+echo -e "no crypto with 0RTT ...\c"
+./test_client -s 1024000 -l d -N -t 1 -E >> clog
+if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
+grep_err_log
+
+clear_log
 rm -f test_session
 echo -e "NULL stream callback ...\c"
 killall test_server

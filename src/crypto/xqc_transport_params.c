@@ -421,7 +421,7 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
 
     conn->tlsref.flags |= XQC_CONN_FLAG_TRANSPORT_PARAM_RECVED;
 
-    return 0;
+    return XQC_OK;
 }
 
 
@@ -986,31 +986,32 @@ xqc_on_client_recv_peer_transport_params(xqc_connection_t * conn,
 
 
 int 
-xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,const unsigned char *inbuf,size_t inlen)
+xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,
+    const unsigned char *inbuf, size_t inlen)
 {
     int rv;
     xqc_transport_params_t params;
 
     rv = xqc_trans_param_decode(conn, 
             &params, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, inbuf, inlen);
-    if (rv != 0) {
+    if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_trans_param_decode| ret code :%d |", rv);
-        return -1;
+        return rv;
     }
 
     rv = xqc_conn_set_remote_transport_params(
             conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &params);
-    if (rv != 0) {
+    if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_set_remote_transport_params| ret code :%d|", rv);
-        return -1;
+        return rv;
     }
 
-    //save no crypto flag
+    /* save no crypto flag */
     if(params.no_crypto == 1){
         conn->remote_settings.no_crypto = 1;
         conn->local_settings.no_crypto = 1;
     }
-    return 0;
+    return XQC_OK;
 }
 
 
