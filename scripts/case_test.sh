@@ -195,6 +195,11 @@ echo -e "no crypto ...\c"
 grep_err_log
 
 clear_log
+echo -e "no crypto with test_session ...\c"
+./test_client -s 1024000 -l d -N -t 1 -E|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 rm -f test_session
 echo -e "NULL stream callback ...\c"
 killall test_server
