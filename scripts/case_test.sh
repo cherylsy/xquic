@@ -196,7 +196,7 @@ grep_err_log
 
 clear_log
 echo -e "no crypto with 0RTT ...\c"
-./test_client -s 1024000 -l d -N -t 1 -E|grep ">>>>>>>> pass"
+./test_client -s 1024000 -l d -N -t 1 -E >> clog
 if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
 else
