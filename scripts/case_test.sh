@@ -197,6 +197,11 @@ grep_err_log
 clear_log
 echo -e "no crypto with test_session ...\c"
 ./test_client -s 1024000 -l d -N -t 1 -E|grep ">>>>>>>> pass"
+if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
 grep_err_log
 
 clear_log
