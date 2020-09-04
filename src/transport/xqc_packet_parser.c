@@ -673,7 +673,9 @@ int xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     return xqc_packet_encrypt_buf(conn, packet_out, conn->enc_pkt, &conn->enc_pkt_len);
 }
 
-int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+
+int 
+xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_pkt_type_t pkt_type = packet_in->pi_pkt.pkt_type;
     xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
@@ -688,7 +690,7 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     if (XQC_ENC_LEV_0RTT == encrypt_level) {
         if(xqc_crypto_is_early_data_accepted(conn) == XQC_FALSE) {
-            //printf("early data not decrypt");
+
             xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_packet_decrypt|early data not decrypt");
             return -XQC_TLS_DATA_REJECT;
         }
@@ -727,15 +729,15 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             break;
         default:
             xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|invalid packet type|%ud|", pkt_type);
-            //printf("|do_decrypt_pkt|invalid packet type|%ud|", pkt_type);
             return -XQC_EILLPKT;
 
     }
 
-    if (ckm->key.base == NULL || ckm->key.len == 0 || ckm->iv.base == NULL || ckm->iv.len == 0 || hp->base == NULL ||
-        hp->len == 0) {
-        //printf("error decrypt :%d level data\n", encrypt_level);
-        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt key NULL");
+    if (ckm->key.base == NULL || ckm->key.len == 0 
+        || ckm->iv.base == NULL || ckm->iv.len == 0 
+        || hp->base == NULL || hp->len == 0) 
+    {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt key NULL|");
 
         return -XQC_EDECRYPT;
     }
@@ -760,7 +762,6 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
         header_decrypt[0] = (uint8_t) (header_decrypt[0] ^ (mask[0] & 0x1f));
     } else {
-
         header_decrypt[0] = (uint8_t) (header_decrypt[0] ^ (mask[0] & 0x0f));
     }
 
@@ -788,7 +789,6 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     packet_in->pi_pkt.pkt_num = xqc_decode_packet_num(conn->conn_send_ctl->ctl_largest_recvd[pns],
                                                       packet_in->pi_pkt.pkt_num, packet_number_len * 8);
 
-    //nwrite = decrypt_func(conn, decrypt_buf, sizeof(decrypt_buf), payload, payload_len, ckm->key.base, ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, NULL  );
     nwrite = (int)decrypt_func(conn, decrypt_buf, packet_in->decode_payload_size, payload, payload_len, ckm->key.base,
                           ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, (void*) encrypt_level);
 
@@ -801,9 +801,9 @@ int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     memcpy(payload, decrypt_buf, nwrite);
 
     packet_in->pos = payload;
-    //packet_in->de_last = payload + payload_len;
+
     packet_in->last = payload + nwrite;
-    //packet_in->de_pad_len = payload_len - nwrite;
+
 
     return XQC_OK;
 }
