@@ -775,20 +775,15 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     header_len = pkt_num_offset + packet_number_len;
 
     xqc_packet_parse_packet_number(header_decrypt + pkt_num_offset, packet_number_len, &packet_in->pi_pkt.pkt_num);
-
-
-    unsigned char *payload = pkt + pkt_num_offset + packet_number_len;
-
-    size_t payload_len = packet_in->pi_pkt.length - packet_number_len;
-
-
-    char *decrypt_buf = (char *) (packet_in->decode_payload);
-    uint8_t nonce[64];
-    xqc_crypto_create_nonce(nonce, ckm->iv.base, ckm->iv.len, packet_in->pi_pkt.pkt_num);
-
     packet_in->pi_pkt.pkt_num = xqc_decode_packet_num(conn->conn_send_ctl->ctl_largest_recvd[pns],
                                                       packet_in->pi_pkt.pkt_num, packet_number_len * 8);
 
+    char *decrypt_buf = (char *) (packet_in->decode_payload);
+    uint8_t nonce[XQC_NONCE_LEN];
+    xqc_crypto_create_nonce(nonce, ckm->iv.base, ckm->iv.len, packet_in->pi_pkt.pkt_num);
+
+    unsigned char *payload = pkt + pkt_num_offset + packet_number_len;
+    size_t payload_len = packet_in->pi_pkt.length - packet_number_len;
     nwrite = (int)decrypt_func(conn, decrypt_buf, packet_in->decode_payload_size, payload, payload_len, ckm->key.base,
                           ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, (void*) encrypt_level);
 
