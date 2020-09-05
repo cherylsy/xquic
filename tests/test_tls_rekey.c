@@ -63,7 +63,7 @@ int recv_session_ticket(xqc_connection_t * conn, char * buf, int recv_len){
         unsigned char * pkt_header = buf;
         unsigned char * encrypt_data = pkt_header + TEST_PKT_HEADER_LEN;
 
-        uint8_t nonce[32];
+        uint8_t nonce[XQC_NONCE_LEN];
         xqc_crypto_km_t *p_ckm = & pktns -> rx_ckm;
         //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
         xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
@@ -97,7 +97,7 @@ int recv_session_ticket(xqc_connection_t * conn, char * buf, int recv_len){
 
 int send_data(xqc_connection_t * conn, xqc_crypto_km_t * ckm, char *data, int data_len , xqc_encrypt_t encrypt_func, uint8_t pkt_type ){
     unsigned char send_buf[1024*2];
-    uint8_t nonce[32];
+    uint8_t nonce[XQC_NONCE_LEN];
     unsigned char * pkt_header = send_buf;
     unsigned char * pkt_data = pkt_header + TEST_PKT_HEADER_LEN ;
     init_pkt_header(pkt_header,  TEST_PKT_HEADER_LEN);
@@ -137,7 +137,7 @@ int send_buf_packet( xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encryp
             init_pkt_header(pkt_header,  TEST_PKT_HEADER_LEN);
 
             //uint64_t pkt_num = 0;
-            uint8_t nonce[32];
+            uint8_t nonce[XQC_NONCE_LEN];
             xqc_crypto_km_t *p_ckm = & p_pktns->tx_ckm;
             xqc_vec_t  * p_hp = & p_pktns->tx_hp;
             memcpy(pkt_data, buf->data, buf->data_len);
@@ -234,7 +234,7 @@ int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
         unsigned char * pkt_header = recv_buf;
         unsigned char * encrypt_data = pkt_header + TEST_PKT_HEADER_LEN;
 
-        uint8_t nonce[32];
+        uint8_t nonce[XQC_NONCE_LEN];
         xqc_crypto_km_t *p_ckm = & conn->tlsref.pktns.rx_ckm;
         //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
         //xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
@@ -293,7 +293,7 @@ int recv_server_hello(xqc_connection_t * conn){
         unsigned char * pkt_header = buf;
         unsigned char * encrypt_data = pkt_header + TEST_PKT_HEADER_LEN;
 
-        uint8_t nonce[32];
+        uint8_t nonce[XQC_NONCE_LEN];
         xqc_crypto_km_t *p_ckm = & pktns -> rx_ckm;
         //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
         xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
