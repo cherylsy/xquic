@@ -97,6 +97,7 @@ int g_echo_check;
 int g_drop_rate;
 int g_spec_url;
 int g_is_get;
+uint64_t g_last_sock_op_time;
 //currently, the maximum used test case id is 19
 //please keep this comment updated if you are adding more test cases. :-D
 int g_test_case;
@@ -112,6 +113,7 @@ char g_url[2048];
 char g_headers[MAX_HEADER][256];
 int g_header_cnt = 0;
 int g_ping_id = 1;
+
 
 static inline uint64_t now()
 {
@@ -249,6 +251,7 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
                 res = XQC_SOCKET_EAGAIN;
             }
         }
+        g_last_sock_op_time = now();
     } while ((res < 0) && (errno == EINTR));
     /*socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);*/
@@ -328,6 +331,8 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
         addr_v4->sin_family = type;
         addr_v4->sin_port = htons(port);
     }
+
+    g_last_sock_op_time = now();
 
 
 #if !defined(__APPLE__)
@@ -1033,6 +1038,8 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         }
 
         uint64_t recv_time = now();
+        g_last_sock_op_time = recv_time;
+
         //printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
@@ -1125,6 +1132,15 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
         printf("scheduled a new stream request\n");
         return;
     }
+
+    if (now() - g_last_sock_op_time < (uint64_t)g_conn_timeout * 1000000) {
+        struct timeval tv;
+        tv.tv_sec = g_conn_timeout;
+        tv.tv_usec = 0;
+        event_add(user_conn->ev_timeout, &tv);
+        return;
+    }
+
 conn_close:
     rc = xqc_conn_close(ctx.engine, &user_conn->cid);
     if (rc) {
