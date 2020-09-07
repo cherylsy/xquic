@@ -42,7 +42,7 @@
 #define XQC_TLS_NO_EARLY_DATA   (0)
 #define XQC_TLS_EARLY_DATA_UNKNOWN (-2)  //early data status can read only after handshake completed
 
-#define XQC_NONCE_LEN   32
+#define XQC_NONCE_LEN   16
 #define XQC_UINT32_MAX  (0xffffffff)
 
 /* Short header specific macros */
