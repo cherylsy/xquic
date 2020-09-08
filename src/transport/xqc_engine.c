@@ -857,6 +857,10 @@ process:
         conn->local_addrlen = local_addrlen;
     }
 
+    conn->conn_send_ctl->ctl_bytes_recv += packet_in_size;
+    conn->conn_send_ctl->ctl_recv_count++;
+    xqc_send_ctl_on_dgram_received(conn->conn_send_ctl, packet_in_size);
+
     /* process packets */
     ret = xqc_packet_process(conn, packet_in_buf, packet_in_size, recv_time);
     if (ret) {
@@ -864,9 +868,6 @@ process:
         XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);
         goto after_process;
     }
-
-    conn->conn_send_ctl->ctl_bytes_recv += packet_in_size;
-    conn->conn_send_ctl->ctl_recv_count++;
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
                            recv_time + conn->conn_send_ctl->ctl_conn->local_settings.max_idle_timeout*1000);

@@ -215,10 +215,8 @@ xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     if (conn->conn_send_ctl->ctl_bytes_in_flight + packet_out->po_used_size > congestion_window) {
         can = 0;
     }
-
-    if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK) && !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
-          && conn->conn_type == XQC_CONN_TYPE_SERVER
-          && conn->conn_send_ctl->ctl_bytes_send > 3 * conn->conn_send_ctl->ctl_bytes_recv) {
+    /* anti-amplifier attack limit */
+    if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
         can = 0;
     }
     xqc_conn_log(conn, XQC_LOG_DEBUG, "|can:%d|inflight:%ud|cwnd:%ud|conn:%p|",
@@ -563,7 +561,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     unsigned char update_rtt = 0;
-    xqc_packet_number_t lagest_ack = ack_info->ranges[0].high;
+    xqc_packet_number_t largest_ack = ack_info->ranges[0].high;
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
     xqc_pkt_num_space_t pns = ack_info->pns;
     unsigned char need_del_record = 0;
@@ -571,8 +569,8 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     ctl->ctl_prior_delivered = ctl->ctl_delivered;
     ctl->ctl_prior_bytes_in_flight = ctl->ctl_bytes_in_flight;
 
-    if (lagest_ack > ctl->ctl_largest_sent[pns]) {
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|%ui|", lagest_ack);
+    if (largest_ack > ctl->ctl_largest_sent[pns]) {
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|acked pkt is not sent yet|%ui|", largest_ack);
         return -XQC_EPROTO;
     }
 
@@ -583,7 +581,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (packet_out->po_pkt.pkt_num > lagest_ack) {
+        if (packet_out->po_pkt.pkt_num > largest_ack) {
             break;
         }
         while (packet_out->po_pkt.pkt_num > range->high && range != ack_info->ranges) {
@@ -613,10 +611,10 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
             xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|ctl_packets_used:%ud|ctl_packets_free:%ud|",
                     ctl->ctl_packets_used, ctl->ctl_packets_free);
 
-            if (packet_out->po_pkt.pkt_num == lagest_ack &&
+            if (packet_out->po_pkt.pkt_num == largest_ack &&
                 packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked[pns] &&
                 XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-                if(ctl->ctl_last_sent_ack_eliciting_packet_number[pns] == packet_out->po_pkt.pkt_num) {
+                if (ctl->ctl_last_sent_ack_eliciting_packet_number[pns] == packet_out->po_pkt.pkt_num) {
                     ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns] = 0;
                 }
                 ctl->ctl_latest_rtt = ack_recv_time - ctl->ctl_largest_acked_sent_time[pns];
@@ -649,17 +647,17 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
     xqc_send_ctl_set_loss_detection_timer(ctl);
 
-    if(ctl->ctl_cong_callback->xqc_cong_ctl_bbr && stream_frame_acked) {
-
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr && stream_frame_acked) {
         xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time);
 
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
         xqc_msec_t now = ack_recv_time;
-        if((ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL) &&
-        (ctl->ctl_info.last_bw_time + ctl->ctl_info.record_interval <= now)){
+        if ((ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL)
+            && (ctl->ctl_info.last_bw_time + ctl->ctl_info.record_interval <= now)) {
+
             bw_before = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
-            if(bw_before != 0 ){
+            if (bw_before != 0) {
                 bw_record_flag = 1;
             }
         }
@@ -680,10 +678,10 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 ctl->sampler.is_app_limited, ctl->ctl_lost_count,
                 bbr->recovery_mode, bbr->recovery_start_time, bbr->idle_restart, bbr->packet_conservation);
 
-        if(bw_record_flag){
+        if (bw_record_flag) {
             bw_after = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
-            if(bw_after > 0){
-                if(xqc_sub_abs(bw_after, bw_before) * 100 > (bw_before * ctl->ctl_info.bw_change_threshold)){
+            if (bw_after > 0) {
+                if (xqc_sub_abs(bw_after, bw_before) * 100 > (bw_before * ctl->ctl_info.bw_change_threshold)) {
 
                     ctl->ctl_info.last_bw_time = now;
                     xqc_conn_log(ctl->ctl_conn, XQC_LOG_STATS,
@@ -691,7 +689,6 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                                  bw_before, bw_after, ctl->ctl_srtt, ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong));
                 }
             }
-
         }
 
         ctl->sampler.prior_time = 0;
@@ -701,6 +698,53 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     return XQC_OK;
 }
 
+typedef enum {
+    XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE = 0, /* remain the old state  */
+    XQC_ANTI_AMPLIFICATION_STATE_ENTER,         /* enter the anti-amplification state, no data should be sent */
+    XQC_ANTI_AMPLIFICATION_STATE_LEAVE,         /* leave the anti-amplification state, could send data again */
+} xqc_anti_amplification_state;
+
+/**
+ * check the anti-amplification limit state of server
+ */
+uint32_t
+xqc_check_svr_anti_amplification_limit(xqc_connection_t *conn)
+{
+    /* enter anti-amplification limit */
+    if (!(conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION)
+        && conn->conn_send_ctl->ctl_bytes_send >= 3 * conn->conn_send_ctl->ctl_bytes_recv) {
+        conn->conn_flag |= XQC_CONN_FLAG_ANTI_AMPLIFICATION;
+        return XQC_ANTI_AMPLIFICATION_STATE_ENTER;
+    }
+    else if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION
+        && conn->conn_send_ctl->ctl_bytes_send < 3 * conn->conn_send_ctl->ctl_bytes_recv) {
+        /* quit the anti-amplification limit */
+        conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
+        return XQC_ANTI_AMPLIFICATION_STATE_LEAVE;
+    }
+
+    return XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE;
+}
+
+
+/**
+ * https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.6
+ * OnDatagramReceived
+ */
+void
+xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size)
+{
+    if (ctl->ctl_conn->conn_type == XQC_CONN_TYPE_SERVER
+        && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
+        && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)) {
+
+        /* if server is at anti-amplification limit, and the new dgram_size will
+           unblock it, re-arm the loss detection timer */
+        if (XQC_ANTI_AMPLIFICATION_STATE_ENTER == xqc_check_svr_anti_amplification_limit(ctl->ctl_conn)) {
+            xqc_send_ctl_set_loss_detection_timer(ctl);
+        }
+    }
+}
 
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.6
@@ -713,37 +757,35 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
             "|before update rtt|srtt:%ui|rttvar:%ui|minrtt:%ui|latest_rtt:%ui|ack_delay:%ui|",
             ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, *latest_rtt, ack_delay);
 
-    /* min_rtt ignores ack delay. */
-    ctl->ctl_minrtt = xqc_min(*latest_rtt, ctl->ctl_minrtt);
-    /* Limit ack_delay by max_ack_delay */
-    ack_delay = xqc_min(ack_delay, ctl->ctl_conn->local_settings.max_ack_delay * 1000);
-
-
-    /* Adjust for ack delay if it's plausible. */
-    if (*latest_rtt - ctl->ctl_minrtt > ack_delay) {
-        *latest_rtt -= ack_delay;
-    }
-
     /* Based on {{RFC6298}}. */
     if (ctl->ctl_srtt == 0) {
+        ctl->ctl_minrtt = *latest_rtt;
         ctl->ctl_srtt = *latest_rtt;
         ctl->ctl_rttvar = *latest_rtt >> 1;
+
     } else {
-        /*rttvar_sample = abs(smoothed_rtt - latest_rtt)
-         rttvar = 3/4 * rttvar + 1/4 * rttvar_sample
-         smoothed_rtt = 7/8 * smoothed_rtt + 1/8 * latest_rtt*/
+        ctl->ctl_minrtt = xqc_min(*latest_rtt, ctl->ctl_minrtt);
+        ack_delay = xqc_min(ack_delay, ctl->ctl_conn->local_settings.max_ack_delay * 1000);
+
+        /* Adjust for ack delay if it's plausible. */
+        if (*latest_rtt - ctl->ctl_minrtt > ack_delay) {
+            *latest_rtt -= ack_delay;
+        }
+
         uint64_t srtt = ctl->ctl_srtt;
         uint64_t rttvar = ctl->ctl_rttvar;
+
+        /* rttvar = 3/4 * rttvar + 1/4 * abs(smoothed_rtt - adjusted_rtt)  */
         ctl->ctl_rttvar -= ctl->ctl_rttvar >> 2;
         ctl->ctl_rttvar += (ctl->ctl_srtt > *latest_rtt ? ctl->ctl_srtt - *latest_rtt : *latest_rtt - ctl->ctl_srtt) >> 2;
 
+        /* smoothed_rtt = 7/8 * smoothed_rtt + 1/8 * adjusted_rtt */
         ctl->ctl_srtt -= ctl->ctl_srtt >> 3;
         ctl->ctl_srtt += *latest_rtt >> 3;
 
-        if(xqc_sub_abs(ctl->ctl_srtt, srtt)  > ctl->ctl_info.rtt_change_threshold){
-
+        if (xqc_sub_abs(ctl->ctl_srtt, srtt)  > ctl->ctl_info.rtt_change_threshold) {
             xqc_msec_t now = xqc_now();
-            if(ctl->ctl_info.last_rtt_time + ctl->ctl_info.record_interval <= now){
+            if (ctl->ctl_info.last_rtt_time + ctl->ctl_info.record_interval <= now) {
                 ctl->ctl_info.last_rtt_time = now;
                 xqc_conn_log(ctl->ctl_conn, XQC_LOG_STATS, "|before update rtt|srtt:%ui|rttvar:%ui|after update rtt|srtt:%ui|rttvar:%ui|minrtt:%ui|latest_rtt:%ui|ack_delay:%ui|",
                         srtt, rttvar, ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, *latest_rtt, ack_delay);
