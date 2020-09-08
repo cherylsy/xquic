@@ -8,6 +8,8 @@
 #include "src/crypto/xqc_tls_stack_cb.h"
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_transport_params.h"
+#include "src/crypto/xqc_tls_public.h"
+
 
 
 enum ssl_encryption_level_t 
@@ -554,8 +556,8 @@ xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
 int 
 xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
-                        const SSL_CIPHER *cipher, const uint8_t *secret,
-                        size_t secretlen)
+    const SSL_CIPHER *cipher, const uint8_t *secret,
+    size_t secretlen)
 {
 
     xqc_connection_t *  conn = (xqc_connection_t *) SSL_get_app_data(ssl);
@@ -566,6 +568,9 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
 
+#ifdef XQC_PRINT_SECRET
+    xqc_tls_print_secret(ssl, conn, level, secret, NULL, secretlen);
+#endif
 
     /* try to get transport parameter & get no_crypto flag */
     if (level == ssl_encryption_early_data
@@ -633,10 +638,12 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     // return once on success 
     return XQC_SSL_SUCCESS ;    
 }   
-      
-int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
-                        const SSL_CIPHER *cipher, const uint8_t *secret,
-                        size_t secretlen)
+
+  
+int 
+xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
+    const SSL_CIPHER *cipher, const uint8_t *secret,
+    size_t secretlen)
 {
     xqc_connection_t *  conn = (xqc_connection_t *) SSL_get_app_data(ssl);
 
@@ -645,6 +652,10 @@ int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     uint8_t key[XQC_MAX_KNP_LEN] = {0}, iv[XQC_MAX_KNP_LEN] = {0}, hp[XQC_MAX_KNP_LEN] = {0}; 
     size_t keylen = XQC_MAX_KNP_LEN ,ivlen = XQC_MAX_KNP_LEN , hplen = XQC_MAX_KNP_LEN ;
 #undef XQC_MAX_KNP_LEN
+
+#ifdef XQC_PRINT_SECRET
+    xqc_tls_print_secret(ssl, conn, level, NULL, secret, secretlen);
+#endif
 
     if ((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) 
         || (level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) 

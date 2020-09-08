@@ -624,5 +624,11 @@ static inline void hex_print(char *p, size_t n)
 
 
 
+#ifdef XQC_PRINT_SECRET
+void xqc_tls_print_secret(SSL *ssl, xqc_connection_t *conn, enum ssl_encryption_level_t level,
+    const unsigned char *read_secret, const unsigned char *write_secret, size_t secretlen);
+#endif
+
+
 
 #endif
