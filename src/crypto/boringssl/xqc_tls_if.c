@@ -113,30 +113,37 @@ SSL_QUIC_METHOD  xqc_ssl_quic_method =
 #define XQC_EARLY_DATA_CONTEXT          "xquic"
 #define XQC_EARLY_DATA_CONTEXT_LEN      (sizeof(XQC_EARLY_DATA_CONTEXT) - 1)
 
-static 
-int xqc_configure_quic(xqc_connection_t *conn)
+
+static int 
+xqc_configure_quic(xqc_connection_t *conn)
 {
     SSL *ssl = conn->xc_ssl ;
     const unsigned char  *out;
     size_t  outlen;
     int rv ;
 
-    SSL_set_quic_method(ssl,&xqc_ssl_quic_method);
-    SSL_set_early_data_enabled(ssl,1);
-    
+    SSL_set_quic_method(ssl, &xqc_ssl_quic_method);
+    SSL_set_early_data_enabled(ssl, 1);
+
     switch(conn->conn_type)
     {
     case XQC_CONN_TYPE_CLIENT:{
-        rv = xqc_serialize_client_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,&out,&outlen);
-        if(rv != 0) {
-            return rv ;
+        rv = xqc_serialize_client_transport_params(conn,
+                            XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
+                            &out, &outlen);
+        if (rv != XQC_OK) {
+            return rv;
         }
         break;
     }
     case XQC_CONN_TYPE_SERVER:{
-        rv = xqc_serialize_server_transport_params(conn,XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,&out,&outlen);
-        SSL_set_quic_early_data_context(ssl, (const uint8_t *)XQC_EARLY_DATA_CONTEXT, XQC_EARLY_DATA_CONTEXT_LEN);
-        if(rv != 0) {
+        SSL_set_quic_early_data_context(ssl, (const uint8_t *)XQC_EARLY_DATA_CONTEXT, 
+                                        XQC_EARLY_DATA_CONTEXT_LEN);
+
+        rv = xqc_serialize_server_transport_params(conn,
+                            XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
+                            &out, &outlen);
+        if (rv != XQC_OK) {
             return rv;
         }
         break;
@@ -145,11 +152,12 @@ int xqc_configure_quic(xqc_connection_t *conn)
     rv = SSL_set_quic_transport_params(ssl,out,outlen);
     // free it 
     xqc_transport_parames_serialization_free((void*)out);
-    // boringssl call return 1 on success  while xqc_call return 0 on success , weird 
-    if(rv != 1) {
-        return -1 ;
+
+    if (rv != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_SET_TRANSPORT_PARAM_ERROR;
     }
-    return 0;
+
+    return XQC_OK;
 }
 
 static 

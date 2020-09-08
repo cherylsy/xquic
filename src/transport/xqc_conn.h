@@ -327,7 +327,7 @@ struct xqc_connection_s{
     uint64_t                conn_err;
 
 #ifdef XQC_PRINT_SECRET
-    unsigned char           client_ramdom_hex[XQC_SECRET_HEX_MAX];
+    unsigned char           client_random_hex[XQC_SECRET_HEX_MAX];
     unsigned char           secret_hex[SECRET_TYPE_NUM][XQC_SECRET_HEX_MAX];
 #endif
 };

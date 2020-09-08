@@ -1414,13 +1414,14 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
     }
 
     /* 0RTT rejected, send in 1RTT again */
-    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED &&
-        ((conn->conn_type == XQC_CONN_TYPE_CLIENT && conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT)
-         || conn->conn_type == XQC_CONN_TYPE_SERVER) &&
-        !(conn->conn_flag & XQC_CONN_FLAG_0RTT_OK) &&
-        !(conn->conn_flag & XQC_CONN_FLAG_0RTT_REJ)) {
-
+    if ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) 
+        && ((conn->conn_type == XQC_CONN_TYPE_CLIENT && conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT)
+            || conn->conn_type == XQC_CONN_TYPE_SERVER) 
+        && !(conn->conn_flag & XQC_CONN_FLAG_0RTT_OK) 
+        && !(conn->conn_flag & XQC_CONN_FLAG_0RTT_REJ)) 
+    {
         int accept = xqc_tls_is_early_data_accepted(conn);
+
         if (accept == XQC_TLS_EARLY_DATA_REJECT) {
             xqc_conn_early_data_reject(conn);
         } else if (accept == XQC_TLS_EARLY_DATA_ACCEPT) {
@@ -1434,7 +1435,8 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
     secret_str[0] = '\n';
     n_write += 1;
     for (xqc_secret_type_t i = CLIENT_EARLY_TRAFFIC_SECRET; i < SECRET_TYPE_NUM; i++) {
-        n_write += snprintf(secret_str + n_write, sizeof(secret_str), "%s %s %s\n", xqc_secret_type_2_str[i], conn->client_ramdom_hex, conn->secret_hex[i]);
+        n_write += snprintf(secret_str + n_write, sizeof(secret_str), "%s %s %s\n", 
+                            xqc_secret_type_2_str[i], conn->client_random_hex, conn->secret_hex[i]);
     }
     xqc_log(conn->log, XQC_LOG_REPORT, "|print secret|%s|", secret_str);
 #endif
