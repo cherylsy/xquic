@@ -168,18 +168,17 @@ xqc_aead_decrypt(const xqc_aead_t * crypto,uint8_t *dest, size_t destlen,
     }
 }
 
-static inline
-ssize_t 
+
+static inline ssize_t 
 xqc_crypto_encrypt(const xqc_crypto_t * crypto,
-            uint8_t *dest, size_t destlen,
-            const uint8_t *plaintext,size_t plaintextlen,
-            const uint8_t *key, size_t keylen, const uint8_t *sample,
-            size_t samplelen)
+    uint8_t *dest, size_t destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen, const uint8_t *sample,
+    size_t samplelen)
 {
     if(XQC_UNLIKELY(crypto == NULL)) {
         return -1 ;
-    }
-    else {
+    } else {
         return crypto->encrypt.xqc_encrypt_func(crypto,dest,destlen,plaintext,plaintextlen,key,keylen,sample,samplelen);
     }
 }

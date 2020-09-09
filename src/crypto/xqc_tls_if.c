@@ -471,13 +471,8 @@ ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t noncelen, const uint8_t *ad,
                                   size_t adlen, void *user_data)
 {
-
-#ifdef XQC_FIX_CRYPTO_CTX 
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
-    xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
-#else 
-    xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx;
-#endif    
+    xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];   
 
     ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest, destlen, plaintext, plaintextlen , key, keylen,
                 nonce, noncelen,  ad, adlen);
@@ -497,13 +492,8 @@ xqc_do_decrypt(xqc_connection_t *conn,
     const uint8_t *ad, size_t adlen, 
     void *user_data)
 {
-
-#ifdef XQC_FIX_CRYPTO_CTX 
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
-#else
-    xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx;
-#endif
 
     ssize_t nwrite = xqc_aead_decrypt(&ctx->aead, 
                                       dest, destlen, 
@@ -538,13 +528,9 @@ xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
     const uint8_t *key, size_t keylen, const uint8_t *sample,
     size_t samplelen, void *user_data)
 {
-    
-#ifdef XQC_FIX_CRYPTO_CTX 
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
-#else
-    xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx;
-#endif
+
     ssize_t nwrite = xqc_crypto_encrypt(&ctx->hp, dest, destlen, XQC_FAKE_HP_MASK,
             sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen);
     if (nwrite < 0) {
