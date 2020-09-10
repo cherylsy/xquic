@@ -495,7 +495,7 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
 
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.5
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.5
  * OnPacketSent
  */
 void
@@ -1011,6 +1011,7 @@ xqc_send_ctl_is_app_limited()
 }
 
 /**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-B.5
  * OnPacketAckedCC
  */
 void
@@ -1071,6 +1072,7 @@ xqc_send_ctl_get_earliest_time_of_last_sent_ack_eliciting_packet(xqc_send_ctl_t 
 }
 
 /**
+ * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.8
  * SetLossDetectionTimer
  */
 void
@@ -1089,6 +1091,12 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
         xqc_log(conn->log, XQC_LOG_DEBUG,
                 "|xqc_send_ctl_timer_set|loss_time:%ui|",
                 loss_time);
+        return;
+    }
+
+    /* if at anti-amplification limit, nothing would be sent, unset the loss detection timer */
+    if (ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
+        xqc_send_ctl_timer_unset(ctl, XQC_TIMER_LOSS_DETECTION);
         return;
     }
 
@@ -1125,10 +1133,11 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 }
 
 /**
- * GetEarliestLossTime
+ * GetLossTimeAndSpace
  *
  * Returns the earliest loss_time and the packet number
  * space it's from.  Returns 0 if all times are 0.
+ * https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.8
  */
 xqc_msec_t
 xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret)
