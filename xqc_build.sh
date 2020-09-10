@@ -38,7 +38,7 @@ elif [ x"$platform" == xandroid ] ; then
 		exit 0 	
 	fi	
 	archs=${android_archs[@]}
-	configures="-DCMAKE_BUILD_TYPE=Minsizerel -DXQC_ENABLE_TESTING=OFF -DXQC_BUILD_SAMPLE=OFF -DGCOV=OFF -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DANDROID_STL=c++_shared -DANDROID_NATIVE_API_LEVEL=android-14"
+	configures="-DCMAKE_BUILD_TYPE=Minsizerel -DXQC_ENABLE_TESTING=OFF -DXQC_BUILD_SAMPLE=OFF -DGCOV=OFF -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake -DANDROID_STL=c++_shared -DANDROID_NATIVE_API_LEVEL=android-19"
 else 
 	echo "no support platform"
 	exit 0
