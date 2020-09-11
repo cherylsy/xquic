@@ -69,6 +69,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_HSK_ACKED_SHIFT]             = "HSK_ACKED",
         [XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT]        = "CANNOT_DESTROY",
         [XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD_SHIFT]  = "HSK_DONE_RECVD",
+        [XQC_CONN_FLAG_ANTI_AMPLIFICATION_SHIFT]    = "ANTI_AMPLIFICATION",
 };
 
 const char*

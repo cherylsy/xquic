@@ -247,6 +247,9 @@ int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time);
 
 void
+xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size);
+
+void
 xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t ack_delay);
 
 void
