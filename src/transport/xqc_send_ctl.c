@@ -934,8 +934,7 @@ int
 xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost)
 {
     xqc_msec_t pto = xqc_send_ctl_calc_pto(ctl);
-    xqc_msec_t congestion_period =
-            pto * ( xqc_send_ctl_pow(XQC_kPersistentCongestionThreshold) - 1);
+    xqc_msec_t congestion_period = pto * XQC_kPersistentCongestionThreshold;
     /* Determine if all packets in the window before the
      * newest lost packet, including the edges, are marked
      * lost
