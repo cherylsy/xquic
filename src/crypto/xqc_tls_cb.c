@@ -81,66 +81,66 @@ int xqc_do_update_key(xqc_connection_t *conn)
     xqc_tlsref_t *tlsref = &conn->tlsref;
     int secretlen = xqc_update_traffic_secret(secret, sizeof(secret), tlsref->tx_secret.base, tlsref->tx_secret.len, & tlsref->crypto_ctx);
     if(secretlen < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_update_traffic_secret  failed |ret code:%d |", secretlen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_update_traffic_secret  failed |ret code:%d |", secretlen);
         return -1;
     }
 
     xqc_vec_free(&tlsref->tx_secret);
     if(xqc_vec_assign(&tlsref->tx_secret, secret, secretlen) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_vec_assign  failed|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_vec_assign  failed|");
         return -1;
     }
 
     keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, secretlen, &tlsref-> crypto_ctx);
 
     if(keylen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_derive_packet_protection_key failed| ret code:%d|", keylen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_key failed| ret code:%d|", keylen);
         return -1;
     }
 
     ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, secretlen,  &tlsref->crypto_ctx);
 
     if(ivlen < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
         return -1;
     }
 
     rv = xqc_conn_update_tx_key(conn, key, keylen, iv, ivlen);
     if(rv != 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_conn_update_tx_key failed| ret code:%d|", rv);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_update_tx_key failed| ret code:%d|", rv);
         return -1;
     }
 
     secretlen = xqc_update_traffic_secret(secret, sizeof(secret), tlsref->rx_secret.base, tlsref->rx_secret.len, & tlsref->crypto_ctx);
 
     if(secretlen < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_update_traffic_secret failed| ret code:%d|", secretlen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_update_traffic_secret failed| ret code:%d|", secretlen);
         return -1;
     }
 
     xqc_vec_free(&tlsref->rx_secret);
     if(xqc_vec_assign(&tlsref->rx_secret, secret, secretlen) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_vec_assign  failed|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_vec_assign  failed|");
         return -1;
     }
 
     keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, secretlen, &tlsref-> crypto_ctx);
 
     if(keylen < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_derive_packet_protection_key failed| ret code:%d|", keylen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_key failed| ret code:%d|", keylen);
         return -1;
     }
 
     ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, secretlen,  &tlsref->crypto_ctx);
 
     if(ivlen < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
         return -1;
     }
 
     rv = xqc_conn_update_rx_key(conn, key, keylen, iv, ivlen);
     if(rv != 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_conn_update_tx_key failed| ret code:%d|", rv);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_update_tx_key failed| ret code:%d|", rv);
         return -1;
     }
 
@@ -162,7 +162,7 @@ static int xqc_conn_key_phase_changed(xqc_connection_t *conn, const xqc_pkt_hd *
 
 int xqc_update_key(xqc_connection_t *conn, void *user_data){
     if(xqc_do_update_key(conn) < 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_do_update_key failed|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_do_update_key failed|");
         return -1;
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|key update|");
@@ -184,7 +184,7 @@ int xqc_conn_commit_key_update(xqc_connection_t *conn, uint64_t pkt_num)
 
     if(tlsref->new_tx_ckm.key.base == NULL || tlsref->new_tx_ckm.key.len == 0
             || tlsref->new_tx_ckm.iv.base == NULL || tlsref->new_tx_ckm.iv.len == 0){
-        xqc_log(conn->log, XQC_LOG_ERROR, "| new key is not ready|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|new key is not ready|");
         return -1;
     }
 

@@ -163,7 +163,7 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
     if (SSL_provide_quic_data(ssl, xqc_convert_xqc_to_ssl_level(encrypt_level), 
                 data, datalen) != XQC_SSL_SUCCESS) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
-                "| SSL_provide_quic_data failed[level:%d]|", encrypt_level);
+                "|SSL_provide_quic_data failed[level:%d]|", encrypt_level);
         return XQC_ERROR;
     }
 
@@ -183,7 +183,7 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
 
     } else {
         if (SSL_process_quic_post_handshake(ssl) != XQC_SSL_SUCCESS) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "| SSL_process_quic_post_handshake failed |");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|SSL_process_quic_post_handshake failed |");
             return XQC_ERROR;
         }
     }

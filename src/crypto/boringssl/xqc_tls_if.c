@@ -180,7 +180,7 @@ again:
             {
                 // reset the state 
                 SSL_reset_early_data_reject(ssl);
-                xqc_log(conn->log, XQC_LOG_INFO, "| TLS handshake reject 0-RTT|");
+                xqc_log(conn->log, XQC_LOG_INFO, "|TLS handshake reject 0-RTT|");
                 // resume handshake 
                 goto again ;
             }
@@ -246,19 +246,19 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
 
     SSL * ssl = conn->xc_ssl ;
     if (SSL_provide_quic_data(ssl, xqc_convert_xqc_to_ssl_level(encrypt_level), data, datalen) != 1) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "| SSL_provide_quic_data failed[level:%d]|",encrypt_level);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|SSL_provide_quic_data failed[level:%d]|",encrypt_level);
         return -1 ;
     }
     
     if (!xqc_conn_get_handshake_completed(conn)) {
         if (xqc_do_handshake(conn) != 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "| xqc_do_handshake failed |");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_do_handshake failed |");
             return -1;
         }
     }else 
     {
         if (SSL_process_quic_post_handshake(ssl) != 1) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "| SSL_process_quic_post_handshake failed |");
+            xqc_log(conn->log, XQC_LOG_ERROR, "|SSL_process_quic_post_handshake failed |");
             return -1;
         }
     }
