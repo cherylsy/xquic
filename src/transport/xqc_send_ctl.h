@@ -8,7 +8,7 @@
 #include "src/congestion_control/xqc_sample.h"
 
 #define XQC_kPacketThreshold 3
-#define XQC_kPersistentCongestionThreshold 2
+#define XQC_kPersistentCongestionThreshold 3
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
 #define XQC_kGranularity 2
