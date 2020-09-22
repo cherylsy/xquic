@@ -119,6 +119,14 @@ typedef struct xqc_bbr_s{
     bool                   enable_expect_bw;
     uint32_t               max_expect_bw;
     bool                   enable_max_expect_bw;
+
+#if XQC_BBR_RTTVAR_COMPENSATION_ENABLED
+    /*CWND compensation for RTT variation+ */
+    xqc_win_filter_t       max_rtt;
+    uint32_t               max_rtt_win_len;
+    uint32_t               rtt_compensation_thresh;
+    uint8_t                rttvar_compensation_on;
+#endif
 } xqc_bbr_t;
 extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 

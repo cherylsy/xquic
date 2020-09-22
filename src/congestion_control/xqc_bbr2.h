@@ -183,6 +183,17 @@ typedef struct xqc_bbr2_s{
     xqc_msec_t              loss_start_time;
     xqc_bbr2_recovery_mode  recovery_mode;
 
+#if XQC_BBR2_PLUS_ENABLED
+    /*For BBRv2+ */
+    xqc_win_filter_t        max_rtt;
+    uint32_t                max_rtt_win_len;
+    uint32_t                rtt_compensation_thresh;
+    uint8_t                 rtt_compensation_on;
+    uint8_t                 fast_convergence_on;
+    xqc_msec_t              srtt_in_last_round;
+    xqc_msec_t              srtt_in_current_round;
+    uint32_t                bw_before_probe;
+#endif
 } xqc_bbr2_t;
 
 typedef enum {
@@ -190,6 +201,9 @@ typedef enum {
     BBR2_BW_PROBE_DOWN      = 1,  /* drain excess inflight from the queue */
     BBR2_BW_PROBE_CRUISE    = 2,  /* use pipe, w/ headroom in queue/pipe */
     BBR2_BW_PROBE_REFILL    = 3,  /* v2: refill the pipe again to 100% */
+#if XQC_BBR2_PLUS_ENABLED
+    BBR2_BW_PROBE_PRE_UP    = 4,  /* try if we can really enter probe up*/
+#endif
 } xqc_bbr2_pacing_gain_phase;
 
 typedef struct xqc_bbr2_context_s {

@@ -14,7 +14,7 @@ typedef struct xqc_sample_s
     /*当前ack的packet在发送的时候传输完成的packet数目 */
     uint64_t         prior_delivered;
     /*两次采样的时间间隔 */
-    xqc_msec_t      interval;
+    xqc_msec_t       interval;
     /*两次采样之间传输完成(ack)的数据量 */
     uint32_t         delivered;
     /*the amount of newly delivered data*/

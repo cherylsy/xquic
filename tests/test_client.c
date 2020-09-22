@@ -1210,7 +1210,7 @@ void usage(int argc, char *argv[]) {
 "   -p    Server port.\n"
 "   -P    Number of Parallel requests per single connection. Default 1.\n"
 "   -n    Total number of requests to send. Defaults 1.\n"
-"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2\n"
+"   -c    Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2 bbr+ bbr2+\n"
 "   -C    Pacing on.\n"
 "   -t    Connection timeout. Default 3 seconds.\n"
 "   -T    Transport layer. No HTTP3.\n"
@@ -1252,6 +1252,7 @@ int main(int argc, char *argv[]) {
     int req_paral = 1;
     char c_cong_ctl = 'b';
     char c_log_level = 'd';
+    int c_cong_plus = 0;
     int pacing_on = 0;
     int transport = 0;
     int use_1rtt = 0;
@@ -1280,7 +1281,10 @@ int main(int argc, char *argv[]) {
                 c_cong_ctl = optarg[0];
                 if (strncmp("bbr2", optarg, 4) == 0)
                     c_cong_ctl = 'B';
-                printf("option cong_ctl : %c: %s\n", c_cong_ctl, optarg);
+                if (strncmp("bbr2+", optarg, 5) == 0 
+                    || strncmp("bbr+", optarg, 4) == 0)
+                    c_cong_plus = 1;
+                printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
                 break;
             case 'C': //pacing on
                 printf("option pacing :%s\n", "on");
@@ -1421,24 +1425,38 @@ int main(int argc, char *argv[]) {
     };
 
     xqc_cong_ctrl_callback_t cong_ctrl;
+    uint32_t cong_flags = 0;
     if (c_cong_ctl == 'b') {
         cong_ctrl = xqc_bbr_cb;
+        cong_flags = XQC_BBR_FLAG_NONE;
+#if XQC_BBR_RTTVAR_COMPENSATION_ENABLED
+        if (c_cong_plus)
+            cong_flags |= XQC_BBR_FLAG_RTTVAR_COMPENSATION;
+#endif
     } else if (c_cong_ctl == 'r') {
         cong_ctrl = xqc_reno_cb;
     } else if (c_cong_ctl == 'c') {
         cong_ctrl = xqc_cubic_cb;
     } else if (c_cong_ctl == 'B') {
         cong_ctrl = xqc_bbr2_cb;
+        cong_flags = XQC_BBR2_FLAG_NONE;
+#if XQC_BBR2_PLUS_ENABLED
+        if (c_cong_plus) {
+            cong_flags |= XQC_BBR2_FLAG_RTTVAR_COMPENSATION;
+            cong_flags |= XQC_BBR2_FLAG_FAST_CONVERGENCE;
+        }
+#endif
     } else {
-        printf("unknown cong_ctrl, option is b, r, c, B\n");
+        printf("unknown cong_ctrl, option is b, r, c, B, bbr+, bbr2+\n");
         return -1;
     }
+    printf("congestion control flags: %x\n", cong_flags);
 
     xqc_conn_settings_t conn_settings = {
             .pacing_on  =   pacing_on,
             .ping_on    =   0,
             .cong_ctrl_callback = cong_ctrl,
-            .cc_params  =   {.customize_on = 1, .init_cwnd = 32,},
+            .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
             .so_sndbuf  =   1024*1024,
             .proto_version = XQC_IDRAFT_VER_29,
     };

@@ -72,6 +72,23 @@ typedef enum xqc_log_level_s
     XQC_LOG_DEBUG,
 } xqc_log_level_t;
 
+#define XQC_BBR_RTTVAR_COMPENSATION_ENABLED 0
+typedef enum {
+    XQC_BBR_FLAG_NONE = 0x00,
+#if XQC_BBR_RTTVAR_COMPENSATION_ENABLED
+    XQC_BBR_FLAG_RTTVAR_COMPENSATION = 0x01,
+#endif
+} xqc_bbr_optimization_flag_t;
+
+#define XQC_BBR2_PLUS_ENABLED 0
+typedef enum {
+    XQC_BBR2_FLAG_NONE = 0x00,
+#if XQC_BBR2_PLUS_ENABLED
+    XQC_BBR2_FLAG_RTTVAR_COMPENSATION = 0x01,
+    XQC_BBR2_FLAG_FAST_CONVERGENCE = 0x2,
+#endif
+} xqc_bbr2_optimization_flag_t;
+
 #ifdef WIN32
 struct iovec {
 	void *   iov_base;	/* [XSI] Base address of I/O memory region */

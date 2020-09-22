@@ -32,7 +32,11 @@ static const float xqc_bbr2_drain_gain = 0.75;
 /* Gain for cwnd in probe_bw, like slow start*/
 static const float xqc_bbr2_cwnd_gain = 2.0;
 /*Cycle of gains in PROBE_BW for pacing rate */
+#if XQC_BBR2_PLUS_ENABLED
+static const float xqc_bbr2_pacing_gain[] = {1.25, 0.75, 1, 1, 1.10, 1, 1, 1};
+#else
 static const float xqc_bbr2_pacing_gain[] = {1.25, 0.75, 1, 1, 1, 1, 1, 1};
+#endif
 /*Minimum packets that need to ensure ack if there is delayed ack */
 static const uint32_t xqc_bbr2_min_cwnd = 4 * XQC_BBR2_MAX_DATAGRAM_SIZE;
 /*If bandwidth has increased by 1.25, there may be more bandwidth avaliable */
@@ -63,6 +67,23 @@ static const float xqc_bbr2_bw_probe_up_gain = 1.25;
 static const float xqc_bbr2_inflight_headroom = 0.15;
 static const float xqc_bbr2_pacing_rate_margin_percent = 0.01;
 
+/*For BBRv2 +*/
+/*5RTT*/
+#if XQC_BBR2_PLUS_ENABLED
+static const int xqc_bbr2_windowed_max_rtt_win_size = 5;
+static const float xqc_bbr2_rtt_compensation_startup_thresh = 2;
+static const float xqc_bbr2_rtt_compensation_thresh = 1;
+static const float xqc_bbr2_rtt_compensation_cwnd_factor = 1;
+/*Probe bw for every 4-8 RTTs*/
+static const int xqc_bbr2_fast_convergence_probe_round_base = 4;
+static const int xqc_bbr2_fast_convergence_probe_round_rand = 4;
+static const float xqc_bbr2_fast_convergence_rtt_factor = 1.25;
+/*Tolerate jitters in 2ms*/
+static const float xqc_bbr2_fast_convergence_srtt_error = 2000;
+/*If max bw has increased by 20%, we enter probe_up phase again*/
+static const float xqc_bbr2_fast_convergence_probe_again_factor = 1.20;
+#endif
+
 static void xqc_bbr2_raise_inflight_hi_slope(xqc_bbr2_t *);
 static uint32_t xqc_bbr2_target_inflight(xqc_bbr2_t *bbr2);
 static void xqc_bbr2_enter_probe_refill(xqc_bbr2_t *bbr2,
@@ -89,6 +110,9 @@ xqc_bbr2_enter_startup(xqc_bbr2_t *bbr2)
     bbr2->mode = BBR2_STARTUP;
     bbr2->pacing_gain = xqc_bbr2_high_gain;
     bbr2->cwnd_gain = xqc_bbr2_startup_cwnd_gain;
+#if XQC_BBR2_PLUS_ENABLED
+    bbr2->rtt_compensation_thresh = xqc_bbr2_rtt_compensation_startup_thresh;
+#endif
 }
 
 static void
@@ -120,6 +144,20 @@ xqc_bbr2_init(void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params)
     xqc_bbr2_t *bbr2 = (xqc_bbr2_t *)(cong_ctl);
     uint64_t now = xqc_now();
     memset(bbr2, 0, sizeof(*bbr2));
+
+#if XQC_BBR2_PLUS_ENABLED
+    xqc_win_filter_reset_u64(&bbr2->max_rtt, 0, 0);
+    bbr2->max_rtt_win_len = xqc_bbr2_windowed_max_rtt_win_size;
+    if (cc_params.cc_optimization_flags & XQC_BBR2_FLAG_RTTVAR_COMPENSATION) {
+        bbr2->rtt_compensation_on = 1;
+    }
+    if (cc_params.cc_optimization_flags & XQC_BBR2_FLAG_FAST_CONVERGENCE) {
+        bbr2->fast_convergence_on = 1;
+    }
+    bbr2->srtt_in_current_round = XQC_BBR2_INF_RTT;
+    bbr2->srtt_in_last_round = XQC_BBR2_INF_RTT;
+#endif
+
     bbr2->min_rtt = sampler->srtt ? sampler->srtt : XQC_BBR2_INF_RTT;
     bbr2->min_rtt_stamp = now;
     bbr2->probe_rtt_min_us = sampler->srtt ? sampler->srtt : XQC_BBR2_INF_RTT;
@@ -212,21 +250,21 @@ xqc_bbr2_calculate_bw_sample(xqc_sample_t *sampler, xqc_bbr2_context_t *ctx)
     ctx->sample_bw = 1.0 * sampler->delivered / sampler->interval * MSEC2SEC;
 }
 
-static uint32_t
-xqc_bbr2_bdp(xqc_bbr2_t *bbr2, uint32_t bw)
-{
-    if (bbr2->min_rtt == XQC_BBR2_INF_RTT) {
-        return bbr2->initial_congestion_window;
-    }
-    uint64_t w = bbr2->min_rtt * (uint64_t)bw;
-    return (uint32_t)(w / MSEC2SEC);
-}
 
 static uint32_t 
 xqc_bbr2_inflight(xqc_bbr2_t *bbr2, uint32_t bw, float gain)
 {
-    uint32_t bdp = xqc_bbr2_bdp(bbr2, bw);
+    if (bbr2->min_rtt == XQC_BBR2_INF_RTT) {
+        return bbr2->initial_congestion_window;
+    }
+    uint64_t bdp = bbr2->min_rtt * (uint64_t)bw / MSEC2SEC;
     return (uint32_t)(bdp * gain);
+}
+
+static uint32_t
+xqc_bbr2_bdp(xqc_bbr2_t *bbr2, uint32_t bw)
+{
+    return xqc_bbr2_inflight(bbr2, bw, 1.0);
 }
 
 static void 
@@ -244,8 +282,10 @@ xqc_bbr2_probe_inflight_hi_upward(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
 {
     uint32_t delta = 0;
     xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG,
-            "|raising inflight hi|cwnd:%ud|inflight_sample:%ud|inflight_hi:%ud|newlyacked:%ud|prior_inflight:%ud|",
-            bbr2->congestion_window, sampler->bytes_inflight, bbr2->inflight_hi, sampler->acked, sampler->prior_inflight);
+            "|raising inflight hi|cwnd:%ud|inflight_sample:%ud|"
+            "inflight_hi:%ud|newlyacked:%ud|prior_inflight:%ud|",
+            bbr2->congestion_window, sampler->bytes_inflight, 
+            bbr2->inflight_hi, sampler->acked, sampler->prior_inflight);
     bool not_cwnd_limited = FALSE;
     if (sampler->prior_inflight < bbr2->congestion_window) {
         not_cwnd_limited = (bbr2->congestion_window - sampler->prior_inflight)  
@@ -269,7 +309,8 @@ xqc_bbr2_probe_inflight_hi_upward(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
     xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
             "|increase_inflight_hi|probe_up_acks:%ud|newlyacked:%ud"
             "|probe_up_cnt:%udinflight_hi:%uddelta:%udprobe_up_rounds:%u|",
-            bbr2->bw_probe_up_acks, sampler->acked, bbr2->bw_probe_up_cnt, bbr2->inflight_hi, delta, bbr2->bw_probe_up_rounds);
+            bbr2->bw_probe_up_acks, sampler->acked, bbr2->bw_probe_up_cnt, 
+            bbr2->inflight_hi, delta, bbr2->bw_probe_up_rounds);
 
     if (bbr2->round_start) {
         xqc_bbr2_raise_inflight_hi_slope(bbr2);
@@ -435,7 +476,8 @@ xqc_bbr2_raise_inflight_hi_slope(xqc_bbr2_t *bbr2)
     /* Calculate "slope": packets S/Acked per inflight_hi increment. */
     growth_this_round = 1 << bbr2->bw_probe_up_rounds;
     bbr2->bw_probe_up_rounds = xqc_min(bbr2->bw_probe_up_rounds + 1, 30);
-    cnt = (bbr2->congestion_window / XQC_BBR2_MAX_DATAGRAM_SIZE) / growth_this_round;
+    cnt = (bbr2->congestion_window / XQC_BBR2_MAX_DATAGRAM_SIZE) / 
+          growth_this_round;
     cnt = xqc_max(cnt, 1U);
     bbr2->bw_probe_up_cnt = cnt;
 }
@@ -450,6 +492,11 @@ xqc_bbr2_enter_probe_up(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
     xqc_bbr2_raise_inflight_hi_slope(bbr2);
     bbr2->cwnd_gain = xqc_bbr2_cwnd_gain;
     bbr2->pacing_gain = xqc_bbr2_pacing_gain[bbr2->cycle_idx];
+#if XQC_BBR2_PLUS_ENABLED
+    if (bbr2->fast_convergence_on) {
+        bbr2->bw_before_probe = xqc_bbr2_max_bw(bbr2);
+    }
+#endif
 }
 
 static uint32_t 
@@ -492,6 +539,19 @@ xqc_bbr2_enter_probe_cruise(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
     bbr2->pacing_gain = xqc_bbr2_pacing_gain[bbr2->cycle_idx];
 }
 
+#if XQC_BBR2_PLUS_ENABLED
+static void 
+xqc_bbr2_enter_probe_pre_up(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
+{
+    xqc_bbr2_set_cycle_idx(bbr2, BBR2_BW_PROBE_PRE_UP);
+    bbr2->cwnd_gain = xqc_bbr2_cwnd_gain;
+    bbr2->pacing_gain = xqc_bbr2_pacing_gain[bbr2->cycle_idx];
+    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+            "|BBRv2 Plus|State probe pre_up|pacing_gain %.2f|",
+            bbr2->pacing_gain);
+}
+#endif
+
 static void 
 xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
 {
@@ -520,6 +580,27 @@ xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
 	 * by slowing down.
 	 */
     case BBR2_BW_PROBE_CRUISE:
+#if XQC_BBR2_PLUS_ENABLED
+        if (bbr2->fast_convergence_on) {
+            xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                    "|BBRv2 Plus|State probe cruise|last_round_srtt %ui|"
+                    "current_round_srtt %ui|",
+                    bbr2->srtt_in_last_round,
+                    bbr2->srtt_in_current_round);
+            if (bbr2->srtt_in_current_round != XQC_BBR2_INF_RTT) {
+                xqc_msec_t rtt_thresh = xqc_bbr2_fast_convergence_rtt_factor *
+                                        bbr2->srtt_in_last_round;
+                xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                            "|BBRv2 Plus|rtt_thresh %ui|", rtt_thresh);
+                if (bbr2->srtt_in_current_round > rtt_thresh) {
+                    xqc_bbr2_advance_bw_hi_filter(bbr2);
+                    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                            "|BBRv2 Plus|advanced bw hi filter|");
+                }
+            }
+            
+        }
+#endif
         if (xqc_bbr2_check_time_to_probe_bw(bbr2, sampler)) {
             return; /* already decided state transition */
         }
@@ -535,10 +616,41 @@ xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
 			 * start to see bw samples reflecting our REFILL, which
 			 * may be putting too much data in flight.
 			 */
+#if XQC_BBR2_PLUS_ENABLED
+            if (bbr2->fast_convergence_on) {
+                xqc_bbr2_enter_probe_pre_up(bbr2, sampler);
+
+            } else {
+                bbr2->bw_probe_samples = 1;
+                xqc_bbr2_enter_probe_up(bbr2, sampler);
+            }
+#else
             bbr2->bw_probe_samples = 1;
             xqc_bbr2_enter_probe_up(bbr2, sampler);
+#endif
         }
         break;
+
+#if XQC_BBR2_PLUS_ENABLED
+    case BBR2_BW_PROBE_PRE_UP:
+        if (bbr2->round_start) {
+            xqc_msec_t rtt_thresh = bbr2->srtt_in_last_round + 
+                                    xqc_bbr2_fast_convergence_srtt_error;
+            xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                    "|BBRv2 Plus|State probe pre_up|last_round_srtt %ui|"
+                    "current_round_srtt %ui| rtt_thresh %ui|",
+                    bbr2->srtt_in_last_round, bbr2->srtt_in_current_round,
+                    rtt_thresh);
+            if (bbr2->srtt_in_current_round <= rtt_thresh) {
+                bbr2->bw_probe_samples = 1;
+                xqc_bbr2_enter_probe_up(bbr2, sampler);
+
+            } else {
+                xqc_bbr2_enter_probe_down(bbr2, sampler);
+            }
+        }
+        break;
+#endif
 
     /* After we refill the pipe, we probe by using a pacing_gain > 1.0, to
 	 * probe for bw. If we have not seen loss/ECN, we try to raise inflight
@@ -566,11 +678,34 @@ xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
         {
             bbr2->stopped_risky_probe = 1;
             is_risky = TRUE;
+
         }
         else if (xqc_bbr2_has_elapsed_in_phase(bbr2, now, bbr2->min_rtt) 
-                && inflight >= xqc_bbr2_inflight(bbr2, bw, xqc_bbr2_bw_probe_up_gain))
+                && inflight >= 
+                   xqc_bbr2_inflight(bbr2, bw, xqc_bbr2_bw_probe_up_gain))
         {
+#if XQC_BBR2_PLUS_ENABLED
+            if (bbr2->fast_convergence_on) {
+                uint32_t bw_thresh = bbr2->bw_before_probe * 
+                                xqc_bbr2_fast_convergence_probe_again_factor;
+                xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                        "|BBRv2 Plus|State probe up|max_bw_before_probe %ud|"
+                        "current_max_bw %ud|bw_thresh %ud|",
+                        bbr2->bw_before_probe, xqc_bbr2_max_bw(bbr2),
+                        bw_thresh);
+                if (xqc_bbr2_max_bw(bbr2) < bw_thresh) {
+                    is_queuing = TRUE;
+
+                } else {
+                    xqc_bbr2_enter_probe_up(bbr2, sampler);
+                }
+
+            } else {
+                is_queuing = TRUE;
+            }
+#else
             is_queuing = TRUE;
+#endif
         }
         xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                 "|PROBE_UP_GO|inflight:%ud|target:%ud|queuing:%ud|bw:%ud|",
@@ -592,6 +727,25 @@ xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
 	 * the queue is drained; persisting would underutilize the pipe.
 	 */
     case BBR2_BW_PROBE_DOWN:
+#if XQC_BBR2_PLUS_ENABLED
+        if (bbr2->fast_convergence_on) {
+            xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                    "|BBRv2 Plus|State probe down|last_round_srtt %ui|"
+                    "current_round_srtt %ui|",
+                    bbr2->srtt_in_last_round,
+                    bbr2->srtt_in_current_round);
+            if (bbr2->srtt_in_current_round != XQC_BBR2_INF_RTT) {
+                xqc_msec_t rtt_thresh = xqc_bbr2_fast_convergence_rtt_factor *
+                                        bbr2->srtt_in_last_round;
+                xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                        "|BBRv2 Plus|State probe down| rtt_thresh %ui|",
+                        rtt_thresh);
+                if (bbr2->srtt_in_current_round > rtt_thresh) {
+                    xqc_bbr2_advance_bw_hi_filter(bbr2);
+                }
+            }
+        }
+#endif
         if (xqc_bbr2_check_time_to_probe_bw(bbr2, sampler)) {
             return; /* already decided state transition */
         }
@@ -688,7 +842,8 @@ xqc_bbr2_check_full_bw_reached(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
         return;
     }
     ++bbr2->full_bandwidth_cnt;
-    bbr2->full_bandwidth_reached = bbr2->full_bandwidth_cnt >= xqc_bbr2_fullbw_cnt;
+    bbr2->full_bandwidth_reached = bbr2->full_bandwidth_cnt >= 
+                                   xqc_bbr2_fullbw_cnt;
 }
 
 static void 
@@ -704,8 +859,19 @@ static void
 xqc_bbr2_pick_probe_wait(xqc_bbr2_t *bbr2)
 {
     bbr2->rounds_since_probe = random() % xqc_bbr2_bw_probe_rand_rounds;
+#if XQC_BBR2_PLUS_ENABLED
+    if (bbr2->fast_convergence_on) {
+        uint32_t rand_rtt_rounds = random() % 
+                                   xqc_bbr2_fast_convergence_probe_round_rand;
+        rand_rtt_rounds += (1 + xqc_bbr2_fast_convergence_probe_round_base);
+    } else {
+        bbr2->probe_wait_us = xqc_bbr2_bw_probe_base_us + 
+                              (random() % xqc_bbr2_bw_probe_rand_us);
+    }
+#else
     bbr2->probe_wait_us = xqc_bbr2_bw_probe_base_us + 
-        (random() % xqc_bbr2_bw_probe_rand_us);
+                          (random() % xqc_bbr2_bw_probe_rand_us);
+#endif
 }
 
 void 
@@ -741,6 +907,9 @@ xqc_bbr2_check_drain(xqc_bbr2_t *bbr2, xqc_sample_t *sampler,
     if (bbr2->mode == BBR2_DRAIN 
         && sampler->bytes_inflight <= xqc_bbr2_bdp(bbr2, xqc_bbr2_max_bw(bbr2)))
     {
+#if XQC_BBR2_PLUS_ENABLED
+        bbr2->rtt_compensation_thresh = xqc_bbr2_rtt_compensation_thresh;
+#endif
         xqc_bbr2_enter_probe_down(bbr2, sampler);
     }
 }
@@ -748,7 +917,8 @@ xqc_bbr2_check_drain(xqc_bbr2_t *bbr2, xqc_sample_t *sampler,
 static uint32_t 
 xqc_bbr2_probe_rtt_cwnd(xqc_bbr2_t *bbr2)
 {
-    uint32_t probe_rtt_cwnd = xqc_bbr2_inflight(bbr2, xqc_bbr2_bw(bbr2), xqc_bbr2_probe_rtt_gain);
+    uint32_t probe_rtt_cwnd = xqc_bbr2_inflight(bbr2, xqc_bbr2_bw(bbr2), 
+                                                xqc_bbr2_probe_rtt_gain);
     return xqc_max(xqc_bbr2_min_cwnd, probe_rtt_cwnd);
 }
 
@@ -759,6 +929,7 @@ xqc_bbr2_exit_probe_rtt(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
     if (bbr2->full_bandwidth_reached) {
         xqc_bbr2_enter_probe_down(bbr2, sampler);
         xqc_bbr2_enter_probe_cruise(bbr2, sampler);
+
     } else {
         xqc_bbr2_enter_startup(bbr2);
     }
@@ -788,7 +959,8 @@ xqc_bbr2_update_min_rtt(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
         bbr2->probe_rtt_min_us = sampler->rtt;
         bbr2->probe_rtt_min_us_stamp = sampler->now;
     }
-    min_rtt_expired = sampler->now > (bbr2->min_rtt_stamp + xqc_bbr2_minrtt_win_size_us);
+    min_rtt_expired = sampler->now > 
+                      (bbr2->min_rtt_stamp + xqc_bbr2_minrtt_win_size_us);
     bbr2->min_rtt_expired = min_rtt_expired;
     if (bbr2->probe_rtt_min_us <= bbr2->min_rtt || min_rtt_expired) {
         bbr2->min_rtt = bbr2->probe_rtt_min_us;
@@ -807,18 +979,22 @@ xqc_bbr2_update_min_rtt(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
         xqc_send_ctl_t *send_ctl = sampler->send_ctl;
         assert(send_ctl != NULL);
         send_ctl->ctl_app_limited = send_ctl->ctl_delivered +
-                                    (send_ctl->ctl_bytes_in_flight ? send_ctl->ctl_bytes_in_flight : 1);
+                                    (send_ctl->ctl_bytes_in_flight ? 
+                                     send_ctl->ctl_bytes_in_flight : 1);
         xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                 "|BBR PROBE_RTT|inflight:%ud|done_stamp:%ui|done:%ud|"
                 "round_start:%ud|",
-                sampler->bytes_inflight, bbr2->probe_rtt_round_done_stamp, bbr2->probe_rtt_round_done, bbr2->round_start);
+                sampler->bytes_inflight, bbr2->probe_rtt_round_done_stamp, 
+                bbr2->probe_rtt_round_done, bbr2->round_start);
         /* Maintain min packets in flight for max(200 ms, 1 round). */
         if (!bbr2->probe_rtt_round_done_stamp 
             && sampler->bytes_inflight <= xqc_bbr2_probe_rtt_cwnd(bbr2))
         {
-            bbr2->probe_rtt_round_done_stamp = sampler->now + xqc_bbr2_probertt_time_us;
+            bbr2->probe_rtt_round_done_stamp = sampler->now + 
+                                               xqc_bbr2_probertt_time_us;
             bbr2->probe_rtt_round_done = FALSE;
             bbr2->next_round_delivered = sampler->total_acked;
+
         } else if (bbr2->probe_rtt_round_done_stamp) {
             if (bbr2->round_start) {
                 bbr2->probe_rtt_round_done = TRUE;
@@ -847,6 +1023,7 @@ xqc_bbr2_save_cwnd(xqc_bbr2_t *bbr2)
 {
     if (bbr2->recovery_mode != BBR2_RECOVERY && bbr2->mode != BBR2_PROBE_RTT) {
         bbr2->prior_cwnd = bbr2->congestion_window;
+
     } else {
         bbr2->prior_cwnd = xqc_max(bbr2->congestion_window, bbr2->prior_cwnd);
     }
@@ -906,8 +1083,35 @@ xqc_bbr2_reset_cwnd(void *cong_ctl)
     bbr2->recovery_start_time = 0;
 }
 
+#if XQC_BBR2_PLUS_ENABLED
+static uint32_t
+xqc_bbr2_compensate_cwnd_for_rttvar(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
+{
+	xqc_msec_t srtt = sampler->srtt;
+    xqc_msec_t recent_max_rtt = xqc_win_filter_get_u64(&bbr2->max_rtt);
+    xqc_msec_t compensation_thresh = (1 + bbr2->rtt_compensation_thresh) * 
+                                     bbr2->min_rtt;
+    uint32_t cwnd_addition = 0;
+    if (recent_max_rtt >= compensation_thresh) {
+        if (srtt > bbr2->min_rtt) {
+            xqc_msec_t rtt_var = (srtt - bbr2->min_rtt);
+            cwnd_addition = (xqc_bbr2_bw(bbr2) * rtt_var / MSEC2SEC) * 
+                                       xqc_bbr2_rtt_compensation_cwnd_factor;
+
+        } else {
+            xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_WARN, 
+                    "|cwnd compensation: weird things happened|"
+                    "|srtt %ui <= min_rtt %ui|", 
+                    srtt, bbr2->min_rtt);
+        }
+    }
+    return cwnd_addition;
+}
+#endif
+
 static void 
-xqc_bbr2_set_cwnd(xqc_bbr2_t *bbr2, xqc_sample_t *sampler, xqc_bbr2_context_t *ctx)
+xqc_bbr2_set_cwnd(xqc_bbr2_t *bbr2, xqc_sample_t *sampler, 
+    xqc_bbr2_context_t *ctx)
 {
     if (sampler->acked == 0) {
         goto done;
@@ -925,12 +1129,24 @@ xqc_bbr2_set_cwnd(xqc_bbr2_t *bbr2, xqc_sample_t *sampler, xqc_bbr2_context_t *c
             target_cwnd, extra_cwnd, bbr2->congestion_window, sampler->acked);
     target_cwnd += extra_cwnd;
 
+#if XQC_BBR2_PLUS_ENABLED
+    if (bbr2->rtt_compensation_on) {
+        uint32_t cwnd_for_rttvar;
+        cwnd_for_rttvar = xqc_bbr2_compensate_cwnd_for_rttvar(bbr2, sampler);
+        target_cwnd += cwnd_for_rttvar;
+        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG,
+                "|xqc_bbr2_set_cwnd|cwnd_for_rttvar: %ud|", cwnd_for_rttvar);
+    }
+#endif
+
     if (bbr2->full_bandwidth_reached) {
         bbr2->congestion_window = xqc_min(target_cwnd, 
-            bbr2->congestion_window + sampler->acked);
+                                          bbr2->congestion_window 
+                                          + sampler->acked);
+
     }
     else if (bbr2->congestion_window < target_cwnd 
-        || bbr2->congestion_window < 2 * bbr2->initial_congestion_window)
+             || bbr2->congestion_window < 2 * bbr2->initial_congestion_window)
     {
         bbr2->congestion_window += sampler->acked;
     }
@@ -939,7 +1155,8 @@ xqc_bbr2_set_cwnd(xqc_bbr2_t *bbr2, xqc_sample_t *sampler, xqc_bbr2_context_t *c
 
 done:
     if (bbr2->mode == BBR2_PROBE_RTT) {
-        bbr2->congestion_window = xqc_min(bbr2->congestion_window, xqc_bbr2_probe_rtt_cwnd(bbr2));
+        bbr2->congestion_window = xqc_min(bbr2->congestion_window, 
+                                          xqc_bbr2_probe_rtt_cwnd(bbr2));
     }
     ctx->target_cwnd = target_cwnd;
 }
@@ -991,13 +1208,16 @@ xqc_bbr2_update_recovery_mode(void *cong_ctl, xqc_sample_t *sampler)
         bbr2->recovery_mode = BBR2_RECOVERY;
         /* just save it. make the logic consistent with Linux Kernel */
         xqc_bbr2_save_cwnd(bbr2);
+
     }
     else if (sampler->po_sent_time > bbr2->recovery_start_time 
              && bbr2->recovery_mode == BBR2_RECOVERY)
     {
-        /* exit recovery mode once any packet sent during the recovery epoch is acked. */
+        /* exit recovery mode once any packet sent during the 
+           recovery epoch is acked. */
         bbr2->recovery_mode = BBR2_OPEN;
-        /* we do not restore cwnd here as we do not bound cwnd to inflight when entering recovery */
+        /* we do not restore cwnd here as we do not bound cwnd to 
+           inflight when entering recovery */
     }
 }
 
@@ -1010,10 +1230,18 @@ xqc_bbr2_take_bw_hi_sample(xqc_bbr2_t *bbr2, uint32_t bw)
 bool 
 xqc_bbr2_is_probing_bandwidth(xqc_bbr2_t *bbr2)
 {
+#if XQC_BBR2_PLUS_ENABLED
+    return (bbr2->mode == BBR2_STARTUP) 
+            || (bbr2->mode == BBR2_PROBE_BW 
+               && (bbr2->cycle_idx == BBR2_BW_PROBE_REFILL 
+                   || bbr2->cycle_idx == BBR2_BW_PROBE_UP
+                   || bbr2->cycle_idx == BBR2_BW_PROBE_PRE_UP));
+#else
     return (bbr2->mode == BBR2_STARTUP) 
             || (bbr2->mode == BBR2_PROBE_BW 
                && (bbr2->cycle_idx == BBR2_BW_PROBE_REFILL 
                    || bbr2->cycle_idx == BBR2_BW_PROBE_UP));
+#endif
 }
 
 static void 
@@ -1107,6 +1335,7 @@ xqc_bbr2_check_loss_too_high_in_startup(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
     if (bbr2->full_bandwidth_reached) {
         return;
     }
+    /*TODO: put 0xf into a BBRv2 parameter*/
     if (sampler->loss && bbr2->loss_events_in_round < 0xf) {
         bbr2->loss_events_in_round++;
     }
@@ -1170,9 +1399,53 @@ xqc_bbr2_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     xqc_bbr2_update_round_start(bbr2, sampler);
     if (bbr2->round_start) {
         bbr2->rounds_since_probe = xqc_min(bbr2->rounds_since_probe + 1, 0xff);
+        bbr2->round_cnt++;
     }
+#if XQC_BBR2_PLUS_ENABLED
+    /*maintain windowed max rtt here*/
+    if (bbr2->rtt_compensation_on) {
+        if (sampler->rtt >= 0) {
+            xqc_msec_t last_max_rtt = xqc_win_filter_get_u64(&bbr2->max_rtt);
+            xqc_win_filter_max_u64(&bbr2->max_rtt, bbr2->max_rtt_win_len,
+                                bbr2->round_cnt, sampler->rtt);
+            xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                    "|BBRv2 Plus|windowed max rtt info: rtt %ui, "
+                    "last_max %ui, max %ui|",
+                    sampler->rtt, last_max_rtt, 
+                    xqc_win_filter_get_u64(&bbr2->max_rtt));
+        }
+    }
+#endif
     xqc_bbr2_calculate_bw_sample(sampler, &bbr2_ctx);
     xqc_bbr2_update_model(bbr2, sampler, &bbr2_ctx);
+
+#if XQC_BBR2_PLUS_ENABLED
+    if (bbr2->fast_convergence_on) {
+        /*maintain srtt in last and current round*/
+        if (sampler->rtt >= 0) {
+            /*initialization*/
+            if (bbr2->srtt_in_current_round == XQC_BBR2_INF_RTT) {
+                bbr2->srtt_in_current_round = sampler->rtt;
+                bbr2->srtt_in_last_round = sampler->rtt;
+            } else {
+                /*shift values at the beginning of every RTT*/
+                if (bbr2->round_start) {
+                    bbr2->srtt_in_last_round = bbr2->srtt_in_current_round;
+                    bbr2->srtt_in_current_round = sampler->rtt;
+                } else {
+                    /*calculate EWMA*/
+                    xqc_msec_t _tmp = 7 * bbr2->srtt_in_current_round;
+                    bbr2->srtt_in_current_round = (_tmp + sampler->rtt) / 8;
+                }
+            }
+        }
+        xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                "|BBRv2 Plus|srtt update|last_round_srtt %ui|"
+                "current_round_srtt %ui|",
+                bbr2->srtt_in_last_round, bbr2->srtt_in_current_round);
+    }
+#endif
+
     xqc_bbr2_update_recovery_mode(bbr2, sampler);
     xqc_bbr2_update_pacing_gain_for_loss_recovery(bbr2);
     /*Update control parameter */
@@ -1180,7 +1453,8 @@ xqc_bbr2_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     xqc_bbr2_set_cwnd(bbr2, sampler, &bbr2_ctx);
     xqc_bbr2_bound_cwnd_for_inflight_model(bbr2);
     xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG,
-            "|xqc_bbr2_on_ack|inflight_hi:%ud|inflight_lo:%ud|inflight_latest:%ud|",
+            "|xqc_bbr2_on_ack|inflight_hi:%ud|inflight_lo:%ud|"
+            "inflight_latest:%ud|",
             bbr2->inflight_hi, bbr2->inflight_lo, bbr2->inflight_latest);
     bbr2->loss_in_cycle |= (sampler->loss > 0);
 }
@@ -1217,6 +1491,7 @@ xqc_bbr2_restart_from_idle(void *cong_ctl, uint64_t conn_delivered)
     bbr->epoch_ack = 0;
     if (bbr->mode == BBR2_PROBE_BW) {
         _xqc_bbr2_set_pacing_rate_helper(bbr, 1.0);
+
     } else if (bbr->mode == BBR2_PROBE_RTT) {
         xqc_sample_t sampler = {.now = now, .total_acked = conn_delivered};
         xqc_bbr2_check_probe_rtt_done(bbr, &sampler);

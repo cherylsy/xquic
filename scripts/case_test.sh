@@ -304,6 +304,21 @@ echo -e "BBR ...\c"
 grep_err_log
 
 clear_log
+echo -e "BBR with cwnd compensation ...\c"
+./test_client -s 10240000 -l e -t 4 -E -c bbr+|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "BBRv2 ...\c"
+./test_client -s 10240000 -l e -t 4 -E -c bbr2|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "BBRv2+ ...\c"
+./test_client -s 10240000 -l e -t 4 -E -c bbr2+|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "Reno with pacing ...\c"
 ./test_client -s 10240000 -l e -t 3 -E -c reno -C|grep ">>>>>>>> pass"
 grep_err_log

@@ -79,8 +79,10 @@ xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
         sampler->prior_delivered = packet->po_delivered;
         sampler->prior_time = packet->po_delivered_time;
         sampler->is_app_limited = packet->po_is_app_limited;
-        sampler->send_elapse = packet->po_sent_time - packet->po_first_sent_time;
-        sampler->ack_elapse = send_ctl->ctl_delivered_time - packet->po_delivered_time;
+        sampler->send_elapse = packet->po_sent_time - 
+                               packet->po_first_sent_time;
+        sampler->ack_elapse = send_ctl->ctl_delivered_time - 
+                              packet->po_delivered_time;
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
         sampler->lagest_ack_time = now;
         sampler->po_sent_time = packet->po_sent_time; /*always keep it updated*/
@@ -95,7 +97,8 @@ void
 xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
     uint8_t not_cwnd_limited = 0;
-    uint32_t cwnd = send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong);
+    uint32_t cwnd = send_ctl->ctl_cong_callback->
+                    xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong);
     if (send_ctl->ctl_bytes_in_flight < cwnd) {
         /*QUIC MSS*/
         not_cwnd_limited = (cwnd - send_ctl->ctl_bytes_in_flight) >= 1200; 
@@ -108,12 +111,14 @@ xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
         /* All lost packets have been retransmitted. */
         && xqc_list_empty(&send_ctl->ctl_lost_packets))
     {
-        send_ctl->ctl_app_limited = send_ctl->ctl_delivered + send_ctl->ctl_bytes_in_flight ?: 1;
+        send_ctl->ctl_app_limited = send_ctl->ctl_delivered + 
+                                    send_ctl->ctl_bytes_in_flight ?: 1;
     }
 }
 
 void 
-xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, xqc_msec_t now)
+xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, 
+    xqc_msec_t now)
 {
     if (ctl->ctl_bytes_in_flight == 0) {
         ctl->ctl_delivered_time = ctl->ctl_first_sent_time = now;
@@ -123,5 +128,6 @@ xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, xqc_msec_t
     packet_out->po_delivered = ctl->ctl_delivered;
     packet_out->po_is_app_limited = ctl->ctl_app_limited > 0 ? 1 : 0;
     packet_out->po_lost = ctl->ctl_lost_pkts_number;
-    packet_out->po_tx_in_flight = ctl->ctl_bytes_in_flight + packet_out->po_used_size;
+    packet_out->po_tx_in_flight = ctl->ctl_bytes_in_flight + 
+                                  packet_out->po_used_size;
 }
