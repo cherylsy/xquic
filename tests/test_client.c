@@ -651,6 +651,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     char content_len[10];
     if (g_is_get) {
         snprintf(content_len, sizeof(content_len), "%d", 0);
+        
     } else {
         snprintf(content_len, sizeof(content_len), "%d", g_send_body_size);
     }
