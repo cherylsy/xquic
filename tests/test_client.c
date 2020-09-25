@@ -649,7 +649,11 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
     ssize_t ret = 0;
     char content_len[10];
-    snprintf(content_len, sizeof(content_len), "%d", g_send_body_size);
+    if (g_is_get) {
+        snprintf(content_len, sizeof(content_len), "%d", 0);
+    } else {
+        snprintf(content_len, sizeof(content_len), "%d", g_send_body_size);
+    }
     int header_size = 6;
     xqc_http_header_t header[MAX_HEADER] = {
             {
