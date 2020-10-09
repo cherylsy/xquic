@@ -713,6 +713,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 need_del_record = 1;
             }
 
+            /*TODO: generating samples for other types of pkts*/
             if ((packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) && (packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
                 stream_frame_acked = 1;
                 xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);

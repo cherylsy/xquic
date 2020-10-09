@@ -53,8 +53,10 @@ const float xqc_bbr_pacing_rate_margin_percent = 0;
 /* BBRv2 parameters */
 const float xqc_bbr2_drain_gain = 0.75;
 const float xqc_bbr2_startup_cwnd_gain = 2;
-/* 2.5s */
-const uint32_t xqc_bbr2_minrtt_win_size_us = 2500000; 
+/* keep minrtt valid for 10s if it has not been changed */
+const uint32_t xqc_bbr2_minrtt_win_size_us = 10000000;
+/* probe new minrtt in 2.5s*/
+const uint32_t xqc_bbr2_probertt_win_size_us = 2500000;
 const bool xqc_bbr2_extra_ack_in_startup = 1;
 /* 10 packet-timed rtt */
 const uint32_t xqc_bbr2_extra_ack_win_rtt = 5;   
@@ -117,6 +119,8 @@ xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params)
 #endif
     bbr->min_rtt = sampler->srtt ? sampler->srtt : XQC_BBR_INF;
     bbr->min_rtt_stamp = now;
+    bbr->probe_rtt_min_us = sampler->srtt ? sampler->srtt : XQC_BBR_INF;
+    bbr->probe_rtt_min_us_stamp = now;
     bbr->round_start = 0;
     bbr->round_cnt = 0;
     bbr->next_round_delivered = 0;
@@ -419,19 +423,6 @@ xqc_bbr_check_drain(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 }
 
 static void 
-xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
-{
-    xqc_msec_t expire_time = bbr->min_rtt_stamp + xqc_bbr2_minrtt_win_size_us;
-    bbr->min_rtt_expired = (bbr->min_rtt != 0 && (sampler->now > expire_time));
-    if ((/*sampler->rtt >= 0 &&*/ sampler->rtt <= bbr->min_rtt) 
-        || bbr->min_rtt_expired)
-    {
-        bbr->min_rtt = sampler->rtt;
-        bbr->min_rtt_stamp = sampler->now;
-    }
-}
-
-static void 
 xqc_bbr_enter_probe_rtt(xqc_bbr_t *bbr)
 {
     bbr->mode = BBR_PROBE_RTT;
@@ -493,9 +484,26 @@ xqc_bbr_probe_rtt_cwnd(xqc_bbr_t *bbr)
 }
 
 static void 
-xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
+xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
-    if (bbr->min_rtt_expired && bbr->mode != BBR_PROBE_RTT 
+    bool probe_rtt_expired, min_rtt_expired;
+    probe_rtt_expired = sampler->now > (bbr->probe_rtt_min_us_stamp +  
+        xqc_bbr2_probertt_win_size_us);
+    if (sampler->rtt >= 0 
+        && (sampler->rtt <= bbr->probe_rtt_min_us || probe_rtt_expired))
+    {
+        bbr->probe_rtt_min_us = sampler->rtt;
+        bbr->probe_rtt_min_us_stamp = sampler->now;
+    }
+    min_rtt_expired = sampler->now > 
+                      (bbr->min_rtt_stamp + xqc_bbr2_minrtt_win_size_us);
+    bbr->min_rtt_expired = min_rtt_expired;
+    if (bbr->probe_rtt_min_us <= bbr->min_rtt || min_rtt_expired) {
+        bbr->min_rtt = bbr->probe_rtt_min_us;
+        bbr->min_rtt_stamp = bbr->probe_rtt_min_us_stamp;
+    }
+
+    if (probe_rtt_expired && bbr->mode != BBR_PROBE_RTT 
         && !bbr->idle_restart)
     {
         xqc_bbr_enter_probe_rtt(bbr);
@@ -517,10 +525,8 @@ xqc_bbr_check_probe_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         if (!bbr->probe_rtt_round_done_stamp 
             && (sampler->bytes_inflight <= xqc_bbr_probe_rtt_cwnd(bbr)))
         {
-            /*bbr->probe_rtt_round_done_stamp = sampler->now + 
-                                              xqc_bbr_probertt_time_us;*/
             bbr->probe_rtt_round_done_stamp = sampler->now + 
-                                              2 * sampler->rtt;                                  
+                                              xqc_bbr_probertt_time_us;                                  
             bbr->probe_rtt_round_done = FALSE;
             bbr->next_round_delivered = sampler->total_acked;
 
@@ -759,7 +765,6 @@ xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     xqc_bbr_check_full_bw_reached(bbr, sampler);
     xqc_bbr_check_drain(bbr, sampler);
     xqc_bbr_update_min_rtt(bbr, sampler);
-    xqc_bbr_check_probe_rtt(bbr, sampler);
 
     xqc_bbr_update_recovery_mode(bbr, sampler);
     xqc_bbr_set_or_restore_pacing_gain_in_startup(bbr);

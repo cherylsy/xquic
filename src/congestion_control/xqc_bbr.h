@@ -120,6 +120,9 @@ typedef struct xqc_bbr_s{
     uint32_t               max_expect_bw;
     bool                   enable_max_expect_bw;
 
+    uint64_t               probe_rtt_min_us;
+    uint64_t               probe_rtt_min_us_stamp;
+
 #if XQC_BBR_RTTVAR_COMPENSATION_ENABLED
     /*CWND compensation for RTT variation+ */
     xqc_win_filter_t       max_rtt;
