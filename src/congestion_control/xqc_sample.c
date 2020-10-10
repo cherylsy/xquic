@@ -52,6 +52,12 @@ xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
     sampler->bytes_inflight = send_ctl->ctl_bytes_in_flight;
     sampler->prior_inflight = send_ctl->ctl_prior_bytes_in_flight;
     sampler->total_acked = send_ctl->ctl_delivered;
+
+    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+            "|sampler: send_elapse %ui, ack_elapse %ui, "
+            "delivered %ud|",
+            sampler->send_elapse, sampler->ack_elapse,
+            sampler->delivered);
     return TRUE;
 }
 

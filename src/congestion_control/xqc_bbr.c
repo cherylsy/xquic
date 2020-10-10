@@ -194,6 +194,9 @@ xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         bbr->round_cnt++;
         bbr->round_start = TRUE;
         bbr->packet_conservation = 0;
+        xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                "|BBRv1: RTT round update %ud -> %ud|",
+                bbr->round_cnt - 1, bbr->round_cnt);
     }
     /*FIXED: It may reduce the est. bw due to network instability. */
     /*  if (sampler->lagest_ack_time > bbr->last_round_trip_time) {
@@ -211,6 +214,9 @@ xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if (!sampler->is_app_limited || bandwidth >= xqc_bbr_max_bw(bbr)) {
         xqc_win_filter_max(&bbr->bandwidth, xqc_bbr_bw_win_size, 
             bbr->round_cnt, bandwidth);
+        xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                "|BBRv1: BW filter updated (%ud) in round %ud|",
+                bandwidth, bbr->round_cnt);
     }
 }
 
@@ -585,7 +591,7 @@ xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sampler)
             "|before ModulateCwndForRecovery|cwnd:%ud"
             "|packet_lost:%ud|acked:%ud|po_sent_time:%ui"
             "|recovery:%ud|recovery_start:%ui|packet_conservation:%ud|"
-            "next_round_delivered:%ui|",
+            "next_round_delivered:%ud|",
             bbr->congestion_window, sampler->loss, sampler->acked, 
             sampler->po_sent_time, bbr->recovery_mode, bbr->recovery_start_time,
             bbr->packet_conservation, bbr->next_round_delivered);
@@ -627,7 +633,7 @@ xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sampler)
             "|after ModulateCwndForRecovery|cwnd:%ud"
             "|packet_lost:%ud|acked:%ud|po_sent_time:%ui"
             "|recovery:%ud|recovery_start:%ui|packet_conservation:%ud|"
-            "next_round_delivered:%ui|",
+            "next_round_delivered:%ud|",
             bbr->congestion_window, sampler->loss, sampler->acked, 
             sampler->po_sent_time, bbr->recovery_mode, bbr->recovery_start_time,
             bbr->packet_conservation, bbr->next_round_delivered);
