@@ -39,6 +39,8 @@ typedef struct xqc_sample_s
     xqc_send_ctl_t  *send_ctl;
  
     xqc_msec_t       po_sent_time;
+
+    bool             is_initialized;
  
     /*For BBRv2*/ 
     uint32_t         prior_lost;

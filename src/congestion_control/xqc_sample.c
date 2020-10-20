@@ -44,7 +44,8 @@ xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
         return FALSE;
     }
     if (sampler->interval != 0) {
-        sampler->delivery_rate = sampler->delivered / sampler->interval;
+        /*unit of interval is us*/
+        sampler->delivery_rate = (uint64_t)(1e6 * sampler->delivered / sampler->interval);
     }
     sampler->now = now;
     sampler->rtt = send_ctl->ctl_latest_rtt;
@@ -77,9 +78,10 @@ xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
     /* Update info using the newest packet: */
     /* if it's the ACKs from the first RTT round, we use the sample anyway */
 
-    if (sampler->prior_delivered == 0 
+    if ((!sampler->is_initialized)
         || (packet->po_delivered > sampler->prior_delivered)) 
     {
+        sampler->is_initialized = 1;
         sampler->prior_lost = packet->po_lost;
         sampler->tx_in_flight = packet->po_tx_in_flight;
         sampler->prior_delivered = packet->po_delivered;

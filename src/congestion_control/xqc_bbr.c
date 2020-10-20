@@ -15,7 +15,11 @@
 /*The RECOMMENDED value is the minimum of 10 *
 kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 /*same init window as cubic*/
-#define XQC_BBR_INITIAL_WINDOW (32 * XQC_BBR_MAX_DATAGRAMSIZE) 
+/* 32 is too aggressive. we have observed heavy bufferbloat events from online
+   deployment.
+*/
+/*1440 * 10 / 1200 = 12*/
+#define XQC_BBR_INITIAL_WINDOW (12 * XQC_BBR_MAX_DATAGRAMSIZE) 
 /*Pacing gain cycle rounds */
 #define XQC_BBR_CYCLE_LENGTH 8
 #define XQC_BBR_INF 0x7fffffff
@@ -396,7 +400,7 @@ static void
 xqc_bbr_enter_drain(xqc_bbr_t *bbr)
 {
     bbr->mode = BBR_DRAIN;
-    bbr->pacing_gain = xqc_bbr2_drain_gain;
+    bbr->pacing_gain = xqc_bbr_drain_gain;
     bbr->cwnd_gain = xqc_bbr2_startup_cwnd_gain;
 }
 
