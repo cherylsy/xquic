@@ -119,9 +119,19 @@ grep_err_log|grep -v xqc_process_write_streams|grep -v xqc_h3_stream_write_notif
 
 
 clear_log
-echo -e "Reset stream ...\c"
+echo -e "Reset stream when sending...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 1 >> clog
 if grep "send_state:5|recv_state:5" clog >/dev/null; then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
+grep_err_log|grep -v stream
+
+clear_log
+echo -e "Reset stream when receiving...\c"
+./test_client -s 1024000 -l d -t 1 -E -x 21 >> clog
+if grep "send_state:5|recv_state:5" clog >/dev/null && grep "xqc_send_ctl_drop_stream_frame_packets" slog >/dev/null; then
     echo ">>>>>>>> pass:1"
 else
     echo ">>>>>>>> pass:0"

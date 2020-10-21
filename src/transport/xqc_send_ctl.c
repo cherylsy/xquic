@@ -493,6 +493,42 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
     }
 }
 
+void
+xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stream_id)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_packet_out_t *packet_out;
+    int drop;
+    int count = 0;
+
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
+            drop = 0;
+            for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+                if (packet_out->po_stream_frames[i].ps_is_used == 0) {
+                    break;
+                }
+                if (packet_out->po_stream_frames[i].ps_stream_id == stream_id) {
+                    drop = 1;
+                } else {
+                    drop = 0;
+                    break;
+                }
+            }
+
+            if (drop) {
+                count++;
+                xqc_send_ctl_remove_send(pos);
+                xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+            }
+        }
+    }
+
+    if (count > 0) {
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|count:%d|", stream_id, count);
+    }
+}
 
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.5
