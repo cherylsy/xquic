@@ -493,6 +493,27 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
     }
 }
 
+int
+xqc_send_ctl_stream_frame_can_drop(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id)
+{
+    int drop = 0;
+    if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
+        drop = 0;
+        for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+            if (packet_out->po_stream_frames[i].ps_is_used == 0) {
+                break;
+            }
+            if (packet_out->po_stream_frames[i].ps_stream_id == stream_id) {
+                drop = 1;
+            } else {
+                drop = 0;
+                break;
+            }
+        }
+    }
+    return drop;
+}
+
 void
 xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stream_id)
 {
@@ -501,25 +522,39 @@ xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stre
     int drop;
     int count = 0;
 
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[XQC_PNS_APP_DATA]) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
+            drop = xqc_send_ctl_stream_frame_can_drop(ctl, packet_out, stream_id);
+            if (drop) {
+                count++;
+                xqc_send_ctl_remove_unacked(packet_out, ctl);
+                xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+                xqc_send_ctl_decrease_inflight(ctl, packet_out);
+                xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
+            }
+        }
+    }
+
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
-            drop = 0;
-            for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
-                if (packet_out->po_stream_frames[i].ps_is_used == 0) {
-                    break;
-                }
-                if (packet_out->po_stream_frames[i].ps_stream_id == stream_id) {
-                    drop = 1;
-                } else {
-                    drop = 0;
-                    break;
-                }
-            }
-
+            drop = xqc_send_ctl_stream_frame_can_drop(ctl, packet_out, stream_id);
             if (drop) {
                 count++;
                 xqc_send_ctl_remove_send(pos);
+                xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+            }
+        }
+    }
+
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_lost_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
+            drop = xqc_send_ctl_stream_frame_can_drop(ctl, packet_out, stream_id);
+            if (drop) {
+                count++;
+                xqc_send_ctl_remove_lost(pos);
                 xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
             }
         }
