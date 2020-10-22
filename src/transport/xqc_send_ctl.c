@@ -521,17 +521,24 @@ xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stre
     xqc_packet_out_t *packet_out;
     int drop;
     int count = 0;
+    int to_drop = 0;
 
     xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[XQC_PNS_APP_DATA]) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
             drop = xqc_send_ctl_stream_frame_can_drop(ctl, packet_out, stream_id);
-            if (drop) {
-                count++;
-                xqc_send_ctl_remove_unacked(packet_out, ctl);
-                xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
-                xqc_send_ctl_decrease_inflight(ctl, packet_out);
-                xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
+            /* In uncaked list, there are two types of packets: 1. inflight packets;
+               2. packets marked as lost but have been retransmitted. We only mark 
+               inflight packets as STREAM_CLOSED here. For other packets 
+               (with XQC_POF_NO_RETRANS flag), we will mark them as STREAM_CLOSED when
+               their corresponding inflight retransmitted packets are deemed as lost. */
+            /* If a STREAM_CLOSED packet is acked later, it goes to the normal code path.
+               Otherwise, it will be dropped in xqc_send_ctl_detect_lost().  */
+            if (drop && (packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
+                /* Mark the pkt as STREAM_CLOSED which is not retransmittable */
+                /* It will be dropped when its' ack comes or it is marked as LOST */
+                to_drop += 1;
+                packet_out->po_flag |= XQC_POF_STREAM_CLOSED;
             }
         }
     }
@@ -553,6 +560,15 @@ xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stre
         if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
             drop = xqc_send_ctl_stream_frame_can_drop(ctl, packet_out, stream_id);
             if (drop) {
+                /* If a packet is a retransmitted one, meaning that it has po_origin,
+                   we have to mark its' po_origin as STREAM_CLOSED. This makes all 
+                   copies of that packet in unacked_list to be dropped in 
+                   xqc_send_ctl_detect_lost(). */
+                if (packet_out->po_origin != NULL) {
+                    packet_out->po_origin->po_flag |= XQC_POF_STREAM_CLOSED;
+                } else {
+                    xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|A lost packet has no po_origin!|");
+                }
                 count++;
                 xqc_send_ctl_remove_lost(pos);
                 xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
@@ -561,7 +577,7 @@ xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stre
     }
 
     if (count > 0) {
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|count:%d|", stream_id, count);
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|to_drop: %d|count:%d|", stream_id, to_drop, count);
     }
 }
 
@@ -915,6 +931,24 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
             continue;
         }
 
+        if (po->po_flag & XQC_POF_NO_RETRANS
+            && ((po->po_flag & XQC_POF_STREAM_CLOSED) 
+                || (po->po_origin 
+                    && (po->po_origin->po_flag & XQC_POF_STREAM_CLOSED))))
+        {
+            if (po->po_origin != NULL) {
+                po->po_origin->po_origin_ref_cnt--;
+                xqc_send_ctl_remove_unacked(po, ctl);
+                xqc_send_ctl_insert_free(&po->po_list, &ctl->ctl_free_packets, ctl);
+            } else {
+                if (po->po_origin_ref_cnt == 0) {
+                    xqc_send_ctl_remove_unacked(po, ctl);
+                    xqc_send_ctl_insert_free(&po->po_list, &ctl->ctl_free_packets, ctl);
+                }
+            }
+            continue;
+        }
+
         if (po->po_flag & XQC_POF_NO_RETRANS || po->po_acked
             || (po->po_origin && po->po_origin->po_acked))
         {
@@ -933,18 +967,44 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
             if (po->po_flag & XQC_POF_IN_FLIGHT) {
                 xqc_send_ctl_decrease_inflight(ctl, po);
                 xqc_send_ctl_decrease_unacked_stream_ref(ctl, po);
-                xqc_send_ctl_copy_to_lost(po, ctl);
+                if (po->po_flag & XQC_POF_STREAM_CLOSED) {
+                    if (po->po_origin != NULL) {
+                        po->po_origin->po_flag |= XQC_POF_STREAM_CLOSED;
+                        po->po_origin->po_origin_ref_cnt--;
+                    }
+                    xqc_send_ctl_remove_unacked(po, ctl);
+                    /*We should NOT recycle the po structure because it may be referenced by largest_lost later*/
+                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|A STREAM_CLOSED pkt is removed from unacked list!|");
+                } else {
+                    xqc_send_ctl_copy_to_lost(po, ctl);
+                }
                 lost_n++;
 
             } else {
-                xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+                /* xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl); */
+                /* This branch should never be reached!!! */
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|A Non-inflight packet is detected as lost!|");
             }
 
             if (largest_lost == NULL) {
                 largest_lost = po;
 
             } else {
-                largest_lost = po->po_pkt.pkt_num > largest_lost->po_pkt.pkt_num ? po : largest_lost;
+                uint8_t _find_new_largest = po->po_pkt.pkt_num > largest_lost->po_pkt.pkt_num;
+                if (_find_new_largest) {
+                    /* free old largest_lost */
+                    if (largest_lost->po_flag & XQC_POF_STREAM_CLOSED) {
+                        xqc_send_ctl_insert_free(&largest_lost->po_list, &ctl->ctl_free_packets, ctl);
+                        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|Update largest_lost: A STREAM_CLOSED largest_lost packet is dropped!|");
+                    }
+                    largest_lost = po;
+                } else {
+                    if (po->po_flag & XQC_POF_STREAM_CLOSED) {
+                        /* free the current one */
+                        xqc_send_ctl_insert_free(&po->po_list, &ctl->ctl_free_packets, ctl);
+                        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|Unchanged largest_lost: A STREAM_CLOSED packet is dropped!|");
+                    }
+                }
             }
 
         } else {
@@ -993,6 +1053,10 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
                          "srtt:%ui|cwnd:%ud|bw:%ui|conn_life:%ui|",
                          lost_interval, lost_count, send_count, largest_lost->po_pkt.pkt_num, largest_lost->po_sent_time, ctl->ctl_srtt,
                          ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong), bw, now - ctl->ctl_conn->conn_create_time);
+        }
+        if (largest_lost->po_flag & XQC_POF_STREAM_CLOSED) {
+            xqc_send_ctl_insert_free(&largest_lost->po_list, &ctl->ctl_free_packets, ctl);
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|Finished loss detection: A STREAM_CLOSED largest_lost packet is dropped!|");
         }
     }
 }
@@ -1095,6 +1159,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
         packet_out->po_origin->po_acked = 1;
     }
 
+    /* If a packet marked as STREAM_CLOSED, when it is acked, it comes here */
     if (packet_out->po_flag & XQC_POF_IN_FLIGHT) {
         xqc_send_ctl_decrease_inflight(ctl, packet_out);
         xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
