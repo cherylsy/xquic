@@ -1099,6 +1099,15 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
         }
     }
 
+    /* If no packet is in the lost queue, the conn must not be in persistent 
+       congestion. */
+    /* This could happen because the newly lost packet belonging to a RESET_SENT
+       STREAM will not be put into the lost queue. Therefore, the queue could be 
+       empty. */
+    if (smallest_lost_in_period == NULL) {
+        return 0;
+    }
+
     /* first of all, the sending interval between the smallest and the largest must be >= congestion_period */
     if (largest_lost->po_sent_time - smallest_lost_in_period->po_sent_time >= congestion_period) {
         /* check if all pkts between the smallest and the largest are lost */
