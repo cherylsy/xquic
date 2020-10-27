@@ -470,14 +470,16 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_parse_crypto_frame(packet_in, conn, stream_frame);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_parse_crypto_frame error|");
+        xqc_free(stream_frame);
         return ret;
     }
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_in->pi_pkt.pkt_type);
-    if(conn->crypto_stream[encrypt_level] == NULL){
+    if (conn->crypto_stream[encrypt_level] == NULL) {
         conn->crypto_stream[encrypt_level] = xqc_create_crypto_stream(conn, encrypt_level, NULL);
         if (conn->crypto_stream[encrypt_level] == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_crypto_stream error|");
+            xqc_free(stream_frame);
             return -XQC_EMALLOC;
         }
     }
@@ -487,24 +489,27 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     ret = xqc_insert_crypto_frame(conn, stream, stream_frame);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_insert_crypto_frame error|");
+        xqc_free(stream_frame);
         return -1;
     }
 
     ret = xqc_read_crypto_stream(stream);
-    if(ret < 0){
+    if (ret < 0) {
         return ret;
     }
     xqc_stream_ready_to_read(stream);
 
 
-    if (conn->conn_type == XQC_CONN_TYPE_SERVER &&
-        encrypt_level == XQC_ENC_LEV_INIT && conn->crypto_stream[XQC_ENC_LEV_HSK] == NULL) {
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER
+        && encrypt_level == XQC_ENC_LEV_INIT && conn->crypto_stream[XQC_ENC_LEV_HSK] == NULL)
+    {
         conn->crypto_stream[XQC_ENC_LEV_HSK] = xqc_create_crypto_stream(conn, XQC_ENC_LEV_HSK, NULL);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|server create hsk stream|");
     }
 
-    if (conn->conn_type == XQC_CONN_TYPE_SERVER &&
-        encrypt_level == XQC_ENC_LEV_HSK && conn->crypto_stream[XQC_ENC_LEV_1RTT] == NULL) {
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER
+        && encrypt_level == XQC_ENC_LEV_HSK && conn->crypto_stream[XQC_ENC_LEV_1RTT] == NULL)
+    {
         conn->crypto_stream[XQC_ENC_LEV_1RTT] = xqc_create_crypto_stream(conn, XQC_ENC_LEV_1RTT, NULL);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|server create 1RTT stream|");
     }
