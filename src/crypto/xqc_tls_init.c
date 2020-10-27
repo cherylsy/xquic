@@ -600,11 +600,11 @@ int xqc_set_alpn_proto(SSL * ssl, char * alpn)
 {
     size_t alpnlen;
 
-    if(strlen(alpn) >= 128){
+    if (strlen(alpn) >= 128) {
         return -1;
     }
     uint8_t * p_alpn = xqc_malloc(strlen(alpn) + 2);
-    if (alpn == NULL) {
+    if (p_alpn == NULL) {
         return -1;
     }
     alpnlen = strlen(alpn) + 1;
