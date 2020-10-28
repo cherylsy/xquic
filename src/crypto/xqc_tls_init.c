@@ -598,22 +598,26 @@ BIO_METHOD *xqc_create_bio_method()
 
 int xqc_set_alpn_proto(SSL * ssl, char * alpn)
 {
-    size_t alpnlen;
-
-    if (strlen(alpn) >= 128) {
+    size_t alpn_len = strlen(alpn);
+    if (alpn_len >= 128) {
         return -1;
     }
-    uint8_t * p_alpn = xqc_malloc(strlen(alpn) + 2);
+    /* 
+       ALPN protocol is a series of non-empty, 8-bit length-prefixed strings, 
+       the length is one byte more than input alpn string.
+     */
+    size_t protos_len = alpn_len + 1;
+    uint8_t * p_alpn = xqc_malloc(protos_len + 1);
     if (p_alpn == NULL) {
         return -1;
     }
-    alpnlen = strlen(alpn) + 1;
 
-    p_alpn[0] = strlen(alpn);
-    strncpy(&p_alpn[1], alpn, strlen(alpn) + 1);
+    /* copy the alpn string len into first byte, copy the alpn string into the rest bytes, set the last byte with '\0' */
+    p_alpn[0] = alpn_len;
+    strncpy(&p_alpn[1], alpn, protos_len);
+    p_alpn[protos_len] = '\0';
 
-    p_alpn[1+strlen(alpn)] = '\0';
-    SSL_set_alpn_protos(ssl, p_alpn, alpnlen);
+    SSL_set_alpn_protos(ssl, p_alpn, protos_len);
 
     xqc_free(p_alpn);
     return 0;
