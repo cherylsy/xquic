@@ -272,19 +272,20 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
 int read_file_data( char * data, size_t data_len, char *filename){
     FILE * fp = fopen( filename, "rb");
 
-    if(fp == NULL){
+    if (fp == NULL) {
         return -1;
     }
     fseek(fp, 0 , SEEK_END);
     size_t total_len  = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    if(total_len > data_len){
+    if (total_len > data_len) {
+        fclose(fp);
         return -1;
     }
 
     size_t read_len = fread(data, 1, total_len, fp);
-    if (read_len != total_len){
-
+    if (read_len != total_len) {
+        fclose(fp);
         return -1;
     }
 
@@ -880,14 +881,17 @@ client_ctx_t * client_create_context_new(){
     ctx->eb = event_base_new();
 
     if(ctx->eb == NULL){
+        free(ctx);
         return NULL;
     }
     ctx->ev_engine = event_new(ctx->eb, -1, 0, xqc_client_engine_callback, ctx);
     if(ctx->ev_engine == NULL){
+        free(ctx);
         return NULL;
     }
     ctx->ev_conc = event_new(ctx->eb, -1, 0, xqc_client_concurrent_callback, ctx);
     if(ctx->ev_conc == NULL){
+        free(ctx);
         return NULL;
     }
     struct timeval tv;
@@ -898,6 +902,7 @@ client_ctx_t * client_create_context_new(){
     ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, ctx);
 
     if(ctx->engine == NULL){
+        free(ctx);
         return NULL;
     }
     return ctx;
