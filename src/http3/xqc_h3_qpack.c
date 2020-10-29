@@ -1457,7 +1457,8 @@ xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, size_t 
     }
 
     size_t msize = 1;
-    for (; msize < cap; msize = msize << 1);
+    for (; msize < cap; msize = msize << 1)
+        ;
 
     char * buf = xqc_malloc(msize);
     if (buf == NULL) {
@@ -1467,15 +1468,12 @@ xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, size_t 
     size_t capacity = msize;
     size_t mask = msize - 1;
     size_t i = xqc_http3_ringbuf_len(&ctx->dtable);
-    if (i == 0) {
-        goto end;  //need copy
+    if (i != 0) {
+        xqc_http3_qpack_entry *ent = (xqc_http3_qpack_entry *)xqc_http3_ringbuf_get(&ctx->dtable, 0);
+        size_t abs_index = ent->nv.name_index;
+        xqc_http3_ringdata_copy_data_to_buf(rdata, abs_index, rdata->used, buf, mask);
     }
 
-    xqc_http3_qpack_entry *ent = (xqc_http3_qpack_entry *)xqc_http3_ringbuf_get(&ctx->dtable, 0);
-    size_t abs_index = ent->nv.name_index;
-    xqc_http3_ringdata_copy_data_to_buf(rdata, abs_index, rdata->used, buf, mask);
-
-end:
     xqc_free(rdata->buf);
     rdata->buf = buf;
     rdata->capacity = capacity;
@@ -2860,79 +2858,70 @@ xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
     xqc_var_buf_t *section_prefix = NULL;
     xqc_var_buf_t *encoder_instr_buf = NULL;
 
-    encoded_section_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
-    if (NULL == encoded_section_buf) {
-        goto fail;
-    }
-    
-    encoder_instr_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
-    if (NULL == encoder_instr_buf) {
-        goto fail;
-    }
-    
-
-    size_t max_cnt = 0, min_cnt = XQC_MAX_SIZE_T;
-    size_t base = encoder->ctx.next_absidx;;
-
-    for (i = 0; i < headers->count; i++) {
-        rv = xqc_h3_qpack_encoder_encode_nv(stream, encoder, &max_cnt, &min_cnt, 
-                                            &encoded_section_buf, &encoder_instr_buf, 
-                                            &headers->headers[i], base);
-        if (rv != XQC_OK) {
-            goto fail;
+    do {
+        encoded_section_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
+        if (NULL == encoded_section_buf) {
+            rv = -XQC_H3_EMALLOC;
+            break;
         }
-    }
-    if (encoded_section_buf->used_len == 0) {
-        goto ok; //no need send data
-    }
 
-    section_prefix = xqc_var_buf_create((encoded_section_buf)->used_len + XQC_VAR_INT_LEN * 2);
-    if (section_prefix == NULL) {
-        rv = -XQC_H3_EMALLOC;
-        goto fail;
-    }
+        encoder_instr_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
+        if (NULL == encoder_instr_buf) {
+            rv = -XQC_H3_EMALLOC;
+            break;
+        }
 
-    rv = xqc_h3_qpack_encoder_write_header_block_prefix(encoder, section_prefix, max_cnt, base);
-    if (rv < 0) {
-        goto fail;
-    }
+        size_t max_cnt = 0, min_cnt = XQC_MAX_SIZE_T;
+        size_t base = encoder->ctx.next_absidx;;
 
-    section_prefix = xqc_var_buf_save_data(section_prefix, 
-                (encoded_section_buf)->data, encoded_section_buf->used_len);
+        for (i = 0; i < headers->count; i++) {
+            rv = xqc_h3_qpack_encoder_encode_nv(stream, encoder, &max_cnt, &min_cnt, 
+                                                &encoded_section_buf, &encoder_instr_buf, 
+                                                &headers->headers[i], base);
+            if (rv != XQC_OK) {
+                break;
+            }
+        }
 
-    ssize_t send_size = xqc_h3_write_frame_header(stream, section_prefix->data, section_prefix->used_len, fin );
-    if (send_size != section_prefix->used_len) {
-        rv = -XQC_QPACK_SEND_ERROR;
-        goto fail;
-    }
+        if (encoded_section_buf->used_len == 0) {
+            break; //no need send data
+        }
 
-    rv = section_prefix->used_len;
+        section_prefix = xqc_var_buf_create((encoded_section_buf)->used_len + XQC_VAR_INT_LEN * 2);
+        if (section_prefix == NULL) {
+            rv = -XQC_H3_EMALLOC;
+            break;
+        }
 
-    if (encoder_instr_buf->used_len > 0) {
-        send_size = xqc_h3_qpack_encoder_stream_send(qenc_stream, 
-                            encoder_instr_buf->data, encoder_instr_buf->used_len);
-        if (send_size != encoder_instr_buf->used_len) {
+        rv = xqc_h3_qpack_encoder_write_header_block_prefix(encoder, section_prefix, max_cnt, base);
+        if (rv < 0) {
+            break;
+        }
+
+        section_prefix = xqc_var_buf_save_data(section_prefix, 
+                    (encoded_section_buf)->data, encoded_section_buf->used_len);
+
+        ssize_t send_size = xqc_h3_write_frame_header(stream, section_prefix->data, section_prefix->used_len, fin );
+        if (send_size != section_prefix->used_len) {
             rv = -XQC_QPACK_SEND_ERROR;
-            goto fail;
+            break;
         }
-    }
 
-    if (max_cnt != 0) {
-        xqc_h3_qpack_encoder_insert_unack_header(qenc_stream, stream, encoder, min_cnt, max_cnt);
-    }
-ok:
-    if (encoded_section_buf) {
-        xqc_free(encoded_section_buf);
-    }
-    if (section_prefix) {
-        xqc_free(section_prefix);
-    }
-    if (encoder_instr_buf) {
-        xqc_free(encoder_instr_buf);
-    }
-    return rv;
+        rv = section_prefix->used_len;
+        if (encoder_instr_buf->used_len > 0) {
+            send_size = xqc_h3_qpack_encoder_stream_send(qenc_stream, 
+                                encoder_instr_buf->data, encoder_instr_buf->used_len);
+            if (send_size != encoder_instr_buf->used_len) {
+                rv = -XQC_QPACK_SEND_ERROR;
+                break;
+            }
+        }
 
-fail:
+        if (max_cnt != 0) {
+            xqc_h3_qpack_encoder_insert_unack_header(qenc_stream, stream, encoder, min_cnt, max_cnt);
+        }
+    } while (0);
+
     if (encoded_section_buf) {
         xqc_free(encoded_section_buf);
     }
@@ -2986,17 +2975,22 @@ int
 xqc_h3_headers_save_nv(xqc_http_headers_t * headers, 
     xqc_qpack_name_value_t * nv)
 {
+    if (NULL == nv->name || NULL == nv->value) {
+        return -1;
+    }
+
     if (headers->capacity == 0) {
         xqc_http_headers_create_buf(headers, XQC_HEADERS_INIT_CAPACITY);
     }
+
     if (headers->count >= headers->capacity) {
         size_t capacity = xqc_min(headers->capacity * 2, headers->capacity + 128);
         if (xqc_http_headers_realloc_buf(headers, capacity) < 0) {
             return -XQC_QPACK_SAVE_HEADERS_ERROR;
         }
     }
-    xqc_http_header_t * header  = &headers->headers[headers->count++];
 
+    xqc_http_header_t * header  = &headers->headers[headers->count++];
     header->name.iov_base = xqc_malloc(nv->name->strlen + 1);
     header->name.iov_len = nv->name->strlen;
     header->value.iov_base = xqc_malloc(nv->value->strlen + 1);
@@ -3006,7 +3000,6 @@ xqc_h3_headers_save_nv(xqc_http_headers_t * headers,
 
     return 0;
 }
-
 
 int 
 xqc_h3_qpack_decoder_write_header_ack(xqc_h3_stream_t * qdec_stream, 
@@ -3089,10 +3082,10 @@ xqc_h3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,
     while (start < end) {
         uint8_t flags = 0;
         int read_len = xqc_http3_qpack_decoder_read_request_header(decoder, sctx, &nv, &flags,  start, end - start, fin_flag);
-
         if (read_len < 0) {
             return read_len;
         }
+
         if (read_len == 0) { //impossible, 避免死循环
             break;
         }
