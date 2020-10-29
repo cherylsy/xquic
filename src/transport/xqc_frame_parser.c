@@ -718,10 +718,12 @@ xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, uint64_t err_code, int is
     xqc_vint_write(dst_buf, reason_len, reason_len_bits, xqc_vint_len(reason_len_bits));
     dst_buf += xqc_vint_len(reason_len_bits);
 
+#if 0   /* reason not supported yet */
     if (reason_len > 0) {
         memcpy(dst_buf, reason, reason_len);
         dst_buf += reason_len;
     }
+#endif
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_CONNECTION_CLOSE;
 
