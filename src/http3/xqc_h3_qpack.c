@@ -152,25 +152,6 @@ xqc_http3_qpack_context_dtable_get(xqc_http3_qpack_context *ctx, size_t absidx)
     return (xqc_http3_qpack_entry*)xqc_http3_ringbuf_get(&ctx->dtable, relidx);
 }
 
-
-ssize_t xqc_http3_qpack_read_string(xqc_http3_qpack_read_state *rstate,
-        xqc_var_buf_t ** dest, uint8_t *begin,
-        uint8_t *end, int *rfin) {
-    size_t len = (size_t)(end - begin);
-    if(rstate->left > len){
-        *rfin = 0;
-        return 0;
-    }else{
-        *rfin = 1;
-    }
-
-    *dest = xqc_var_buf_save_data(*dest, begin, rstate->left);
-
-    rstate->left -= rstate->left;
-    return (ssize_t)rstate->left;
-}
-
-
 ssize_t
 xqc_qpack_read_string(xqc_http3_qpack_read_state *rstate,
                       xqc_var_buf_t **dest, uint8_t *begin, uint8_t *end)
@@ -2854,7 +2835,7 @@ xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
     xqc_http_headers_t * headers, int fin)
 {
     int rv = 0, i = 0;
-    xqc_var_buf_t *encoded_section_buf = NULL ;
+    xqc_var_buf_t *encoded_section_buf = NULL;
     xqc_var_buf_t *section_prefix = NULL;
     xqc_var_buf_t *encoder_instr_buf = NULL;
 
