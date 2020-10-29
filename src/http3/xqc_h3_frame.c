@@ -35,7 +35,10 @@ int xqc_http3_stream_empty_headers_allowed(xqc_h3_stream_t *stream) {
 xqc_data_buf_t * xqc_create_data_buf(int buf_size, int data_len){
 
     xqc_data_buf_t * p_buf = xqc_malloc(sizeof(xqc_data_buf_t) + buf_size);
-    if(p_buf == NULL)return NULL;
+    if (p_buf == NULL) {
+        return NULL;
+    }
+    
     xqc_init_list_head(&p_buf->list_head);
     p_buf->buf_len = buf_size;
     p_buf->data_len = data_len;
@@ -448,33 +451,27 @@ ssize_t xqc_http3_conn_read_uni( xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
 }
 
 
-ssize_t xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen){
+ssize_t
+xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream, uint8_t *src, size_t srclen)
+{
     uint8_t * p = src, *end = src + srclen;
-
     int rv = 0;
-
     xqc_http3_stream_read_state * rstate = &h3_stream->read_state;
     xqc_http3_varint_read_state * rvint = &rstate->rvint;
-
     ssize_t nread;
     size_t nconsumed = 0;
     int busy = 0;
     size_t len;
 
-    if(srclen == 0){
+    if (srclen == 0) {
         return 0;
     }
 
-    for(;p < end ; ){
-        switch(rstate->state){
+    for (;p < end ; ) {
+        switch (rstate->state) {
             case XQC_HTTP3_CTRL_STREAM_STATE_FRAME_TYPE:
-#if 0
-                if(end - p <= 0){
-                    return -1;
-                }
-#endif
                 nread = xqc_http3_read_varint(rvint, p, end - p);
-                if(nread < 0){
+                if (nread < 0) {
                     return -XQC_H3_DECODE_ERROR;
                 }
                 p += nread;
