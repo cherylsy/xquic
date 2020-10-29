@@ -671,11 +671,6 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         return -XQC_EPROTO;
     }
 
-    packet_out = xqc_list_entry(&ctl->ctl_unacked_packets[pns], xqc_packet_out_t, po_list);
-    if (packet_out == NULL) {
-        return XQC_OK;
-    }
-
     xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (packet_out->po_pkt.pkt_num > largest_ack) {
