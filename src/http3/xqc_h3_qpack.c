@@ -600,11 +600,12 @@ xqc_qpack_decoder_emit_static_indexed_name(xqc_http3_qpack_decoder *decoder, xqc
 }
 
 int xqc_http3_qpack_decoder_emit_indexed_name(xqc_http3_qpack_decoder *decoder,
-        xqc_http3_qpack_stream_context *sctx,
-        xqc_qpack_name_value_t *nv) {
-    if(sctx->rstate.dynamic) {
+        xqc_http3_qpack_stream_context *sctx, xqc_qpack_name_value_t *nv)
+{
+    if (sctx->rstate.dynamic) {
         return xqc_qpack_decoder_emit_dynamic_indexed_name(decoder, sctx, nv);
-    }else{
+
+    } else {
         return xqc_qpack_decoder_emit_static_indexed_name(decoder, sctx, nv);
     }
 
@@ -2860,7 +2861,15 @@ xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
     xqc_var_buf_t *encoder_instr_buf = NULL;
 
     encoded_section_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
+    if (NULL == encoded_section_buf) {
+        goto fail;
+    }
+    
     encoder_instr_buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
+    if (NULL == encoder_instr_buf) {
+        goto fail;
+    }
+    
 
     size_t max_cnt = 0, min_cnt = XQC_MAX_SIZE_T;
     size_t base = encoder->ctx.next_absidx;;
@@ -2891,9 +2900,7 @@ xqc_h3_stream_write_header_block(xqc_h3_stream_t * qenc_stream,
     section_prefix = xqc_var_buf_save_data(section_prefix, 
                 (encoded_section_buf)->data, encoded_section_buf->used_len);
 
-
     ssize_t send_size = xqc_h3_write_frame_header(stream, section_prefix->data, section_prefix->used_len, fin );
-
     if (send_size != section_prefix->used_len) {
         rv = -XQC_QPACK_SEND_ERROR;
         goto fail;
@@ -3110,7 +3117,6 @@ xqc_h3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,
                 return -XQC_QPACK_DECODER_ERROR;
             }
         }
-
     }
 
     if (start == end) {
