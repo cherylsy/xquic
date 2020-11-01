@@ -21,6 +21,12 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     xqc_cid_t scid;
     xqc_conn_callbacks_t *callbacks = &engine->eng_callback.conn_callbacks;
 
+    if (NULL == conn_ssl_config) {
+        xqc_log(engine->log, XQC_LOG_ERROR,
+                "|xqc_conn_ssl_config is NULL|");
+        return NULL;
+    }
+
     if (token_len > XQC_MAX_TOKEN_LEN) {
         xqc_log(engine->log, XQC_LOG_ERROR,
                 "|%ud exceed XQC_MAX_TOKEN_LEN|", token_len);
@@ -129,7 +135,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
         return NULL;
     }
 
-    if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag) < 0 ){
+    if (xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag) < 0) {
         goto fail;
     }
 
