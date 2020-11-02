@@ -311,7 +311,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
-    xqc_engine_set_callback(engine, engine_callback);
+    xqc_engine_set_callback(engine, &engine_callback);
     engine->user_data = user_data;
 
     engine->log = xqc_log_init(&engine->eng_callback.log_callbacks, engine->user_data);
@@ -498,19 +498,19 @@ xqc_engine_destroy(xqc_engine_t *engine)
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 void
-xqc_engine_init (xqc_engine_t *engine,
-                 xqc_engine_callback_t engine_callback,
-                 void *user_data)
+xqc_engine_init(xqc_engine_t *engine,
+                xqc_engine_callback_t *engine_callback,
+                void *user_data)
 {
     xqc_engine_set_callback(engine, engine_callback);
     engine->user_data = user_data;
 }
 
 void
-xqc_engine_set_callback (xqc_engine_t *engine,
-                              xqc_engine_callback_t engine_callback)
+xqc_engine_set_callback(xqc_engine_t *engine,
+                        xqc_engine_callback_t *engine_callback)
 {
-    engine->eng_callback = engine_callback;
+    engine->eng_callback = *engine_callback;
 }
 
 #define XQC_CHECK_UNDECRYPT_PACKETS() do {                      \
@@ -528,7 +528,7 @@ xqc_engine_set_callback (xqc_engine_t *engine,
 } while(0);                                                     \
 
 void
-xqc_engine_process_conn (xqc_connection_t *conn, xqc_msec_t now)
+xqc_engine_process_conn(xqc_connection_t *conn, xqc_msec_t now)
 {
     xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|state:%s|flag:%s|now:%ui|",
             conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now);
