@@ -14,7 +14,7 @@ unsigned
 xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits);
 
 unsigned
-xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
+xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned token_len,
                              unsigned char pktno_bits, xqc_pkt_type_t type);
 
 int
