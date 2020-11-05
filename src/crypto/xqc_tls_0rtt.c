@@ -121,6 +121,10 @@ int xqc_read_session( SSL * ssl, xqc_connection_t *conn, char * filename)
 int xqc_set_save_session_cb(xqc_engine_t *engine, xqc_cid_t *cid, xqc_save_session_pt cb, void * user_data)
 {
     xqc_connection_t * conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (NULL == conn) {
+        return -1;
+    }
+
     conn->tlsref.save_session_cb = cb;
     conn->tlsref.session_user_data = user_data;
     return 0;
@@ -129,6 +133,10 @@ int xqc_set_save_session_cb(xqc_engine_t *engine, xqc_cid_t *cid, xqc_save_sessi
 int xqc_set_save_tp_cb(xqc_engine_t *engine, xqc_cid_t * cid, xqc_save_trans_param_pt cb, void * user_data)
 {
     xqc_connection_t * conn = xqc_engine_conns_hash_find(engine, cid, 's');
+    if (NULL == conn) {
+        return -1;
+    }
+
     conn->tlsref.save_tp_cb = cb;
     conn->tlsref.tp_user_data = user_data;
     return 0;

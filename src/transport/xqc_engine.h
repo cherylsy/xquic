@@ -47,8 +47,8 @@ typedef struct xqc_engine_s {
 
 xqc_msec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
 
-void xqc_engine_set_callback (xqc_engine_t *engine,
-                         xqc_engine_callback_t engine_callback);
+void xqc_engine_set_callback(xqc_engine_t *engine,
+                             xqc_engine_callback_t *engine_callback);
 
 /**
  * Create engine config.

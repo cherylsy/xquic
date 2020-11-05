@@ -35,6 +35,8 @@ xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
         size_t samplelen)
 {
+    size_t outlen = 0;
+    int len = 0;
 
     EVP_CIPHER_CTX  * actx = EVP_CIPHER_CTX_new();
     if (actx == NULL) {
@@ -45,8 +47,6 @@ xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
         goto err;
     }
 
-    size_t outlen = 0;
-    int len;
 
     if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen ) !=
             1) {
@@ -77,8 +77,9 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
         size_t keylen, const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen)
 {
-
     ssize_t taglen = xqc_aead_taglen(aead);
+    size_t outlen = 0;
+    int len = 0;
 
     if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead,destlen) ) {
         return -1;
@@ -104,9 +105,6 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
         goto err;
     }
 
-    size_t outlen;
-    int len;
-
     if (EVP_DecryptUpdate(actx, NULL, &len, ad, adlen) != 1) {
         goto err;
     }
@@ -116,7 +114,6 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
     }
 
     outlen = len;
-
     if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_TAG, taglen,
                 (uint8_t *)(tag)) != 1) {
         goto err;
@@ -145,6 +142,9 @@ xqc_ossl_aead_encrypt(const xqc_aead_t * aead,uint8_t *dest, size_t destlen, con
 {
 
     ssize_t taglen = xqc_aead_taglen(aead);
+    size_t outlen = 0;
+    int len = 0;
+
     // not enough space 
     if( destlen <  plaintextlen + xqc_aead_overhead(aead,plaintextlen) ) {
         return -1;
@@ -170,8 +170,6 @@ xqc_ossl_aead_encrypt(const xqc_aead_t * aead,uint8_t *dest, size_t destlen, con
         goto err;
     }
 
-    size_t outlen = 0;
-    int len;
 
     if(EVP_EncryptUpdate(actx, NULL, &len, ad, adlen) != 1){
         goto err ;
@@ -207,19 +205,3 @@ err:
     EVP_CIPHER_CTX_free(actx);
     return -1;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -49,7 +49,7 @@ xqc_log_level_str(xqc_log_level_t level)
 
 typedef struct xqc_log_s
 {
-    unsigned log_level; /*日志级别*/
+    xqc_log_level_t     log_level; /*日志级别*/
     xqc_log_callbacks_t *log_callbacks;
     void *user_data;
 } xqc_log_t;

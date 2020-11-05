@@ -34,12 +34,11 @@ xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits)
 {
     return 1 //first byte
            + dcid_len
-           + xqc_packet_number_bits2len(pktno_bits)
-            ;
+           + xqc_packet_number_bits2len(pktno_bits);
 }
 
 unsigned
-xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned char token_len,
+xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned token_len,
                              unsigned char pktno_bits, xqc_pkt_type_t type)
 {
     return 1 //first byte
@@ -50,8 +49,6 @@ xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, uns
            + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val((unsigned)token_len) + token_len : 0)
            + XQC_LONG_HEADER_LENGTH_BYTE //Length (i)
            + xqc_packet_number_bits2len(pktno_bits);
-
-
 }
 
 
@@ -72,13 +69,11 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
 
     /* short header */
     if (XQC_PACKET_IS_SHORT_HEADER(buf)) {
-
         if (size < 1 + cid_len) {
             return -XQC_EILLPKT;
         }
 
         xqc_cid_set(dcid, buf + 1, cid_len);
-
         return XQC_OK;
     }
 
@@ -89,7 +84,7 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
 
     pos = buf + 1 + XQC_PACKET_VERSION_LENGTH;
     dcid->cid_len = (uint8_t)(*pos);
-    if(dcid->cid_len > XQC_MAX_CID_LEN) {
+    if (dcid->cid_len > XQC_MAX_CID_LEN) {
         return -XQC_EILLPKT;
     }
     pos += 1;
@@ -172,13 +167,14 @@ xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number,
 {
     unsigned char *p = buf;
     unsigned int packet_number_len = xqc_packet_number_bits2len(packet_number_bits);
-
     if (packet_number_len == 4) {
         *buf++ = packet_number >> 24;
     }
+
     if (packet_number_len >= 3) {
         *buf++ = packet_number >> 16;
     }
+
     if (packet_number_len >= 2) {
         *buf++ = packet_number >> 8;
     }
@@ -316,13 +312,11 @@ void
 xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
 {
     if (packet_out->po_pkt.pkt_type == XQC_PTYPE_INIT
-            || packet_out->po_pkt.pkt_type == XQC_PTYPE_HSK
-            || packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT) {
-
+        || packet_out->po_pkt.pkt_type == XQC_PTYPE_HSK
+        || packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT)
+    {
         unsigned char *plength = packet_out->po_ppktno - XQC_LONG_HEADER_LENGTH_BYTE;
-
         unsigned length = packet_out->po_buf + packet_out->po_used_size - packet_out->po_ppktno;
-
         xqc_vint_write(plength, length, 0x01, 2);
     }
 }
@@ -339,7 +333,7 @@ int
 xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             const unsigned char *dcid, unsigned char dcid_len,
                             const unsigned char *scid, unsigned char scid_len,
-                            const unsigned char *token, unsigned token_len,
+                            const unsigned char *token, uint32_t token_len,
                             xqc_proto_version_t ver,
                             unsigned char pktno_bits)
 {

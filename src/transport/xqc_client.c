@@ -21,6 +21,12 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     xqc_cid_t scid;
     xqc_conn_callbacks_t *callbacks = &engine->eng_callback.conn_callbacks;
 
+    if (NULL == conn_ssl_config) {
+        xqc_log(engine->log, XQC_LOG_ERROR,
+                "|xqc_conn_ssl_config is NULL|");
+        return NULL;
+    }
+
     if (token_len > XQC_MAX_TOKEN_LEN) {
         xqc_log(engine->log, XQC_LOG_ERROR,
                 "|%ud exceed XQC_MAX_TOKEN_LEN|", token_len);
@@ -32,17 +38,16 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     {
         xqc_log(engine->log, XQC_LOG_ERROR,
                 "|generate dcid or scid error|");
-        goto fail;
+        return NULL;
     }
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
                                                         callbacks, &conn_settings, server_host,
                                                         no_crypto_flag, conn_ssl_config, user_data);
-
     if (xc == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR,
                 "|create connection error|");
-        goto fail;
+        return NULL;
     }
 
     if (token && token_len > 0) {
@@ -62,6 +67,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         /* 接管传输层回调 */
         xc->stream_callbacks = h3_stream_callbacks;
         xc->conn_callbacks = h3_conn_callbacks;
+
     } else {
         xc->stream_callbacks = engine->eng_callback.stream_callbacks;
     }
@@ -70,7 +76,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     if (xc->conn_callbacks.conn_create_notify) {
         if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid, user_data)) {
             xqc_conn_destroy(xc);
-            goto fail;
+            return NULL;
         }
         xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
@@ -78,7 +84,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     /* 必须放到最后，xqc_conn_destroy必须在插入到conns_active_pq之前调用 */
     if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)){
         if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
-            goto fail;
+            return NULL;
         }
         xc->conn_flag |= XQC_CONN_FLAG_TICKING;
     }
@@ -89,9 +95,6 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     }
 
     return xc;
-
-fail:
-    return NULL;
 }
 
 xqc_cid_t *
@@ -132,7 +135,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
         return NULL;
     }
 
-    if(xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag) < 0 ){
+    if (xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, &dcid, no_crypto_flag) < 0) {
         goto fail;
     }
 

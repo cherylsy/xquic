@@ -660,26 +660,32 @@ xqc_derive_packet_protection(
     uint8_t *hp, size_t *hplen,
     xqc_log_t *log)
 {
-    if ((*keylen = xqc_derive_packet_protection_key(key, *keylen, 
-        secret, secretlen, ctx)) < 0) {
+    ssize_t kl = xqc_derive_packet_protection_key(key, *keylen, 
+        secret, secretlen, ctx);
+    if (kl < 0) {
         xqc_log(log, XQC_LOG_ERROR, 
                 "|xqc_derive_packet_protection_key failed|ret code:%d|", keylen);
         return XQC_SSL_FAIL;
     }
+    *keylen = kl;
 
-    if ((*ivlen = xqc_derive_packet_protection_iv(iv, *ivlen, 
-        secret, secretlen, ctx)) < 0) {
+    ssize_t ivl = xqc_derive_packet_protection_iv(iv, *ivlen, 
+                                                  secret, secretlen, ctx);
+    if (ivl < 0) {
         xqc_log(log, XQC_LOG_ERROR, 
                 "|xqc_derive_packet_protection_iv failed| ret code:%d|", ivlen);
         return XQC_SSL_FAIL;
     }
+    *ivlen = ivl;
 
-    if ((*hplen = xqc_derive_header_protection_key(hp, *hplen, secret, 
-        secretlen, ctx)) < 0) {
+    ssize_t hpl = xqc_derive_header_protection_key(hp, *hplen, secret, 
+        secretlen, ctx);
+    if (hpl < 0) {
         xqc_log(log, XQC_LOG_ERROR, 
                 "|xqc_derive_header_protection_key failed| ret code:%d|", hplen);
         return XQC_SSL_FAIL;
     }
+    *hplen = hpl;
 
     return XQC_SSL_SUCCESS;
 }

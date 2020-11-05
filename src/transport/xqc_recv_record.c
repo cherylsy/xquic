@@ -76,8 +76,10 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
         first = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
         break;
     }
+
     if (first && packet_number > first->pktno_range.high) {
         recv_record->largest_pkt_recv_time = recv_time;
+
     } else if (!first) {
         recv_record->largest_pkt_recv_time = recv_time;
     }
@@ -88,6 +90,7 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
             if (packet_number >= pnode->pktno_range.low) {
                 return XQC_PKTRANGE_DUP;
             }
+
         } else {
             pos_find = 1;
             break;
@@ -95,9 +98,10 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
         prev = pos;
     }
 
-    if (pos && pos_find) {
+    if (pos_find) {
         pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
     }
+
     if (prev) {
         prev_node = xqc_list_entry(prev, xqc_pktno_range_node_t, list);
     }
@@ -109,15 +113,17 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
             xqc_list_del_init(pos);
             xqc_free(pnode);
         }
+
     } else {
         xqc_pktno_range_node_t *new_node = xqc_calloc(1, sizeof(*new_node));
         if (!new_node) {
             return XQC_PKTRANGE_ERR;
         }
         new_node->pktno_range.low = new_node->pktno_range.high = packet_number;
-        if (pos && pos_find) {
+        if (pos_find) {
             //insert before pos
             xqc_list_add_tail(&(new_node->list), pos);
+
         } else {
             //insert tail of the list
             xqc_list_add_tail(&(new_node->list), &recv_record->list_head);
