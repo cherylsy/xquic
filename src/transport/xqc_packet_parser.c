@@ -333,7 +333,7 @@ int
 xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
                             const unsigned char *dcid, unsigned char dcid_len,
                             const unsigned char *scid, unsigned char scid_len,
-                            const unsigned char *token, unsigned token_len,
+                            const unsigned char *token, uint32_t token_len,
                             xqc_proto_version_t ver,
                             unsigned char pktno_bits)
 {
