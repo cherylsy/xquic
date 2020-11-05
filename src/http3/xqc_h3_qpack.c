@@ -1438,7 +1438,7 @@ xqc_http3_qpack_encoder_expand_dtable_size(xqc_http3_qpack_context *ctx, size_t 
     }
 
     size_t msize = 1;
-    for (; msize < cap; msize = msize << 1) //TODO 
+    for (; msize < cap; msize = msize << 1)
         ;
 
     char * buf = xqc_malloc(msize);
