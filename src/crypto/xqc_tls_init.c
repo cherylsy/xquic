@@ -106,7 +106,7 @@ xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src)
         ssl_config->session_ticket_data  = (char *)xqc_malloc(src->session_ticket_len + 1);
         if (ssl_config->session_ticket_data == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_malloc error |");
-            return -1;
+            return XQC_ERROR;
         }
         memcpy(ssl_config->session_ticket_data, src->session_ticket_data, src->session_ticket_len);
         ssl_config->session_ticket_data[src->session_ticket_len] = '\0';
@@ -122,7 +122,7 @@ xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src)
         ssl_config->transport_parameter_data  = (char *)xqc_malloc(src->transport_parameter_data_len + 1);
         if (ssl_config->transport_parameter_data == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_malloc error | ");
-            return -1;
+            return XQC_ERROR;
         }
         memcpy(ssl_config->transport_parameter_data, src->transport_parameter_data, src->transport_parameter_data_len);
         ssl_config->transport_parameter_data[src->transport_parameter_data_len] = '\0';
@@ -136,7 +136,7 @@ xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src)
     if (src->alpn == NULL) {
         ssl_config->alpn = xqc_malloc(strlen(XQC_ALPN_HTTP3) + 1);
         if (NULL == ssl_config->alpn) {
-            return -1;
+            return XQC_ERROR;
         }
         strncpy(ssl_config->alpn, XQC_ALPN_HTTP3, strlen(XQC_ALPN_HTTP3) + 1);
 
@@ -152,7 +152,7 @@ xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src)
     } else {
         conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
     }
-    return 0;
+    return XQC_OK;
 }
 
 int xqc_tlsref_zero(xqc_tlsref_t * tlsref)
