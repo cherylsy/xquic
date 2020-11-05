@@ -692,7 +692,6 @@ xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream
                 //goaway 逻辑
                 break;
             case XQC_HTTP3_CTRL_STREAM_STATE_MAX_PUSH_ID:
-            {
                 len = xqc_min(rstate->left, (int64_t)(end - p));
                 nread = xqc_http3_read_varint(rvint, p, len);
                 if (nread < 0) {
@@ -706,8 +705,7 @@ xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream
                     return (ssize_t)nconsumed;
                 }
 
-                uint64_t push_id = (uint64_t)rvint->acc;
-                rv = xqc_http3_conn_on_max_push_id(h3_conn, push_id);
+                rv = xqc_http3_conn_on_max_push_id(h3_conn, (uint64_t)rvint->acc);
                 if (rv != 0) {
                     return rv;
                 }
@@ -715,7 +713,6 @@ xqc_http3_conn_read_control(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_stream
                 xqc_http3_stream_read_state_clear(rstate);
 
                 break;
-            }
             case XQC_HTTP3_CTRL_STREAM_STATE_IGN_FRAME:
                 //need finish
                 len = xqc_min(rstate->left, end - p);
