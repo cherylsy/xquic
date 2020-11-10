@@ -300,7 +300,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             }
         } else {
             xqc_log(conn->log, XQC_LOG_WARN, "|cannot find stream|stream_id:%ui|", stream_id);
-            ret = XQC_OK; /* STREAM frame retransmitted after stream is closed */
+            ret = XQC_OK; /* STREAM frame retransmitted after stream is closed. Ignore it. */
             goto error;
         }
     }
@@ -633,9 +633,9 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
                 return XQC_OK;
             }
         } else {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
-            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-            return -XQC_ESTREAM_NFOUND;
+            xqc_log(conn->log, XQC_LOG_WARN, "|cannot find stream|stream_id:%ui|", stream_id);
+            /* Packet retransmitted after stream is closed */
+            return XQC_OK;
         }
     }
     stream->stream_err = err_code;
@@ -686,9 +686,9 @@ xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
                 return XQC_OK;
             }
         } else {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
-            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-            return -XQC_ESTREAM_NFOUND;
+            xqc_log(conn->log, XQC_LOG_WARN, "|cannot find stream|stream_id:%ui|", stream_id);
+            /* Packet retransmitted after stream is closed */
+            return XQC_OK;
         }
     }
 
@@ -764,9 +764,9 @@ xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *p
                 return XQC_OK;
             }
         } else {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
-            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-            return -XQC_ESTREAM_NFOUND;
+            xqc_log(conn->log, XQC_LOG_WARN, "|cannot find stream|stream_id:%ui|", stream_id);
+            /* Packet retransmitted after stream is closed */
+            return XQC_OK;
         }
     }
 
@@ -875,9 +875,9 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
                 return XQC_OK;
             }
         } else {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|cannot find stream|stream_id:%ui|", stream_id);
-            XQC_CONN_ERR(conn, TRA_STREAM_STATE_ERROR);
-            return -XQC_ESTREAM_NFOUND;
+            xqc_log(conn->log, XQC_LOG_WARN, "|cannot find stream|stream_id:%ui|", stream_id);
+            /* Packet retransmitted after stream is closed */
+            return XQC_OK;
         }
     }
 
