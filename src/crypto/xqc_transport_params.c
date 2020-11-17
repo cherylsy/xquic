@@ -148,7 +148,7 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
 
 
 /**
- * put one variant int param into buf
+ * put variant int value param into buf
  */
 inline static uint8_t*
 xqc_put_varint_param(uint8_t* p, xqc_transport_param_id_t id, uint64_t v)
@@ -156,6 +156,17 @@ xqc_put_varint_param(uint8_t* p, xqc_transport_param_id_t id, uint64_t v)
     p = xqc_put_varint(p, id);
     p = xqc_put_varint(p, xqc_put_varint_len(v));
     p = xqc_put_varint(p, v);
+    return p;
+}
+
+/**
+ * put zero-length value param into buf
+ */
+inline static uint8_t*
+xqc_put_zero_length_param(uint8_t* p, xqc_transport_param_id_t id)
+{
+    p = xqc_put_varint(p, id);  // put id
+    p = xqc_put_varint(p, 0);   // put length, which is 0
     return p;
 }
 
@@ -246,8 +257,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     }
 
     if (params->disable_active_migration) {
-        p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_DISABLE_ACTIVE_MIGRATION,
-                                 params->disable_active_migration);
+        p = xqc_put_zero_length_param(p, XQC_TRANSPORT_PARAM_DISABLE_ACTIVE_MIGRATION);
     }
 
     if (exttype == XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS 
@@ -547,11 +557,7 @@ static int
 xqc_decode_disable_active_migration(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
                                        const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
-    ssize_t nread = xqc_vint_read(p, end, &params->disable_active_migration);
-    if (nread < 0) {
-        return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
-    }
-
+    /* disable_active_migration param is a zero-length value, if present, set to true */
     params->disable_active_migration = 1;
     return XQC_OK;
 }
@@ -718,35 +724,36 @@ xqc_trans_param_decode_one(xqc_connection_t *conn,
     /* read param type */
     ssize_t nread = xqc_vint_read(p, end, &param_type);
     if (nread < 0) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|transport parameter: decode param type error");
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
     p += nread;
 
     /* read param len */
     nread = xqc_vint_read(p, end, &param_len);
-    if (nread < 0 || param_len == 0 || p + nread + param_len > end ) {
+    if (nread < 0 || p + nread + param_len > end ) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|transport parameter: decode param[%"PRIu64"] length error|nread:%"PRId64"|", param_type, nread);
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
     p += nread;
 
+    /* read param value, note: some parameters are allowed to be zero-length, for example, disable_active_migration */
     int param_index = xqc_trans_param_get_index(param_type);
-
     if (param_index != XQC_TRANSPORT_PARAM_UNKNOWN) {
         int ret = xqc_trans_param_decode_func_list[param_index](params, exttype, p, end, param_type, param_len);
         if (ret < 0) {
+            xqc_log(conn->log, XQC_LOG_WARN, "|transport parameter: decode param[%"PRIu64"] value error|ret: %d|", param_type, ret);
             return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
         }
-    } else {
-        xqc_log(conn->log, XQC_LOG_WARN, "|transport parameter: unknown type|%" PRIu64 "|", param_type);
-    }
 
+    } else {
+        xqc_log(conn->log, XQC_LOG_WARN, "|transport parameter: unknown type|%"PRIu64"|", param_type);
+    }
     p += param_len;
 
     *start = p;
-
     return XQC_OK;
 }
-
 
 static int
 xqc_trans_param_decode(xqc_connection_t *conn,
