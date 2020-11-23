@@ -718,7 +718,9 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 stream_frame_acked = 1;
                 xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
             }*/
-            xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
+            if ((packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
+                xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
+            } 
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out, ack_recv_time);
 

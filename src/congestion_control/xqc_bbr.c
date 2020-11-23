@@ -526,8 +526,8 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         /* Ignore low rate samples during this mode. */
         xqc_send_ctl_t *send_ctl = sampler->send_ctl;
         assert(send_ctl != NULL);
-        send_ctl->ctl_app_limited = send_ctl->ctl_delivered 
-            + (send_ctl->ctl_bytes_in_flight ?: 1);
+        send_ctl->ctl_app_limited = (send_ctl->ctl_delivered 
+            + send_ctl->ctl_bytes_in_flight)? : 1;
         xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                 "|BBR PROBE_RTT|inflight:%ud|done_stamp:%ui|done:%ud|"
                 "round_start:%ud|",
