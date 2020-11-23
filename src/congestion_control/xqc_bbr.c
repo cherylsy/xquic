@@ -19,7 +19,7 @@ kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
    deployment.
 */
 /*1440 * 10 / 1200 = 12*/
-#define XQC_BBR_INITIAL_WINDOW (12 * XQC_BBR_MAX_DATAGRAMSIZE) 
+#define XQC_BBR_INITIAL_WINDOW (32 * XQC_BBR_MAX_DATAGRAMSIZE) 
 /*Pacing gain cycle rounds */
 #define XQC_BBR_CYCLE_LENGTH 8
 #define XQC_BBR_INF 0x7fffffff
@@ -67,7 +67,8 @@ const uint32_t xqc_bbr2_extra_ack_win_rtt = 5;
 /* 2 packet-timed rtt */
 const uint32_t xqc_bbr2_extra_ack_win_rtt_in_startup = 1; 
 /* slow down */
-const float xqc_bbr2_startup_pacing_gain_on_lost = 1.5;      
+const float xqc_bbr2_startup_pacing_gain_on_lost = 1.5;
+const bool xqc_bbr2_slow_down_startup_on_lost = 0;    
 
 /*5RTT*/
 #if XQC_BBR_RTTVAR_COMPENSATION_ENABLED
@@ -777,7 +778,9 @@ xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     xqc_bbr_update_min_rtt(bbr, sampler);
 
     xqc_bbr_update_recovery_mode(bbr, sampler);
-    xqc_bbr_set_or_restore_pacing_gain_in_startup(bbr);
+    if (xqc_bbr2_slow_down_startup_on_lost) {
+        xqc_bbr_set_or_restore_pacing_gain_in_startup(bbr);
+    }
     /*Update control parameter */
     xqc_bbr_set_pacing_rate(bbr, sampler);
     xqc_bbr_set_cwnd(bbr, sampler);
