@@ -56,7 +56,7 @@ const float xqc_bbr_pacing_rate_margin_percent = 0;
 
 /* BBRv2 parameters */
 const float xqc_bbr2_drain_gain = 0.75;
-const float xqc_bbr2_startup_cwnd_gain = 2;
+const float xqc_bbr2_startup_cwnd_gain = 2.885;
 /* keep minrtt valid for 10s if it has not been changed */
 const uint32_t xqc_bbr2_minrtt_win_size_us = 10000000;
 /* probe new minrtt in 2.5s*/
@@ -617,7 +617,6 @@ xqc_bbr_modulate_cwnd_for_recovery(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         bbr->just_enter_recovery_mode = FALSE;
         bbr->packet_conservation = 1;
         bbr->next_round_delivered = sampler->total_acked;
-        xqc_bbr_save_cwnd(bbr);
         bbr->congestion_window = sampler->send_ctl->ctl_bytes_in_flight + 
                                  xqc_max(sampler->acked, 
                                          XQC_BBR_MAX_DATAGRAMSIZE);
@@ -711,9 +710,13 @@ static void
 xqc_bbr_on_lost(void *cong_ctl, xqc_msec_t lost_sent_time)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t *)cong_ctl;
-    if (lost_sent_time > bbr->recovery_start_time) {
-        bbr->recovery_start_time = xqc_now();
-    }
+    /* Unlike the definition of "recovery epoch" for loss-based CCs, 
+       for the sake of resistance to losses, we MUST refresh the end of a 
+       recovery epoch if further lossess happen in the epoch. Otherwise, the
+       ability of BBR to sustain network where high loss rate presents 
+       is hampered because of frequently entering packet conservation state. */
+    xqc_bbr_save_cwnd(bbr);
+    bbr->recovery_start_time = xqc_now();
 }
 
 static void 
