@@ -726,7 +726,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 {
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
-    unsigned char update_rtt = 0;
+    unsigned char update_rtt = 0, has_ack_eliciting = 0;
     xqc_packet_number_t largest_ack = ack_info->ranges[0].high;
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
     xqc_pkt_num_space_t pns = ack_info->pns;
@@ -765,9 +765,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
                 stream_frame_acked = 1;
                 xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
             }*/
-            if ((packet_out->po_flag & XQC_POF_IN_FLIGHT)) {
-                xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
-            } 
+            xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
 
             xqc_send_ctl_on_packet_acked(ctl, packet_out, ack_recv_time, 1);
 
@@ -776,16 +774,19 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
             xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|ctl_packets_used:%ud|ctl_packets_free:%ud|",
                     ctl->ctl_packets_used, ctl->ctl_packets_free);
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
-                update_rtt = 1;
+                has_ack_eliciting = 1;
             }
 
             if (packet_out->po_pkt.pkt_num == largest_ack
                 && packet_out->po_pkt.pkt_num == ctl->ctl_largest_acked[pns])
             {
+                update_rtt = 1;
                 ctl->ctl_latest_rtt = ack_recv_time - ctl->ctl_largest_acked_sent_time[pns];
             }
         }
     }
+
+    update_rtt &= has_ack_eliciting;
 
     if (update_rtt) {
         if (pns == XQC_PNS_APP_DATA) {
@@ -812,21 +813,26 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_send_ctl_set_loss_detection_timer(ctl);
 
     if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr /* && stream_frame_acked */) {
-        xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time);
 
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
         xqc_msec_t now = ack_recv_time;
-        if ((ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL)
-            && (ctl->ctl_info.last_bw_time + ctl->ctl_info.record_interval <= now))
-        {
-            bw_before = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
-            if (bw_before != 0) {
-                bw_record_flag = 1;
-            }
-        }
+        
+        /* Make sure that we do not call BBR with a invalid sampler. */
+        if(xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
 
-        ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
+            
+            if ((ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL)
+                && (ctl->ctl_info.last_bw_time + ctl->ctl_info.record_interval <= now))
+            {
+                bw_before = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
+                if (bw_before != 0) {
+                    bw_record_flag = 1;
+                }
+            }
+
+            ctl->ctl_cong_callback->xqc_cong_ctl_bbr(ctl->ctl_cong, &ctl->sampler);
+        }
         uint8_t mode, full_bw_reached;
         uint8_t recovery_mode, round_start;
         uint8_t packet_conservation, idle_restart;
