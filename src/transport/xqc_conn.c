@@ -920,15 +920,21 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
             if ((packet_out->po_flag & XQC_POF_NO_RETRANS)
                 || (packet_out->po_origin && packet_out->po_origin->po_acked))
             {
+                if (packet_out->po_origin && packet_out->po_origin->po_acked) {
+                    /* We should not do congestion control here. */
+                    xqc_send_ctl_on_packet_acked(conn->conn_send_ctl, packet_out, 0, 0);
+                }
+                xqc_send_ctl_maybe_remove_unacked(packet_out, conn->conn_send_ctl);
                 continue;
             }
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 packet_out->po_flag |= XQC_POF_TLP;
                 xqc_log(conn->log, XQC_LOG_DEBUG,
-                        "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
+                        "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|conn_state:%s|",
                         conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
                         xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
-                        xqc_frame_type_2_str(packet_out->po_frame_types));
+                        xqc_frame_type_2_str(packet_out->po_frame_types),
+                        xqc_conn_state_2_str(conn->conn_state));
 
                 xqc_send_ctl_decrease_inflight(conn->conn_send_ctl, packet_out);
                 xqc_send_ctl_decrease_unacked_stream_ref(conn->conn_send_ctl, packet_out);

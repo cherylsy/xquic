@@ -105,7 +105,7 @@ xqc_cubic_size ()
  * 拥塞算法初始化
  */
 static void
-xqc_cubic_init (void *cong_ctl, xqc_cc_params_t cc_params)
+xqc_cubic_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
     cubic->epoch_start = 0;
@@ -134,9 +134,8 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
 
     // should we make room for others
     if (XQC_CUBIC_FAST_CONVERGENCE && cubic->cwnd < cubic->last_max_cwnd){
-        cubic->last_max_cwnd = cubic->cwnd;
         // (1.0f + XQC_CUBIC_BETA) / 2.0f 转换为位运算
-        cubic->cwnd = cubic->cwnd * (XQC_CUBIC_BETA_SCALE + XQC_CUBIC_BETA) / (2 * XQC_CUBIC_BETA_SCALE);
+        cubic->last_max_cwnd = cubic->cwnd * (XQC_CUBIC_BETA_SCALE + XQC_CUBIC_BETA) / (2 * XQC_CUBIC_BETA_SCALE);
     } else {
         cubic->last_max_cwnd = cubic->cwnd;
     }
@@ -152,9 +151,11 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
  * Increase CWND when packet acked
  */
 static void
-xqc_cubic_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t acked_bytes)
+xqc_cubic_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
+    xqc_msec_t  sent_time = po->po_sent_time;
+    uint32_t    acked_bytes = po->po_used_size;
 
     xqc_msec_t rtt = now - sent_time;
 
@@ -164,8 +165,8 @@ xqc_cubic_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t
 
     if (cubic->cwnd < cubic->ssthresh) {
         // slow start
-        cubic->tcp_cwnd += XQC_CUBIC_MSS;
-        cubic->cwnd += XQC_CUBIC_MSS;
+        cubic->tcp_cwnd += acked_bytes;
+        cubic->cwnd += acked_bytes;
     } else {
         // congestion avoidance
         cubic->tcp_cwnd += XQC_CUBIC_MSS * XQC_CUBIC_MSS / cubic->tcp_cwnd;
@@ -191,9 +192,9 @@ xqc_cubic_reset_cwnd (void *cong_ctl)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
     cubic->epoch_start = 0;
-    cubic->cwnd = cubic->init_cwnd;
-    cubic->tcp_cwnd = cubic->init_cwnd;
-    cubic->last_max_cwnd = cubic->init_cwnd;
+    cubic->cwnd = XQC_CUBIC_MIN_WIN;
+    cubic->tcp_cwnd = XQC_CUBIC_MIN_WIN;
+    cubic->last_max_cwnd = XQC_CUBIC_MIN_WIN;
 }
 
 /*
@@ -206,12 +207,18 @@ xqc_cubic_in_slow_start (void *cong_ctl)
     return cubic->cwnd < cubic->ssthresh ? 1 : 0;
 }
 
+void
+xqc_cubic_restart_from_idle(void *cong_ctl, uint64_t arg) {
+    return;
+}
+
 const xqc_cong_ctrl_callback_t xqc_cubic_cb = {
-        .xqc_cong_ctl_size          = xqc_cubic_size,
-        .xqc_cong_ctl_init          = xqc_cubic_init,
-        .xqc_cong_ctl_on_lost       = xqc_cubic_on_lost,
-        .xqc_cong_ctl_on_ack        = xqc_cubic_on_ack,
-        .xqc_cong_ctl_get_cwnd      = xqc_cubic_get_cwnd,
-        .xqc_cong_ctl_reset_cwnd    = xqc_cubic_reset_cwnd,
-        .xqc_cong_ctl_in_slow_start = xqc_cubic_in_slow_start,
+        .xqc_cong_ctl_size              = xqc_cubic_size,
+        .xqc_cong_ctl_init              = xqc_cubic_init,
+        .xqc_cong_ctl_on_lost           = xqc_cubic_on_lost,
+        .xqc_cong_ctl_on_ack            = xqc_cubic_on_ack,
+        .xqc_cong_ctl_get_cwnd          = xqc_cubic_get_cwnd,
+        .xqc_cong_ctl_reset_cwnd        = xqc_cubic_reset_cwnd,
+        .xqc_cong_ctl_in_slow_start     = xqc_cubic_in_slow_start,
+        .xqc_cong_ctl_restart_from_idle = xqc_cubic_restart_from_idle,
 };

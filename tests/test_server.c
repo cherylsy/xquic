@@ -985,7 +985,7 @@ int main(int argc, char *argv[]) {
             .server_accept = xqc_server_accept,
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
-                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : XQC_LOG_DEBUG),
+                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG),
                     //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_server_open_log_file,
                     .xqc_close_log_file = xqc_server_close_log_file,
@@ -1014,6 +1014,8 @@ int main(int argc, char *argv[]) {
             cong_flags |= XQC_BBR2_FLAG_FAST_CONVERGENCE;
         }
 #endif
+    } else if (c_cong_ctl == 'C') {
+        cong_ctrl = xqc_cubic_kernel_cb;
     } else {
         printf("unknown cong_ctrl, option is b, r, c\n");
         return -1;

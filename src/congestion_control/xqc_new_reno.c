@@ -21,7 +21,7 @@ xqc_reno_size ()
 }
 
 static void
-xqc_reno_init (void *cong_ctl, xqc_cc_params_t cc_params)
+xqc_reno_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
 
@@ -57,9 +57,11 @@ xqc_reno_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
 }
 
 static void
-xqc_reno_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t n_bytes)
+xqc_reno_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
+    xqc_msec_t sent_time = po->po_sent_time;
+    uint32_t acked_bytes = po->po_used_size;
     if (xqc_reno_in_recovery(cong_ctl, sent_time)) {
         // Do not increase congestion window in recovery period.
         return;
@@ -67,11 +69,11 @@ xqc_reno_on_ack (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t 
 
     if (reno->reno_congestion_window < reno->reno_ssthresh) {
         // Slow start.
-        reno->reno_congestion_window += n_bytes;
+        reno->reno_congestion_window += acked_bytes;
     }
     else {
         // Congestion avoidance.
-        reno->reno_congestion_window += XQC_kMaxDatagramSize * n_bytes / reno->reno_congestion_window;
+        reno->reno_congestion_window += XQC_kMaxDatagramSize * acked_bytes / reno->reno_congestion_window;
     }
 }
 
@@ -96,12 +98,18 @@ xqc_reno_in_slow_start (void *cong_ctl)
     return reno->reno_congestion_window < reno->reno_ssthresh ? 1 : 0;
 }
 
+void
+xqc_reno_restart_from_idle(void *cong_ctl, uint64_t arg) {
+    return;
+}
+
 const xqc_cong_ctrl_callback_t xqc_reno_cb = {
-    .xqc_cong_ctl_size      = xqc_reno_size,
-    .xqc_cong_ctl_init      = xqc_reno_init,
-    .xqc_cong_ctl_on_lost   = xqc_reno_on_lost,
-    .xqc_cong_ctl_on_ack    = xqc_reno_on_ack,
-    .xqc_cong_ctl_get_cwnd  = xqc_reno_get_cwnd,
-    .xqc_cong_ctl_reset_cwnd = xqc_reno_reset_cwnd,
-    .xqc_cong_ctl_in_slow_start = xqc_reno_in_slow_start,
+    .xqc_cong_ctl_size              = xqc_reno_size,
+    .xqc_cong_ctl_init              = xqc_reno_init,
+    .xqc_cong_ctl_on_lost           = xqc_reno_on_lost,
+    .xqc_cong_ctl_on_ack            = xqc_reno_on_ack,
+    .xqc_cong_ctl_get_cwnd          = xqc_reno_get_cwnd,
+    .xqc_cong_ctl_reset_cwnd        = xqc_reno_reset_cwnd,
+    .xqc_cong_ctl_in_slow_start     = xqc_reno_in_slow_start,
+    .xqc_cong_ctl_restart_from_idle = xqc_reno_restart_from_idle,
 };
