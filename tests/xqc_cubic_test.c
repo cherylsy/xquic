@@ -21,13 +21,16 @@ xqc_test_cubic ()
     xqc_cubic_t cubic;
     xqc_msec_t delay = 100;
     xqc_cc_params_t params = {.init_cwnd = 10};
-    xqc_cubic_cb.xqc_cong_ctl_init(&cubic, params);
+    xqc_cubic_cb.xqc_cong_ctl_init(&cubic, NULL, params);
 
     print_cubic(&cubic);
 
     //slow start
     for (int i = 0; i < 10; ++i) {
-        xqc_cubic_cb.xqc_cong_ctl_on_ack(&cubic, now, now + delay, 1000);
+        xqc_packet_out_t po;
+        po.po_sent_time = now;
+        po.po_used_size = 1000;
+        xqc_cubic_cb.xqc_cong_ctl_on_ack(&cubic, &po, now + delay);
         now += 1000000;
         print_cubic(&cubic);
     }
@@ -38,7 +41,10 @@ xqc_test_cubic ()
 
     //congestion avoid
     for (int i = 0; i < 10; ++i) {
-        xqc_cubic_cb.xqc_cong_ctl_on_ack(&cubic, now, now + delay, 1000);
+        xqc_packet_out_t po;
+        po.po_sent_time = now;
+        po.po_used_size = 1000;
+        xqc_cubic_cb.xqc_cong_ctl_on_ack(&cubic, &po, now + delay);
         now += 1000000;
         print_cubic(&cubic);
     }

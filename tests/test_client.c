@@ -1134,6 +1134,7 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
         memset(user_stream, 0, sizeof(user_stream_t));
         user_stream->user_conn = user_conn;
+        printf("gtest 15: restart from idle!\n");
         user_stream->stream = xqc_stream_create(ctx.engine, &(user_conn->cid), user_stream);
         if (user_stream->stream == NULL) {
             printf("xqc_stream_create error\n");
@@ -1414,7 +1415,7 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : XQC_LOG_DEBUG),
+                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG),
                     //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
@@ -1446,6 +1447,8 @@ int main(int argc, char *argv[]) {
             cong_flags |= XQC_BBR2_FLAG_FAST_CONVERGENCE;
         }
 #endif
+    } else if (c_cong_ctl == 'C') {
+        cong_ctrl = xqc_cubic_kernel_cb;
     } else {
         printf("unknown cong_ctrl, option is b, r, c, B, bbr+, bbr2+\n");
         return -1;

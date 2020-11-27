@@ -339,6 +339,16 @@ echo -e "Cubic without pacing ...\c"
 grep_err_log
 
 clear_log
+echo -e "Cubic (Kernel) with pacing ...\c"
+./test_client -s 10240000 -l e -t 3 -E -c C -C|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
+echo -e "Cubic (Kernel) without pacing ...\c"
+./test_client -s 10240000 -l e -t 3 -E -c C|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "stream level flow control ...\c"
 ./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
 grep_err_log

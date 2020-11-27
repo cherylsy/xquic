@@ -3,6 +3,8 @@
 
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
+#include "src/transport/xqc_send_ctl.h"
+#include "src/transport/xqc_packet_out.h"
 
 typedef struct {
     uint64_t        init_cwnd;          /* 初始窗口大小,单位为MSS个数 */

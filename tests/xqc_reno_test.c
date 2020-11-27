@@ -3,6 +3,8 @@
 #include "src/congestion_control/xqc_new_reno.h"
 #include <stdio.h>
 #include "src/common/xqc_time.h"
+#include "src/transport/xqc_packet_out.h"
+
 void
 print_reno (xqc_new_reno_t *reno)
 {
@@ -21,12 +23,15 @@ xqc_test_reno ()
     xqc_new_reno_t reno;
     xqc_msec_t delay = 100;
     xqc_cc_params_t params = {.init_cwnd = 10};
-    xqc_reno_cb.xqc_cong_ctl_init(&reno, params);
+    xqc_reno_cb.xqc_cong_ctl_init(&reno, NULL, params);
     print_reno(&reno);
 
     //slow start
     for (int i = 0; i < 10; ++i) {
-        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, now + delay, 1000);
+        xqc_packet_out_t po;
+        po.po_sent_time = now;
+        po.po_used_size = 1000;
+        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, &po, now + delay);
         now += 1000000;
         print_reno(&reno);
     }
@@ -37,7 +42,10 @@ xqc_test_reno ()
 
     //congestion avoid
     for (int i = 0; i < 10; ++i) {
-        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, now, now + delay, 1000);
+        xqc_packet_out_t po;
+        po.po_sent_time = now;
+        po.po_used_size = 1000;
+        xqc_reno_cb.xqc_cong_ctl_on_ack(&reno, &po, now + delay);
         now += 1000000;
         print_reno(&reno);
     }

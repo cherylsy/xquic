@@ -181,11 +181,11 @@ typedef struct xqc_congestion_control_callback_s {
     /* 初始化时回调，用于分配内存 */
     size_t (*xqc_cong_ctl_size) (void);
     /* 连接初始化时回调，支持传入拥塞算法参数 */
-    void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_cc_params_t cc_params);
+    void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params);
     /* 核心回调，检测到丢包时回调，按照算法策略降低拥塞窗口 */
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
     /* 核心回调，报文被ack时回调，按照算法策略增加拥塞窗口 */
-    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_msec_t sent_time, xqc_msec_t now, uint32_t n_bytes);
+    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now);
     /* 发包时回调，用于判断包是否能发送 */
     uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
     /* 检测到一个RTT内所有包都丢失时回调，重置拥塞窗口 */
@@ -193,12 +193,15 @@ typedef struct xqc_congestion_control_callback_s {
     /* 判断是否在慢启动阶段 */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
+    /* This function is used by BBR and Cubic*/
+    void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl, uint64_t arg);
+
     /* For BBR */
     void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
     void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
-    void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl, uint64_t conn_delivered);
+    
     xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;
 } xqc_cong_ctrl_callback_t;
 
@@ -207,6 +210,7 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_reno_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr2_cb;
+XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb;
 
 
 /**

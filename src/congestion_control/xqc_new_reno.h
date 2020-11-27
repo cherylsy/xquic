@@ -3,6 +3,8 @@
 
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
+#include "src/transport/xqc_send_ctl.h"
+#include "src/transport/xqc_packet_out.h"
 
 typedef struct {
     unsigned        reno_congestion_window;

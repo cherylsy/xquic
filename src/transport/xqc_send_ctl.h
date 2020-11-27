@@ -9,6 +9,8 @@
 
 #define XQC_kPacketThreshold 3
 #define XQC_kPersistentCongestionThreshold 3
+
+#define XQC_CONSECUTIVE_PTO_THRESH 2
 /*Timer granularity.  This is a system-dependent value.
 However, implementations SHOULD use a value no smaller than 1ms.*/
 #define XQC_kGranularity 2
@@ -103,12 +105,14 @@ typedef struct xqc_send_ctl_s {
 
     xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
 
+    xqc_msec_t                  ctl_last_inflight_pkt_sent_time;
     xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet[XQC_PNS_N];
     xqc_packet_number_t         ctl_last_sent_ack_eliciting_packet_number[XQC_PNS_N];
     xqc_msec_t                  ctl_srtt,
                                 ctl_rttvar,
                                 ctl_minrtt,
                                 ctl_latest_rtt;
+    xqc_msec_t                  ctl_first_rtt_sample_time; /*The time when the conn gets the first RTT sample.*/
 
     xqc_send_ctl_timer_t        ctl_timer[XQC_TIMER_N];
 
@@ -120,7 +124,11 @@ typedef struct xqc_send_ctl_s {
 
     unsigned                    ctl_recv_count;
 
+    uint32_t                    ctl_max_bytes_in_flight;
+    uint8_t                     ctl_is_cwnd_limited;
+
     unsigned                    ctl_bytes_in_flight;
+    uint32_t                    ctl_bytes_ack_eliciting_inflight[XQC_PNS_N];
     unsigned                    ctl_prior_bytes_in_flight;
 
     uint64_t                    ctl_bytes_send;
@@ -273,10 +281,16 @@ int
 xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_msec_t sent_time);
 
 int
-xqc_send_ctl_is_app_limited();
+xqc_send_ctl_is_app_limited(xqc_send_ctl_t *ctl);
 
 void
-xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now);
+xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now);
+
+void
+xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now, int do_cc);
+
+void
+xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
 
 void
 xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl);
