@@ -785,9 +785,6 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     }
 
 
-    //printf("packet_out: send data:%d, pkt_type=%d\n", packet_out->po_used_size,packet_out->po_pkt.pkt_type);
-    //hex_print(packet_out->po_buf, packet_out->po_used_size);
-
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
 
@@ -814,6 +811,7 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         return -XQC_ESOCKET;
     }
     conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|on sent mark! %ud|", 1);
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
 
     return sent;

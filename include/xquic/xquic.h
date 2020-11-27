@@ -174,6 +174,7 @@ typedef struct xqc_cc_params_s {
     uint32_t    init_cwnd;
     uint32_t    expect_bw;
     uint32_t    max_expect_bw;
+    uint32_t    cc_optimization_flags;
 } xqc_cc_params_t;
 
 typedef struct xqc_congestion_control_callback_s {
@@ -197,12 +198,16 @@ typedef struct xqc_congestion_control_callback_s {
     void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
-    void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl);
+    void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl, uint64_t conn_delivered);
+    xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;
 } xqc_cong_ctrl_callback_t;
+
 
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_reno_cb;
+XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr2_cb;
+
 
 /**
  * @struct xqc_config_t

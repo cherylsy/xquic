@@ -7,17 +7,21 @@
  * see https://tools.ietf.org/html/draft-cheng-iccrg-delivery-rate-estimation-00#section-3.3
  */
 /* Upon receiving ACK, fill in delivery rate sample rs. */
-bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_msec_t now)
+bool 
+xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, 
+    xqc_msec_t now)
 {
     /* Clear app-limited field if bubble is ACKed and gone. */
-    if (send_ctl->ctl_app_limited && send_ctl->ctl_delivered > send_ctl->ctl_app_limited) {
+    if (send_ctl->ctl_app_limited 
+        && send_ctl->ctl_delivered > send_ctl->ctl_app_limited)
+    {
         send_ctl->ctl_app_limited = 0;
     }
 
-    // we do NOT have a valid sample yet.
-    if(sampler->prior_time == 0) {
+    /* we do NOT have a valid sample yet. */
+    if (sampler->prior_time == 0) {
         sampler->interval = 0;
-        return false; 
+        return FALSE;
     }
 
     sampler->acked = send_ctl->ctl_delivered - send_ctl->ctl_prior_delivered;
@@ -25,21 +29,23 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
     sampler->interval = xqc_max(sampler->ack_elapse, sampler->send_elapse);
 
     sampler->delivered = send_ctl->ctl_delivered - sampler->prior_delivered;
+    /* This is for BBRv2 */
+    sampler->lost_pkts = send_ctl->ctl_lost_pkts_number - sampler->prior_lost;
 
     /* Normally we expect interval >= MinRTT.
-        * Note that rate may still be over-estimated when a spuriously
-        * retransmitted skb was first (s)acked because "interval"
-        * is under-estimated (up to an RTT). However, continuously
-        * measuring the delivery rate during loss recovery is crucial
-        * for connections suffer heavy or prolonged losses.
-        */
-    if (sampler->interval < send_ctl->ctl_minrtt){
+     * Note that rate may still be over-estimated when a spuriously
+     * retransmitted skb was first (s)acked because "interval"
+     * is under-estimated (up to an RTT). However, continuously
+     * measuring the delivery rate during loss recovery is crucial
+     * for connections suffer heavy or prolonged losses.
+     */
+    if (sampler->interval < send_ctl->ctl_minrtt) {
         sampler->interval = 0;
-        //printf("bbr==================== xqc_generate_sample false sampler->interval < send_ctl->ctl_minrtt\n");
-        return false;
+        return FALSE;
     }
-    if(sampler->interval != 0) {
-        sampler->delivery_rate = sampler->delivered / sampler->interval;
+    if (sampler->interval != 0) {
+        /*unit of interval is us*/
+        sampler->delivery_rate = (uint64_t)(1e6 * sampler->delivered / sampler->interval);
     }
     sampler->now = now;
     sampler->rtt = send_ctl->ctl_latest_rtt;
@@ -47,53 +53,80 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, xqc_ms
     sampler->bytes_inflight = send_ctl->ctl_bytes_in_flight;
     sampler->prior_inflight = send_ctl->ctl_prior_bytes_in_flight;
     sampler->total_acked = send_ctl->ctl_delivered;
-    return true;
+
+    xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+            "|sampler: send_elapse %ui, ack_elapse %ui, "
+            "delivered %ud|",
+            sampler->send_elapse, sampler->ack_elapse,
+            sampler->delivered);
+    return TRUE;
 }
 
 /* Update rs when packet is SACKed or ACKed. */
-void xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet, xqc_send_ctl_t *send_ctl, xqc_msec_t now)
+void 
+xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
+    xqc_send_ctl_t *send_ctl, xqc_msec_t now)
 {
     if (packet->po_delivered_time == 0) {
-        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_ERROR, "|packet:%ui already acked|", packet->po_pkt.pkt_num);
+        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_ERROR, 
+                "|packet:%ui already acked|", packet->po_pkt.pkt_num);
         return; /* P already SACKed */
     }
     send_ctl->ctl_delivered += packet->po_used_size;
     send_ctl->ctl_delivered_time = now;
 
     /* Update info using the newest packet: */
-    // if it's the ACKs from the first RTT round, we use the sample anyway
-    if (sampler->prior_delivered == 0 || (packet->po_delivered > sampler->prior_delivered)) {
+    /* if it's the ACKs from the first RTT round, we use the sample anyway */
+
+    if ((!sampler->is_initialized)
+        || (packet->po_delivered > sampler->prior_delivered)) 
+    {
+        sampler->is_initialized = 1;
+        sampler->prior_lost = packet->po_lost;
+        sampler->tx_in_flight = packet->po_tx_in_flight;
         sampler->prior_delivered = packet->po_delivered;
         sampler->prior_time = packet->po_delivered_time;
         sampler->is_app_limited = packet->po_is_app_limited;
-        sampler->send_elapse = packet->po_sent_time - packet->po_first_sent_time;
-        sampler->ack_elapse = send_ctl->ctl_delivered_time - packet->po_delivered_time;
+        sampler->send_elapse = packet->po_sent_time - 
+                               packet->po_first_sent_time;
+        sampler->ack_elapse = send_ctl->ctl_delivered_time - 
+                              packet->po_delivered_time;
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
         sampler->lagest_ack_time = now;
-        sampler->po_sent_time = packet->po_sent_time; //always keep it updated
+        sampler->po_sent_time = packet->po_sent_time; /*always keep it updated*/
     }
     /* Mark the packet as delivered once it's SACKed to
-    * avoid being used again when it's cumulatively acked.
-    */
+     * avoid being used again when it's cumulatively acked.
+     */
     packet->po_delivered_time = 0;
 }
 
-void xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
+void 
+xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
+    uint8_t not_cwnd_limited = 0;
+    uint32_t cwnd = send_ctl->ctl_cong_callback->
+                    xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong);
+    if (send_ctl->ctl_bytes_in_flight < cwnd) {
+        /*QUIC MSS*/
+        not_cwnd_limited = (cwnd - send_ctl->ctl_bytes_in_flight) >= 1200; 
+    }
+
     if (/* We are not limited by CWND. */
-        send_ctl->ctl_bytes_in_flight <
-        send_ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong) &&
+        not_cwnd_limited 
         /* We have no packet to send. */
-        xqc_list_empty(&send_ctl->ctl_send_packets) &&
+        && xqc_list_empty(&send_ctl->ctl_send_packets) 
         /* All lost packets have been retransmitted. */
-        xqc_list_empty(&send_ctl->ctl_lost_packets)) {
-        send_ctl->ctl_app_limited = send_ctl->ctl_delivered + send_ctl->ctl_bytes_in_flight ? : 1;
-        //xqc_log(send_ctl->ctl_conn->log, XQC_LOG_INFO, "|bbr on ack|ctl_bytes_in_flight:%ud|send empty:%ud|lost empty:%ud|",
-        //        send_ctl->ctl_bytes_in_flight, xqc_list_empty(&send_ctl->ctl_send_packets)?1:0, xqc_list_empty(&send_ctl->ctl_lost_packets)?1:0);
+        && xqc_list_empty(&send_ctl->ctl_lost_packets))
+    {
+        send_ctl->ctl_app_limited = (send_ctl->ctl_delivered + 
+                                    send_ctl->ctl_bytes_in_flight) ?: 1;
     }
 }
 
-void xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, xqc_msec_t now)
+void 
+xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, 
+    xqc_msec_t now)
 {
     if (ctl->ctl_bytes_in_flight == 0) {
         ctl->ctl_delivered_time = ctl->ctl_first_sent_time = now;
@@ -102,4 +135,7 @@ void xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, xqc_m
     packet_out->po_first_sent_time = ctl->ctl_first_sent_time;
     packet_out->po_delivered = ctl->ctl_delivered;
     packet_out->po_is_app_limited = ctl->ctl_app_limited > 0 ? 1 : 0;
+    packet_out->po_lost = ctl->ctl_lost_pkts_number;
+    packet_out->po_tx_in_flight = ctl->ctl_bytes_in_flight + 
+                                  packet_out->po_used_size;
 }
