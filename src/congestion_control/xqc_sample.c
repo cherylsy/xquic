@@ -68,7 +68,7 @@ xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
     xqc_send_ctl_t *send_ctl, xqc_msec_t now)
 {
     if (packet->po_delivered_time == 0) {
-        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_ERROR, 
+        xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                 "|packet:%ui already acked|", packet->po_pkt.pkt_num);
         return; /* P already SACKed */
     }
