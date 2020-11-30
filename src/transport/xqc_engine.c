@@ -687,9 +687,11 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             conn->last_ticked_time = now;
 
             if(engine->eng_callback.write_mmsg){
+                xqc_conn_transmit_pto_probe_packets_batch(conn);
                 xqc_conn_retransmit_lost_packets_batch(conn);
                 xqc_conn_send_packets_batch(conn);
             }else{
+                xqc_conn_transmit_pto_probe_packets(conn);
                 xqc_conn_retransmit_lost_packets(conn);
                 xqc_conn_send_packets(conn);
             }

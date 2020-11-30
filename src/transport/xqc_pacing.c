@@ -1,18 +1,21 @@
 #include "src/transport/xqc_pacing.h"
 #include "src/transport/xqc_send_ctl.h"
+#include "src/transport/xqc_packet.h"
 
-#define XQC_MAX_BURST_NUM 2
+#define XQC_MAX_BURST_NUM 10
 #define TRUE 1
 #define FALSE 0
+#define XQC_CLOCK_GRANULARITY_US 1000 /*1ms*/
 
 void
 xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
 {
-    pacing->burst_num = 0;
-    pacing->next_send_time = 0;
-    pacing->timer_expire = 0;
+    pacing->initial_burst_size = XQC_MAX_BURST_NUM;
+    pacing->burst_tokens = XQC_MAX_BURST_NUM;
     pacing->ideal_next_packet_send_time = 0;
     pacing->on = pacing_on;
+    pacing->lumpy_tokens = 0;
+    pacing->alarm_granularity = XQC_CLOCK_GRANULARITY_US;
     if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
         pacing->on = 1;
     }
@@ -84,12 +87,17 @@ xqc_pacing_bw_estimate_calc(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl)
  * token consuming from chrome-quic
  */
 void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
-    xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+    xqc_connection_t *conn, xqc_packet_out_t *packet_out, uint32_t inflight)
 {
+
+    if (inflight == 0 
+        && !ctl->ctl_cong_callback->xqc_cong_ctl_in_recovery(ctl->ctl_cong))
+    {
+        pacing->burst_tokens = pacing->initial_burst_size;
+    }
 
     if (pacing->burst_tokens > 0) {
         --pacing->burst_tokens;
-        /* TODO: next_send_time reset ? */
         pacing->pacing_limited = 0;
         return;
     }
@@ -105,7 +113,7 @@ void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
     if (!pacing->pacing_limited || pacing->lumpy_tokens == 0) {
         uint64_t cwnd = ctl->ctl_cong_callback->
                         xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
-        pacing->lumpy_tokens = xqc_max(1, xqc_min(2,  cwnd * 0.25 / 1200));
+        pacing->lumpy_tokens = xqc_max(1, xqc_min(2,  cwnd * 0.25 / XQC_QUIC_MSS));
 
         /*
          * bandwidth estimate
@@ -139,9 +147,11 @@ void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
 
     uint64_t cwnd = ctl->ctl_cong_callback->
                     xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
-    if (ctl->ctl_bytes_in_flight + packet_out->po_used_size < cwnd) {
+    if (inflight + packet_out->po_used_size < cwnd) {
+        /* This does not neccessarily mean we are limited by pacing, if 
+           there is only a bit space in cwnd. So, we will also call 
+           xqc_pacing_on_cwnd_limit() to clear pacing_limited if needed. */
         pacing->pacing_limited = 1;
-
     } else {
         pacing->pacing_limited = 0;
     }
@@ -155,16 +165,11 @@ void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
 }
 
 uint64_t xqc_pacing_time_until_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
-    xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+    xqc_connection_t *conn, xqc_packet_out_t *packet_out, uint32_t inflight)
 {
 
-    uint64_t cwnd = ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
-    if (ctl->ctl_bytes_in_flight >= cwnd) {
-        return INFINITE_TIME;
-    }
-
     if (pacing->burst_tokens > 0 
-        || ctl->ctl_bytes_in_flight == 0 
+        || inflight == 0 
         || pacing->lumpy_tokens > 0) 
     {
         return 0;
@@ -174,31 +179,25 @@ uint64_t xqc_pacing_time_until_send(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
             "|ideal_next_packet_send_time:%ui|now: %ui|", 
             pacing->ideal_next_packet_send_time, time_now);
-    if (pacing->ideal_next_packet_send_time > time_now) {
+    if (pacing->ideal_next_packet_send_time 
+        > (time_now + pacing->alarm_granularity))
+    {
         return pacing->ideal_next_packet_send_time - time_now;
     }
     return 0;
 }
 
 int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
-    xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+    xqc_connection_t *conn, xqc_packet_out_t *packet_out, uint32_t inflight)
 {
 
-    if (ctl->ctl_bytes_in_flight == 0) {
-        pacing->burst_tokens = XQC_MAX_BURST_NUM;
-    }
-
     if (xqc_send_pacing_timer_isset(ctl, XQC_TIMER_PACING)) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|Timer is not set!");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|waiting for pacing timer to expire!|");
         return FALSE;
     }
 
-    uint64_t delay = xqc_pacing_time_until_send(pacing, ctl, conn, packet_out);
+    uint64_t delay = xqc_pacing_time_until_send(pacing, ctl, conn, packet_out, inflight);
     xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing_delay: %ud!", delay);
-
-    if (delay == INFINITE_TIME) {
-        return FALSE;
-    }
 
     if (delay != 0) {
         xqc_send_pacing_timer_update(ctl, XQC_TIMER_PACING, xqc_now() + delay);
@@ -209,4 +208,16 @@ int xqc_pacing_can_write(xqc_pacing_t *pacing, xqc_send_ctl_t *ctl,
 
     return TRUE;
 
+}
+
+void xqc_pacing_on_cwnd_limit(xqc_pacing_t *pacing) {
+    pacing->pacing_limited = 0;
+}
+
+void xqc_pacing_on_loss_event(xqc_pacing_t *pacing) {
+    pacing->burst_tokens = 0;
+}
+
+void xqc_pacing_on_app_limit(xqc_pacing_t *pacing) {
+    pacing->pacing_limited = 0;
 }

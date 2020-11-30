@@ -2,6 +2,7 @@
 #include "src/transport/xqc_packet_out.h"
 #include "src/common/xqc_config.h"
 #include "src/common/xqc_time.h"
+#include "src/transport/xqc_packet.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -41,7 +42,7 @@ static uint32_t cube_rtt_scale;
 static uint32_t beta_scale;
 static uint64_t cube_factor;
 
-#define XQC_CUBIC_MSS (1200)
+#define XQC_CUBIC_MSS (XQC_QUIC_MSS)
 #define XQC_CUBIC_MAX_SSTHRESH (~0U)
 #define XQC_CUBIC_MIN_WIN (4 * XQC_CUBIC_MSS)
 #define XQC_CUBIC_MAX_INIT_WIN (100 * XQC_CUBIC_MSS)
@@ -160,10 +161,10 @@ xqc_cubic_root(uint64_t a)
     return x;
 }
 
-static inline uint8_t
+static int
 xqc_cubic_in_recovery(void *cong) {
     xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t*)(cong);
-    return ca->recovery_start_time;
+    return ca->recovery_start_time > 0;
 }
 
 static inline void 
@@ -552,6 +553,7 @@ xqc_cubic_get_cwnd (void *cong_ctl)
     return ca->cwnd * XQC_CUBIC_MSS;
 }
 
+
 const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb = {
         .xqc_cong_ctl_size              = xqc_cubic_size,
         .xqc_cong_ctl_init              = xqc_cubic_init,
@@ -561,4 +563,5 @@ const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb = {
         .xqc_cong_ctl_reset_cwnd        = xqc_cubic_reset_cwnd,
         .xqc_cong_ctl_in_slow_start     = xqc_cubic_in_slow_start,
         .xqc_cong_ctl_restart_from_idle = xqc_cubic_restart_from_idle,
+        .xqc_cong_ctl_in_recovery       = xqc_cubic_in_recovery,
 };

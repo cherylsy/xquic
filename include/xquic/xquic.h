@@ -193,6 +193,9 @@ typedef struct xqc_congestion_control_callback_s {
     /* 判断是否在慢启动阶段 */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
+    /* If the connection is in recovery state. */
+    int (*xqc_cong_ctl_in_recovery) (void *cong_ctl);
+
     /* This function is used by BBR and Cubic*/
     void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl, uint64_t arg);
 

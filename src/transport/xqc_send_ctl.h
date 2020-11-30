@@ -77,6 +77,7 @@ typedef struct xqc_send_ctl_s {
     xqc_list_head_t             ctl_send_packets; //xqc_packet_out_t to send
     xqc_list_head_t             ctl_send_packets_high_pri; //xqc_packet_out_t to send with high priority
     xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
+    xqc_list_head_t             ctl_pto_probe_packets;
     xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
     xqc_list_head_t             ctl_buff_1rtt_packets; //xqc_packet_out_t buff 1RTT before handshake complete
@@ -197,6 +198,9 @@ void
 xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
 
 void
+xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
+
+void
 xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
 
 void
@@ -219,6 +223,12 @@ xqc_send_ctl_remove_send(xqc_list_head_t *pos);
 
 void
 xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
+
+void
+xqc_send_ctl_remove_probe(xqc_list_head_t *pos);
+
+void
+xqc_send_ctl_insert_probe(xqc_list_head_t *pos, xqc_list_head_t *head);
 
 void
 xqc_send_ctl_remove_lost(xqc_list_head_t *pos);
