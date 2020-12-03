@@ -539,8 +539,6 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
 
         if (send_type == XQC_SEND_TYPE_RETRANS) {
             /* If not a TLP packet, mark it LOST */
-            assert(!(packet_out->po_flag & XQC_POF_TLP));
-            assert(congest != 0);
             packet_out->po_flag |= XQC_POF_LOST;
             xqc_log(conn->log, XQC_LOG_DEBUG,
                     "|retransmit_lost_packets|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
@@ -548,8 +546,6 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
                     xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                     xqc_frame_type_2_str(packet_out->po_frame_types));
         } else if (send_type == XQC_SEND_TYPE_PTO_PROBE) {
-            assert((packet_out->po_flag & XQC_POF_TLP));
-            assert(congest == 0); /*Don't do congestion control.*/
             xqc_log(conn->log, XQC_LOG_DEBUG,
                     "|transmit_pto_probe_packets|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
                     conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
@@ -849,8 +845,6 @@ xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn) {
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
 
-        assert((packet_out->po_flag & XQC_POF_TLP));
-
         /*Do neither CC nor Pacing.*/
 
         ret = xqc_conn_send_one_packet(conn, packet_out);
@@ -884,7 +878,6 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
 
-        assert(!(packet_out->po_flag & XQC_POF_TLP));
         packet_out->po_flag |= XQC_POF_LOST;
 
         if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
