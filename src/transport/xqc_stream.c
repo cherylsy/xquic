@@ -662,13 +662,18 @@ xqc_conn_check_handshake_complete(xqc_connection_t * conn)
     {
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
 
-        /* send handshake_done */
         if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-
+            /* send handshake_done */
             int ret = xqc_write_handshake_done_frame_to_packet(conn);
             if (ret < 0) {
                 xqc_log(conn->log, XQC_LOG_WARN, "|write_handshake_done err|");
                 return ret;
+            }
+
+            /* clear the anti-amplication state once handshake completed */
+            if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
+                xqc_log(conn->log, XQC_LOG_INFO, "|anti-amplification at handshake done|");
+                conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
             }
         }
 

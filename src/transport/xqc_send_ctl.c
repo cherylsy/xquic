@@ -720,6 +720,38 @@ xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl,
     }
 }
 
+
+typedef enum {
+    XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE = 0, /* remain the old state  */
+    XQC_ANTI_AMPLIFICATION_STATE_ENTER,         /* enter the anti-amplification state, no data should be sent */
+    XQC_ANTI_AMPLIFICATION_STATE_LEAVE,         /* leave the anti-amplification state, could send data again */
+} xqc_anti_amplification_state;
+
+/**
+ * check the anti-amplification limit state of server
+ */
+uint32_t
+xqc_check_svr_anti_amplification_limit(xqc_connection_t *conn)
+{
+    /* enter anti-amplification limit */
+    if (!(conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION)
+        && conn->conn_send_ctl->ctl_bytes_send >= 3 * conn->conn_send_ctl->ctl_bytes_recv)
+    {
+        conn->conn_flag |= XQC_CONN_FLAG_ANTI_AMPLIFICATION;
+        return XQC_ANTI_AMPLIFICATION_STATE_ENTER;
+
+    } else if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION
+               && conn->conn_send_ctl->ctl_bytes_send < 3 * conn->conn_send_ctl->ctl_bytes_recv)
+    {
+        /* quit the anti-amplification limit */
+        conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
+        return XQC_ANTI_AMPLIFICATION_STATE_LEAVE;
+    }
+
+    return XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE;
+}
+
+
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.5
  * OnPacketSent
@@ -761,7 +793,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
             /* TODO: xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->local_settings.idle_timeout * 1000); */
         }
         xqc_send_ctl_update_stream_stats_on_sent(ctl, packet_out, now);
-        
+
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                 "|inflight:%ud|applimit:%ui|", 
                 ctl->ctl_bytes_in_flight, ctl->ctl_app_limited);
@@ -813,6 +845,14 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
             packet_out->po_flag &= ~XQC_POF_TLP;
         }
         ++ctl->ctl_send_count;
+
+        /* anti-amplifier attack limit */
+        if (ctl->ctl_conn->conn_type == XQC_CONN_TYPE_SERVER
+            && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
+            && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED))
+        {
+            xqc_check_svr_anti_amplification_limit(ctl->ctl_conn);
+        }
 
         ctl->ctl_last_inflight_pkt_sent_time = now;
         xqc_send_ctl_update_cwnd_limited(ctl);
@@ -1013,37 +1053,6 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     xqc_send_ctl_info_circle_record(ctl->ctl_conn);
     return XQC_OK;
 }
-
-typedef enum {
-    XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE = 0, /* remain the old state  */
-    XQC_ANTI_AMPLIFICATION_STATE_ENTER,         /* enter the anti-amplification state, no data should be sent */
-    XQC_ANTI_AMPLIFICATION_STATE_LEAVE,         /* leave the anti-amplification state, could send data again */
-} xqc_anti_amplification_state;
-
-/**
- * check the anti-amplification limit state of server
- */
-uint32_t
-xqc_check_svr_anti_amplification_limit(xqc_connection_t *conn)
-{
-    /* enter anti-amplification limit */
-    if (!(conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION)
-        && conn->conn_send_ctl->ctl_bytes_send >= 3 * conn->conn_send_ctl->ctl_bytes_recv)
-    {
-        conn->conn_flag |= XQC_CONN_FLAG_ANTI_AMPLIFICATION;
-        return XQC_ANTI_AMPLIFICATION_STATE_ENTER;
-
-    } else if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION
-               && conn->conn_send_ctl->ctl_bytes_send < 3 * conn->conn_send_ctl->ctl_bytes_recv)
-    {
-        /* quit the anti-amplification limit */
-        conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
-        return XQC_ANTI_AMPLIFICATION_STATE_LEAVE;
-    }
-
-    return XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE;
-}
-
 
 /**
  * https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.6
