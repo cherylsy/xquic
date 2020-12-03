@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <stdlib.h>
 #include "src/congestion_control/xqc_bbr2.h"
 #include "src/congestion_control/xqc_sample.h"
@@ -978,7 +977,6 @@ xqc_bbr2_update_min_rtt(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
     if (bbr2->mode == BBR2_PROBE_RTT) {
         /* Ignore low rate samples during this mode. */
         xqc_send_ctl_t *send_ctl = sampler->send_ctl;
-        assert(send_ctl != NULL);
         send_ctl->ctl_app_limited = (send_ctl->ctl_delivered 
             + send_ctl->ctl_bytes_in_flight)? : 1;
         xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
@@ -1118,7 +1116,6 @@ xqc_bbr2_set_cwnd(xqc_bbr2_t *bbr2, xqc_sample_t *sampler,
     }
         
     xqc_send_ctl_t *send_ctl = sampler->send_ctl;
-    assert(send_ctl != NULL);
 
     uint32_t target_cwnd, extra_cwnd;
     target_cwnd = xqc_bbr2_inflight(bbr2, xqc_bbr2_bw(bbr2), bbr2->cwnd_gain);
