@@ -212,6 +212,38 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
 
 }
 
+
+typedef enum {
+    XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE = 0, /* remain the old state  */
+    XQC_ANTI_AMPLIFICATION_STATE_ENTER,         /* enter the anti-amplification state, no data should be sent */
+    XQC_ANTI_AMPLIFICATION_STATE_LEAVE,         /* leave the anti-amplification state, could send data again */
+} xqc_anti_amplification_state;
+
+/**
+ * check the anti-amplification limit state of server
+ */
+uint32_t
+xqc_check_svr_anti_amplification_limit(xqc_connection_t *conn)
+{
+    /* enter anti-amplification limit */
+    if (!(conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION)
+        && conn->conn_send_ctl->ctl_bytes_send >= 3 * conn->conn_send_ctl->ctl_bytes_recv)
+    {
+        conn->conn_flag |= XQC_CONN_FLAG_ANTI_AMPLIFICATION;
+        return XQC_ANTI_AMPLIFICATION_STATE_ENTER;
+
+    } else if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION
+               && conn->conn_send_ctl->ctl_bytes_send < 3 * conn->conn_send_ctl->ctl_bytes_recv)
+    {
+        /* quit the anti-amplification limit */
+        conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
+        return XQC_ANTI_AMPLIFICATION_STATE_LEAVE;
+    }
+
+    return XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE;
+}
+
+
 /*
  * 拥塞检查
  * QUIC's congestion control is based on TCP NewReno [RFC6582].  NewReno
@@ -243,14 +275,21 @@ xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     if (conn->conn_send_ctl->ctl_bytes_in_flight + packet_out->po_used_size > congestion_window) {
         can = 0;
     }
+
     /* anti-amplifier attack limit */
-    if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
-        can = 0;
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER
+        && !(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
+        && !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED))
+    {
+        xqc_check_svr_anti_amplification_limit(conn);
+        if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
+            can = 0;
+        }
     }
+
     xqc_conn_log(conn, XQC_LOG_DEBUG, "|can:%d|pkt_sz:%ud|inflight:%ud|cwnd:%ud|conn:%p|",
             can, packet_out->po_used_size, conn->conn_send_ctl->ctl_bytes_in_flight,
              congestion_window, conn);
-
     return can;
 }
 
@@ -720,38 +759,6 @@ xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl,
     }
 }
 
-
-typedef enum {
-    XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE = 0, /* remain the old state  */
-    XQC_ANTI_AMPLIFICATION_STATE_ENTER,         /* enter the anti-amplification state, no data should be sent */
-    XQC_ANTI_AMPLIFICATION_STATE_LEAVE,         /* leave the anti-amplification state, could send data again */
-} xqc_anti_amplification_state;
-
-/**
- * check the anti-amplification limit state of server
- */
-uint32_t
-xqc_check_svr_anti_amplification_limit(xqc_connection_t *conn)
-{
-    /* enter anti-amplification limit */
-    if (!(conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION)
-        && conn->conn_send_ctl->ctl_bytes_send >= 3 * conn->conn_send_ctl->ctl_bytes_recv)
-    {
-        conn->conn_flag |= XQC_CONN_FLAG_ANTI_AMPLIFICATION;
-        return XQC_ANTI_AMPLIFICATION_STATE_ENTER;
-
-    } else if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION
-               && conn->conn_send_ctl->ctl_bytes_send < 3 * conn->conn_send_ctl->ctl_bytes_recv)
-    {
-        /* quit the anti-amplification limit */
-        conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
-        return XQC_ANTI_AMPLIFICATION_STATE_LEAVE;
-    }
-
-    return XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE;
-}
-
-
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.5
  * OnPacketSent
@@ -845,14 +852,6 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
             packet_out->po_flag &= ~XQC_POF_TLP;
         }
         ++ctl->ctl_send_count;
-
-        /* anti-amplifier attack limit */
-        if (ctl->ctl_conn->conn_type == XQC_CONN_TYPE_SERVER
-            && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
-            && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED))
-        {
-            xqc_check_svr_anti_amplification_limit(ctl->ctl_conn);
-        }
 
         ctl->ctl_last_inflight_pkt_sent_time = now;
         xqc_send_ctl_update_cwnd_limited(ctl);
@@ -1061,6 +1060,12 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 void
 xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size)
 {
+/* TODO: will reopen after
+   the client MUST send an Initial packet in a UDP datagram that contains
+   at least 1200 bytes if it does not have Handshake keys, and otherwise
+   send a Handshake packet 
+*/
+#if 0
     if (ctl->ctl_conn->conn_type == XQC_CONN_TYPE_SERVER
         && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
         && !(ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED))
@@ -1071,6 +1076,7 @@ xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size)
             xqc_send_ctl_set_loss_detection_timer(ctl);
         }
     }
+#endif
 }
 
 /**
@@ -1565,11 +1571,18 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
         return;
     }
 
+/* TODO: will reopen if clients implements:
+   the client MUST send an Initial packet in a UDP datagram that contains
+   at least 1200 bytes if it does not have Handshake keys, and otherwise
+   send a Handshake packet 
+*/
+#if 0
     /* if at anti-amplification limit, nothing would be sent, unset the loss detection timer */
     if (ctl->ctl_conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
         xqc_send_ctl_timer_unset(ctl, XQC_TIMER_LOSS_DETECTION);
         return;
     }
+#endif
 
     /* Don't arm timer if there are no ack-eliciting packets in flight. */
     if (0 == ctl->ctl_bytes_in_flight) { //TODO: &&PeerNotAwaitingAddressValidation
