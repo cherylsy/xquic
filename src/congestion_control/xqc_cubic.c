@@ -212,6 +212,11 @@ xqc_cubic_restart_from_idle(void *cong_ctl, uint64_t arg) {
     return;
 }
 
+static int
+xqc_cubic_in_recovery(void *cong_ctl) {
+    return 0;
+}
+
 const xqc_cong_ctrl_callback_t xqc_cubic_cb = {
         .xqc_cong_ctl_size              = xqc_cubic_size,
         .xqc_cong_ctl_init              = xqc_cubic_init,
@@ -221,4 +226,5 @@ const xqc_cong_ctrl_callback_t xqc_cubic_cb = {
         .xqc_cong_ctl_reset_cwnd        = xqc_cubic_reset_cwnd,
         .xqc_cong_ctl_in_slow_start     = xqc_cubic_in_slow_start,
         .xqc_cong_ctl_restart_from_idle = xqc_cubic_restart_from_idle,
+        .xqc_cong_ctl_in_recovery       = xqc_cubic_in_recovery,
 };

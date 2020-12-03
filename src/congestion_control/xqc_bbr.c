@@ -1,15 +1,14 @@
-
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <stdlib.h>
 #include "src/congestion_control/xqc_bbr.h"
 #include "src/congestion_control/xqc_sample.h"
 #include "src/common/xqc_time.h"
 #include "src/common/xqc_config.h"
 #include "src/transport/xqc_send_ctl.h"
+#include "src/transport/xqc_packet.h"
 
-#define XQC_BBR_MAX_DATAGRAMSIZE 1200
+#define XQC_BBR_MAX_DATAGRAMSIZE XQC_QUIC_MSS
 #define XQC_BBR_MIN_WINDOW (4 * XQC_BBR_MAX_DATAGRAMSIZE)
 #define XQC_BBR_MAX_WINDOW (100 * XQC_BBR_MAX_DATAGRAMSIZE)
 /*The RECOMMENDED value is the minimum of 10 *
@@ -525,7 +524,6 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     {
         /* Ignore low rate samples during this mode. */
         xqc_send_ctl_t *send_ctl = sampler->send_ctl;
-        assert(send_ctl != NULL);
         send_ctl->ctl_app_limited = (send_ctl->ctl_delivered 
             + send_ctl->ctl_bytes_in_flight)? : 1;
         xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
@@ -665,7 +663,6 @@ xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     if (sampler->acked != 0) {
         xqc_send_ctl_t *send_ctl = sampler->send_ctl;
-        assert(send_ctl != NULL);
 
         uint32_t target_cwnd, extra_cwnd;
         target_cwnd = xqc_bbr_target_cwnd(bbr, bbr->cwnd_gain);
@@ -750,6 +747,7 @@ static void xqc_bbr_update_recovery_mode(void *cong_ctl, xqc_sample_t *sampler)
         the recovery epoch is acked. */
         bbr->recovery_mode = BBR_NOT_IN_RECOVERY;
         bbr->just_exit_recovery_mode = TRUE;
+        bbr->recovery_start_time = 0;
     }
 }
 
@@ -900,6 +898,12 @@ xqc_bbr_info_cwnd_gain(void *cong)
     return bbr->cwnd_gain;
 }
 
+static int
+xqc_bbr_in_recovery(void *cong) {
+    xqc_bbr_t *bbr = (xqc_bbr_t *)cong;
+    return bbr->recovery_start_time > 0;
+}
+
 static xqc_bbr_info_interface_t xqc_bbr_info_cb = {
     .mode                 = xqc_bbr_info_mode,
     .min_rtt              = xqc_bbr_info_min_rtt,
@@ -924,4 +928,5 @@ const xqc_cong_ctrl_callback_t xqc_bbr_cb = {
     .xqc_cong_ctl_on_lost                 = xqc_bbr_on_lost,
     .xqc_cong_ctl_reset_cwnd              = xqc_bbr_reset_cwnd,
     .xqc_cong_ctl_info_cb                 = &xqc_bbr_info_cb,
+    .xqc_cong_ctl_in_recovery             = xqc_bbr_in_recovery,
 };

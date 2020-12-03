@@ -6,6 +6,7 @@
 #include "src/common/xqc_list.h"
 
 #define XQC_MSS 1460 //TODO
+#define XQC_QUIC_MSS 1200
 
 #define XQC_PACKET_0RTT_MAX_COUNT  10
 #define XQC_UNDECRYPT_PACKET_MAX  100
@@ -62,7 +63,7 @@ struct xqc_packet_s {
 
 #define XQC_PACKET_VERSION_LENGTH 4
 #define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH)
-#define XQC_PACKET_INITIAL_MIN_LENGTH   1200
+#define XQC_PACKET_INITIAL_MIN_LENGTH   XQC_QUIC_MSS
 
 
 #define xqc_parse_uint16(p) ((p)[0] << 8 | (p)[1])

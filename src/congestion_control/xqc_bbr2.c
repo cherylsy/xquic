@@ -1,14 +1,14 @@
 #include <stdio.h>
 #include <string.h>
-#include <assert.h>
 #include <stdlib.h>
 #include "src/congestion_control/xqc_bbr2.h"
 #include "src/congestion_control/xqc_sample.h"
 #include "src/common/xqc_time.h"
 #include "src/common/xqc_config.h"
 #include "src/transport/xqc_send_ctl.h"
+#include "src/transport/xqc_packet.h"
 
-#define XQC_BBR2_MAX_DATAGRAM_SIZE 1200
+#define XQC_BBR2_MAX_DATAGRAM_SIZE XQC_QUIC_MSS
 #define XQC_BBR2_MIN_WINDOW (4 * XQC_BBR2_MAX_DATAGRAM_SIZE)
 /* The RECOMMENDED value is the minimum of 10 *
 kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)). */
@@ -977,7 +977,6 @@ xqc_bbr2_update_min_rtt(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
     if (bbr2->mode == BBR2_PROBE_RTT) {
         /* Ignore low rate samples during this mode. */
         xqc_send_ctl_t *send_ctl = sampler->send_ctl;
-        assert(send_ctl != NULL);
         send_ctl->ctl_app_limited = (send_ctl->ctl_delivered 
             + send_ctl->ctl_bytes_in_flight)? : 1;
         xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
@@ -1117,7 +1116,6 @@ xqc_bbr2_set_cwnd(xqc_bbr2_t *bbr2, xqc_sample_t *sampler,
     }
         
     xqc_send_ctl_t *send_ctl = sampler->send_ctl;
-    assert(send_ctl != NULL);
 
     uint32_t target_cwnd, extra_cwnd;
     target_cwnd = xqc_bbr2_inflight(bbr2, xqc_bbr2_bw(bbr2), bbr2->cwnd_gain);
@@ -1215,6 +1213,7 @@ xqc_bbr2_update_recovery_mode(void *cong_ctl, xqc_sample_t *sampler)
         /* exit recovery mode once any packet sent during the 
            recovery epoch is acked. */
         bbr2->recovery_mode = BBR2_OPEN;
+        bbr2->recovery_start_time = 0;
         /* we do not restore cwnd here as we do not bound cwnd to 
            inflight when entering recovery */
     }
@@ -1568,6 +1567,12 @@ xqc_bbr2_info_cwnd_gain(void *cong)
     return bbr2->cwnd_gain;
 }
 
+static int
+xqc_bbr2_in_recovery(void *cong) {
+    xqc_bbr2_t *bbr2 = (xqc_bbr2_t *)cong;
+    return bbr2->recovery_start_time > 0;
+}
+
 static xqc_bbr_info_interface_t xqc_bbr2_info_cb = {
     .mode                   = xqc_bbr2_info_mode,
     .min_rtt                = xqc_bbr2_info_min_rtt,
@@ -1592,4 +1597,5 @@ const xqc_cong_ctrl_callback_t xqc_bbr2_cb = {
     .xqc_cong_ctl_on_lost                = xqc_bbr2_on_lost,
     .xqc_cong_ctl_reset_cwnd             = xqc_bbr2_reset_cwnd,
     .xqc_cong_ctl_info_cb                = &xqc_bbr2_info_cb,
+    .xqc_cong_ctl_in_recovery            = xqc_bbr2_in_recovery,
 };

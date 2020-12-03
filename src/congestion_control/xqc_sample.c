@@ -2,6 +2,7 @@
 #include "src/common/xqc_config.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_packet_out.h"
+#include "src/transport/xqc_packet.h"
 
 /**
  * see https://tools.ietf.org/html/draft-cheng-iccrg-delivery-rate-estimation-00#section-3.3
@@ -101,7 +102,7 @@ xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
     packet->po_delivered_time = 0;
 }
 
-void 
+bool 
 xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
     uint8_t not_cwnd_limited = 0;
@@ -109,7 +110,7 @@ xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
                     xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong);
     if (send_ctl->ctl_bytes_in_flight < cwnd) {
         /*QUIC MSS*/
-        not_cwnd_limited = (cwnd - send_ctl->ctl_bytes_in_flight) >= 1200; 
+        not_cwnd_limited = (cwnd - send_ctl->ctl_bytes_in_flight) >= XQC_QUIC_MSS; 
     }
 
     if (/* We are not limited by CWND. */
@@ -117,11 +118,14 @@ xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
         /* We have no packet to send. */
         && xqc_list_empty(&send_ctl->ctl_send_packets) 
         /* All lost packets have been retransmitted. */
-        && xqc_list_empty(&send_ctl->ctl_lost_packets))
+        && xqc_list_empty(&send_ctl->ctl_lost_packets)
+        && xqc_list_empty(&send_ctl->ctl_pto_probe_packets))
     {
         send_ctl->ctl_app_limited = (send_ctl->ctl_delivered + 
                                     send_ctl->ctl_bytes_in_flight) ?: 1;
+        return 1;
     }
+    return 0;
 }
 
 void 

@@ -371,6 +371,9 @@ ssize_t xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *pack
 int xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
     char *enc_pkt, size_t * enc_pkt_len, xqc_msec_t current_time);
 
+void xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
+void xqc_conn_transmit_pto_probe_packets_batch(xqc_connection_t *conn);
+
 void xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
 void xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn);
 

@@ -34,6 +34,7 @@ static const char * const frame_type_2_str[XQC_FRAME_NUM] = {
     [XQC_FRAME_PATH_CHALLENGE]      = "PATH_CHALLENGE",
     [XQC_FRAME_PATH_RESPONSE]       = "PATH_RESPONSE",
     [XQC_FRAME_CONNECTION_CLOSE]    = "CONNECTION_CLOSE",
+    [XQC_FRAME_HANDSHAKE_DONE]      = "HANDSHAKE_DONE",
     [XQC_FRAME_Extension]           = "Extension",
 };
 

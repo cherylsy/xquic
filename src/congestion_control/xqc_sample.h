@@ -53,7 +53,7 @@ bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
     xqc_msec_t now);
 void xqc_update_sample(xqc_sample_t *sample, xqc_packet_out_t *packet, 
     xqc_send_ctl_t *send_ctl, xqc_msec_t now);
-void xqc_sample_check_app_limited(xqc_sample_t *sampler, 
+bool xqc_sample_check_app_limited(xqc_sample_t *sampler, 
     xqc_send_ctl_t *send_ctl);
 void xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, 
     xqc_msec_t now);

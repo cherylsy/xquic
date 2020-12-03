@@ -6,6 +6,7 @@
 #include "src/congestion_control/xqc_bbr_common.h"
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_send_ctl.h"
+#include "src/transport/xqc_pacing.h"
 #include "src/transport/xqc_packet.h"
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_frame.h"
@@ -14,6 +15,7 @@
 #include "src/common/xqc_timer.h"
 #include "src/common/xqc_memory_pool.h"
 #include "src/congestion_control/xqc_sample.h"
+#include "src/transport/xqc_pacing.h"
 
 
 xqc_send_ctl_t *
@@ -36,6 +38,7 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     xqc_init_list_head(&send_ctl->ctl_send_packets);
     xqc_init_list_head(&send_ctl->ctl_send_packets_high_pri);
+    xqc_init_list_head(&send_ctl->ctl_pto_probe_packets);
     xqc_init_list_head(&send_ctl->ctl_lost_packets);
     xqc_init_list_head(&send_ctl->ctl_free_packets);
     xqc_init_list_head(&send_ctl->ctl_buff_1rtt_packets);
@@ -137,6 +140,7 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_send_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_send_packets_high_pri);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_lost_packets);
+    xqc_send_ctl_destroy_packets_list(&ctl->ctl_pto_probe_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_free_packets);
     xqc_send_ctl_destroy_packets_list(&ctl->ctl_buff_1rtt_packets);
 
@@ -233,8 +237,9 @@ xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
         can = 0;
     }
-    xqc_conn_log(conn, XQC_LOG_DEBUG, "|can:%d|inflight:%ud|cwnd:%ud|conn:%p|",
-            can, conn->conn_send_ctl->ctl_bytes_in_flight, congestion_window, conn);
+    xqc_conn_log(conn, XQC_LOG_DEBUG, "|can:%d|pkt_sz:%ud|inflight:%ud|cwnd:%ud|conn:%p|",
+            can, packet_out->po_used_size, conn->conn_send_ctl->ctl_bytes_in_flight,
+             congestion_window, conn);
 
     return can;
 }
@@ -277,6 +282,22 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
     xqc_packet_out_copy(new_po, packet_out);
 
     xqc_send_ctl_insert_lost(&new_po->po_list, &ctl->ctl_lost_packets);
+    ctl->ctl_packets_used++;
+    packet_out->po_flag |= XQC_POF_NO_RETRANS;
+}
+
+void
+xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
+{
+    xqc_packet_out_t *new_po = xqc_packet_out_create();
+    if (!new_po) {
+        XQC_CONN_ERR(ctl->ctl_conn, XQC_EMALLOC);
+        return;
+    }
+
+    xqc_packet_out_copy(new_po, packet_out);
+
+    xqc_send_ctl_insert_probe(&new_po->po_list, &ctl->ctl_pto_probe_packets);
     ctl->ctl_packets_used++;
     packet_out->po_flag |= XQC_POF_NO_RETRANS;
 }
@@ -422,6 +443,18 @@ xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_c
 }
 
 void
+xqc_send_ctl_remove_probe(xqc_list_head_t *pos)
+{
+    xqc_list_del_init(pos);
+}
+
+void
+xqc_send_ctl_insert_probe(xqc_list_head_t *pos, xqc_list_head_t *head)
+{
+    xqc_list_add_tail(pos, head);
+}
+
+void
 xqc_send_ctl_remove_lost(xqc_list_head_t *pos)
 {
     xqc_list_del_init(pos);
@@ -514,6 +547,14 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
             xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
         }
     }
+
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_pto_probe_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT) {
+            xqc_send_ctl_remove_probe(pos);
+            xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+        }
+    }
 }
 
 int
@@ -599,6 +640,28 @@ xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stre
         }
     }
 
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_pto_probe_packets) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_frame_types == XQC_FRAME_BIT_STREAM) {
+            drop = xqc_send_ctl_stream_frame_can_drop(ctl, packet_out, stream_id);
+            if (drop) {
+                /* If a packet is a retransmitted one, meaning that it has po_origin,
+                   we have to mark its' po_origin as STREAM_CLOSED. This makes all 
+                   copies of that packet in unacked_list to be dropped in 
+                   xqc_send_ctl_detect_lost(). */
+                if (packet_out->po_origin != NULL) {
+                    packet_out->po_origin->po_flag |= XQC_POF_STREAM_CLOSED;
+                } else {
+                    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+                            "|PTO probes send new data|");
+                }
+                count++;
+                xqc_send_ctl_remove_probe(pos);
+                xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+            }
+        }
+    }
+
     if (count > 0) {
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|to_drop: %d|count:%d|", stream_id, to_drop, count);
     }
@@ -613,7 +676,7 @@ xqc_send_ctl_update_cwnd_limited(xqc_send_ctl_t *ctl)
     uint32_t cwnd_bytes = ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
     /*If we can not send the next full-size packet, we are CWND limited.*/
     ctl->ctl_is_cwnd_limited = 0;
-    if ((ctl->ctl_bytes_in_flight + 1200) > cwnd_bytes) {
+    if ((ctl->ctl_bytes_in_flight + XQC_QUIC_MSS) > cwnd_bytes) {
         ctl->ctl_is_cwnd_limited = 1;
     }
 }
@@ -1229,6 +1292,9 @@ xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *lar
 int
 xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t congestion_period)
 {
+    /*This function is currently not reliably implemented.*/
+    return 0;
+
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out, *smallest_lost_in_period = NULL;
     unsigned lost_pkts_in_between = 0;
@@ -1618,7 +1684,8 @@ void
 xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
-    ctl->ctl_pacing.timer_expire = 1;
+    xqc_pacing_t *pacing = &ctl->ctl_pacing;
+    xqc_pacing_on_timeout(pacing);
 }
 
 void

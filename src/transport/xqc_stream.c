@@ -11,6 +11,7 @@
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_packet.h"
 #include "src/transport/xqc_utils.h"
+#include "src/transport/xqc_pacing.h"
 
 
 static xqc_stream_id_t
@@ -1120,7 +1121,13 @@ xqc_stream_send (xqc_stream_t *stream,
         }
 
         if (check_app_limit) {
-            xqc_sample_check_app_limited(&conn->conn_send_ctl->sampler, conn->conn_send_ctl);
+            if(xqc_sample_check_app_limited(&conn->conn_send_ctl->sampler, 
+                conn->conn_send_ctl))
+            {
+                /* If we are app-limited, we should reset the next scheduling 
+                   time. */
+                xqc_pacing_on_app_limit(&conn->conn_send_ctl->ctl_pacing);
+            }
             check_app_limit = 0;
         }
 
