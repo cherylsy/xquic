@@ -178,6 +178,8 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
     uint64_t bw = 0;
     uint64_t pacing_rate = 0;
     int mode = 0;
+    int recovery = 0;
+    int slow_start = 0;
     xqc_msec_t min_rtt = 0;
 
     if (conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
@@ -190,14 +192,22 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
         min_rtt = conn_send_ctl->ctl_cong_callback->
                   xqc_cong_ctl_info_cb->min_rtt(conn_send_ctl->ctl_cong);
     }
+    recovery = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_in_recovery(conn_send_ctl->ctl_cong);
+    if (conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start) {
+        slow_start = conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start(conn_send_ctl->ctl_cong);
+    }
     uint64_t srtt = conn_send_ctl->ctl_srtt;
     xqc_conn_log(conn, XQC_LOG_STATS,
                  "|cwnd:%ui|inflight:%ud|mode:%ud|applimit:%ud|pacing_rate:%ui|bw:%ui|"
-                 "srtt:%ui|latest_rtt:%ui|min_rtt:%ui|send:%ud|lost:%ud|conn_life:%ui|",
+                 "srtt:%ui|latest_rtt:%ui|min_rtt:%ui|send:%ud|lost:%ud|tlp:%ud|recv:%ud|"
+                 "recovery:%ud|slow_start:%ud|conn_life:%ui|",
                  cwnd, conn_send_ctl->ctl_bytes_in_flight,
-                 mode, conn_send_ctl->sampler.is_app_limited, pacing_rate, bw,
+                 mode, conn_send_ctl->ctl_app_limited, pacing_rate, bw,
                  srtt, conn_send_ctl->ctl_latest_rtt, min_rtt,
                  conn_send_ctl->ctl_send_count, conn_send_ctl->ctl_lost_count,
+                 conn_send_ctl->ctl_tlp_count,
+                 conn_send_ctl->ctl_recv_count,
+                 recovery, slow_start,
                  now - conn->conn_create_time);
 
 }
@@ -681,6 +691,35 @@ xqc_send_ctl_update_cwnd_limited(xqc_send_ctl_t *ctl)
     }
 }
 
+static void
+xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl, 
+    xqc_packet_out_t *packet_out, xqc_msec_t now)
+{
+    xqc_stream_id_t stream_id;
+    xqc_stream_t *stream;
+    if (packet_out->po_frame_types & XQC_FRAME_BIT_STREAM) {
+        for (int i = 0; i < XQC_MAX_STREAM_FRAME_IN_PO; i++) {
+            if (packet_out->po_stream_frames[i].ps_is_used == 0) {
+                break;
+            }
+            stream_id = packet_out->po_stream_frames[i].ps_stream_id;
+            stream = xqc_find_stream_by_id(stream_id, ctl->ctl_conn->streams_hash);
+            if (stream) {
+                if (stream->stream_stats.first_snd_time == 0) {
+                    stream->stream_stats.first_snd_time = now;
+                }
+                if (packet_out->po_stream_frames[i].ps_has_fin) {
+                    stream->stream_stats.local_fin_snd_time = now;
+                }
+                if (packet_out->po_stream_frames[i].ps_is_reset) {
+                    stream->stream_stats.local_reset_time = now;
+                }
+            }
+
+        }
+    }
+}
+
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.5
  * OnPacketSent
@@ -721,7 +760,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
             /* udp无法识别是否真正发送到对端，避免重传一直刷新idle时间 */
             /* TODO: xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->local_settings.idle_timeout * 1000); */
         }
-
+        xqc_send_ctl_update_stream_stats_on_sent(ctl, packet_out, now);
         
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                 "|inflight:%ud|applimit:%ui|", 
