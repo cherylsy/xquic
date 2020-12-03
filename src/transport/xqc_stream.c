@@ -101,9 +101,13 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream)
             stream->stream_state_recv == XQC_RECV_STREAM_ST_RESET_READ)) {
         xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
         stream->stream_flag |= XQC_STREAM_FLAG_NEED_CLOSE;
+        xqc_msec_t now = xqc_now();
+        if (stream->stream_stats.close_time == 0) {
+            stream->stream_stats.close_time = now;
+        }
 
         xqc_send_ctl_t *ctl = stream->stream_conn->conn_send_ctl;
-        xqc_msec_t new_expire = 3 * xqc_send_ctl_calc_pto(ctl) + xqc_now();
+        xqc_msec_t new_expire = 3 * xqc_send_ctl_calc_pto(ctl) + now;
         if ((ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set &&
                 new_expire < ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_expire_time) ||
             !ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set) {
@@ -409,6 +413,8 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
 
     stream->stream_refcnt = 0;
+    xqc_memset(&stream->stream_stats, 0, sizeof(stream->stream_stats));
+    stream->stream_stats.create_time = xqc_now();
 
     xqc_stream_set_flow_ctl(stream);
 
@@ -494,6 +500,34 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_stream_shutdown_read(stream);
 
     stream->stream_flag |= XQC_STREAM_FLAG_CLOSED;
+
+#define __calc_delay(a, b) (a? (a) - (b) : 0)
+
+    xqc_log(stream->stream_conn->log, XQC_LOG_STATS, 
+            "|send_state:%d|recv_state:%d|stream_id:%ui|stream_type:%d|"
+            "send_bytes:%ui|read_bytes:%ui|recv_bytes:%ui|stream_len:%ui|"
+            "create_time:%ui|wrt_delay:%ui|"
+            "snd_delay:%ui|finwrt_delay:%ui|finsnd_delay:%ui|"
+            "finrcv_delay:%ui|finread_delay:%ui|close_delay:%ui|"
+            "apprst_delay:%ui|rstsnd_delay:%ui|rstrcv_delay:%ui|",
+            stream->stream_state_send, stream->stream_state_recv, 
+            stream->stream_id, stream->stream_type,
+            stream->stream_send_offset,
+            stream->stream_data_in.next_read_offset,
+            stream->stream_data_in.merged_offset_end,
+            stream->stream_data_in.stream_length,
+            stream->stream_stats.create_time,
+            __calc_delay(stream->stream_stats.first_write_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.first_snd_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.local_fin_write_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.local_fin_snd_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.peer_fin_rcv_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.peer_fin_read_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.close_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.app_reset_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.local_reset_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.peer_reset_time, stream->stream_stats.create_time));
+#undef __calc_delay
 
     xqc_free(stream);
 }
@@ -1025,6 +1059,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     if (stream->stream_data_in.stream_length > 0 &&
         stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
         *fin = 1;
+        stream->stream_stats.peer_fin_read_time = xqc_now();
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_DATA_RECVD) {
             stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_READ;
             xqc_stream_maybe_need_close(stream);

@@ -118,6 +118,20 @@ struct xqc_stream_s {
     xqc_recv_stream_state_t stream_state_recv;
     xqc_msec_t              stream_close_time;
     uint64_t                stream_err;
+
+    struct{
+        xqc_msec_t          create_time;
+        xqc_msec_t          peer_fin_rcv_time; /*quic stack rcv fin*/
+        xqc_msec_t          peer_fin_read_time; /*app read fin.*/
+        xqc_msec_t          local_fin_write_time; /*app send fin*/
+        xqc_msec_t          local_fin_snd_time; /*socket send fin*/
+        xqc_msec_t          first_write_time; /*app send data*/
+        xqc_msec_t          first_snd_time; /*socket send data*/
+        xqc_msec_t          close_time; /*stream close time: fin/reset read*/
+        xqc_msec_t          app_reset_time; /*app snd reset*/
+        xqc_msec_t          local_reset_time; /*socket snd reset*/
+        xqc_msec_t          peer_reset_time; /*quic stack rcv reset*/
+    }stream_stats;
 };
 
 static inline xqc_stream_type_t

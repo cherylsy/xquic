@@ -390,6 +390,10 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
         stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_SENT;
     }
 
+    if (stream->stream_stats.app_reset_time == 0) {
+        stream->stream_stats.app_reset_time = xqc_now();
+    }
+
     xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_state_send:%d|", stream->stream_id, stream->stream_state_send);
     return XQC_OK;
 
@@ -677,6 +681,7 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
             if (fin && *send_data_written == payload_size) {
                 packet_out->po_stream_frames[i].ps_has_fin = 1;
                 stream->stream_flag |= XQC_STREAM_FLAG_FIN_WRITE;
+                stream->stream_stats.local_fin_write_time = xqc_now();
             }
             break;
         }
@@ -688,6 +693,9 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 
     if (pkt_type == XQC_PTYPE_0RTT) {
         conn->zero_rtt_count++;
+    }
+    if (!stream->stream_stats.first_write_time) {
+        stream->stream_stats.first_write_time = xqc_now();
     }
     return XQC_OK;
 }
