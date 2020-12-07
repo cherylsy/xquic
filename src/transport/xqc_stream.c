@@ -509,7 +509,7 @@ xqc_destroy_stream(xqc_stream_t *stream)
             "create_time:%ui|wrt_delay:%ui|"
             "snd_delay:%ui|finwrt_delay:%ui|finsnd_delay:%ui|"
             "finrcv_delay:%ui|finread_delay:%ui|close_delay:%ui|"
-            "apprst_delay:%ui|rstsnd_delay:%ui|rstrcv_delay:%ui|",
+            "apprst_delay:%ui|rstsnd_delay:%ui|rstrcv_delay:%ui|%s|",
             stream->stream_state_send, stream->stream_state_recv, 
             stream->stream_id, stream->stream_type,
             stream->stream_send_offset,
@@ -526,7 +526,8 @@ xqc_destroy_stream(xqc_stream_t *stream)
             __calc_delay(stream->stream_stats.close_time, stream->stream_stats.create_time),
             __calc_delay(stream->stream_stats.app_reset_time, stream->stream_stats.create_time),
             __calc_delay(stream->stream_stats.local_reset_time, stream->stream_stats.create_time),
-            __calc_delay(stream->stream_stats.peer_reset_time, stream->stream_stats.create_time));
+            __calc_delay(stream->stream_stats.peer_reset_time, stream->stream_stats.create_time),
+            xqc_conn_addr_str(stream->stream_conn));
 #undef __calc_delay
 
     xqc_free(stream);
