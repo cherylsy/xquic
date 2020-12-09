@@ -32,8 +32,14 @@
 #define xqc_64_after(x, y) (!xqc_before_eq(x, y))
 #define xqc_64_after_eq(x, y) (!xqc_before(x, y))
 
+#define beta_base 717
+#define beta_lastmax_base 871
+#define beta_with_N_conns(b, N) \
+        (((N - 1) * XQC_CUBIC_BETA_SCALE + b + N - 1) / (N))
+#define num_conns 2 /*to compete with two RENO conns*/
 static int fast_convergence = 1;
-static int beta = 717; /*= 717/1024 (XQC_CUBIC_BETA_SCALE) */
+static int beta = beta_with_N_conns(beta_base, num_conns); /*= 717/1024 (XQC_CUBIC_BETA_SCALE) */
+static int beta_lastmax = beta_with_N_conns(beta_lastmax_base, num_conns);
 static int initial_ssthresh;
 static int bic_scale = 41;
 static int tcp_friendliness = 1;
@@ -42,7 +48,7 @@ static uint32_t cube_rtt_scale;
 static uint32_t beta_scale;
 static uint64_t cube_factor;
 
-#define XQC_CUBIC_MSS (XQC_QUIC_MSS)
+#define XQC_CUBIC_MSS (1460)
 #define XQC_CUBIC_MAX_SSTHRESH (~0U)
 #define XQC_CUBIC_MIN_WIN (4 * XQC_CUBIC_MSS)
 #define XQC_CUBIC_MAX_INIT_WIN (100 * XQC_CUBIC_MSS)
@@ -190,7 +196,7 @@ xqc_cubic_init(void *cong, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
     /* Precompute a bunch of the scaling factors that are used per-packet
     * based on SRTT of 100ms
     */
-    beta_scale = 8 * (XQC_CUBIC_BETA_SCALE + beta) / 3 / (XQC_CUBIC_BETA_SCALE - beta);
+    beta_scale = 8 * (XQC_CUBIC_BETA_SCALE + beta) / 3 / (XQC_CUBIC_BETA_SCALE - beta) / num_conns / num_conns;
     cube_rtt_scale = (bic_scale * 10); /* 1024*c/rtt */
     /* calculate the "K" for (wmax-cwnd)= c/rtt * K^3F
     *  so K= cubic_root( (wmax-cwnd)*rtt/c )
@@ -512,7 +518,7 @@ xqc_cubic_on_lost(void *cong, xqc_msec_t lost_sent_time)
     ca->in_lss = XQC_HSPP_LSS_STATE_END; /* end of limited slow start. */
     /* Wmax and fast convergence */
     if (ca->cwnd < ca->last_max_cwnd && fast_convergence) {
-        ca->last_max_cwnd = (ca->cwnd * (XQC_CUBIC_BETA_SCALE + beta)) / (2 * XQC_CUBIC_BETA_SCALE);
+        ca->last_max_cwnd = (ca->cwnd * beta_lastmax) / XQC_CUBIC_BETA_SCALE;
     } else {
         ca->last_max_cwnd = ca->cwnd;
     }
