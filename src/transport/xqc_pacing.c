@@ -18,7 +18,7 @@ xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
     pacing->pacing_on = pacing_on;
     pacing->pending_budget = 0;
     if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
-        pacing->pacing_on = 1;
+        pacing->pacing_on = 0;
     }
 }
 
