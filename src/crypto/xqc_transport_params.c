@@ -109,7 +109,8 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
     }
     /* PREFERRED_ADDRESS */
     if (exttype == XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS 
-        && params->preferred_address_present) 
+        && params->preferred_address_present
+        && params->preferred_address.cid.cid_len > 0)
     {
         preferred_addrlen = sizeof(params->preferred_address.ipv4) + 
                             sizeof(params->preferred_address.ipv4_port) + 
@@ -261,7 +262,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
     }
 
     if (exttype == XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS 
-        && params->preferred_address_present) 
+        && params->preferred_address_present && params->preferred_address.cid.cid_len > 0)  /* [Transport] 18.2 cid MUST NOT be zero-length */
     {
         preferred_addrlen = sizeof(params->preferred_address.ipv4) + 
                             sizeof(params->preferred_address.ipv4_port) + 
@@ -335,6 +336,7 @@ void xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
     dest->disable_active_migration = src->disable_active_migration;
     dest->max_ack_delay = src->max_ack_delay;
     dest->preferred_address = src->preferred_address;
+    dest->active_connection_id_limit = src->active_connection_id_limit;
 }
 
 //need finished
@@ -605,7 +607,8 @@ xqc_decode_preferred_address(xqc_transport_params_t *params, xqc_transport_param
 
     params->preferred_address.cid.cid_len = *p++;
     if (params->preferred_address.cid.cid_len > XQC_MAX_CID_LEN
-        || (end - p) < params->preferred_address.cid.cid_len) 
+        || 0 == params->preferred_address.cid.cid_len   /* [Transport] 18.2 cid with zero-length MUST be treated as TRANSPORT_PARAMETER_ERROR */
+        || (end - p) < params->preferred_address.cid.cid_len)
     {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
