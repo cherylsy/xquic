@@ -912,6 +912,11 @@ xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
         return ret;
     }
 
+    if (max_streams > XQC_MAX_STREAMS) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_process_max_streams_frame error|receive max_streams:%ui|", max_streams);
+        return -XQC_EPROTO;
+    }
+
     if (bidirectional) {
         if (max_streams > conn->conn_flow_ctl.fc_max_streams_bidi_can_send) {
             conn->conn_flow_ctl.fc_max_streams_bidi_can_send = max_streams;

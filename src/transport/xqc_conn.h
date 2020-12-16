@@ -39,6 +39,8 @@
 
 #define XQC_MAX_RECV_WINDOW (16*1024*1024)
 
+#define XQC_MAX_STREAMS ((uint64_t)1 << 60) // 传输参数中的max_streams或者MAX_STREAMS帧中的数值必须小于等于2^60
+
 static const uint32_t MAX_RSP_CONN_CLOSE_CNT = 3;
 
 /* 调试时候用，会删掉 */
