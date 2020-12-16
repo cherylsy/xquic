@@ -713,7 +713,7 @@ xqc_trans_param_get_index(uint64_t param_type)
 }
 
 static inline int
-xqc_check_transport_params(xqc_connection_t *conn, xqc_transport_params_t *params)
+xqc_check_transport_params(xqc_transport_params_t *params)
 {
     if (params->initial_max_streams_bidi > XQC_MAX_STREAMS
         || params->initial_max_streams_uni > XQC_MAX_STREAMS
