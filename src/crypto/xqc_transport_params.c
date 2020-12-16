@@ -712,6 +712,20 @@ xqc_trans_param_get_index(uint64_t param_type)
     return XQC_TRANSPORT_PARAM_UNKNOWN; 
 }
 
+static inline int
+xqc_check_transport_params(xqc_connection_t *conn, xqc_transport_params_t *params)
+{
+    if (params->initial_max_streams_bidi > XQC_MAX_STREAMS
+        || params->initial_max_streams_uni > XQC_MAX_STREAMS
+        || params->initial_max_stream_data_bidi_local > XQC_MAX_STREAMS
+        || params->initial_max_stream_data_bidi_remote > XQC_MAX_STREAMS
+        || params->initial_max_stream_data_uni > XQC_MAX_STREAMS)
+    {
+        return -XQC_TLS_TRANSPORT_PARAM;
+    }
+
+    return XQC_OK;
+}
 /**
  * decode one param
  */
@@ -807,7 +821,7 @@ xqc_trans_param_decode(xqc_connection_t *conn,
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
 
-    return XQC_OK;
+    return xqc_check_transport_params(params);
 }
 
 
