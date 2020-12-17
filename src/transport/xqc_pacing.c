@@ -1,6 +1,7 @@
 #include "src/transport/xqc_pacing.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_packet.h"
+#include "src/common/xqc_log.h"
 
 #define XQC_MIN_BURST_NUM (2 * XQC_QUIC_MSS)
 #define XQC_MAX_BURST_NUM (10 * XQC_QUIC_MSS)
@@ -18,7 +19,7 @@ xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl)
     pacing->pacing_on = pacing_on;
     pacing->pending_budget = 0;
     if (ctl->ctl_cong_callback->xqc_cong_ctl_bbr) {
-        pacing->pacing_on = 0;
+        pacing->pacing_on = 1;
     }
 }
 
@@ -137,8 +138,8 @@ xqc_pacing_can_write(xqc_pacing_t *pacing, uint32_t total_bytes)
 
 void
 xqc_pacing_on_app_limit(xqc_pacing_t *pacing) {
-    /*Ensure we have at least two packets to send, if we were applimited. */
-    pacing->bytes_budget = xqc_max(XQC_MIN_BURST_NUM, pacing->bytes_budget);
+    pacing->bytes_budget = XQC_MAX_BURST_NUM;
+    pacing->last_sent_time = xqc_now();
 }
 
 int

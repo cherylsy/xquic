@@ -68,12 +68,14 @@ int g_read_body;
 int g_spec_url;
 int g_test_case;
 int g_ipv6;
+int g_batch=0;
 char g_write_file[256];
 char g_read_file[256];
 char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[256];
+static uint64_t last_snd_ts;
 
 static inline uint64_t now()
 {
@@ -564,6 +566,8 @@ ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size
     //DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
     ssize_t res;
+    static ssize_t last_snd_sum = 0;
+    static ssize_t snd_sum = 0;
     int fd = ctx.fd;
     //printf("xqc_server_send size=%zd now=%llu\n",size, now());
     do {
@@ -575,8 +579,16 @@ ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size
             if (errno == EAGAIN) {
                 res = XQC_SOCKET_EAGAIN;
             }
+        } else {
+            snd_sum += res;
         }
     } while ((res < 0) && (errno == EINTR));
+
+    if ((now() - last_snd_ts) > 200000) {
+        printf("sending rate: %.3f Kbps\n", (snd_sum - last_snd_sum) * 8.0 * 1000 / (now() - last_snd_ts));
+        last_snd_ts = now();
+        last_snd_sum = snd_sum;
+    }
 
     return res;
 }
@@ -708,6 +720,10 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *c
     memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
     user_conn->peer_addrlen = peer_addrlen;
 
+    if (g_batch) {
+        connect(ctx.fd, peer_addr, peer_addrlen);
+    }
+
     return 0;
 }
 
@@ -815,6 +831,35 @@ ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_
     return write(ctx->log_fd, buf, count);
 }
 
+
+ssize_t xqc_server_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
+                                const struct sockaddr *peer_addr,
+                                socklen_t peer_addrlen)
+{
+    printf("write_mmsg!\n");
+    const int MAX_SEG = 128;
+    user_conn_t *user_conn = (user_conn_t *) user;
+    ssize_t res = 0;
+    int fd = ctx.fd;
+    struct mmsghdr mmsg[MAX_SEG];
+    memset(&mmsg, 0, sizeof(mmsg));
+    for (int i = 0; i < vlen; i++) {
+        mmsg[i].msg_hdr.msg_iov = &msg_iov[i];
+        mmsg[i].msg_hdr.msg_iovlen = 1;
+    }
+    do {
+        errno = 0;
+        res = sendmmsg(fd, mmsg, vlen, 0);
+        if (res < 0) {
+            printf("sendmmsg err %zd %s\n", res, strerror(errno));
+            if (errno == EAGAIN) {
+                res = XQC_SOCKET_EAGAIN;
+            }
+        }
+    } while ((res < 0) && (errno == EINTR));
+    return res;
+}
+
 void stop(int signo)
 {
     event_base_loopbreak(eb);
@@ -843,6 +888,7 @@ void usage(int argc, char *argv[]) {
 "   -u    Url. default https://test.xquic.com/path/resource\n"
 "   -x    Test case ID\n"
 "   -6    IPv6\n"
+"   -b    batch\n"
 , prog);
 }
 
@@ -863,7 +909,7 @@ int main(int argc, char *argv[]) {
     int pacing_on = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6b")) != -1){
         switch(ch)
         {
             case 'p':
@@ -924,6 +970,10 @@ int main(int argc, char *argv[]) {
             case '6': //IPv6
                 printf("option IPv6 :%s\n", "on");
                 g_ipv6 = 1;
+                break;
+            case 'b':
+                printf("option send batch: on\n");
+                g_batch = 1;
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -992,6 +1042,10 @@ int main(int argc, char *argv[]) {
                     .xqc_write_log_file = xqc_server_write_log_file,
             },
     };
+
+    if (g_batch) {
+        callback.write_mmsg = xqc_server_write_mmsg;
+    }
 
     xqc_cong_ctrl_callback_t cong_ctrl;
     uint32_t cong_flags = 0;
@@ -1069,7 +1123,7 @@ int main(int argc, char *argv[]) {
     ctx.ev_socket = event_new(eb, ctx.fd, EV_READ | EV_PERSIST, xqc_server_socket_event_callback, &ctx);
 
     event_add(ctx.ev_socket, NULL);
-
+    last_snd_ts = 0;
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);
