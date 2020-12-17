@@ -478,7 +478,7 @@ xqc_bbr_check_probe_rtt_done(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         return;
     }
     /* schedule the next probeRTT round */
-    bbr->min_rtt_stamp = sampler->now;
+    bbr->probe_rtt_min_us_stamp = sampler->now;
     xqc_bbr_restore_cwnd(bbr);
     xqc_bbr_exit_probe_rtt(bbr, sampler);
 }
@@ -502,6 +502,9 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if (sampler->rtt >= 0 
         && (sampler->rtt <= bbr->probe_rtt_min_us || probe_rtt_expired))
     {
+        xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, "|probertt expire|rtt:%ui, old_rtt:%ui|",
+                sampler->rtt,
+                bbr->probe_rtt_min_us);
         bbr->probe_rtt_min_us = sampler->rtt;
         bbr->probe_rtt_min_us_stamp = sampler->now;
     }
@@ -509,6 +512,9 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
                       (bbr->min_rtt_stamp + xqc_bbr2_minrtt_win_size_us);
     bbr->min_rtt_expired = min_rtt_expired;
     if (bbr->probe_rtt_min_us <= bbr->min_rtt || min_rtt_expired) {
+        xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, "|minrtt expire|rtt:%ui, old_rtt:%ui|",
+                bbr->probe_rtt_min_us,
+                bbr->min_rtt);
         bbr->min_rtt = bbr->probe_rtt_min_us;
         bbr->min_rtt_stamp = bbr->probe_rtt_min_us_stamp;
     }

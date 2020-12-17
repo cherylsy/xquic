@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <time.h>
 #include <inttypes.h>
 #include <xquic/xquic.h>
@@ -113,6 +114,8 @@ char g_url[2048];
 char g_headers[MAX_HEADER][256];
 int g_header_cnt = 0;
 int g_ping_id = 1;
+
+static uint64_t last_recv_ts = 0;
 
 
 static inline uint64_t now()
@@ -527,7 +530,6 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
     user_stream_t *user_stream = (user_stream_t *) user_data;
     char buff[4096] = {0};
     size_t buff_size = 4096;
-
     int save = g_save_body;
 
     if (save && user_stream->recv_body_fp == NULL) {
@@ -548,6 +550,7 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
 
     ssize_t read;
     ssize_t read_sum = 0;
+
     do {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
         if (read == -XQC_EAGAIN) {
@@ -1028,6 +1031,9 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
 
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
 
+    static ssize_t last_rcv_sum = 0;
+    static ssize_t rcv_sum = 0;
+
     do {
         recv_size = recvfrom(user_conn->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &user_conn->peer_addr,
                              &user_conn->peer_addrlen);
@@ -1045,6 +1051,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         }
 
         recv_sum += recv_size;
+        rcv_sum += recv_size;
 
         if (user_conn->local_addrlen == 0) {
             socklen_t tmp = sizeof(struct sockaddr_in6);
@@ -1074,6 +1081,12 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         }
         if (g_test_case == 9/*接收到重复的包*/) {g_test_case = -1; memcpy(packet_buf, copy, recv_size); goto again;}
     } while (recv_size > 0);
+
+    if ((now() - last_recv_ts) > 200000) {
+        printf("recving rate: %.3lf Kbps\n", (rcv_sum - last_rcv_sum) * 8.0 * 1000 / (now() - last_recv_ts));
+        last_recv_ts = now();
+        last_rcv_sum = rcv_sum;
+    }
 
 finish_recv:
     printf("recvfrom size:%zu\n", recv_sum);
@@ -1415,7 +1428,7 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG),
+                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_STATS: XQC_LOG_DEBUG),
                     //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
@@ -1460,7 +1473,7 @@ int main(int argc, char *argv[]) {
             .ping_on    =   0,
             .cong_ctrl_callback = cong_ctrl,
             .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
-            .so_sndbuf  =   1024*1024,
+            //.so_sndbuf  =   1024*1024,
             .proto_version = XQC_IDRAFT_VER_29,
     };
 
@@ -1469,6 +1482,7 @@ int main(int argc, char *argv[]) {
         conn_settings.proto_version = XQC_IDRAFT_INIT_VER;
     }
     if (g_test_case == 20) { /* test sendmmsg */
+        printf("test sendmmsg!\n");
         callback.write_mmsg = xqc_client_write_mmsg;
     }
 
@@ -1579,6 +1593,7 @@ int main(int argc, char *argv[]) {
             xqc_client_stream_send(user_stream->stream, user_stream);
         }
     }
+    last_recv_ts = now();
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);
