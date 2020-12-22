@@ -157,9 +157,12 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
         unsigned char *pos = packet_in->pos;
         unsigned char *end = packet_in->last;
-        size_t frame_type_len;
+        ssize_t frame_type_len;
         uint64_t frame_type;
         frame_type_len = xqc_vint_read(pos, end, &frame_type);
+        if (frame_type_len < 0) {
+            return -XQC_EVINTREAD;
+        }
 
         if (conn->conn_state == XQC_CONN_STATE_CLOSING) {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|closing state|frame_type:%ui|",
