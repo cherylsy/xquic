@@ -258,7 +258,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 {
     unsigned char *pos = packet_in->pos;
     xqc_packet_t *packet = &packet_in->pi_pkt;
-    uint8_t cid_len = c->engine->config->cid_len;
+    uint8_t cid_len = c->scid.cid_len;
 
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
     packet_in->pi_pkt.pkt_pns = XQC_PNS_APP_DATA;
@@ -357,7 +357,7 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
         return -XQC_ENOBUF;
     }
 
-    if (dcid_len < 3 || scid_len < 3) {
+    if (scid_len < 3) {
         return -XQC_EILLPKT;
     }
 
