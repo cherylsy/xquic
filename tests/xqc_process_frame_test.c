@@ -7,6 +7,7 @@
 
 char ILL_FRAME_1[] = {0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 char ZERO_LEN_NEW_TOKEN_FRAME[] = {0x07, 0x00};
+char OVERAGE_STREAM_BLOCKED_FRAME[] = {0x16, 0xD0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
 void xqc_test_process_frame()
 {
     xqc_connection_t *conn = test_engine_connect();
@@ -22,4 +23,9 @@ void xqc_test_process_frame()
     packet_in.last = packet_in.pos + sizeof(ZERO_LEN_NEW_TOKEN_FRAME);
     ret = xqc_process_frames(conn, &packet_in);
     CU_ASSERT(ret == -XQC_EPROTO);
+
+    packet_in.pos = OVERAGE_STREAM_BLOCKED_FRAME;
+    packet_in.last = packet_in.pos + sizeof(OVERAGE_STREAM_BLOCKED_FRAME);
+    ret = xqc_process_frames(conn, &packet_in);
+    CU_ASSERT(ret == -XQC_EPARAM);
 }
