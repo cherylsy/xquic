@@ -823,6 +823,8 @@ xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
         new_max_streams = stream_limit + conn->local_settings.max_streams_uni;
         conn->conn_flow_ctl.fc_max_streams_uni_can_recv = new_max_streams;
     }
+    if (stream_limit < XQC_MAX_STREAMS && (new_max_streams > XQC_MAX_STREAMS))
+        new_max_streams = XQC_MAX_STREAMS;
     ret = xqc_write_max_streams_to_packet(conn, new_max_streams, bidirectional);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR,
