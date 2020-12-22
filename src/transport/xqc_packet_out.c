@@ -589,6 +589,11 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
     int ret;
     xqc_packet_out_t *packet_out;
 
+    if (max_stream > XQC_MAX_STREAMS) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_max_streams_to_packet error|set max_stream:%ui", max_stream);
+        return -XQC_EPARAM;
+    }
+
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");

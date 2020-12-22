@@ -1300,6 +1300,9 @@ xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsi
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
+    if (recv_token_len == 0) {
+        return -XQC_EPROTO;
+    }
     p += vlen;
 
     if (recv_token_len > *token_len) {

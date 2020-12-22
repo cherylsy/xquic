@@ -155,11 +155,20 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     while (packet_in->pos < packet_in->last) {
         last_pos = packet_in->pos;
 
+        unsigned char *pos = packet_in->pos;
+        unsigned char *end = packet_in->last;
+        ssize_t frame_type_len;
+        uint64_t frame_type;
+        frame_type_len = xqc_vint_read(pos, end, &frame_type);
+        if (frame_type_len < 0) {
+            return -XQC_EVINTREAD;
+        }
+
         if (conn->conn_state == XQC_CONN_STATE_CLOSING) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|closing state|frame_type:0x%xd|",
-                    packet_in->pos[0]);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|closing state|frame_type:%ui|",
+                    frame_type);
             /* respond connection close when recv any packet */
-            if (packet_in->pos[0] != 0x1c && packet_in->pos[0] != 0x1d) {
+            if (frame_type != 0x1c && frame_type != 0x1d) {
                 xqc_conn_immediate_close(conn);
                 packet_in->pos = packet_in->last;
                 return XQC_OK;
@@ -171,10 +180,10 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             return XQC_OK;
         }
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|frame_type:0x%xd|",
-                packet_in->pos[0]);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|frame_type:%ui|",
+                frame_type);
 
-        switch (packet_in->pos[0]) {
+        switch (frame_type) {
             case 0x00:
                 //padding frame
                 ret = xqc_process_padding_frame(conn, packet_in);
@@ -816,6 +825,9 @@ xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
     } else {
         new_max_streams = stream_limit + conn->local_settings.max_streams_uni;
         conn->conn_flow_ctl.fc_max_streams_uni_can_recv = new_max_streams;
+    }
+    if (stream_limit < XQC_MAX_STREAMS && (new_max_streams > XQC_MAX_STREAMS)) {
+        new_max_streams = XQC_MAX_STREAMS;
     }
     ret = xqc_write_max_streams_to_packet(conn, new_max_streams, bidirectional);
     if (ret) {
