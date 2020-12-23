@@ -3,4 +3,6 @@
 
 void xqc_test_process_frame();
 
+void xqc_test_parse_padding_frame();
+
 #endif /* _XQC_PROCESS_FRAME_TEST_H_INCLUDED_ */

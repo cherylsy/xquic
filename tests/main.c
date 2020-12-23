@@ -53,6 +53,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_stream_frame", xqc_test_stream_frame)
         || !CU_add_test(pSuite, "xqc_test_wakeup_pq", xqc_test_wakeup_pq)
         || !CU_add_test(pSuite, "xqc_test_process_frame", xqc_test_process_frame)
+        || !CU_add_test(pSuite, "xqc_test_parse_padding_frame", xqc_test_parse_padding_frame)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();
