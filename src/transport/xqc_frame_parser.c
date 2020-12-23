@@ -314,8 +314,14 @@ xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
 int
 xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
-    packet_in->pos = packet_in->last;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_PADDING;
+    packet_in->pos++;   /* skip frame type 0x00 */
+
+    /* skip all padding bytes(0x00) */
+    while (packet_in->pos < packet_in->last && *packet_in->pos == 0x00) {
+        packet_in->pos++;
+    }
+
     return XQC_OK;
 }
 
