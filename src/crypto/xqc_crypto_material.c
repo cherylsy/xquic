@@ -44,7 +44,7 @@ xqc_negotiated_aead_and_prf(xqc_tls_context_t *ctx, uint32_t cipher_id)
         case 0x03001303u: // TLS_CHACHA20_POLY1305_SHA256
             xqc_aead_init_chacha20_poly1305(&ctx->aead);
             xqc_crypto_init_chacha20(&ctx->hp);
-            xqc_digist_init_to_sha384(&ctx->prf);
+            xqc_digist_init_to_sha256(&ctx->prf);
             return 0;
         case NID_undef:
             xqc_aead_init_null(&ctx->aead, XQC_FAKE_AEAD_OVERHEAD);
