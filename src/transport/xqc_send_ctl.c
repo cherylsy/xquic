@@ -417,6 +417,11 @@ xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
                 } else {
                     stream->stream_unacked_pkt--;
                 }
+
+                if (packet_out->po_stream_frames[i].ps_has_fin && stream->stream_stats.first_fin_ack_time == 0) {
+                    stream->stream_stats.first_fin_ack_time = xqc_now();
+                }
+                
                 /* Update stream state */
                 if (stream->stream_unacked_pkt == 0 && stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_SENT) {
                     stream->stream_state_send = XQC_SEND_STREAM_ST_DATA_RECVD;

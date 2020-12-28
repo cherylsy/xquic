@@ -95,6 +95,12 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream)
     if (stream->stream_flag & XQC_STREAM_FLAG_NEED_CLOSE) {
         return;
     }
+
+    if (stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_RECVD
+        && stream->stream_stats.all_data_acked_time == 0) {
+        stream->stream_stats.all_data_acked_time = xqc_now();
+    }
+
     if ((stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_RECVD &&
         stream->stream_state_recv == XQC_RECV_STREAM_ST_DATA_READ) ||
             (stream->stream_state_send == XQC_SEND_STREAM_ST_RESET_RECVD &&
@@ -508,7 +514,8 @@ xqc_destroy_stream(xqc_stream_t *stream)
             "send_bytes:%ui|read_bytes:%ui|recv_bytes:%ui|stream_len:%ui|"
             "create_time:%ui|wrt_delay:%ui|"
             "snd_delay:%ui|finwrt_delay:%ui|finsnd_delay:%ui|"
-            "finrcv_delay:%ui|finread_delay:%ui|close_delay:%ui|"
+            "finrcv_delay:%ui|finread_delay:%ui|all_acked_delay:%ui|"
+            "firstfinack_dely:%ui|close_delay:%ui|"
             "apprst_delay:%ui|rstsnd_delay:%ui|rstrcv_delay:%ui|%s|",
             stream->stream_state_send, stream->stream_state_recv, 
             stream->stream_id, stream->stream_type,
@@ -523,6 +530,8 @@ xqc_destroy_stream(xqc_stream_t *stream)
             __calc_delay(stream->stream_stats.local_fin_snd_time, stream->stream_stats.create_time),
             __calc_delay(stream->stream_stats.peer_fin_rcv_time, stream->stream_stats.create_time),
             __calc_delay(stream->stream_stats.peer_fin_read_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.all_data_acked_time, stream->stream_stats.create_time),
+            __calc_delay(stream->stream_stats.first_fin_ack_time, stream->stream_stats.create_time),
             __calc_delay(stream->stream_stats.close_time, stream->stream_stats.create_time),
             __calc_delay(stream->stream_stats.app_reset_time, stream->stream_stats.create_time),
             __calc_delay(stream->stream_stats.local_reset_time, stream->stream_stats.create_time),
