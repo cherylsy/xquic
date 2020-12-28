@@ -127,6 +127,8 @@ struct xqc_stream_s {
         xqc_msec_t          local_fin_snd_time; /*socket send fin*/
         xqc_msec_t          first_write_time; /*app send data*/
         xqc_msec_t          first_snd_time; /*socket send data*/
+        xqc_msec_t          first_fin_ack_time;
+        xqc_msec_t          all_data_acked_time;
         xqc_msec_t          close_time; /*stream close time: fin/reset read*/
         xqc_msec_t          app_reset_time; /*app snd reset*/
         xqc_msec_t          local_reset_time; /*socket snd reset*/
