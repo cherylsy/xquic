@@ -1,4 +1,3 @@
-
 #include "src/common/xqc_memory_pool.h"
 #include "src/common/xqc_id_hash.h"
 #include "src/transport/xqc_conn.h"
@@ -97,14 +96,16 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream)
     }
 
     if (stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_RECVD
-        && stream->stream_stats.all_data_acked_time == 0) {
+        && stream->stream_stats.all_data_acked_time == 0)
+    {
         stream->stream_stats.all_data_acked_time = xqc_now();
     }
 
     if ((stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_RECVD &&
         stream->stream_state_recv == XQC_RECV_STREAM_ST_DATA_READ) ||
             (stream->stream_state_send == XQC_SEND_STREAM_ST_RESET_RECVD &&
-            stream->stream_state_recv == XQC_RECV_STREAM_ST_RESET_READ)) {
+            stream->stream_state_recv == XQC_RECV_STREAM_ST_RESET_READ)) 
+    {
         xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
         stream->stream_flag |= XQC_STREAM_FLAG_NEED_CLOSE;
         xqc_msec_t now = xqc_now();
