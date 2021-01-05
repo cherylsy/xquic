@@ -62,6 +62,15 @@ typedef struct xqc_cid_s
     uint8_t    cid_buf[XQC_MAX_CID_LEN];
 } xqc_cid_t;
 
+typedef struct xqc_sid_ctx_s {
+    uint8_t    sid_len;
+    uint8_t    sid_buf[XQC_MAX_CID_LEN];
+    uint8_t    conf_id;
+    uint8_t    cid_len;
+    uint8_t    cid_buf[XQC_MAX_CID_LEN];
+} xqc_quic_lb_ctx_t;
+
+
 typedef enum xqc_log_level_s
 {
     XQC_LOG_REPORT,
@@ -97,6 +106,6 @@ struct iovec {
 };
 #endif
 
-#define XQC_EXPORT_PUBLIC_API   __attribute__((visibility("default"))) 
+#define XQC_EXPORT_PUBLIC_API   __attribute__((visibility("default")))
 
 #endif /*_XQUIC_TYPEDEF_H_INCLUDED_*/

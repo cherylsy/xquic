@@ -47,6 +47,9 @@ XQUIC_VERS_1.0 {
         xqc_cid_is_equal;
         xqc_dcid_str;
         xqc_engine_config_get_cid_len;
+        xqc_engine_set_quic_lb_ctx;
+        xqc_engine_get_quic_lb_ctx;
+        xqc_engine_get_random_generator;
         xqc_conn_continue_send;
         xqc_conn_get_stats;
         xqc_bbr_cb;

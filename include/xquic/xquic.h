@@ -122,6 +122,8 @@ typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, void 
 /* user_data is the parameter of xqc_engine_packet_process */
 typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
 
+/* user_data is the parameter of xqc_engine_packet_process */
+typedef int (*xqc_cid_generate_pt)(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /* log interface */
 typedef struct xqc_log_callbacks_s {
@@ -214,7 +216,7 @@ typedef struct xqc_congestion_control_callback_s {
     void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
-    
+
     xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;
 } xqc_cong_ctrl_callback_t;
 
@@ -784,6 +786,16 @@ unsigned char* xqc_dcid_str_by_scid(xqc_engine_t *engine, xqc_cid_t *scid);
 XQC_EXPORT_PUBLIC_API
 uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
 
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_set_quic_lb_ctx(xqc_engine_t *engine, xqc_quic_lb_ctx_t *quic_lb_ctx);
+
+XQC_EXPORT_PUBLIC_API
+xqc_quic_lb_ctx_t *xqc_engine_get_quic_lb_ctx(xqc_engine_t *engine);
+
+XQC_EXPORT_PUBLIC_API
+xqc_random_generator_t *xqc_engine_get_random_generator(xqc_engine_t *engine);
+
+
 
 /**
  * User should call xqc_conn_continue_send when write event ready
@@ -798,6 +810,7 @@ int xqc_conn_continue_send(xqc_engine_t *engine,
 XQC_EXPORT_PUBLIC_API
 xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
                                     xqc_cid_t *cid);
+
 #ifdef __cplusplus
 }
 #endif

@@ -5,7 +5,7 @@
 #include "src/transport/xqc_conn.h"
 #include "src/common/xqc_random.h"
 
-xqc_int_t 
+xqc_int_t
 xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)
 {
     unsigned char *buf;
@@ -34,7 +34,7 @@ xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)
 }
 
 
-xqc_int_t 
+xqc_int_t
 xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src)
 {
     if (dst == NULL || src == NULL) {
@@ -52,21 +52,21 @@ xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src)
     return XQC_OK;
 }
 
-void 
+void
 xqc_cid_copy(xqc_cid_t *dst, xqc_cid_t *src)
 {
     dst->cid_len = src->cid_len;
     xqc_memcpy(dst->cid_buf, src->cid_buf, dst->cid_len);
 }
 
-void 
+void
 xqc_cid_init_zero(xqc_cid_t *cid)
 {
     cid->cid_len = 0;
     xqc_memzero(cid->cid_buf, XQC_MAX_CID_LEN);
 }
 
-void 
+void
 xqc_cid_set(xqc_cid_t *cid, unsigned char *data, uint8_t len)
 {
     cid->cid_len = len;

@@ -69,13 +69,17 @@ int g_spec_url;
 int g_test_case;
 int g_ipv6;
 int g_batch=0;
+int sid_len;
+int cid_len = XQC_MAX_CID_LEN;
 char g_write_file[256];
 char g_read_file[256];
 char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[256];
+char sid[XQC_MAX_CID_LEN];
 static uint64_t last_snd_ts;
+xqc_quic_lb_ctx_t quic_lb_ctx;
 
 static inline uint64_t now()
 {
@@ -822,6 +826,36 @@ xqc_server_engine_callback(int fd, short what, void *arg)
     xqc_engine_main_logic(ctx->engine);
 }
 
+static int
+xqc_server_cid_generate_pt(xqc_engine_t *engine, xqc_cid_t *cid)
+{
+    int                  cid_buf_index = 0, i;
+    int                  sid_len;
+    xqc_quic_lb_ctx_t   *quic_lb_ctx;
+
+    quic_lb_ctx = xqc_engine_get_quic_lb_ctx(engine);
+
+    cid->cid_len = quic_lb_ctx->cid_len;
+    sid_len = quic_lb_ctx->sid_len;
+
+    if (sid_len < 0 || sid_len > cid->cid_len) {
+        return XQC_ERROR;
+    }
+
+    cid->cid_buf[cid_buf_index] = quic_lb_ctx->conf_id;
+    cid_buf_index += 1;
+
+    memcpy(cid->cid_buf + cid_buf_index, quic_lb_ctx->sid_buf, sid_len);
+    cid_buf_index += sid_len;
+
+    for (i = cid_buf_index; i < cid->cid_len; i++) {
+        cid->cid_buf[i] = (uint8_t)rand();
+    }
+
+    /* xqc_log(engine->log, XQC_LOG_DEBUG, "|cid:%s|cid_len:%ud|", xqc_scid_str(cid), cid->cid_len); */
+    return XQC_OK;
+}
+
 
 int xqc_server_open_log_file(void *engine_user_data)
 {
@@ -911,8 +945,11 @@ void usage(int argc, char *argv[]) {
 "   -x    Test case ID\n"
 "   -6    IPv6\n"
 "   -b    batch\n"
+"   -S    server sid\n"
 , prog);
 }
+
+
 
 int main(int argc, char *argv[]) {
 
@@ -931,7 +968,7 @@ int main(int argc, char *argv[]) {
     int pacing_on = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6b")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6bS:")) != -1){
         switch(ch)
         {
             case 'p':
@@ -946,7 +983,7 @@ int main(int argc, char *argv[]) {
                 c_cong_ctl = optarg[0];
                 if (strncmp("bbr2", optarg, 4) == 0)
                     c_cong_ctl = 'B';
-                if (strncmp("bbr2+", optarg, 5) == 0 
+                if (strncmp("bbr2+", optarg, 5) == 0
                     || strncmp("bbr+", optarg, 4) == 0)
                     c_cong_plus = 1;
                 printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
@@ -996,6 +1033,11 @@ int main(int argc, char *argv[]) {
             case 'b':
                 printf("option send batch: on\n");
                 g_batch = 1;
+                break;
+            case 'S': /* set server sid */
+                printf("set server sid \n");
+                snprintf(sid, sizeof(sid), optarg);
+                sid_len = strlen(sid);
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -1064,6 +1106,7 @@ int main(int argc, char *argv[]) {
                     .xqc_close_log_file = xqc_server_close_log_file,
                     .xqc_write_log_file = xqc_server_write_log_file,
             },
+            .cid_gen_cb = xqc_server_cid_generate_pt,
     };
 
     if (g_batch) {
@@ -1137,7 +1180,7 @@ int main(int argc, char *argv[]) {
         }
 
         config.cid_negotiate = 1;
-        config.cid_len = 12;
+        config.cid_len = cid_len;
 
         if (xqc_set_engine_config(&config, XQC_ENGINE_SERVER) < 0) {
             printf("set engine config error\n");
@@ -1155,6 +1198,13 @@ int main(int argc, char *argv[]) {
         printf("error create engine\n");
         return -1;
     }
+
+    memcpy(quic_lb_ctx.sid_buf, sid, sid_len);
+    quic_lb_ctx.sid_len = sid_len;
+    quic_lb_ctx.conf_id = 0;
+    quic_lb_ctx.cid_len = cid_len;
+
+    xqc_engine_set_quic_lb_ctx(ctx.engine, &quic_lb_ctx);
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, server_port);
     if (ctx.fd < 0) {

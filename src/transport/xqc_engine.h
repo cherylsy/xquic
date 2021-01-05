@@ -26,6 +26,7 @@ typedef struct xqc_engine_s {
     xqc_str_hash_table_t   *conns_hash_dcid; /*For reset packet*/
     xqc_pq_t               *conns_active_pq; /* In process */
     xqc_wakeup_pq_t        *conns_wait_wakeup_pq; /* Need wakeup after next tick time */
+    xqc_quic_lb_ctx_t      *quic_lb_ctx; /* for cid generater */
 
     xqc_log_t              *log;
     xqc_random_generator_t *rand_generator;

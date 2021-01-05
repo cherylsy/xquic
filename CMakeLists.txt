@@ -244,7 +244,7 @@ add_executable(test_qpack_fuzzing tests/test_qpack_fuzzing.c)
 add_executable(xquic_bench benchmark/xquic_bench.c)
 
 link_directories( /usr/local/lib )
-link_directories( ${BABASSL_PATH}/lib/) 
+link_directories( ${BABASSL_PATH}/lib/)
 
 if(PLATFORM STREQUAL "mac32")
     target_link_libraries(test_server xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)

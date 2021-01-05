@@ -865,6 +865,9 @@ process:
         xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
         conn->local_addrlen = local_addrlen;
     }
+    /* peer port may changed, reset connection peer address */
+    xqc_memcpy(conn->peer_addr, peer_addr, peer_addrlen);
+    conn->peer_addrlen = peer_addrlen;
 
     conn->conn_send_ctl->ctl_bytes_recv += packet_in_size;
     conn->conn_send_ctl->ctl_recv_count++;
@@ -913,4 +916,19 @@ uint8_t
 xqc_engine_config_get_cid_len(xqc_engine_t *engine)
 {
     return engine->config->cid_len;
+}
+
+void xqc_engine_set_quic_lb_ctx(xqc_engine_t *engine, xqc_quic_lb_ctx_t *quic_lb_ctx)
+{
+    engine->quic_lb_ctx = quic_lb_ctx;
+}
+
+xqc_quic_lb_ctx_t *xqc_engine_get_quic_lb_ctx(xqc_engine_t *engine)
+{
+    return engine->quic_lb_ctx;
+}
+
+xqc_random_generator_t *xqc_engine_get_random_generator(xqc_engine_t *engine)
+{
+    return engine->rand_generator;
 }
