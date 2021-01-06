@@ -1155,7 +1155,6 @@ done:
         bbr2->congestion_window = xqc_min(bbr2->congestion_window, 
                                           xqc_bbr2_probe_rtt_cwnd(bbr2));
     }
-    ctx->target_cwnd = target_cwnd;
 }
 
 static void 
