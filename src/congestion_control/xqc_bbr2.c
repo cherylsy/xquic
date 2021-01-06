@@ -1111,13 +1111,12 @@ static void
 xqc_bbr2_set_cwnd(xqc_bbr2_t *bbr2, xqc_sample_t *sampler, 
     xqc_bbr2_context_t *ctx)
 {
+    xqc_send_ctl_t *send_ctl = sampler->send_ctl;
+    uint32_t target_cwnd, extra_cwnd;
+    
     if (sampler->acked == 0) {
         goto done;
     }
-        
-    xqc_send_ctl_t *send_ctl = sampler->send_ctl;
-
-    uint32_t target_cwnd, extra_cwnd;
     target_cwnd = xqc_bbr2_inflight(bbr2, xqc_bbr2_bw(bbr2), bbr2->cwnd_gain);
     extra_cwnd = xqc_bbr2_ack_aggregation_cwnd(bbr2);
     xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG,
