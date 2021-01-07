@@ -145,18 +145,26 @@ set(
     "src/congestion_control/xqc_bbr2.c"
 )
 
-add_library(
-    xquic
-
-    #STATIC
-    SHARED
-
-
+set (
+    XQC_SOURCE 
+    
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${CRYPTO_SOURCE}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
+)
+
+add_library(
+    xquic-static
+    STATIC
+    ${XQC_SOURCE}
+)
+
+add_library(
+    xquic
+    SHARED
+    ${XQC_SOURCE}
 )
 
 
