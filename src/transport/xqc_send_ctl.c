@@ -1014,7 +1014,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
         recovery_start_time = ctl->ctl_cong_callback->
                               xqc_cong_ctl_info_cb->
                               recovery_start_time(ctl->ctl_cong);
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
+        xqc_conn_log(ctl->ctl_conn, XQC_LOG_DEBUG,
                 "|bbr on ack|mode:%ud|pacing_rate:%ud|bw:%ud|"
                 "cwnd:%ud|full_bw_reached:%ud|inflight:%ud|"
                 "srtt:%ui|latest_rtt:%ui|min_rtt:%ui|applimit:%ud|"
@@ -1433,33 +1433,30 @@ xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_msec_t sent_time)
 int
 xqc_send_ctl_is_app_limited(xqc_send_ctl_t *ctl)
 {
-    if (!ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
-        /*This is only for loss-based CCs*/
-        if (ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start(ctl->ctl_cong)) {
-            uint32_t double_cwnd = ctl->ctl_max_bytes_in_flight << 1;
-            uint32_t cwnd = ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, 
-                    "|cwnd: %ud, 2*max_inflight: %ud|", cwnd, double_cwnd);
-            return cwnd >= double_cwnd;
-        }
-        return !(ctl->ctl_is_cwnd_limited);
-    }
     return 0;
 }
 
+/*This function is called inside cc's on_ack callbacks if needed*/
+int
+xqc_send_ctl_is_cwnd_limited(xqc_send_ctl_t *ctl)
+{
+   if (ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start(ctl->ctl_cong)) {
+       uint32_t double_cwnd = ctl->ctl_max_bytes_in_flight << 1;
+       uint32_t cwnd = ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong);
+       xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
+               "|cwnd: %ud, 2*max_inflight: %ud|", cwnd, double_cwnd);
+       return cwnd < double_cwnd;
+   }
+   return (ctl->ctl_is_cwnd_limited);
+}
 
 void
 xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, 
                        xqc_msec_t now)
 {
-    int is_app_limited = xqc_send_ctl_is_app_limited(ctl);
-    if (!is_app_limited) {
-        if (ctl->ctl_cong_callback->xqc_cong_ctl_on_ack) {
-            ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet,
-                                                        now);
-        } 
-    } else {
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|Not limited by CWND!|");
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_on_ack) {
+        ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet,
+                                                    now);
     }
     /*For CUBIC debug*/
 #if 0

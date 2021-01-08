@@ -293,6 +293,9 @@ xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_msec_t sent_time);
 int
 xqc_send_ctl_is_app_limited(xqc_send_ctl_t *ctl);
 
+int
+xqc_send_ctl_is_cwnd_limited(xqc_send_ctl_t *ctl);
+
 void
 xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now);
 
