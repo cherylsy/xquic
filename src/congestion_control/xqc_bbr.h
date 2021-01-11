@@ -123,6 +123,11 @@ typedef struct xqc_bbr_s{
     uint64_t               probe_rtt_min_us;
     uint64_t               probe_rtt_min_us_stamp;
 
+    uint32_t               snd_cwnd_cnt_bytes; /*For AI*/
+    uint32_t               beyond_target_cwnd; /*To compete with buffer fillers*/
+    uint32_t               ai_scale_accumulated_bytes;
+    uint32_t               ai_scale;
+
 #if XQC_BBR_RTTVAR_COMPENSATION_ENABLED
     /*CWND compensation for RTT variation+ */
     xqc_win_filter_t       max_rtt;
