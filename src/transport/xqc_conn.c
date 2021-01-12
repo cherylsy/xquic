@@ -1519,6 +1519,15 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
 }
 
 int
+xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn)
+{
+    if (conn->tlsref.resumption) {
+        return XQC_TRUE;
+    }
+    return XQC_FALSE;
+}
+
+int
 xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level)
 {
     if (conn->undecrypt_count[encrypt_level] >= XQC_UNDECRYPT_PACKET_MAX || packet_in->buf_size > XQC_MSS) {

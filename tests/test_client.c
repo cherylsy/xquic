@@ -358,6 +358,7 @@ int xqc_client_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
 
+    printf("xqc_conn_is_ready_to_send_early_data:%d\n", xqc_conn_is_ready_to_send_early_data(conn));
     return 0;
 }
 
