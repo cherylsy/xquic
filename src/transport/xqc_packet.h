@@ -56,8 +56,8 @@ struct xqc_packet_s {
 };
 
 
-#define XQC_PACKET_IS_LONG_HEADER(buf) ((buf[0] & 0x80) != 0)
-#define XQC_PACKET_IS_SHORT_HEADER(buf) ((buf[0] & 0x80) == 0)
+#define XQC_PACKET_IS_LONG_HEADER(buf) ((buf[0] & 0x80) == 0x80)
+#define XQC_PACKET_IS_SHORT_HEADER(buf) ((buf[0] & 0xC0) == 0x40)
 
 #define XQC_PACKET_LONG_HEADER_GET_TYPE(buf) ((buf[0] & 0x30) >> 4)
 
