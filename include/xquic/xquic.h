@@ -636,7 +636,7 @@ int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_is_ready_to_send_early_data(xqc_connection_t * conn);
+int xqc_conn_is_ready_to_send_early_data(xqc_connection_t * conn);
 
 /**
  * Create new stream in quic connection.

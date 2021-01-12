@@ -530,6 +530,8 @@ int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
 /* Include BORINGSSL and OPENSSL. return XQC_TRUE for early data accepted, XQC_FALSE for early data rejected */
 int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn);
 
+int xqc_is_ready_to_send_early_data(xqc_connection_t * conn);
+
 // create crypto nonce
 void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,uint64_t pkt_num) ;
 int xqc_conn_prepare_key_update(xqc_connection_t * conn);
