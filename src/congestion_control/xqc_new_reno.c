@@ -29,6 +29,7 @@ xqc_reno_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_param
     reno->reno_congestion_window = XQC_kInitialWindow;
     reno->reno_ssthresh = 0xffffffff;
     reno->reno_recovery_start_time = 0;
+    reno->ctl_ctx = ctl_ctx;
 }
 
 /**
@@ -70,6 +71,10 @@ xqc_reno_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now)
 
     if (sent_time > reno->reno_recovery_start_time) {
         reno->reno_recovery_start_time = 0;
+    }
+
+    if (!xqc_send_ctl_is_cwnd_limited(reno->ctl_ctx)) {
+        return;
     }
 
     if (reno->reno_congestion_window < reno->reno_ssthresh) {

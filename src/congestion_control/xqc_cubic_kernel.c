@@ -471,6 +471,10 @@ xqc_cubic_on_ack(void *cong, xqc_packet_out_t *po, xqc_msec_t now)
         /* Do not increase cwnd in recovery mode */
         return;
     }
+
+    if (!xqc_send_ctl_is_cwnd_limited(ca->ctl_ctx)) {
+        return;
+    }
     
     if (xqc_cubic_in_slow_start(ca))
     {

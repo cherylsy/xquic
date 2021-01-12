@@ -22,6 +22,7 @@ kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 /*Pacing gain cycle rounds */
 #define XQC_BBR_CYCLE_LENGTH 8
 #define XQC_BBR_INF 0x7fffffff
+#define XQC_BBR_MAX_AI_SCALE (~0U)
 
 
 /*Size of window of bandwidth filter, in rtts */
@@ -29,7 +30,7 @@ const uint32_t xqc_bbr_bw_win_size = XQC_BBR_CYCLE_LENGTH + 2;
 /*Window of min rtt filter, in sec */
 const uint32_t xqc_bbr_minrtt_win_size = 10;
 /* Minimum time spent in BBR_PROBE_RTT, in us*/
-const uint32_t xqc_bbr_probertt_time_us = 200000;
+const uint32_t xqc_bbr_probertt_time_us = 100000;
 /*Initial rtt before any samples are received, in ms  */
 const uint64_t xqc_bbr_initial_rtt_ms = 100;
 /*The gain of pacing rate for STRAT_UP, 2/(ln2) */
@@ -37,14 +38,14 @@ const float xqc_bbr_high_gain = 2.885;
 /*Gain in BBR_DRAIN */
 const float xqc_bbr_drain_gain = 1.0 / 2.885;
 /* Gain for cwnd in probe_bw, like slow start*/
-const float xqc_bbr_cwnd_gain = 2.0;
+const float xqc_bbr_cwnd_gain = 2.5;
 /*Cycle of gains in PROBE_BW for pacing rate */
 const float xqc_bbr_pacing_gain[] = {1.25, 0.75, 1, 1, 1, 1, 1, 1};
 const float xqc_bbr_low_pacing_gain[] = {1.1, 0.9, 1, 1, 1, 1, 1, 1};
 /*Minimum packets that need to ensure ack if there is delayed ack */
 const uint32_t xqc_bbr_min_cwnd = 4 * XQC_BBR_MAX_DATAGRAMSIZE;
 /*If bandwidth has increased by 1.25, there may be more bandwidth avaliable */
-const float xqc_bbr_fullbw_thresh = 1.25;
+const float xqc_bbr_fullbw_thresh = 1.1;
 /*After 3 rounds bandwidth less than (1.25x), estimate the pipe is full */
 const uint32_t xqc_bbr_fullbw_cnt = 3;
 const float xqc_bbr_probe_rtt_gain = 0.75;
@@ -53,11 +54,12 @@ const float xqc_bbr_max_extra_ack_time = 0.1;
 const uint32_t xqc_bbr_ack_epoch_acked_reset_thresh = 1 << 20;
 const float xqc_bbr_pacing_rate_margin_percent = 0;
 
+
 /* BBRv2 parameters */
 const float xqc_bbr2_drain_gain = 0.75;
-const float xqc_bbr2_startup_cwnd_gain = 2.885;
+const float xqc_bbr2_startup_cwnd_gain = 2.885 + 2;
 /* keep minrtt valid for 10s if it has not been changed */
-const uint32_t xqc_bbr2_minrtt_win_size_us = 10000000;
+const uint32_t xqc_bbr2_minrtt_win_size_us = 3000000;
 /* probe new minrtt in 2.5s*/
 const uint32_t xqc_bbr2_probertt_win_size_us = 2500000;
 const bool xqc_bbr2_extra_ack_in_startup = 1;
@@ -121,6 +123,10 @@ xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params)
         bbr->rttvar_compensation_on = 1;
     }
 #endif
+    bbr->beyond_target_cwnd = 0;
+    bbr->snd_cwnd_cnt_bytes = 0;
+    bbr->ai_scale = 1;
+    bbr->ai_scale_accumulated_bytes = 0;
     bbr->min_rtt = sampler->srtt ? sampler->srtt : XQC_BBR_INF;
     bbr->min_rtt_stamp = now;
     bbr->probe_rtt_min_us = sampler->srtt ? sampler->srtt : XQC_BBR_INF;
@@ -280,7 +286,7 @@ xqc_bbr_is_next_cycle_phase(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     /* Drain to target: 1xBDP */
     if (bbr->pacing_gain < 1.0) {
         should_advance_gain_cycling = is_full_length 
-            && (inflight <= xqc_bbr_target_cwnd(bbr, 1.0));
+            || (inflight <= xqc_bbr_target_cwnd(bbr, 1.0));
     }
     return should_advance_gain_cycling;
 }
@@ -515,6 +521,20 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, "|minrtt expire|rtt:%ui, old_rtt:%ui|",
                 bbr->probe_rtt_min_us,
                 bbr->min_rtt);
+        if (bbr->probe_rtt_min_us_stamp != bbr->min_rtt_stamp
+            || min_rtt_expired)
+        {
+            /*We should remove additional cwnd if background buffer-fillers 
+              have gone away or we have increased our target_cwnd by increasing
+              min_rtt.*/
+            bbr->snd_cwnd_cnt_bytes = 0;
+            bbr->beyond_target_cwnd = 0;
+            /*If we have increased min_rtt, we should reset our accelerating factor.*/
+            if (min_rtt_expired) {
+                bbr->ai_scale = 1;
+                bbr->ai_scale_accumulated_bytes = 0;
+            }
+        }
         bbr->min_rtt = bbr->probe_rtt_min_us;
         bbr->min_rtt_stamp = bbr->probe_rtt_min_us_stamp;
     }
@@ -541,7 +561,8 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
             && (sampler->bytes_inflight <= xqc_bbr_probe_rtt_cwnd(bbr)))
         {
             bbr->probe_rtt_round_done_stamp = sampler->now + 
-                                              xqc_bbr_probertt_time_us;                                  
+                                              xqc_min(2*sampler->srtt, 
+                                              xqc_bbr_probertt_time_us);                                 
             bbr->probe_rtt_round_done = FALSE;
             bbr->next_round_delivered = sampler->total_acked;
 
@@ -662,6 +683,37 @@ xqc_bbr_reset_cwnd(void *cong_ctl)
     }
     /* reset recovery start time in any case */
     bbr->recovery_start_time = 0;
+    /*If losses happened, we do not increase cwnd beyond target_cwnd.*/
+    bbr->snd_cwnd_cnt_bytes = 0;
+    bbr->beyond_target_cwnd = 0;
+    bbr->ai_scale = 1;
+    bbr->ai_scale_accumulated_bytes = 0;
+}
+
+
+static void
+xqc_bbr_cong_avoid_ai(xqc_bbr_t *bbr, uint32_t cwnd, uint32_t acked)
+{
+    /*growing 2x cwnd at maximum per RTT*/
+    uint32_t cwnd_thresh = xqc_max(XQC_BBR_MAX_DATAGRAMSIZE, 
+                                   cwnd / bbr->ai_scale);
+    if (bbr->snd_cwnd_cnt_bytes >= cwnd_thresh) {
+        bbr->beyond_target_cwnd += XQC_BBR_MAX_DATAGRAMSIZE;
+        bbr->snd_cwnd_cnt_bytes = 0;
+    }
+    bbr->snd_cwnd_cnt_bytes += acked;
+    if (bbr->snd_cwnd_cnt_bytes >= cwnd_thresh) {
+        uint32_t delta = bbr->snd_cwnd_cnt_bytes / cwnd_thresh;
+        bbr->snd_cwnd_cnt_bytes -= delta * cwnd_thresh;
+        bbr->beyond_target_cwnd += delta * XQC_BBR_MAX_DATAGRAMSIZE;
+    }
+    /*update ai_scale: we want to double ai_scale when enough data is acked.*/
+    bbr->ai_scale_accumulated_bytes += acked;
+    if (bbr->ai_scale_accumulated_bytes >= cwnd_thresh) {
+        uint32_t delta = bbr->ai_scale_accumulated_bytes / cwnd_thresh;
+        bbr->ai_scale = xqc_min(bbr->ai_scale + delta, XQC_BBR_MAX_AI_SCALE);
+        bbr->ai_scale_accumulated_bytes -= delta * cwnd_thresh;
+    }
 }
 
 static void 
@@ -691,6 +743,23 @@ xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         xqc_bbr_modulate_cwnd_for_recovery(bbr, sampler);
         if (!bbr->packet_conservation) {
             if (bbr->full_bandwidth_reached) {
+                if ((bbr->congestion_window + sampler->acked 
+                    >= (target_cwnd + bbr->beyond_target_cwnd))
+                    && sampler->send_ctl->ctl_is_cwnd_limited)
+                {
+                    /*We are limited by target_cwnd*/
+                    xqc_bbr_cong_avoid_ai(bbr, xqc_bbr_target_cwnd(bbr, 1.0), sampler->acked);   
+                }
+                /*additive increasing target_cwnd*/
+                target_cwnd += bbr->beyond_target_cwnd;
+                xqc_conn_log(sampler->send_ctl->ctl_conn, XQC_LOG_DEBUG, 
+                            "|cwnd: %ud|target_cwnd: %ud|acked: %ud"
+                            "|cwnd_cnt: %ud|beyond_target_cwnd: %ud|",
+                            bbr->congestion_window,
+                            target_cwnd,
+                            sampler->acked,
+                            bbr->snd_cwnd_cnt_bytes,
+                            bbr->beyond_target_cwnd);
                 bbr->congestion_window = xqc_min(target_cwnd, 
                                                 bbr->congestion_window + 
                                                 sampler->acked);
@@ -720,6 +789,11 @@ xqc_bbr_on_lost(void *cong_ctl, xqc_msec_t lost_sent_time)
        is hampered because of frequently entering packet conservation state. */
     xqc_bbr_save_cwnd(bbr);
     bbr->recovery_start_time = xqc_now();
+    /*If losses happened, we do not increase cwnd beyond target_cwnd.*/
+    bbr->snd_cwnd_cnt_bytes = 0;
+    bbr->beyond_target_cwnd = 0;
+    bbr->ai_scale = 1;
+    bbr->ai_scale_accumulated_bytes = 0;
 }
 
 static void 
