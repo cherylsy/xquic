@@ -70,6 +70,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT]        = "CANNOT_DESTROY",
         [XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD_SHIFT]  = "HSK_DONE_RECVD",
         [XQC_CONN_FLAG_ANTI_AMPLIFICATION_SHIFT]    = "ANTI_AMPLIFICATION",
+        [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
 };
 
 const char*
@@ -1385,6 +1386,10 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
     if (*expire < now) {
         xqc_log(conn->log, XQC_LOG_INFO, "|token_expire|expire:%ud|now:%ui|", *expire, now);
         return XQC_ERROR;
+
+    } else if (*expire - now <= XQC_TOKEN_UPDATE_DELTA) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|new token|expire:%ud|now:%ui|delta:%ud|", *expire, now, XQC_TOKEN_UPDATE_DELTA);
+        conn->conn_flag |= XQC_CONN_FLAG_UPDATE_NEW_TOKEN;
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|pass|");
@@ -1519,7 +1524,10 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
         }
     }
 
-    if (XQC_CONN_TYPE_SERVER == conn->conn_type) {
+    /* if server received a invalid token, send a new one */
+    if (XQC_CONN_TYPE_SERVER == conn->conn_type
+        && (!(conn->conn_type & XQC_CONN_FLAG_TOKEN_OK) || conn->conn_type & XQC_CONN_FLAG_UPDATE_NEW_TOKEN))
+    {
         xqc_write_new_token_to_packet(conn);
     }
 
