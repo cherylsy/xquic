@@ -1526,7 +1526,7 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
 
     /* if server received a invalid token, send a new one */
     if (XQC_CONN_TYPE_SERVER == conn->conn_type
-        && (!(conn->conn_type & XQC_CONN_FLAG_TOKEN_OK) || conn->conn_type & XQC_CONN_FLAG_UPDATE_NEW_TOKEN))
+        && (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK) || conn->conn_flag & XQC_CONN_FLAG_UPDATE_NEW_TOKEN))
     {
         xqc_write_new_token_to_packet(conn);
     }
