@@ -747,46 +747,65 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     }
 }
 
+int
+xqc_need_padding(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+{
+    int ret = XQC_FALSE;
+    if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT) {
+        if (conn->engine->eng_type == XQC_ENGINE_CLIENT) {
+            /* client MUST expand the payload of all UDP datagrams carrying
+               Initial packets to at least the smallest allowed maximum datagram
+               size of 1200 bytes */
+            ret = XQC_TRUE;
+
+        } else {
+            /* server MUST expand the payload of all UDP datagrams carrying ack-
+               eliciting Initial packets to at least the smallest allowed maximum
+               datagram size of 1200 bytes */
+            if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+                ret = XQC_TRUE;
+            }
+        }
+    }
+
+    return ret;
+}
 
 int xqc_conn_enc_packet(xqc_connection_t *conn,
     xqc_packet_out_t *packet_out, char *enc_pkt, size_t * enc_pkt_len, 
     xqc_msec_t current_time)
 {
-    if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
-        && packet_out->po_frame_types != XQC_FRAME_BIT_ACK) {
+    /* pad packet if needed */
+    if (xqc_need_padding(conn, packet_out)) {
         xqc_gen_padding_frame(packet_out);
     }
 
-    if((packet_out->po_flag & XQC_POF_ENCRYPTED) == 0){
+    /* generate packet number and update packet length */
+    if ((packet_out->po_flag & XQC_POF_ENCRYPTED) == 0) {
         packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
     }
     xqc_write_packet_number(packet_out->po_ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
     xqc_long_packet_update_length(packet_out);
 
-
+    /* encrypt */
     int ret = xqc_packet_encrypt_buf(conn, packet_out, enc_pkt, enc_pkt_len);
-    if(ret < 0){
+    if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
         conn->conn_state = XQC_CONN_STATE_CLOSED;
         return -XQC_EENCRYPT;
     }
 
     packet_out->po_sent_time = current_time;
-
     packet_out->po_flag |= XQC_POF_ENCRYPTED;
-
     return 0;
 }
 
-
-
 ssize_t
-xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     ssize_t sent;
-
-    if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT && conn->engine->eng_type == XQC_ENGINE_CLIENT
-        && packet_out->po_frame_types != XQC_FRAME_BIT_ACK) {
+    /* pad packet if needed */
+    if (xqc_need_padding(conn, packet_out)) {
         xqc_gen_padding_frame(packet_out);
     }
 
@@ -795,17 +814,17 @@ xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     xqc_write_packet_number(packet_out->po_ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
     xqc_long_packet_update_length(packet_out);
 
+    /* encrypt */
     if (xqc_packet_encrypt(conn, packet_out) < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|");
         conn->conn_state = XQC_CONN_STATE_CLOSED;
         return -XQC_EENCRYPT;
     }
 
-
     xqc_msec_t now = xqc_now();
     packet_out->po_sent_time = now;
 
-
+    /* send data */
     sent = conn->engine->eng_callback.write_socket(xqc_conn_get_user_data(conn), conn->enc_pkt, conn->enc_pkt_len,
             (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
     xqc_log(conn->log, XQC_LOG_INFO,
