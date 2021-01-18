@@ -945,6 +945,9 @@ xqc_int_t
 xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     int ret;
+    if (XQC_CONN_TYPE_SERVER == conn->conn_type) {
+        return -XQC_EPROTO;
+    }
 
     conn->conn_token_len = XQC_MAX_TOKEN_LEN;
     ret = xqc_parse_new_token_frame(packet_in, conn->conn_token, &conn->conn_token_len);

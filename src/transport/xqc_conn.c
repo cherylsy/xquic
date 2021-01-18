@@ -1519,7 +1519,9 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
         }
     }
 
-    xqc_write_new_token_to_packet(conn);
+    if (XQC_CONN_TYPE_SERVER == conn->conn_type) {
+        xqc_write_new_token_to_packet(conn);
+    }
 
 #ifdef XQC_PRINT_SECRET
     unsigned char secret_str[3 * SECRET_TYPE_NUM * XQC_SECRET_HEX_MAX];
