@@ -1367,10 +1367,6 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
         xqc_log(conn->log, XQC_LOG_INFO, "|token_expire|expire:%ud|now:%ui|", *expire, now);
         return XQC_ERROR;
     }
-    else if (*expire - now <= XQC_TOKEN_UPDATE_DELTA) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|new token|expire:%ud|now:%ui|delta:%ud|", *expire, now, XQC_TOKEN_UPDATE_DELTA);
-        xqc_write_new_token_to_packet(conn);
-    }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|pass|");
     return XQC_OK;
@@ -1503,6 +1499,8 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
             xqc_conn_early_data_accept(conn);
         }
     }
+
+    xqc_write_new_token_to_packet(conn);
 
 #ifdef XQC_PRINT_SECRET
     unsigned char secret_str[3 * SECRET_TYPE_NUM * XQC_SECRET_HEX_MAX];

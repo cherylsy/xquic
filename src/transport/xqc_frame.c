@@ -462,9 +462,6 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             conn->tlsref.flags |= XQC_CONN_FLAG_RETRY_SENT;
             packet_in->pos = packet_in->last;
             return XQC_OK;*/
-
-            /* 避免retry多一个rtt */
-            xqc_write_new_token_to_packet(conn);
         }
     }
 
