@@ -446,25 +446,14 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
      *  initial+ack时不校验token，因此在解crypto时校验
      * */
     if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
-            && conn->conn_type == XQC_CONN_TYPE_SERVER
-            && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {
-
+        && conn->conn_type == XQC_CONN_TYPE_SERVER
+        && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT)
+    {
         if (xqc_conn_check_token(conn, conn->conn_token, conn->conn_token_len) == XQC_OK) {
             conn->conn_flag |= XQC_CONN_FLAG_TOKEN_OK;
+
         } else {
             xqc_log(conn->log, XQC_LOG_INFO, "|check_token fail|conn:%p|%s|", conn, xqc_conn_addr_str(conn));
-            /*unsigned char token[XQC_MAX_TOKEN_LEN];
-            unsigned token_len = XQC_MAX_TOKEN_LEN;
-            xqc_conn_gen_token(conn, token, &token_len);
-            if (xqc_conn_send_retry(conn, token, token_len) != 0) {
-                return -XQC_ESEND_RETRY;
-            }
-            conn->tlsref.flags |= XQC_CONN_FLAG_RETRY_SENT;
-            packet_in->pos = packet_in->last;
-            return XQC_OK;*/
-
-            /* 避免retry多一个rtt */
-            xqc_write_new_token_to_packet(conn);
         }
     }
 
@@ -948,6 +937,9 @@ xqc_int_t
 xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     int ret;
+    if (XQC_CONN_TYPE_SERVER == conn->conn_type) {
+        return -XQC_EPROTO;
+    }
 
     conn->conn_token_len = XQC_MAX_TOKEN_LEN;
     ret = xqc_parse_new_token_frame(packet_in, conn->conn_token, &conn->conn_token_len);
