@@ -20,6 +20,8 @@ SSL_QUIC_METHOD xqc_ssl_quic_method;
  *@return 0 means successful
  */
 
+#define XQC_SESSION_DEFAULT_TIMEOUT (7 * 24 * 60 * 60)
+
 int
 xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * src, xqc_ssl_session_ticket_key_t * session_ticket_key)
 {
@@ -400,6 +402,22 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 }
 #endif
 
+static void
+xqc_ssl_ctx_set_timeout(SSL_CTX *ssl_ctx, xqc_engine_ssl_config_t *xs_config)
+{
+    if (xs_config->session_timeout != 0) {
+        SSL_CTX_set_timeout(ssl_ctx, xs_config->session_timeout);
+#ifdef OPENSSL_IS_BORINGSSL
+        SSL_CTX_set_session_psk_dhe_timeout(ssl_ctx, xs_config->session_timeout);
+#endif
+    } else {
+        SSL_CTX_set_timeout(ssl_ctx, XQC_SESSION_DEFAULT_TIMEOUT);
+#ifdef OPENSSL_IS_BORINGSSL
+        SSL_CTX_set_session_psk_dhe_timeout(ssl_ctx, XQC_SESSION_DEFAULT_TIMEOUT);
+#endif
+    }
+}
+
 SSL_CTX *
 xqc_create_client_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_config)
 {
@@ -416,6 +434,9 @@ xqc_create_client_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_conf
     SSL_CTX_set_session_cache_mode(
             ssl_ctx, SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
     SSL_CTX_sess_set_new_cb(ssl_ctx, xqc_new_session_cb);
+
+    xqc_ssl_ctx_set_timeout(ssl_ctx, xs_config);
+
     return ssl_ctx;
 }
 
@@ -479,6 +500,8 @@ xqc_create_server_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_conf
     } else {
         SSL_CTX_set_tlsext_ticket_key_cb(ssl_ctx, xqc_ssl_session_ticket_key_callback);
     }
+
+    xqc_ssl_ctx_set_timeout(ssl_ctx, xs_config);
 
     return ssl_ctx;
 
