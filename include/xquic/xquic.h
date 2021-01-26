@@ -290,7 +290,7 @@ typedef struct xqc_engine_ssl_config_s {
     char       *cert_file;                  /* For server */
     char       *ciphers;
     char       *groups;
-    //uint32_t   timeout;
+    uint32_t   session_timeout;             /* Session lifetime in second */
     char       *session_ticket_key_data;    /* For server */
     size_t     session_ticket_key_len;      /* For server */
 
