@@ -54,6 +54,7 @@ XQUIC_VERS_1.0 {
         xqc_reno_cb;
         xqc_cubic_cb;
         xqc_cubic_kernel_cb;
+        xqc_unlimited_cb;
         xqc_conn_is_ready_to_send_early_data;
         xqc_h3_conn_send_ping;
         xqc_conn_send_ping;
