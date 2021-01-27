@@ -4,31 +4,27 @@
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
 
-/**
- * @author 不达 
- * */
-
 #ifndef XQC_CRYPTO_PRIVAYE
-#error "不要单独include，直接include crypto.h"
+#error "Do not include this file directly，include xqc_crypto.h"
 #endif
 
 #define XQC_CRYPTO_CTX_TYPE_IMPL        const EVP_CIPHER  *
  
 #define XQC_AEAD_CTX_TYPE_IMPL          XQC_CRYPTO_CTX_TYPE_IMPL 
 
-// 目前我们所实现的所有的cipher都是不需要额外填充的。
+// no overhead for cipher 
 #define  XQC_CIPHER_OVERHEAD_IMPL(obj,cln)         (0)
-// 目前我们所实现的所有的cipher都是不需要额外填充的,因此overhead总是等于tag的长度。
+// overhead for aead 
 #define  XQC_AEAD_OVERHEAD_IMPL(obj,cln)           (0) + (obj)->taglen
 
-// do not call !!!
+// do not call directly !!!
 #define DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher)    ({                   \
     obj->ctx        = cipher ;                                          \
     obj->keylen     = EVP_CIPHER_key_length(obj->ctx);                  \
     obj->noncelen   = EVP_CIPHER_iv_length(obj->ctx);                   \
 })
 
-// do not call !!!
+// do not call directly !!!
 #define DO_NOT_CALL_XQC_AEAD_INIT(obj,cipher,tgl)    ({                 \
     DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
     obj->taglen = (tgl);                                                \
@@ -36,7 +32,7 @@
     obj->decrypt.xqc_decrypt_func = xqc_ossl_aead_decrypt;              \
 })
 
-// do not call !!!
+// do not call directly !!!
 #define DO_NOT_CALL_XQC_CRYPTO_INIT(obj,cipher)     ({                  \
     DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
     obj->encrypt.xqc_encrypt_func = xqc_ossl_crypto_encrypt;            \
