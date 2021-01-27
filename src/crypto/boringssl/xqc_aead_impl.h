@@ -5,7 +5,7 @@
 #include <openssl/evp.h>
 
 #ifndef XQC_CRYPTO_PRIVAYE
-#error "不要单独include，直接include crypto.h"
+#error "Do not include this file directly，include xqc_crypto.h"
 #endif
 
 
@@ -14,9 +14,9 @@
 #define XQC_AEAD_CTX_TYPE_IMPL   const EVP_AEAD *
 
 
-// 目前我们所实现的所有的cipher都是不需要额外填充的。
+// no overhead for cipher 
 #define  XQC_CIPHER_OVERHEAD_IMPL(obj,cln)         (0)
-// 目前我们所实现的所有的cipher都是不需要额外填充的,因此overhead总是等于tag的长度。
+// overhead for aead 
 #define  XQC_AEAD_OVERHEAD_IMPL(obj,cln)           (0) + (obj)->taglen
 
 
@@ -51,8 +51,8 @@
     ___crypto->encrypt.xqc_encrypt_func = xqc_bssl_crypto_encrypt;      \
     0;})
 
-//注意，boringssl的chacha20实现并未提供EVP_chacha20,我们需要利用Crypto_chacha20实现。
-//基于openssl的实现，我们这里需要使用16个字节的nonce，其中前4字节作为Crypto_chacha20算法的counter，后12字节作为其nonce 。
+
+// follow openssl impl 
 #define XQC_CRYPTO_INIT_CHACHA20_IMPL(obj,...)  ({                          \
     xqc_crypto_t * ___crypto = (obj);                                       \
     ___crypto->keylen     = 32 ;                                            \

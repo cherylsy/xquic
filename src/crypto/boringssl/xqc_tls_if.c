@@ -60,7 +60,7 @@ xqc_add_handshake_data (SSL *ssl, enum ssl_encryption_level_t level,
         pktns = &conn->tlsref.initial_pktns;
         break;
     case ssl_encryption_early_data:
-        // boringssl不会提供这个等级的数据 
+        // ssl_encryption_early_data is unaviable for xqc_add_handshake_data 
         return 0;
     case ssl_encryption_handshake:
         pktns = &conn->tlsref.hs_pktns;
@@ -190,7 +190,7 @@ again:
         }
     }
 
-    // 如果是因early data提前握手结束，则需要继续。但是此时early data 密钥已经准备就绪。
+    // early return  
     if(SSL_in_early_data(ssl)) {
         return 0;
     }

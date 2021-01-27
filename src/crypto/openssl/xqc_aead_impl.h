@@ -5,16 +5,16 @@
 #include <openssl/ssl.h>
 
 #ifndef XQC_CRYPTO_PRIVAYE
-#error "不要单独include，直接include crypto.h"
+#error "Do not include this file directly，include xqc_crypto.h"
 #endif
 
 #define XQC_CRYPTO_CTX_TYPE_IMPL        const EVP_CIPHER  *
  
 #define XQC_AEAD_CTX_TYPE_IMPL          XQC_CRYPTO_CTX_TYPE_IMPL 
 
-// 目前我们所实现的所有的cipher都是不需要额外填充的。
+// no overhead for cipher 
 #define  XQC_CIPHER_OVERHEAD_IMPL(obj,cln)         (0)
-// 目前我们所实现的所有的cipher都是不需要额外填充的,因此overhead总是等于tag的长度。
+// overhead for aead 
 #define  XQC_AEAD_OVERHEAD_IMPL(obj,cln)           (0) + (obj)->taglen
 
 // do not call !!!
