@@ -4,10 +4,6 @@
 #include <openssl/evp.h>
 #include <openssl/ssl.h>
 
-/**
- * @author 不达 
- * */
-
 #ifndef XQC_CRYPTO_PRIVAYE
 #error "不要单独include，直接include crypto.h"
 #endif

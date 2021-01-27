@@ -1,9 +1,6 @@
 #ifndef XQC_CRYPTO_H_
 #define XQC_CRYPTO_H_
 
-/**
- *  @author 不达 
- * */
 
 #include <stdio.h>
 #include <stdint.h>
