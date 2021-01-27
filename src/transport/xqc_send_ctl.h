@@ -176,6 +176,9 @@ xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
     return XQC_FALSE;
 }
 
+int
+xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *po);
+
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn);
 
