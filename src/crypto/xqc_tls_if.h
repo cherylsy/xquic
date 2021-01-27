@@ -22,7 +22,8 @@ typedef struct {
 struct xqc_tls_context
 {
     xqc_aead_t      aead;
-    xqc_crypto_t    hp;
+    //crypto suites (without addition info)
+    xqc_crypto_t    crypto;
     xqc_digist_t    prf;
 };
 
