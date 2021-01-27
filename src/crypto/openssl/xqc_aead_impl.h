@@ -17,14 +17,14 @@
 // overhead for aead 
 #define  XQC_AEAD_OVERHEAD_IMPL(obj,cln)           (0) + (obj)->taglen
 
-// do not call !!!
+// do not call directly !!!
 #define DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher)    ({                   \
     obj->ctx        = cipher ;                                          \
     obj->keylen     = EVP_CIPHER_key_length(obj->ctx);                  \
     obj->noncelen   = EVP_CIPHER_iv_length(obj->ctx);                   \
 })
 
-// do not call !!!
+// do not call directly !!!
 #define DO_NOT_CALL_XQC_AEAD_INIT(obj,cipher,tgl)    ({                 \
     DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
     obj->taglen = (tgl);                                                \
@@ -32,7 +32,7 @@
     obj->decrypt.xqc_decrypt_func = xqc_ossl_aead_decrypt;              \
 })
 
-// do not call !!!
+// do not call directly !!!
 #define DO_NOT_CALL_XQC_CRYPTO_INIT(obj,cipher)     ({                  \
     DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
     obj->encrypt.xqc_encrypt_func = xqc_ossl_crypto_encrypt;            \
