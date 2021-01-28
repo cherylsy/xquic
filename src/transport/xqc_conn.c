@@ -543,6 +543,9 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
         if (send_type == XQC_SEND_TYPE_RETRANS) {
+            if (xqc_send_ctl_indirectly_ack_po(ctl, packet_out)) {
+                continue;
+            }
             /* If not a TLP packet, mark it LOST */
             packet_out->po_flag |= XQC_POF_LOST;
             xqc_log(conn->log, XQC_LOG_DEBUG,
@@ -551,6 +554,9 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
                     xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                     xqc_frame_type_2_str(packet_out->po_frame_types));
         } else if (send_type == XQC_SEND_TYPE_PTO_PROBE) {
+            if (xqc_send_ctl_indirectly_ack_po(ctl, packet_out)) {
+                continue;
+            }
             xqc_log(conn->log, XQC_LOG_DEBUG,
                     "|transmit_pto_probe_packets|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
                     conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
@@ -868,6 +874,10 @@ xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn) {
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
+        
+        if (xqc_send_ctl_indirectly_ack_po(conn->conn_send_ctl, packet_out)) {
+            continue;
+        }
 
         /*Do neither CC nor Pacing.*/
 
@@ -901,6 +911,10 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
+        
+        if (xqc_send_ctl_indirectly_ack_po(ctl, packet_out)) {
+            continue;
+        }
 
         packet_out->po_flag |= XQC_POF_LOST;
 
@@ -1007,16 +1021,11 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
     for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
         xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if ((packet_out->po_flag & XQC_POF_NO_RETRANS)
-                || (packet_out->po_origin && packet_out->po_origin->po_acked))
-            {
-                if (packet_out->po_origin && packet_out->po_origin->po_acked) {
-                    /* We should not do congestion control here. */
-                    xqc_send_ctl_on_packet_acked(conn->conn_send_ctl, packet_out, 0, 0);
-                }
-                xqc_send_ctl_maybe_remove_unacked(packet_out, conn->conn_send_ctl);
+
+            if (xqc_send_ctl_indirectly_ack_po(conn->conn_send_ctl, packet_out)) {
                 continue;
             }
+
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 packet_out->po_flag |= XQC_POF_TLP;
                 xqc_log(conn->log, XQC_LOG_DEBUG,
@@ -1027,7 +1036,6 @@ xqc_conn_send_probe_packets(xqc_connection_t *conn)
                         xqc_conn_state_2_str(conn->conn_state));
 
                 xqc_send_ctl_decrease_inflight(conn->conn_send_ctl, packet_out);
-                xqc_send_ctl_decrease_unacked_stream_ref(conn->conn_send_ctl, packet_out);
                 xqc_send_ctl_copy_to_pto_probe_list(packet_out, conn->conn_send_ctl);
 
                 if (pns >= XQC_PNS_APP_DATA){ //握手报文不能够受每次重传报文个数的限制，否则握手报文传输不完整，无法生成加密key，也没有办法回复ack
