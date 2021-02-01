@@ -68,10 +68,8 @@ xqc_gen_retry_packet(unsigned char *dst_buf,
 xqc_int_t
 xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in);
 
-#if (XQC_VERSION_NEGOTIATION)
 xqc_int_t
 xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packet_in);
-#endif
 
 xqc_int_t
 xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf);

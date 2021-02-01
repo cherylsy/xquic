@@ -146,7 +146,9 @@ xqc_packet_process_single(xqc_connection_t *c,
             return ret;
         }
 
-        if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_RETRY) {
+        if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_RETRY
+            || packet_in->pi_pkt.pkt_type == XQC_PTYPE_VERSION_NEGOTIATION)
+        {
             xqc_log(c->log, XQC_LOG_INFO, "|====>|pkt_type:%s|recv_time:%ui|",
                     xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pkt_recv_time);
             return XQC_OK;
@@ -255,7 +257,10 @@ xqc_packet_process(xqc_connection_t *c,
         ret = xqc_packet_process_single(c, packet_in);
 
         /* err in parse packet, don't cause dead loop */
-        if (ret != XQC_OK || last_pos == packet_in->pos) {
+        if (-XQC_EVERSION == ret) {
+            ret = XQC_OK;
+
+        } else if (ret != XQC_OK || last_pos == packet_in->pos) {
             xqc_log(c->log, XQC_LOG_ERROR, "|process packets err|ret:%d|pos:%p|buf:%p|buf_size:%uz|",
                                           ret, packet_in->pos,
                                           packet_in->buf, packet_in->buf_size);
@@ -264,8 +269,6 @@ xqc_packet_process(xqc_connection_t *c,
 
         //从上一个QUIC包的结束开始处理下一个包
         pos = packet_in->last;
-
-
     }
 
     return XQC_OK;
