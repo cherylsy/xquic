@@ -1316,13 +1316,13 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
     memcpy(p, c->dcid.cid_buf, c->dcid.cid_len);
     p += c->dcid.cid_len;
 
-    /* scid len */
+    /* original destination ID len */
     *p = c->ocid.cid_len;
     ++p;
 
-    /* scid */
+    /* original destination ID */
     memcpy(p, c->ocid.cid_buf, c->ocid.cid_len);
-    p += c->odcid.cid_len;
+    p += c->ocid.cid_len;
 
     /* set supported version list */
     uint32_t* version_list = c->engine->config->support_version_list;
