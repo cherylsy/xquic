@@ -90,6 +90,7 @@ xqc_packet_process(xqc_connection_t *c,
                    const unsigned char *packet_in_buf,
                    size_t packet_in_size,
                    xqc_msec_t recv_time);
-
+uint8_t
+xqc_has_packet_number(xqc_packet_t *pkt);
 
 #endif //_XQC_PACKET_H_INCLUDED_
