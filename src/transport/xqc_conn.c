@@ -671,9 +671,9 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
             }
 
             /* enc packet */
-            if (XQC_OK != xqc_conn_enc_packet(conn, packet_out, iov_array[burst_cnt].iov_base,
-                                              &iov_array[burst_cnt].iov_len, now))
-            {
+            ret = xqc_conn_enc_packet(conn, packet_out, iov_array[burst_cnt].iov_base,
+                                      &iov_array[burst_cnt].iov_len, now);
+            if (XQC_OK != ret) {
                 return ret;
             }
 
