@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <xquic/xquic.h>
 #include <xquic/xquic_typedef.h>
-#include <openssl/base.h>
+#include <openssl/ssl.h>
 
 typedef struct xqc_aead_st          xqc_aead_t ;
 typedef struct xqc_crypto_st        xqc_crypto_t ;
