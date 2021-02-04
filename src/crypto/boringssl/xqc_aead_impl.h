@@ -8,11 +8,13 @@
 #error "Do not include this file directly，include xqc_crypto.h"
 #endif
 
+#define XQC_CRYPTO_SUITES_IMPL const EVP_CIPHER * 
 
-#define XQC_CRYPTO_CTX_TYPE_IMPL const EVP_CIPHER * 
+#define XQC_AEAD_SUITES_IMPL   const EVP_AEAD *
 
-#define XQC_AEAD_CTX_TYPE_IMPL   const EVP_AEAD *
+#define XQC_CRYPTO_CTX          EVP_CIPHER_CTX *
 
+#define XQC_AEAD_CTX            EVP_AEAD_CTX *
 
 // no overhead for cipher 
 #define  XQC_CIPHER_OVERHEAD_IMPL(obj,cln)         (0)
