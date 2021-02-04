@@ -340,12 +340,6 @@ xqc_aead_decrypt(const xqc_aead_t * aead,uint8_t *dest, size_t destlen,
 
     if (XQC_UNLIKELY(!builder)) {
         //TODO 
-        return -XQC_TLS_DECRYPT_DATA_ERROR ;
-    }
-    
-    // new decrypter
-    r = builder->xqc_aead_crypter_new(aead,/** enc */ 0); 
-    if (XQC_UNLIKELY(!r)) {
         return aead->decrypt.xqc_decrypt_func(aead,
                 dest,destlen,
                 ciphertext,ciphertextlen,
@@ -353,6 +347,13 @@ xqc_aead_decrypt(const xqc_aead_t * aead,uint8_t *dest, size_t destlen,
                 nonce,noncelen,
                 ad,adlen);
     }
+    
+    // new decrypter
+    r = builder->xqc_aead_crypter_new(aead,/** enc */ 0); 
+    if (XQC_UNLIKELY(!r)) {
+        return -XQC_TLS_DECRYPT_DATA_ERROR ;
+    }
+
     // set key 
     (void) xqc_crypto_set(builder->xqc_aead_crypter_set_key,r,key,keylen);
 
