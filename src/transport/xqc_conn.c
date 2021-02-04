@@ -542,15 +542,14 @@ xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 }
 
 int
-xqc_process_packet_burst_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
-                                 char *dst, size_t *dst_size, xqc_send_type_t send_type, xqc_msec_t now)
+xqc_check_dumplicate_acked_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
+                         xqc_send_type_t send_type, xqc_msec_t now)
 {
     int ret;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
-
     if (send_type == XQC_SEND_TYPE_RETRANS) {
         if (xqc_send_ctl_indirectly_ack_po(ctl, packet_out)) {
-            return XQC_OK;
+            return XQC_TRUE;
         }
         /* If not a TLP packet, mark it LOST */
         packet_out->po_flag |= XQC_POF_LOST;
@@ -562,7 +561,7 @@ xqc_process_packet_burst_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packe
 
     } else if (send_type == XQC_SEND_TYPE_PTO_PROBE) {
         if (xqc_send_ctl_indirectly_ack_po(ctl, packet_out)) {
-            return XQC_OK;
+            return XQC_TRUE;
         }
         xqc_log(conn->log, XQC_LOG_DEBUG,
                 "|transmit_pto_probe_packets|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
@@ -571,24 +570,7 @@ xqc_process_packet_burst_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packe
                 xqc_frame_type_2_str(packet_out->po_frame_types));
     }
 
-    ret = xqc_conn_enc_packet(conn, packet_out, dst, dst_size, now);
-    if (ret < 0) {
-        return ret;
-    }
-    return ret;
-}
-
-int
-xqc_process_packet_burst_without_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out, char *dst, size_t *dst_size)
-{
-    if (*dst_size < packet_out->po_used_size) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|dst_size[%ui] < src_size[%ui]|", *dst_size, packet_out->po_used_size);
-        return XQC_ENOBUF;
-    }
-
-    xqc_memcmp(dst, packet_out->po_buf, packet_out->po_used_size);
-    *dst_size = packet_out->po_used_size;
-    return XQC_OK;
+    return XQC_FALSE;
 }
 
 uint8_t
@@ -677,10 +659,8 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
         iov_array[burst_cnt].iov_base = enc_pkt_array[burst_cnt];
         iov_array[burst_cnt].iov_len = XQC_PACKET_OUT_SIZE_EXT;
         if (xqc_has_packet_number(&packet_out->po_pkt)) {
-            ret = xqc_process_packet_burst_with_pn(conn, packet_out, iov_array[burst_cnt].iov_base,
-                                                   &iov_array[burst_cnt].iov_len, send_type, now);
-            if (XQC_OK != ret) {
-                break;
+            if (xqc_check_dumplicate_acked_pkt(conn, packet_out, send_type, now)) {
+                continue;
             }
 
             /* check cc limit */
@@ -690,13 +670,19 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
                 break;
             }
 
+            /* enc packet */
+            if (XQC_OK != xqc_conn_enc_packet(conn, packet_out, iov_array[burst_cnt].iov_base,
+                                              &iov_array[burst_cnt].iov_len, now))
+            {
+                return ret;
+            }
+
             total_bytes_to_send += packet_out->po_used_size;
             inflight += packet_out->po_used_size;
 
         } else {
-            ret = xqc_process_packet_burst_without_pn(conn, packet_out, iov_array[burst_cnt].iov_base,
-                                                      &iov_array[burst_cnt].iov_len);
-            total_bytes_to_send += packet_out->po_used_size;
+            xqc_memcmp(iov_array[burst_cnt].iov_base, packet_out->po_buf, packet_out->po_used_size);
+            iov_array[burst_cnt].iov_len = packet_out->po_used_size;
         }
 
         /* reach send limit, break and send packets */
@@ -905,8 +891,10 @@ xqc_process_packet_without_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_o
 {
     /* directly send to peer */
     ssize_t sent = xqc_send(conn, packet_out->po_buf, packet_out->po_used_size);
-    xqc_log(conn->log, XQC_LOG_INFO, "|directly send packet|type:%ui|sent:%ui|", 
-            packet_out->po_pkt.pkt_type, sent);
+    xqc_log(conn->log, XQC_LOG_INFO,
+            "|<==|conn:%p|size:%ud|sent:%z|pkt_type:%s|",
+            conn, packet_out->po_used_size, sent,
+            xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type));
     return sent;
 }
 
@@ -927,6 +915,7 @@ xqc_send_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types), now);
+        return sent;
 
     } else {
         xqc_log(conn->log, XQC_LOG_INFO,
@@ -1402,6 +1391,7 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
         }
     }
 
+    c->conn_flag &= ~XQC_CONN_FLAG_VERSION_NEGOTIATION;
     return XQC_OK;
 }
 
