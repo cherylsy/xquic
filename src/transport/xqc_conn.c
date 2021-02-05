@@ -627,11 +627,19 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
             } else {
                 xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
             }
+            xqc_log(conn->log, XQC_LOG_INFO,
+                    "|<==|conn:%p|pkt_num:%ui|size:%ud|sent:%z|pkt_type:%s|frame:%s|inflight:%ud|now:%ui|",
+                    conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
+                    xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
+                    xqc_frame_type_2_str(packet_out->po_frame_types),
+                    conn->conn_send_ctl->ctl_bytes_in_flight, now);
 
         } else {
             /* packets with no packet number can't be acknowledged, hence they need no control */
             xqc_send_ctl_remove_send(&packet_out->po_list);
             xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
+            xqc_log(conn->log, XQC_LOG_INFO, "|<==|conn:%p|size:%ud|sent:%z|pkt_type:%s|",
+                    conn, packet_out->po_used_size, sent, xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type));
         }
 
         remove_count++;
