@@ -1084,7 +1084,7 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
 
         /**
          * 0RTT packets might be lost during handshake, once client get 1RTT keys,
-         * it should retransmit the lost data in 1RTT packet number space instead.
+         * it should retransmit the lost data with 1RTT packets instead.
          */
         if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
             && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
