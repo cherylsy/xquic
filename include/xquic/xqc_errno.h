@@ -83,6 +83,7 @@ typedef enum {
     XQC_ESTREAM_RESET                   = 626,      // 流已被reset
     XQC_EDUP_FRAME                      = 627,      // 重复的帧
     XQC_EFINAL_SIZE                     = 628,      // STREAM帧final size错误
+    XQC_EVERSION                        = 629,      // version不支持，需要协商
 
     XQC_E_MAX,
 } xqc_transport_error_t;

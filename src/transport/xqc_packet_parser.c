@@ -63,7 +63,7 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
         return -XQC_EPARAM;
     }
 
-    if ((buf[0] & 0x40) == 0) {
+    if ((buf[0] & 0x40) == 0 && (buf[0] & 0x80) == 0) {
         return -XQC_EILLPKT;
     }
 
@@ -990,51 +990,31 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 }
 
 
-#if (XQC_VERSION_NEGOTIATION)
 /*
- 0                   1                   2                   3
- 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-+-+-+-+-+-+-+-+-+
-|1|  Unused (7) |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                          Version (32)                         |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| DCID Len (8)  |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|               Destination Connection ID (0..2040)           ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| SCID Len (8)  |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                 Source Connection ID (0..2040)              ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                    Supported Version 1 (32)                 ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                   [Supported Version 2 (32)]                ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                               ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                   [Supported Version N (32)]                ...
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-                  Version Negotiation Packet
+Version Negotiation Packet {
+    Header Form (1) = 1,
+    Unused (7),
+    Version (32) = 0,
+    Destination Connection ID Length (8),
+    Destination Connection ID (0..2040),
+    Source Connection ID Length (8),
+    Source Connection ID (0..2040),
+    Supported Version (32) ...,
+}
 */
-
-/* TODO: 版本协商未使用 */
 xqc_int_t
 xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
+    xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|version negotiation|");
     unsigned char *pos = packet_in->pos;
     unsigned char *end = packet_in->last;
-
-    xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|version negotiation|");
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_VERSION_NEGOTIATION;
 
-    /*至少需要一个support version*/
+    /* at least one version is carried in the VN packet */
     if (XQC_BUFF_LEFT_SIZE(pos, end) < XQC_PACKET_VERSION_LENGTH) {
         xqc_log(c->log, XQC_LOG_DEBUG, "|version negotiation size too small|%z|", XQC_BUFF_LEFT_SIZE(pos, end));
         return -XQC_EILLPKT;
     }
-
-    /*检查dcid & scid已经在外层函数完成*/
 
     /*check available states*/
     if (c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT) {
@@ -1043,79 +1023,84 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
         return -XQC_ESTATE;
     }
 
-    /*check conn type*/
+    /* check conn type, only client can receive a VN packet */
     if (c->conn_type != XQC_CONN_TYPE_CLIENT) {
         xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|invalid conn_type|%i|", (int)c->conn_type);
         return -XQC_EPROTO;
     }
 
-    /*check discard vn flag*/
+    /* check discard vn flag */
     if (c->discard_vn_flag != 0) {
         packet_in->pos = packet_in->last;
         return XQC_OK;
     }
 
-    /*get Supported Version list*/
+    /* get Supported Version list */
     uint32_t supported_version_list[256];
     uint32_t supported_version_count = 0;
-
     while (XQC_BUFF_LEFT_SIZE(pos, end) >= XQC_PACKET_VERSION_LENGTH) {
-        uint32_t version = *(uint32_t*)pos;
+        uint32_t version = ntohl(*(uint32_t*)pos);
         if (version) {
             if (xqc_uint32_list_find(supported_version_list, supported_version_count, version) == -1) {
                 if (supported_version_count < sizeof(supported_version_list) / sizeof(*supported_version_list)) {
                     supported_version_list[supported_version_count++] = version;
                 }
-            } else { /*重复版本号*/
+
+            } else {
                 xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|dup version|%i|", version);
             }
         }
         pos += XQC_PACKET_VERSION_LENGTH;
     }
-
     packet_in->pos = packet_in->last;
 
-    /*客户端当前使用版本跟support version list中的版本一样，忽略该VN包*/
+    /* VN packet returns the same version, nothing to be changed */
     if (xqc_uint32_list_find(supported_version_list, supported_version_count, c->version) != -1) {
         return XQC_OK;
     }
 
-    /*如果客户端不支持任何supported version list的版本，则abort连接尝试*/
+    /* chose a version both client and server support */
     uint32_t *config_version_list = c->engine->config->support_version_list;
     uint32_t config_version_count = c->engine->config->support_version_count;
-
     uint32_t version_chosen = 0;
-
     for (uint32_t i = 0; i < supported_version_count; ++i) {
         if (xqc_uint32_list_find(config_version_list, config_version_count, supported_version_list[i]) != -1) {
             version_chosen = supported_version_list[i];
+            xqc_log(c->log, XQC_LOG_INFO, "|version negotiation|version:%ui|", version_chosen);
             break;
         }
     }
 
+    /* can't chose a version, abort the connection attempt */
     if (version_chosen == 0) {
-        /*TODO:zuo*/
-        /*abort the connection attempt*/
+        xqc_log(c->log, XQC_LOG_ERROR, "|can't negotiate a version|");
         return -XQC_ESYS;
     }
 
-    /*设置客户端版本*/
-    c->version = version_chosen;
+    /* translate version to enum, and set to the connection */
+    for (uint32_t i = XQC_IDRAFT_INIT_VER + 1; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
+        if (xqc_proto_version_value[i] == version_chosen) {
+            c->version = i;
+            break;
+        }
+    }
 
-    /*TODO:zuo 用新的版本号重新连接服务器*/
+    /* connect the server with the new version, which is not defined by protocol */
+#if 0
     xqc_stream_t *stream = c->crypto_stream[XQC_ENC_LEV_INIT];
     if (stream == NULL) {
         return -XQC_ESTREAM_NFOUND;
     }
     xqc_stream_ready_to_write(stream);
+#endif
 
-    /*设置discard vn flag*/
+    xqc_log(c->log, XQC_LOG_INFO, "|parse version negotiation packet suc|");
+
+    /* set the discard vn flag to avoid a second negotiation */
     c->discard_vn_flag = 1;
 
     return XQC_OK;
 }
-
-#endif /* XQC_VERSION_NEGOTIATION */
 
 
 /*
@@ -1150,77 +1135,87 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         return -XQC_EILLPKT;
     }
 
-    /* check fixed bit(0x40) = 1 */
-    if ((pos[0] & 0x40) == 0) {
-        xqc_log(c->log, XQC_LOG_ERROR, "|fixed bit err|");
-        return -XQC_EILLPKT;
-    }
-
+    /* get fixed_bit and packet type */
+    uint8_t fixed_bit = pos[0] & 0x40;
     xqc_uint_t type = (pos[0] & 0x30) >> 4;
     pos++;
 
-    /* TODO: version check */
+    /* version check */
     uint32_t version = xqc_parse_uint32(pos);
+    if (version == 0) {
+        /* version negotiation */
+        type = XQC_PTYPE_VERSION_NEGOTIATION;
+    }
     pos += XQC_PACKET_VERSION_LENGTH;
 
-    /* get dcid & scid */
+    /* check fixed_bit */
+    if (type != XQC_PTYPE_VERSION_NEGOTIATION && fixed_bit == 0) {
+        xqc_log(c->log, XQC_LOG_DEBUG, "|long header with 0-value fixed bit|");
+        return -XQC_EILLPKT;
+    }
+
+    /* get dcid */
     xqc_cid_t *dcid = &packet->pkt_dcid;
-    xqc_cid_t *scid = &packet->pkt_scid;
     dcid->cid_len = (uint8_t)(*pos);
     pos += 1;
-    if (XQC_BUFF_LEFT_SIZE(pos, end) < dcid->cid_len + 1) {
+    if ((XQC_BUFF_LEFT_SIZE(pos, end) < dcid->cid_len + 1)
+        || (dcid->cid_len > XQC_MAX_CID_LEN))
+    {
         return -XQC_EILLPKT;
     }
     xqc_memcpy(dcid->cid_buf, pos, dcid->cid_len);
     pos += dcid->cid_len;
 
+    /* get scid */
+    xqc_cid_t *scid = &packet->pkt_scid;
     scid->cid_len = (uint8_t)(*pos);
     pos += 1;
-
-    if (XQC_BUFF_LEFT_SIZE(pos, end) < scid->cid_len) {
+    if ((XQC_BUFF_LEFT_SIZE(pos, end) < scid->cid_len)
+        || (dcid->cid_len > XQC_MAX_CID_LEN))
+    {
         return -XQC_EILLPKT;
     }
     xqc_memcpy(scid->cid_buf, pos, scid->cid_len);
     pos += scid->cid_len;
 
-    //update pos
+    /* update pos */
     packet_in->pos = pos;
 
+    /* process cid */
     if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK) && c->conn_type == XQC_CONN_TYPE_CLIENT) {
         xqc_cid_copy(&c->dcid, &packet->pkt_scid);
         if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
             return -XQC_EMALLOC;
         }
         c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
-    } else if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT) {
 
+    } else if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT) {
         /* check cid */
         if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
-            || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK) {
+            || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK)
+        {
             /* log & ignore packet */
             xqc_log(c->log, XQC_LOG_ERROR, "|invalid dcid or scid|");
             return -XQC_EILLPKT;
         }
     }
 
+    /* check protocol version */
     if (xqc_conn_version_check(c, version) != XQC_OK) {
-        xqc_log(c->log, XQC_LOG_WARN, "|version check err|");
-        return -XQC_EILLPKT;
+        xqc_log(c->log, XQC_LOG_INFO, "|version not supported|v:%u|", version);
+        c->conn_flag |= XQC_CONN_FLAG_VERSION_NEGOTIATION;
+        return -XQC_EVERSION;
     }
 
-    /* version negotiation */
-    /*if (version == 0) {
-        return xqc_packet_parse_version_negotiation(c, packet_in);
-    }*/
-
-    /* don't update packet_in->pos = pos here, need prefix inside*/
-    /* long header common part finished */
-
+    /* don't update packet_in->pos = pos here, need prefix inside */
     switch (type)
     {
         case XQC_PTYPE_INIT:
-            if((c->conn_type == XQC_CONN_TYPE_SERVER) && (c->conn_state == XQC_CONN_STATE_SERVER_INIT) && ((c->tlsref.flags & XQC_CONN_FLAG_RETRY_SENT) == 0) ){
-                ret = c->tlsref.callbacks.recv_client_initial(c, dcid, NULL); //
+            if ((c->conn_type == XQC_CONN_TYPE_SERVER) 
+                && (c->conn_state == XQC_CONN_STATE_SERVER_INIT)
+                && ((c->tlsref.flags & XQC_CONN_FLAG_RETRY_SENT) == 0))
+            {
+                ret = c->tlsref.callbacks.recv_client_initial(c, dcid, NULL);
                 if(ret < 0){
                     return ret;
                 }
@@ -1235,6 +1230,9 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
             break;
         case XQC_PTYPE_RETRY:
             ret = xqc_packet_parse_retry(c, packet_in);
+            break;
+        case XQC_PTYPE_VERSION_NEGOTIATION:
+            ret = xqc_packet_parse_version_negotiation(c, packet_in);
             break;
         default:
             xqc_log(c->log, XQC_LOG_ERROR, "|invalid packet type|%ui|", type);

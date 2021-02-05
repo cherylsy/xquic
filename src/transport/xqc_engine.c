@@ -588,6 +588,14 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
+    /* server send version negotiation */
+    if (XQC_UNLIKELY(conn->conn_flag & XQC_CONN_FLAG_VERSION_NEGOTIATION)) {
+        ret = xqc_conn_send_version_negotiation(conn);
+        if (ret) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|send version negotiation error|");
+        }
+    }
+
 end:
     conn->packet_need_process_count = 0;
     conn->conn_flag &= ~XQC_CONN_FLAG_NEED_RUN;
@@ -782,7 +790,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 
     /* 对端的scid是本地的dcid */
     if (XQC_UNLIKELY(xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK)) {
-        xqc_log(engine->log, XQC_LOG_INFO, "|fail to parse cid|");
+        xqc_log(engine->log, XQC_LOG_INFO, "|fail to parse cid|ret:%d|", ret);
         return -XQC_EILLPKT;
     }
     //xqc_log(engine->log, XQC_LOG_DEBUG, "|scid:%s|dcid:%s|", xqc_scid_str(&scid), xqc_dcid_str(&dcid));
