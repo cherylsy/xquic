@@ -1012,6 +1012,38 @@ xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn) {
     }
 }
 
+
+void
+xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+{
+    /* long header to short header, directly write old buffer */
+    unsigned int ori_po_used_size = packet_out->po_used_size;
+    unsigned char *ori_payload = packet_out->po_payload;
+    unsigned int ori_payload_len = 
+        ori_po_used_size - (packet_out->po_payload - packet_out->po_buf);
+
+    /* convert pkt info */
+    packet_out->po_pkt.pkt_pns = XQC_PNS_APP_DATA;
+    packet_out->po_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
+
+    /* copy header */
+    packet_out->po_used_size = 0;
+    int ret = xqc_gen_short_packet_header(packet_out,
+                               conn->dcid.cid_buf, conn->dcid.cid_len,
+                               XQC_PKTNO_BITS, 0);
+    packet_out->po_used_size = ret;
+
+    /* copy frame directly */
+    memcpy(packet_out->po_buf + ret, ori_payload, ori_payload_len);
+    packet_out->po_payload = packet_out->po_buf + ret;
+    packet_out->po_used_size += ori_payload_len;
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|0RTT to 1RTT|conn:%p|type:%d|pkt_num:%ui|pns:%d|frame:%s|", 
+            conn, packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num, packet_out->po_pkt.pkt_pns, 
+            xqc_frame_type_2_str(packet_out->po_frame_types));
+}
+
+
 void
 xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
 {
@@ -1048,6 +1080,16 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                     break;
                 }
             }
+        }
+
+        /**
+         * 0RTT packets might be lost during handshake, once client get 1RTT keys,
+         * it should retransmit the lost data with 1RTT packets instead.
+         */
+        if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
+            && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
+        {
+            xqc_convert_pkt_0rtt_2_1rtt(conn, packet_out);
         }
 
         ret = xqc_conn_send_one_packet(conn, packet_out);
