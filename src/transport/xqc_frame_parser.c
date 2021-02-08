@@ -494,16 +494,15 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         prev_low = range_node->pktno_range.low;
 
         ++range_count;
-
-        if (range_count >= 63) {
+        if (range_count >= XQC_MAX_ACK_RANGE_CNT - 1) {
             break;
         }
     }
 
     if (range_count > 0) {
         *has_gap = 1;
-    }
-    else {
+
+    } else {
         *has_gap = 0;
     }
     xqc_vint_write(p_range_count, range_count, 0, 1);
@@ -511,7 +510,6 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
     return dst_buf - begin;
-
 }
 
 /**
@@ -526,11 +524,11 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
 
     int vlen;
     uint64_t largest_acked;
-    uint64_t ack_range_count;
+    uint64_t ack_range_count;   /* the actual range cnt */
     uint64_t first_ack_range;
     uint64_t range, gap;
 
-    unsigned n_ranges = 0;
+    unsigned n_ranges = 0;      /* the range cnt stored */
 
     ack_info->pns = packet_in->pi_pkt.pkt_pns;
 
@@ -583,17 +581,22 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
 
         //xqc_log(conn->log, XQC_LOG_DEBUG, "|gap:%ui|range:%ui|", gap, range);
 
-        ack_info->ranges[n_ranges].high = ack_info->ranges[n_ranges - 1].low - gap - 2;
-        ack_info->ranges[n_ranges].low = ack_info->ranges[n_ranges].high - range;
-        n_ranges++;
+        if (n_ranges < XQC_MAX_ACK_RANGE_CNT) {
+            ack_info->ranges[n_ranges].high = ack_info->ranges[n_ranges - 1].low - gap - 2;
+            ack_info->ranges[n_ranges].low = ack_info->ranges[n_ranges].high - range;
+            n_ranges++;
+        }
+    }
+
+    /* if the actual ack_range_count plus first ack_range is larger than the XQC_MAX_ACK_RANGE_CNT,
+       ack_info don't have enough space to store all the ack_ranges  */
+    if (ack_range_count + 1 > XQC_MAX_ACK_RANGE_CNT) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|ACK range exceed XQC_MAX_ACK_RANGE_CNT|");
     }
 
     ack_info->n_ranges = n_ranges;
-
     packet_in->pos = p;
-
     packet_in->pi_frame_types |= XQC_FRAME_BIT_ACK;
-
     return XQC_OK;
 }
 

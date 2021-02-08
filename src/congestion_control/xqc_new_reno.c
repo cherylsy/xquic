@@ -73,7 +73,7 @@ xqc_reno_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now)
         reno->reno_recovery_start_time = 0;
     }
 
-    if (!xqc_send_ctl_is_cwnd_limited(reno->ctl_ctx)) {
+    if (reno->ctl_ctx && !xqc_send_ctl_is_cwnd_limited(reno->ctl_ctx)) {
         return;
     }
 
