@@ -25,10 +25,11 @@ typedef struct xqc_recv_record_s {
     xqc_packet_number_t     rr_del_from;
 } xqc_recv_record_t;
 
+#define MAX_ACK_RANGE_CNT 64
 typedef struct xqc_ack_info_s {
     xqc_pkt_num_space_t     pns;
     unsigned                n_ranges;  /* must > 0 */
-    xqc_pktno_range_t       ranges[64];
+    xqc_pktno_range_t       ranges[MAX_ACK_RANGE_CNT];
     xqc_msec_t              ack_delay;
 } xqc_ack_info_t;
 

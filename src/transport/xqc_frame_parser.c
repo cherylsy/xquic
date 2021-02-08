@@ -494,16 +494,15 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         prev_low = range_node->pktno_range.low;
 
         ++range_count;
-
-        if (range_count >= 63) {
+        if (range_count >= MAX_ACK_RANGE_CNT - 1) {
             break;
         }
     }
 
     if (range_count > 0) {
         *has_gap = 1;
-    }
-    else {
+
+    } else {
         *has_gap = 0;
     }
     xqc_vint_write(p_range_count, range_count, 0, 1);
@@ -511,7 +510,6 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_ACK;
     return dst_buf - begin;
-
 }
 
 /**
@@ -583,9 +581,14 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
 
         //xqc_log(conn->log, XQC_LOG_DEBUG, "|gap:%ui|range:%ui|", gap, range);
 
-        ack_info->ranges[n_ranges].high = ack_info->ranges[n_ranges - 1].low - gap - 2;
-        ack_info->ranges[n_ranges].low = ack_info->ranges[n_ranges].high - range;
-        n_ranges++;
+        if (n_ranges < MAX_ACK_RANGE_CNT) {
+            ack_info->ranges[n_ranges].high = ack_info->ranges[n_ranges - 1].low - gap - 2;
+            ack_info->ranges[n_ranges].low = ack_info->ranges[n_ranges].high - range;
+            n_ranges++;
+
+        } else {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|range[%d] ignored|gap:%ui|range:%ui|", gap, range);
+        }
     }
 
     ack_info->n_ranges = n_ranges;
