@@ -838,10 +838,8 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
     int len = 0, rv = 0;
     int fin_flag = 0;
 
-    for(; p != end ;){
-
-        switch(rstate -> state){
-
+    for (; p != end ;) {
+        switch (rstate->state) {
             case XQC_HTTP3_REQ_STREAM_STATE_FRAME_TYPE:
                 nread = xqc_http3_read_varint(rvint, p, (end - p));
                 if(nread < 0){
@@ -857,7 +855,9 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                 rstate->fr.hd.type = rvint->acc;
                 xqc_http3_varint_read_state_clear(rvint);
                 rstate->state = XQC_HTTP3_REQ_STREAM_STATE_FRAME_LENGTH;
-
+                if (p == end) {
+                    goto done;
+                }
                 break;
             case XQC_HTTP3_REQ_STREAM_STATE_FRAME_LENGTH:
                 nread = xqc_http3_read_varint(rvint, p, (end - p));
@@ -922,8 +922,9 @@ ssize_t xqc_http3_conn_read_bidi(xqc_h3_conn_t * h3_conn, xqc_h3_stream_t * h3_s
                         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|not support duplicate push yet|");
                         return  -XQC_H3_UNSUPPORT_FRAME_TYPE;
                     default:
-                        xqc_log(h3_conn->log, XQC_LOG_ERROR, "|r_state:%d, rstate->fr.hd.type:%i|", rstate->state, rstate->fr.hd.type);
-                        return -XQC_H3_INVALID_FRAME_TYPE;
+                        xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|r_state:%d, rstate->fr.hd.type:%i, nconsumed: %ui|", rstate->state, rstate->fr.hd.type, nconsumed);
+                        rstate->state = XQC_HTTP3_REQ_STREAM_STATE_IGN_FRAME;
+                        break;
                 }
                 break;
             case XQC_HTTP3_REQ_STREAM_STATE_HEADERS:
