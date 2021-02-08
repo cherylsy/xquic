@@ -395,7 +395,7 @@ grep_err_log
 
 clear_log
 echo -e "large ack range with 30% loss ...\c"
-./test_client -s 10240000 -l e -t 60 -E -d 300|grep ">>>>>>>> pass"
+./test_client -s 2048000 -l e -t 3 -E -d 300|grep ">>>>>>>> pass"
 
 
 
