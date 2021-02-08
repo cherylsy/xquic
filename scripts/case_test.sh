@@ -393,6 +393,12 @@ echo -e "sendmmsg with 10% loss ...\c"
 ./test_client -s 10240000 -l e -t 12 -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"
 grep_err_log
 
+clear_log
+echo -e "large ack range with 30% loss ...\c"
+./test_client -s 10240000 -l e -t 60 -E -d 300|grep ">>>>>>>> pass"
+
+
+
 killall test_server
 
 cd -
