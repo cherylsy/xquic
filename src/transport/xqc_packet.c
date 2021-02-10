@@ -83,78 +83,41 @@ xqc_state_to_pkt_type(xqc_connection_t *conn)
     }
 }
 
-
-int xqc_check_cid(xqc_connection_t *c, xqc_packet_t *pkt)
+int
+xqc_check_cid(xqc_connection_t *c, xqc_packet_t *pkt)
 {
-    /* update CID at least after successful Initial process */
-    if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
-        /* after a successful process of server's Initial packet,
-            SCID from server Initial is not equal to what client provided,
-            might owing to:
-            1) server is not willing to use the client's DCID as SCID;
-            2) server Initial packet is corrupted, pkt_scid is distorted; */
-        if (pkt->pkt_scid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_scid, &c->dcid)) {
-            xqc_log(c->log, XQC_LOG_WARN, "|server's SCID changed, update|ori:%s|new:%s|", 
-                    xqc_dcid_str(&c->dcid), xqc_scid_str(&pkt->pkt_scid));
+    /* update CID after successful Initial process */
+    if (pkt->pkt_scid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_scid, &c->dcid)) {
+        /** 
+         *  after a successful process of server's Initial packet,
+         *  SCID from server Initial is not equal to what client provided,
+         *  might owing to:
+         *  1) server is not willing to use the client's DCID as SCID;
+         *  2) server Initial packet is corrupted, pkt_scid is distorted; 
+         *
+         *  after a successful process of client's Initial packet,
+         *  if client's SCID is not equal to what server remembered, might owing to:
+         *  1) client's previous Initial is corrupted, pkt_scid is distorted;
+         */
+        xqc_log(c->log, XQC_LOG_INFO, "|peer's SCID changed, update|ori:%s|new:%s|", 
+                xqc_dcid_str(&c->dcid), xqc_scid_str(&pkt->pkt_scid));
 
-            /* remove original */
-            xqc_remove_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid);
-
-            /* update scid and conn hash */
-            xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
-            if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
-                return -XQC_EMALLOC;
-            }
-            c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
-        } else if (pkt->pkt_dcid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_dcid, &c->scid)) {
-            xqc_log(c->log, XQC_LOG_WARN, "|server's DCID changed, ***** TODO *****|ori:%s|new:%s|", 
-                    xqc_dcid_str(&c->scid), xqc_scid_str(&pkt->pkt_dcid));
+        /* remove original, update dcid and conn hash */
+        xqc_remove_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid);
+        xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
+        if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
+            return -XQC_EMALLOC;
         }
+        c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
 
-    } else {
-        /** after a successful process of client's Initial packet,
-            if client's SCID is not equal to what server remembered, might owing to:
-            1) client's previous Initial is corrupted, pkt_scid is distorted;
-            */
-        if (pkt->pkt_scid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_scid, &c->dcid)) {
-            xqc_log(c->log, XQC_LOG_WARN, "|client's SCID changed, update|ori:%s|new:%s|", 
-                    xqc_dcid_str(&c->dcid), xqc_scid_str(&pkt->pkt_scid));
-
-            /* remove original */
-            xqc_remove_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid);
-
-            /* update dcid and conn hash */
-            xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
-            if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
-                return -XQC_EMALLOC;
-            }
-
-        } else if (pkt->pkt_dcid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_dcid, &c->scid)) {
-            /** after a successful process of client's Initial packet,
-                if client's DCID is not equal to what server remembered, might owing to:
-                1) client's previous Initial is corrupted, pkt_dcid is distorted;
-                */
-            xqc_log(c->log, XQC_LOG_WARN, "|client's DCID changed, update|ori:%s|new:%s|", 
-                    xqc_dcid_str(&c->scid), xqc_scid_str(&pkt->pkt_dcid));
-
-#if 0
-            if (c->engine->config->cid_len != pkt->pkt_dcid.cid_len) {
-                xqc_log(c->log, XQC_LOG_ERROR, 
-                        "|pkt dcid len is illegal|len:%d|", pkt->pkt_dcid.cid_len);
-                return XQC_OK;
-            }
-
-            /* remove original */
-            xqc_remove_conns_hash(c->engine->conns_hash, c, &c->scid);
-
-            /* update dcid and conn hash */
-            xqc_cid_copy(&c->scid, &pkt->pkt_dcid);
-            if (xqc_insert_conns_hash(c->engine->conns_hash, c, &c->scid)) {
-                return -XQC_EMALLOC;
-            }
-            xqc_log(c->log, XQC_LOG_INFO, "|server set new scid|%s|", xqc_dcid_str(&c->scid));
-#endif
-        }
+    } else if (pkt->pkt_dcid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_dcid, &c->scid)) {
+        /**
+         *  if DCID is error, decryption would be failure, which might due to:
+         *  1) server choosed a new DCID, and returned by client
+         *  2) abnormal case
+         */
+        xqc_log(c->log, XQC_LOG_INFO, "|peer's DCID changed|ori:%s|new:%s|", 
+                xqc_dcid_str(&c->scid), xqc_scid_str(&pkt->pkt_dcid));
     }
 
     return XQC_OK;
