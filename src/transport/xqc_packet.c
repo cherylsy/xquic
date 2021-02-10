@@ -127,7 +127,7 @@ xqc_check_cid(xqc_connection_t *c, xqc_packet_t *pkt)
 uint8_t
 xqc_packet_need_decrypt(xqc_packet_t *pkt)
 {
-    /* packets need no decryption */
+    /* packets don't need decryption */
     return xqc_has_packet_number(pkt);
 }
 
@@ -141,7 +141,8 @@ xqc_print_pkt_in_info(xqc_connection_t *c, xqc_packet_in_t *packet_in)
                 xqc_frame_type_2_str(packet_in->pi_frame_types), packet_in->pkt_recv_time);
 
     } else {
-        xqc_log(c->log, XQC_LOG_INFO, "|====>|pkt_type:%s|recv_time:%ui|",
+        xqc_log(c->log, XQC_LOG_INFO, "|====>|conn:%p|size:%uz|pkt_type:%s|recv_time:%ui|",
+                c, packet_in->buf_size,
                 xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pkt_recv_time);
     }
 }
