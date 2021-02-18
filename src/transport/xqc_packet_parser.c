@@ -623,7 +623,7 @@ int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     }
 
     ssize_t nwrite = encrypt_func(conn, enc_pkt + hdlen, *(enc_pkt_len) - hdlen, payload, payloadlen,
-                              p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, enc_pkt, hdlen, (void*)encrypt_level);
+                              p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, enc_pkt, hdlen, (void*)encrypt_level,p_ctx->aead_encrypter);
 
     if (nwrite < 0 || nwrite != (payloadlen + xqc_aead_overhead(&p_ctx->aead,payloadlen))) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|%z|", nwrite);
@@ -635,7 +635,7 @@ int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     unsigned char mask[XQC_HP_SAMPLELEN];
     unsigned char *po_ppktno = enc_pkt + (packet_out->po_ppktno - packet_out->po_buf);
 
-    nwrite = hp_mask(conn, mask, sizeof(mask), tx_hp->base, tx_hp->len, po_ppktno + 4, XQC_HP_SAMPLELEN, (void*)encrypt_level);
+    nwrite = hp_mask(conn, mask, sizeof(mask), tx_hp->base, tx_hp->len, po_ppktno + 4, XQC_HP_SAMPLELEN, (void*)encrypt_level,p_ctx->hp[XQC_HP_TX]);
 
     if (nwrite < XQC_HP_MASKLEN) {
         return -XQC_EENCRYPT;
@@ -671,6 +671,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
 
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(pkt_type);
+    xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
     xqc_pktns_t *p_pktns = NULL;
     xqc_encrypt_t decrypt_func = NULL;
     xqc_hp_mask_t hp_mask = NULL;
@@ -694,6 +695,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             hp = &p_pktns->rx_hp;
             decrypt_func = conn->tlsref.callbacks.in_decrypt;
             hp_mask = conn->tlsref.callbacks.in_hp_mask;
+            p_ctx = &conn->tlsref.hs_crypto_ctx;
             break;
 
         case XQC_ENC_LEV_0RTT:
@@ -743,7 +745,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     memcpy(p, pkt, pkt_num_offset);
     p = p + pkt_num_offset;
 
-    int nwrite = (int)hp_mask(conn, mask, sizeof(mask), hp->base, hp->len, pkt + sample_offset, XQC_HP_SAMPLELEN, (void*)encrypt_level);
+    int nwrite = (int)hp_mask(conn, mask, sizeof(mask), hp->base, hp->len, pkt + sample_offset, XQC_HP_SAMPLELEN, (void*)encrypt_level,p_ctx->hp[XQC_HP_RX]);
     if (nwrite < XQC_HP_MASKLEN) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|hp_mask return error:%d|", nwrite);
         return nwrite;
@@ -786,7 +788,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     unsigned char *payload = pkt + pkt_num_offset + packet_number_len;
     size_t payload_len = packet_in->pi_pkt.length - packet_number_len;
     nwrite = (int)decrypt_func(conn, decrypt_buf, packet_in->decode_payload_size, payload, payload_len, ckm->key.base,
-                          ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, (void*) encrypt_level);
+                          ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, (void*) encrypt_level, p_ctx->aead_decrypter);
 
     if (nwrite < 0 || nwrite > payload_len) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt_func return error:%d|", nwrite);

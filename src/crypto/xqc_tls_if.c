@@ -435,7 +435,8 @@ ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
+                                  size_t adlen, void *user_data,
+                                  xqc_aead_crypter_t * crypter)
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest,destlen,plaintext,plaintextlen,key,keylen,nonce,noncelen,ad,adlen);
@@ -451,7 +452,8 @@ ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
+                                  size_t adlen, void *user_data,
+                                  xqc_aead_crypter_t * crypter )
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     ssize_t nwrite = xqc_aead_decrypt(&ctx->aead,dest, destlen, ciphertext, ciphertextlen,
@@ -469,7 +471,8 @@ ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data)
+                                  size_t adlen, void *user_data,
+                                  xqc_aead_crypter_t * crypter)
 {
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];   
@@ -490,7 +493,7 @@ xqc_do_decrypt(xqc_connection_t *conn,
     const uint8_t *key, size_t keylen, 
     const uint8_t *nonce, size_t noncelen, 
     const uint8_t *ad, size_t adlen, 
-    void *user_data)
+    void *user_data, xqc_aead_crypter_t * crypter)
 {
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
@@ -512,7 +515,8 @@ xqc_do_decrypt(xqc_connection_t *conn,
 ssize_t
 xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
    const uint8_t *key, size_t keylen, const uint8_t *sample,
-   size_t samplelen, void *user_data)
+   size_t samplelen, void *user_data,
+   xqc_crypter_t * crypter)
 {
     xqc_tls_context_t *ctx = &conn->tlsref.hs_crypto_ctx;
     ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen, XQC_FAKE_HP_MASK,
@@ -526,7 +530,8 @@ xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 ssize_t
 xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
     const uint8_t *key, size_t keylen, const uint8_t *sample,
-    size_t samplelen, void *user_data)
+    size_t samplelen, void *user_data,
+    xqc_crypter_t * crypter)
 {
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
