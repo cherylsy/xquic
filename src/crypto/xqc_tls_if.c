@@ -403,6 +403,17 @@ int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
 int xqc_tls_free_tlsref(xqc_connection_t * conn)
 {
     xqc_tlsref_t * tlsref = &conn->tlsref;
+    xqc_tls_context_t *tls_ctx;
+
+    for(xqc_encrypt_level_t i = XQC_ENC_LEV_INIT ; i < XQC_ENC_MAX_LEVEL ; i++) {
+        tls_ctx = &tlsref->crypto_ctx_store[i];
+
+        xqc_crypter_free(tls_ctx->crypto.crypter_builder, tls_ctx->hp[XQC_HP_RX]);
+        xqc_crypter_free(tls_ctx->crypto.crypter_builder, tls_ctx->hp[XQC_HP_TX]);
+
+        xqc_aead_crypter_free(tls_ctx->aead.aead_crypter_builder, tls_ctx->aead_encrypter);
+        xqc_aead_crypter_free(tls_ctx->aead.aead_crypter_builder, tls_ctx->aead_decrypter);
+    }
 
     //
     xqc_tls_free_pktns(&tlsref->initial_pktns);
@@ -439,7 +450,8 @@ ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   xqc_aead_crypter_t * crypter)
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
-    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest,destlen,plaintext,plaintextlen,key,keylen,nonce,noncelen,ad,adlen);
+    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead, dest, destlen, plaintext, plaintextlen, key, keylen, 
+        nonce, noncelen, ad, adlen, crypter);
     if(nwrite < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_encrypt failed|ret code:%d |", nwrite);
         return -XQC_TLS_CALLBACK_FAILURE;
@@ -457,7 +469,7 @@ ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     ssize_t nwrite = xqc_aead_decrypt(&ctx->aead,dest, destlen, ciphertext, ciphertextlen,
-            key, keylen, nonce, noncelen, ad, adlen);
+        key, keylen, nonce, noncelen, ad, adlen, crypter);
 
     if(nwrite < 0){
         return -XQC_TLS_DECRYPT;
@@ -478,7 +490,7 @@ ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];   
 
     ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest, destlen, plaintext, plaintextlen , key, keylen,
-                nonce, noncelen,  ad, adlen);
+        nonce, noncelen, ad, adlen, crypter);
     if(nwrite < 0){
         return -XQC_TLS_CALLBACK_FAILURE;
     }
@@ -503,7 +515,7 @@ xqc_do_decrypt(xqc_connection_t *conn,
                                       ciphertext, ciphertextlen,
                                       key, keylen, 
                                       nonce, noncelen, 
-                                      ad, adlen);
+                                      ad, adlen, crypter);
     if (nwrite < 0) {
         return -XQC_TLS_DECRYPT;
     }
@@ -520,7 +532,7 @@ xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 {
     xqc_tls_context_t *ctx = &conn->tlsref.hs_crypto_ctx;
     ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen, XQC_FAKE_HP_MASK,
-            sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen);
+        sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen, crypter);
     if (nwrite < 0) {
         return -XQC_TLS_CALLBACK_FAILURE;
     }
@@ -537,7 +549,7 @@ xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
 
     ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen, XQC_FAKE_HP_MASK,
-            sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen);
+        sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen, crypter);
     if (nwrite < 0) {
         return -XQC_TLS_CALLBACK_FAILURE;
     }
@@ -546,12 +558,13 @@ xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
 
 int 
-xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
+xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
     const SSL_CIPHER *cipher, const uint8_t *secret,
     size_t secretlen)
 {
-
-    xqc_connection_t *  conn = (xqc_connection_t *) SSL_get_app_data(ssl);
+    xqc_tls_context_t *tls_ctx;
+    enum xqc_encrypt_level xqc_level = xqc_convert_ssl_to_xqc_level(ssl_level);
+    xqc_connection_t *conn = (xqc_connection_t *) SSL_get_app_data(ssl);
 
 #define XQC_MAX_KNP_LEN  64 
     //TODO need check 64 bytes enough (XQC_MAX_KNP_LEN)
@@ -564,7 +577,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
 #endif
 
     /* try to get transport parameter & get no_crypto flag */
-    if (level == ssl_encryption_early_data
+    if (ssl_level == ssl_encryption_early_data
         && conn->conn_type == XQC_CONN_TYPE_SERVER) 
     {
         const uint8_t * peer_transport_params = NULL;
@@ -583,12 +596,22 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
     }
 
-    if (xqc_setup_crypto_ctx(conn, xqc_convert_ssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
+    tls_ctx = &conn->tlsref.crypto_ctx_store[xqc_level];    
+
+    if (xqc_setup_crypto_ctx(conn, xqc_level, secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
         return XQC_SSL_FAIL;
     }
 
-    if (level == ssl_encryption_application) {
+    if ((tls_ctx->aead_decrypter = xqc_aead_crypter_new(tls_ctx->aead.aead_crypter_builder, &(tls_ctx->aead), /**enc*/0)) != NULL) {
+        xqc_aead_crypter_call(tls_ctx->aead.aead_crypter_builder, set_key, tls_ctx->aead_decrypter, key, keylen);
+    }
+
+    if ((tls_ctx->hp[XQC_HP_RX] = xqc_crypter_new(tls_ctx->crypto.crypter_builder, &(tls_ctx->crypto), /**enc*/0)) != NULL) {
+        xqc_crypter_call(tls_ctx->crypto.crypter_builder, set_key, tls_ctx->hp[XQC_HP_RX], hp, hplen);
+    }
+
+    if (ssl_level == ssl_encryption_application) {
         // store the read secret 
         if (conn->tlsref.rx_secret.base != NULL) { // should xqc_vec_free ? if rx_secret already has value, it means connection status error
             xqc_log(conn->log, XQC_LOG_ERROR, "|error rx_secret , may case memory leak |");
@@ -600,7 +623,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
     }
     
-    switch(level)
+    switch(ssl_level)
     {
     case ssl_encryption_early_data :
     {
@@ -632,11 +655,13 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
 
   
 int 
-xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
+xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
     const SSL_CIPHER *cipher, const uint8_t *secret,
     size_t secretlen)
 {
-    xqc_connection_t *  conn = (xqc_connection_t *) SSL_get_app_data(ssl);
+    xqc_tls_context_t *tls_ctx;
+    enum xqc_encrypt_level xqc_level = xqc_convert_ssl_to_xqc_level(ssl_level);
+    xqc_connection_t *conn = (xqc_connection_t *) SSL_get_app_data(ssl);
 
 #define XQC_MAX_KNP_LEN  64 
     //TODO need check 64 bytes enough (XQC_MAX_KNP_LEN)
@@ -648,8 +673,8 @@ xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     xqc_tls_print_secret(ssl, conn, level, NULL, secret, secretlen);
 #endif
 
-    if ((level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) 
-        || (level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) 
+    if ((ssl_level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) 
+        || (ssl_level == ssl_encryption_application && conn->conn_type == XQC_CONN_TYPE_CLIENT)) 
     {
         const uint8_t * peer_transport_params ;
         size_t outlen;
@@ -670,12 +695,22 @@ xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
     }
 
-    if (xqc_setup_crypto_ctx(conn, xqc_convert_ssl_to_xqc_level(level), secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
+    tls_ctx = &conn->tlsref.crypto_ctx_store[xqc_level];    
+
+    if (xqc_setup_crypto_ctx(conn, xqc_level, secret, secretlen, key, &keylen, iv, &ivlen, hp, &hplen) != XQC_OK) {
         xqc_log(conn->log,XQC_LOG_ERROR,"|xqc_setup_crypto_ctx failed|");
         return XQC_SSL_FAIL;
     }
 
-    if (level == ssl_encryption_application) {
+    if ((tls_ctx->aead_encrypter = xqc_aead_crypter_new(tls_ctx->aead.aead_crypter_builder, &(tls_ctx->aead), /**enc*/1)) != NULL) {
+        xqc_aead_crypter_call(tls_ctx->aead.aead_crypter_builder, set_key, tls_ctx->aead_encrypter, key, keylen);
+    }
+
+    if ((tls_ctx->hp[XQC_HP_TX] = xqc_crypter_new(tls_ctx->crypto.crypter_builder, &(tls_ctx->crypto), /**enc*/1)) != NULL) {
+        xqc_crypter_call(tls_ctx->crypto.crypter_builder, set_key, tls_ctx->hp[XQC_HP_TX], hp, hplen);
+    }
+
+    if (ssl_level == ssl_encryption_application) {
         // store the write secret 
         if (conn->tlsref.tx_secret.base != NULL) { // should xqc_vec_free ? if rx_secret already has value, it means connection status error
             xqc_log(conn->log, XQC_LOG_ERROR, "|error rx_secret , may case memory leak |");
@@ -686,7 +721,7 @@ xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
         }
     }
 
-    switch(level)
+    switch(ssl_level)
     {
     case ssl_encryption_early_data :
     {
