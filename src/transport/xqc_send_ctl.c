@@ -312,26 +312,18 @@ xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 void
 xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 {
-    /* remove retransmitted if original is acked */
-    if (packet_out->po_origin && packet_out->po_origin->po_acked) {
-        if (packet_out->po_origin->po_origin_ref_cnt == 0) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|po_origin_ref_cnt too small|");
+    // some pkt ref to this packet 
+    if (packet_out->po_origin_ref_cnt != 0 ) {
+        return ;
+    }
 
-        } else {
-            packet_out->po_origin->po_origin_ref_cnt--;
-        }
+    xqc_send_ctl_remove_unacked(packet_out, ctl);
+    xqc_send_ctl_insert_free(&packet_out->po_list, &ctl->ctl_free_packets, ctl);
 
-        xqc_send_ctl_remove_unacked(packet_out, ctl);
-        xqc_send_ctl_insert_free(&packet_out->po_list, &ctl->ctl_free_packets, ctl);
-        if (packet_out->po_origin->po_origin_ref_cnt == 0) {
-            xqc_send_ctl_remove_unacked(packet_out->po_origin, ctl);
-            xqc_send_ctl_insert_free(&packet_out->po_origin->po_list, &ctl->ctl_free_packets, ctl);
-        }
-
-    } else if (packet_out->po_origin == NULL && packet_out->po_origin_ref_cnt == 0) {
-        /* remove original if it's reference count is 0 */
-        xqc_send_ctl_remove_unacked(packet_out, ctl);
-        xqc_send_ctl_insert_free(&packet_out->po_list, &ctl->ctl_free_packets, ctl);
+    if (packet_out->po_origin
+        && (--packet_out->po_origin->po_origin_ref_cnt) == 0) {
+        xqc_send_ctl_remove_unacked(packet_out->po_origin, ctl);
+        xqc_send_ctl_insert_free(&packet_out->po_origin->po_list, &ctl->ctl_free_packets, ctl);
     }
 }
 
