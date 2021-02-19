@@ -26,16 +26,16 @@ typedef struct {
 struct xqc_tls_context
 {
     //aead suites
-    xqc_aead_t      aead;
+    xqc_aead_t          aead;
     /** 
      * crypto suites (without addition info) 
      * */
-    xqc_crypto_t    crypto;
+    xqc_crypto_t        crypto;
     //digist suites 
-    xqc_digist_t    prf;
-    xqc_aead_crypter_t  *aead_encrypter;
-    xqc_aead_crypter_t  *aead_decrypter;
-    xqc_crypter_t       *hp[XQC_HP_MAX_DIRECTION];
+    xqc_digist_t        prf;
+    xqc_aead_crypter_t *aead_encrypter;
+    xqc_aead_crypter_t *aead_decrypter;
+    xqc_crypter_t      *hp[XQC_HP_MAX_DIRECTION];
 };
 
 typedef struct xqc_tls_context xqc_tls_context_t;
