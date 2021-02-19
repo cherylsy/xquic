@@ -81,8 +81,6 @@ struct xqc_crypto_st
 
     struct 
     {
-        // normaly unused 
-        const void * encrypt_ctx ;
         ssize_t 
         (*xqc_encrypt_func)(const xqc_crypto_t *ctx,uint8_t *dest, size_t destlen, 
             const uint8_t *plaintext,size_t plaintextlen,
@@ -100,8 +98,6 @@ struct xqc_aead_st
 
     struct 
     {
-        // for user define ctx 。 normaly unused 
-        const void * encrypt_ctx ;
         ssize_t 
         (*xqc_encrypt_func) ( const xqc_aead_t * ctx,uint8_t *dest, size_t destlen, const uint8_t *plaintext,
             size_t plaintextlen,const uint8_t *key,
@@ -111,8 +107,6 @@ struct xqc_aead_st
 
     struct 
     {
-        // normaly unused 
-        const void * decrypt_ctx ;
         ssize_t 
         (*xqc_decrypt_func) (const xqc_aead_t *ctx,uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
             size_t ciphertextlen,  const uint8_t *key,

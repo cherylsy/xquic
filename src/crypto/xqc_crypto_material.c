@@ -33,22 +33,22 @@ xqc_negotiated_aead_and_prf(xqc_tls_context_t *ctx, uint32_t cipher_id)
     {
         case 0x03001301u: // TLS_AES_128_GCM_SHA256
             xqc_aead_init_aes_gcm(&ctx->aead, 128);
-            xqc_crypto_init_aes_ctr(&ctx->hp, 128);
+            xqc_crypto_init_aes_ctr(&ctx->crypto, 128);
             xqc_digist_init_to_sha256(&ctx->prf);
             return 0;
         case 0x03001302u: // TLS_AES_256_GCM_SHA384
             xqc_aead_init_aes_gcm(&ctx->aead, 256);
-            xqc_crypto_init_aes_ctr(&ctx->hp, 256);
+            xqc_crypto_init_aes_ctr(&ctx->crypto, 256);
             xqc_digist_init_to_sha384(&ctx->prf);
             return 0;
         case 0x03001303u: // TLS_CHACHA20_POLY1305_SHA256
             xqc_aead_init_chacha20_poly1305(&ctx->aead);
-            xqc_crypto_init_chacha20(&ctx->hp);
+            xqc_crypto_init_chacha20(&ctx->crypto);
             xqc_digist_init_to_sha256(&ctx->prf);
             return 0;
         case NID_undef:
             xqc_aead_init_null(&ctx->aead, XQC_FAKE_AEAD_OVERHEAD);
-            xqc_crypto_init_null(&ctx->hp);
+            xqc_crypto_init_null(&ctx->crypto);
             xqc_digist_init_to_sha256(&ctx->prf);
             return 0;
         default: //TLS_AES_128_CCM_SHA256、TLS_AES_128_CCM_8_SHA256 not support
@@ -190,7 +190,7 @@ ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
     int rv;
     static   uint8_t LABEL[] = "quic hp";
 
-    ssize_t keylen = xqc_crypto_key_length(&ctx->hp);
+    ssize_t keylen = xqc_crypto_key_length(&ctx->crypto);
     if (keylen > destlen) {
         return -1;
     }

@@ -11,22 +11,6 @@
 
 
 
-int64_t xqc_get_pkt_num(const uint8_t *p, size_t pkt_numlen) 
-{
-    switch (pkt_numlen) {
-        case 1:
-            return *p;
-        case 2:
-            return xqc_get_uint16(p);
-        case 3:
-            return xqc_get_uint24(p);
-        case 4:
-            return xqc_get_uint32(p);
-        default:
-            //assert(0);
-            return -1;
-    }
-}
 
 ssize_t
 xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
