@@ -452,7 +452,7 @@ ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     ssize_t nwrite = xqc_aead_encrypt(&ctx->aead, dest, destlen, plaintext, plaintextlen, key, keylen, 
         nonce, noncelen, ad, adlen, crypter);
-    if(nwrite < 0){
+    if (nwrite < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_encrypt failed|ret code:%d |", nwrite);
         return -XQC_TLS_CALLBACK_FAILURE;
     }
@@ -471,7 +471,7 @@ ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
     ssize_t nwrite = xqc_aead_decrypt(&ctx->aead,dest, destlen, ciphertext, ciphertextlen,
         key, keylen, nonce, noncelen, ad, adlen, crypter);
 
-    if(nwrite < 0){
+    if (nwrite < 0) {
         return -XQC_TLS_DECRYPT;
     }
     return nwrite;
@@ -491,7 +491,7 @@ ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
 
     ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest, destlen, plaintext, plaintextlen , key, keylen,
         nonce, noncelen, ad, adlen, crypter);
-    if(nwrite < 0){
+    if (nwrite < 0) {
         return -XQC_TLS_CALLBACK_FAILURE;
     }
     return nwrite;
