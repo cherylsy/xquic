@@ -167,7 +167,7 @@ xqc_ossl_aead_encrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx, uint8_t 
     size_t outlen = 0;
     int len = 0;
 
-    if (destlen <  plaintextlen + xqc_aead_overhead(aead,plaintextlen)){
+    if (destlen <  plaintextlen + xqc_aead_overhead(aead, plaintextlen)){
         return XQC_CRYPTER_FAIL;
     }
 
@@ -203,7 +203,7 @@ xqc_ossl_aead_encrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx, uint8_t 
         goto err;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != XQC_SSL_SUCCESS) {
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != XQC_SSL_SUCCESS){
         goto err;
     }
 
@@ -215,8 +215,8 @@ err:
 
 
 static ssize_t 
-xqc_ossl_aead_decrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx,uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
-    size_t ciphertextlen,const uint8_t *key,
+xqc_ossl_aead_decrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx, uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
+    size_t ciphertextlen, const uint8_t *key,
     size_t keylen, const uint8_t *nonce, size_t noncelen,
     const uint8_t *ad, size_t adlen)
 {
@@ -224,7 +224,7 @@ xqc_ossl_aead_decrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx,uint8_t *
     size_t outlen = 0;
     int len = 0;
 
-    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead,destlen)){
+    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead, destlen)){
         return XQC_CRYPTER_FAIL;
     }
 
