@@ -44,16 +44,11 @@ typedef XQC_CRYPTO_CTX  xqc_crypto_ctx_t ;
 #define XQC_FAKE_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 #define XQC_FAKE_HP_MASK "\x00\x00\x00\x00\x00"
 
-// crypto 和 aead 共有 noncelen 和 keylen 字段。 
 #define xqc_crypto_key_length(obj)      ((obj)->keylen)
 #define xqc_crypto_iv_length(obj)       ((obj)->noncelen)
 
-
-// tag长度,一般我们不会对crypto求taglen，因为是没有意义的。这里的0后续可以修改为 XQC_UN_REACHABLE
 #define xqc_aead_taglen(obj)         (obj)->taglen
 
-// 这里我们暂时只需要如下几种加密算法的实现
-// 所有的初始化都需要完整的填充所有数据。
 
 #ifdef XQC_AEAD_INIT_NULL_IMPL
 #define xqc_aead_init_null(aead,tgl,...)            XQC_AEAD_INIT_NULL_IMPL(aead,tgl,__VA_ARGS__)
@@ -61,7 +56,7 @@ typedef XQC_CRYPTO_CTX  xqc_crypto_ctx_t ;
 xqc_int_t xqc_aead_init_null(xqc_aead_t * aead,size_t taglen) ;
 #endif // XQC_AEAD_INIT_NULL_IMPL
 
-// aes_d_gcm  d 即密钥长度
+// aes_d_gcm  d is the length of key 
 #define xqc_aead_init_aes_gcm(aead,d,...)           XQC_AEAD_INIT_AES_GCM_IMPL(aead,d,__VA_ARGS__)
 
 // chacha20_poly1305
@@ -80,13 +75,12 @@ xqc_int_t xqc_crypto_init_null(xqc_crypto_t * crypto);
 // chacha20
 #define xqc_crypto_init_chacha20(crypto,...)        XQC_CRYPTO_INIT_CHACHA20_IMPL(crypto,__VA_ARGS__)
 
-// private ，不推荐直接调用。
+// private
 #define xqc_cipher_overhead(obj,cln)                XQC_CIPHER_OVERHEAD_IMPL((obj),cln)
 #define xqc_aead_overhead(obj,cln)                  (XQC_AEAD_OVERHEAD_IMPL((obj),cln))
 
-// crypto单指不做认证的加密
 #define XQC_CRYPTO_SUITES     XQC_CRYPTO_SUITES_IMPL
-// aead指需要做认证的加解密。 
+
 #define XQC_AEAD_SUITES       XQC_AEAD_SUITES_IMPL
 
 struct xqc_crypter_builder_st {
