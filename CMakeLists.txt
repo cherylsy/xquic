@@ -140,7 +140,6 @@ set(
     "src/congestion_control/xqc_cubic.c"
     "src/congestion_control/xqc_cubic_kernel.c"
     "src/congestion_control/xqc_bbr.c"
-    "src/congestion_control/xqc_unlimited_cc.c"
     "src/congestion_control/xqc_window_filter.c"
     "src/congestion_control/xqc_sample.c"
     "src/congestion_control/xqc_bbr2.c"
