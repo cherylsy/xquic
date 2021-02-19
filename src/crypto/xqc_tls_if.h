@@ -190,7 +190,7 @@ typedef ssize_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data,xqc_aead_crypter_t * aead_crypter);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * aead_crypter);
 
 /**
  * @functypedef
@@ -219,7 +219,7 @@ typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data,xqc_aead_crypter_t * aead_crypter);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * aead_crypter);
 
 
 /**
@@ -244,7 +244,7 @@ typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
 typedef ssize_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *sample,
-                                  size_t samplelen,void *user_data,xqc_crypter_t * crypter);
+                                  size_t samplelen, void *user_data, xqc_crypter_t * crypter);
 
 
 /**
