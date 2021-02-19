@@ -2,21 +2,13 @@
 #include "src/common/xqc_malloc.h"
 #include <memory.h>
 
-/**
- *  空的密码器是没有方向的。
- *  
- *  crypter     密码器
- *  encrypter   加密器
- *  decrypter   解密器
- * */
-
 /** null crypter begin ... */
 
 static xqc_crypter_t *
 xqc_null_crypter_new (const xqc_crypto_t *crypto, int enc)
 {
     xqc_crypter_t * crypter = xqc_malloc(sizeof(*crypter));
-    if (XQC_LIKELY(crypter)){
+    if (XQC_LIKELY(crypter)) {
         crypter->crypto = crypto;
         crypter->enc    = !!enc;
     }
@@ -26,7 +18,7 @@ xqc_null_crypter_new (const xqc_crypto_t *crypto, int enc)
 static void 
 xqc_null_crypter_free (xqc_crypter_t *crypter)
 {
-    if (XQC_LIKELY(crypter)){
+    if (XQC_LIKELY(crypter)) {
         xqc_free(crypter);
     }
 }
@@ -35,7 +27,7 @@ static ssize_t
 xqc_null_crypter_update (xqc_crypter_t *crypter, uint8_t *dest, size_t destlen,
     const uint8_t *source, size_t sourcelen) 
 {
-    if (XQC_UNLIKELY(dest != source)){
+    if (XQC_UNLIKELY(dest != source)) {
         memmove(dest, source, sourcelen);
     }
     return sourcelen; 
@@ -67,7 +59,7 @@ static xqc_aead_crypter_t *
 xqc_null_aead_crypter_new (const xqc_aead_t *aead, int enc)
 {
     xqc_aead_crypter_t* aead_crypter = xqc_malloc(sizeof(*aead_crypter));
-    if (XQC_LIKELY(aead_crypter)){
+    if (XQC_LIKELY(aead_crypter)) {
         aead_crypter->aead  = aead;
         aead_crypter->enc   = !!enc;
     }
@@ -77,7 +69,7 @@ xqc_null_aead_crypter_new (const xqc_aead_t *aead, int enc)
 static void
 xqc_null_aead_crypter_free (xqc_aead_crypter_t *aead_crypter)
 {
-    if (XQC_LIKELY(aead_crypter)){
+    if (XQC_LIKELY(aead_crypter)) {
         xqc_free(aead_crypter);
     }
 }
@@ -91,24 +83,24 @@ xqc_null_aead_crypter_operation (xqc_aead_crypter_t *aead_crypter, uint8_t *out,
     size_t taglen ;
     ssize_t outlen;
 
-    if (XQC_UNLIKELY(!aead_crypter)){
-        return XQC_CRYPTER_FAIL;
+    if (XQC_UNLIKELY(!aead_crypter)) {
+        return -XQC_TLS_INVALID_ARGUMENT;
     }
 
     taglen = aead_crypter->aead->taglen;
     
-    if (aead_crypter->enc){
+    if (aead_crypter->enc) {
         outlen  = in_len + taglen;
     }else {
         in_len  -= taglen;
         outlen  = in_len;
     }
 
-    if (XQC_UNLIKELY(outlen < 0 || outlen > max_out_len)){
-        return XQC_CRYPTER_FAIL;
+    if (XQC_UNLIKELY(outlen < 0 || outlen > max_out_len)) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (XQC_LIKELY(in != out)){
+    if (XQC_LIKELY(in != out)) {
         memmove(out, in, in_len);
     }
 
@@ -131,7 +123,7 @@ xqc_null_aead_encrypt(const xqc_aead_t * ctx, uint8_t *dest, size_t destlen, con
             size_t keylen, const uint8_t *nonce, size_t noncelen,
             const uint8_t *ad, size_t adlen)
 {
-    if (XQC_LIKELY(dest != plaintext)){
+    if (XQC_LIKELY(dest != plaintext)) {
         memmove(dest, plaintext, plaintextlen);
     }
     return plaintextlen + xqc_aead_overhead(ctx, plaintextlen);
@@ -144,7 +136,7 @@ xqc_null_aead_decrypt(const xqc_aead_t * ctx, uint8_t *dest, size_t destlen, con
             const uint8_t *ad, size_t adlen)
 {
     size_t length = ciphertextlen - xqc_aead_overhead(ctx, ciphertextlen);
-    if (XQC_LIKELY(dest != ciphertext)){
+    if (XQC_LIKELY(dest != ciphertext)) {
         memmove(dest, ciphertext, length);
     }
     return length;
@@ -156,7 +148,7 @@ xqc_null_cipher_encrypt(const xqc_crypto_t *ctx, uint8_t *dest, size_t destlen,
             const uint8_t *key, size_t keylen, const uint8_t *sample,
             size_t samplelen)
 {
-    if (XQC_UNLIKELY(dest != plaintext)){
+    if (XQC_UNLIKELY(dest != plaintext)) {
         memmove(dest, plaintext, plaintextlen);
     }
     return plaintextlen;

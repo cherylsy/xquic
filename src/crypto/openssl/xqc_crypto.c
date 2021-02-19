@@ -14,13 +14,13 @@ static inline EVP_CIPHER_CTX *
 xqc_openssl_cipher_ctx_new(const EVP_CIPHER *cipher, int enc)
 {   
     int r;
-    if (!cipher){
+    if (!cipher) {
         return NULL;
     }
     EVP_CIPHER_CTX *ctx = EVP_CIPHER_CTX_new();
-    if (XQC_LIKELY(ctx)){
+    if (XQC_LIKELY(ctx)) {
         r = EVP_CipherInit_ex(ctx, cipher, NULL, NULL, NULL, !!enc);
-        if (r != XQC_SSL_SUCCESS){
+        if (r != XQC_SSL_SUCCESS) {
             EVP_CIPHER_CTX_free(ctx);
             return NULL;
         }
@@ -33,11 +33,11 @@ xqc_openssl_cipher_ctx_new(const EVP_CIPHER *cipher, int enc)
 static xqc_crypter_t *
 xqc_openssl_crypter_new(const xqc_crypto_t *crypto, int enc) 
 {
-    if (XQC_UNLIKELY(!enc)){
+    if (XQC_UNLIKELY(!enc)) {
         return NULL;
     }
     xqc_crypter_t *crypter = xqc_malloc(sizeof(*crypter));
-    if (XQC_LIKELY(crypter)){
+    if (XQC_LIKELY(crypter)) {
         crypter->enc      = !!enc;
         crypter->ctx      = xqc_openssl_cipher_ctx_new(crypto->ctx, crypter->enc);
         crypter->crypto   = crypto;
@@ -48,8 +48,8 @@ xqc_openssl_crypter_new(const xqc_crypto_t *crypto, int enc)
 static void 
 xqc_openssl_crypter_free(xqc_crypter_t *crypter) 
 {
-    if (crypter){
-        if(crypter->ctx){
+    if (crypter) {
+        if(crypter->ctx) {
             EVP_CIPHER_CTX_free(crypter->ctx);
         }
         xqc_free(crypter);
@@ -59,23 +59,19 @@ xqc_openssl_crypter_free(xqc_crypter_t *crypter)
 static ssize_t 
 xqc_openssl_crypter_set_key(xqc_crypter_t *crypter, const unsigned char *key, size_t keylen) 
 {
-    if (crypter && crypter->ctx){
-        if (XQC_SSL_SUCCESS == EVP_CipherInit(crypter->ctx, NULL, key, NULL, crypter->enc)){
-            return XQC_CRYPTER_SUCCESS;
-        }
+    if (crypter && crypter->ctx) {
+        return EVP_CipherInit(crypter->ctx, NULL, key, NULL, crypter->enc);
     }
-    return XQC_CRYPTER_FAIL;
+    return -XQC_TLS_INVALID_ARGUMENT;
 }
 
 static ssize_t 
 xqc_openssl_crypter_set_nonce(xqc_crypter_t *crypter, const uint8_t *sample, size_t samplelen)
 {
-    if (crypter && crypter->ctx){
-        if (XQC_SSL_SUCCESS == EVP_CipherInit(crypter->ctx, NULL, NULL, sample, crypter->enc)){
-            return XQC_CRYPTER_SUCCESS;
-        }
+    if (crypter && crypter->ctx) {
+        return EVP_CipherInit(crypter->ctx, NULL, NULL, sample, crypter->enc);
     }
-    return XQC_CRYPTER_FAIL;
+    return -XQC_TLS_INVALID_ARGUMENT;
 }
 
 static ssize_t 
@@ -83,11 +79,11 @@ xqc_openssl_crypter_update(xqc_crypter_t *crypter, uint8_t *dest, size_t destlen
 {
     int outlen = 0;
     ssize_t r;
-    if (crypter && crypter->ctx){
+    if (crypter && crypter->ctx) {
         r = crypter->enc ? EVP_EncryptUpdate(crypter->ctx, dest, &outlen, source, sourcelen) 
             : EVP_DecryptUpdate(crypter->ctx, dest, &outlen, source, sourcelen);
-        if (XQC_UNLIKELY(r != XQC_SSL_SUCCESS)){
-            return XQC_CRYPTER_FAIL;
+        if (XQC_UNLIKELY(r != XQC_SSL_SUCCESS)) {
+            return -XQC_TLS_INTERNAL;
         }
     }
     return outlen;
@@ -98,11 +94,11 @@ xqc_openssl_crypter_final(xqc_crypter_t *crypter, uint8_t *dest, size_t destlen)
 {
     int outlen = 0;
     ssize_t r;
-    if (crypter && crypter->ctx){
+    if (crypter && crypter->ctx) {
         r = crypter->enc ? EVP_EncryptFinal(crypter->ctx, dest, &outlen)
             : EVP_DecryptFinal(crypter->ctx, dest, &outlen);
-        if (XQC_UNLIKELY(r != XQC_SSL_SUCCESS)){
-            return XQC_CRYPTER_FAIL;
+        if (XQC_UNLIKELY(r != XQC_SSL_SUCCESS)) {
+            return -XQC_TLS_INTERNAL;
         }
     }
     return outlen;
@@ -126,7 +122,7 @@ static xqc_aead_crypter_t*
 xqc_openssl_aead_crypter_new(const xqc_aead_t *aead, int enc)
 {
     xqc_aead_crypter_t *aead_crypter = xqc_malloc(sizeof(*aead_crypter));
-    if (XQC_LIKELY(aead_crypter)){
+    if (XQC_LIKELY(aead_crypter)) {
         aead_crypter->enc  = !!enc;
         aead_crypter->ctx  = xqc_openssl_cipher_ctx_new(aead->ctx, aead_crypter->enc);
         aead_crypter->aead = aead;
@@ -137,8 +133,8 @@ xqc_openssl_aead_crypter_new(const xqc_aead_t *aead, int enc)
 static void
 xqc_openssl_aead_crypter_free(xqc_aead_crypter_t *aead_crypter)
 {
-    if (aead_crypter){
-        if (aead_crypter->ctx){
+    if (aead_crypter) {
+        if (aead_crypter->ctx) {
             EVP_CIPHER_CTX_free(aead_crypter->ctx);
         }
         xqc_free(aead_crypter);
@@ -149,12 +145,10 @@ xqc_openssl_aead_crypter_free(xqc_aead_crypter_t *aead_crypter)
 static ssize_t 
 xqc_openssl_aead_crypter_set_key(xqc_aead_crypter_t *aead_crypter, const unsigned char *key, size_t keylen) 
 {
-    if (aead_crypter && aead_crypter->ctx){
-        if (XQC_SSL_SUCCESS == EVP_CipherInit(aead_crypter->ctx, NULL, key, NULL, aead_crypter->enc)){
-            return XQC_CRYPTER_SUCCESS;
-        }
+    if (aead_crypter && aead_crypter->ctx) {
+        return EVP_CipherInit(aead_crypter->ctx, NULL, key, NULL, aead_crypter->enc);
     }
-    return XQC_CRYPTER_FAIL;
+    return -XQC_TLS_INVALID_ARGUMENT;
 }
 
 static ssize_t 
@@ -167,50 +161,48 @@ xqc_ossl_aead_encrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx, uint8_t 
     size_t outlen = 0;
     int len = 0;
 
-    if (destlen <  plaintextlen + xqc_aead_overhead(aead, plaintextlen)){
-        return XQC_CRYPTER_FAIL;
+    if (destlen <  plaintextlen + xqc_aead_overhead(aead, plaintextlen)) {
+        return -XQC_TLS_NOBUF;
     }
 
-    if (actx == NULL){
-        return XQC_CRYPTER_FAIL;
+    if (actx == NULL) {
+        return -XQC_TLS_INVALID_ARGUMENT;
     }
     
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_EncryptInit_ex(actx, NULL, NULL, NULL, nonce) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_EncryptInit_ex(actx, NULL, NULL, NULL, nonce) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_EncryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS){
-        goto err ;
+    if (EVP_EncryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
     outlen = len;
 
-    if (EVP_EncryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_EncryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
     outlen += len;
 
-    if (outlen + taglen > destlen){
-        goto err;
+    if (outlen + taglen > destlen) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
     outlen += taglen;
     return outlen;
-err:
-    return XQC_CRYPTER_FAIL;
 }
 
 
@@ -224,47 +216,45 @@ xqc_ossl_aead_decrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx, uint8_t 
     size_t outlen = 0;
     int len = 0;
 
-    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead, destlen)){
-        return XQC_CRYPTER_FAIL;
+    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead, destlen)) {
+        return -XQC_TLS_NOBUF;
     }
 
     ciphertextlen -= taglen;
     uint8_t * tag = (uint8_t *)(ciphertext + ciphertextlen);
 
     if (actx == NULL){
-        return XQC_CRYPTER_FAIL;
+        return -XQC_TLS_INVALID_ARGUMENT;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_DecryptInit_ex(actx, NULL, NULL, NULL, nonce) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_DecryptInit_ex(actx, NULL, NULL, NULL, nonce) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_DecryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_DecryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_DecryptUpdate(actx, dest, &len, ciphertext, ciphertextlen) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_DecryptUpdate(actx, dest, &len, ciphertext, ciphertextlen) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
     outlen = len;
     if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_TAG, taglen,
-                (uint8_t *)(tag)) != XQC_SSL_SUCCESS){
-        goto err;
+                (uint8_t *)(tag)) != XQC_SSL_SUCCESS) {
+        return -XQC_TLS_INTERNAL;
     }
 
-    if (EVP_DecryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS){
-        goto err;
+    if (EVP_DecryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS) {
+       return -XQC_TLS_INTERNAL;
     }
 
     outlen += len;
     return outlen;
-err:
-    return XQC_CRYPTER_FAIL;
 }
 
 
@@ -274,8 +264,8 @@ xqc_openssl_aead_crypter_operation (xqc_aead_crypter_t *aead_crypter, uint8_t *o
     const uint8_t *in, size_t in_len,
     const uint8_t *ad, size_t ad_len)
 {
-    if (XQC_UNLIKELY(!aead_crypter || !aead_crypter->aead)){
-        return XQC_CRYPTER_FAIL;
+    if (XQC_UNLIKELY(!aead_crypter || !aead_crypter->aead)) {
+        return -XQC_TLS_INVALID_ARGUMENT;;
     }
 
     if (aead_crypter->enc) {
@@ -315,26 +305,26 @@ xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
     int len = 0;
 
     EVP_CIPHER_CTX  * actx = EVP_CIPHER_CTX_new();
-    if (actx == NULL){
-        return XQC_CRYPTER_FAIL;
+    if (actx == NULL) {
+        return -XQC_TLS_INVALID_ARGUMENT;
     }
 
-    if (EVP_EncryptInit_ex(actx, crypto->ctx , NULL, key, sample) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptInit_ex(actx, crypto->ctx , NULL, key, sample) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
 
-    if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen ) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen ) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
     outlen = len;
 
-    if (EVP_EncryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS) {
         goto err;
     }
 #define XQC_CRYPTER_NO_PADDING  (0)
-    if (len != XQC_CRYPTER_NO_PADDING){
+    if (len != XQC_CRYPTER_NO_PADDING) {
         goto err;
     }
 #undef XQC_CRYPTER_NO_PADDING
@@ -343,7 +333,7 @@ xqc_ossl_crypto_encrypt(const xqc_crypto_t *crypto,
     return outlen;
 err:
     EVP_CIPHER_CTX_free(actx);
-    return XQC_CRYPTER_FAIL;
+    return -XQC_TLS_ENCRYPT_DATA_ERROR;
 }
 
 ssize_t 
@@ -356,8 +346,8 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
     size_t outlen = 0;
     int len = 0;
 
-    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead,destlen)){
-        return XQC_CRYPTER_FAIL;
+    if (taglen > ciphertextlen || ciphertextlen > destlen + xqc_aead_overhead(aead,destlen)) {
+        return -XQC_TLS_NOBUF;
     }
 
     ciphertextlen -= taglen;
@@ -365,26 +355,26 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
 
     EVP_CIPHER_CTX * actx = EVP_CIPHER_CTX_new();
     if (actx == NULL) {
-        return XQC_CRYPTER_FAIL;
+        return -XQC_TLS_INVALID_ARGUMENT;
     }
 
-    if (EVP_DecryptInit_ex(actx,aead->ctx, NULL, NULL, NULL) != XQC_SSL_SUCCESS){
+    if (EVP_DecryptInit_ex(actx,aead->ctx, NULL, NULL, NULL) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS){
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
-    if (EVP_DecryptInit_ex(actx, NULL, NULL, key, nonce) != XQC_SSL_SUCCESS){
+    if (EVP_DecryptInit_ex(actx, NULL, NULL, key, nonce) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
-    if (EVP_DecryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS){
+    if (EVP_DecryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
-    if (EVP_DecryptUpdate(actx, dest, &len, ciphertext, ciphertextlen) != XQC_SSL_SUCCESS){
+    if (EVP_DecryptUpdate(actx, dest, &len, ciphertext, ciphertextlen) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
@@ -394,7 +384,7 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
         goto err;
     }
 
-    if (EVP_DecryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS){
+    if (EVP_DecryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
@@ -404,7 +394,7 @@ xqc_ossl_aead_decrypt(const xqc_aead_t *aead, uint8_t *dest, size_t destlen, con
     return outlen;
 err:
     EVP_CIPHER_CTX_free(actx);
-    return XQC_CRYPTER_FAIL;
+    return -XQC_TLS_DECRYPT_DATA_ERROR;
 }
 
 ssize_t 
@@ -418,40 +408,40 @@ xqc_ossl_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen, co
     size_t outlen = 0;
     int len = 0;
 
-    if (destlen <  plaintextlen + xqc_aead_overhead(aead, plaintextlen)){
-        return XQC_CRYPTER_FAIL;
+    if (destlen <  plaintextlen + xqc_aead_overhead(aead, plaintextlen)) {
+        return -XQC_TLS_NOBUF;
     }
 
     EVP_CIPHER_CTX * actx = EVP_CIPHER_CTX_new();
     if (actx == NULL) {
-        return XQC_CRYPTER_FAIL;
+        return -XQC_TLS_INVALID_ARGUMENT;
     }
     
-    if (EVP_EncryptInit_ex(actx, aead->ctx, NULL, NULL, NULL) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptInit_ex(actx, aead->ctx, NULL, NULL, NULL) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS){
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_IVLEN, noncelen, NULL) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
-    if (EVP_EncryptInit_ex(actx, NULL, NULL, key, nonce) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptInit_ex(actx, NULL, NULL, key, nonce) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
 
-    if (EVP_EncryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptUpdate(actx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS) {
         goto err ;
     }
 
-    if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptUpdate(actx, dest, &len, plaintext, plaintextlen) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
     outlen = len;
 
-    if (EVP_EncryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS){
+    if (EVP_EncryptFinal_ex(actx, dest + outlen, &len) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
@@ -461,7 +451,7 @@ xqc_ossl_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen, co
         goto err;
     }
 
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != XQC_SSL_SUCCESS){
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_GET_TAG, taglen, dest + outlen) != XQC_SSL_SUCCESS) {
         goto err;
     }
 
@@ -472,5 +462,5 @@ xqc_ossl_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen, co
 
 err:
     EVP_CIPHER_CTX_free(actx);
-    return XQC_CRYPTER_FAIL;
+    return -XQC_TLS_ENCRYPT_DATA_ERROR;
 }

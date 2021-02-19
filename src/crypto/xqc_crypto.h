@@ -37,8 +37,6 @@ typedef struct xqc_aead_crypter_st  xqc_aead_crypter_t;
 #define XQC_CRYPTO_CTX void *
 #endif 
 
-#define XQC_CRYPTER_SUCCESS (1)
-#define XQC_CRYPTER_FAIL    (-1)
 
 typedef XQC_AEAD_CTX    xqc_aead_ctx_t ;
 typedef XQC_CRYPTO_CTX  xqc_crypto_ctx_t ;
@@ -159,24 +157,24 @@ struct xqc_aead_crypter_builder_st
 
 struct xqc_crypter_st 
 {
-    int enc;
-    xqc_crypto_ctx_t ctx ;
+    int                 enc;
+    xqc_crypto_ctx_t    ctx;
     const xqc_crypto_t *crypto;
 };
 
 struct xqc_aead_crypter_st 
 {
-    int enc;
-    xqc_aead_ctx_t ctx ;
-    const xqc_aead_t *aead;
+    int                 enc;
+    xqc_aead_ctx_t      ctx;
+    const xqc_aead_t   *aead;
 };
 
 struct xqc_crypto_st 
 {
-    size_t keylen;
-    size_t noncelen;
-    XQC_CRYPTO_SUITES ctx;
-    const xqc_crypter_builder_t *crypter_builder ;
+    size_t                          keylen;
+    size_t                          noncelen;
+    XQC_CRYPTO_SUITES               ctx;
+    const xqc_crypter_builder_t    *crypter_builder;
     struct 
     {
         ssize_t 
@@ -189,11 +187,11 @@ struct xqc_crypto_st
 
 struct xqc_aead_st 
 {
-    size_t keylen               ;
-    size_t noncelen             ;
-    XQC_AEAD_SUITES   ctx       ;
-    size_t taglen               ;
-    const xqc_aead_crypter_builder_t    *aead_crypter_builder ;
+    size_t                              keylen;
+    size_t                              noncelen;
+    XQC_AEAD_SUITES                     ctx;
+    size_t                              taglen;
+    const xqc_aead_crypter_builder_t   *aead_crypter_builder;
     struct 
     {
         ssize_t 
@@ -223,7 +221,7 @@ extern xqc_aead_crypter_builder_t   xqc_null_aead_crypter;
 static inline xqc_crypter_t* 
 xqc_crypter_new(const xqc_crypter_builder_t *builder, const xqc_crypto_t * crypto, int enc)
 {
-    if (XQC_UNLIKELY(!builder || !builder->xqc_crypter_new)){
+    if (XQC_UNLIKELY(!builder || !builder->xqc_crypter_new)) {
         return NULL;
     }
     return builder->xqc_crypter_new(crypto, !!enc);
@@ -232,7 +230,7 @@ xqc_crypter_new(const xqc_crypter_builder_t *builder, const xqc_crypto_t * crypt
 static inline void 
 xqc_crypter_free(const xqc_crypter_builder_t *builder, xqc_crypter_t* crypter)
 {
-    if (XQC_UNLIKELY(!builder || !builder->xqc_crypter_free)){
+    if (XQC_UNLIKELY(!builder || !builder->xqc_crypter_free)) {
         return;
     }
     builder->xqc_crypter_free(crypter);
@@ -241,7 +239,7 @@ xqc_crypter_free(const xqc_crypter_builder_t *builder, xqc_crypter_t* crypter)
 static inline xqc_aead_crypter_t* 
 xqc_aead_crypter_new(const xqc_aead_crypter_builder_t *builder, const xqc_aead_t * aead, int enc)
 {
-    if (XQC_UNLIKELY(!builder || !builder->xqc_aead_crypter_new)){
+    if (XQC_UNLIKELY(!builder || !builder->xqc_aead_crypter_new)) {
         return NULL;
     }
     return builder->xqc_aead_crypter_new(aead, !!enc);
@@ -250,7 +248,7 @@ xqc_aead_crypter_new(const xqc_aead_crypter_builder_t *builder, const xqc_aead_t
 static inline void 
 xqc_aead_crypter_free(const xqc_aead_crypter_builder_t *builder, xqc_aead_crypter_t* aead_crypter)
 {
-    if (XQC_UNLIKELY(!builder || !builder->xqc_aead_crypter_free)){
+    if (XQC_UNLIKELY(!builder || !builder->xqc_aead_crypter_free)) {
         return;
     }
     builder->xqc_aead_crypter_free(aead_crypter);
@@ -275,15 +273,15 @@ xqc_crypto_encrypt(const xqc_crypto_t * crypto,
     size_t samplelen, xqc_crypter_t *encrypter)
 {
     int owns = XQC_TRUE;
-    ssize_t len = XQC_CRYPTER_FAIL , out = XQC_CRYPTER_FAIL ;
+    ssize_t len , out ;
     const xqc_crypter_builder_t *builder = crypto->crypter_builder ;
 
-    if (encrypter){
+    if (encrypter) {
         owns = XQC_FALSE ;
         goto start ;
     }
 
-    if (builder == NULL){
+    if (builder == NULL) {
         return crypto->encrypt.xqc_encrypt_func(crypto, dest, destlen,
             plaintext, plaintextlen,
             key, keylen,
@@ -291,7 +289,7 @@ xqc_crypto_encrypt(const xqc_crypto_t * crypto,
     }
 
     encrypter = builder->xqc_crypter_new(crypto, /** enc */1) ;
-    if (XQC_UNLIKELY(!encrypter)){
+    if (XQC_UNLIKELY(!encrypter)) {
         return -XQC_TLS_ENCRYPT_DATA_ERROR;
     }
 
@@ -300,7 +298,7 @@ start:
     (void) xqc_crypter_call(builder, set_nonce, encrypter, sample, samplelen);
 
     len = builder->xqc_crypter_update(encrypter, dest, destlen, plaintext, plaintextlen);
-    if (len < 0 || XQC_UNLIKELY(len > destlen)){
+    if (len < 0 || XQC_UNLIKELY(len > destlen)) {
         out = -XQC_TLS_ENCRYPT_DATA_ERROR ;
         goto finish ;
     }
@@ -311,7 +309,7 @@ start:
     destlen -= len ;
 
     len = builder->xqc_crypter_final(encrypter, dest,destlen) ;
-    if (len < 0 || XQC_UNLIKELY(len > destlen)){
+    if (len < 0 || XQC_UNLIKELY(len > destlen)) {
         out = -XQC_TLS_ENCRYPT_DATA_ERROR ;
         goto finish ;
     }
@@ -319,7 +317,7 @@ start:
     out += len ;
 
 finish:
-    if (owns){
+    if (owns) {
         builder->xqc_crypter_free(encrypter);
     }
     return out ;
@@ -334,15 +332,15 @@ xqc_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
             xqc_aead_crypter_t *aead_encrypter)
 {
     int owns = XQC_TRUE;
-    ssize_t outlen = XQC_CRYPTER_FAIL, l ;
+    ssize_t outlen;
     const xqc_aead_crypter_builder_t *builder = aead->aead_crypter_builder ;
 
-    if (aead_encrypter){
+    if (aead_encrypter) {
         owns = XQC_FALSE;
         goto start;
     }
 
-    if (XQC_UNLIKELY(!builder)){
+    if (XQC_UNLIKELY(!builder)) {
         return aead->encrypt.xqc_encrypt_func(
                 aead, dest, destlen,
                 plaintext, plaintextlen,
@@ -352,7 +350,7 @@ xqc_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
     }
 
     aead_encrypter = builder->xqc_aead_crypter_new(aead, /** enc */ 1); 
-    if (XQC_UNLIKELY(!aead_encrypter)){
+    if (XQC_UNLIKELY(!aead_encrypter)) {
         return -XQC_TLS_ENCRYPT_DATA_ERROR ;
     }
 
@@ -361,7 +359,7 @@ start:
     outlen = builder->xqc_aead_crypter_seal(aead_encrypter, dest, destlen, nonce, noncelen, plaintext, plaintextlen,
         ad, adlen);
 
-    if (owns){
+    if (owns) {
         builder->xqc_aead_crypter_free(aead_encrypter);
     }
     return outlen > 0 ? outlen : -XQC_TLS_ENCRYPT_DATA_ERROR;
@@ -376,15 +374,15 @@ xqc_aead_decrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
             xqc_aead_crypter_t *aead_decrypter)
 {
     int owns = XQC_TRUE;
-    ssize_t outlen = XQC_CRYPTER_FAIL, l ;
+    ssize_t outlen;
     const xqc_aead_crypter_builder_t *builder = aead->aead_crypter_builder ;
 
-    if (aead_decrypter){
+    if (aead_decrypter) {
         owns = XQC_FALSE;
         goto start;
     }
     
-    if (XQC_UNLIKELY(!builder)){
+    if (XQC_UNLIKELY(!builder)) {
         return aead->decrypt.xqc_decrypt_func(aead,
                 dest, destlen,
                 ciphertext, ciphertextlen,
@@ -394,7 +392,7 @@ xqc_aead_decrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
     }
     
     aead_decrypter = builder->xqc_aead_crypter_new(aead, /** enc */0); 
-    if (XQC_UNLIKELY(!aead_decrypter)){
+    if (XQC_UNLIKELY(!aead_decrypter)) {
         return -XQC_TLS_DECRYPT_DATA_ERROR ;
     }
 
@@ -403,7 +401,7 @@ start:
     outlen = builder->xqc_aead_crypter_open(aead_decrypter, dest, destlen, nonce, noncelen, ciphertext, ciphertextlen,
         ad, adlen);
     
-    if (owns){
+    if (owns) {
         builder->xqc_aead_crypter_free(aead_decrypter);
     }
     return outlen > 0 ? outlen : -XQC_TLS_DECRYPT_DATA_ERROR;
