@@ -94,7 +94,7 @@ xqc_openssl_crypter_update(xqc_crypter_t *crypter, uint8_t *dest, size_t destlen
 }
 
 static ssize_t 
-xqc_openssl_encrypter_final(xqc_crypter_t *crypter, uint8_t *dest, size_t destlen)
+xqc_openssl_crypter_final(xqc_crypter_t *crypter, uint8_t *dest, size_t destlen)
 {
     int outlen = 0;
     ssize_t r;
@@ -108,13 +108,13 @@ xqc_openssl_encrypter_final(xqc_crypter_t *crypter, uint8_t *dest, size_t destle
     return outlen;
 }
 
-xqc_crypter_builder_t openssl_crypter_builder = {
+xqc_crypter_builder_t xqc_openssl_crypter_builder = {
     .xqc_crypter_new            = xqc_openssl_crypter_new,
     .xqc_crypter_free           = xqc_openssl_crypter_free,
     .xqc_crypter_set_key        = xqc_openssl_crypter_set_key,
     .xqc_crypter_set_nonce      = xqc_openssl_crypter_set_nonce,
     .xqc_crypter_update         = xqc_openssl_crypter_update,
-    .xqc_crypter_final          = xqc_openssl_encrypter_final,
+    .xqc_crypter_final          = xqc_openssl_crypter_final,
 };
 
 /** ... openssl crypter finish  */
@@ -295,7 +295,7 @@ xqc_openssl_aead_crypter_operation (xqc_aead_crypter_t *aead_crypter, uint8_t *o
     }
 }
  
-xqc_aead_crypter_builder_t openssl_aead_crypter_builder = {
+xqc_aead_crypter_builder_t xqc_openssl_aead_crypter_builder = {
     .xqc_aead_crypter_new           = xqc_openssl_aead_crypter_new,
     .xqc_aead_crypter_free          = xqc_openssl_aead_crypter_free,
     .xqc_aead_crypter_set_key       = xqc_openssl_aead_crypter_set_key,

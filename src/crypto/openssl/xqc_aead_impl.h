@@ -32,7 +32,7 @@
 #define DO_NOT_CALL_XQC_AEAD_INIT(obj,cipher,tgl)    ({                 \
     DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
     obj->taglen = (tgl);                                                \
-    obj->aead_crypter_builder     = &openssl_aead_crypter_builder ;     \
+    obj->aead_crypter_builder     = &xqc_openssl_aead_crypter_builder ; \
     obj->encrypt.xqc_encrypt_func = xqc_ossl_aead_encrypt;              \
     obj->decrypt.xqc_decrypt_func = xqc_ossl_aead_decrypt;              \
 })
@@ -40,7 +40,7 @@
 // do not call directly !!!
 #define DO_NOT_CALL_XQC_CRYPTO_INIT(obj,cipher)     ({                  \
     DO_NOT_CALL_XQC_OPENSSL_CRYPTO_COMMON_INIT(obj,cipher);             \
-    obj->crypter_builder    =  &openssl_crypter_builder ;               \
+    obj->crypter_builder    =  &xqc_openssl_crypter_builder ;           \
     obj->encrypt.xqc_encrypt_func = xqc_ossl_crypto_encrypt;            \
 })
 
@@ -85,7 +85,7 @@ xqc_ossl_crypto_encrypt(const xqc_crypto_t*ctx, uint8_t *dest, size_t destlen,
         size_t samplelen);
 
 
-extern xqc_crypter_builder_t        openssl_crypter_builder;
-extern xqc_aead_crypter_builder_t   openssl_aead_crypter_builder;
+extern xqc_crypter_builder_t        xqc_openssl_crypter_builder;
+extern xqc_aead_crypter_builder_t   xqc_openssl_aead_crypter_builder;
 
 #endif 
