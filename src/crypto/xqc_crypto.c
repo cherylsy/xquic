@@ -40,7 +40,7 @@ xqc_null_crypter_final (xqc_crypter_t *ctx, uint8_t *dest, size_t destlen)
 }
 
 /**
- *  默认的空密码器工厂
+ *  default null crypter builder 
  * */
 xqc_crypter_builder_t xqc_null_crypter = {
     .xqc_crypter_new          = xqc_null_crypter_new ,
