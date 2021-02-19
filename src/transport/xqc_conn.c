@@ -1766,7 +1766,6 @@ xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t
         ret = xqc_packet_process(conn, packet_in->buf, packet_in->buf_size, packet_in->pkt_recv_time);
         if (ret) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_process error|ret:%d|", ret);
-            XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);
             return ret;
         }
         xqc_list_del_init(pos);
