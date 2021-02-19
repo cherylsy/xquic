@@ -350,7 +350,7 @@ xqc_packet_process(xqc_connection_t *c,
         if (XQC_OK == ret) {
             xqc_print_pkt_in_info(c, packet_in);
 
-        } else if (-XQC_EVERSION == ret || -XQC_EILLPKT == ret || -XQC_EWAITING == ret) {
+        } else if (-XQC_EVERSION == ret || -XQC_EILLPKT == ret || -XQC_EWAITING == ret || -XQC_EIGNORE == ret) {
             /* error tolerance situations */
             ret = XQC_OK;
 
