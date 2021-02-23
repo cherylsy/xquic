@@ -1057,11 +1057,17 @@ int main(int argc, char *argv[]) {
         if (c_cong_plus)
             cong_flags |= XQC_BBR_FLAG_RTTVAR_COMPENSATION;
 #endif
-    } else if (c_cong_ctl == 'r') {
+    }
+#ifndef XQC_DISABLE_SOME_CC
+    else if (c_cong_ctl == 'r') {
         cong_ctrl = xqc_reno_cb;
-    } else if (c_cong_ctl == 'c') {
+    }
+#endif
+    else if (c_cong_ctl == 'c') {
         cong_ctrl = xqc_cubic_cb;
-    } else if (c_cong_ctl == 'B') {
+    }
+#ifndef XQC_DISABLE_SOME_CC
+    else if (c_cong_ctl == 'B') {
         cong_ctrl = xqc_bbr2_cb;
 #if XQC_BBR2_PLUS_ENABLED
         if (c_cong_plus) {
@@ -1069,7 +1075,9 @@ int main(int argc, char *argv[]) {
             cong_flags |= XQC_BBR2_FLAG_FAST_CONVERGENCE;
         }
 #endif
-    } else if (c_cong_ctl == 'C') {
+    }
+#endif
+    else if (c_cong_ctl == 'C') {
         cong_ctrl = xqc_cubic_kernel_cb;
     } else {
         printf("unknown cong_ctrl, option is b, r, c\n");

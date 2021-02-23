@@ -133,6 +133,18 @@ set(
     "src/common/xqc_log.c"
 )
 
+if(XQC_DISABLE_SOME_CC)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_DISABLE_SOME_CC ")
+set(
+    CONGESTION_CONTROL_SOURCES
+
+    "src/congestion_control/xqc_cubic.c"
+    "src/congestion_control/xqc_cubic_kernel.c"
+    "src/congestion_control/xqc_bbr.c"
+    "src/congestion_control/xqc_window_filter.c"
+    "src/congestion_control/xqc_sample.c"
+)
+else()
 set(
     CONGESTION_CONTROL_SOURCES
 
@@ -144,6 +156,7 @@ set(
     "src/congestion_control/xqc_sample.c"
     "src/congestion_control/xqc_bbr2.c"
 )
+endif()
 
 set (
     XQC_SOURCE 
