@@ -573,7 +573,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
 #undef XQC_MAX_KNP_LEN
 
 #ifdef XQC_PRINT_SECRET
-    xqc_tls_print_secret(ssl, conn, level, secret, NULL, secretlen);
+    xqc_tls_print_secret(ssl, conn, ssl_level, secret, NULL, secretlen);
 #endif
 
     /* try to get transport parameter & get no_crypto flag */
@@ -670,7 +670,7 @@ xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
 #undef XQC_MAX_KNP_LEN
 
 #ifdef XQC_PRINT_SECRET
-    xqc_tls_print_secret(ssl, conn, level, NULL, secret, secretlen);
+    xqc_tls_print_secret(ssl, conn, ssl_level, NULL, secret, secretlen);
 #endif
 
     if ((ssl_level == ssl_encryption_handshake && conn->conn_type == XQC_CONN_TYPE_SERVER) 
