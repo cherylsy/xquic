@@ -211,7 +211,7 @@ typedef struct xqc_congestion_control_callback_s {
 #ifndef XQC_DISABLE_RENO
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_reno_cb;
 #endif
-#ifndef XQC_DISABLE_BBR2
+#ifdef XQC_ENABLE_BBR2
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr2_cb;
 #endif
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;

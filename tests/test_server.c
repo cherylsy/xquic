@@ -1066,7 +1066,7 @@ int main(int argc, char *argv[]) {
     else if (c_cong_ctl == 'c') {
         cong_ctrl = xqc_cubic_cb;
     }
-#ifndef XQC_DISABLE_BBR2
+#ifdef XQC_ENABLE_BBR2
     else if (c_cong_ctl == 'B') {
         cong_ctrl = xqc_bbr2_cb;
 #if XQC_BBR2_PLUS_ENABLED

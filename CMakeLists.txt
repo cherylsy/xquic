@@ -154,9 +154,8 @@ else()
     )
 endif()
 
-if(XQC_DISABLE_BBR2)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_DISABLE_BBR2 ")
-else()
+if(XQC_ENABLE_BBR2)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_ENABLE_BBR2 ")
     set(
         CONGESTION_CONTROL_SOURCES
 
