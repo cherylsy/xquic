@@ -1449,7 +1449,7 @@ int main(int argc, char *argv[]) {
             cong_flags |= XQC_BBR_FLAG_RTTVAR_COMPENSATION;
 #endif
     }
-#ifndef XQC_DISABLE_SOME_CC
+#ifndef XQC_DISABLE_RENO
     else if (c_cong_ctl == 'r') {
         cong_ctrl = xqc_reno_cb;
     }
@@ -1457,7 +1457,7 @@ int main(int argc, char *argv[]) {
     else if (c_cong_ctl == 'c') {
         cong_ctrl = xqc_cubic_cb;
     }
-#ifndef XQC_DISABLE_SOME_CC
+#ifndef XQC_DISABLE_BBR2
     else if (c_cong_ctl == 'B') {
         cong_ctrl = xqc_bbr2_cb;
         cong_flags = XQC_BBR2_FLAG_NONE;
