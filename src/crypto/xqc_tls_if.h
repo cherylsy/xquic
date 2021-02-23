@@ -19,14 +19,23 @@ typedef struct {
 } xqc_pkt_stateless_reset;
 
 
+#define XQC_HP_TX   (0)
+#define XQC_HP_RX   (1)
+#define XQC_HP_MAX_DIRECTION (2)
+
 struct xqc_tls_context
 {
-    xqc_aead_t      aead;
+    //aead suites
+    xqc_aead_t          aead;
     /** 
      * crypto suites (without addition info) 
      * */
-    xqc_crypto_t    crypto;
-    xqc_digist_t    prf;
+    xqc_crypto_t        crypto;
+    //digist suites 
+    xqc_digist_t        prf;
+    xqc_aead_crypter_t *aead_encrypter;
+    xqc_aead_crypter_t *aead_decrypter;
+    xqc_crypter_t      *hp[XQC_HP_MAX_DIRECTION];
 };
 
 typedef struct xqc_tls_context xqc_tls_context_t;
@@ -181,7 +190,7 @@ typedef ssize_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * aead_crypter);
 
 /**
  * @functypedef
@@ -210,7 +219,7 @@ typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * aead_crypter);
 
 
 /**
@@ -235,7 +244,7 @@ typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
 typedef ssize_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *sample,
-                                  size_t samplelen, void *user_data);
+                                  size_t samplelen, void *user_data, xqc_crypter_t * crypter);
 
 
 /**
@@ -497,36 +506,36 @@ ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
 
 ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *ciphertext,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
 
 ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *plaintext,
                                   size_t plaintextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
 
 ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t destlen, const uint8_t *ciphertext,
                                   size_t ciphertextlen, const uint8_t *key,
                                   size_t keylen, const uint8_t *nonce,
                                   size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data);
+                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
 
 ssize_t xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data);
+        size_t samplelen, void *user_data, xqc_crypter_t * crypter);
 
 ssize_t xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
         const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data);
+        size_t samplelen, void *user_data, xqc_crypter_t * crypter);
 
 /* Return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept */
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
