@@ -163,15 +163,34 @@ set(
 set(
     CONGESTION_CONTROL_SOURCES
 
-    "src/congestion_control/xqc_new_reno.c"
     "src/congestion_control/xqc_cubic.c"
     "src/congestion_control/xqc_bbr.c"
-    "src/congestion_control/xqc_bbr2.c"
     "src/congestion_control/xqc_cubic_kernel.c"
     "src/congestion_control/xqc_window_filter.c"
     "src/congestion_control/xqc_sample.c"
 
 )
+
+if(XQC_DISABLE_RENO)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_DISABLE_RENO ")
+else()
+    set(
+            CONGESTION_CONTROL_SOURCES
+
+            ${CONGESTION_CONTROL_SOURCES}
+            "src/congestion_control/xqc_new_reno.c"
+    )
+endif()
+
+if(XQC_ENABLE_BBR2)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_ENABLE_BBR2 ")
+    set(
+            CONGESTION_CONTROL_SOURCES
+
+            ${CONGESTION_CONTROL_SOURCES}
+            "src/congestion_control/xqc_bbr2.c"
+    )
+endif()
 
 if (XQC_NO_SHARED)
     set(XQC_BINARY_TYPE STATIC)
