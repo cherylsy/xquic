@@ -175,20 +175,20 @@ if (XQC_DISABLE_RENO)
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_DISABLE_RENO")
 else()
     set(
-            CONGESTION_CONTROL_SOURCES
+        CONGESTION_CONTROL_SOURCES
 
-            ${CONGESTION_CONTROL_SOURCES}
-            "src/congestion_control/xqc_new_reno.c"
+        ${CONGESTION_CONTROL_SOURCES}
+        "src/congestion_control/xqc_new_reno.c"
     )
 endif()
 
 if (XQC_ENABLE_BBR2)
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_ENABLE_BBR2")
     set(
-            CONGESTION_CONTROL_SOURCES
+        CONGESTION_CONTROL_SOURCES
 
-            ${CONGESTION_CONTROL_SOURCES}
-            "src/congestion_control/xqc_bbr2.c"
+        ${CONGESTION_CONTROL_SOURCES}
+        "src/congestion_control/xqc_bbr2.c"
     )
 endif()
 

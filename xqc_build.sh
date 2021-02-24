@@ -45,7 +45,7 @@ elif [ x"$platform" == xandroid ] ; then
 	            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake
 	            -DANDROID_STL=c++_shared
 	            -DANDROID_NATIVE_API_LEVEL=android-19
-	            -DXQC_DISABLE_RENO=on"
+	            -DXQC_DISABLE_RENO=ON"
 else 
 	echo "no support platform"
 	exit 0
