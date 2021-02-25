@@ -319,7 +319,7 @@ xqc_conn_server_create(xqc_engine_t *engine,
     }
 
     /* Insert into engine's conns_hash */
-    if (xqc_insert_conns_hash(engine->conns_hash, xc, &xc->scid)) {
+    if (xqc_insert_conns_hash(engine->conns_hash, conn, &conn->scid)) {
         goto fail;
     }
 
