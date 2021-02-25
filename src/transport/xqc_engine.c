@@ -780,16 +780,16 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                xqc_msec_t recv_time,
                                void *user_data)
 {
-    /* find connection with cid*/
+    int ret = 0;
     xqc_connection_t *conn = NULL;
-    xqc_cid_t dcid, scid; //dcid:对端cid，scid:本地cid
+    xqc_cid_t dcid, scid;   /* dcid: cid of peer; scid: cid of endpoint */
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
-    int ret = 0;
-
-    /* 对端的scid是本地的dcid */
-    if (XQC_UNLIKELY(xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len, (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK)) {
+    /* reverse packet's dcid/scid to endpoint's scid/dcid */
+    if (XQC_UNLIKELY(xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len,
+                                          (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK))
+    {
         xqc_log(engine->log, XQC_LOG_INFO, "|fail to parse cid|ret:%d|", ret);
         return -XQC_EILLPKT;
     }
@@ -799,32 +799,29 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
 
     /* server creates connection when receiving a initial packet*/
     if (XQC_UNLIKELY(conn == NULL
-            && engine->eng_type == XQC_ENGINE_SERVER
-            && XQC_PACKET_IS_LONG_HEADER(packet_in_buf)
-            &&
-                (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_INIT
-                || XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_0RTT)
-            && (local_addr != NULL && peer_addr != NULL) //防止server新建连接时源目的地址为空
-            )) {
-
-        /* 防止initial包重传重复创建连接 */
+                     && engine->eng_type == XQC_ENGINE_SERVER
+                     && XQC_PACKET_IS_LONG_HEADER(packet_in_buf)
+                     && (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_INIT
+                         || XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_0RTT)
+                     && (local_addr != NULL && peer_addr != NULL)))
+    {
+        /* if server choosed its own cid, and client's Initial is retransmiting,
+           the connection could be found by client's cid */
         conn = xqc_engine_conns_hash_find(engine, &dcid, 'd');
         if (conn) {
             goto process;
         }
 
-        conn = xqc_conn_server_create(engine,
-                                      local_addr, local_addrlen,
-                                      peer_addr, peer_addrlen,
-                                      &dcid, &scid,
+        conn = xqc_conn_server_create(engine, local_addr, local_addrlen,
+                                      peer_addr, peer_addrlen, &dcid, &scid,
                                       &(engine->eng_callback.conn_callbacks),
-                                      &default_conn_settings,
-                                      user_data);
+                                      &default_conn_settings, user_data);
         if (conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
             return -XQC_ECREATE_CONN;
         }
     }
+
     if (XQC_UNLIKELY(conn == NULL)) {
         if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
             if (xqc_engine_schedule_reset(engine, peer_addr, peer_addrlen, recv_time) != XQC_OK) {
@@ -836,8 +833,9 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
             }
+
         } else {
-            //RST包只有对端cid
+            // RST包只有对端cid
             conn = xqc_engine_conns_hash_find(engine, &scid, 'd');
             if (conn) {
                 xqc_log(engine->log, XQC_LOG_WARN, "|====>|receive reset, enter draining|size:%uz|scid:%s|",
@@ -880,13 +878,13 @@ process:
     }
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
-                           recv_time + conn->conn_send_ctl->ctl_conn->local_settings.max_idle_timeout*1000);
-
+                           recv_time + conn->conn_send_ctl->ctl_conn->local_settings.max_idle_timeout * 1000);
 
 after_process:
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (0 == xqc_conns_pq_push(engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+
         } else {
             xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|conn:%p|", conn);
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
@@ -896,11 +894,12 @@ after_process:
     }
 
     /* main logic */
-    if (++conn->packet_need_process_count >= XQC_MAX_PACKET_PROCESS_BATCH ||
-        conn->conn_err != 0 ||
-        conn->conn_flag & XQC_CONN_FLAG_NEED_RUN) {
+    if (++conn->packet_need_process_count >= XQC_MAX_PACKET_PROCESS_BATCH
+        || conn->conn_err != 0 || conn->conn_flag & XQC_CONN_FLAG_NEED_RUN)
+    {
         xqc_engine_main_logic_internal(engine, conn);
-        if(xqc_engine_conns_hash_find(engine, &scid, 's') == NULL){ //用于当连接在main logic中destroy时，需要返回错误让上层感知
+        if (xqc_engine_conns_hash_find(engine, &scid, 's') == NULL) {
+            /* to inform upper module when destroy connection in main logic  */
             return  -XQC_ECONN_NFOUND;
         }
     }
