@@ -255,6 +255,11 @@ xqc_conn_create(xqc_engine_t *engine,
         goto fail;
     }
 
+    /* Insert into engine's conns_hash */
+    if (xqc_insert_conns_hash(engine->conns_hash, xc, &xc->scid)) {
+        goto fail;
+    }
+
     for (xqc_pkt_num_space_t i = 0; i < XQC_PNS_N; i++) {
         memset(&xc->recv_record[i], 0, sizeof(xqc_recv_record_t));
         xqc_init_list_head(&xc->recv_record[i].list_head);
@@ -316,11 +321,6 @@ xqc_conn_server_create(xqc_engine_t *engine,
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
         return NULL;
-    }
-
-    /* Insert into engine's conns_hash */
-    if (xqc_insert_conns_hash(engine->conns_hash, conn, &conn->scid)) {
-        goto fail;
     }
 
     xqc_cid_copy(&conn->ocid, scid);
