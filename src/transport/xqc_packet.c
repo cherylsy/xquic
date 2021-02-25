@@ -94,7 +94,7 @@ xqc_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
      *  2) client's Initial packet is corrupted, pkt_scid is distorted; 
      */
     if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
-        if (!xqc_cid_is_equal(&c->dcid, &pkt->pkt_scid)) {
+        if (XQC_OK != xqc_cid_is_equal(&c->dcid, &pkt->pkt_scid)) {
             xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
         }
 

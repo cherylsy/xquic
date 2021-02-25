@@ -673,7 +673,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(pkt_type);
     xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
     xqc_pktns_t *p_pktns = NULL;
-    xqc_encrypt_t decrypt_func = NULL;
+    xqc_decrypt_t decrypt_func = NULL;
     xqc_hp_mask_t hp_mask = NULL;
 
     xqc_crypto_km_t *ckm = NULL;
@@ -1180,10 +1180,10 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     packet_in->pos = pos;
 
     if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT) {
-
         /* check cid */
         if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
-            || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK) {
+            || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK)
+        {
             /* log & ignore packet */
             xqc_log(c->log, XQC_LOG_ERROR, "|invalid dcid or scid|");
             return -XQC_EILLPKT;
