@@ -176,7 +176,7 @@ xqc_packet_parse_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         ret = xqc_packet_parse_long_header(c, packet_in);
         if (XQC_OK != ret) {
             xqc_log(c->log, XQC_LOG_ERROR,
-                "|xqc_packet_parse_long_header error:%d|", ret);
+                    "|xqc_packet_parse_long_header error:%d|", ret);
             return ret;
         }
 
