@@ -84,67 +84,43 @@ xqc_state_to_pkt_type(xqc_connection_t *conn)
 }
 
 int
-xqc_check_cid(xqc_connection_t *c, xqc_packet_t *pkt)
+xqc_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
 {
-    /* update CID after successful Initial process */
-    if (pkt->pkt_scid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_scid, &c->dcid)) {
-        /** 
-         *  after a successful process of server's Initial packet,
-         *  SCID from server Initial is not equal to what client provided,
-         *  might owing to:
-         *  1) server is not willing to use the client's DCID as SCID;
-         *  2) server Initial packet is corrupted, pkt_scid is distorted; 
-         *
-         *  after a successful process of client's Initial packet,
-         *  if client's SCID is not equal to what server remembered, might owing to:
-         *  1) client's previous Initial is corrupted, pkt_scid is distorted;
-         */
-        xqc_log(c->log, XQC_LOG_INFO, "|peer's SCID changed, update|ori:%s|new:%s|", 
-                xqc_dcid_str(&c->dcid), xqc_scid_str(&pkt->pkt_scid));
+    /** 
+     *  after a successful process of Initial packet, SCID from Initial
+     *  is not equal to what remembered when connection was created, it
+     *  might owing to:
+     *  1) server is not willing to use the client's DCID as SCID;
+     *  2) client's Initial packet is corrupted, pkt_scid is distorted; 
+     */
+    if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
+        if (!xqc_cid_is_equal(&c->dcid, &pkt->pkt_scid)) {
+            xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
+        }
 
-        /* remove original, update dcid and conn hash */
-        xqc_remove_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid);
-        xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
+        /* if the original dcid remember by server might be corrypted, correct it */
+        if (c->conn_type == XQC_CONN_TYPE_SERVER
+            && !xqc_cid_is_equal(&c->ocid, &pkt->pkt_dcid))
+        {
+            xqc_cid_copy(&c->ocid, &pkt->pkt_dcid);
+        }
+
         if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
+            xqc_log(c->log, XQC_LOG_ERROR, "|client insert conn hash error");
             return -XQC_EMALLOC;
         }
-        c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
 
-    } else if (pkt->pkt_dcid.cid_len > 0 && XQC_OK != xqc_cid_is_equal(&pkt->pkt_dcid, &c->scid)) {
-        /**
-         *  if DCID is error, decryption would be failure, which might due to:
-         *  1) server choosed a new DCID, and returned by client
-         *  2) abnormal case
-         */
-        xqc_log(c->log, XQC_LOG_INFO, "|peer's DCID changed|ori:%s|new:%s|", 
-                xqc_dcid_str(&c->scid), xqc_scid_str(&pkt->pkt_dcid));
+        c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
     }
 
     return XQC_OK;
 }
-
 
 uint8_t
 xqc_packet_need_decrypt(xqc_packet_t *pkt)
 {
     /* packets don't need decryption */
     return xqc_has_packet_number(pkt);
-}
-
-void
-xqc_print_pkt_in_info(xqc_connection_t *c, xqc_packet_in_t *packet_in)
-{
-    if (xqc_has_packet_number(&packet_in->pi_pkt)) {
-        xqc_log(c->log, XQC_LOG_INFO, "|====>|conn:%p|size:%uz|pkt_type:%s|pkt_num:%ui|frame:%s|recv_time:%ui|",
-                c, packet_in->buf_size,
-                xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
-                xqc_frame_type_2_str(packet_in->pi_frame_types), packet_in->pkt_recv_time);
-
-    } else {
-        xqc_log(c->log, XQC_LOG_INFO, "|====>|conn:%p|size:%uz|pkt_type:%s|recv_time:%ui|",
-                c, packet_in->buf_size,
-                xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pkt_recv_time);
-    }
 }
 
 xqc_int_t
@@ -215,7 +191,7 @@ xqc_packet_parse_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 }
 
 xqc_int_t
-xqc_packet_decrypt_process_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
+xqc_packet_decrypt_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret = XQC_OK;
     unsigned char *last = packet_in->last;
@@ -293,11 +269,11 @@ xqc_packet_process_single(xqc_connection_t *c,
     }
 
     /* decrypt packet */
-    ret = xqc_packet_decrypt_process_single(c, packet_in);
+    ret = xqc_packet_decrypt_single(c, packet_in);
     if (ret == XQC_OK) {
         /* sucessful decryption of Initial/Handshake packet is important to quic conn state */
         if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {
-            xqc_check_cid(c, &packet_in->pi_pkt);
+            xqc_confirm_cid(c, &packet_in->pi_pkt);
         }
 
         xqc_log(c->log, XQC_LOG_DEBUG, "|packet process suc|type:%s|frames:%s|pkt_num:%d|",
@@ -348,7 +324,10 @@ xqc_packet_process(xqc_connection_t *c,
         /* packet_in->pos will update inside */
         ret = xqc_packet_process_single(c, packet_in);
         if (XQC_OK == ret) {
-            xqc_print_pkt_in_info(c, packet_in);
+            xqc_log(c->log, XQC_LOG_INFO, "|====>|conn:%p|size:%uz|pkt_type:%s|pkt_num:%ui|frame:%s|recv_time:%ui|",
+                    c, packet_in->buf_size,
+                    xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
+                    xqc_frame_type_2_str(packet_in->pi_frame_types), packet_in->pkt_recv_time);
 
         } else if (-XQC_EVERSION == ret || -XQC_EILLPKT == ret || -XQC_EWAITING == ret || -XQC_EIGNORE == ret) {
             /* error tolerance situations */
