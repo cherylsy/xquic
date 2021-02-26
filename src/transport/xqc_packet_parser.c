@@ -1179,7 +1179,9 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     /* update pos */
     packet_in->pos = pos;
 
-    if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT) {
+    if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT
+        && XQC_CONN_FLAG_DCID_OK & c->conn_flag)
+    {
         /* check cid */
         if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
             || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK)
