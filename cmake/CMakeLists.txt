@@ -32,8 +32,8 @@ add_custom_target(xquic_global)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} ${DYNAMIC_COMPILE_FLAGS}")
 
-if (XQC_ENABLE_LOG)
-    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_ENABLE_LOG")
+if (XQC_DISABLE_LOG)
+    set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_DISABLE_LOG")
 endif()
 
 if(ANDROID)
