@@ -46,7 +46,8 @@ elif [ x"$platform" == xandroid ] ; then
 	            -DANDROID_STL=c++_shared
 	            -DANDROID_NATIVE_API_LEVEL=android-19
 	            -DXQC_DISABLE_RENO=OFF
-	            -DXQC_ENABLE_BBR2=ON"
+	            -DXQC_ENABLE_BBR2=ON
+	            -DXQC_ENABLE_LOG=OFF"
 else 
 	echo "no support platform"
 	exit 0
