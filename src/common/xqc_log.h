@@ -61,13 +61,16 @@ void xqc_log_time(char* buf);
 void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...);
 
 
+#ifdef XQC_ENABLE_LOG
 #define xqc_log(log, level, ...) \
     do { \
         if ((log)->log_level >= level) { \
             xqc_log_implement(log, level, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
-
+#else
+#define xqc_log(log, level, ...)
+#endif
 
 #define xqc_conn_log(conn, level, fmt, ...) \
     xqc_log(conn->log, level, "|%s " fmt, xqc_conn_addr_str(conn), __VA_ARGS__ )
