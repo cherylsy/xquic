@@ -398,6 +398,56 @@ echo -e "large ack range with 30% loss ...\c"
 ./test_client -s 2048000 -l e -t 3 -E -d 300|grep ">>>>>>>> pass"
 
 
+clear_log
+killall test_server
+echo -e "client Initial dcid corruption ...\c"
+./test_server -l d -e > /dev/null &
+sleep 1
+client_print_res=`./test_client -s 1024000 -l d -t 3 -x 22 -E | grep ">>>>>>>> pass"`
+server_log_res=`grep "decrypt data error" slog`
+server_conn_cnt=`grep "xqc_conn_create" slog | wc -l`
+if [ "$client_print_res" != "" ] && [ "$server_log_res" != "" ] && [ $server_conn_cnt -eq 2 ]
+then
+    echo "$client_print_res"
+fi
+
+clear_log
+killall test_server
+echo -e "client Initial scid corruption ...\c"
+./test_server -l d -e > /dev/null &
+sleep 1
+client_print_res=`./test_client -s 1024000 -l d -t 3 -x 23 -E | grep ">>>>>>>> pass"`
+server_log_res=`grep "decrypt data error" slog`
+server_dcid_res=`grep "dcid change" slog`
+if [ "$client_print_res" != "" ] && [ "$server_log_res" != NULL ] && [ "$server_dcid_res" != NULL ]
+then
+    echo "$client_print_res"
+fi
+
+clear_log
+killall test_server
+echo -e "server Initial dcid corruption ...\c"
+./test_server -l d -e -x 3 > /dev/null &
+sleep 1
+client_print_res=`./test_client -s 1024000 -l d -t 3 -E |grep ">>>>>>>> pass"`
+client_log_res=`grep "fail to find connection" clog`
+if [ "$client_print_res" != "" ]
+then
+    echo "$client_print_res"
+fi
+
+clear_log
+killall test_server
+echo -e "server Initial scid corruption ...\c"
+./test_server -l d -e -x 4 > /dev/null &
+sleep 1
+client_print_res=`./test_client -s 1024000 -l d -t 3 -E |grep ">>>>>>>> pass"`
+client_log_res=`grep "decrypt data error" clog`
+if [ "$client_print_res" != "" ] && [ "$client_log_res" != NULL ]
+then
+    echo "$client_print_res"
+fi
+
 
 killall test_server
 

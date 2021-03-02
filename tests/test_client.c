@@ -246,6 +246,23 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
         //res = write(fd, buf, size);
         if (TEST_DROP) return size;
         if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
+
+        // client Initial dcid corruption ...
+        if (g_test_case == 22) {
+            /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
+            g_test_case = -1;
+            buf[6] = ~buf[6];
+            printf("test case 22, corrupt byte[6]\n");
+        }
+
+        // client Initial scid corruption ...
+        if (g_test_case == 23) {
+            /* bytes [15, 22] is the SCID of xquic's Initial packet */
+            g_test_case = -1;
+            buf[15] = ~buf[15];
+            printf("test case 23, corrupt byte[15]\n");
+        }
+
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {

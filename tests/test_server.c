@@ -570,6 +570,21 @@ ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size
     static ssize_t snd_sum = 0;
     int fd = ctx.fd;
     //printf("xqc_server_send size=%zd now=%llu\n",size, now());
+
+    /* server Initial dcid corruption ... */
+    if (g_test_case == 3) {
+        /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
+        g_test_case = -1;
+        buf[6] = ~buf[6];
+    }
+
+    /* server Initial scid corruption ... */
+    if (g_test_case == 4) {
+        /* bytes [15, 22] is the SCID of xquic's Initial packet */
+        g_test_case = -1;
+        buf[15] = ~buf[15];
+    }
+
     do {
         errno = 0;
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
