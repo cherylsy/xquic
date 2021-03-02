@@ -787,9 +787,9 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
     xqc_cid_init_zero(&scid);
 
     /* reverse packet's dcid/scid to endpoint's scid/dcid */
-    if (XQC_UNLIKELY(xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len,
-                                          (unsigned char *)packet_in_buf, packet_in_size) != XQC_OK))
-    {
+    ret = xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len,
+                               (unsigned char *)packet_in_buf, packet_in_size);
+    if (XQC_UNLIKELY(ret != XQC_OK)) {
         xqc_log(engine->log, XQC_LOG_INFO, "|fail to parse cid|ret:%d|", ret);
         return -XQC_EILLPKT;
     }
