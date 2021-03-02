@@ -247,12 +247,7 @@ xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
     dst_buf += *written_size;
 
     packet_out->po_frame_types |= XQC_FRAME_BIT_CRYPTO;
-
-
-
     return dst_buf - begin;
-
-
 }
 
 int

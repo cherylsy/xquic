@@ -264,12 +264,14 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     packet_in->pi_pkt.pkt_pns = XQC_PNS_APP_DATA;
 
     if (XQC_BUFF_LEFT_SIZE(pos, packet_in->last) < 1 + cid_len) {
-        return -XQC_ENOBUF;
+        xqc_log(c->log, XQC_LOG_ERROR, "|cid len error|cid_len:%d|size:%d",
+                1 + cid_len, XQC_BUFF_LEFT_SIZE(pos, packet_in->last));
+        return -XQC_EILLPKT;
     }
 
     /* check fixed bit(0x40) = 1 */
     if ((pos[0] & 0x40) == 0) {
-        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header: fixed bit err|");
+        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header: fixed bit err|pos[0]:%d", (uint32_t)pos[0]);
         return -XQC_EILLPKT;
     }
 
@@ -280,15 +282,14 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     pos += 1;
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|parse short header|spin_bit:%ud|reserved_bits:%ud|key_phase:%ud|packet_number_len:%ud|",
-            spin_bit, reserved_bits,
-            key_phase, packet_number_len);
+            spin_bit, reserved_bits, key_phase, packet_number_len);
 
     /* check dcid */
     xqc_cid_set(&(packet->pkt_dcid), pos, cid_len);
     pos += cid_len;
     if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK) {
         /* log & ignore */
-        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid|");
+        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid, pkt dcid: %s, conn scid: %s|", xqc_dcid_str(&packet->pkt_dcid), xqc_scid_str(&c->scid));
         return -XQC_EILLPKT;
     }
 
@@ -296,13 +297,9 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     packet_in->pi_pkt.length = packet_in->last - pos;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
 
-    /* protected payload */
-
-
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
         c->discard_vn_flag = 1;
     }
-
 
     return XQC_OK;
 }
@@ -456,13 +453,13 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     size = xqc_vint_read(pos, end, &token_len);
     if (size < 0 || XQC_BUFF_LEFT_SIZE(pos, end) < size + token_len) {
         xqc_log(c->log, XQC_LOG_ERROR, "|token length err|%ui|", token_len);
-        return -XQC_EVINTREAD;
+        return -XQC_EILLPKT;
     }
     pos += size;
 
     if (token_len > XQC_MAX_TOKEN_LEN) {
         xqc_log(c->log, XQC_LOG_ERROR, "|token length exceed XQC_MAX_TOKEN_LEN|%ui|", token_len);
-        return -XQC_ELIMIT;
+        return -XQC_EILLPKT;
     }
 
     /* 服务端保存token，解crypto frame时校验token */
@@ -599,6 +596,7 @@ int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         encrypt_func = conn->tlsref.callbacks.encrypt;
         hp_mask = conn->tlsref.callbacks.hp_mask;
     } else {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|illegal enc level|%d|", encrypt_level);
         return -XQC_EILLPKT;
     }
 
@@ -673,7 +671,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(pkt_type);
     xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
     xqc_pktns_t *p_pktns = NULL;
-    xqc_encrypt_t decrypt_func = NULL;
+    xqc_decrypt_t decrypt_func = NULL;
     xqc_hp_mask_t hp_mask = NULL;
 
     xqc_crypto_km_t *ckm = NULL;
@@ -738,8 +736,13 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     size_t pkt_num_offset = packet_in->pi_pkt.pkt_num_offset;
     size_t sample_offset = pkt_num_offset + 4;
     char mask[XQC_HP_SAMPLELEN];
-    char header_decrypt[1500];
+    char header_decrypt[XQC_MAX_PACKET_LEN];
     size_t header_len = 0;
+
+    if (pkt_num_offset > XQC_MAX_PACKET_LEN) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|offset error|");
+        return -XQC_EILLPKT;
+    }
 
     char *p = header_decrypt;
     memcpy(p, pkt, pkt_num_offset);
@@ -768,21 +771,12 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     xqc_packet_parse_packet_number(header_decrypt + pkt_num_offset, packet_number_len, &packet_in->pi_pkt.pkt_num);
 
-#ifdef STANDARD_NONCE
-    /* 标准nonce，先解码出pkt_num，然后将pkt_num作为参数构建nonce */
+    /* 先解码出pkt_num，然后将pkt_num作为参数构建nonce */
     packet_in->pi_pkt.pkt_num = xqc_decode_packet_num(conn->conn_send_ctl->ctl_largest_recvd[pns],
                                                       packet_in->pi_pkt.pkt_num, packet_number_len * 8);
 
     uint8_t nonce[XQC_NONCE_LEN];
     xqc_crypto_create_nonce(nonce, ckm->iv.base, ckm->iv.len, packet_in->pi_pkt.pkt_num);
-#else
-    /* 兼容线上老版本NONCE生成方式：先create nonce，在decode packet_num */
-    uint8_t nonce[64];
-    xqc_crypto_create_nonce(nonce, ckm->iv.base, ckm->iv.len, packet_in->pi_pkt.pkt_num);
-
-    packet_in->pi_pkt.pkt_num = xqc_decode_packet_num(conn->conn_send_ctl->ctl_largest_recvd[pns],
-                                                      packet_in->pi_pkt.pkt_num, packet_number_len * 8);
-#endif
 
     char *decrypt_buf = (char *) (packet_in->decode_payload);
     unsigned char *payload = pkt + pkt_num_offset + packet_number_len;
@@ -1163,6 +1157,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     if ((XQC_BUFF_LEFT_SIZE(pos, end) < dcid->cid_len + 1)
         || (dcid->cid_len > XQC_MAX_CID_LEN))
     {
+        xqc_log(c->log, XQC_LOG_ERROR, "|long hdr dcid len err|size:%d|cid_len:%d|", 
+                XQC_BUFF_LEFT_SIZE(pos, end), dcid->cid_len + 1);
         return -XQC_EILLPKT;
     }
     xqc_memcpy(dcid->cid_buf, pos, dcid->cid_len);
@@ -1175,6 +1171,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     if ((XQC_BUFF_LEFT_SIZE(pos, end) < scid->cid_len)
         || (dcid->cid_len > XQC_MAX_CID_LEN))
     {
+        xqc_log(c->log, XQC_LOG_ERROR, "|long hdr scid len err|size:%d|cid_len:%d|", 
+                XQC_BUFF_LEFT_SIZE(pos, end), scid->cid_len);
         return -XQC_EILLPKT;
     }
     xqc_memcpy(scid->cid_buf, pos, scid->cid_len);
@@ -1183,15 +1181,9 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     /* update pos */
     packet_in->pos = pos;
 
-    /* process cid */
-    if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK) && c->conn_type == XQC_CONN_TYPE_CLIENT) {
-        xqc_cid_copy(&c->dcid, &packet->pkt_scid);
-        if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
-            return -XQC_EMALLOC;
-        }
-        c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
-
-    } else if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT) {
+    if (type != XQC_PTYPE_INIT && type != XQC_PTYPE_0RTT
+        && XQC_CONN_FLAG_DCID_OK & c->conn_flag)
+    {
         /* check cid */
         if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
             || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK)

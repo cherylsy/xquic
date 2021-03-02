@@ -12,6 +12,7 @@
 #include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_frame.h"
 #include "src/crypto/xqc_tls_if.h"
+#include "src/common/xqc_defs.h"
 #include "src/common/xqc_malloc.h"
 
 #ifdef WORDS_BIGENDIAN
@@ -277,13 +278,12 @@ static inline xqc_hs_buffer_t * xqc_create_hs_buffer(int buf_size){
 }
 
 
-#define MAX_PACKET_LEN 1500
 //just temporary, need rewrite with frame structure
 typedef struct {
   xqc_list_head_t buffer_list;
   uint8_t type;
   uint16_t data_len;
-  char data[ MAX_PACKET_LEN];
+  char data[XQC_MAX_PACKET_LEN];
 }xqc_data_buffer_t;
 
 //callback function
