@@ -264,6 +264,8 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     packet_in->pi_pkt.pkt_pns = XQC_PNS_APP_DATA;
 
     if (XQC_BUFF_LEFT_SIZE(pos, packet_in->last) < 1 + cid_len) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|cid len error|cid_len:%d|size:%d",
+                1 + cid_len, XQC_BUFF_LEFT_SIZE(pos, packet_in->last));
         return -XQC_EILLPKT;
     }
 
@@ -280,8 +282,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     pos += 1;
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|parse short header|spin_bit:%ud|reserved_bits:%ud|key_phase:%ud|packet_number_len:%ud|",
-            spin_bit, reserved_bits,
-            key_phase, packet_number_len);
+            spin_bit, reserved_bits, key_phase, packet_number_len);
 
     /* check dcid */
     xqc_cid_set(&(packet->pkt_dcid), pos, cid_len);
@@ -296,13 +297,9 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     packet_in->pi_pkt.length = packet_in->last - pos;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
 
-    /* protected payload */
-
-
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
         c->discard_vn_flag = 1;
     }
-
 
     return XQC_OK;
 }
@@ -599,6 +596,7 @@ int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
         encrypt_func = conn->tlsref.callbacks.encrypt;
         hp_mask = conn->tlsref.callbacks.hp_mask;
     } else {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|illegal enc level|%d|", encrypt_level);
         return -XQC_EILLPKT;
     }
 
@@ -738,10 +736,10 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     size_t pkt_num_offset = packet_in->pi_pkt.pkt_num_offset;
     size_t sample_offset = pkt_num_offset + 4;
     char mask[XQC_HP_SAMPLELEN];
-    char header_decrypt[MAX_PACKET_LEN];
+    char header_decrypt[XQC_MAX_PACKET_LEN];
     size_t header_len = 0;
 
-    if (pkt_num_offset > MAX_PACKET_LEN) {
+    if (pkt_num_offset > XQC_MAX_PACKET_LEN) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|offset error|");
         return -XQC_EILLPKT;
     }
@@ -1159,6 +1157,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     if ((XQC_BUFF_LEFT_SIZE(pos, end) < dcid->cid_len + 1)
         || (dcid->cid_len > XQC_MAX_CID_LEN))
     {
+        xqc_log(c->log, XQC_LOG_ERROR, "|long hdr dcid len err|size:%d|cid_len:%d|", 
+                XQC_BUFF_LEFT_SIZE(pos, end), dcid->cid_len + 1);
         return -XQC_EILLPKT;
     }
     xqc_memcpy(dcid->cid_buf, pos, dcid->cid_len);
@@ -1171,6 +1171,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     if ((XQC_BUFF_LEFT_SIZE(pos, end) < scid->cid_len)
         || (dcid->cid_len > XQC_MAX_CID_LEN))
     {
+        xqc_log(c->log, XQC_LOG_ERROR, "|long hdr scid len err|size:%d|cid_len:%d|", 
+                XQC_BUFF_LEFT_SIZE(pos, end), scid->cid_len);
         return -XQC_EILLPKT;
     }
     xqc_memcpy(scid->cid_buf, pos, scid->cid_len);
