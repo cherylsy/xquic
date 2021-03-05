@@ -461,4 +461,11 @@ xqc_conn_should_ack(xqc_connection_t *conn)
     return 0;
 }
 
+/**
+ * process an UDP datagram
+ */
+xqc_int_t
+xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
+                        size_t packet_in_size, xqc_msec_t recv_time);
+
 #endif /* _XQC_CONN_H_INCLUDED_ */

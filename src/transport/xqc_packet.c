@@ -84,33 +84,6 @@ xqc_state_to_pkt_type(xqc_connection_t *conn)
     }
 }
 
-int
-xqc_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
-{
-    /** 
-     *  after a successful process of Initial packet, SCID from Initial
-     *  is not equal to what remembered when connection was created, it
-     *  might owing to:
-     *  1) server is not willing to use the client's DCID as SCID;
-     */
-    if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
-        if (XQC_OK != xqc_cid_is_equal(&c->dcid, &pkt->pkt_scid)) {
-            xqc_log(c->log, XQC_LOG_INFO, "|dcid change|ori:%s|new:%s|", 
-                    xqc_dcid_str(&c->dcid), xqc_scid_str(&pkt->pkt_scid));
-            xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
-        }
-
-        if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|client insert conn hash error");
-            return -XQC_EMALLOC;
-        }
-
-        c->conn_flag |= XQC_CONN_FLAG_DCID_OK;
-    }
-
-    return XQC_OK;
-}
-
 uint8_t
 xqc_packet_need_decrypt(xqc_packet_t *pkt)
 {
@@ -220,34 +193,6 @@ xqc_packet_decrypt_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     return ret;
 }
 
-void
-xqc_packet_record_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
-{
-    xqc_pkt_range_status range_status;
-    int out_of_order = 0;
-    xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
-    xqc_packet_number_t pkt_num = packet_in->pi_pkt.pkt_num;
-
-    range_status = xqc_recv_record_add(&c->recv_record[pns], pkt_num,
-                                       packet_in->pkt_recv_time);
-    if (range_status == XQC_PKTRANGE_OK) {
-        if (XQC_IS_ACK_ELICITING(packet_in->pi_frame_types)) {
-            ++c->ack_eliciting_pkt[pns];
-        }
-        if (pkt_num > c->conn_send_ctl->ctl_largest_recvd[pns]) {
-            c->conn_send_ctl->ctl_largest_recvd[pns] = pkt_num;
-        }
-        if (pkt_num != xqc_recv_record_largest(&c->recv_record[pns])) {
-            out_of_order = 1;
-        }
-        xqc_maybe_should_ack(c, pns, out_of_order, packet_in->pkt_recv_time);
-    }
-
-    xqc_recv_record_log(c, &c->recv_record[pns]);
-    xqc_log(c->log, XQC_LOG_DEBUG, "|xqc_recv_record_add|status:%d|pkt_num:%ui|largest:%ui|pns:%d|",
-            range_status, pkt_num, xqc_recv_record_largest(&c->recv_record[pns]), pns);
-}
-
 xqc_int_t
 xqc_packet_process_single(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in)
@@ -267,82 +212,8 @@ xqc_packet_process_single(xqc_connection_t *c,
 
     /* decrypt packet */
     ret = xqc_packet_decrypt_single(c, packet_in);
-    if (ret == XQC_OK) {
-        /* sucessful decryption of Initial/Handshake packet is important to quic conn state */
-        if (packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT) {
-            xqc_confirm_cid(c, &packet_in->pi_pkt);
-        }
-
-        xqc_log(c->log, XQC_LOG_DEBUG, "|packet process suc|type:%s|frames:%s|pkt_num:%d|",
-            xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), 
-            xqc_frame_type_2_str(packet_in->pi_frame_types),
-            packet_in->pi_pkt.pkt_num);
-
-    } else {
+    if (ret != XQC_OK) {
         return ret;
-    }
-
-    /* record packet */
-    xqc_packet_record_single(c, packet_in);
-
-    /* 需要立即跑main_logic */
-    if (packet_in->pi_frame_types & (~(XQC_FRAME_BIT_STREAM|XQC_FRAME_BIT_PADDING))) {
-        c->conn_flag |= XQC_CONN_FLAG_NEED_RUN;
-    }
-    return XQC_OK;
-}
-
-
-/**
- * 1 UDP payload = n QUIC packets
- */
-xqc_int_t
-xqc_packet_process(xqc_connection_t *c,
-                   const unsigned char *packet_in_buf,
-                   size_t packet_in_size,
-                   xqc_msec_t recv_time)
-{
-    xqc_int_t ret = XQC_ERROR;
-    const unsigned char *last_pos = NULL;
-    const unsigned char *pos = packet_in_buf;                   /* start of QUIC pkt */
-    const unsigned char *end = packet_in_buf + packet_in_size;  /* end of udp datagram */
-    xqc_packet_in_t packet;
-    unsigned char decrypt_payload[XQC_MAX_PACKET_LEN];
-
-    /* process all QUIC packets in UDP datagram */
-    while (pos < end) {
-        last_pos = pos;
-
-        /* init packet in */
-        xqc_packet_in_t *packet_in = &packet;
-        memset(packet_in, 0, sizeof(*packet_in));
-        xqc_packet_in_init(packet_in, pos, end - pos, decrypt_payload, XQC_MAX_PACKET_LEN, recv_time);
-
-        /* packet_in->pos will update inside */
-        ret = xqc_packet_process_single(c, packet_in);
-        if (XQC_OK == ret) {
-            xqc_log(c->log, XQC_LOG_INFO, "|====>|conn:%p|size:%uz|pkt_type:%s|pkt_num:%ui|frame:%s|recv_time:%ui|",
-                    c, packet_in->buf_size,
-                    xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num,
-                    xqc_frame_type_2_str(packet_in->pi_frame_types), packet_in->pkt_recv_time);
-
-        } else if (-XQC_EVERSION == ret || -XQC_EILLPKT == ret || -XQC_EWAITING == ret || -XQC_EIGNORE == ret) {
-            /* error tolerance situations */
-            xqc_log(c->log, XQC_LOG_INFO, "|ignore err|%d|", ret);
-            packet_in->pos = packet_in->last;
-            ret = XQC_OK;
-        }
-
-        /* error occured or read state is error */
-        if (ret != XQC_OK || last_pos == packet_in->pos) {
-            /* if last_pos equals packet_in->pos, might trigger infinite loop, return to avoid it */
-            xqc_log(c->log, XQC_LOG_ERROR, "|process packets err|ret:%d|pos:%p|buf:%p|buf_size:%uz|",
-                    ret, packet_in->pos, packet_in->buf, packet_in->buf_size);
-            return ret != XQC_OK ? ret : -XQC_ESYS;
-        }
-
-        /* consume all the bytes and start parse next QUIC packet */
-        pos = packet_in->last;
     }
 
     return XQC_OK;
