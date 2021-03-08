@@ -1965,7 +1965,7 @@ xqc_conn_on_retry_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 }
 
 xqc_int_t
-xqc_conn_on_1RTT_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
+xqc_conn_on_1rtt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
     return XQC_OK;
 }
@@ -1988,7 +1988,7 @@ xqc_conn_on_pkt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
         break;
 
     case XQC_PTYPE_SHORT_HEADER:
-        ret = xqc_conn_on_1RTT_processed(c, pi);
+        ret = xqc_conn_on_1rtt_processed(c, pi);
         break;
 
     default:
