@@ -1891,7 +1891,7 @@ xqc_conn_addr_str(xqc_connection_t *conn)
 }
 
 void
-xqc_packet_record_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
+xqc_conn_record_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
     xqc_pkt_range_status range_status;
     int out_of_order = 0;
@@ -1919,7 +1919,7 @@ xqc_packet_record_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 }
 
 int
-xqc_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
+xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
 {
     /** 
      *  after a successful process of Initial packet, SCID from Initial
@@ -1949,7 +1949,7 @@ xqc_int_t
 xqc_conn_on_initial_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
     /* sucessful decryption of initial packet means that pkt's DCID/SCID is comfirmed */
-    return xqc_confirm_cid(c, &pi->pi_pkt);;
+    return xqc_conn_confirm_cid(c, &pi->pi_pkt);;
 }
 
 xqc_int_t
@@ -1995,7 +1995,7 @@ xqc_conn_on_pkt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
         break;
     }
 
-    xqc_packet_record_single(c, pi);
+    xqc_conn_record_single(c, pi);
     if (pi->pi_frame_types & (~(XQC_FRAME_BIT_STREAM|XQC_FRAME_BIT_PADDING))) {
         c->conn_flag |= XQC_CONN_FLAG_NEED_RUN;
     }
