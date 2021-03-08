@@ -1935,7 +1935,7 @@ xqc_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
         }
 
         if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|client insert conn hash error");
+            xqc_log(c->log, XQC_LOG_ERROR, "|insert conn hash error");
             return -XQC_EMALLOC;
         }
 
