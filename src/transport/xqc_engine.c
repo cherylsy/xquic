@@ -870,7 +870,7 @@ process:
     xqc_send_ctl_on_dgram_received(conn->conn_send_ctl, packet_in_size);
 
     /* process packets */
-    ret = xqc_packet_process(conn, packet_in_buf, packet_in_size, recv_time);
+    ret = xqc_conn_process_packet(conn, packet_in_buf, packet_in_size, recv_time);
     if (ret) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to process packets|conn:%p|ret:%d|", conn, ret);
         XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);

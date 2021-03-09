@@ -81,15 +81,12 @@ xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type);
 xqc_pkt_type_t
 xqc_state_to_pkt_type(xqc_connection_t *conn);
 
+/**
+ * process a single QUIC packet from packet_in
+ */
 xqc_int_t
 xqc_packet_process_single(xqc_connection_t *c,
                           xqc_packet_in_t *packet_in);
-
-xqc_int_t
-xqc_packet_process(xqc_connection_t *c,
-                   const unsigned char *packet_in_buf,
-                   size_t packet_in_size,
-                   xqc_msec_t recv_time);
 
 uint8_t
 xqc_has_packet_number(xqc_packet_t *pkt);
