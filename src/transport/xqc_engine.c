@@ -805,13 +805,6 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                          || XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in_buf) == XQC_PTYPE_0RTT)
                      && (local_addr != NULL && peer_addr != NULL)))
     {
-        /* if server choosed its own cid, and client's Initial is retransmiting,
-           the connection could be found by client's cid */
-        conn = xqc_engine_conns_hash_find(engine, &dcid, 'd');
-        if (conn) {
-            goto process;
-        }
-
         conn = xqc_conn_server_create(engine, local_addr, local_addrlen,
                                       peer_addr, peer_addrlen, &dcid, &scid,
                                       &(engine->eng_callback.conn_callbacks),

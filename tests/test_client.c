@@ -275,6 +275,12 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
     } while ((res < 0) && (errno == EINTR));
     /*socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);*/
+
+    if (g_test_case == 24) {
+        sleep(1);
+        exit(0);
+    }
+
     return res;
 }
 

@@ -585,6 +585,13 @@ ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size
         buf[15] = ~buf[15];
     }
 
+    /* server odcid hash ... */
+    if (g_test_case == 5) {
+        /* the first dategram of server is Initial/server hello, drop it */
+        g_test_case = -1;
+        return size;
+    }
+
     do {
         errno = 0;
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
@@ -1112,7 +1119,7 @@ int main(int argc, char *argv[]) {
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
     /* test server cid negotiate */
-    if (g_test_case == 1) {
+    if (g_test_case == 1 || g_test_case == 5) {
         xqc_config_t config;
         if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
             return -1;
