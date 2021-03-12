@@ -27,6 +27,7 @@ xqc_conn_settings_t default_conn_settings = {
         .ping_on        = 0,
         .so_sndbuf      = 0,
         .proto_version  = XQC_IDRAFT_VER_29,
+        .idle_time_out  = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
 };
 
 void
@@ -37,6 +38,9 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     default_conn_settings.pacing_on = settings.pacing_on;
     default_conn_settings.ping_on = settings.ping_on;
     default_conn_settings.so_sndbuf = settings.so_sndbuf;
+    if (settings.idle_time_out > 0) {
+        default_conn_settings.idle_time_out = settings.idle_time_out;
+    }
 
     if (xqc_check_proto_version_valid(settings.proto_version)) {
         default_conn_settings.proto_version = settings.proto_version;
@@ -133,7 +137,7 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     //TODO: 临时值
-    settings->max_idle_timeout = 120000; //must > XQC_PING_TIMEOUT
+    settings->max_idle_timeout = default_conn_settings.idle_time_out;
     settings->max_data = 1*1024*1024;
     settings->max_stream_data_bidi_local = 5*1024*1024;
     settings->max_stream_data_bidi_remote = 5*1024*1024;
@@ -324,6 +328,16 @@ xqc_conn_server_create(xqc_engine_t *engine,
     }
 
     xqc_cid_copy(&conn->ocid, scid);
+    if (XQC_OK != xqc_cid_is_equal(&conn->scid, &conn->ocid)) {
+        /* if server choose it's own cid, then if server Initial is lost,
+           and if client Initial retransmit, server might use odcid to
+           find the created conn */
+        if (xqc_insert_conns_hash(engine->conns_hash, conn, &conn->ocid)) {
+            goto fail;
+        }
+        xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|", xqc_dcid_str(&conn->ocid), conn);
+    }
+
     xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
     xqc_memcpy(conn->peer_addr, peer_addr, peer_addrlen);
     conn->local_addrlen = local_addrlen;
@@ -445,7 +459,13 @@ xqc_conn_destroy(xqc_connection_t *xc)
     /* Remove from engine's conns_hash */
     if (xc->engine->conns_hash) {
         xqc_remove_conns_hash(xc->engine->conns_hash, xc, &xc->scid);
+
+        if (xqc_find_conns_hash(xc->engine->conns_hash, xc, &xc->ocid)) {
+            xqc_log(xc->log, XQC_LOG_INFO, "|remove abnormal odcid conn hash: %s", xqc_dcid_str(&xc->ocid));
+            xqc_remove_conns_hash(xc->engine->conns_hash, xc, &xc->ocid);
+        }
     }
+
     if (xc->engine->conns_hash_dcid && (xc->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
         xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
     }
@@ -1949,12 +1969,23 @@ xqc_int_t
 xqc_conn_on_initial_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
     /* sucessful decryption of initial packet means that pkt's DCID/SCID is comfirmed */
-    return xqc_conn_confirm_cid(c, &pi->pi_pkt);;
+    return xqc_conn_confirm_cid(c, &pi->pi_pkt);
 }
 
 xqc_int_t
 xqc_conn_on_hsk_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
+    if (c->conn_type == XQC_CONN_TYPE_SERVER) {
+        /* once client handshake is received, client confirmed server's cid,
+           server won't need ocid to find the connection any more */
+        if (XQC_OK != xqc_cid_is_equal(&c->scid, &c->ocid)
+            && xqc_find_conns_hash(c->engine->conns_hash, c, &c->ocid))
+        {
+            xqc_remove_conns_hash(c->engine->conns_hash, c, &c->ocid);
+            xqc_log(c->log, XQC_LOG_DEBUG, "|remove odcid conn hash: %s", xqc_dcid_str(&c->ocid));
+        }
+    }
+
     return XQC_OK;
 }
 

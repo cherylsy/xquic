@@ -85,3 +85,16 @@ xqc_insert_conns_addr_hash(xqc_str_hash_table_t *conns_hash, xqc_connection_t *c
     }
     return 0;
 }
+
+
+void *
+xqc_find_conns_hash(xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid)
+{
+    uint64_t hash = xqc_hash_string(cid->cid_buf, cid->cid_len);
+    xqc_str_t str = {
+        .data   = cid->cid_buf,
+        .len    = cid->cid_len,
+    };
+
+    return xqc_str_hash_find(conns_hash, hash, str);
+}

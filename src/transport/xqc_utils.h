@@ -20,4 +20,6 @@ int xqc_insert_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *c
 
 int xqc_remove_conns_hash (xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
 
+void *xqc_find_conns_hash(xqc_str_hash_table_t *conns_hash, xqc_connection_t *conn, xqc_cid_t *cid);
+
 #endif /* _XQC_UTILS_H_INCLUDED_ */

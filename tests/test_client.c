@@ -275,6 +275,8 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
     } while ((res < 0) && (errno == EINTR));
     /*socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);*/
+
+
     return res;
 }
 
@@ -1052,6 +1054,11 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
     static ssize_t last_rcv_sum = 0;
     static ssize_t rcv_sum = 0;
 
+
+    if (g_test_case == 24) {
+        exit(0);
+    }
+
     do {
         recv_size = recvfrom(user_conn->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &user_conn->peer_addr,
                              &user_conn->peer_addrlen);
@@ -1511,6 +1518,10 @@ int main(int argc, char *argv[]) {
         printf("test sendmmsg!\n");
         callback.write_mmsg = xqc_client_write_mmsg;
     }
+    if (g_test_case == 24) {
+        conn_settings.idle_time_out = 10000;
+    }
+
 
     eb = event_base_new();
 

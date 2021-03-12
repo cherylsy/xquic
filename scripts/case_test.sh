@@ -448,6 +448,28 @@ then
     echo "$client_print_res"
 fi
 
+clear_log
+killall test_server
+echo -e "server odcid hash ...\c"
+./test_server -l d -e -x 5 > /dev/null &
+sleep 1
+./test_client -s 1024000 -l d -t 3 -E | grep ">>>>>>>> pass"
+
+
+clear_log
+killall test_server
+echo -e "server odcid hash failure ...\c"
+./test_server -l d -e -x 6 > /dev/null &
+sleep 1
+./test_client -s 1024000 -l d -t 3 -x 24 > /dev/null
+sleep 11
+server_log_res=`grep "remove abnormal odcid conn hash" slog`
+if [ "$server_log_res" != "" ]
+then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
 
 killall test_server
 
