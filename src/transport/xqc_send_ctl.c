@@ -46,6 +46,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     send_ctl->ctl_conn = conn;
     send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
+    send_ctl->ctl_srtt = XQC_kInitialRtt;
+    send_ctl->ctl_rttvar = XQC_kInitialRtt / 2;
     send_ctl->ctl_delivered = 0;
     send_ctl->ctl_lost_pkts_number = 0;
     send_ctl->ctl_last_inflight_pkt_sent_time = 0;
@@ -989,13 +991,7 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     update_rtt &= has_ack_eliciting;
 
     if (update_rtt) {
-        if (pns == XQC_PNS_APP_DATA) {
-            xqc_send_ctl_update_rtt(ctl, &ctl->ctl_latest_rtt, ack_info->ack_delay);
-
-        } else {
-            /* 握手包回ack会有比较大延迟，计算srtt时忽略ack_delay, 得到真正耗时，避免重传 */
-            xqc_send_ctl_update_rtt(ctl, &ctl->ctl_latest_rtt, 0);
-        }
+        xqc_send_ctl_update_rtt(ctl, &ctl->ctl_latest_rtt, ack_info->ack_delay);
     }
     
     xqc_send_ctl_detect_lost(ctl, pns, ack_recv_time);
@@ -1142,17 +1138,20 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
             ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, *latest_rtt, ack_delay);
 
     /* Based on {{RFC6298}}. */
-    if (ctl->ctl_srtt == 0) {
+    if (ctl->ctl_first_rtt_sample_time == 0) {
         ctl->ctl_minrtt = *latest_rtt;
         ctl->ctl_srtt = *latest_rtt;
         ctl->ctl_rttvar = *latest_rtt >> 1;
         ctl->ctl_first_rtt_sample_time = xqc_now();
     } else {
         ctl->ctl_minrtt = xqc_min(*latest_rtt, ctl->ctl_minrtt);
-        ack_delay = xqc_min(ack_delay, ctl->ctl_conn->local_settings.max_ack_delay * 1000);
+
+        if (xqc_conn_check_handshake_completed(ctl->ctl_conn)) {
+            ack_delay = xqc_min(ack_delay, ctl->ctl_conn->local_settings.max_ack_delay * 1000);
+        }
 
         /* Adjust for ack delay if it's plausible. */
-        if (*latest_rtt - ctl->ctl_minrtt > ack_delay) {
+        if (ctl->ctl_minrtt + ack_delay < *latest_rtt) {
             *latest_rtt -= ack_delay;
         }
 
@@ -1200,6 +1199,9 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
     /* loss_delay = 9/8 * max(latest_rtt, smoothed_rtt) */
     xqc_msec_t loss_delay = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
     loss_delay += loss_delay >> 3;
+
+    /* Minimum time of kGranularity before packets are deemed lost. */
+    loss_delay = xqc_max(loss_delay, XQC_kGranularity);
 
     /* Packets sent before this time are deemed lost. */
     xqc_msec_t lost_send_time = now - loss_delay;
