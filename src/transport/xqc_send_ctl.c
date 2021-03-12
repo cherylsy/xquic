@@ -1527,6 +1527,10 @@ xqc_send_ctl_get_earliest_time_of_last_sent_ack_eliciting_packet(xqc_send_ctl_t 
     xqc_msec_t time = 0;
     *pns_ret = XQC_PNS_INIT;
     for (xqc_pkt_num_space_t pns = XQC_PNS_INIT; pns <= XQC_PNS_APP_DATA; ++pns) {
+        /* Skip Application Data until handshake confirmed. */
+        if (pns == XQC_PNS_APP_DATA && !xqc_conn_check_handshake_completed(ctl->ctl_conn) && time != 0) {
+            break;
+        }
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|PNS: %ud, unacked: %ud|", pns, ctl->ctl_bytes_ack_eliciting_inflight[pns]);
         if(ctl->ctl_bytes_ack_eliciting_inflight[pns] > 0) {
             if (ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns] != 0
@@ -1587,21 +1591,16 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
         return;
     }
 
+    xqc_msec_t ack_eliciting_send_time = xqc_send_ctl_get_earliest_time_of_last_sent_ack_eliciting_packet(ctl, &pns);
+
     /* Calculate PTO duration */
-    if (ctl->ctl_srtt == 0) {
-        timeout = 2 * XQC_kInitialRtt * 1000;
-
-    } else if (ctl->ctl_srtt == ctl->ctl_latest_rtt && ctl->ctl_rttvar == ctl->ctl_srtt >> 1) {
-        /* 第一次计算出的rttvar=srtt/2值比较大 */
-        timeout = ctl->ctl_srtt + xqc_max(1 * ctl->ctl_rttvar, XQC_kGranularity * 1000) +
-                  ctl->ctl_conn->local_settings.max_ack_delay * 1000;
-
-    } else {
-        timeout = xqc_send_ctl_calc_pto(ctl);
+    timeout = xqc_send_ctl_calc_pto(ctl);
+    if (pns != XQC_PNS_APP_DATA) {
+        timeout -= ctl->ctl_conn->local_settings.max_ack_delay*1000;
     }
+
     timeout = timeout * xqc_send_ctl_pow(ctl->ctl_pto_count);
 
-    xqc_msec_t ack_eliciting_send_time = xqc_send_ctl_get_earliest_time_of_last_sent_ack_eliciting_packet(ctl, &pns);
     /* only start PTO timer if there are ack_eliciting packets in flight. */
     if (ack_eliciting_send_time != 0) {
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION,
