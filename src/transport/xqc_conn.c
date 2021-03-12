@@ -27,6 +27,7 @@ xqc_conn_settings_t default_conn_settings = {
         .ping_on        = 0,
         .so_sndbuf      = 0,
         .proto_version  = XQC_IDRAFT_VER_29,
+        .idle_time_out  = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
 };
 
 void
@@ -37,6 +38,9 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     default_conn_settings.pacing_on = settings.pacing_on;
     default_conn_settings.ping_on = settings.ping_on;
     default_conn_settings.so_sndbuf = settings.so_sndbuf;
+    if (settings.idle_time_out > 0) {
+        default_conn_settings.idle_time_out = settings.idle_time_out;
+    }
 
     if (xqc_check_proto_version_valid(settings.proto_version)) {
         default_conn_settings.proto_version = settings.proto_version;
@@ -133,7 +137,7 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     //TODO: 临时值
-    settings->max_idle_timeout = 120000; //must > XQC_PING_TIMEOUT
+    settings->max_idle_timeout = default_conn_settings.idle_time_out;
     settings->max_data = 1*1024*1024;
     settings->max_stream_data_bidi_local = 5*1024*1024;
     settings->max_stream_data_bidi_remote = 5*1024*1024;

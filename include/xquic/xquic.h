@@ -331,6 +331,7 @@ typedef struct xqc_conn_settings_s {
     xqc_cc_params_t             cc_params;
     uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
+    int                         idle_time_out;      /* idle timeout interval */
 } xqc_conn_settings_t;
 
 typedef struct xqc_h3_conn_settings_s {

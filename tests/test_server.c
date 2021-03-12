@@ -1112,6 +1112,11 @@ int main(int argc, char *argv[]) {
             .cong_ctrl_callback = cong_ctrl,
             .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
     };
+
+    if (g_test_case == 6) {
+        conn_settings.idle_time_out = 10000;
+    }
+
     xqc_server_set_conn_settings(conn_settings);
 
     eb = event_base_new();
@@ -1119,7 +1124,7 @@ int main(int argc, char *argv[]) {
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
     /* test server cid negotiate */
-    if (g_test_case == 1 || g_test_case == 5) {
+    if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6) {
         xqc_config_t config;
         if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
             return -1;

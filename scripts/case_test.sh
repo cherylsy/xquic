@@ -459,10 +459,10 @@ sleep 1
 clear_log
 killall test_server
 echo -e "server odcid hash failure ...\c"
-./test_server -l d -e -x 5 > /dev/null &
+./test_server -l d -e -x 6 > /dev/null &
 sleep 1
 ./test_client -s 1024000 -l d -t 3 -x 24 > /dev/null
-sleep 121   # the server will delete conn after 120 seconds
+sleep 11
 server_log_res=`grep "remove abnormal odcid conn hash" slog`
 if [ "$server_log_res" != "" ]
 then
