@@ -46,8 +46,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
 
     send_ctl->ctl_conn = conn;
     send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
-    send_ctl->ctl_srtt = XQC_kInitialRtt;
-    send_ctl->ctl_rttvar = XQC_kInitialRtt / 2;
+    send_ctl->ctl_srtt = XQC_kInitialRtt * 1000;
+    send_ctl->ctl_rttvar = XQC_kInitialRtt * 1000 / 2;
     send_ctl->ctl_delivered = 0;
     send_ctl->ctl_lost_pkts_number = 0;
     send_ctl->ctl_last_inflight_pkt_sent_time = 0;
