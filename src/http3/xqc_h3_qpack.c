@@ -416,7 +416,7 @@ xqc_h3_qpack_encoder_write_header_block_prefix(xqc_http3_qpack_encoder *encoder,
     xqc_var_buf_t *p_buf, size_t ricnt, size_t base)
 {
     size_t max_ents = encoder->ctx.max_table_capacity / XQC_QPACK_ENTRY_OVERHEAD;
-    size_t encricnt =  (ricnt == 0) ? 0 : ((ricnt %(2 * max_ents))+1); //absidx means ricnt in a [abs/(2*max_ents)*(2*max_ents, (1+abs/(2*max_ents))*2*max_ents], encrint only record offset
+    size_t encricnt = (ricnt == 0) ? 0 : ((ricnt % (2 * max_ents)) + 1);
     int sign = base < ricnt;
     size_t delta_base = sign ? (ricnt - base - 1) : (base - ricnt);
 
@@ -506,24 +506,30 @@ xqc_http3_qpack_decoder_reconstruct_ricnt(xqc_http3_qpack_decoder *decoder, size
     }
 
     max_ents = decoder->ctx.max_table_capacity / XQC_QPACK_ENTRY_OVERHEAD;
-    full = 2*max_ents;
+    full = 2 * max_ents;
     if (encricnt > full) {
         return -XQC_QPACK_DECODER_ERROR;
     }
 
     max = decoder->ctx.next_absidx + max_ents;
-    max_wrapped =  max/full *full;
+    max_wrapped = max / full * full;
     ricnt = max_wrapped + encricnt - 1;
     if (ricnt > max) {
-        if (ricnt < full) {
+        if (ricnt <= full) {
             return -1;
         }
         ricnt -= full;
     }
 
+    /* Value of 0 must be encoded as 0 */
+    if (0 == ricnt) {
+        return -1;
+    }
+
     *dest = ricnt;
     return 0;
 }
+
 
 void
 xqc_qpack_read_state_check_huffman(xqc_http3_qpack_read_state *rstate, const uint8_t b)
