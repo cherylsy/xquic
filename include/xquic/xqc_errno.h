@@ -2,8 +2,7 @@
 #define _XQC_ERRNO_H_INCLUDED_
 
 /**
- *  QUIC Transport Protocol error codes [Transport] draft-29
- *  https://tools.ietf.org/html/draft-ietf-quic-transport-29#section-20
+ *  QUIC Transport Protocol error codes
  */
 typedef enum {
     TRA_NO_ERROR                    =  0x0,
@@ -25,8 +24,7 @@ typedef enum {
 } xqc_trans_err_code_t;
 
 /**
- *  QUIC Http/3 Protocol error codes [HTTP3] draft-29
- *  https://tools.ietf.org/html/draft-ietf-quic-http-29#section-8.1
+ *  QUIC Http/3 Protocol error codes
  */
 typedef enum {
     H3_NO_ERROR                     = 0x100,
@@ -46,6 +44,15 @@ typedef enum {
     H3_CONNECT_ERROR                = 0x10F,
     H3_VERSION_FALLBACK             = 0x110,
 } xqc_h3_err_code_t;
+
+/**
+ * QUIC QPACK protocol error codes
+ */
+typedef enum {
+    QPACK_DECOMPRESSION_FAILED = 0x200,
+    QPACK_ENCODER_STREAM_ERROR = 0x201,
+    QPACK_DECODER_STREAM_ERROR = 0x202,
+} xqc_qpack_err_code_t;
 
 
 #define XQC_OK      0
