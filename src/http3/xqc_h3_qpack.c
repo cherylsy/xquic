@@ -416,7 +416,7 @@ xqc_h3_qpack_encoder_write_header_block_prefix(xqc_http3_qpack_encoder *encoder,
     xqc_var_buf_t *p_buf, size_t ricnt, size_t base)
 {
     size_t max_ents = encoder->ctx.max_table_capacity / XQC_QPACK_ENTRY_OVERHEAD;
-    size_t encricnt =  (ricnt == 0) ? 0 : ((ricnt %(2 * max_ents))+1); //absidx means ricnt in a [abs/(2*max_ents)*(2*max_ents, (1+abs/(2*max_ents))*2*max_ents], encrint only record offset
+    size_t encricnt = (ricnt == 0) ? 0 : ((ricnt % (2 * max_ents)) + 1);
     int sign = base < ricnt;
     size_t delta_base = sign ? (ricnt - base - 1) : (base - ricnt);
 
@@ -502,28 +502,34 @@ xqc_http3_qpack_decoder_reconstruct_ricnt(xqc_http3_qpack_decoder *decoder, size
     uint64_t max_ents, full, max, max_wrapped, ricnt;
     if (encricnt == 0) {
         *dest = 0;
-        return 0;
+        return XQC_OK;
     }
 
     max_ents = decoder->ctx.max_table_capacity / XQC_QPACK_ENTRY_OVERHEAD;
-    full = 2*max_ents;
+    full = 2 * max_ents;
     if (encricnt > full) {
-        return -XQC_QPACK_DECODER_ERROR;
+        return -QPACK_DECOMPRESSION_FAILED;
     }
 
     max = decoder->ctx.next_absidx + max_ents;
-    max_wrapped =  max/full *full;
+    max_wrapped = max / full * full;
     ricnt = max_wrapped + encricnt - 1;
     if (ricnt > max) {
-        if (ricnt < full) {
-            return -1;
+        if (ricnt <= full) {
+            return -QPACK_DECOMPRESSION_FAILED;
         }
         ricnt -= full;
     }
 
+    /* Value of 0 must be encoded as 0 */
+    if (0 == ricnt) {
+        return -QPACK_DECOMPRESSION_FAILED;
+    }
+
     *dest = ricnt;
-    return 0;
+    return XQC_OK;
 }
+
 
 void
 xqc_qpack_read_state_check_huffman(xqc_http3_qpack_read_state *rstate, const uint8_t b)
@@ -952,7 +958,7 @@ xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xq
             }
 
             rv = xqc_http3_qpack_decoder_reconstruct_ricnt(decoder, &sctx->ricnt, sctx->rstate.left);
-            if (rv != 0) {
+            if (rv != XQC_OK) {
                 xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_reconstruct_ricnt error, return value:%d|",rv);
                 goto fail;
             }
