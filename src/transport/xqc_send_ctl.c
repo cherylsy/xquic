@@ -20,7 +20,7 @@
 int
 xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
-    if ((packet_out->po_flag & XQC_POF_NO_RETRANS) || packet_out->po_acked
+    if ((packet_out->po_flag & XQC_POF_RETRANSED) || packet_out->po_acked
         || (packet_out->po_origin && packet_out->po_origin->po_acked))
     {
         if (packet_out->po_origin && packet_out->po_origin->po_acked) {
@@ -53,6 +53,8 @@ xqc_send_ctl_create (xqc_connection_t *conn)
     send_ctl->ctl_last_inflight_pkt_sent_time = 0;
     send_ctl->ctl_max_bytes_in_flight = 0;
     send_ctl->ctl_is_cwnd_limited = 0;
+    send_ctl->ctl_reordering_packet_threshold = XQC_kPacketThreshold;
+    send_ctl->ctl_reordering_time_threshold_shift = XQC_kTimeThresholdShift;
 
     xqc_init_list_head(&send_ctl->ctl_send_packets);
     xqc_init_list_head(&send_ctl->ctl_send_packets_high_pri);
@@ -342,7 +344,7 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 
     xqc_send_ctl_insert_lost(&new_po->po_list, &ctl->ctl_lost_packets);
     ctl->ctl_packets_used++;
-    packet_out->po_flag |= XQC_POF_NO_RETRANS;
+    packet_out->po_flag |= XQC_POF_RETRANSED;
 }
 
 void
@@ -358,7 +360,7 @@ xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t
 
     xqc_send_ctl_insert_probe(&new_po->po_list, &ctl->ctl_pto_probe_packets);
     ctl->ctl_packets_used++;
-    packet_out->po_flag |= XQC_POF_NO_RETRANS;
+    packet_out->po_flag |= XQC_POF_RETRANSED;
 }
 
 void
@@ -920,8 +922,10 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 {
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
-    unsigned char update_rtt = 0, has_ack_eliciting = 0;
+    unsigned char update_rtt = 0, has_ack_eliciting = 0, spurious_loss_detected = 0;
     xqc_packet_number_t largest_ack = ack_info->ranges[0].high;
+    xqc_packet_number_t spurious_loss_pktnum = 0;
+    xqc_msec_t spurious_loss_sent_time = 0;
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
     xqc_pkt_num_space_t pns = ack_info->pns;
     unsigned char need_del_record = 0;
@@ -969,6 +973,12 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
 
             xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
 
+            /* Packet previously declared lost gets acked */
+            if (!spurious_loss_detected && !packet_out->po_acked && (packet_out->po_flag & XQC_POF_RETRANSED)) {
+                spurious_loss_detected = 1;
+                spurious_loss_pktnum = packet_out->po_pkt.pkt_num;
+                spurious_loss_sent_time = packet_out->po_sent_time;
+            }
             xqc_send_ctl_on_packet_acked(ctl, packet_out, ack_recv_time, 1);
 
             xqc_send_ctl_maybe_remove_unacked(packet_out, ctl);
@@ -993,7 +1003,12 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
     if (update_rtt) {
         xqc_send_ctl_update_rtt(ctl, &ctl->ctl_latest_rtt, ack_info->ack_delay);
     }
-    
+
+    if (spurious_loss_detected) {
+        xqc_send_ctl_on_spurious_loss_detected(ctl, ack_recv_time, largest_ack,
+                                               spurious_loss_pktnum, spurious_loss_sent_time);
+    }
+
     xqc_send_ctl_detect_lost(ctl, pns, ack_recv_time);
 
     if (need_del_record) {
@@ -1181,6 +1196,36 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
                  ctl->ctl_srtt, ctl->ctl_rttvar, ctl->ctl_minrtt, *latest_rtt, ack_delay);
 }
 
+void
+xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_time,
+                                       xqc_packet_number_t largest_ack,
+                                       xqc_packet_number_t spurious_loss_pktnum,
+                                       xqc_msec_t spurious_loss_sent_time)
+{
+    /* Adjust Packet Threshold */
+    if (largest_ack < spurious_loss_pktnum) {
+        return;
+    }
+    ctl->ctl_reordering_packet_threshold = xqc_max(
+            ctl->ctl_reordering_packet_threshold, largest_ack - spurious_loss_pktnum + 1);
+
+
+    /* Adjust Time Threshold */
+    if (ack_recv_time < spurious_loss_sent_time) {
+        return;
+    }
+    xqc_msec_t reorder_time_interval = ack_recv_time - spurious_loss_sent_time;
+    xqc_msec_t max_rtt = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
+    while (max_rtt + (max_rtt >> ctl->ctl_reordering_time_threshold_shift) < reorder_time_interval
+           && ctl->ctl_reordering_time_threshold_shift > 0)
+    {
+        --ctl->ctl_reordering_time_threshold_shift;
+    }
+
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|ctl_reordering_packet_threshold:%ui|ctl_reordering_time_threshold_shift:%d|",
+            ctl->ctl_reordering_packet_threshold, ctl->ctl_reordering_time_threshold_shift);
+}
+
 /**
  * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.10
  * DetectLostPackets
@@ -1198,7 +1243,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 
     /* loss_delay = 9/8 * max(latest_rtt, smoothed_rtt) */
     xqc_msec_t loss_delay = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
-    loss_delay += loss_delay >> 3;
+    loss_delay += loss_delay >> ctl->ctl_reordering_time_threshold_shift;
 
     /* Minimum time of kGranularity before packets are deemed lost. */
     loss_delay = xqc_max(loss_delay, XQC_kGranularity);
@@ -1207,7 +1252,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
     xqc_msec_t lost_send_time = now - loss_delay;
 
     /* Packets with packet numbers before this are deemed lost. */
-    xqc_packet_number_t  lost_pn = ctl->ctl_largest_acked[pns] - XQC_kPacketThreshold;
+    xqc_packet_number_t  lost_pn = ctl->ctl_largest_acked[pns] - ctl->ctl_reordering_packet_threshold;
 
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|ctl_largest_acked:%ui|pns:%ui|", ctl->ctl_largest_acked[pns], pns);
 
