@@ -1198,9 +1198,9 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
 
 void
 xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_time,
-                                       xqc_packet_number_t largest_ack,
-                                       xqc_packet_number_t spurious_loss_pktnum,
-                                       xqc_msec_t spurious_loss_sent_time)
+    xqc_packet_number_t largest_ack,
+    xqc_packet_number_t spurious_loss_pktnum,
+    xqc_msec_t spurious_loss_sent_time)
 {
     /* Adjust Packet Threshold */
     if (largest_ack < spurious_loss_pktnum) {
