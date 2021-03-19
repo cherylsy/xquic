@@ -23,11 +23,12 @@
 #include "src/transport/xqc_wakeup_pq.h"
 
 xqc_conn_settings_t default_conn_settings = {
-        .pacing_on      = 0,
-        .ping_on        = 0,
-        .so_sndbuf      = 0,
-        .proto_version  = XQC_IDRAFT_VER_29,
-        .idle_time_out  = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
+    .pacing_on        = 0,
+    .ping_on          = 0,
+    .so_sndbuf        = 0,
+    .proto_version    = XQC_IDRAFT_VER_29,
+    .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
+    .enable_multipath = 0,
 };
 
 void
@@ -45,6 +46,8 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     if (xqc_check_proto_version_valid(settings.proto_version)) {
         default_conn_settings.proto_version = settings.proto_version;
     }
+
+    default_conn_settings.enable_multipath = settings.enable_multipath;
 }
 
 static char g_conn_flag_buf[256];
@@ -127,6 +130,8 @@ static const char * const xqc_secret_type_2_str[SECRET_TYPE_NUM] = {
 };
 #endif
 
+
+/* local parameter */
 void 
 xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
@@ -147,6 +152,9 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_udp_payload_size = XQC_MAX_UDP_PAYLOAD_SIZE;
     settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
 
+    settings->enable_multipath = conn->conn_settings.enable_multipath;
+
+    /* TODO: fix me */
     memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
 }
 

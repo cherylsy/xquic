@@ -83,6 +83,7 @@ set(
     "src/transport/xqc_wakeup_pq.c"
     "src/transport/xqc_pacing.c"
     "src/transport/xqc_utils.c"
+    "src/transport/xqc_multipath.c"
 )
 
 set (
