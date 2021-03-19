@@ -56,7 +56,7 @@ void xqc_test_engine_packet_process()
     rc = xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len, XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1);
     CU_ASSERT(rc == XQC_OK);
 
-    xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, &scid, 'd');
+    xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, &scid, 's');
     CU_ASSERT(conn != NULL);
 
     /* set handshake completed */

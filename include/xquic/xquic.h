@@ -355,6 +355,7 @@ typedef struct xqc_conn_stats_s {
     xqc_msec_t  srtt;
     xqc_0rtt_flag_t    early_data_flag;
     uint32_t    recv_count;
+    int         enable_multipath;
     int         conn_err;
     char        ack_info[50];
 } xqc_conn_stats_t;
