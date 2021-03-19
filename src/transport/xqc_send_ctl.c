@@ -1202,6 +1202,10 @@ xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_
     xqc_packet_number_t spurious_loss_pktnum,
     xqc_msec_t spurious_loss_sent_time)
 {
+    if (!ctl->ctl_conn->conn_settings.spurious_loss_detect_on) {
+        return;
+    }
+
     /* Adjust Packet Threshold */
     if (largest_ack < spurious_loss_pktnum) {
         return;

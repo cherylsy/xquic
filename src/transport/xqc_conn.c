@@ -29,6 +29,7 @@ xqc_conn_settings_t default_conn_settings = {
     .proto_version    = XQC_IDRAFT_VER_29,
     .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath = 0,
+    .spurious_loss_detect_on = 0,
 };
 
 void
@@ -39,6 +40,7 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     default_conn_settings.pacing_on = settings.pacing_on;
     default_conn_settings.ping_on = settings.ping_on;
     default_conn_settings.so_sndbuf = settings.so_sndbuf;
+    default_conn_settings.spurious_loss_detect_on = settings.spurious_loss_detect_on;
     if (settings.idle_time_out > 0) {
         default_conn_settings.idle_time_out = settings.idle_time_out;
     }
@@ -133,7 +135,7 @@ static const char * const xqc_secret_type_2_str[SECRET_TYPE_NUM] = {
 
 
 /* local parameter */
-void 
+void
 xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
     memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
@@ -668,7 +670,7 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
     }
 }
 
-ssize_t 
+ssize_t
 xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest, xqc_send_type_t send_type)
 {
     ssize_t ret;
@@ -2053,7 +2055,7 @@ xqc_int_t
 xqc_conn_on_1rtt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
-        /* once client receives HANDSHAKE_DONE frame, handshake 
+        /* once client receives HANDSHAKE_DONE frame, handshake
            is confirmed, and MUST discard its handshake keys */
         if (pi->pi_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE) {
             xqc_conn_handshake_confirmed(c);

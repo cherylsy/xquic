@@ -1511,6 +1511,7 @@ int main(int argc, char *argv[]) {
             .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
             //.so_sndbuf  =   1024*1024,
             .proto_version = XQC_IDRAFT_VER_29,
+            .spurious_loss_detect_on = 1,
     };
 
     /* check initial version */
