@@ -26,6 +26,7 @@ typedef enum {
     XQC_TRANSPORT_PARAM_RETRY_SOURCE_CONNECTION_ID = 0x0010,
     XQC_TRANSPORT_PARAM_PROTOCOL_MAX,  /* upper limit of params defined in [Transport] */
     XQC_TRANSPORT_PARAM_NO_CRYPTO = 0x1000,
+    XQC_TRANSPORT_PARAM_ENABLE_MULTIPATH = 0xbaba,
     XQC_TRANSPORT_PARAM_UNKNOWN,  /* upper limit of params defined by xquic */
 } xqc_transport_param_id_t;
 

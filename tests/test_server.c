@@ -1108,13 +1108,19 @@ int main(int argc, char *argv[]) {
     printf("congestion control flags: %x\n", cong_flags);
 
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   pacing_on,
-            .cong_ctrl_callback = cong_ctrl,
-            .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
+        .pacing_on  =   pacing_on,
+        .cong_ctrl_callback = cong_ctrl,
+        .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
+        .enable_multipath = 0,
     };
 
     if (g_test_case == 6) {
         conn_settings.idle_time_out = 10000;
+    }
+
+    /* enable_multipath */
+    if (g_test_case == 7) {
+        conn_settings.enable_multipath = 1;
     }
 
     xqc_server_set_conn_settings(conn_settings);

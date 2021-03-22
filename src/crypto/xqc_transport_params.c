@@ -30,6 +30,7 @@ xqc_transport_params_copy_from_settings(xqc_transport_params_t *dest,
     dest->preferred_address = src->preferred_address;
     dest->active_connection_id_limit = src->active_connection_id_limit;
     dest->no_crypto = src->no_crypto;
+    dest->enable_multipath = src->enable_multipath;
 }
 
 
@@ -142,6 +143,12 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_NO_CRYPTO) +
                xqc_put_varint_len(xqc_put_varint_len(params->no_crypto)) +
                xqc_put_varint_len(params->no_crypto);
+    }
+
+    if (params->enable_multipath) {
+        len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_ENABLE_MULTIPATH) +
+               xqc_put_varint_len(xqc_put_varint_len(params->enable_multipath)) +
+               xqc_put_varint_len(params->enable_multipath);
     }
 
     return len;
@@ -305,6 +312,11 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
                                  params->no_crypto);
     }
 
+    if (params->enable_multipath) {
+        p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_ENABLE_MULTIPATH,
+                                 params->enable_multipath);
+    }
+
     if ((size_t)(p - dest) != len) {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
@@ -313,9 +325,9 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
 }
 
 
-static
-void xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
-        const xqc_transport_params_t *src)
+static void 
+xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
+    const xqc_transport_params_t *src)
 {
     dest->max_stream_data_bidi_local = src->initial_max_stream_data_bidi_local;
     dest->max_stream_data_bidi_remote = src->initial_max_stream_data_bidi_remote;
@@ -326,24 +338,27 @@ void xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
     dest->max_idle_timeout = src->max_idle_timeout;
     dest->max_udp_payload_size = src->max_udp_payload_size;
     dest->stateless_reset_token_present = src->stateless_reset_token_present;
+
     if (src->stateless_reset_token_present) {
-        memcpy(dest->stateless_reset_token, src->stateless_reset_token,
+        xqc_memcpy(dest->stateless_reset_token, src->stateless_reset_token,
                 sizeof(dest->stateless_reset_token));
     } else {
-        memset(dest->stateless_reset_token, 0, sizeof(dest->stateless_reset_token));
+        xqc_memset(dest->stateless_reset_token, 0, sizeof(dest->stateless_reset_token));
     }
+
     dest->ack_delay_exponent = src->ack_delay_exponent;
     dest->disable_active_migration = src->disable_active_migration;
     dest->max_ack_delay = src->max_ack_delay;
     dest->preferred_address = src->preferred_address;
     dest->active_connection_id_limit = src->active_connection_id_limit;
+
+    dest->enable_multipath = src->enable_multipath;
 }
 
 //need finished
-static
-int xqc_conn_get_local_transport_params(xqc_connection_t *conn,
-        xqc_transport_params_t *params,
-        uint8_t exttype)
+static int 
+xqc_conn_get_local_transport_params(xqc_connection_t *conn,
+    xqc_transport_params_t *params, uint8_t exttype)
 {
     switch (exttype) {
         case XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO:
@@ -664,6 +679,13 @@ xqc_decode_no_crypto(xqc_transport_params_t *params, xqc_transport_params_type_t
     XQC_DECODE_VINT_VALUE(&params->no_crypto, p, end);
 }
 
+static int
+xqc_decode_enable_multipath(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+{
+    XQC_DECODE_VINT_VALUE(&params->enable_multipath, p, end);
+}
+
 
 /* decode value from p, and store value in the input params */
 typedef int (*xqc_trans_param_decode_func)(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
@@ -688,7 +710,8 @@ xqc_trans_param_decode_func xqc_trans_param_decode_func_list[] = {
     xqc_decode_active_cid_limit,
     xqc_decode_initial_scid,
     xqc_decode_retry_scid,
-    xqc_decode_no_crypto
+    xqc_decode_no_crypto,
+    xqc_decode_enable_multipath
 };
 
 /* convert param_type to param's index in dpvf_list */
@@ -706,6 +729,11 @@ xqc_trans_param_get_index(uint64_t param_type)
     } else if (param_type >= XQC_TRANSPORT_PARAM_NO_CRYPTO 
                && param_type < XQC_TRANSPORT_PARAM_UNKNOWN)
     {
+        /* TBD: need to change to formal IANA registration */
+        if (param_type == XQC_TRANSPORT_PARAM_ENABLE_MULTIPATH) {
+            return XQC_TRANSPORT_PARAM_PROTOCOL_MAX + 1;
+        }
+            
         return XQC_TRANSPORT_PARAM_PROTOCOL_MAX + param_type - XQC_TRANSPORT_PARAM_NO_CRYPTO;
     }
 

@@ -409,7 +409,6 @@ void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
-
 }
 
 int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
@@ -460,6 +459,10 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
 
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
+
+    if (g_test_case == 25) {
+        printf("transport_parameter:enable_multipath=%d\n", stats.enable_multipath);
+    }
 }
 
 void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
@@ -1522,6 +1525,10 @@ int main(int argc, char *argv[]) {
         conn_settings.idle_time_out = 10000;
     }
 
+    /* enable_multipath */
+    if (g_test_case == 25) {
+        conn_settings.enable_multipath = 1;
+    }
 
     eb = event_base_new();
 

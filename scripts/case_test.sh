@@ -22,6 +22,7 @@ grep_err_log() {
     #grep "retrans rate:" slog|grep -v "retrans rate:0.0000"
 }
 
+
 #clear_log
 #echo -e "变长cid_len ...\c"
 #./test_client -s 1024000 -l d -t 1 -E -x 13|grep ">>>>>>>> pass"
@@ -470,6 +471,21 @@ then
 else
     echo ">>>>>>>> pass:0"
 fi
+
+
+clear_log
+killall test_server 2> /dev/null
+echo -e "enable_multipath_negotiate ...\c"
+./test_server -l d -e -x 7 > /dev/null &
+sleep 1
+result=`./test_client -s 1024000 -l d -t 3 -x 25 | grep "enable_multipath=1"`
+if [ "$result" != "" ]
+then
+    echo ">>>>>>>> pass:1"
+else
+    echo ">>>>>>>> pass:0"
+fi
+
 
 killall test_server
 

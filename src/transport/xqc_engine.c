@@ -33,27 +33,27 @@ uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
 
 
 xqc_config_t default_client_config = {
-        .conn_pool_size = 4096,
-        .streams_hash_bucket_size = 1024,
-        .conns_hash_bucket_size = 1024,
-        .conns_active_pq_capacity = 128,
-        .conns_wakeup_pq_capacity = 128,
-        .support_version_count = 1,
-        .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
-        .cid_len = XQC_DEFAULT_CID_LEN,
-        .cid_negotiate = 0,
+    .conn_pool_size = 4096,
+    .streams_hash_bucket_size = 1024,
+    .conns_hash_bucket_size = 1024,
+    .conns_active_pq_capacity = 128,
+    .conns_wakeup_pq_capacity = 128,
+    .support_version_count = 1,
+    .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
+    .cid_len = XQC_DEFAULT_CID_LEN,
+    .cid_negotiate = 0,
 };
 
 xqc_config_t default_server_config = {
-        .conn_pool_size = 4096,
-        .streams_hash_bucket_size = 1024,
-        .conns_hash_bucket_size = 1024*1024, //不能扩展，连接多了查找性能
-        .conns_active_pq_capacity = 1024,
-        .conns_wakeup_pq_capacity = 16*1024,
-        .support_version_count = 1,
-        .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
-        .cid_len = XQC_DEFAULT_CID_LEN,
-        .cid_negotiate = 0,
+    .conn_pool_size = 4096,
+    .streams_hash_bucket_size = 1024,
+    .conns_hash_bucket_size = 1024*1024, //不能扩展，连接多了查找性能
+    .conns_active_pq_capacity = 1024,
+    .conns_wakeup_pq_capacity = 16*1024,
+    .support_version_count = 1,
+    .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
+    .cid_len = XQC_DEFAULT_CID_LEN,
+    .cid_negotiate = 0,
 };
 
 int
@@ -104,7 +104,7 @@ xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_typ
     }
 }
 
-
+/* TODO: Obsolete */
 int
 xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type)
 {
@@ -114,6 +114,14 @@ xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type)
         return xqc_set_config(&default_client_config, config);
     }
 }
+
+
+xqc_int_t
+xqc_engine_set_config(xqc_engine_t *engine, xqc_config_t *config)
+{
+    return xqc_set_config(engine->config, config);
+}
+
 
 xqc_config_t *
 xqc_engine_config_create(xqc_engine_type_t engine_type)

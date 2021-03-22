@@ -23,11 +23,12 @@
 #include "src/transport/xqc_wakeup_pq.h"
 
 xqc_conn_settings_t default_conn_settings = {
-        .pacing_on      = 0,
-        .ping_on        = 0,
-        .so_sndbuf      = 0,
-        .proto_version  = XQC_IDRAFT_VER_29,
-        .idle_time_out  = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
+    .pacing_on        = 0,
+    .ping_on          = 0,
+    .so_sndbuf        = 0,
+    .proto_version    = XQC_IDRAFT_VER_29,
+    .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
+    .enable_multipath = 0,
 };
 
 void
@@ -45,6 +46,8 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     if (xqc_check_proto_version_valid(settings.proto_version)) {
         default_conn_settings.proto_version = settings.proto_version;
     }
+
+    default_conn_settings.enable_multipath = settings.enable_multipath;
 }
 
 static char g_conn_flag_buf[256];
@@ -127,6 +130,8 @@ static const char * const xqc_secret_type_2_str[SECRET_TYPE_NUM] = {
 };
 #endif
 
+
+/* local parameter */
 void 
 xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
@@ -147,6 +152,9 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_udp_payload_size = XQC_MAX_UDP_PAYLOAD_SIZE;
     settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
 
+    settings->enable_multipath = conn->conn_settings.enable_multipath;
+
+    /* TODO: fix me */
     memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
 }
 
@@ -193,9 +201,10 @@ xqc_conn_create(xqc_engine_t *engine,
         goto fail;
     }
 
+    xc->conn_settings = *settings;
+
     xqc_conn_init_trans_param(xc);
     xqc_conn_init_flow_ctl(xc);
-
 
     xc->conn_pool = pool;
     xqc_cid_copy(&(xc->dcid), dcid);
@@ -208,7 +217,6 @@ xqc_conn_create(xqc_engine_t *engine,
     xc->log = engine->log;
     xc->conn_callbacks = *callbacks;
 
-    xc->conn_settings = *settings;
     xc->user_data = user_data;
     xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;
     xc->discard_vn_flag = 0;
@@ -1506,6 +1514,9 @@ xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
         }
     }
     xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_APP_DATA], conn_stats.ack_info, sizeof(conn_stats.ack_info));
+
+    conn_stats.enable_multipath = (conn->local_settings.enable_multipath && conn->remote_settings.enable_multipath);
+
     return conn_stats;
 }
 
