@@ -79,6 +79,7 @@ static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
         [XQC_CONN_FLAG_ANTI_AMPLIFICATION_SHIFT]    = "ANTI_AMPLIFICATION",
         [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
         [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
+        [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
 };
 
 const char*
@@ -1694,6 +1695,47 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
         xqc_stream_set_flow_ctl(stream);
     }
 
+    /* conn's handshake is complete when TLS stack has reported handshake complete */
+    conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
+
+    /* if tx key is ready, conn can send 1RTT packets */
+    if (xqc_tls_check_tx_key_ready(conn)) {
+        xqc_log(conn->log, XQC_LOG_INFO, "|keys are ready, can send 1rtt now|");
+        conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
+    }
+
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
+        /* clear the anti-amplication state once handshake completed */
+        if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
+            xqc_log(conn->log, XQC_LOG_INFO, "|anti-amplification at handshake done|");
+            conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
+        }
+
+        /* the TLS handshake is considered confirmed at the server when the handshake completes */
+        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
+        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_INIT);
+        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_HSK);
+
+        /* send handshake_done immediately */
+        int ret = xqc_write_handshake_done_frame_to_packet(conn);
+        if (ret < 0) {
+            xqc_log(conn->log, XQC_LOG_WARN, "|write_handshake_done err|");
+            return ret;
+        }
+
+        /* if server received a invalid token, send a new one */
+        if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
+            || conn->conn_flag & XQC_CONN_FLAG_UPDATE_NEW_TOKEN)
+        {
+            xqc_write_new_token_to_packet(conn);
+        }
+
+    } else {
+        /* client MUST discard Initial keys when it first sends a Handshake packet,
+           equivalent to handshake complete and can send 1RTT */
+        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_INIT);
+    }
+
     /* 0RTT rejected, send in 1RTT again */
     if ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) 
         && ((conn->conn_type == XQC_CONN_TYPE_CLIENT && conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT)
@@ -1708,13 +1750,6 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
         } else if (accept == XQC_TLS_EARLY_DATA_ACCEPT) {
             xqc_conn_early_data_accept(conn);
         }
-    }
-
-    /* if server received a invalid token, send a new one */
-    if (XQC_CONN_TYPE_SERVER == conn->conn_type
-        && (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK) || conn->conn_flag & XQC_CONN_FLAG_UPDATE_NEW_TOKEN))
-    {
-        xqc_write_new_token_to_packet(conn);
     }
 
 #ifdef XQC_PRINT_SECRET
@@ -2009,6 +2044,16 @@ xqc_conn_on_retry_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 xqc_int_t
 xqc_conn_on_1rtt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
+    if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
+        /* once client receives HANDSHAKE_DONE frame, handshake 
+           is confirmed, and MUST discard its handshake keys */
+        if (!(c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED)
+            && pi->pi_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)
+        {
+            xqc_send_ctl_drop_packets_with_type(c->conn_send_ctl, XQC_PTYPE_HSK);
+            c->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
+        }
+    }
     return XQC_OK;
 }
 

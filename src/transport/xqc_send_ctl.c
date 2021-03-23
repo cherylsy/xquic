@@ -630,6 +630,52 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
     }
 }
 
+
+void
+xqc_send_ctl_drop_packets_from_list_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_t type,
+                                              xqc_list_head_t *list, const char *list_name)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_packet_out_t *packet_out;
+
+    xqc_list_for_each_safe(pos, next, list) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        if (packet_out->po_pkt.pkt_type == type) {
+            xqc_send_ctl_remove_send(pos);
+            xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|drop pkt from %s list|type:%d|frames:%s|len:%ui|", 
+                    list_name, packet_out->po_pkt.pkt_type, xqc_frame_type_2_str(packet_out->po_frame_types),
+                    packet_out->po_used_size);
+        }
+    }
+}
+
+void
+xqc_send_ctl_drop_packets_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_t type)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_packet_out_t *packet_out;
+
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[xqc_packet_type_to_pns(type)]) {
+        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+        xqc_send_ctl_remove_unacked(packet_out, ctl);
+        xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
+        xqc_send_ctl_decrease_inflight(ctl, packet_out);
+        xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
+
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|drop pkt from unacked|inflight:%ui|cwnd:%ui|"
+                "pkt_num:%ui|ptype:%d|frames:%s|", ctl->ctl_bytes_in_flight, 
+            ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong), packet_out->po_pkt.pkt_num, 
+            packet_out->po_pkt.pkt_type, xqc_frame_type_2_str(packet_out->po_frame_types));
+    }
+
+    xqc_send_ctl_drop_packets_from_list_with_type(ctl, type, &ctl->ctl_send_packets_high_pri, "high_pri");
+    xqc_send_ctl_drop_packets_from_list_with_type(ctl, type, &ctl->ctl_send_packets, "send");
+    xqc_send_ctl_drop_packets_from_list_with_type(ctl, type, &ctl->ctl_lost_packets, "lost");
+    xqc_send_ctl_drop_packets_from_list_with_type(ctl, type, &ctl->ctl_pto_probe_packets, "pto_probe");
+}
+
 int
 xqc_send_ctl_stream_frame_can_drop(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id)
 {
