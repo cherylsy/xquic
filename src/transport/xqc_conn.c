@@ -1713,7 +1713,6 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
 
         /* the TLS handshake is considered confirmed at the server when the handshake completes */
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
-        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_INIT);
         xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_HSK);
 
         /* send handshake_done immediately */
@@ -2030,6 +2029,9 @@ xqc_conn_on_hsk_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
             xqc_remove_conns_hash(c->engine->conns_hash, c, &c->ocid);
             xqc_log(c->log, XQC_LOG_DEBUG, "|remove odcid conn hash: %s", xqc_dcid_str(&c->ocid));
         }
+
+        /* server MUST discard Initial keys when it first successfully processes a Handshake packet */
+        xqc_send_ctl_drop_packets_with_type(c->conn_send_ctl, XQC_PTYPE_INIT);
     }
 
     return XQC_OK;
