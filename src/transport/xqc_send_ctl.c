@@ -644,9 +644,9 @@ xqc_send_ctl_drop_packets_from_list_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_
             xqc_send_ctl_remove_send(pos);
             xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
 
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|drop pkt from %s list|type:%d|frames:%s|len:%ui|", 
-                    list_name, packet_out->po_pkt.pkt_type, xqc_frame_type_2_str(packet_out->po_frame_types),
-                    packet_out->po_used_size);
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_INFO, "|drop pkt from %s list|type:%s|frames:%s|len:%ui|", 
+                    list_name, xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
+                    xqc_frame_type_2_str(packet_out->po_frame_types), packet_out->po_used_size);
         }
     }
 }
