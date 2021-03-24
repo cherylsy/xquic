@@ -925,10 +925,6 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
 
     conn->conn_state = next_state;
 
-    if (xqc_tls_check_tx_key_ready(conn)) {
-        conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
-    }
-
     ret = xqc_conn_check_handshake_complete(conn);
     if (ret < 0) {
         return ret;
