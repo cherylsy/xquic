@@ -663,27 +663,6 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
     return 0;
 }
 
-
-int
-xqc_conn_check_handshake_complete(xqc_connection_t * conn)
-{
-    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
-        conn->conn_state == XQC_CONN_STATE_ESTABED &&
-        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) 
-    {
-        xqc_tls_free_msg_cb_buffer(conn);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
-        xqc_conn_handshake_complete(conn);
-
-        if (conn->conn_callbacks.conn_handshake_finished) {
-            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
-        }
-    }
-
-    return XQC_OK;
-}
-
-
 int 
 xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 {

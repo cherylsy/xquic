@@ -1698,12 +1698,6 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
     /* conn's handshake is complete when TLS stack has reported handshake complete */
     conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
 
-    /* if tx key is ready, conn can send 1RTT packets */
-    if (xqc_tls_check_tx_key_ready(conn)) {
-        xqc_log(conn->log, XQC_LOG_INFO, "|keys are ready, can send 1rtt now|");
-        conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
-    }
-
     if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
         /* clear the anti-amplication state once handshake completed */
         if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
@@ -2150,5 +2144,39 @@ xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
         pos = packet_in->last;
     }
 
+    return XQC_OK;
+}
+
+
+int
+xqc_conn_check_tx_key(xqc_connection_t *conn)
+{
+    /* if tx key is ready, conn can send 1RTT packets */
+    if (xqc_tls_check_tx_key_ready(conn)) {
+        xqc_log(conn->log, XQC_LOG_INFO, "|keys are ready, can send 1rtt now|");
+        conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
+    }
+
+    return XQC_OK;
+}
+
+int
+xqc_conn_check_handshake_complete(xqc_connection_t * conn)
+{
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
+        conn->conn_state == XQC_CONN_STATE_ESTABED &&
+        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) 
+    {
+        xqc_tls_free_msg_cb_buffer(conn);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
+        xqc_conn_handshake_complete(conn);
+
+        if (conn->conn_callbacks.conn_handshake_finished) {
+            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
+        }
+    }
+
+    /* check tx keys after handshake complete */
+    xqc_conn_check_tx_key(conn);
     return XQC_OK;
 }
