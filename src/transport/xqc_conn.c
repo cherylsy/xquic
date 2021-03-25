@@ -514,10 +514,11 @@ xqc_conn_get_local_addr(xqc_connection_t *conn,
     return (struct sockaddr*)conn->local_addr;
 }
 
-int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
+xqc_int_t
+xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
 {
     xqc_connection_t *conn;
-    int ret;
+    xqc_int_t ret;
     conn = xqc_engine_conns_hash_find(engine, cid, 's');
     if (!conn) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
@@ -546,7 +547,7 @@ typedef enum {
     XQC_SEND_TYPE_PTO_PROBE,
 } xqc_send_type_t;
 
-int
+ssize_t
 xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 {
     ssize_t ret = conn->engine->eng_callback.write_mmsg(xqc_conn_get_user_data(conn), iov, cnt,
@@ -562,11 +563,11 @@ xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
     return ret;
 }
 
-int
+xqc_int_t
 xqc_check_dumplicate_acked_pkt(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
                          xqc_send_type_t send_type, xqc_msec_t now)
 {
-    int ret;
+    xqc_int_t ret;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
     if (send_type == XQC_SEND_TYPE_RETRANS) {
         if (xqc_send_ctl_indirectly_ack_po(ctl, packet_out)) {
@@ -667,7 +668,7 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
     }
 }
 
-int 
+ssize_t 
 xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest, xqc_send_type_t send_type)
 {
     ssize_t ret;
@@ -748,7 +749,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn)
     xqc_list_head_t *head = &ctl->ctl_send_packets_high_pri;
     int congest = 0; // 不过拥塞控制
     while (!(xqc_list_empty(head))) {
-        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_NORMAL);
+        ssize_t send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_NORMAL);
         if (send_burst_count != XQC_MAX_SEND_MSG_ONCE) {
             break;
         }
@@ -757,7 +758,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn)
     head = &ctl->ctl_send_packets;
     congest = 1;
     while (!(xqc_list_empty(head))) {
-        int send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_NORMAL);
+        ssize_t send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_NORMAL);
         if (send_burst_count != XQC_MAX_SEND_MSG_ONCE) {
             break;
         }
@@ -838,10 +839,10 @@ xqc_conn_send_packets (xqc_connection_t *conn)
     }
 }
 
-int
+xqc_int_t
 xqc_need_padding(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    int ret = XQC_FALSE;
+    xqc_int_t ret = XQC_FALSE;
     if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT) {
         if (conn->engine->eng_type == XQC_ENGINE_CLIENT) {
             /* client MUST expand the payload of all UDP datagrams carrying
@@ -862,9 +863,10 @@ xqc_need_padding(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     return ret;
 }
 
-int xqc_conn_enc_packet(xqc_connection_t *conn,
-    xqc_packet_out_t *packet_out, char *enc_pkt, size_t * enc_pkt_len, 
-    xqc_msec_t current_time)
+xqc_int_t
+xqc_conn_enc_packet(xqc_connection_t *conn,
+                    xqc_packet_out_t *packet_out, char *enc_pkt, size_t * enc_pkt_len, 
+                    xqc_msec_t current_time)
 {
     /* pad packet if needed */
     if (xqc_need_padding(conn, packet_out)) {
@@ -1680,7 +1682,18 @@ xqc_conn_early_data_accept(xqc_connection_t *conn)
     return XQC_OK;
 }
 
-int
+xqc_int_t
+xqc_conn_handshake_confirmed(xqc_connection_t *conn)
+{
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED)) {
+        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
+        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_HSK);
+    }
+
+    return XQC_OK;
+}
+
+xqc_int_t
 xqc_conn_handshake_complete(xqc_connection_t *conn)
 {
     xqc_list_head_t *pos, *next;
@@ -1706,11 +1719,10 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
         }
 
         /* the TLS handshake is considered confirmed at the server when the handshake completes */
-        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
-        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_HSK);
+        xqc_conn_handshake_confirmed(conn);
 
         /* send handshake_done immediately */
-        int ret = xqc_write_handshake_done_frame_to_packet(conn);
+        xqc_int_t ret = xqc_write_handshake_done_frame_to_packet(conn);
         if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_WARN, "|write_handshake_done err|");
             return ret;
@@ -2043,11 +2055,8 @@ xqc_conn_on_1rtt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
         /* once client receives HANDSHAKE_DONE frame, handshake 
            is confirmed, and MUST discard its handshake keys */
-        if (!(c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED)
-            && pi->pi_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)
-        {
-            xqc_send_ctl_drop_packets_with_type(c->conn_send_ctl, XQC_PTYPE_HSK);
-            c->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
+        if (pi->pi_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE) {
+            xqc_conn_handshake_confirmed(c);
         }
     }
     return XQC_OK;
@@ -2148,7 +2157,7 @@ xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
 }
 
 
-int
+xqc_int_t
 xqc_conn_check_tx_key(xqc_connection_t *conn)
 {
     /* if tx key is ready, conn can send 1RTT packets */
@@ -2160,8 +2169,8 @@ xqc_conn_check_tx_key(xqc_connection_t *conn)
     return XQC_OK;
 }
 
-int
-xqc_conn_check_handshake_complete(xqc_connection_t * conn)
+xqc_int_t
+xqc_conn_check_handshake_complete(xqc_connection_t *conn)
 {
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
         conn->conn_state == XQC_CONN_STATE_ESTABED &&

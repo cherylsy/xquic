@@ -473,7 +473,7 @@ xqc_int_t
 xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
                         size_t packet_in_size, xqc_msec_t recv_time);
 
-int
+xqc_int_t
 xqc_conn_check_handshake_complete(xqc_connection_t * conn);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */
