@@ -864,9 +864,8 @@ xqc_need_padding(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 }
 
 xqc_int_t
-xqc_conn_enc_packet(xqc_connection_t *conn,
-                    xqc_packet_out_t *packet_out, char *enc_pkt, size_t * enc_pkt_len, 
-                    xqc_msec_t current_time)
+xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
+    char *enc_pkt, size_t * enc_pkt_len, xqc_msec_t current_time)
 {
     /* pad packet if needed */
     if (xqc_need_padding(conn, packet_out)) {
@@ -1001,7 +1000,8 @@ xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
 
 void 
-xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn) {
+xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn)
+{
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     ssize_t ret;
@@ -1489,8 +1489,8 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
     return XQC_OK;
 }
 
-xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
-                                    xqc_cid_t *cid)
+xqc_conn_stats_t
+xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid)
 {
     xqc_connection_t *conn;
     xqc_send_ctl_t *ctl;
@@ -2172,9 +2172,9 @@ xqc_conn_check_tx_key(xqc_connection_t *conn)
 xqc_int_t
 xqc_conn_check_handshake_complete(xqc_connection_t *conn)
 {
-    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) &&
-        conn->conn_state == XQC_CONN_STATE_ESTABED &&
-        conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) 
+    if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
+        && conn->conn_state == XQC_CONN_STATE_ESTABED
+        && (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX))
     {
         xqc_tls_free_msg_cb_buffer(conn);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");

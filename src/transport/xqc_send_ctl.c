@@ -633,7 +633,7 @@ xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl)
 
 void
 xqc_send_ctl_drop_packets_from_list_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_t type,
-                                              xqc_list_head_t *list, const char *list_name)
+    xqc_list_head_t *list, const char *list_name)
 {
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out;
