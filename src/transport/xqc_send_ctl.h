@@ -264,6 +264,9 @@ void
 xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl);
 
 void
+xqc_send_ctl_drop_packets_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_t pn);
+
+void
 xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stream_id);
 
 void
