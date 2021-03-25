@@ -123,6 +123,7 @@ typedef struct xqc_send_ctl_s {
     unsigned                    ctl_send_count;
     unsigned                    ctl_lost_count;
     unsigned                    ctl_tlp_count;
+    unsigned                    ctl_spurious_loss_count;
 
     unsigned                    ctl_recv_count;
 

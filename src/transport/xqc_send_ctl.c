@@ -974,10 +974,13 @@ xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_inf
             xqc_update_sample(&ctl->sampler, packet_out, ctl, ack_recv_time);
 
             /* Packet previously declared lost gets acked */
-            if (!spurious_loss_detected && !packet_out->po_acked && (packet_out->po_flag & XQC_POF_RETRANSED)) {
-                spurious_loss_detected = 1;
-                spurious_loss_pktnum = packet_out->po_pkt.pkt_num;
-                spurious_loss_sent_time = packet_out->po_sent_time;
+            if (!packet_out->po_acked && (packet_out->po_flag & XQC_POF_RETRANSED)) {
+                ++ctl->ctl_spurious_loss_count;
+                if (!spurious_loss_detected) {
+                    spurious_loss_detected = 1;
+                    spurious_loss_pktnum = packet_out->po_pkt.pkt_num;
+                    spurious_loss_sent_time = packet_out->po_sent_time;
+                }
             }
             xqc_send_ctl_on_packet_acked(ctl, packet_out, ack_recv_time, 1);
 
