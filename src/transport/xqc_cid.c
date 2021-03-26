@@ -20,14 +20,14 @@ xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)
         written = engine->eng_callback.cid_generate_cb(buf, len, engine->user_data);
         if (written < XQC_OK) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|generate cid failed [ret=%d]|", written);
-            return XQC_EGENERATE_CID;
+            return -XQC_EGENERATE_CID;
         }
         buf += written;
         len -= written;
     }
 
     if (len > 0 && (xqc_get_random(engine->rand_generator, buf, len) != XQC_OK)) {
-        return XQC_EGENERATE_CID;
+        return -XQC_EGENERATE_CID;
     }
 
     return XQC_OK;
