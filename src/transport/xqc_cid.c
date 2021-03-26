@@ -9,7 +9,7 @@ xqc_int_t
 xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)
 {
     unsigned char *buf;
-    int len, written;
+    ssize_t len, written;
 
     cid->cid_len = engine->config->cid_len;
 
@@ -17,16 +17,16 @@ xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)
     len = cid->cid_len;
 
     if (engine->eng_callback.cid_generate_cb) {
-        written = engine->eng_callback.cid_generate_cb(cid, engine->user_data);
+        written = engine->eng_callback.cid_generate_cb(buf, len, engine->user_data);
         if (written < XQC_OK) {
-            return XQC_ERROR;
+            return XQC_EGENERATE_CID;
         }
         buf += written;
         len -= written;
     }
 
     if (len > 0 && (xqc_get_random(engine->rand_generator, buf, len) != XQC_OK)) {
-        return XQC_ERROR;
+        return XQC_EGENERATE_CID;
     }
 
     return XQC_OK;
