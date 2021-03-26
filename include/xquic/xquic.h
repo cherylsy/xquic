@@ -101,6 +101,14 @@ typedef ssize_t (*xqc_send_mmsg_pt)(void *conn_user_data, struct iovec *msg_iov,
 /* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */
 typedef int (*xqc_cert_verify_pt)(unsigned char *certs[],size_t cert_len[],size_t certs_len, void * conn_user_data);
 
+/**
+ * for server, custom cid generate handler, return 
+ * negative for failed , non-negative for the length of bytes written.
+ * if the length of bytes written shorter than length of cid , xquic will fill them with random bytes
+ * */ 
+
+typedef int (*xqc_cid_generate_pt)(xqc_cid_t *cid, void *user_data);
+
 /*
  * Callbacks below return -1 for fatal error, e.g. malloc fail, xquic will close the connection, return 0 otherwise
  */
@@ -283,6 +291,9 @@ typedef struct xqc_engine_callback_s {
 
     /* for client , verify certificate */
     xqc_cert_verify_pt          cert_verify_cb;
+
+    /* for server, custom cid generator */
+    xqc_cid_generate_pt         cid_generate_cb;
 } xqc_engine_callback_t;
 
 #define XQC_ALPN_HTTP3      "h3-29"
