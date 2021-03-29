@@ -29,6 +29,7 @@ xqc_conn_settings_t default_conn_settings = {
     .proto_version    = XQC_IDRAFT_VER_29,
     .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath = 0,
+    .spurious_loss_detect_on = 0,
 };
 
 void
@@ -39,6 +40,7 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     default_conn_settings.pacing_on = settings.pacing_on;
     default_conn_settings.ping_on = settings.ping_on;
     default_conn_settings.so_sndbuf = settings.so_sndbuf;
+    default_conn_settings.spurious_loss_detect_on = settings.spurious_loss_detect_on;
     if (settings.idle_time_out > 0) {
         default_conn_settings.idle_time_out = settings.idle_time_out;
     }
@@ -133,7 +135,7 @@ static const char * const xqc_secret_type_2_str[SECRET_TYPE_NUM] = {
 
 
 /* local parameter */
-void 
+void
 xqc_conn_init_trans_param(xqc_connection_t *conn)
 {
     memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
@@ -409,9 +411,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
         return;
     }
 
-    xqc_log(xc->log, XQC_LOG_REPORT, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|token_ok:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
+    xqc_log(xc->log, XQC_LOG_REPORT, "|%p|srtt:%ui|retrans rate:%.4f|send_count:%ud|lost_count:%ud|tlp_count:%ud|spurious_loss_count:%ud|recv_count:%ud|has_0rtt:%d|0rtt_accept:%d|token_ok:%d|handshake_time:%ui|first_send_delay:%ui|conn_persist:%ui|err:0x%xi|%s|",
             xc, xqc_send_ctl_get_srtt(xc->conn_send_ctl), xqc_send_ctl_get_retrans_rate(xc->conn_send_ctl),
-            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count, xc->conn_send_ctl->ctl_recv_count,
+            xc->conn_send_ctl->ctl_send_count, xc->conn_send_ctl->ctl_lost_count, xc->conn_send_ctl->ctl_tlp_count,
+            xc->conn_send_ctl->ctl_spurious_loss_count, xc->conn_send_ctl->ctl_recv_count,
             xc->conn_flag & XQC_CONN_FLAG_HAS_0RTT ? 1:0,
             xc->conn_flag & XQC_CONN_FLAG_0RTT_OK ? 1:0,
             xc->conn_type == XQC_CONN_TYPE_SERVER ? (xc->conn_flag & XQC_CONN_FLAG_TOKEN_OK ? 1:0) : (-1),
@@ -668,7 +671,7 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
     }
 }
 
-ssize_t 
+ssize_t
 xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest, xqc_send_type_t send_type)
 {
     ssize_t ret;
@@ -1505,6 +1508,7 @@ xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid)
     conn_stats.lost_count = ctl->ctl_lost_count;
     conn_stats.send_count = ctl->ctl_send_count;
     conn_stats.tlp_count = ctl->ctl_tlp_count;
+    conn_stats.spurious_loss_count = ctl->ctl_spurious_loss_count;
     conn_stats.recv_count = ctl->ctl_recv_count;
     conn_stats.srtt = ctl->ctl_srtt;
     conn_stats.conn_err = (int)conn->conn_err;
@@ -1519,6 +1523,7 @@ xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid)
     xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_APP_DATA], conn_stats.ack_info, sizeof(conn_stats.ack_info));
 
     conn_stats.enable_multipath = (conn->local_settings.enable_multipath && conn->remote_settings.enable_multipath);
+    conn_stats.spurious_loss_detect_on = conn->conn_settings.spurious_loss_detect_on;
 
     return conn_stats;
 }
@@ -2053,7 +2058,7 @@ xqc_int_t
 xqc_conn_on_1rtt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
-        /* once client receives HANDSHAKE_DONE frame, handshake 
+        /* once client receives HANDSHAKE_DONE frame, handshake
            is confirmed, and MUST discard its handshake keys */
         if (pi->pi_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE) {
             xqc_conn_handshake_confirmed(c);

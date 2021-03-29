@@ -1511,6 +1511,7 @@ int main(int argc, char *argv[]) {
             .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
             //.so_sndbuf  =   1024*1024,
             .proto_version = XQC_IDRAFT_VER_29,
+            .spurious_loss_detect_on = 0,
     };
 
     /* check initial version */
@@ -1528,6 +1529,11 @@ int main(int argc, char *argv[]) {
     /* enable_multipath */
     if (g_test_case == 25) {
         conn_settings.enable_multipath = 1;
+    }
+
+    /* test spurious loss detect */
+    if (g_test_case == 26) {
+        conn_settings.spurious_loss_detect_on = 1;
     }
 
     eb = event_base_new();

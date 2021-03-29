@@ -8,6 +8,7 @@
 #include "src/congestion_control/xqc_sample.h"
 
 #define XQC_kPacketThreshold 3
+#define XQC_kTimeThresholdShift 3
 #define XQC_kPersistentCongestionThreshold 3
 
 #define XQC_CONSECUTIVE_PTO_THRESH 2
@@ -122,6 +123,7 @@ typedef struct xqc_send_ctl_s {
     unsigned                    ctl_send_count;
     unsigned                    ctl_lost_count;
     unsigned                    ctl_tlp_count;
+    unsigned                    ctl_spurious_loss_count;
 
     unsigned                    ctl_recv_count;
 
@@ -150,6 +152,9 @@ typedef struct xqc_send_ctl_s {
     xqc_msec_t                  ctl_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
     /*how many packets have been lost so far?*/
     uint32_t                    ctl_lost_pkts_number; 
+
+    xqc_packet_number_t         ctl_reordering_packet_threshold;
+    int32_t                     ctl_reordering_time_threshold_shift;
 
     xqc_sample_t                sampler;
 
@@ -280,6 +285,12 @@ xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size);
 
 void
 xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t ack_delay);
+
+void
+xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_time,
+    xqc_packet_number_t largest_ack,
+    xqc_packet_number_t spurious_loss_pktnum,
+    xqc_msec_t spurious_loss_sent_time);
 
 void
 xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t now);

@@ -102,13 +102,13 @@ typedef ssize_t (*xqc_send_mmsg_pt)(void *conn_user_data, struct iovec *msg_iov,
 typedef int (*xqc_cert_verify_pt)(unsigned char *certs[],size_t cert_len[],size_t certs_len, void * conn_user_data);
 
 /**
- * for server, custom cid generate handler,  
+ * for server, custom cid generate handler,
  * @param cid_buf  buffer for cid generated
  * @param cid_buflen len for cid_buf
  * @param engine_user_data  user data of engine from `xqc_engine_create`
- * @return  negative for failed , non-negative (0 contians ) for the length of bytes written 
+ * @return  negative for failed , non-negative (0 contians ) for the length of bytes written
  * if the length of bytes written shorter than cid_buflen , xquic will fill rest of them with random bytes
- * */ 
+ * */
 typedef ssize_t (*xqc_cid_generate_pt)(uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data);
 
 /*
@@ -346,6 +346,7 @@ typedef struct xqc_conn_settings_s {
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
     uint32_t                    idle_time_out;      /* idle timeout interval */
     uint64_t                    enable_multipath;   /* default: 0 */
+    int32_t                     spurious_loss_detect_on;
 } xqc_conn_settings_t;
 
 typedef struct xqc_h3_conn_settings_s {
@@ -365,10 +366,12 @@ typedef struct xqc_conn_stats_s {
     uint32_t    send_count;
     uint32_t    lost_count;
     uint32_t    tlp_count;
+    uint32_t    spurious_loss_count;
     xqc_msec_t  srtt;
     xqc_0rtt_flag_t    early_data_flag;
     uint32_t    recv_count;
     int         enable_multipath;
+    int         spurious_loss_detect_on;
     int         conn_err;
     char        ack_info[50];
 } xqc_conn_stats_t;
