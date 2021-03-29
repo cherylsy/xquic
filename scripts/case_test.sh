@@ -758,6 +758,7 @@ else
     echo "$errlog"
 fi
 
+
 clear_log
 killall test_server
 echo -e "server Initial dcid corruption ...\c"
@@ -766,12 +767,13 @@ sleep 1
 client_print_res=`./test_client -s 1024000 -l d -t 1 -E |grep ">>>>>>>> pass"`
 client_log_res=`grep "fail to find connection" clog`
 echo "$client_print_res"
-if [ "$client_print_res" != "" ]; then
+if [ "$client_print_res" != "" ] && [ "$client_log_res" != "" ]; then
     case_print_result "server_initial_dcid_corruption" "pass"
 else
     case_print_result "server_initial_dcid_corruption" "fail"
     echo "$errlog"
 fi
+
 
 clear_log
 killall test_server
@@ -780,17 +782,28 @@ echo -e "server Initial scid corruption ...\c"
 sleep 1
 client_print_res=`./test_client -s 1024000 -l d -t 1 -E |grep ">>>>>>>> pass"`
 client_log_res=`grep "decrypt data error" clog`
-if [ "$client_print_res" != "" ] && [ "$client_log_res" != NULL ]
-then
-    echo "$client_print_res"
+echo "$client_print_res"
+if [ "$client_print_res" != "" ] && [ "$client_log_res" != "" ]; then
+    case_print_result "server_initial_scid_corruption" "pass"
+else
+    case_print_result "server_initial_scid_corruption" "fail"
 fi
+
 
 clear_log
 killall test_server
 echo -e "server odcid hash ...\c"
 ./test_server -l d -e -x 5 > /dev/null &
 sleep 1
-./test_client -s 1024000 -l d -t 1 -E | grep ">>>>>>>> pass"
+result=`./test_client -s 1024000 -l d -t 1 -E | grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "server_odcid_hash" "pass"
+else
+    case_print_result "server_odcid_hash" "fail"
+    echo "$errlog"
+fi
 
 
 clear_log
@@ -801,11 +814,12 @@ sleep 1
 ./test_client -s 1024000 -l d -t 1 -x 24 > /dev/null
 sleep 11
 server_log_res=`grep "remove abnormal odcid conn hash" slog`
-if [ "$server_log_res" != "" ]
-then
+if [ "$server_log_res" != "" ]; then
     echo ">>>>>>>> pass:1"
+    case_print_result "server_odcid_hash_failure" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "server_odcid_hash_failure" "fail"
 fi
 
 
