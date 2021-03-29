@@ -52,85 +52,105 @@ xqc_server_set_conn_settings(xqc_conn_settings_t settings)
     default_conn_settings.enable_multipath = settings.enable_multipath;
 }
 
-static char g_conn_flag_buf[256];
-
-static const char * const conn_flag_2_str[XQC_CONN_FLAG_SHIFT_NUM] = {
-        [XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT]           = "WAIT_WAKEUP",
-        [XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT]   = "HSK_DONE",
-        [XQC_CONN_FLAG_CAN_SEND_1RTT_SHIFT]         = "CAN_SEND_1RTT",
-        [XQC_CONN_FLAG_TICKING_SHIFT]               = "TICKING",
-        [XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT]       = "ACK_INIT",
-        [XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT]        = "ACK_HSK",
-        [XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT]      = "ACK_01RTT",
-        [XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT]           = "HAS_GAP",
-        [XQC_CONN_FLAG_TIME_OUT_SHIFT]              = "TIME_OUT",
-        [XQC_CONN_FLAG_ERROR_SHIFT]                 = "ERROR",
-        [XQC_CONN_FLAG_DATA_BLOCKED_SHIFT]          = "DATA_BLOCKED",
-        [XQC_CONN_FLAG_DCID_OK_SHIFT]               = "DCID_OK",
-        [XQC_CONN_FLAG_TOKEN_OK_SHIFT]              = "TOKEN_OK",
-        [XQC_CONN_FLAG_HAS_0RTT_SHIFT]              = "HAS_0RTT",
-        [XQC_CONN_FLAG_0RTT_OK_SHIFT]               = "0RTT_OK",
-        [XQC_CONN_FLAG_0RTT_REJ_SHIFT]              = "0RTT_REJECT",
-        [XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT]      = "UPPER_CONN_EXIST",
-        [XQC_CONN_FLAG_SVR_INIT_RECVD_SHIFT]        = "INIT_RECVD",
-        [XQC_CONN_FLAG_NEED_RUN_SHIFT]              = "NEED_RUN",
-        [XQC_CONN_FLAG_PING_SHIFT]                  = "PING",
-        [XQC_CONN_FLAG_HSK_ACKED_SHIFT]             = "HSK_ACKED",
-        [XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT]        = "CANNOT_DESTROY",
-        [XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD_SHIFT]  = "HSK_DONE_RECVD",
-        [XQC_CONN_FLAG_ANTI_AMPLIFICATION_SHIFT]    = "ANTI_AMPLIFICATION",
-        [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
-        [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
-        [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
+static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
+    [XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT]           = "WAIT_WAKEUP",
+    [XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT]   = "HSK_DONE",
+    [XQC_CONN_FLAG_CAN_SEND_1RTT_SHIFT]         = "CAN_SEND_1RTT",
+    [XQC_CONN_FLAG_TICKING_SHIFT]               = "TICKING",
+    [XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT]       = "ACK_INIT",
+    [XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT]        = "ACK_HSK",
+    [XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT]      = "ACK_01RTT",
+    [XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT]           = "HAS_GAP",
+    [XQC_CONN_FLAG_TIME_OUT_SHIFT]              = "TIME_OUT",
+    [XQC_CONN_FLAG_ERROR_SHIFT]                 = "ERROR",
+    [XQC_CONN_FLAG_DATA_BLOCKED_SHIFT]          = "DATA_BLOCKED",
+    [XQC_CONN_FLAG_DCID_OK_SHIFT]               = "DCID_OK",
+    [XQC_CONN_FLAG_TOKEN_OK_SHIFT]              = "TOKEN_OK",
+    [XQC_CONN_FLAG_HAS_0RTT_SHIFT]              = "HAS_0RTT",
+    [XQC_CONN_FLAG_0RTT_OK_SHIFT]               = "0RTT_OK",
+    [XQC_CONN_FLAG_0RTT_REJ_SHIFT]              = "0RTT_REJECT",
+    [XQC_CONN_FLAG_UPPER_CONN_EXIST_SHIFT]      = "UPPER_CONN_EXIST",
+    [XQC_CONN_FLAG_SVR_INIT_RECVD_SHIFT]        = "INIT_RECVD",
+    [XQC_CONN_FLAG_NEED_RUN_SHIFT]              = "NEED_RUN",
+    [XQC_CONN_FLAG_PING_SHIFT]                  = "PING",
+    [XQC_CONN_FLAG_HSK_ACKED_SHIFT]             = "HSK_ACKED",
+    [XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT]        = "CANNOT_DESTROY",
+    [XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD_SHIFT]  = "HSK_DONE_RECVD",
+    [XQC_CONN_FLAG_ANTI_AMPLIFICATION_SHIFT]    = "ANTI_AMPLIFICATION",
+    [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
+    [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
+    [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
 };
 
+unsigned char g_conn_flag_buf[256];
+
 const char*
-xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag)
+xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag)
 {
     g_conn_flag_buf[0] = '\0';
     size_t pos = 0;
     int wsize;
     for (int i = 0; i < XQC_CONN_FLAG_SHIFT_NUM; i++) {
         if (conn_flag & 1 << i) {
-            wsize = snprintf(g_conn_flag_buf + pos, sizeof(g_conn_flag_buf) - pos, "%s ", conn_flag_2_str[i]);
+            wsize = snprintf(g_conn_flag_buf + pos, sizeof(g_conn_flag_buf) - pos, "%s ", 
+                             xqc_conn_flag_to_str[i]);
             pos += wsize;
         }
     }
     return g_conn_flag_buf;
 }
 
-static const char * const conn_state_2_str[XQC_CONN_STATE_N] = {
-        [XQC_CONN_STATE_SERVER_INIT]            = "S_INIT",
-        [XQC_CONN_STATE_SERVER_INITIAL_RECVD]   = "S_INITIAL_RECVD",
-        [XQC_CONN_STATE_SERVER_INITIAL_SENT]    = "S_INITIAL_SENT",
-        [XQC_CONN_STATE_SERVER_HANDSHAKE_SENT]  = "S_HANDSHAKE_SENT",
-        [XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD] = "S_HANDSHAKE_RECVD",
-        [XQC_CONN_STATE_CLIENT_INIT]            = "C_INIT",
-        [XQC_CONN_STATE_CLIENT_INITIAL_RECVD]   = "C_INITIAL_RECVD",
-        [XQC_CONN_STATE_CLIENT_INITIAL_SENT]    = "C_INITIAL_SENT",
-        [XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT]  = "C_HANDSHAKE_SENT",
-        [XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD] = "C_HANDSHAKE_RECVD",
-        [XQC_CONN_STATE_ESTABED]                = "ESTABED",
-        [XQC_CONN_STATE_CLOSING]                = "CLOSING",
-        [XQC_CONN_STATE_DRAINING]               = "DRAINING",
-        [XQC_CONN_STATE_CLOSED]                 = "CLOSED",
+static const char * const xqc_conn_state_to_str[XQC_CONN_STATE_N] = {
+    [XQC_CONN_STATE_SERVER_INIT]            = "S_INIT",
+    [XQC_CONN_STATE_SERVER_INITIAL_RECVD]   = "S_INITIAL_RECVD",
+    [XQC_CONN_STATE_SERVER_INITIAL_SENT]    = "S_INITIAL_SENT",
+    [XQC_CONN_STATE_SERVER_HANDSHAKE_SENT]  = "S_HANDSHAKE_SENT",
+    [XQC_CONN_STATE_SERVER_HANDSHAKE_RECVD] = "S_HANDSHAKE_RECVD",
+    [XQC_CONN_STATE_CLIENT_INIT]            = "C_INIT",
+    [XQC_CONN_STATE_CLIENT_INITIAL_RECVD]   = "C_INITIAL_RECVD",
+    [XQC_CONN_STATE_CLIENT_INITIAL_SENT]    = "C_INITIAL_SENT",
+    [XQC_CONN_STATE_CLIENT_HANDSHAKE_SENT]  = "C_HANDSHAKE_SENT",
+    [XQC_CONN_STATE_CLIENT_HANDSHAKE_RECVD] = "C_HANDSHAKE_RECVD",
+    [XQC_CONN_STATE_ESTABED]                = "ESTABED",
+    [XQC_CONN_STATE_CLOSING]                = "CLOSING",
+    [XQC_CONN_STATE_DRAINING]               = "DRAINING",
+    [XQC_CONN_STATE_CLOSED]                 = "CLOSED",
 
 };
 
 const char *
 xqc_conn_state_2_str(xqc_conn_state_t state)
 {
-    return conn_state_2_str[state];
+    return xqc_conn_state_to_str[state];
 }
+
 
 #ifdef XQC_PRINT_SECRET
 static const char * const xqc_secret_type_2_str[SECRET_TYPE_NUM] = {
-        [CLIENT_EARLY_TRAFFIC_SECRET]           = "CLIENT_EARLY_TRAFFIC_SECRET",
-        [CLIENT_HANDSHAKE_TRAFFIC_SECRET]       = "CLIENT_HANDSHAKE_TRAFFIC_SECRET",
-        [SERVER_HANDSHAKE_TRAFFIC_SECRET]       = "SERVER_HANDSHAKE_TRAFFIC_SECRET",
-        [CLIENT_TRAFFIC_SECRET_0]               = "CLIENT_TRAFFIC_SECRET_0",
-        [SERVER_TRAFFIC_SECRET_0]               = "SERVER_TRAFFIC_SECRET_0",
+    [CLIENT_EARLY_TRAFFIC_SECRET]           = "CLIENT_EARLY_TRAFFIC_SECRET",
+    [CLIENT_HANDSHAKE_TRAFFIC_SECRET]       = "CLIENT_HANDSHAKE_TRAFFIC_SECRET",
+    [SERVER_HANDSHAKE_TRAFFIC_SECRET]       = "SERVER_HANDSHAKE_TRAFFIC_SECRET",
+    [CLIENT_TRAFFIC_SECRET_0]               = "CLIENT_TRAFFIC_SECRET_0",
+    [SERVER_TRAFFIC_SECRET_0]               = "SERVER_TRAFFIC_SECRET_0",
 };
+
+void
+xqc_conn_print_secret(xqc_connection_t *conn)
+{
+    unsigned char secret_str[3 * SECRET_TYPE_NUM * XQC_SECRET_HEX_MAX];
+    int n_write = 0;
+    secret_str[0] = '\n';
+    n_write += 1;
+    for (xqc_secret_type_t i = CLIENT_EARLY_TRAFFIC_SECRET; i < SECRET_TYPE_NUM; i++) {
+        if (strlen(conn->secret_hex[i]) > 0) {
+            n_write += snprintf(secret_str + n_write, sizeof(secret_str), "%s %s %s\n", 
+                                xqc_secret_type_2_str[i], conn->client_random_hex, conn->secret_hex[i]);
+        }
+    }
+
+    xqc_log(conn->log, XQC_LOG_REPORT, "|print secret|%s|", secret_str);
+}
+
 #endif
 
 
@@ -1763,18 +1783,9 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
     }
 
 #ifdef XQC_PRINT_SECRET
-    unsigned char secret_str[3 * SECRET_TYPE_NUM * XQC_SECRET_HEX_MAX];
-    int n_write = 0;
-    secret_str[0] = '\n';
-    n_write += 1;
-    for (xqc_secret_type_t i = CLIENT_EARLY_TRAFFIC_SECRET; i < SECRET_TYPE_NUM; i++) {
-        if (strlen(conn->secret_hex[i]) > 0) {
-            n_write += snprintf(secret_str + n_write, sizeof(secret_str), "%s %s %s\n", 
-                                xqc_secret_type_2_str[i], conn->client_random_hex, conn->secret_hex[i]);
-        }
-    }
-    xqc_log(conn->log, XQC_LOG_REPORT, "|print secret|%s|", secret_str);
+    xqc_conn_print_secret(conn);
 #endif
+
     return XQC_OK;
 }
 
