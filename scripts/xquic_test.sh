@@ -83,6 +83,7 @@ function output_summary() {
     passed=`cat xquic_test.log | grep "pass:" | grep "pass:1" | wc -l`
     failed=`cat xquic_test.log | grep "pass:" | grep "pass:0" | wc -l`
     echo -e "\033[32m case test passed:$passed failed:$failed \033[0m"
+    echo -e "\033[32m TEST_CASE_AMOUNT_xquic: {"passed": $passed,"failed": $failed,"skipped": 0,"blocked": 0} \033[0m"
 
     echo -e "\nqpack test:"
     cat xquic_test.log | grep "qpack test" | grep ">>"
