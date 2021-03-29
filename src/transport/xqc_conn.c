@@ -505,7 +505,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
 
 }
 
-void xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data)
+void
+xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data)
 {
     conn->user_data = user_data;
 }
@@ -844,6 +845,7 @@ xqc_conn_send_packets (xqc_connection_t *conn)
             xqc_send_ctl_insert_unacked(packet_out,
                                         &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
                                         conn->conn_send_ctl);
+
         } else {
             xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
         }

@@ -477,9 +477,9 @@ xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
 static inline xqc_int_t
 xqc_conn_has_undecrypt_packets(xqc_connection_t *conn)
 {
-    return conn->undecrypt_count[XQC_ENC_LEV_1RTT] ||
-           conn->undecrypt_count[XQC_ENC_LEV_0RTT] ||
-            conn->undecrypt_count[XQC_ENC_LEV_HSK];
+    return conn->undecrypt_count[XQC_ENC_LEV_1RTT]
+           || conn->undecrypt_count[XQC_ENC_LEV_0RTT]
+           || conn->undecrypt_count[XQC_ENC_LEV_HSK];
 }
 
 static inline xqc_int_t
