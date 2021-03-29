@@ -101,34 +101,66 @@ else
     echo "$errlog"
 fi
 
-
-
 clear_log
 echo -e "create connection fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 7 >> clog
-echo ">>>>>>>> pass:1"
-grep_err_log|grep -v xqc_client_connect
+result=`grep_err_log|grep -v xqc_client_connect`
+if [ -z "$result" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "create_connection_fail" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "create_connection_fail" "fail"
+fi
 
 clear_log
 echo -e "socket recv fail ...\c"
-./test_client -s 1024000 -l d -t 2 -E -x 6|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -t 2 -E -x 6|grep ">>>>>>>> pass" `
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "socket_recv_fail" "pass"
+else
+    case_print_result "socket_recv_fail" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "socket send fail ...\c"
-./test_client -s 1024000 -l d -t 1 -E -x 5|grep ">>>>>>>> pass"
-grep_err_log|grep -v "write_socket error"
+result=`./test_client -s 1024000 -l d -t 1 -E -x 5|grep ">>>>>>>> pass" `
+errlog=`grep_err_log|grep -v "write_socket error"`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "socket_send_fail" "pass"
+else
+    case_print_result "socket_send_fail" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "verify Token fail ...\c"
 rm -f xqc_token
-./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
-grep_err_log|grep -v xqc_conn_check_token
+result=`./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log|grep -v xqc_conn_check_token`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "verify_token_fail" "pass"
+else
+    case_print_result "verify_token_fail" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "verify Token success ...\c"
-./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "verify_token_success" "pass"
+else
+    case_print_result "verify_token_success" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "test application delay ...\c"
@@ -136,33 +168,46 @@ rm -f xqc_token
 ./test_client -s 5120 -l d -t 1 -E -x 16 >> clog
 if test "$(grep -e "|====>|.*NEW_TOKEN" clog |wc -l)" -gt 1 >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "test_application_delay" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "test_application_delay" "fail"
 fi
 grep_err_log
 
 clear_log
 echo -e "fin only ...\c"
-./test_client -s 5120 -l d -t 1 -E -x 4 |grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 5120 -l d -t 1 -E -x 4 |grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "fin_only" "pass"
+else
+    case_print_result "fin_only" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "user close connection ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 2 >> clog
-if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "====>.*CONNECTION_CLOSE" clog >/dev/null; then
+if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "==>.*CONNECTION_CLOSE" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "user_close_connection" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "user_close_connection" "fail"
 fi
 grep_err_log
 
 clear_log
 echo -e "close connection with error ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 3 >> clog
-if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "====>.*CONNECTION_CLOSE" clog >/dev/null; then
+if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "==>.*CONNECTION_CLOSE" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "close_connection_with_error" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "close_connection_with_error" "fail"
 fi
 grep_err_log|grep -v xqc_process_write_streams|grep -v xqc_h3_stream_write_notify|grep -v xqc_process_conn_close_frame
 
@@ -172,95 +217,146 @@ echo -e "Reset stream when sending...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 1 >> clog
 if grep "send_state:5|recv_state:5" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "reset_stream" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "reset_stream" "fail"
 fi
 grep_err_log|grep -v stream
+
 
 clear_log
 echo -e "Reset stream when receiving...\c"
-./test_client -s 1024000 -l d -t 1 -E -x 21 >> clog
-if grep "send_state:5|recv_state:5" clog >/dev/null && grep "xqc_send_ctl_drop_stream_frame_packets" slog >/dev/null; then
+./test_client -s 1024000 -l d -t 1 -E -x 21 > stdlog
+result=`grep "xqc_send_ctl_drop_stream_frame_packets" slog`
+flag=`grep "send_state:5|recv_state:5" clog`
+errlog=`grep_err_log|grep -v stream`
+if [ -n "$flag" ] && [ -z "$errlog" ] && [ -n "$result" ]; then
     echo ">>>>>>>> pass:1"
+    case_print_result "reset_stream_when_receiving" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "reset_stream_when_receiving" "fail"
+    echo "$flag"
+    echo "$errlog"
 fi
-grep_err_log|grep -v stream
 
 clear_log
 echo -e "1RTT ...\c"
-./test_client -s 1024000 -l e -t 1 -E -1 >> clog
-if grep "early_data_flag:0" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
-    echo ">>>>>>>> pass:1"
+./test_client -s 1024000 -l e -t 1 -E -1 > stdlog
+result=`grep ">>>>>>>> pass:" stdlog`
+echo "$result"
+flag=`grep "early_data_flag:0" stdlog`
+errlog=`grep_err_log`
+if [ -n "$flag" ] && [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "1RTT" "pass"
 else
-    echo ">>>>>>>> pass:0"
+    case_print_result "1RTT" "fail"
+    echo "$flag"
+    echo "$errlog"
 fi
-grep_err_log
 
 clear_log
 echo -e "without session ticket ...\c"
 rm -f test_session
-./test_client -s 1024000 -l e -t 1 -E >> clog
-if grep "early_data_flag:0" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
-    echo ">>>>>>>> pass:1"
+./test_client -s 1024000 -l e -t 1 -E > stdlog
+result=`grep ">>>>>>>> pass:" stdlog`
+echo "$result"
+flag=`grep "early_data_flag:0" stdlog`
+errlog=`grep_err_log`
+if [ -n "$flag" ] && [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "without_session_ticket" "pass"
 else
-    echo ">>>>>>>> pass:0"
+    case_print_result "without_session_ticket" "fail"
+    echo "$flag"
+    echo "$errlog"
 fi
-grep_err_log
 
 clear_log
 echo -e "0RTT accept ...\c"
-./test_client -s 1024000 -l e -t 1 -E >> clog
-if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
-    echo ">>>>>>>> pass:1"
+./test_client -s 1024000 -l e -t 1 -E > stdlog
+result=`grep ">>>>>>>> pass:" stdlog`
+echo "$result"
+flag=`grep "early_data_flag:1" stdlog`
+errlog=`grep_err_log`
+if [ -n "$flag" ] && [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "0RTT_accept" "pass"
 else
-    echo ">>>>>>>> pass:0"
+    case_print_result "0RTT_accept" "fail"
+    echo "$flag"
+    echo "$errlog"
 fi
-grep_err_log
 
 clear_log
 echo -e "0RTT reject. restart server ....\c"
 killall test_server
-./test_server -l d -e > /dev/null &
+./test_server -l i -e > /dev/null &
 sleep 1
-./test_client -s 1024000 -l d -t 1 -E >> clog
-if grep "early_data_flag:2" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
-    echo ">>>>>>>> pass:1"
+./test_client -s 1024000 -l d -t 1 -E > stdlog
+result=`grep ">>>>>>>> pass:" stdlog`
+echo "$result"
+flag=`grep "early_data_flag:2" stdlog`
+errlog=`grep_err_log`
+if [ -n "$flag" ] && [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "0RTT_reject" "pass"
 else
-    echo ">>>>>>>> pass:0"
+    case_print_result "0RTT_reject" "fail"
+    echo "$flag"
+    echo "$errlog"
 fi
-grep_err_log
 
 clear_log
 echo -e "transport only ...\c"
 rm -f test_session
-./test_client -s 1024000 -l d -T -t 1 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -T -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "transport_only" "pass"
+else
+    case_print_result "transport_only" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "transport 0RTT ...\c"
-./test_client -s 1024000 -l e -T -t 1 -E >> clog
-if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
-    echo ">>>>>>>> pass:1"
+./test_client -s 1024000 -l e -T -t 1 -E > stdlog
+result=`grep ">>>>>>>> pass:" stdlog`
+echo "$result"
+flag=`grep "early_data_flag:1" stdlog`
+errlog=`grep_err_log`
+if [ -n "$flag" ] && [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "transport_0RTT" "pass"
 else
-    echo ">>>>>>>> pass:0"
+    case_print_result "transport_0RTT" "fail"
+    echo "$flag"
+    echo "$errlog"
 fi
 rm -f test_session
-grep_err_log
 
 clear_log
 echo -e "no crypto without 0RTT ...\c"
 rm -f test_session
-./test_client -s 1024000 -l d -N -t 1 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -N -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "no_crypto_without_0RTT" "pass"
+else
+    case_print_result "no_crypto_without_0RTT" "fail"
+    echo "$errlog"
+fi
+
 
 clear_log
 echo -e "no crypto with 0RTT ...\c"
 ./test_client -s 1024000 -l d -N -t 1 -E >> clog
 if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "no_crypto_with_0RTT" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "no_crypto_with_0RTT" "fail"
 fi
 grep_err_log
 
@@ -270,8 +366,10 @@ echo -e "no crypto with 0RTT twice ...\c"
 ./test_client -s 1024000 -l d -N -t 1 -E >> clog
 if grep "early_data_flag:1" clog >/dev/null && grep ">>>>>>>> pass:1" clog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "no_crypto_with_0RTT_twice" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "no_crypto_with_0RTT_twice" "fail"
 fi
 grep_err_log
 
@@ -279,15 +377,18 @@ clear_log
 rm -f test_session
 echo -e "NULL stream callback ...\c"
 killall test_server
-./test_server -l d -e -x 2 > /dev/null &
+./test_server -l i -e -x 2 > /dev/null &
 sleep 1
 ./test_client -l d -T -E >> clog
 if grep "stream_read_notify is NULL" slog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "NULL_stream_callback" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "NULL_stream_callback" "fail"
 fi
 rm -f test_session
+
 
 clear_log
 echo -e "server cid negotiate ...\c"
@@ -299,25 +400,41 @@ grep_err_log
 
 clear_log
 echo -e "GET request ...\c"
-./test_client -l d -t 1 -E -G|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -l d -t 1 -E -G|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "GET_request" "pass"
+else
+    case_print_result "GET_request" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "client initial version setting ...\c"
-./test_client -s 1024 -l d -t 1 -E -x 17 |grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024 -l d -t 1 -E -x 17 |grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "client_initial_version_setting" "pass"
+else
+    case_print_result "client_initial_version_setting" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "set h3 settings ...\c"
 ./test_client -s 1024 -l d -t 1 -E -x 18 >> clog
 if grep ">>>>>>>> pass:1" clog >/dev/null && \
-   grep -e "xqc_h3_conn_send_settings.*qpack_blocked_streams:32|qpack_max_table_capacity:4096|max_field_section_size:256" clog >/dev/null && \
-   grep -e "xqc_h3_conn_on_settings_entry_received.*id:7.*value:32" slog >/dev/null && \
-   grep -e "xqc_h3_conn_on_settings_entry_received.*id:1.*value:4096" slog >/dev/null && \
-   grep -e "xqc_h3_conn_on_settings_entry_received.*id:6.*value:256" slog >/dev/null; then
+    grep -e "xqc_h3_conn_send_settings.*qpack_blocked_streams:32|qpack_max_table_capacity:4096|max_field_section_size:256" clog >/dev/null && \
+    grep -e "xqc_h3_conn_on_settings_entry_received.*id:7.*value:32" slog >/dev/null && \
+    grep -e "xqc_h3_conn_on_settings_entry_received.*id:1.*value:4096" slog >/dev/null && \
+    grep -e "xqc_h3_conn_on_settings_entry_received.*id:6.*value:256" slog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "set_h3_settings" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "set_h3_settings" "fail"
 fi
 grep_err_log
 
@@ -326,76 +443,170 @@ echo -e "header size constraints ...\c"
 ./test_client -s 1024 -l d -t 1 -E -x 19 -n 2 >> clog
 if grep -e "xqc_h3_stream_send_headers.*fields_size.*exceed.*SETTINGS_MAX_FIELD_SECTION_SIZE.*" slog >/dev/null; then
     echo ">>>>>>>> pass:1"
+    case_print_result "header_size_constraints" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "header_size_constraints" "fail"
 fi
 grep_err_log|grep -v xqc_h3_stream_send_headers
 
 
 clear_log
 echo -e "send 1K data ...\c"
-./test_client -s 1024 -l d -t 1 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024 -l d -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "send_1K_data" "pass"
+else
+    case_print_result "send_1K_data" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "send 1M data ...\c"
-./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "send_1M_data" "pass"
+else
+    case_print_result "send_1M_data" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "send 10M data ...\c"
-./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "send_10M_data" "pass"
+else
+    case_print_result "send_10M_data" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "BBR ...\c"
-./test_client -s 10240000 -l e -t 4 -E -c bbr|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -c bbr|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "BBR" "pass"
+else
+    case_print_result "BBR" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "BBR with cwnd compensation ...\c"
-./test_client -s 10240000 -l e -t 4 -E -c bbr+|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -t 4 -E -c bbr+|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "BBR+" "pass"
+else
+    case_print_result "BBR+" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "BBRv2 ...\c"
-./test_client -s 10240000 -l e -t 4 -E -c bbr2|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -t 4 -E -c bbr2|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "BBRv2" "pass"
+else
+    case_print_result "BBRv2" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "BBRv2+ ...\c"
-./test_client -s 10240000 -l e -t 4 -E -c bbr2+|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -t 4 -E -c bbr2+|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "BBRv2+" "pass"
+else
+    case_print_result "BBRv2+" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "Reno with pacing ...\c"
-./test_client -s 10240000 -l e -t 3 -E -c reno -C|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -c reno -C|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "reno_with_pacing" "pass"
+else
+    case_print_result "reno_with_pacing" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "Reno without pacing ...\c"
-./test_client -s 10240000 -l e -t 3 -E -c reno|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -c reno|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "reno_without_pacing" "pass"
+else
+    case_print_result "reno_without_pacing" "fail"
+    echo "$errlog"
+fi
+
 
 clear_log
 echo -e "Cubic with pacing ...\c"
-./test_client -s 10240000 -l e -t 3 -E -c cubic -C|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -c cubic -C|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "cubic_with_pacing" "pass"
+else
+    case_print_result "cubic_with_pacing" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "Cubic without pacing ...\c"
-./test_client -s 10240000 -l e -t 3 -E -c cubic|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -c cubic|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "cubic_without_pacing" "pass"
+else
+    case_print_result "cubic_without_pacing" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "Cubic (Kernel) with pacing ...\c"
-./test_client -s 10240000 -l e -t 3 -E -c C -C|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -t 3 -E -c C -C|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "cubic_kernel_with_pacing" "pass"
+else
+    case_print_result "cubic_kernel_with_pacing" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "Cubic (Kernel) without pacing ...\c"
-./test_client -s 10240000 -l e -t 3 -E -c C|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -t 3 -E -c C|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "cubic_kernel_without_pacing" "pass"
+else
+    case_print_result "cubic_kernel_without_pacing" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "spurious loss detect on ...\c"
@@ -404,48 +615,93 @@ grep_err_log
 
 clear_log
 echo -e "stream level flow control ...\c"
-./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "stream_level_flow_control" "pass"
+else
+    case_print_result "stream_level_flow_control" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "connection level flow control ...\c"
-./test_client -s 512000 -l e -t 3 -E -n 10 >> clog
+./test_client -s 512000 -l e -E -n 10 >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 10 ]]; then
     echo ">>>>>>>> pass:1"
+    case_print_result "connection_level_flow_control" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "connection_level_flow_control" "fail"
 fi
 grep_err_log
 
 clear_log
 echo -e "stream concurrency flow control ...\c"
-./test_client -s 1 -l e -t 2 -E -P 1025 -G >> clog
+./test_client -s 1 -l e -t 5 -E -P 1025 -G >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 1024 ]]; then
     echo ">>>>>>>> pass:1"
+    case_print_result "stream_concurrency_flow_control" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "stream_concurrency_flow_control" "fail"
 fi
 grep_err_log|grep -v stream
 
 clear_log
 echo -e "1% loss ...\c"
-./test_client -s 10240000 -l e -t 4 -E -d 10|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -d 10|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "1_percent_loss" "pass"
+else
+    case_print_result "1_percent_loss" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "3% loss ...\c"
-./test_client -s 10240000 -l e -t 7 -E -d 30|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -d 30|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "3_percent_loss" "pass"
+else
+    case_print_result "3_percent_loss" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "10% loss ...\c"
-./test_client -s 10240000 -l e -t 12 -E -d 100|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -l e -E -d 100|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "10_percent_loss" "pass"
+else
+    case_print_result "10_percent_loss" "fail"
+    echo "$errlog"
+fi
+
+
+killall test_server 2> /dev/null
+./test_server -l e -e > /dev/null &
+sleep 1
 
 clear_log
 echo -e "sendmmsg with 10% loss ...\c"
-./test_client -s 10240000 -l e -t 12 -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 10240000 -t 1 -l e -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "sengmmsg_with_10_percent_loss" "pass"
+else
+    case_print_result "sengmmsg_with_10_percent_loss" "fail"
+    echo "$errlog"
+fi
+
 
 clear_log
 echo -e "large ack range with 30% loss ...\c"
