@@ -765,9 +765,12 @@ echo -e "server Initial dcid corruption ...\c"
 sleep 1
 client_print_res=`./test_client -s 1024000 -l d -t 1 -E |grep ">>>>>>>> pass"`
 client_log_res=`grep "fail to find connection" clog`
-if [ "$client_print_res" != "" ]
-then
-    echo "$client_print_res"
+echo "$client_print_res"
+if [ "$client_print_res" != "" ]; then
+    case_print_result "server_initial_dcid_corruption" "pass"
+else
+    case_print_result "server_initial_dcid_corruption" "fail"
+    echo "$errlog"
 fi
 
 clear_log
@@ -812,11 +815,13 @@ echo -e "enable_multipath_negotiate ...\c"
 ./test_server -l d -e -x 7 > /dev/null &
 sleep 1
 result=`./test_client -s 1024000 -l d -t 1 -x 25 | grep "enable_multipath=1"`
-if [ "$result" != "" ]
-then
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" != "" ]; then
     echo ">>>>>>>> pass:1"
+    case_print_result "enable_multipath_negotiate" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "enable_multipath_negotiate" "fail"
 fi
 
 
@@ -827,11 +832,13 @@ echo -e "load balancer cid generate ...\c"
 sleep 1
 ./test_client -s 1024000 -l d -t 1 >> clog
 result=`grep "|xqc_conn_confirm_cid|dcid change|" clog | grep "7365727665725f69645f30"`
-if [ "$result" != "" ]
-then
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" != "" ]; then
     echo ">>>>>>>> pass:1"
+    case_print_result "load_balancer_cid_generate" "pass"
 else
     echo ">>>>>>>> pass:0"
+    case_print_result "load_balancer_cid_generate" "fail"
 fi
 
 
