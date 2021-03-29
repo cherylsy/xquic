@@ -22,38 +22,86 @@ grep_err_log() {
     #grep "retrans rate:" slog|grep -v "retrans rate:0.0000"
 }
 
+# params: case_name, result
+function case_print_result() {
+    echo "[ RUN      ] xquic_case_test.$1"
+    if [ "$2" = "pass" ];then
+        echo "[       OK ] xquic_case_test.$1 (1 ms)"
+    else
+        echo "[     FAIL ] xquic_case_test.$1 (1 ms)"
+    fi
+}
+
+
 
 #clear_log
 #echo -e "变长cid_len ...\c"
 #./test_client -s 1024000 -l d -t 1 -E -x 13|grep ">>>>>>>> pass"
 #grep_err_log
 
+
 clear_log
 echo -e "stream read notify fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 12 >> clog
-echo ">>>>>>>> pass:1"
-grep_err_log|grep -v xqc_process_read_streams|grep -v xqc_h3_stream_read_notify|grep -v xqc_process_conn_close_frame
+result=`grep_err_log|grep -v xqc_process_read_streams|grep -v xqc_h3_stream_read_notify|grep -v xqc_process_conn_close_frame`
+if [ -z "$result" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "stream_read_notify_fail" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "stream_read_notify_fail" "fail"
+fi
+
 
 clear_log
 echo -e "create stream fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 11 >> clog
-echo ">>>>>>>> pass:1"
-grep_err_log|grep -v xqc_stream_create
+result=`grep_err_log|grep -v xqc_stream_create`
+if [ -z "$result" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "create_stream_fail" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "create_stream_fail" "fail"
+fi
 
 clear_log
 echo -e "illegal packet ...\c"
-./test_client -s 1024000 -l d -t 2 -E -x 10|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -t 2 -E -x 10|grep ">>>>>>>> pass" `
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "illegal_packet" "pass"
+else
+    case_print_result "illegal_packet" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "duplicate packet ...\c"
-./test_client -s 1024000 -l d -t 2 -E -x 9|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -t 2 -E -x 9|grep ">>>>>>>> pass" `
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "duplicate_packet" "pass"
+else
+    case_print_result "duplicate_packet" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "packet with wrong cid ...\c"
-./test_client -s 1024000 -l d -t 2 -E -x 8|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -t 2 -E -x 8|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "packet_with_wrong_cid" "pass"
+else
+    case_print_result "packet_with_wrong_cid" "fail"
+    echo "$errlog"
+fi
+
+
 
 clear_log
 echo -e "create connection fail ...\c"
