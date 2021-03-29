@@ -646,7 +646,7 @@ grep_err_log
 
 clear_log
 echo -e "stream concurrency flow control ...\c"
-./test_client -s 1 -l e -t 5 -E -P 1025 -G >> clog
+./test_client -s 1 -l e -t 6 -E -P 1025 -G >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 1024 ]]; then
     echo ">>>>>>>> pass:1"
     case_print_result "stream_concurrency_flow_control" "pass"
@@ -681,16 +681,16 @@ else
 fi
 
 clear_log
-echo -e "10% loss ...\c"
 result=`./test_client -s 10240000 -t 1 -l e -E -d 100|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
-echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "10_percent_loss" "pass"
 else
     case_print_result "10_percent_loss" "fail"
     echo "$errlog"
 fi
+echo -e "10% loss ...\c"
+echo "$result"
 
 
 killall test_server 2> /dev/null
@@ -699,7 +699,7 @@ sleep 1
 
 clear_log
 echo -e "sendmmsg with 10% loss ...\c"
-result=`./test_client -s 10240000 -t 1 -l e -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -t 2 -l e -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -711,16 +711,16 @@ fi
 
 
 clear_log
-echo -e "large ack range with 30% loss ...\c"
-result=`./test_client -s 2048000 -l e -t 1 -E -d 300|grep ">>>>>>>> pass"`
+result=`./test_client -s 2048000 -l e -t 3 -E -d 300|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
-echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "large_ack_range_with_30_percent_loss" "pass"
 else
     case_print_result "large_ack_range_with_30_percent_loss" "fail"
     echo "$errlog"
 fi
+echo -e "large ack range with 30% loss ...\c"
+echo "$result"
 
 
 clear_log

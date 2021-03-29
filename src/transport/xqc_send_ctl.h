@@ -414,7 +414,7 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
         timer = &ctl->ctl_timer[type];
         if (timer->ctl_timer_is_set && timer->ctl_expire_time <= now) {
             if(type == XQC_TIMER_IDLE){
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR,
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
                     "|conn:%p|timer expired|type:%s|expire_time:%ui|now:%ui|",
                     ctl->ctl_conn, xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
 
