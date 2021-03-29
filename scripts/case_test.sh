@@ -675,7 +675,7 @@ fi
 
 clear_log
 echo -e "10% loss ...\c"
-result=`./test_client -s 10240000 -l e -E -d 100|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -t 1 -l e -E -d 100|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
