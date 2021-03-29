@@ -395,8 +395,15 @@ echo -e "server cid negotiate ...\c"
 killall test_server
 ./test_server -l d -e -x 1 > /dev/null &
 sleep 1
-./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"
-grep_err_log
+result=`./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "server_cid_negotiate" "pass"
+else
+    case_print_result "server_cid_negotiate" "fail"
+    echo "$errlog"
+fi
 
 clear_log
 echo -e "GET request ...\c"
@@ -586,7 +593,7 @@ fi
 
 clear_log
 echo -e "Cubic (Kernel) with pacing ...\c"
-result=`./test_client -s 10240000 -l e -t 3 -E -c C -C|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -l e -t 1 -E -c C -C|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -598,7 +605,7 @@ fi
 
 clear_log
 echo -e "Cubic (Kernel) without pacing ...\c"
-result=`./test_client -s 10240000 -l e -t 3 -E -c C|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -l e -t 1 -E -c C|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -610,7 +617,7 @@ fi
 
 clear_log
 echo -e "spurious loss detect on ...\c"
-./test_client -s 10240000 -l e -t 3 -E -x 26|grep ">>>>>>>> pass"
+./test_client -s 10240000 -l e -t 1 -E -x 26|grep ">>>>>>>> pass"
 grep_err_log
 
 clear_log
@@ -705,7 +712,15 @@ fi
 
 clear_log
 echo -e "large ack range with 30% loss ...\c"
-./test_client -s 2048000 -l e -t 3 -E -d 300|grep ">>>>>>>> pass"
+result=`./test_client -s 2048000 -l e -t 1 -E -d 300|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "large_ack_range_with_30_percent_loss" "pass"
+else
+    case_print_result "large_ack_range_with_30_percent_loss" "fail"
+    echo "$errlog"
+fi
 
 
 clear_log
@@ -713,25 +728,34 @@ killall test_server
 echo -e "client Initial dcid corruption ...\c"
 ./test_server -l d -e > /dev/null &
 sleep 1
-client_print_res=`./test_client -s 1024000 -l d -t 3 -x 22 -E | grep ">>>>>>>> pass"`
+client_print_res=`./test_client -s 1024000 -l d -t 1 -x 22 -E | grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
 server_log_res=`grep "decrypt data error" slog`
 server_conn_cnt=`grep "xqc_conn_create" slog | wc -l`
-if [ "$client_print_res" != "" ] && [ "$server_log_res" != "" ] && [ $server_conn_cnt -eq 2 ]
-then
-    echo "$client_print_res"
+echo "$client_print_res"
+if [ "$client_print_res" != "" ] && [ "$server_log_res" != "" ] && [ $server_conn_cnt -eq 2 ]; then
+    case_print_result "client_initial_dcid_corruption" "pass"
+else
+    case_print_result "client_initial_dcid_corruption" "fail"
+    echo "$errlog"
 fi
+
 
 clear_log
 killall test_server
 echo -e "client Initial scid corruption ...\c"
 ./test_server -l d -e > /dev/null &
 sleep 1
-client_print_res=`./test_client -s 1024000 -l d -t 3 -x 23 -E | grep ">>>>>>>> pass"`
+client_print_res=`./test_client -s 1024000 -l d -t 1 -x 23 -E | grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
 server_log_res=`grep "decrypt data error" slog`
 server_dcid_res=`grep "dcid change" slog`
-if [ "$client_print_res" != "" ] && [ "$server_log_res" != NULL ] && [ "$server_dcid_res" != NULL ]
-then
-    echo "$client_print_res"
+echo "$client_print_res"
+if [ "$client_print_res" != "" ] && [ "$server_log_res" != NULL ] && [ "$server_dcid_res" != NULL ]; then
+    case_print_result "client_initial_scid_corruption" "pass"
+else
+    case_print_result "client_initial_scid_corruption" "fail"
+    echo "$errlog"
 fi
 
 clear_log
@@ -739,7 +763,7 @@ killall test_server
 echo -e "server Initial dcid corruption ...\c"
 ./test_server -l d -e -x 3 > /dev/null &
 sleep 1
-client_print_res=`./test_client -s 1024000 -l d -t 3 -E |grep ">>>>>>>> pass"`
+client_print_res=`./test_client -s 1024000 -l d -t 1 -E |grep ">>>>>>>> pass"`
 client_log_res=`grep "fail to find connection" clog`
 if [ "$client_print_res" != "" ]
 then
@@ -751,7 +775,7 @@ killall test_server
 echo -e "server Initial scid corruption ...\c"
 ./test_server -l d -e -x 4 > /dev/null &
 sleep 1
-client_print_res=`./test_client -s 1024000 -l d -t 3 -E |grep ">>>>>>>> pass"`
+client_print_res=`./test_client -s 1024000 -l d -t 1 -E |grep ">>>>>>>> pass"`
 client_log_res=`grep "decrypt data error" clog`
 if [ "$client_print_res" != "" ] && [ "$client_log_res" != NULL ]
 then
@@ -763,7 +787,7 @@ killall test_server
 echo -e "server odcid hash ...\c"
 ./test_server -l d -e -x 5 > /dev/null &
 sleep 1
-./test_client -s 1024000 -l d -t 3 -E | grep ">>>>>>>> pass"
+./test_client -s 1024000 -l d -t 1 -E | grep ">>>>>>>> pass"
 
 
 clear_log
@@ -771,7 +795,7 @@ killall test_server
 echo -e "server odcid hash failure ...\c"
 ./test_server -l d -e -x 6 > /dev/null &
 sleep 1
-./test_client -s 1024000 -l d -t 3 -x 24 > /dev/null
+./test_client -s 1024000 -l d -t 1 -x 24 > /dev/null
 sleep 11
 server_log_res=`grep "remove abnormal odcid conn hash" slog`
 if [ "$server_log_res" != "" ]
@@ -787,7 +811,7 @@ killall test_server 2> /dev/null
 echo -e "enable_multipath_negotiate ...\c"
 ./test_server -l d -e -x 7 > /dev/null &
 sleep 1
-result=`./test_client -s 1024000 -l d -t 3 -x 25 | grep "enable_multipath=1"`
+result=`./test_client -s 1024000 -l d -t 1 -x 25 | grep "enable_multipath=1"`
 if [ "$result" != "" ]
 then
     echo ">>>>>>>> pass:1"
@@ -801,7 +825,7 @@ killall test_server 2> /dev/null
 echo -e "load balancer cid generate ...\c"
 ./test_server -l d -e -S "server_id_0" > /dev/null &
 sleep 1
-./test_client -s 1024000 -l d -t 3 >> clog
+./test_client -s 1024000 -l d -t 1 >> clog
 result=`grep "|xqc_conn_confirm_cid|dcid change|" clog | grep "7365727665725f69645f30"`
 if [ "$result" != "" ]
 then
