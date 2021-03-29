@@ -27,6 +27,16 @@ int printf_null(const char *format, ...)
 #define XQC_PACKET_TMP_BUF_LEN 1500
 #define MAX_BUF_SIZE (100*1024*1024)
 
+
+typedef struct xqc_quic_lb_ctx_s {
+    uint8_t    sid_len;
+    uint8_t    sid_buf[XQC_MAX_CID_LEN];
+    uint8_t    conf_id;
+    uint8_t    cid_len;
+    uint8_t    cid_buf[XQC_MAX_CID_LEN];
+} xqc_quic_lb_ctx_t;
+
+
 typedef struct user_stream_s {
     xqc_stream_t       *stream;
     xqc_h3_request_t   *h3_request;
@@ -42,20 +52,21 @@ typedef struct user_stream_s {
 } user_stream_t;
 
 typedef struct user_conn_s {
-    struct event       *ev_timeout;
+    struct event        *ev_timeout;
     struct sockaddr_in6  peer_addr;
-    socklen_t           peer_addrlen;
-    xqc_cid_t           cid;
+    socklen_t            peer_addrlen;
+    xqc_cid_t            cid;
 } user_conn_t;
 
 typedef struct xqc_server_ctx_s {
     int fd;
     xqc_engine_t        *engine;
     struct sockaddr_in6  local_addr;
-    socklen_t           local_addrlen;
+    socklen_t            local_addrlen;
     struct event        *ev_socket;
     struct event        *ev_engine;
-    int                 log_fd;
+    int                  log_fd;
+    xqc_quic_lb_ctx_t    quic_lb_ctx;
 } xqc_server_ctx_t;
 
 xqc_server_ctx_t ctx;
@@ -69,17 +80,15 @@ int g_spec_url;
 int g_test_case;
 int g_ipv6;
 int g_batch=0;
-int sid_len;
-int cid_len = XQC_MAX_CID_LEN;
 char g_write_file[256];
 char g_read_file[256];
 char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[256];
-char sid[XQC_MAX_CID_LEN];
+char g_sid[XQC_MAX_CID_LEN];
+size_t g_sid_len = 0;
 static uint64_t last_snd_ts;
-xqc_quic_lb_ctx_t quic_lb_ctx;
 
 static inline uint64_t now()
 {
@@ -826,34 +835,34 @@ xqc_server_engine_callback(int fd, short what, void *arg)
     xqc_engine_main_logic(ctx->engine);
 }
 
-static int
-xqc_server_cid_generate_pt(xqc_engine_t *engine, xqc_cid_t *cid)
+static ssize_t
+xqc_server_cid_generate(uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data)
 {
-    int                  cid_buf_index = 0, i;
-    int                  sid_len;
+    ssize_t              cid_buf_index = 0, i;
+    ssize_t              cid_len, sid_len;
     xqc_quic_lb_ctx_t   *quic_lb_ctx;
 
-    quic_lb_ctx = xqc_engine_get_quic_lb_ctx(engine);
+    quic_lb_ctx = &(ctx.quic_lb_ctx);
 
-    cid->cid_len = quic_lb_ctx->cid_len;
+    cid_len = quic_lb_ctx->cid_len;
     sid_len = quic_lb_ctx->sid_len;
 
-    if (sid_len < 0 || sid_len > cid->cid_len) {
+    if (sid_len < 0 || sid_len > cid_len || cid_len > cid_buflen) {
         return XQC_ERROR;
     }
 
-    cid->cid_buf[cid_buf_index] = quic_lb_ctx->conf_id;
+    cid_buf[cid_buf_index] = quic_lb_ctx->conf_id;
     cid_buf_index += 1;
 
-    memcpy(cid->cid_buf + cid_buf_index, quic_lb_ctx->sid_buf, sid_len);
+    memcpy(cid_buf + cid_buf_index, quic_lb_ctx->sid_buf, sid_len);
     cid_buf_index += sid_len;
 
-    for (i = cid_buf_index; i < cid->cid_len; i++) {
-        cid->cid_buf[i] = (uint8_t)rand();
+    for (i = cid_buf_index; i < cid_len; i++) {
+        cid_buf[i] = (uint8_t)rand();
     }
 
     /* xqc_log(engine->log, XQC_LOG_DEBUG, "|cid:%s|cid_len:%ud|", xqc_scid_str(cid), cid->cid_len); */
-    return XQC_OK;
+    return cid_len;
 }
 
 
@@ -1036,8 +1045,8 @@ int main(int argc, char *argv[]) {
                 break;
             case 'S': /* set server sid */
                 printf("set server sid \n");
-                snprintf(sid, sizeof(sid), optarg);
-                sid_len = strlen(sid);
+                snprintf(g_sid, sizeof(g_sid), optarg);
+                g_sid_len = strlen(g_sid);
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -1106,7 +1115,7 @@ int main(int argc, char *argv[]) {
                     .xqc_close_log_file = xqc_server_close_log_file,
                     .xqc_write_log_file = xqc_server_write_log_file,
             },
-            .cid_gen_cb = xqc_server_cid_generate_pt,
+            .cid_generate_cb = xqc_server_cid_generate,
     };
 
     if (g_batch) {
@@ -1173,14 +1182,14 @@ int main(int argc, char *argv[]) {
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
     /* test server cid negotiate */
-    if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6) {
+    if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6 || g_sid_len != 0) {
         xqc_config_t config;
         if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
             return -1;
         }
 
         config.cid_negotiate = 1;
-        config.cid_len = cid_len;
+        config.cid_len = XQC_MAX_CID_LEN;
 
         if (xqc_set_engine_config(&config, XQC_ENGINE_SERVER) < 0) {
             printf("set engine config error\n");
@@ -1199,12 +1208,12 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    memcpy(quic_lb_ctx.sid_buf, sid, sid_len);
-    quic_lb_ctx.sid_len = sid_len;
-    quic_lb_ctx.conf_id = 0;
-    quic_lb_ctx.cid_len = cid_len;
+    /* for lb cid generate */
+    memcpy(ctx.quic_lb_ctx.sid_buf, g_sid, g_sid_len);
+    ctx.quic_lb_ctx.sid_len = g_sid_len;
+    ctx.quic_lb_ctx.conf_id = 0;
+    ctx.quic_lb_ctx.cid_len = XQC_MAX_CID_LEN;
 
-    xqc_engine_set_quic_lb_ctx(ctx.engine, &quic_lb_ctx);
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, server_port);
     if (ctx.fd < 0) {
