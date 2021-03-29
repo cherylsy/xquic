@@ -712,7 +712,7 @@ fi
 
 clear_log
 echo -e "large ack range with 30% loss ...\c"
-result=`./test_client -s 2048000 -l e -t 2 -E -d 300|grep ">>>>>>>> pass"`
+result=`./test_client -s 2048000 -l e -t 3 -E -d 300|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
