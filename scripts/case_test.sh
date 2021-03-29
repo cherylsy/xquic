@@ -350,6 +350,11 @@ echo -e "Cubic (Kernel) without pacing ...\c"
 grep_err_log
 
 clear_log
+echo -e "spurious loss detect on ...\c"
+./test_client -s 10240000 -l e -t 3 -E -x 26|grep ">>>>>>>> pass"
+grep_err_log
+
+clear_log
 echo -e "stream level flow control ...\c"
 ./test_client -s 10240000 -l e -t 4 -E|grep ">>>>>>>> pass"
 grep_err_log

@@ -48,6 +48,9 @@ function do_compile() {
 
     #turn on Code Coverage
     cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug -DXQC_ENABLE_TESTING=1 -DXQC_PRINT_SECRET=1 ..
+
+    cmake -DXQC_ENABLE_BBR2=1 -DXQC_DISABLE_RENO=0 ..
+
     #make clean
     make -j
 

@@ -1508,6 +1508,7 @@ xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid)
     conn_stats.lost_count = ctl->ctl_lost_count;
     conn_stats.send_count = ctl->ctl_send_count;
     conn_stats.tlp_count = ctl->ctl_tlp_count;
+    conn_stats.spurious_loss_count = ctl->ctl_spurious_loss_count;
     conn_stats.recv_count = ctl->ctl_recv_count;
     conn_stats.srtt = ctl->ctl_srtt;
     conn_stats.conn_err = (int)conn->conn_err;
@@ -1522,6 +1523,7 @@ xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid)
     xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_APP_DATA], conn_stats.ack_info, sizeof(conn_stats.ack_info));
 
     conn_stats.enable_multipath = (conn->local_settings.enable_multipath && conn->remote_settings.enable_multipath);
+    conn_stats.spurious_loss_detect_on = conn->conn_settings.spurious_loss_detect_on;
 
     return conn_stats;
 }

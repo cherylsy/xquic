@@ -366,10 +366,12 @@ typedef struct xqc_conn_stats_s {
     uint32_t    send_count;
     uint32_t    lost_count;
     uint32_t    tlp_count;
+    uint32_t    spurious_loss_count;
     xqc_msec_t  srtt;
     xqc_0rtt_flag_t    early_data_flag;
     uint32_t    recv_count;
     int         enable_multipath;
+    int         spurious_loss_detect_on;
     int         conn_err;
     char        ack_info[50];
 } xqc_conn_stats_t;

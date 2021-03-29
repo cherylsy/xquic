@@ -1164,7 +1164,7 @@ int main(int argc, char *argv[]) {
         .cong_ctrl_callback = cong_ctrl,
         .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
         .enable_multipath = 0,
-        .spurious_loss_detect_on = 1,
+        .spurious_loss_detect_on = 0,
     };
 
     if (g_test_case == 6) {
