@@ -214,7 +214,7 @@ typedef struct xqc_congestion_control_callback_s {
     void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
-    
+
     xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;
 } xqc_cong_ctrl_callback_t;
 
@@ -798,6 +798,7 @@ int xqc_conn_continue_send(xqc_engine_t *engine,
 XQC_EXPORT_PUBLIC_API
 xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
                                     xqc_cid_t *cid);
+
 #ifdef __cplusplus
 }
 #endif

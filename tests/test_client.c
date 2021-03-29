@@ -431,7 +431,7 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *
         };
         xqc_h3_conn_set_settings(conn, settings);
     }
-        
+
     printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(conn));
     return 0;
 }
@@ -677,7 +677,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     char content_len[10];
     if (g_is_get) {
         snprintf(content_len, sizeof(content_len), "%d", 0);
-        
+
     } else {
         snprintf(content_len, sizeof(content_len), "%d", g_send_body_size);
     }
@@ -1323,7 +1323,7 @@ int main(int argc, char *argv[]) {
                 c_cong_ctl = optarg[0];
                 if (strncmp("bbr2", optarg, 4) == 0)
                     c_cong_ctl = 'B';
-                if (strncmp("bbr2+", optarg, 5) == 0 
+                if (strncmp("bbr2+", optarg, 5) == 0
                     || strncmp("bbr+", optarg, 4) == 0)
                     c_cong_plus = 1;
                 printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
