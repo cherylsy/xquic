@@ -681,16 +681,16 @@ else
 fi
 
 clear_log
-echo -e "10% loss ...\c"
 result=`./test_client -s 10240000 -t 1 -l e -E -d 100|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
-echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "10_percent_loss" "pass"
 else
     case_print_result "10_percent_loss" "fail"
     echo "$errlog"
 fi
+echo -e "10% loss ...\c"
+echo "$result"
 
 
 killall test_server 2> /dev/null
@@ -711,16 +711,16 @@ fi
 
 
 clear_log
-echo -e "large ack range with 30% loss ...\c"
 result=`./test_client -s 2048000 -l e -t 3 -E -d 300|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
-echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "large_ack_range_with_30_percent_loss" "pass"
 else
     case_print_result "large_ack_range_with_30_percent_loss" "fail"
     echo "$errlog"
 fi
+echo -e "large ack range with 30% loss ...\c"
+echo "$result"
 
 
 clear_log
