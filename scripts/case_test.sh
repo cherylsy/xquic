@@ -646,7 +646,7 @@ grep_err_log
 
 clear_log
 echo -e "stream concurrency flow control ...\c"
-./test_client -s 1 -l e -t 5 -E -P 1025 -G >> clog
+./test_client -s 1 -l e -t 6 -E -P 1025 -G >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 1024 ]]; then
     echo ">>>>>>>> pass:1"
     case_print_result "stream_concurrency_flow_control" "pass"
