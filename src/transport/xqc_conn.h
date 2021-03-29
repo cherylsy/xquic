@@ -27,30 +27,31 @@
  */
 #define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
 
-#define XQC_MAX_UDP_PAYLOAD_SIZE 65527 //quic protocol define
+#define XQC_MAX_UDP_PAYLOAD_SIZE 65527 /* quic protocol define */
 
 #define XQC_STATELESS_RESET_TOKENLEN 16
 #define XQC_MAX_TOKEN_LEN 32
 
-#define XQC_TOKEN_EXPIRE_DELTA (7*24*60*60)   //N秒后过期
-#define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) //提前更新
+#define XQC_TOKEN_EXPIRE_DELTA (7*24*60*60) /* expire in N seconds */
+#define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */
 
-#define XQC_MAX_PACKET_PROCESS_BATCH 100 //xqc_engine_packet_process最多积累个数
+#define XQC_MAX_PACKET_PROCESS_BATCH 100 /* maximum accumulated number of xqc_engine_packet_process */
 
 #define XQC_MAX_RECV_WINDOW (16*1024*1024)
 
-#define XQC_MAX_STREAMS ((uint64_t)1 << 60) // 传输参数中的max_streams或者MAX_STREAMS帧中的数值必须小于等于2^60
+/* the max_streams transmission parameter or the value received in the MAX_STREAMS frame must <= 2^60 */
+#define XQC_MAX_STREAMS ((uint64_t)1 << 60)
 
 static const uint32_t MAX_RSP_CONN_CLOSE_CNT = 3;
 
-/* 调试时候用，会删掉 */
+/* for debugging, will be deleted later */
 #ifdef DEBUG_PRINT
 #define XQC_DEBUG_PRINT printf("%s:%d (%s)\n", __FILE__, __LINE__, __FUNCTION__);
 #else
 #define XQC_DEBUG_PRINT
 #endif
 
-/* Send CONNECTION_CLOSE with err */
+/* send CONNECTION_CLOSE with err */
 #define XQC_CONN_ERR(conn, err) do {            \
     if ((conn)->conn_err == 0) {                \
         (conn)->conn_err = (err);               \
@@ -61,7 +62,7 @@ static const uint32_t MAX_RSP_CONN_CLOSE_CNT = 3;
 
 extern xqc_conn_settings_t default_conn_settings;
 
-/* 添加state请更新conn_state_2_str */
+/* !!WARNING: to add state, please update conn_state_2_str */
 typedef enum {
     /* server */
     XQC_CONN_STATE_SERVER_INIT = 0,
@@ -94,7 +95,7 @@ typedef enum {
 
 #define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_ERROR)
 
-/* !!WARNING: 添加flag请更新conn_flag_2_str */
+/* !!WARNING: to add flag, please update conn_flag_2_str */
 typedef enum {
     XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_COMPLETED_SHIFT,
@@ -172,7 +173,6 @@ typedef struct {
 #define XQC_PREFERRED_ADDR_IPV6_PORT_LEN    2
 
 
-
 /* For Handshake */
 typedef struct {
     xqc_preferred_addr_t    preferred_address;
@@ -206,7 +206,6 @@ typedef struct {
 } xqc_transport_params_t;
 
 #define XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT 8
-
 
 
 typedef struct {
@@ -266,10 +265,11 @@ struct xqc_connection_s{
     xqc_engine_t           *engine;
 
     xqc_proto_version_t     version;
-    uint32_t                discard_vn_flag; /*当客户端收到来自服务器的非VN包或者收到VN包并处理后，设置该标志*/
+    /* set when client receives a non-VN package from server or receives a VN package and processes it */
+    uint32_t                discard_vn_flag;
 
-    xqc_cid_t               dcid; /* 对端cid */
-    xqc_cid_t               scid; /* 本地cid */
+    xqc_cid_t               dcid; /* peer connection id */
+    xqc_cid_t               scid; /* local connection id */
     xqc_cid_t               ocid; /* original connection id */
     unsigned char           dcid_str[XQC_MAX_CID_LEN * 2 + 1];
     unsigned char           scid_str[XQC_MAX_CID_LEN * 2 + 1];
@@ -327,11 +327,11 @@ struct xqc_connection_s{
     xqc_msec_t              last_ticked_time;
     xqc_msec_t              next_tick_time;
     xqc_msec_t              conn_create_time;
-    xqc_msec_t              handshake_complete_time;//记录握手结束的时间
-    xqc_msec_t              first_data_send_time; //记录双向流第一次发送数据的时间
+    xqc_msec_t              handshake_complete_time; /* record the time when the handshake ends */
+    xqc_msec_t              first_data_send_time;    /* record the time when the bidirectional stream first sent data */
 
-    SSL                     *xc_ssl;   /*ssl for connection*/
-    xqc_tlsref_t            tlsref;   //all tls reference
+    SSL                     *xc_ssl; /* ssl for connection */
+    xqc_tlsref_t            tlsref;  /* all tls reference */
 
     xqc_conn_flow_ctl_t     conn_flow_ctl;
 
@@ -345,92 +345,120 @@ struct xqc_connection_s{
 #endif
 };
 
-const char* xqc_conn_flag_2_str (xqc_conn_flag_t conn_flag);
+const char*
+xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);
 
-const char* xqc_conn_state_2_str(xqc_conn_state_t state);
+const char*
+xqc_conn_state_2_str(xqc_conn_state_t state);
 
-void xqc_conn_init_trans_param(xqc_connection_t *conn);
+void
+xqc_conn_init_trans_param(xqc_connection_t *conn);
 
-void xqc_conn_init_flow_ctl(xqc_connection_t *conn);
-
-xqc_connection_t *xqc_conn_create(xqc_engine_t *engine,
-                                  xqc_cid_t *dcid, xqc_cid_t *scid,
-                                  xqc_conn_callbacks_t *callbacks,
-                                  xqc_conn_settings_t *settings,
-                                  void *user_data,
-                                  xqc_conn_type_t type);
+void
+xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
 xqc_connection_t *
-xqc_conn_server_create(xqc_engine_t *engine,
-                       const struct sockaddr *local_addr,
-                       socklen_t local_addrlen,
-                       const struct sockaddr *peer_addr,
-                       socklen_t peer_addrlen,
-                       xqc_cid_t *dcid, xqc_cid_t *scid,
-                       xqc_conn_callbacks_t *callbacks,
-                       xqc_conn_settings_t *settings,
-                       void *user_data);
+xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_callbacks_t *callbacks,
+    xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type);
 
-void xqc_conn_server_on_alpn(xqc_connection_t *conn);
+xqc_connection_t *
+xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, socklen_t local_addrlen,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_cid_t *dcid, xqc_cid_t *scid,
+    xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data);
 
-void xqc_conn_destroy(xqc_connection_t *xc);
+void
+xqc_conn_destroy(xqc_connection_t *xc);
 
-void xqc_conn_send_packets (xqc_connection_t *conn);
-void xqc_conn_send_packets_batch(xqc_connection_t *conn);
+void
+xqc_conn_server_on_alpn(xqc_connection_t *conn);
 
-ssize_t xqc_conn_send_one_packet (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
-int xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
-    char *enc_pkt, size_t * enc_pkt_len, xqc_msec_t current_time);
+ssize_t
+xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
-void xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
-void xqc_conn_transmit_pto_probe_packets_batch(xqc_connection_t *conn);
+void
+xqc_conn_send_packets(xqc_connection_t *conn);
 
-void xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
-void xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn);
+void
+xqc_conn_send_packets_batch(xqc_connection_t *conn);
 
-void xqc_conn_send_probe_packets(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
+                    char *enc_pkt, size_t * enc_pkt_len, xqc_msec_t current_time);
 
-int xqc_conn_check_handshake_completed(xqc_connection_t *conn);
+void
+xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
 
-int xqc_conn_immediate_close(xqc_connection_t *conn);
+void
+xqc_conn_transmit_pto_probe_packets_batch(xqc_connection_t *conn);
 
-int xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
-                        const struct sockaddr *peer_addr,
-                        socklen_t peer_addrlen);
+void
+xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
 
-int xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
+void
+xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn);
 
-int xqc_conn_version_check(xqc_connection_t *c, uint32_t version);
+void
+xqc_conn_send_probe_packets(xqc_connection_t *conn);
 
-int xqc_conn_send_version_negotiation(xqc_connection_t *c);
+xqc_int_t
+xqc_conn_check_handshake_completed(xqc_connection_t *conn);
 
-int xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
+xqc_int_t
+xqc_conn_immediate_close(xqc_connection_t *conn);
 
-void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
+xqc_int_t
+xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
+                    const struct sockaddr *peer_addr, socklen_t peer_addrlen);
 
-int xqc_conn_early_data_reject(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
 
-int xqc_conn_early_data_accept(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_version_check(xqc_connection_t *c, uint32_t version);
 
-int xqc_conn_handshake_complete(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_send_version_negotiation(xqc_connection_t *c);
 
-int xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
+xqc_int_t
+xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
 
-int xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
+void
+xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
 
-void xqc_conn_buff_1rtt_packets(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_early_data_reject(xqc_connection_t *conn);
 
-void xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_early_data_accept(xqc_connection_t *conn);
 
-xqc_msec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_handshake_complete(xqc_connection_t *conn);
 
-char *xqc_conn_local_addr_str(const struct sockaddr *local_addr,
-                              socklen_t local_addrlen);
+xqc_int_t
+xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
-char *xqc_conn_peer_addr_str(const struct sockaddr *peer_addr,
-                             socklen_t peer_addrlen);
+xqc_int_t
+xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
 
-char *xqc_conn_addr_str(xqc_connection_t *conn);
+void
+xqc_conn_buff_1rtt_packets(xqc_connection_t *conn);
+
+void
+xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn);
+
+xqc_msec_t
+xqc_conn_next_wakeup_time(xqc_connection_t *conn);
+
+char *
+xqc_conn_local_addr_str(const struct sockaddr *local_addr,
+                        socklen_t local_addrlen);
+
+char *
+xqc_conn_peer_addr_str(const struct sockaddr *peer_addr,
+                       socklen_t peer_addrlen);
+
+char *
+xqc_conn_addr_str(xqc_connection_t *conn);
 
 static inline void
 xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
@@ -446,7 +474,7 @@ xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
     }
 }
 
-static inline int
+static inline xqc_int_t
 xqc_conn_has_undecrypt_packets(xqc_connection_t *conn)
 {
     return conn->undecrypt_count[XQC_ENC_LEV_1RTT] ||
@@ -454,10 +482,9 @@ xqc_conn_has_undecrypt_packets(xqc_connection_t *conn)
             conn->undecrypt_count[XQC_ENC_LEV_HSK];
 }
 
-static inline int
+static inline xqc_int_t
 xqc_conn_should_ack(xqc_connection_t *conn)
 {
-    //xqc_log(conn->log, XQC_LOG_DEBUG, "|should_generate_ack|flag:%s|", xqc_conn_flag_2_str(conn->conn_flag));
     if (conn->conn_flag & XQC_CONN_FLAG_SHOULD_ACK) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|should_generate_ack yes|flag:%s|",
                 xqc_conn_flag_2_str(conn->conn_flag));
@@ -466,9 +493,7 @@ xqc_conn_should_ack(xqc_connection_t *conn)
     return 0;
 }
 
-/**
- * process an UDP datagram
- */
+/* process an UDP datagram */
 xqc_int_t
 xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
                         size_t packet_in_size, xqc_msec_t recv_time);
