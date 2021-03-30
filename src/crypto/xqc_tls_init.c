@@ -181,19 +181,6 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
         return XQC_ERROR;
     }
 
-    if (strlen(sc->alpn) == strlen(XQC_ALPN_HTTP3)
-        && memcmp(sc->alpn, XQC_ALPN_HTTP3, strlen(XQC_ALPN_HTTP3)) == 0) {
-        tlsref->alpn_num = XQC_ALPN_HTTP3_NUM;
-
-    } else if (strlen(sc->alpn) == strlen(XQC_ALPN_TRANSPORT)
-               && memcmp(sc->alpn, XQC_ALPN_TRANSPORT, strlen(XQC_ALPN_TRANSPORT)) == 0) {
-        tlsref->alpn_num = XQC_ALPN_TRANSPORT_NUM;
-
-    } else {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|alpn protocol invalid |");
-        return XQC_ERROR;
-    }
-
     conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc);// connection ssl config, early data flag should initial before call xqc_create_client_ssl
     if (conn->xc_ssl == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_client_ssl error |");
@@ -454,7 +441,6 @@ xqc_create_server_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_conf
 
     long ssl_opts = (SSL_OP_ALL & ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS)
         | SSL_OP_SINGLE_ECDH_USE
-        | SSL_OP_CIPHER_SERVER_PREFERENCE
     #ifdef SSL_OP_NO_ANTI_REPLAY
         | SSL_OP_NO_ANTI_REPLAY
     #endif
