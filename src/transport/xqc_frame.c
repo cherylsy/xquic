@@ -442,9 +442,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     /* token校验失败也要回ack */
     packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
 
-    /*  check token
-     *  initial+ack时不校验token，因此在解crypto时校验
-     * */
+    /* check token, only validate token with Initial/CRYPTO packet, but not with Initial/ACK */
     if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
         && conn->conn_type == XQC_CONN_TYPE_SERVER
         && packet_in->pi_pkt.pkt_type == XQC_PTYPE_INIT)
@@ -456,16 +454,6 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             xqc_log(conn->log, XQC_LOG_INFO, "|check_token fail|conn:%p|%s|", conn, xqc_conn_addr_str(conn));
         }
     }
-
-#if 0
-    if (conn->conn_state >= XQC_CONN_STATE_ESTABED) {
-        xqc_log(conn->log, XQC_LOG_ERROR,
-                "|xqc_process_crypto_frame|recvd crypto after conn estabed|");
-        packet_in->pos = packet_in->last;
-        packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
-        return XQC_OK;
-    }
-#endif
 
     xqc_stream_frame_t *stream_frame = xqc_calloc(1, sizeof(xqc_stream_frame_t));
     ret = xqc_parse_crypto_frame(packet_in, conn, stream_frame);

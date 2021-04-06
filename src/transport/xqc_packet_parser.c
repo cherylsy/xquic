@@ -1001,6 +1001,13 @@ Version Negotiation Packet {
 xqc_int_t
 xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
+    /* check original DCID */
+    if (xqc_cid_is_equal(&c->ocid, &packet_in->pi_pkt.pkt_scid) != XQC_OK) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|version negotiation pkt SCID error|ocid:%s|scid:%s|", 
+                xqc_dcid_str(&c->ocid), xqc_scid_str(&packet_in->pi_pkt.pkt_scid));
+        return -XQC_EILLPKT;
+    }
+
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|version negotiation|");
     unsigned char *pos = packet_in->pos;
     unsigned char *end = packet_in->last;
@@ -1204,34 +1211,34 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     /* don't update packet_in->pos = pos here, need prefix inside */
     switch (type)
     {
-        case XQC_PTYPE_INIT:
-            if ((c->conn_type == XQC_CONN_TYPE_SERVER) 
-                && (c->conn_state == XQC_CONN_STATE_SERVER_INIT)
-                && ((c->tlsref.flags & XQC_CONN_FLAG_RETRY_SENT) == 0))
-            {
-                ret = c->tlsref.callbacks.recv_client_initial(c, dcid, NULL);
-                if(ret < 0){
-                    return ret;
-                }
+    case XQC_PTYPE_INIT:
+        if ((c->conn_type == XQC_CONN_TYPE_SERVER) 
+            && (c->conn_state == XQC_CONN_STATE_SERVER_INIT)
+            && ((c->tlsref.flags & XQC_CONN_FLAG_RETRY_SENT) == 0))
+        {
+            ret = c->tlsref.callbacks.recv_client_initial(c, dcid, NULL);
+            if(ret < 0){
+                return ret;
             }
-            ret = xqc_packet_parse_initial(c, packet_in);
-            break;
-        case XQC_PTYPE_0RTT:
-            ret = xqc_packet_parse_zero_rtt(c, packet_in);
-            break;
-        case XQC_PTYPE_HSK:
-            ret = xqc_packet_parse_handshake(c, packet_in);
-            break;
-        case XQC_PTYPE_RETRY:
-            ret = xqc_packet_parse_retry(c, packet_in);
-            break;
-        case XQC_PTYPE_VERSION_NEGOTIATION:
-            ret = xqc_packet_parse_version_negotiation(c, packet_in);
-            break;
-        default:
-            xqc_log(c->log, XQC_LOG_ERROR, "|invalid packet type|%ui|", type);
-            ret = -XQC_EILLPKT;
-            break;
+        }
+        ret = xqc_packet_parse_initial(c, packet_in);
+        break;
+    case XQC_PTYPE_0RTT:
+        ret = xqc_packet_parse_zero_rtt(c, packet_in);
+        break;
+    case XQC_PTYPE_HSK:
+        ret = xqc_packet_parse_handshake(c, packet_in);
+        break;
+    case XQC_PTYPE_RETRY:
+        ret = xqc_packet_parse_retry(c, packet_in);
+        break;
+    case XQC_PTYPE_VERSION_NEGOTIATION:
+        ret = xqc_packet_parse_version_negotiation(c, packet_in);
+        break;
+    default:
+        xqc_log(c->log, XQC_LOG_ERROR, "|invalid packet type|%ui|", type);
+        ret = -XQC_EILLPKT;
+        break;
     }
 
     if (ret == XQC_OK && c->conn_type == XQC_CONN_TYPE_CLIENT) {

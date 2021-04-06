@@ -298,8 +298,7 @@ xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     /* anti-amplifier attack limit */
     if (conn->conn_type == XQC_CONN_TYPE_SERVER
-        && !(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
-        && !(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED))
+        && !(conn->conn_flag & XQC_CONN_FLAG_ADDR_VALIDATED))
     {
         xqc_check_svr_anti_amplification_limit(conn);
         if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
