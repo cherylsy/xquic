@@ -1070,7 +1070,7 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     packet_out->po_used_size = ret;
 
     /* copy frame directly */
-    memcpy(packet_out->po_buf + ret, ori_payload, ori_payload_len);
+    memmove(packet_out->po_buf + ret, ori_payload, ori_payload_len);
     packet_out->po_payload = packet_out->po_buf + ret;
     packet_out->po_used_size += ori_payload_len;
 
