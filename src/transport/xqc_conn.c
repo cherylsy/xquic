@@ -2189,7 +2189,7 @@ xqc_conn_on_pkt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
     }
 
     /* validate peer's address */
-    if (c->conn_flag & XQC_CONN_FLAG_ADDR_VALIDATED) {
+    if (!(c->conn_flag & XQC_CONN_FLAG_ADDR_VALIDATED)) {
         xqc_conn_validate_address(c, pi);
     }
 
