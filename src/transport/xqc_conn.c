@@ -80,6 +80,7 @@ static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
     [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
     [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
     [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
+    [XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT]        = "ADDR_VALIDATED",
 };
 
 unsigned char g_conn_flag_buf[256];
@@ -1983,7 +1984,7 @@ xqc_conn_record_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     if (!xqc_has_packet_number(&packet_in->pi_pkt)) {
         return;
     }
-    
+
     xqc_pkt_range_status range_status;
     int out_of_order = 0;
     xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
@@ -2100,8 +2101,8 @@ void
 xqc_conn_addr_validated(xqc_connection_t *c, xqc_pkt_type_t t, xqc_conn_addr_validation_t v)
 {
     c->conn_flag |= XQC_CONN_FLAG_ADDR_VALIDATED;
-    xqc_log(c->log, XQC_LOG_INFO, "|role:%d|validation:%s|pkt:%s|",
-            c->conn_type, xqc_pkt_type_2_str(t), xqc_validation_2_str(v));
+    xqc_log(c->log, XQC_LOG_INFO, "|conn:%p|role:%d|validation:%s|pkt:%s|",
+            c, c->conn_type, xqc_pkt_type_2_str(t), xqc_validation_2_str(v));
 }
 
 void
@@ -2359,7 +2360,7 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
 {
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
         && conn->conn_state == XQC_CONN_STATE_ESTABED
-        && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) 
+        && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX)
     {
         xqc_tls_free_msg_cb_buffer(conn);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
