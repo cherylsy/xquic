@@ -84,11 +84,17 @@ typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, xqc_cid_t *c
 
 typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
 
-/*
- * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
- * Return bytes sent.
+/**
+ * write socket
+ * @param conn_user_data user_data of connection
+ * @param buf  packet buffer
+ * @param size  packet size
+ * @param peer_addr  peer address
+ * @param peer_addrlen  peer address length
+ * @return bytes of data which is successfully sent to socket:
  * XQC_SOCKET_ERROR for error, xquic will destroy the connection
  * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket write event is ready
+ * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
  */
 typedef ssize_t (*xqc_socket_write_pt)(void *conn_user_data, unsigned char *buf, size_t size,
                                        const struct sockaddr *peer_addr,
@@ -96,6 +102,25 @@ typedef ssize_t (*xqc_socket_write_pt)(void *conn_user_data, unsigned char *buf,
 typedef ssize_t (*xqc_send_mmsg_pt)(void *conn_user_data, struct iovec *msg_iov, unsigned int vlen,
                                         const struct sockaddr *peer_addr,
                                         socklen_t peer_addrlen);
+
+/**
+ * for multi-path write socket
+ * @param path_id  path identifier
+ * @param conn_user_data user_data of connection
+ * @param buf  packet buffer
+ * @param size  packet size
+ * @param peer_addr  peer address
+ * @param peer_addrlen  peer address length
+ * @return bytes of data which is successfully sent to socket:
+ * XQC_SOCKET_ERROR for error, xquic will destroy the connection
+ * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket write event is ready
+ * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
+ */
+typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id, void *conn_user_data, 
+    unsigned char *buf, size_t size, const struct sockaddr *peer_addr, socklen_t peer_addrlen);
+typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id, void *conn_user_data, 
+    struct iovec *msg_iov, unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen);
+
 
 
 /* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */
