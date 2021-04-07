@@ -711,7 +711,7 @@ fi
 
 
 clear_log
-result=`./test_client -s 2048000 -l e -t 3 -E -d 300|grep ">>>>>>>> pass"`
+result=`./test_client -s 2048000 -l e -t 7 -E -d 300|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "large_ack_range_with_30_percent_loss" "pass"
