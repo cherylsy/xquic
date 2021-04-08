@@ -80,6 +80,7 @@ static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
     [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
     [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
     [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
+    [XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT]        = "ADDR_VALIDATED",
 };
 
 unsigned char g_conn_flag_buf[256];
@@ -1069,7 +1070,7 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     packet_out->po_used_size = ret;
 
     /* copy frame directly */
-    memcpy(packet_out->po_buf + ret, ori_payload, ori_payload_len);
+    memmove(packet_out->po_buf + ret, ori_payload, ori_payload_len);
     packet_out->po_payload = packet_out->po_buf + ret;
     packet_out->po_used_size += ori_payload_len;
 
@@ -1677,6 +1678,7 @@ xqc_conn_early_data_accept(xqc_connection_t *conn)
     return XQC_OK;
 }
 
+
 xqc_int_t
 xqc_conn_handshake_confirmed(xqc_connection_t *conn)
 {
@@ -1723,7 +1725,7 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
             return ret;
         }
 
-        /* if server received a invalid token, send a new one */
+        /* if client sent no token or sent an invalid token, server sends a NEW_TOKEN frame */
         if (!(conn->conn_flag & XQC_CONN_FLAG_TOKEN_OK)
             || conn->conn_flag & XQC_CONN_FLAG_UPDATE_NEW_TOKEN)
         {
@@ -1979,6 +1981,10 @@ xqc_conn_addr_str(xqc_connection_t *conn)
 void
 xqc_conn_record_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
+    if (!xqc_has_packet_number(&packet_in->pi_pkt)) {
+        return;
+    }
+
     xqc_pkt_range_status range_status;
     int out_of_order = 0;
     xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
@@ -2032,6 +2038,87 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
 }
 
 
+/**
+ * client will validate server's addr by sucessfully :
+ * 1) sucessful processing of Initial packet.
+ * 2) sucessful processing of VN/Retry packet with the DCID client chose
+ * 3) server uses the CID which client provided in Initial packet with at least 8 bytes
+ *
+ * server will validate client's addr by:
+ * 1) sucessful processing of Handshake packet.
+ * 2) client's Initial/Handshake packet uses server's CID with at least 8 bytes
+ * 3) client's Initial token is what server provided in NEW_TOKEN/Retry frame
+ */
+void
+xqc_conn_addr_validated(xqc_connection_t *c)
+{
+    c->conn_flag |= XQC_CONN_FLAG_ADDR_VALIDATED;
+    xqc_log(c->log, XQC_LOG_INFO, "|Address Validated|conn:%p|role:%d|", c, c->conn_type);
+}
+
+
+void
+xqc_conn_server_validate_address(xqc_connection_t *c, xqc_packet_in_t *pi)
+{
+    switch (pi->pi_pkt.pkt_type) {
+    case XQC_PTYPE_INIT:
+        if (XQC_CONN_FLAG_TOKEN_OK & c->conn_flag) {
+            /* NEW_TOKEN or Retry token is valid */
+            xqc_conn_addr_validated(c);
+
+        } else {
+            /**
+             * when server close its own CID, and server reached its anti-amplification limit,
+             * client MAY send an Initial packet with PING/PADDING on PTO with server's CID
+             */
+            if (c->scid.cid_len >= XQC_CONN_ADDR_VALIDATION_CID_ENTROPY
+                && xqc_cid_is_equal(&c->scid, &c->ocid) != XQC_OK
+                && xqc_cid_is_equal(&c->scid, &pi->pi_pkt.pkt_dcid) == XQC_OK)
+            {
+                xqc_conn_addr_validated(c);
+            }
+        }
+        break;
+
+    case XQC_PTYPE_HSK:
+        /* sucessful processing of Handshake packet */
+        xqc_conn_addr_validated(c);
+        break;
+
+    default:
+        break;
+    }
+}
+
+
+void
+xqc_conn_client_validate_address(xqc_connection_t *c, xqc_packet_in_t *pi)
+{
+    switch (pi->pi_pkt.pkt_type) {
+    case XQC_PTYPE_INIT:
+    case XQC_PTYPE_RETRY:
+    case XQC_PTYPE_VERSION_NEGOTIATION:
+        xqc_conn_addr_validated(c);
+        break;
+    
+    default:
+        break;
+    }
+}
+
+
+void
+xqc_conn_validate_address(xqc_connection_t *c, xqc_packet_in_t *pi)
+{
+    if (c->conn_type == XQC_CONN_TYPE_SERVER) {
+        xqc_conn_server_validate_address(c, pi);
+
+    } else {
+        xqc_conn_client_validate_address(c, pi);
+    }
+}
+
+
 xqc_int_t
 xqc_conn_on_initial_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
@@ -2064,12 +2151,6 @@ xqc_conn_on_hsk_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 
 
 xqc_int_t
-xqc_conn_on_retry_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
-{
-    return XQC_OK;
-}
-
-xqc_int_t
 xqc_conn_on_1rtt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
@@ -2081,6 +2162,7 @@ xqc_conn_on_1rtt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
             xqc_conn_handshake_confirmed(c);
         }
     }
+
     return XQC_OK;
 }
 
@@ -2098,10 +2180,6 @@ xqc_conn_on_pkt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
         ret = xqc_conn_on_hsk_processed(c, pi);
         break;
 
-    case XQC_PTYPE_RETRY:
-        ret = xqc_conn_on_retry_processed(c, pi);
-        break;
-
     case XQC_PTYPE_SHORT_HEADER:
         ret = xqc_conn_on_1rtt_processed(c, pi);
         break;
@@ -2110,6 +2188,12 @@ xqc_conn_on_pkt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
         break;
     }
 
+    /* validate peer's address */
+    if (!(c->conn_flag & XQC_CONN_FLAG_ADDR_VALIDATED)) {
+        xqc_conn_validate_address(c, pi);
+    }
+
+    /* record packet */
     xqc_conn_record_single(c, pi);
     if (pi->pi_frame_types & (~(XQC_FRAME_BIT_STREAM|XQC_FRAME_BIT_PADDING))) {
         c->conn_flag |= XQC_CONN_FLAG_NEED_RUN;
@@ -2198,7 +2282,7 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
 {
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
         && conn->conn_state == XQC_CONN_STATE_ESTABED
-        && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) 
+        && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX)
     {
         xqc_tls_free_msg_cb_buffer(conn);
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
