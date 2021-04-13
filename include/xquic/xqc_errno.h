@@ -94,6 +94,7 @@ typedef enum {
     XQC_EWAITING                        = 630,      // 需要等待
     XQC_EIGNORE                         = 631,      // 忽略
     XQC_EGENERATE_CID                   = 632,      // CID 生成错误
+    XQC_EANTI_AMPLIFICATION_LIMIT       = 633,      // server reached the anti-amplification limit
 
     XQC_E_MAX,
 } xqc_transport_error_t;

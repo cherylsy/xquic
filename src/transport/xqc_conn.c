@@ -76,7 +76,6 @@ static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
     [XQC_CONN_FLAG_HSK_ACKED_SHIFT]             = "HSK_ACKED",
     [XQC_CONN_FLAG_CANNOT_DESTROY_SHIFT]        = "CANNOT_DESTROY",
     [XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD_SHIFT]  = "HSK_DONE_RECVD",
-    [XQC_CONN_FLAG_ANTI_AMPLIFICATION_SHIFT]    = "ANTI_AMPLIFICATION",
     [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
     [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
     [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
@@ -614,18 +613,27 @@ xqc_check_dumplicate_acked_pkt(xqc_connection_t *conn,
 uint8_t
 xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint32_t inflight, uint32_t total_bytes)
 {
+    xqc_connection_t *conn = ctl->ctl_conn;
+
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
+        if (xqc_send_ctl_calc_anti_amplification(conn, total_bytes)) {
+            xqc_log(conn->log, XQC_LOG_INFO, 
+                    "|blocked by anti amplification limit|total_sent:%ui|3*total_recv:%ui|",
+                    ctl->ctl_bytes_send + total_bytes, 3 * ctl->ctl_bytes_recv);
+            return XQC_FALSE;
+        }
+
         /* packet with high priority first */
-        if (!xqc_send_ctl_can_send(ctl->ctl_conn, packet_out)
+        if (!xqc_send_ctl_can_send(conn, packet_out)
             || inflight + packet_out->po_used_size > ctl->ctl_cong_callback->xqc_cong_ctl_get_cwnd(ctl->ctl_cong))
         {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|blocked by congestion control|");
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|blocked by congestion control|");
             return XQC_FALSE;
         }
 
         if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
             if (!xqc_pacing_can_write(&ctl->ctl_pacing, total_bytes)) {
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
                 return XQC_FALSE;
             }
         }
@@ -784,7 +792,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn)
 }
 
 void
-xqc_conn_send_packets (xqc_connection_t *conn)
+xqc_conn_send_packets(xqc_connection_t *conn)
 {
     XQC_DEBUG_PRINT
     xqc_packet_out_t *packet_out;
@@ -1006,6 +1014,13 @@ xqc_process_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 ssize_t
 xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
+    if (xqc_send_ctl_reach_anti_amplification(conn)) {
+        xqc_log(conn->log, XQC_LOG_INFO, 
+                "|blocked by anti amplification limit|total_sent:%ui|3*total_recv:%ui|",
+                conn->conn_send_ctl->ctl_bytes_send, 3 * conn->conn_send_ctl->ctl_bytes_recv);
+        return -XQC_EANTI_AMPLIFICATION_LIMIT;
+    }
+
     if (xqc_has_packet_number(&packet_out->po_pkt)) {
         return xqc_process_packet_with_pn(conn, packet_out);
 
@@ -1227,6 +1242,12 @@ xqc_int_t
 xqc_conn_check_handshake_completed(xqc_connection_t *conn)
 {
     return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) != 0);
+}
+
+xqc_int_t
+xqc_conn_is_handshake_confirmed(xqc_connection_t *conn)
+{
+    return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED) != 0);
 }
 
 int
@@ -1709,12 +1730,6 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
     conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
 
     if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
-        /* clear the anti-amplication state once handshake completed */
-        if (conn->conn_flag & XQC_CONN_FLAG_ANTI_AMPLIFICATION) {
-            xqc_log(conn->log, XQC_LOG_INFO, "|anti-amplification at handshake done|");
-            conn->conn_flag &= ~XQC_CONN_FLAG_ANTI_AMPLIFICATION;
-        }
-
         /* the TLS handshake is considered confirmed at the server when the handshake completes */
         xqc_conn_handshake_confirmed(conn);
 
@@ -2100,7 +2115,7 @@ xqc_conn_client_validate_address(xqc_connection_t *c, xqc_packet_in_t *pi)
     case XQC_PTYPE_VERSION_NEGOTIATION:
         xqc_conn_addr_validated(c);
         break;
-    
+
     default:
         break;
     }
@@ -2297,3 +2312,4 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
     xqc_conn_check_tx_key(conn);
     return XQC_OK;
 }
+
