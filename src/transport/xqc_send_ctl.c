@@ -233,13 +233,6 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
 }
 
 
-typedef enum {
-    XQC_ANTI_AMPLIFICATION_STATE_NO_CHANGE = 0, /* remain the old state  */
-    XQC_ANTI_AMPLIFICATION_STATE_ENTER,         /* enter the anti-amplification state, no data should be sent */
-    XQC_ANTI_AMPLIFICATION_STATE_LEAVE,         /* leave the anti-amplification state, could send data again */
-} xqc_anti_amplification_state;
-
-
 /*
  * 拥塞检查
  * QUIC's congestion control is based on TCP NewReno [RFC6582].  NewReno
