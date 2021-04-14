@@ -622,12 +622,6 @@ xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint3
     xqc_connection_t *conn = ctl->ctl_conn;
 
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
-        if (xqc_send_ctl_calc_anti_amplification(conn, total_bytes)) {
-            xqc_log(conn->log, XQC_LOG_INFO, 
-                    "|blocked by anti amplification limit|total_sent:%ui|3*total_recv:%ui|",
-                    ctl->ctl_bytes_send + total_bytes, 3 * ctl->ctl_bytes_recv);
-            return XQC_FALSE;
-        }
 
         /* packet with high priority first */
         if (!xqc_send_ctl_can_send(conn, packet_out)
@@ -699,7 +693,7 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
 }
 
 ssize_t
-xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int congest, xqc_send_type_t send_type)
+xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int congest, xqc_send_type_t send_type)
 {
     ssize_t ret;
     struct iovec iov_array[XQC_MAX_SEND_MSG_ONCE];
@@ -721,6 +715,14 @@ xqc_conn_send_burst_packets(xqc_connection_t * conn, xqc_list_head_t * head, int
         if (xqc_has_packet_number(&packet_out->po_pkt)) {
             if (xqc_check_dumplicate_acked_pkt(conn, packet_out, send_type, now)) {
                 continue;
+            }
+
+            /* check the anti-amplification limit, will allow a bit larger than 3x recved */
+            if (xqc_send_ctl_check_anti_amplification(conn, total_bytes_to_send)) {
+                xqc_log(conn->log, XQC_LOG_INFO,
+                        "|blocked by anti amplification limit|total_sent:%ui|3*total_recv:%ui|",
+                        ctl->ctl_bytes_send + total_bytes_to_send, 3 * ctl->ctl_bytes_recv);
+                break;
             }
 
             /* check cc limit */
@@ -1020,7 +1022,7 @@ xqc_process_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 ssize_t
 xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    if (xqc_send_ctl_reach_anti_amplification(conn)) {
+    if (xqc_send_ctl_check_anti_amplification(conn, packet_out->po_used_size)) {
         xqc_log(conn->log, XQC_LOG_INFO, 
                 "|blocked by anti amplification limit|total_sent:%ui|3*total_recv:%ui|",
                 conn->conn_send_ctl->ctl_bytes_send, 3 * conn->conn_send_ctl->ctl_bytes_recv);

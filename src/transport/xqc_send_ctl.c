@@ -269,7 +269,7 @@ xqc_send_ctl_can_send(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     if (conn->conn_type == XQC_CONN_TYPE_SERVER
         && !(conn->conn_flag & XQC_CONN_FLAG_ADDR_VALIDATED))
     {
-        if (xqc_send_ctl_reach_anti_amplification(conn)) {
+        if (xqc_send_ctl_check_anti_amplification(conn, packet_out->po_used_size)) {
             can = 0;
         }
     }
@@ -1099,7 +1099,7 @@ xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size)
 */
 #if 0
     /* If this datagram unblocks the server, arm the PTO timer to avoid deadlock. */
-    if (xqc_send_ctl_reach_anti_amplification(ctl->ctl_conn)) {
+    if (xqc_send_ctl_check_anti_amplification(ctl->ctl_conn, 0)) {
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_set_loss_detection_timer");
         xqc_send_ctl_set_loss_detection_timer(ctl);
     }
@@ -1592,7 +1592,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 */
 #if 0
     /* if at anti-amplification limit, nothing would be sent, unset the loss detection timer */
-    if (xqc_send_ctl_reach_anti_amplification(conn)) {
+    if (xqc_send_ctl_reach_anti_amplification(conn, 0)) {
         xqc_send_ctl_timer_unset(ctl, XQC_TIMER_LOSS_DETECTION);
         return;
     }
@@ -1672,17 +1672,8 @@ xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl)
 }
 
 
-/**
- * check if conn reached anti amplification limit 
- */
-xqc_int_t
-xqc_send_ctl_reach_anti_amplification(xqc_connection_t *conn)
-{
-    return xqc_send_ctl_calc_anti_amplification(conn, 0);
-}
-
-xqc_int_t
-xqc_send_ctl_calc_anti_amplification(xqc_connection_t *conn, int byte_cnt)
+xqc_bool_t
+xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, int byte_cnt)
 {
     int limit = XQC_FALSE;
     /* anti-amplifier attack limit */

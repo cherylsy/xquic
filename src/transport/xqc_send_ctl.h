@@ -334,11 +334,8 @@ xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
 float
 xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
 
-xqc_int_t
-xqc_send_ctl_reach_anti_amplification(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_send_ctl_calc_anti_amplification(xqc_connection_t *conn, int byte_cnt);
+xqc_bool_t
+xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, int byte_cnt);
 
 
 /*

@@ -30,7 +30,6 @@ typedef enum {
     XQC_POF_TLP              = 1 << 4,
     XQC_POF_STREAM_UNACK     = 1 << 5,
     XQC_POF_RETRANSED        = 1 << 6,
-    XQC_POF_NO_PADDING       = 1 << 7,
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {

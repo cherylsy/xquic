@@ -2,14 +2,13 @@
 #include "src/transport/xqc_conn.h"
 
 
-int 
+xqc_bool_t 
 xqc_conn_get_handshake_completed(xqc_connection_t *conn) {
    return (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX) &&
         (conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED);
 }
 
-static 
-int 
+static xqc_int_t 
 xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
 {
     int rv = 0;
@@ -23,32 +22,36 @@ xqc_conn_handshake_completed_handled(xqc_connection_t *conn)
             return rv;
         }
     }
-    return 0;
+    return XQC_OK;
 }
 
-int 
+
+xqc_int_t 
 xqc_conn_handshake_completed(xqc_connection_t *conn)
 {
     conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX;
 
-    if((conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED) == 0){
+    if ((conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED) == 0) {
         conn->handshake_complete_time = xqc_now();
         return xqc_conn_handshake_completed_handled(conn);
     }
-    return 0;
+    return XQC_OK;
 }
 
 
-int xqc_conn_early_data_rejected(xqc_connection_t * conn)
+xqc_int_t
+xqc_conn_early_data_rejected(xqc_connection_t * conn)
 {
     conn->tlsref.flags |= XQC_CONN_FLAG_EARLY_DATA_REJECTED;
-    if(conn->tlsref.early_data_cb != NULL){
+    if (conn->tlsref.early_data_cb != NULL) {
         return conn->tlsref.early_data_cb(conn, 0);
     }
-    return 0;
+    return XQC_OK;
 }
 
-int xqc_conn_early_data_accepted(xqc_connection_t * conn)
+
+xqc_int_t
+xqc_conn_early_data_accepted(xqc_connection_t * conn)
 {
     conn->tlsref.flags &= ~(XQC_CONN_FLAG_EARLY_DATA_REJECTED);
     if(conn->tlsref.early_data_cb != NULL){
