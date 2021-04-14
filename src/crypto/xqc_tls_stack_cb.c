@@ -58,5 +58,5 @@ xqc_conn_early_data_accepted(xqc_connection_t * conn)
         return conn->tlsref.early_data_cb(conn, 1);
     }
 
-    return 0;
+    return XQC_OK;
 }
