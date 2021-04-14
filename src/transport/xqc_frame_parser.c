@@ -1411,31 +1411,31 @@ xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
     uint64_t frame_type = 0, path_id = 0, path_status = 0, path_status_seq = 0, path_prio = 0;
     int vlen;
 
-    vlen = xqc_vint_read(p, end, frame_type);
+    vlen = xqc_vint_read(p, end, &frame_type);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
     p += vlen;
 
-    vlen = xqc_vint_read(p, end, path_id);
+    vlen = xqc_vint_read(p, end, &path_id);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
     p += vlen;
 
-    vlen = xqc_vint_read(p, end, path_status_seq);
+    vlen = xqc_vint_read(p, end, &path_status_seq);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
     p += vlen;
 
-    vlen = xqc_vint_read(p, end, path_status);
+    vlen = xqc_vint_read(p, end, &path_status);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
     p += vlen;
 
-    vlen = xqc_vint_read(p, end, path_prio);
+    vlen = xqc_vint_read(p, end, &path_prio);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }

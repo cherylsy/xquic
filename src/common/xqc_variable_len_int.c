@@ -5,7 +5,7 @@
 
 int
 xqc_vint_read(const unsigned char *p, const unsigned char *end,
-              uint64_t *valp)
+    uint64_t *valp)
 {
     uint64_t val;
 
