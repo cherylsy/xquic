@@ -8,6 +8,7 @@
 #include "src/common/xqc_timer.h"
 #include "src/transport/xqc_packet_parser.h"
 #include "src/transport/xqc_stream.h"
+#include "src/transport/xqc_multipath.h"
 
 xqc_packet_out_t *
 xqc_packet_out_create()
@@ -741,8 +742,9 @@ xqc_write_path_status_to_packet(xqc_connection_t *conn,
         return -XQC_EWRITE_PKT;
     }
 
+    ++path->path_status_seq_number;
     ret = xqc_gen_path_status_frame(packet_out, path->path_id, path->path_status_seq_number, 
-                                    XQC_MP_STATE_AVAILABLE, path->path_prio);
+                                    (uint64_t)path->path_status, path->path_prio);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_path_status_frame error|");
         goto error;
@@ -751,7 +753,6 @@ xqc_write_path_status_to_packet(xqc_connection_t *conn,
     packet_out->po_used_size += ret;
 
     packet_out->out_path_id = path->path_id;
-    path->path_status_seq_number++;
 
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
     return XQC_OK;
