@@ -1592,7 +1592,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 */
 #if 0
     /* if at anti-amplification limit, nothing would be sent, unset the loss detection timer */
-    if (xqc_send_ctl_reach_anti_amplification(conn, 0)) {
+    if (xqc_send_ctl_check_anti_amplification(conn, 0)) {
         xqc_send_ctl_timer_unset(ctl, XQC_TIMER_LOSS_DETECTION);
         return;
     }
