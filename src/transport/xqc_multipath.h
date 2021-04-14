@@ -116,6 +116,8 @@ xqc_int_t xqc_mp_client_conn_init(xqc_connection_t *conn,
 
 xqc_cid_t * xqc_mp_get_new_path_dcid(xqc_connection_t *conn);
 xqc_path_ctx_t *xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id);
+void xqc_path_update_status(xqc_path_ctx_t *path, 
+    uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio);
 
 
 xqc_path_ctx_t* xqc_mp_conn_create_path(xqc_connection_t *conn, uint64_t path_id);

@@ -8,6 +8,8 @@
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_packet_parser.h"
+#include "src/transport/xqc_multipath.h"
+
 
 
 int

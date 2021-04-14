@@ -7,6 +7,7 @@
 #include "xqc_stream.h"
 #include "xqc_utils.h"
 #include "xqc_wakeup_pq.h"
+#include "xqc_packet_out.h"
 
 #include "src/common/xqc_common.h"
 #include "src/common/xqc_malloc.h"
