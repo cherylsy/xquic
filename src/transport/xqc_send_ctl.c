@@ -1675,7 +1675,7 @@ xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl)
 xqc_bool_t
 xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, int byte_cnt)
 {
-    int limit = XQC_FALSE;
+    xqc_bool_t limit = XQC_FALSE;
     /* anti-amplifier attack limit */
     if (conn->conn_type == XQC_CONN_TYPE_SERVER
         && !(conn->conn_flag & XQC_CONN_FLAG_ADDR_VALIDATED))
