@@ -164,12 +164,18 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     /* temporary value */
     settings->max_idle_timeout = default_conn_settings.idle_time_out;
-    settings->max_data = 1*1024*1024;
-    settings->max_stream_data_bidi_local = 5*1024*1024;
-    settings->max_stream_data_bidi_remote = 5*1024*1024;
-    settings->max_stream_data_uni = 1024*1024;
+
+    /* data credit */
     settings->max_streams_bidi = 1024;
+    settings->max_stream_data_bidi_remote = 16 * 1024 * 1024;
+    settings->max_stream_data_bidi_local = 16 * 1024 * 1024;
+
     settings->max_streams_uni = 1024;
+    settings->max_stream_data_uni = 16 * 1024 * 1024;
+
+    settings->max_data = settings->max_streams_bidi * settings->max_stream_data_bidi_local
+        + settings->max_streams_uni * settings->max_stream_data_uni;
+
     settings->max_udp_payload_size = XQC_MAX_UDP_PAYLOAD_SIZE;
     settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
     settings->enable_multipath = conn->conn_settings.enable_multipath;
