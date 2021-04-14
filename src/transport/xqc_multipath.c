@@ -198,3 +198,32 @@ xqc_conn_create_path(xqc_engine_t *engine,
 }
 
 
+xqc_path_ctx_t *
+xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id)
+{
+    xqc_path_ctx_t *path = NULL;
+    xqc_list_head_t *pos, *next;
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
+        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
+
+        if (path->path_scid.cid_seq_num == path_id) {
+            return path;
+        }
+    }
+
+    return NULL;
+}
+
+
+void
+xqc_path_update_status(xqc_path_ctx_t *path, 
+    uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio)
+{
+    if (path_status_seq > path->path_status_seq_number) {
+        path->path_status = path_status;
+        path->path_prio = path_prio;
+    }
+}
+
+

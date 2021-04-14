@@ -1404,15 +1404,38 @@ xqc_gen_path_status_frame(xqc_packet_out_t *packet_out,
 
 xqc_int_t
 xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
-    xqc_path_ctx_t *path)
+    xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
-    const unsigned char first_byte = *p++;
-
+    uint64_t frame_type = 0, path_id = 0, path_status = 0, path_status_seq = 0, path_prio = 0;
     int vlen;
 
-    vlen = xqc_vint_read(p, end, sub_conn_idx);
+    vlen = xqc_vint_read(p, end, frame_type);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, path_id);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, path_status_seq);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, path_status);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, path_prio);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }
@@ -1421,6 +1444,10 @@ xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
     packet_in->pos = p;
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_PATH_STATUS;
+
+    /* end of parse */
+    xqc_path_ctx_t *path = xqc_conn_find_path_by_path_id(conn, path_id);
+    xqc_path_update_status(path, path_status_seq, path_status, path_prio);
 
     return XQC_OK;
 }

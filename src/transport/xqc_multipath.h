@@ -115,7 +115,8 @@ xqc_int_t xqc_mp_client_conn_init(xqc_connection_t *conn,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen);
 
 xqc_cid_t * xqc_mp_get_new_path_dcid(xqc_connection_t *conn);
-xqc_path_ctx_t* xqc_mp_get_path_by_id(xqc_connection_t *conn, uint64_t path_id);
+xqc_path_ctx_t *xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id);
+
 
 xqc_path_ctx_t* xqc_mp_conn_create_path(xqc_connection_t *conn, uint64_t path_id);
 xqc_int_t xqc_mp_conn_init_path(xqc_connection_t *conn, 
