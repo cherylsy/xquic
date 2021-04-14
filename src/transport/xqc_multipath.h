@@ -120,9 +120,6 @@ void xqc_path_update_status(xqc_path_ctx_t *path,
     uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio);
 
 
-xqc_path_ctx_t* xqc_mp_conn_create_path(xqc_connection_t *conn, uint64_t path_id);
-xqc_int_t xqc_mp_conn_init_path(xqc_connection_t *conn, 
-    uint64_t path_idx, xqc_cid_t *scid, xqc_cid_t *dcid);
 void xqc_mp_server_try_activate_path(xqc_connection_t *conn, uint64_t path_id, 
     const struct sockaddr *local_addr, socklen_t local_addrlen,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen);

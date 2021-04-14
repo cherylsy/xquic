@@ -53,16 +53,6 @@ xqc_mp_conn_init_path(xqc_connection_t *conn,
     xqc_int_t ret = XQC_OK;
     xqc_path_ctx_t *path = NULL;
 
-    /* first check if there is a path with same identifier */
-    xqc_list_head_t *pos, *next;
-    xqc_list_for_each_safe(pos, next, &conn->paths_list) {
-        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
-        if (path->path_id == path_id) {
-            /* find path with same identifier */
-            return -XQC_EMP_INVALID_PATH_ID;
-        }
-    }
-
     path = xqc_calloc(1, sizeof(xqc_path_ctx_t));
     if (path == NULL){
         return -XQC_EMALLOC;
@@ -76,8 +66,9 @@ xqc_mp_conn_init_path(xqc_connection_t *conn,
         xqc_init_list_head(&path->path_recv_record[i].list_head);
     }
 
-    path->path_id = path_id;
     path->path_state = XQC_MP_STATE_CREATED;
+    path->path_status = XQC_MP_STATE_AVAILABLE;
+    path->path_status_seq_number = 0;
     path->path_send_ctl = xqc_send_ctl_create(conn);
 
     if (path->path_send_ctl == NULL) {
@@ -100,7 +91,7 @@ xqc_mp_conn_init_path(xqc_connection_t *conn,
         goto err;
     }
 
-    path->path_id = path->path_dcid.seq_number;
+    path->path_id = path->path_dcid.cid_seq_num;
 
     /* 4-tuple init */
     if (conn->peer_addrlen > 0) {
@@ -111,10 +102,6 @@ xqc_mp_conn_init_path(xqc_connection_t *conn,
     if (conn->local_addrlen > 0) {
         xqc_memcpy(path->local_addr, conn->local_addr, conn->local_addrlen);
         path->local_addrlen = conn->local_addrlen;
-    }
-
-    if (path_id == XQC_MP_INITIAL_PATH_ID) {
-        conn->conn_initial_path = path;
     }
 
     /* insert path to conn_paths_list */
