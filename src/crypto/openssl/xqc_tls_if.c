@@ -167,7 +167,7 @@ xqc_recv_crypto_data_cb(xqc_connection_t *conn,
         return XQC_ERROR;
     }
 
-    if (xqc_conn_get_handshake_completed(conn) == XQC_OK) {
+    if (xqc_conn_get_handshake_completed(conn) == XQC_FALSE) {
         if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
             if (xqc_server_tls_handshake(conn) != XQC_OK) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|error server handshake|");
