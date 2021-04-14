@@ -817,15 +817,35 @@ uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
  * User should call xqc_conn_continue_send when write event ready
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_continue_send(xqc_engine_t *engine,
-                           xqc_cid_t *cid);
+int xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid);
 
 /**
  * User can get xqc_conn_stats_t by cid
  */
 XQC_EXPORT_PUBLIC_API
-xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine,
-                                    xqc_cid_t *cid);
+xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid);
+
+/**
+ * create new path for client
+ * @param cid scid for connection
+ * @param new_path_id if new path is created successfully, return new_path_id in this param
+ * @return XQC_OK (0) when success, <0 for error
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_conn_create_path(xqc_engine_t *engine, 
+    xqc_cid_t *cid, uint64_t *new_path_id);
+
+
+/**
+ * Close a path
+ * @param cid scid for connection
+ * @param close_path_id path identifier for the closing path
+ * @return XQC_OK (0) when success, <0 for error
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_conn_close_path(xqc_engine_t *engine, xqc_cid_t *cid, uint64_t closed_path_id);
+
+
 
 #ifdef __cplusplus
 }

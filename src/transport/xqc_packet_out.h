@@ -71,6 +71,8 @@ typedef struct xqc_packet_out_s {
     uint64_t                po_tx_in_flight; 
     /*how many packets have been lost when the packet is sent*/
     uint32_t                po_lost; 
+
+    uint64_t                out_path_id;
 } xqc_packet_out_t;
 
 xqc_packet_out_t *

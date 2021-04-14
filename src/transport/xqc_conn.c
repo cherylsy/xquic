@@ -2321,3 +2321,34 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
     return XQC_OK;
 }
 
+
+xqc_int_t
+xqc_conn_get_new_dcid(xqc_connection_t *conn,
+    xqc_cid_t *dcid)
+{
+    if (conn->avail_dcid_count == 0) {
+        return -XQC_ECONN_NO_AVAIL_CID;
+    }
+
+    *dcid = conn->avail_dcid[conn->avail_dcid_count - 1];
+    conn->avail_dcid_count--;
+
+    return XQC_OK;
+}
+
+
+xqc_int_t
+xqc_conn_get_new_scid(xqc_connection_t *conn,
+    xqc_cid_t *scid)
+{
+    if (conn->avail_scid_count == 0) {
+        return -XQC_ECONN_NO_AVAIL_CID;
+    }
+
+    *scid = conn->avail_scid[conn->avail_scid_count - 1];
+    conn->avail_scid_count--;
+
+    return XQC_OK;
+}
+
+

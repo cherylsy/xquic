@@ -728,3 +728,37 @@ xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn)
 }
 
 
+xqc_int_t
+xqc_write_path_status_to_packet(xqc_connection_t *conn, 
+    xqc_path_ctx_t *path)
+{
+    xqc_int_t ret;
+    xqc_packet_out_t *packet_out;
+
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
+        return -XQC_EWRITE_PKT;
+    }
+
+    ret = xqc_gen_path_status_frame(packet_out, path->path_id, path->path_status_seq_number, 
+                                    XQC_MP_STATE_AVAILABLE, path->path_prio);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_path_status_frame error|");
+        goto error;
+    }
+
+    packet_out->po_used_size += ret;
+
+    packet_out->out_path_id = path->path_id;
+    path->path_status_seq_number++;
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
+    return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
+}
+
+

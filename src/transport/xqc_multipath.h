@@ -14,6 +14,8 @@
 #define XQC_MP_FIRST_DATA_OFFSET        1460
 #define XQC_MP_FIRST_FRAME_OFFSET       128 * 1024 // 128k
 
+#define XQC_MP_INITIAL_PATH_ID          0
+
 #define XQC_MP_PKT_REINJECTED(po) (po->po_flag & (XQC_POF_REINJECTED_ORIGIN | XQC_POF_REINJECTED_REPLICA))
 
 /* types & structs */
@@ -23,6 +25,13 @@ typedef enum {
     XQC_MP_STATE_ACTIVE     = 2,    /* path acked by peer, active state */
     XQC_MP_STATE_CLOSED     = 3,
 } xqc_mp_path_state_t;
+
+typedef enum {
+    XQC_MP_STATE_ABANDON    = 0,    
+    XQC_MP_STATE_STANDBY    = 1,    
+    XQC_MP_STATE_AVAILABLE  = 2,    
+} xqc_path_status_e;
+
 
 /* path close mode: passive & proactive */
 typedef enum {
@@ -45,12 +54,23 @@ typedef enum {
 } xqc_mp_pkt_prioirty_t;
 
 
+typedef struct xqc_path_metrics_s {
+
+    uint32_t            path_request_send_count;
+    uint32_t            path_request_recv_count;
+    uint32_t            client_create_path_try_count;
+
+} xqc_path_metrics_t;
+
 /* path context */
 struct xqc_path_ctx_s {
-    xqc_list_head_t     path_list;
-    uint64_t            path_idx;    /* path identifier */
 
-    /* 4-tuple for path */
+    /* Path_identifier */
+    uint64_t            path_id;    /* path identifier */
+    xqc_cid_t           path_scid;
+    xqc_cid_t           path_dcid;
+
+    /* Path_address: 4-tuple */
     unsigned char       peer_addr[sizeof(struct sockaddr_in6)],
                         local_addr[sizeof(struct sockaddr_in6)];
     socklen_t           peer_addrlen,
@@ -59,20 +79,24 @@ struct xqc_path_ctx_s {
     char                addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
     socklen_t           addr_str_len;
 
-    xqc_connection_t   *parent_conn;
+    /* Path_state */
+    xqc_mp_path_state_t path_state;
+
+    xqc_path_status_e   path_status;
+    uint64_t            path_status_seq_number;
+    uint64_t            path_prio;
+
+    /* Path cc & ack tracking */
     xqc_send_ctl_t     *path_send_ctl;
     xqc_recv_record_t   path_recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
     uint32_t            path_ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
 
-    xqc_cid_t           path_scid;
-    xqc_cid_t           path_dcid;
+    /* related structs */
+    xqc_connection_t   *parent_conn;
+    xqc_list_head_t     path_list;
 
-    xqc_mp_path_state_t path_state;
-
-    uint32_t            path_request_send_count;
-    uint32_t            path_request_recv_count;
-
-    uint32_t            client_create_path_try_count;
+    /* Path_metrics */
+    xqc_path_metrics_t  path_metrics;
 };
 
 
@@ -90,7 +114,7 @@ xqc_int_t xqc_mp_client_conn_init(xqc_connection_t *conn,
     const struct sockaddr *local_addr, socklen_t local_addrlen,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen);
 
-uint64_t xqc_mp_get_new_path_id(xqc_connection_t *conn);
+xqc_cid_t * xqc_mp_get_new_path_dcid(xqc_connection_t *conn);
 xqc_path_ctx_t* xqc_mp_get_path_by_id(xqc_connection_t *conn, uint64_t path_id);
 
 xqc_path_ctx_t* xqc_mp_conn_create_path(xqc_connection_t *conn, uint64_t path_id);
