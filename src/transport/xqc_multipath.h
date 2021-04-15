@@ -37,7 +37,7 @@ typedef enum {
 typedef enum {
     XQC_MP_PATH_CLOSE_PASSIVE = 0,
     XQC_MP_PATH_CLOSE_PROACTIVE = 1,
-} xqc_mp_path_close_mode_t;
+} xqc_path_close_mode_t;
 
 typedef enum {
     XQC_MP_SCHED_DEFAULT = 0,
