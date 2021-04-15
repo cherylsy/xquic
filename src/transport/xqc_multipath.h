@@ -101,21 +101,16 @@ struct xqc_path_ctx_s {
 
 
 /* check mp support */
-uint64_t xqc_mp_is_support(xqc_connection_t *conn);
+uint64_t xqc_conn_enable_multipath(xqc_connection_t *conn);
 
-
-/* path create & init */
-xqc_int_t xqc_mp_server_conn_init(xqc_connection_t *conn, 
-    xqc_cid_t *scid, xqc_cid_t *dcid,
-    const struct sockaddr *local_addr, socklen_t local_addrlen,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen);
-xqc_int_t xqc_mp_client_conn_init(xqc_connection_t *conn,
-    xqc_cid_t *scid, xqc_cid_t *dcid,
-    const struct sockaddr *local_addr, socklen_t local_addrlen,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen);
-
-xqc_cid_t * xqc_mp_get_new_path_dcid(xqc_connection_t *conn);
+/* path create & close */
+xqc_int_t xqc_conn_create_path(xqc_engine_t *engine, 
+    xqc_cid_t *scid, uint64_t *new_path_id);
+void xqc_conn_destroy_path(xqc_connection_t *conn);
 xqc_path_ctx_t *xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id);
+
+
+/* path status manage */
 void xqc_path_update_status(xqc_path_ctx_t *path, 
     uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio);
 
@@ -126,10 +121,6 @@ void xqc_mp_server_try_activate_path(xqc_connection_t *conn, uint64_t path_id,
 
 void xqc_mp_client_activate_path(xqc_path_ctx_t *path);
 
-/* path close */
-void xqc_mp_path_ctx_destroy(xqc_connection_t *conn);
-void xqc_mp_path_close(xqc_connection_t *conn, xqc_path_ctx_t *path, 
-    xqc_mp_path_close_mode_t close_mode);
 
 /* path statistics */
 xqc_int_t xqc_mp_conn_active_path_count(xqc_connection_t *conn);

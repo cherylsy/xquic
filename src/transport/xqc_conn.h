@@ -521,6 +521,7 @@ xqc_int_t xqc_conn_get_new_dcid(xqc_connection_t *conn,
     xqc_cid_t *dcid);
 xqc_int_t xqc_conn_get_new_scid(xqc_connection_t *conn,
     xqc_cid_t *scid);
+xqc_int_t xqc_conn_check_available_cids(xqc_connection_t *conn);
 
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

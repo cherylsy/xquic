@@ -21,41 +21,14 @@
 #include "xquic/xqc_errno.h"
 
 
-/**
- * Check whether the connection supports multi-path or not.
- * @param conn  connection context
- * @return enable_multipath 0:not support, 1:support
- */
-uint64_t
-xqc_mp_is_support(xqc_connection_t *conn)
+xqc_path_ctx_t *
+xqc_path_create(xqc_connection_t *conn)
 {
-    return (conn->remote_settings.enable_multipath && conn->local_settings.enable_multipath);
-}
-
-
-xqc_int_t
-xqc_mp_check_available_path_cids(xqc_connection_t *conn)
-{
-    /* must have at least one available dcid & one available scid */
-    if (conn->avail_dcid_count == 0 || conn->avail_scid_count == 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|don't have available unused cid|%ui|%ui|", 
-                        conn->avail_dcid_count, conn->avail_scid_count);
-        return -XQC_EMP_NO_AVAIL_PATH_ID;
-    }
-    return XQC_OK;
-}
-
-
-xqc_int_t
-xqc_mp_conn_init_path(xqc_connection_t *conn,
-    xqc_path_ctx_t **new_path)
-{
-    xqc_int_t ret = XQC_OK;
     xqc_path_ctx_t *path = NULL;
 
     path = xqc_calloc(1, sizeof(xqc_path_ctx_t));
     if (path == NULL){
-        return -XQC_EMALLOC;
+        return NULL;
     }
     xqc_memzero(path, sizeof(xqc_path_ctx_t));
 
@@ -72,7 +45,6 @@ xqc_mp_conn_init_path(xqc_connection_t *conn,
     path->path_send_ctl = xqc_send_ctl_create(conn);
 
     if (path->path_send_ctl == NULL) {
-        ret = -XQC_EMALLOC;
         goto err;
     }
 
@@ -82,18 +54,16 @@ xqc_mp_conn_init_path(xqc_connection_t *conn,
     /* cid & path_id init */
     if (xqc_conn_get_new_scid(conn, &(path->path_scid)) != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available scid|");
-        ret = -XQC_EMP_NO_AVAIL_PATH_ID;
         goto err;
     }
     if (xqc_conn_get_new_dcid(conn, &(path->path_dcid)) != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available dcid|");
-        ret = -XQC_EMP_NO_AVAIL_PATH_ID;
         goto err;
     }
 
     path->path_id = path->path_dcid.cid_seq_num;
 
-    /* 4-tuple init */
+    /* TODO: 4-tuple init */
     if (conn->peer_addrlen > 0) {
         xqc_memcpy(path->peer_addr, conn->peer_addr, conn->peer_addrlen);
         path->peer_addrlen = conn->peer_addrlen;
@@ -104,15 +74,11 @@ xqc_mp_conn_init_path(xqc_connection_t *conn,
         path->local_addrlen = conn->local_addrlen;
     }
 
-    /* insert path to conn_paths_list */
-    xqc_list_add_tail(&path->path_list, &conn->conn_paths_list);
-    *new_path = path;
-
     xqc_log(conn->engine->log, XQC_LOG_DEBUG, "|MP|init a new path (%ui): dcid=%s, scid=%s, state: %d|",
             path->path_id, xqc_dcid_str(&(path->path_dcid)), xqc_scid_str(&(path->path_scid)), 
             path->path_state);
 
-    return XQC_OK;
+    return path;
 
 err:
     if (path->path_send_ctl != NULL) {
@@ -125,9 +91,46 @@ err:
     }
 
     xqc_free((void *)path);
-    return ret;
+    return NULL;
 }
 
+void 
+xqc_path_destroy(xqc_path_ctx_t *path)
+{
+    if (path->path_send_ctl != NULL) {
+        xqc_send_ctl_destroy(path->path_send_ctl);
+        path->path_send_ctl = NULL;
+    }
+
+    for (xqc_pkt_num_space_t pns = XQC_PNS_INIT; pns < XQC_PNS_N; pns++) {
+        xqc_recv_record_destroy(&path->path_recv_record[pns]);
+    }
+ 
+    xqc_free((void *)path);
+}
+
+void
+xqc_path_update_status(xqc_path_ctx_t *path, 
+    uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio)
+{
+    if (path_status_seq > path->path_status_seq_number) {
+        path->path_status = path_status;
+        path->path_prio = path_prio;
+    }
+}
+
+
+
+/**
+ * Check whether the connection supports multi-path or not.
+ * @param conn  connection context
+ * @return enable_multipath 0:not support, 1:support
+ */
+uint64_t
+xqc_conn_enable_multipath(xqc_connection_t *conn)
+{
+    return (conn->remote_settings.enable_multipath && conn->local_settings.enable_multipath);
+}
 
 
 xqc_int_t
@@ -148,24 +151,27 @@ xqc_conn_create_path(xqc_engine_t *engine,
     }
 
     /* check mp-support */
-    if (!xqc_mp_is_support(conn)) {
+    if (!xqc_conn_enable_multipath(conn)) {
         xqc_log(engine->log, XQC_LOG_WARN,
                 "|Multipath is not supported in remote host, use the first path as default!|");
         return -XQC_EMP_NOT_SUPPORT_MP;
     }
 
     /* must have at least one available unused scid & dcid */
-    if (xqc_mp_check_available_path_cids(conn) != XQC_OK) {
+    if (xqc_conn_check_available_cids(conn) != XQC_OK) {
         xqc_log(engine->log, XQC_LOG_WARN,
                 "|don't have available cid for new path|");
         return -XQC_EMP_NO_AVAIL_PATH_ID;
     }
 
-    ret = xqc_mp_conn_init_path(conn, &path);
-    if (ret < 0) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_mp_conn_init_path error|");
-        return ret;
+    path = xqc_path_create(conn);
+    if (path == NULL) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_path_create error|");
+        return -XQC_EMP_CREATE_PATH;
     }
+
+    /* insert path to conn_paths_list */
+    xqc_list_add_tail(&path->path_list, &conn->conn_paths_list);
 
     /* write path status frame & send immediately */
     ret = xqc_write_path_status_to_packet(conn, path);
@@ -186,6 +192,26 @@ xqc_conn_create_path(xqc_engine_t *engine,
 }
 
 
+/* destroy all the paths of the connection */
+void
+xqc_conn_destroy_path(xqc_connection_t *conn)
+{
+    xqc_list_head_t *pos = NULL, *next = NULL;
+    xqc_path_ctx_t *path = NULL;
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
+        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
+
+        if (conn->engine->conns_hash) {
+            xqc_remove_conns_hash(conn->engine->conns_hash, conn, &path->path_scid);
+        }
+
+        xqc_list_del_init(pos);
+        xqc_path_destroy(path);
+    }
+}
+
+
 xqc_path_ctx_t *
 xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id)
 {
@@ -201,17 +227,6 @@ xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id)
     }
 
     return NULL;
-}
-
-
-void
-xqc_path_update_status(xqc_path_ctx_t *path, 
-    uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio)
-{
-    if (path_status_seq > path->path_status_seq_number) {
-        path->path_status = path_status;
-        path->path_prio = path_prio;
-    }
 }
 
 

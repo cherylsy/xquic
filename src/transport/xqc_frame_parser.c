@@ -1393,7 +1393,7 @@ xqc_gen_path_status_frame(xqc_packet_out_t *packet_out,
     xqc_vint_write(dst_buf, path_status, path_status_bits, xqc_vint_len(path_status_bits));
     dst_buf += xqc_vint_len(path_status_bits);
 
-    /* Path Status (i) */
+    /* Path Priority (i) */
     unsigned path_prio_bits = xqc_vint_get_2bit(path_prio);
     xqc_vint_write(dst_buf, path_prio, path_prio_bits, xqc_vint_len(path_prio_bits));
     dst_buf += xqc_vint_len(path_prio_bits);

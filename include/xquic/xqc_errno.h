@@ -99,7 +99,7 @@ typedef enum {
 
     XQC_EMP_NOT_SUPPORT_MP              = 650,      // Multipath - don't support multipath
     XQC_EMP_NO_AVAIL_PATH_ID            = 651,      // Multipath - no available path id
-    XQC_EMP_GEN_CID                     = 652,      // Multipath - generate cid error
+    XQC_EMP_CREATE_PATH                 = 652,      // Multipath - create path error
     XQC_EMP_INVALID_PATH_ID             = 653,      // Multipath - invalid path id error
     XQC_EMP_INVALID_FRAME               = 654,      // Multipath - invalid frame
     XQC_EMP_INVALID_QOE_SIGNAL          = 660,      // Multipath - invalid qoe signal   
