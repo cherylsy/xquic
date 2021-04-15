@@ -62,12 +62,21 @@ void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const c
 
 
 #ifndef XQC_DISABLE_LOG
-#define xqc_log(log, level, ...) \
+    #ifndef XQC_ONLY_ERROR_LOG
+    #define xqc_log(log, level, ...) \
     do { \
         if ((log)->log_level >= level) { \
             xqc_log_implement(log, level, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
+    #else
+    #define xqc_log(log, level, ...) \
+        do { \
+            if (XQC_LOG_ERROR >= level) { \
+                xqc_log_implement(log, level, __FUNCTION__, __VA_ARGS__); \
+            } \
+        } while (0)
+    #endif
 #else
 #define xqc_log(log, level, ...)
 #endif
