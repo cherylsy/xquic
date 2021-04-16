@@ -121,6 +121,14 @@ typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id, void *conn_user_data
 typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id, void *conn_user_data, 
     struct iovec *msg_iov, unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen);
 
+typedef void (*xqc_conn_ready_to_create_path_notify_pt)(xqc_cid_t *scid, void *conn_user_data);
+
+typedef void (*xqc_path_closed_notify_pt)(xqc_cid_t *scid, void *user_data, uint64_t closed_path_id);
+/* used by server side */
+typedef int (*xqc_path_created_notify_pt)(xqc_engine_t *engine, xqc_connection_t *conn, 
+    xqc_cid_t *cid, uint64_t sub_conn_idx, void *conn_user_data);
+
+
 
 
 /* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */

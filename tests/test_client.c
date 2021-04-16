@@ -66,9 +66,9 @@ typedef struct user_conn_s {
     int                 fd;
     xqc_cid_t           cid;
 
-    struct sockaddr_in6  local_addr;
+    struct sockaddr    *local_addr;
     socklen_t           local_addrlen;
-    struct sockaddr_in6  peer_addr;
+    struct sockaddr    *peer_addr;
     socklen_t           peer_addrlen;
 
     unsigned char      *token;
@@ -79,6 +79,23 @@ typedef struct user_conn_s {
 
     int                 h3;
 } user_conn_t;
+
+
+typedef struct xqc_user_path_s {
+    int                 path_fd;
+    uint64_t            path_id;
+
+    unsigned int        peer_port;
+    unsigned char       peer_addr_text[sizeof(struct sockaddr_in6)];
+    
+    struct sockaddr    *peer_addr;
+    socklen_t           peer_addrlen;
+    struct sockaddr    *local_addr;
+    socklen_t           local_addrlen;
+
+    struct event       *ev_socket;
+} xqc_user_path_t;
+
 
 typedef struct client_ctx_s {
     xqc_engine_t    *engine;
@@ -233,9 +250,10 @@ int read_file_data( char * data, size_t data_len, char *filename){
 }
 
 int g_send_total = 0;
-ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
-                                const struct sockaddr *peer_addr,
-                                socklen_t peer_addrlen)
+ssize_t 
+xqc_client_write_socket(void *user, 
+    unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen)
 {
     user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res = 0;
@@ -281,9 +299,10 @@ ssize_t xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
 }
 
 
-ssize_t xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
-                                const struct sockaddr *peer_addr,
-                                socklen_t peer_addrlen)
+ssize_t 
+xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
+    const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen)
 {
     const int MAX_SEG = 128;
     user_conn_t *user_conn = (user_conn_t *) user;
@@ -311,14 +330,12 @@ ssize_t xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vl
 }
 
 
-static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, unsigned int port)
+static int 
+xqc_client_create_socket(const struct sockaddr *saddr, socklen_t saddr_len)
 {
-    int fd;
-    int type = g_ipv6 ? AF_INET6 : AF_INET;
-    user_conn->peer_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+    int fd = -1;
 
-    struct sockaddr *saddr = (struct sockaddr *)&user_conn->peer_addr;
-
+    /* create fd & set socket option */
     fd = socket(type, SOCK_DGRAM, 0);
     if (fd < 0) {
         printf("create socket failed, errno: %d\n", errno);
@@ -340,25 +357,11 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
         goto err;
     }
 
-    if (type == AF_INET6) {
-        memset(saddr, 0, sizeof(struct sockaddr_in6));
-        struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)saddr;
-        inet_pton(type, addr, &(addr_v6->sin6_addr.s6_addr));
-        addr_v6->sin6_family = type;
-        addr_v6->sin6_port = htons(port);
-    } else {
-        memset(saddr, 0, sizeof(struct sockaddr_in));
-        struct sockaddr_in *addr_v4 = (struct sockaddr_in *)saddr;
-        inet_pton(type, addr, &(addr_v4->sin_addr.s_addr));
-        addr_v4->sin_family = type;
-        addr_v4->sin_port = htons(port);
-    }
-
     g_last_sock_op_time = now();
 
-
+    /* connect to peer addr */
 #if !defined(__APPLE__)
-    if (connect(fd, (struct sockaddr *)saddr, user_conn->peer_addrlen) < 0) {
+    if (connect(fd, (struct sockaddr *)saddr, saddr_len) < 0) {
         printf("connect socket failed, errno: %d\n", errno);
         goto err;
     }
@@ -370,6 +373,49 @@ static int xqc_client_create_socket(user_conn_t *user_conn, const char *addr, un
     close(fd);
     return -1;
 }
+
+
+void 
+xqc_convert_addr_text_to_sockaddr(int type,
+    const char *addr_text, unsigned int port,
+    (struct sockaddr **)saddr, socklen_t *saddr_len)
+{
+    if (type == AF_INET6) {
+        *saddr = calloc(1, sizeof(struct sockaddr_in6));
+        memset(*saddr, 0, sizeof(struct sockaddr_in6));
+        struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)saddr;
+        inet_pton(type, addr_text, &(addr_v6->sin6_addr.s6_addr));
+        addr_v6->sin6_family = type;
+        addr_v6->sin6_port = htons(port);
+        *saddr_len = sizeof(struct sockaddr_in6);
+    } else {
+        *saddr = calloc(1, sizeof(struct sockaddr_in));
+        memset(*saddr, 0, sizeof(struct sockaddr_in));
+        struct sockaddr_in *addr_v4 = (struct sockaddr_in *)saddr;
+        inet_pton(type, addr_text, &(addr_v4->sin_addr.s_addr));
+        addr_v4->sin_family = type;
+        addr_v4->sin_port = htons(port);
+        *saddr_len = sizeof(struct sockaddr_in);
+    }
+}
+
+
+static int
+xqc_client_create_path_socket(xqc_user_path_t *path)
+{
+    xqc_convert_addr_text_to_sockaddr((g_ipv6 ? AF_INET6 : AF_INET), 
+                                      path->peer_addr_text, path->peer_port,
+                                      &path->peer_addr, &path->peer_addrlen);
+
+    path->path_fd = xqc_client_create_socket(path->peer_addr, path->peer_addrlen);
+    if (path->path_fd < 0) {
+        printf("|xqc_client_create_path_socket error|");
+        return XQC_ERROR;
+    }
+
+    return XQC_OK;
+}
+
 
 int xqc_client_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
 {
@@ -1040,9 +1086,10 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
                 recv_sum += msgs[i].msg_len;
 
                 if (xqc_engine_packet_process(ctx.engine, iovecs[i].iov_base, msgs[i].msg_len,
-                                              (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
-                                      (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
-                                      (xqc_msec_t) recv_time, user_conn) != 0 ) {
+                                              user_conn->local_addr, user_conn->local_addrlen,
+                                              user_conn->peer_addr, user_conn->peer_addrlen,
+                                              (xqc_msec_t) recv_time, user_conn) != 0) 
+                {
                     printf("xqc_server_read_handler: packet process err\n");
                     return;
                 }
@@ -1063,8 +1110,9 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
     }
 
     do {
-        recv_size = recvfrom(user_conn->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &user_conn->peer_addr,
-                             &user_conn->peer_addrlen);
+        recv_size = recvfrom(user_conn->fd, 
+                             packet_buf, sizeof(packet_buf), 0, 
+                             user_conn->peer_addr, &user_conn->peer_addrlen);
         if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
@@ -1101,8 +1149,8 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (g_test_case == 9/*接收到重复的包*/) {memcpy(copy, packet_buf, recv_size); again:;}
         if (g_test_case == 10/*不合法的packet*/) {g_test_case = -1; recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_B)-1; memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_B, recv_size);}
         if (xqc_engine_packet_process(ctx.engine, packet_buf, recv_size,
-                                      (struct sockaddr *) (&user_conn->local_addr), user_conn->local_addrlen,
-                                      (struct sockaddr *) (&user_conn->peer_addr), user_conn->peer_addrlen,
+                                      user_conn->local_addr, user_conn->local_addrlen,
+                                      user_conn->peer_addr, user_conn->peer_addrlen,
                                       (xqc_msec_t) recv_time, user_conn) != 0) {
             printf("xqc_client_read_handler: packet process err\n");
             return;
@@ -1565,7 +1613,11 @@ int main(int argc, char *argv[]) {
     tv.tv_usec = 0;
     event_add(user_conn->ev_timeout, &tv);
 
-    user_conn->fd = xqc_client_create_socket(user_conn, server_addr, server_port);
+    xqc_convert_addr_text_to_sockaddr((g_ipv6 ? AF_INET6 : AF_INET), 
+                                      server_addr, server_port,
+                                      &user_conn->peer_addr, &user_conn->peer_addrlen);
+
+    user_conn->fd = xqc_client_create_socket(user_conn->peer_addr, user_conn->peer_addrlen);
     if (user_conn->fd < 0) {
         printf("xqc_create_socket error\n");
         return 0;
@@ -1608,10 +1660,10 @@ int main(int argc, char *argv[]) {
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
         cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, g_host, g_no_crypt,
-                          &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
+                          &conn_ssl_config, user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
         cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
-                          &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
+                          &conn_ssl_config, user_conn->peer_addr, user_conn->peer_addrlen);
     }
     if (cid == NULL) {
         printf("xqc_connect error\n");
