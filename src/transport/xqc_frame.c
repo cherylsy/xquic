@@ -991,7 +991,7 @@ xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
 xqc_int_t
 xqc_process_path_status_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    xqc_int_t ret = xqc_parse_path_status_frame(packet_in);
+    xqc_int_t ret = xqc_parse_path_status_frame(packet_in, conn);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_process_handshake_done_frame error|");
