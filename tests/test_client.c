@@ -11,6 +11,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <inttypes.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
 #include <xquic/xquic.h>
 #include <xquic/xquic_typedef.h>
 
@@ -80,13 +82,12 @@ typedef struct user_conn_s {
     int                 h3;
 } user_conn_t;
 
+#define XQC_DEMO_INTERFACE_MAX_LEN 64
+#define XQC_DEMO_MAX_PATH_COUNT    8
 
 typedef struct xqc_user_path_s {
     int                 path_fd;
     uint64_t            path_id;
-
-    unsigned int        peer_port;
-    unsigned char       peer_addr_text[sizeof(struct sockaddr_in6)];
     
     struct sockaddr    *peer_addr;
     socklen_t           peer_addrlen;
@@ -125,14 +126,22 @@ int g_conn_timeout = 3;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
-char g_path[256] = "/path/resource";
+char g_url_path[256] = "/path/resource";
 char g_scheme[8] = "https";
 char g_url[2048];
 char g_headers[MAX_HEADER][256];
 int g_header_cnt = 0;
 int g_ping_id = 1;
+int g_enable_multipath = 0;
+char g_multi_interface[XQC_DEMO_MAX_PATH_COUNT][64];
+xqc_user_path_t g_client_path[XQC_DEMO_MAX_PATH_COUNT];
+int g_multi_interface_cnt = 0;
+
 
 static uint64_t last_recv_ts = 0;
+
+static void xqc_client_socket_event_callback(int fd, short what, void *arg);
+static void xqc_client_timeout_callback(int fd, short what, void *arg);
 
 
 static inline uint64_t now()
@@ -331,7 +340,8 @@ xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
 
 
 static int 
-xqc_client_create_socket(const struct sockaddr *saddr, socklen_t saddr_len)
+xqc_client_create_socket(int type, 
+    const struct sockaddr *saddr, socklen_t saddr_len)
 {
     int fd = -1;
 
@@ -378,12 +388,12 @@ xqc_client_create_socket(const struct sockaddr *saddr, socklen_t saddr_len)
 void 
 xqc_convert_addr_text_to_sockaddr(int type,
     const char *addr_text, unsigned int port,
-    (struct sockaddr **)saddr, socklen_t *saddr_len)
+    struct sockaddr **saddr, socklen_t *saddr_len)
 {
     if (type == AF_INET6) {
         *saddr = calloc(1, sizeof(struct sockaddr_in6));
         memset(*saddr, 0, sizeof(struct sockaddr_in6));
-        struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)saddr;
+        struct sockaddr_in6 *addr_v6 = (struct sockaddr_in6 *)(*saddr);
         inet_pton(type, addr_text, &(addr_v6->sin6_addr.s6_addr));
         addr_v6->sin6_family = type;
         addr_v6->sin6_port = htons(port);
@@ -391,7 +401,7 @@ xqc_convert_addr_text_to_sockaddr(int type,
     } else {
         *saddr = calloc(1, sizeof(struct sockaddr_in));
         memset(*saddr, 0, sizeof(struct sockaddr_in));
-        struct sockaddr_in *addr_v4 = (struct sockaddr_in *)saddr;
+        struct sockaddr_in *addr_v4 = (struct sockaddr_in *)(*saddr);
         inet_pton(type, addr_text, &(addr_v4->sin_addr.s_addr));
         addr_v4->sin_family = type;
         addr_v4->sin_port = htons(port);
@@ -399,21 +409,122 @@ xqc_convert_addr_text_to_sockaddr(int type,
     }
 }
 
+void
+xqc_client_init_addr(user_conn_t *user_conn,
+    const char *server_addr, int server_port)
+{
+    int ip_type = (g_ipv6 ? AF_INET6 : AF_INET);
+    xqc_convert_addr_text_to_sockaddr(ip_type, 
+                                      server_addr, server_port,
+                                      &user_conn->peer_addr, 
+                                      &user_conn->peer_addrlen);
+
+    if (ip_type == AF_INET6) {
+        user_conn->local_addr = calloc(1, sizeof(struct sockaddr_in6));
+        memset(user_conn->local_addr, 0, sizeof(struct sockaddr_in6));
+        user_conn->local_addrlen = sizeof(struct sockaddr_in6);
+    } else {
+        user_conn->local_addr = calloc(1, sizeof(struct sockaddr_in));
+        memset(user_conn->local_addr, 0, sizeof(struct sockaddr_in));
+        user_conn->local_addrlen = sizeof(struct sockaddr_in);
+    }
+}
+
+
 
 static int
-xqc_client_create_path_socket(xqc_user_path_t *path)
+xqc_client_bind_to_interface(int fd, 
+    const char *interface_name)
 {
-    xqc_convert_addr_text_to_sockaddr((g_ipv6 ? AF_INET6 : AF_INET), 
-                                      path->peer_addr_text, path->peer_port,
-                                      &path->peer_addr, &path->peer_addrlen);
+    struct ifreq ifr;
+    memset(&ifr, 0x00, sizeof(ifr));
+    strncpy(ifr.ifr_name, interface_name, strlen(interface_name));
 
-    path->path_fd = xqc_client_create_socket(path->peer_addr, path->peer_addrlen);
+    printf("bind to nic: %s\n", interface_name);
+
+    if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (char *)&ifr, sizeof(ifr)) < 0) {
+        printf("bind to nic error: %d, try use sudo\n", errno);
+        return XQC_ERROR;
+    }
+
+    return XQC_OK;
+}
+
+
+static int
+xqc_client_create_path_socket(xqc_user_path_t *path,
+    char *path_interface)
+{
+    path->path_fd = xqc_client_create_socket((g_ipv6 ? AF_INET6 : AF_INET), 
+                                             path->peer_addr, path->peer_addrlen);
     if (path->path_fd < 0) {
         printf("|xqc_client_create_path_socket error|");
         return XQC_ERROR;
     }
 
+    if (path_interface != NULL
+        && xqc_client_bind_to_interface(path->path_fd, path_interface) < 0) 
+    {
+        printf("|xqc_client_bind_to_interface error|");
+        return XQC_ERROR;
+    }
+
     return XQC_OK;
+}
+
+
+static int
+xqc_client_create_path(xqc_user_path_t *path, 
+    char *path_interface, user_conn_t *user_conn)
+{
+    path->peer_addr = calloc(1, user_conn->peer_addrlen);
+    memcpy(path->peer_addr, user_conn->peer_addr, user_conn->peer_addrlen);
+    path->peer_addrlen = user_conn->peer_addrlen;
+    
+    if (xqc_client_create_path_socket(path, path_interface) < 0) {
+        printf("xqc_client_create_path_socket error\n");
+        return XQC_ERROR;
+    }
+    
+    path->ev_socket = event_new(eb, path->path_fd, 
+                EV_READ | EV_PERSIST, xqc_client_socket_event_callback, user_conn);
+    event_add(path->ev_socket, NULL);
+
+    return XQC_OK;
+}
+
+
+user_conn_t * 
+xqc_client_user_conn_create(const char *server_addr, int server_port,
+    int transport)
+{
+    user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
+
+    /* 是否使用http3 */
+    user_conn->h3 = transport ? 0 : 1;
+
+    user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
+    /* 设置连接超时 */
+    struct timeval tv;
+    tv.tv_sec = g_conn_timeout;
+    tv.tv_usec = 0;
+    event_add(user_conn->ev_timeout, &tv);
+
+    int ip_type = (g_ipv6 ? AF_INET6 : AF_INET);
+    xqc_client_init_addr(user_conn, server_addr, server_port);
+                                      
+    user_conn->fd = xqc_client_create_socket(ip_type, 
+                                             user_conn->peer_addr, user_conn->peer_addrlen);
+    if (user_conn->fd < 0) {
+        printf("xqc_create_socket error\n");
+        return NULL;
+    }
+
+    user_conn->ev_socket = event_new(eb, user_conn->fd, EV_READ | EV_PERSIST, 
+                                     xqc_client_socket_event_callback, user_conn);
+    event_add(user_conn->ev_socket, NULL);
+
+    return user_conn;
 }
 
 
@@ -746,7 +857,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             },
             {
                     .name   = {.iov_base = ":path", .iov_len = 5},
-                    .value  = {.iov_base = g_path, .iov_len = strlen(g_path)},
+                    .value  = {.iov_base = g_url_path, .iov_len = strlen(g_url_path)},
                     .flags  = 0,
             },
             {
@@ -1348,7 +1459,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6N")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -1428,8 +1539,7 @@ int main(int argc, char *argv[]) {
                 printf("option url :%s\n", optarg);
                 snprintf(g_url, sizeof(g_url), optarg);
                 g_spec_url = 1;
-                sscanf(g_url,"%[^://]://%[^/]%s", g_scheme, g_host, g_path);
-                //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
+                sscanf(g_url,"%[^://]://%[^/]%s", g_scheme, g_host, g_url_path);
                 break;
             case 'H': //请求header
                 printf("option header :%s\n", optarg);
@@ -1455,6 +1565,17 @@ int main(int argc, char *argv[]) {
             case 'N':
                 printf("option No crypt: %s\n", "yes");
                 g_no_crypt = 1;
+                break;
+            case 'M':
+                printf("option enable multi-path: %s\n", "yes");
+                g_enable_multipath = 1;
+                break;
+            case 'i':
+                printf("option multi-path: %s\n", optarg);
+                ++g_multi_interface_cnt;
+                memset(g_multi_interface[g_multi_interface_cnt], 0, XQC_DEMO_INTERFACE_MAX_LEN);
+                snprintf(g_multi_interface[g_multi_interface_cnt], 
+                         XQC_DEMO_INTERFACE_MAX_LEN, optarg);
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -1600,31 +1721,21 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    user_conn_t *user_conn;
-    user_conn = calloc(1, sizeof(user_conn_t));
-
-    /* 是否使用http3 */
-    user_conn->h3 = transport ? 0 : 1;
-
-    user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
-    /* 设置连接超时 */
-    struct timeval tv;
-    tv.tv_sec = g_conn_timeout;
-    tv.tv_usec = 0;
-    event_add(user_conn->ev_timeout, &tv);
-
-    xqc_convert_addr_text_to_sockaddr((g_ipv6 ? AF_INET6 : AF_INET), 
-                                      server_addr, server_port,
-                                      &user_conn->peer_addr, &user_conn->peer_addrlen);
-
-    user_conn->fd = xqc_client_create_socket(user_conn->peer_addr, user_conn->peer_addrlen);
-    if (user_conn->fd < 0) {
-        printf("xqc_create_socket error\n");
-        return 0;
+    user_conn_t *user_conn = xqc_client_user_conn_create(server_addr, server_port, transport);
+    if (user_conn == NULL) {
+        printf("xqc_client_user_conn_create error\n");
+        return -1;
     }
 
-    user_conn->ev_socket = event_new(eb, user_conn->fd, EV_READ | EV_PERSIST, xqc_client_socket_event_callback, user_conn);
-    event_add(user_conn->ev_socket, NULL);
+    if (g_enable_multipath) {
+
+        for (int i = 1; i <= g_multi_interface_cnt; ++i) {
+            if (xqc_client_create_path(&g_client_path[i], g_multi_interface[i], user_conn) != XQC_OK) {
+                printf("xqc_client_create_path %d error\n", i);
+                return 0;
+            }
+        }
+    }
 
     unsigned char token[XQC_MAX_TOKEN_LEN];
     int token_len = XQC_MAX_TOKEN_LEN;
