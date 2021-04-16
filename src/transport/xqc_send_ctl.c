@@ -426,11 +426,11 @@ void
 xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT) && XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
-        ctl->ctl_bytes_in_flight += packet_out->po_used_size;
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            ctl->ctl_bytes_in_flight += packet_out->po_used_size;
             ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] += packet_out->po_used_size;
+            packet_out->po_flag |= XQC_POF_IN_FLIGHT;
         }
-        packet_out->po_flag |= XQC_POF_IN_FLIGHT;
     }
 }
 
@@ -438,23 +438,17 @@ void
 xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if (packet_out->po_flag & XQC_POF_IN_FLIGHT) {
-        if (ctl->ctl_bytes_in_flight < packet_out->po_used_size) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
-            ctl->ctl_bytes_in_flight = 0;
-
-        } else {
-            ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
-        }
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             if (ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] < packet_out->po_used_size) {
                 xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
                 ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] = 0;
-
+                ctl->ctl_bytes_in_flight = 0;
             } else {
                 ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] -= packet_out->po_used_size;
+                ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
             }
+            packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
         }
-        packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
     }
 }
 
