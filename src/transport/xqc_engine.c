@@ -587,6 +587,19 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_msec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
+    xqc_conn_try_add_new_conn_id(conn);
+
+    /* for multi-path */
+    if ((conn->conn_flag & XQC_CONN_FLAG_TRIED_TO_CREATE_PATH)
+        && xqc_conn_check_available_cids(conn) == XQC_OK)
+    {
+        if (conn->engine->eng_callback.ready_to_create_path_notify) {
+            conn->engine->eng_callback.ready_to_create_path_notify(&conn->scid, 
+                                                                   xqc_conn_get_user_data(conn));
+        }
+        conn->conn_flag &= ~XQC_CONN_FLAG_TRIED_TO_CREATE_PATH;
+    }
+
     if (XQC_UNLIKELY(conn->conn_flag & XQC_CONN_FLAG_PING)) {
         ret = xqc_write_ping_to_packet(conn, NULL);
         if (ret) {

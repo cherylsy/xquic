@@ -57,6 +57,7 @@ xqc_cid_copy(xqc_cid_t *dst, xqc_cid_t *src)
 {
     dst->cid_len = src->cid_len;
     xqc_memcpy(dst->cid_buf, src->cid_buf, dst->cid_len);
+    dst->cid_seq_num = src->cid_seq_num;
 }
 
 void

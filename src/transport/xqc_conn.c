@@ -2378,3 +2378,15 @@ xqc_conn_destroy_cids(xqc_connection_t *conn)
     }
 }
 
+void
+xqc_conn_try_add_new_conn_id(xqc_connection_t *conn)
+{
+    xqc_cid_t new_conn_cid;
+
+    if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->avail_scid_count == 0) {
+
+        xqc_write_new_conn_id_frame_to_packet(conn);
+    }
+}
+
+
