@@ -615,10 +615,19 @@ else
     echo "$errlog"
 fi
 
+
 clear_log
+result=`./test_client -s 10240000 -l e -t 1 -E -x 26|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "spurious_loss_detect_on" "pass"
+else
+    case_print_result "spurious_loss_detect_on" "fail"
+    echo "$errlog"
+fi
 echo -e "spurious loss detect on ...\c"
-./test_client -s 10240000 -l e -t 1 -E -x 26|grep ">>>>>>>> pass"
-grep_err_log
+echo "$result"
+
 
 clear_log
 echo -e "stream level flow control ...\c"
