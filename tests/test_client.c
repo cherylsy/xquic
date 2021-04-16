@@ -477,6 +477,8 @@ static int
 xqc_client_create_path(xqc_user_path_t *path, 
     char *path_interface, user_conn_t *user_conn)
 {
+    path->path_id = 0;
+
     path->peer_addr = calloc(1, user_conn->peer_addrlen);
     memcpy(path->peer_addr, user_conn->peer_addr, user_conn->peer_addrlen);
     path->peer_addrlen = user_conn->peer_addrlen;
@@ -525,6 +527,35 @@ xqc_client_user_conn_create(const char *server_addr, int server_port,
     event_add(user_conn->ev_socket, NULL);
 
     return user_conn;
+}
+
+
+void 
+xqc_client_ready_to_create_path(xqc_cid_t *cid, 
+    void *conn_user_data)
+{
+    uint64_t path_id = 0;
+    user_conn_t *user_conn = (user_conn_t *) conn_user_data;
+
+    if (!g_enable_multipath) {
+        return;
+    }
+
+    for (int i = 1; i <= g_multi_interface_cnt; i++) {
+        if (g_client_path[i].path_id != 0) {
+            continue;
+        }
+    
+        int ret = xqc_conn_create_path(ctx.engine, &(user_conn->cid), &path_id);
+
+        if (ret < 0) {
+            printf("not support mp, xqc_conn_create_path err = %d\n", ret);
+            return;
+        }
+
+        printf("create a new path: %" PRIu64 "\n", path_id);
+        g_client_path[i].path_id = path_id;
+    }
 }
 
 
@@ -1571,7 +1602,7 @@ int main(int argc, char *argv[]) {
                 g_enable_multipath = 1;
                 break;
             case 'i':
-                printf("option multi-path: %s\n", optarg);
+                printf("option multi-path interface: %s\n", optarg);
                 ++g_multi_interface_cnt;
                 memset(g_multi_interface[g_multi_interface_cnt], 0, XQC_DEMO_INTERFACE_MAX_LEN);
                 snprintf(g_multi_interface[g_multi_interface_cnt], 
@@ -1622,6 +1653,7 @@ int main(int argc, char *argv[]) {
                     .h3_request_close_notify = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
             },
             .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
+            .ready_to_create_path_notify = xqc_client_ready_to_create_path,  /* init path when notified */
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {

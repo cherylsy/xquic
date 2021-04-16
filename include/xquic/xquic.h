@@ -329,6 +329,10 @@ typedef struct xqc_engine_callback_s {
 
     /* for server, custom cid generator */
     xqc_cid_generate_pt         cid_generate_cb;
+
+    /* for multi-path */
+    xqc_conn_ready_to_create_path_notify_pt  ready_to_create_path_notify;
+
 } xqc_engine_callback_t;
 
 #define XQC_ALPN_HTTP3      "h3-29"

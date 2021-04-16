@@ -104,8 +104,6 @@ struct xqc_path_ctx_s {
 uint64_t xqc_conn_enable_multipath(xqc_connection_t *conn);
 
 /* path create & close */
-xqc_int_t xqc_conn_create_path(xqc_engine_t *engine, 
-    xqc_cid_t *scid, uint64_t *new_path_id);
 void xqc_conn_destroy_path(xqc_connection_t *conn);
 xqc_path_ctx_t *xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id);
 
