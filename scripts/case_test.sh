@@ -837,7 +837,7 @@ killall test_server 2> /dev/null
 echo -e "enable_multipath_negotiate ...\c"
 ./test_server -l d -e -x 7 > /dev/null &
 sleep 1
-result=`./test_client -s 1024000 -l d -t 1 -x 25 | grep "enable_multipath=1"`
+result=`./test_client -s 1024000 -l d -t 1 -M | grep "enable_multipath=1"`
 errlog=`grep_err_log`
 if [ -z "$errlog" ] && [ "$result" != "" ]; then
     echo ">>>>>>>> pass:1"
@@ -847,17 +847,18 @@ else
     case_print_result "enable_multipath_negotiate" "fail"
 fi
 
+
 clear_log
-echo -e "send 1M data on multiple paths ...\c"
 result=`sudo ./test_client -s 1024000 -l d -t 1 -M -i lo -E|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
-echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "send_1M_data_on_multiple_paths" "pass"
 else
     case_print_result "send_1M_data_on_multiple_paths" "fail"
     echo "$errlog"
 fi
+echo -e "send 1M data on multiple paths ...\c"
+echo "$result"
 
 
 clear_log

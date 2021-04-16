@@ -648,7 +648,7 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
 
-    if (g_test_case == 25) {
+    if (g_enable_multipath) {
         printf("transport_parameter:enable_multipath=%d\n", stats.enable_multipath);
     }
 }
@@ -1727,11 +1727,6 @@ int main(int argc, char *argv[]) {
         conn_settings.idle_time_out = 10000;
     }
 
-    /* enable_multipath */
-    if (g_test_case == 25) {
-        conn_settings.enable_multipath = 1;
-    }
-
     /* test spurious loss detect */
     if (g_test_case == 26) {
         conn_settings.spurious_loss_detect_on = 1;
@@ -1760,7 +1755,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (g_enable_multipath) {
-
+        conn_settings.enable_multipath = 1;
         for (int i = 1; i <= g_multi_interface_cnt; ++i) {
             if (xqc_client_create_path(&g_client_path[i], g_multi_interface[i], user_conn) != XQC_OK) {
                 printf("xqc_client_create_path %d error\n", i);
