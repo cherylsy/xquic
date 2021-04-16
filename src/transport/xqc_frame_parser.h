@@ -38,8 +38,6 @@ int xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_
 
 int xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_info_t *ack_info);
 
-int xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in);
-
 int xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out, uint64_t err_code, int is_app, int frame_type);
 
 int xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code);
@@ -92,7 +90,7 @@ size_t xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_ci
 
 xqc_int_t xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in, xqc_cid_t *new_cid);
 
-size_t xqc_gen_path_status_frame(xqc_packet_out_t *packet_out, 
+ssize_t xqc_gen_path_status_frame(xqc_packet_out_t *packet_out, 
     uint64_t path_id, uint64_t path_status_seq_number,
     uint64_t path_status, uint64_t path_prio);
 

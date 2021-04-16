@@ -1115,7 +1115,6 @@ int main(int argc, char *argv[]) {
                     .xqc_close_log_file = xqc_server_close_log_file,
                     .xqc_write_log_file = xqc_server_write_log_file,
             },
-            .cid_generate_cb = xqc_server_cid_generate,
     };
 
     if (g_batch) {
@@ -1184,6 +1183,9 @@ int main(int argc, char *argv[]) {
 
     /* test server cid negotiate */
     if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6 || g_sid_len != 0) {
+
+        callback.cid_generate_cb = xqc_server_cid_generate;
+    
         xqc_config_t config;
         if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
             return -1;

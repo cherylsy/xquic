@@ -8,7 +8,10 @@
 #include "src/common/xqc_timer.h"
 #include "src/transport/xqc_packet_parser.h"
 #include "src/transport/xqc_stream.h"
+#include "src/transport/xqc_utils.h"
+#include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_multipath.h"
+
 
 xqc_packet_out_t *
 xqc_packet_out_create()
@@ -762,8 +765,7 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
     packet_out->po_used_size += ret;
 
     /* insert conns_hash & add avail_scid_count */
-    ret = xqc_insert_conns_hash(conn->engine->conns_hash, 
-                                conn, &(conn->avail_scid[conn->avail_scid_count]));
+    ret = xqc_insert_conns_hash(conn->engine->conns_hash, conn, new_conn_cid);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|insert new_cid into conns_hash failed|%s|",
                                           xqc_scid_str(new_conn_cid));

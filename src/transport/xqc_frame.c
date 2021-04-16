@@ -551,17 +551,36 @@ xqc_process_ping_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 xqc_int_t
 xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    xqc_int_t ret;
+    xqc_int_t ret = XQC_ERROR;
+    xqc_cid_t new_conn_cid;
 
-    ret = xqc_parse_new_conn_id_frame(packet_in);
+    ret = xqc_parse_new_conn_id_frame(packet_in, &new_conn_cid);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_parse_new_conn_id_frame error|");
         return ret;
     }
 
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|new_conn_id|%s|", xqc_scid_str(&new_conn_cid));
+
+    /* store dcid & add avail_scid_count */
+    for (int i = 0; i < conn->avail_dcid_count; ++i) {
+        if (xqc_cid_is_equal(&(conn->avail_dcid[i]), &new_conn_cid)) {
+            return XQC_OK;
+        }
+    }
+
+    if (conn->avail_dcid_count >= XQC_MAX_AVAILABLE_CID_COUNT) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|too many dcid to process|", xqc_scid_str(&new_conn_cid));
+        return XQC_OK;
+    }
+
+    xqc_cid_copy(&(conn->avail_dcid[conn->avail_dcid_count]), &new_conn_cid);
+    conn->avail_dcid_count++;
+
     return XQC_OK;
 }
+
 
 
 xqc_int_t
