@@ -1305,14 +1305,14 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
 
     unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
 
-    uint64_t sequence_number = 0;
-    unsigned sequence_number_bits = xqc_vint_get_2bit(sequence_number);
+    unsigned sequence_number_bits = xqc_vint_get_2bit(new_cid->cid_seq_num);
     uint64_t retire_prior_to = 0;
     unsigned retire_prior_to_bits = xqc_vint_get_2bit(retire_prior_to);
     uint64_t cid_len = new_cid->cid_len;
     uint8_t cid_len_bits = xqc_vint_get_2bit(cid_len);
 
-    xqc_vint_write(dst_buf, sequence_number, sequence_number_bits, xqc_vint_len(sequence_number_bits));
+    xqc_vint_write(dst_buf, new_cid->cid_seq_num, 
+                   sequence_number_bits, xqc_vint_len(sequence_number_bits));
     dst_buf += xqc_vint_len(sequence_number_bits);
 
     xqc_vint_write(dst_buf, retire_prior_to, retire_prior_to_bits, xqc_vint_len(retire_prior_to_bits));
@@ -1354,12 +1354,11 @@ xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in, xqc_cid_t *new_cid)
     const unsigned char first_byte = *p++;
 
     int vlen;
-    uint64_t sequence_number = 0;
     uint64_t retire_prior_to = 0;
     unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
 
     /* Sequence Number (i) */
-    vlen = xqc_vint_read(p, end, &sequence_number);
+    vlen = xqc_vint_read(p, end, &new_cid->cid_seq_num);
     if (vlen < 0) {
         return -XQC_EVINTREAD;
     }

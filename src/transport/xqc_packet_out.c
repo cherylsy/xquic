@@ -745,7 +745,8 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
     xqc_cid_t * new_conn_cid = &(conn->avail_scid[conn->avail_scid_count]);
 
     /* only reserve bits for server side */
-    if (xqc_generate_cid(conn->engine, new_conn_cid) != XQC_OK) {
+    ++conn->largest_scid_seq_num;
+    if (xqc_generate_cid(conn->engine, new_conn_cid, conn->largest_scid_seq_num) != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_WARN, "|generate cid error|");
         return -XQC_EGENERATE_CID;
     }

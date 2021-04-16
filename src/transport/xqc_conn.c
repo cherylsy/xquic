@@ -234,6 +234,11 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xc->scid_str[scid->cid_len * 2] = '\0';
     xqc_hex_dump(xc->dcid_str, dcid->cid_buf, dcid->cid_len);
     xc->dcid_str[dcid->cid_len * 2] = '\0';
+
+    xc->largest_scid_seq_num = scid->cid_seq_num;
+    xc->avail_dcid_count = 0;
+    xc->avail_scid_count = 0;
+
     xc->engine = engine;
     xc->log = engine->log;
     xc->conn_callbacks = *callbacks;
@@ -323,14 +328,13 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     if (engine->config->cid_negotiate) {
         /* server generates it's own cid */
         xqc_cid_t new_scid;
-        if (xqc_generate_cid(engine, &new_scid) != XQC_OK) {
+        if (xqc_generate_cid(engine, &new_scid, 1) != XQC_OK) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return NULL;
         }
 
         conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
                                settings, user_data, XQC_CONN_TYPE_SERVER);
-
     } else {
         /* 
          * if use the peer's dcid as scid directly, must make sure
@@ -340,7 +344,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
         xqc_cid_t new_scid;
         xqc_cid_copy(&new_scid, scid);
         if (new_scid.cid_len != engine->config->cid_len) {
-            if (xqc_generate_cid(engine, &new_scid) != XQC_OK) {
+            if (xqc_generate_cid(engine, &new_scid, 1) != XQC_OK) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
                 return NULL;
             }
@@ -2334,7 +2338,7 @@ xqc_conn_get_new_dcid(xqc_connection_t *conn,
         return -XQC_ECONN_NO_AVAIL_CID;
     }
 
-    *dcid = conn->avail_dcid[conn->avail_dcid_count - 1];
+    xqc_cid_copy(dcid, &conn->avail_dcid[conn->avail_dcid_count - 1]);
     conn->avail_dcid_count--;
 
     return XQC_OK;
@@ -2349,7 +2353,7 @@ xqc_conn_get_new_scid(xqc_connection_t *conn,
         return -XQC_ECONN_NO_AVAIL_CID;
     }
 
-    *scid = conn->avail_scid[conn->avail_scid_count - 1];
+    xqc_cid_copy(scid, &conn->avail_scid[conn->avail_scid_count - 1]);
     conn->avail_scid_count--;
 
     return XQC_OK;

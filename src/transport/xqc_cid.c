@@ -6,11 +6,13 @@
 #include "src/common/xqc_random.h"
 
 xqc_int_t
-xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid)
+xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid,
+    uint64_t cid_seq_num)
 {
     unsigned char *buf;
     ssize_t len, written;
 
+    cid->cid_seq_num = cid_seq_num;
     cid->cid_len = engine->config->cid_len;
 
     buf = cid->cid_buf;

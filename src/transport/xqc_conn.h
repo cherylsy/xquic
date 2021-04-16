@@ -277,6 +277,7 @@ struct xqc_connection_s{
     xqc_cid_t               ocid; /* original connection id */
     unsigned char           dcid_str[XQC_MAX_CID_LEN * 2 + 1];
     unsigned char           scid_str[XQC_MAX_CID_LEN * 2 + 1];
+    uint64_t                largest_scid_seq_num;
 
     xqc_cid_t               avail_dcid[XQC_MAX_AVAILABLE_CID_COUNT];
     uint32_t                avail_dcid_count;
