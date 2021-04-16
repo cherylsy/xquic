@@ -2365,7 +2365,7 @@ xqc_int_t
 xqc_conn_check_available_cids(xqc_connection_t *conn)
 {
     if (conn->avail_dcid_count == 0 || conn->avail_scid_count == 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|don't have available unused cid|%ui|%ui|", 
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|don't have available unused cid|%ui|%ui|", 
                         conn->avail_dcid_count, conn->avail_scid_count);
         return -XQC_EMP_NO_AVAIL_PATH_ID;
     }

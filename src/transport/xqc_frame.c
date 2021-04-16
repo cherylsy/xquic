@@ -158,7 +158,7 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         unsigned char *pos = packet_in->pos;
         unsigned char *end = packet_in->last;
         ssize_t frame_type_len;
-        uint64_t frame_type;
+        uint64_t frame_type = 0;
         frame_type_len = xqc_vint_read(pos, end, &frame_type);
         if (frame_type_len < 0) {
             return -XQC_EVINTREAD;
@@ -239,6 +239,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                 break;
             case 0x1e:
                 ret = xqc_process_handshake_done_frame(conn, packet_in);
+                break;
+            case 0xbaba03:
+                ret = xqc_process_path_status_frame(conn, packet_in);
                 break;
             default:
                 xqc_log(conn->log, XQC_LOG_ERROR, "|unknown frame type|");
@@ -982,5 +985,19 @@ xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
     conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD;
 
     return ret;
+}
+
+
+xqc_int_t
+xqc_process_path_status_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    xqc_int_t ret = xqc_parse_path_status_frame(packet_in);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_process_handshake_done_frame error|");
+        return ret;
+    }
+
+    return XQC_OK;
 }
 
