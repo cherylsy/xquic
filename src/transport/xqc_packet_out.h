@@ -71,6 +71,8 @@ typedef struct xqc_packet_out_s {
     uint64_t                po_tx_in_flight; 
     /*how many packets have been lost when the packet is sent*/
     uint32_t                po_lost; 
+
+    uint64_t                out_path_id;
 } xqc_packet_out_t;
 
 xqc_packet_out_t *
@@ -145,6 +147,10 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 
 int
 xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn);
+
+xqc_int_t
+xqc_write_path_status_to_packet(xqc_connection_t *conn, 
+    xqc_path_ctx_t *path);
 
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

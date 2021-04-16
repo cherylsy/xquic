@@ -8,6 +8,8 @@
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_packet_parser.h"
+#include "src/transport/xqc_multipath.h"
+
 
 
 int
@@ -1346,5 +1348,111 @@ xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in)
     packet_in->pi_frame_types |= XQC_FRAME_BIT_HANDSHAKE_DONE;
     return XQC_OK;
 }
+
+
+/* https://datatracker.ietf.org/doc/draft-liu-multipath-quic/ 
+ * Section 9.1.  PATH_STATUS frame 
+ *
+ *    PATH_STATUS Frame {
+ *      Type (i) = TBD-03 (experiments use 0xbaba03),
+ *      Path Identifier (i),
+ *      Path Status sequence number (i),
+ *      Path Status (i),
+ *      Path Priority (i),
+ *    }
+ *
+ *                Figure 4: PATH_STATUS Frame Format
+ */
+xqc_int_t
+xqc_gen_path_status_frame(xqc_packet_out_t *packet_out, 
+    uint64_t path_id, uint64_t path_status_seq_number,
+    uint64_t path_status, uint64_t path_prio)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
+
+    /* Type (i) */
+    uint64_t frame_type = 0xbaba03;
+    unsigned frame_type_bits = xqc_vint_get_2bit(frame_type);
+    xqc_vint_write(dst_buf, frame_type, frame_type_bits, xqc_vint_len(frame_type_bits));
+    dst_buf += xqc_vint_len(frame_type_bits);
+
+    /* Path Identifier (i) */
+    unsigned path_id_bits = xqc_vint_get_2bit(path_id);
+    xqc_vint_write(dst_buf, path_id, path_id_bits, xqc_vint_len(path_id_bits));
+    dst_buf += xqc_vint_len(path_id_bits);
+
+    /* Path Status sequence number (i) */
+    unsigned path_status_seq_number_bits = xqc_vint_get_2bit(path_status_seq_number);
+    xqc_vint_write(dst_buf, path_status_seq_number, 
+                   path_status_seq_number_bits, xqc_vint_len(path_status_seq_number_bits));
+    dst_buf += xqc_vint_len(path_status_seq_number_bits);
+
+    /* Path Status (i) */
+    unsigned path_status_bits = xqc_vint_get_2bit(path_status);
+    xqc_vint_write(dst_buf, path_status, path_status_bits, xqc_vint_len(path_status_bits));
+    dst_buf += xqc_vint_len(path_status_bits);
+
+    /* Path Priority (i) */
+    unsigned path_prio_bits = xqc_vint_get_2bit(path_prio);
+    xqc_vint_write(dst_buf, path_prio, path_prio_bits, xqc_vint_len(path_prio_bits));
+    dst_buf += xqc_vint_len(path_prio_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_PATH_STATUS;
+
+    return dst_buf - begin;
+}
+
+
+xqc_int_t
+xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
+    xqc_connection_t *conn)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    uint64_t frame_type = 0, path_id = 0, path_status = 0, path_status_seq = 0, path_prio = 0;
+    int vlen;
+
+    vlen = xqc_vint_read(p, end, &frame_type);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, &path_id);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, &path_status_seq);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, &path_status);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    vlen = xqc_vint_read(p, end, &path_prio);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_PATH_STATUS;
+
+    /* end of parse */
+    xqc_path_ctx_t *path = xqc_conn_find_path_by_path_id(conn, path_id);
+    xqc_path_update_status(path, path_status_seq, path_status, path_prio);
+
+    return XQC_OK;
+}
+
 
 

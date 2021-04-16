@@ -35,6 +35,8 @@
 #define XQC_TOKEN_EXPIRE_DELTA (7*24*60*60) /* expire in N seconds */
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */
 
+#define XQC_MAX_AVAILABLE_CID_COUNT  16
+
 #define XQC_MAX_PACKET_PROCESS_BATCH 100 /* maximum accumulated number of xqc_engine_packet_process */
 
 #define XQC_MAX_RECV_WINDOW (16*1024*1024)
@@ -274,6 +276,11 @@ struct xqc_connection_s{
     unsigned char           dcid_str[XQC_MAX_CID_LEN * 2 + 1];
     unsigned char           scid_str[XQC_MAX_CID_LEN * 2 + 1];
 
+    xqc_cid_t               avail_dcid[XQC_MAX_AVAILABLE_CID_COUNT];
+    uint32_t                avail_dcid_count;
+    xqc_cid_t               avail_scid[XQC_MAX_AVAILABLE_CID_COUNT];
+    uint32_t                avail_scid_count;
+
     unsigned char           peer_addr[sizeof(struct sockaddr_in6)],
                             local_addr[sizeof(struct sockaddr_in6)];
     socklen_t               peer_addrlen,
@@ -338,6 +345,11 @@ struct xqc_connection_s{
     uint32_t                wakeup_pq_index;
 
     uint64_t                conn_err;
+
+    /* for multi-path */
+    xqc_path_ctx_t         *conn_initial_path;
+    xqc_list_head_t         conn_paths_list;
+
 
 #ifdef XQC_PRINT_SECRET
     unsigned char           client_random_hex[XQC_SECRET_HEX_MAX];
@@ -503,6 +515,13 @@ xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
 
 xqc_int_t
 xqc_conn_check_handshake_complete(xqc_connection_t *conn);
+
+
+xqc_int_t xqc_conn_get_new_dcid(xqc_connection_t *conn,
+    xqc_cid_t *dcid);
+xqc_int_t xqc_conn_get_new_scid(xqc_connection_t *conn,
+    xqc_cid_t *scid);
+xqc_int_t xqc_conn_check_available_cids(xqc_connection_t *conn);
 
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

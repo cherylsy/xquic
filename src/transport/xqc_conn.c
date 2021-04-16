@@ -2321,3 +2321,60 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
     return XQC_OK;
 }
 
+
+xqc_int_t
+xqc_conn_get_new_dcid(xqc_connection_t *conn,
+    xqc_cid_t *dcid)
+{
+    if (conn->avail_dcid_count == 0) {
+        return -XQC_ECONN_NO_AVAIL_CID;
+    }
+
+    *dcid = conn->avail_dcid[conn->avail_dcid_count - 1];
+    conn->avail_dcid_count--;
+
+    return XQC_OK;
+}
+
+
+xqc_int_t
+xqc_conn_get_new_scid(xqc_connection_t *conn,
+    xqc_cid_t *scid)
+{
+    if (conn->avail_scid_count == 0) {
+        return -XQC_ECONN_NO_AVAIL_CID;
+    }
+
+    *scid = conn->avail_scid[conn->avail_scid_count - 1];
+    conn->avail_scid_count--;
+
+    return XQC_OK;
+}
+
+
+/* should have at lease one available dcid & one available scid */
+xqc_int_t
+xqc_conn_check_available_cids(xqc_connection_t *conn)
+{
+    if (conn->avail_dcid_count == 0 || conn->avail_scid_count == 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|don't have available unused cid|%ui|%ui|", 
+                        conn->avail_dcid_count, conn->avail_scid_count);
+        return -XQC_EMP_NO_AVAIL_PATH_ID;
+    }
+    return XQC_OK;
+}
+
+
+void
+xqc_conn_destroy_cids(xqc_connection_t *conn)
+{
+    uint32_t i = 0;
+
+    /* try to remove all possible conns_has */
+    if (conn->engine->conns_hash) {
+        for (i = 0; i < conn->avail_scid_count; ++i) {
+            xqc_remove_conns_hash(conn->engine->conns_hash, conn, &(conn->avail_scid[i]));
+        }
+    }
+}
+
