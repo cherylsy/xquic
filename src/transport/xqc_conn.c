@@ -298,6 +298,10 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
         xqc_init_list_head(&xc->recv_record[i].list_head);
     }
 
+    /* for multi-path */
+    xqc_init_list_head(&xc->conn_paths_list);
+    xc->conn_initial_path = NULL;
+
     xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid), xc);
     return xc;
 
@@ -2388,5 +2392,3 @@ xqc_conn_try_add_new_conn_id(xqc_connection_t *conn)
         xqc_write_new_conn_id_frame_to_packet(conn);
     }
 }
-
-
