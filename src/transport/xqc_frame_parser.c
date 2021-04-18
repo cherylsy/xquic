@@ -1295,7 +1295,7 @@ xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in)
  *
  *               Figure 39: NEW_CONNECTION_ID Frame Format
  * */
-size_t
+ssize_t
 xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;

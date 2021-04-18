@@ -86,7 +86,7 @@ int xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out);
 
 int xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in);
 
-size_t xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid);
+ssize_t xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid);
 
 xqc_int_t xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in, xqc_cid_t *new_cid);
 
