@@ -70,21 +70,21 @@ int xqc_gen_max_data_frame(xqc_packet_out_t *packet_out, uint64_t max_data);
 
 int xqc_parse_max_data_frame(xqc_packet_in_t *packet_in, uint64_t *max_data);
 
-int xqc_gen_max_stream_data_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id, uint64_t max_stream_data);
+ssize_t xqc_gen_max_stream_data_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id, uint64_t max_stream_data);
 
-int xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *max_stream_data);
+xqc_int_t xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *max_stream_data);
 
-int xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, int bidirectional);
+ssize_t xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, int bidirectional);
 
-int xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, int *bidirectional);
+xqc_int_t xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, int *bidirectional);
 
-int xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *token, unsigned token_len);
+ssize_t xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *token, unsigned token_len);
 
-int xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsigned *token_len);
+xqc_int_t xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsigned *token_len);
 
-int xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out);
+ssize_t xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out);
 
-int xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in);
+xqc_int_t xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in);
 
 ssize_t xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid);
 

@@ -867,13 +867,13 @@ xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 xqc_int_t
 xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    int ret;
+    xqc_int_t ret = XQC_ERROR;
     uint64_t max_stream_data;
     xqc_stream_id_t stream_id;
     xqc_stream_t *stream;
 
     ret = xqc_parse_max_stream_data_frame(packet_in, &stream_id, &max_stream_data);
-    if (ret) {
+    if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_parse_max_stream_data_frame error|");
         return ret;
@@ -912,12 +912,12 @@ xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
 xqc_int_t
 xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    int ret;
+    xqc_int_t ret = XQC_ERROR;
     uint64_t max_streams;
     int bidirectional;
 
     ret = xqc_parse_max_streams_frame(packet_in, &max_streams, &bidirectional);
-    if (ret) {
+    if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_parse_max_streams_frame error|");
         return ret;
@@ -946,7 +946,7 @@ xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
 xqc_int_t
 xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    int ret;
+    xqc_int_t ret;
     if (XQC_CONN_TYPE_SERVER == conn->conn_type) {
         return -XQC_EPROTO;
     }
@@ -975,7 +975,7 @@ xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return -XQC_EPROTO;
     }
 
-    int ret = xqc_parse_handshake_done_frame(packet_in);
+    xqc_int_t ret = xqc_parse_handshake_done_frame(packet_in);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_process_handshake_done_frame error|");

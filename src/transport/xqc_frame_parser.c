@@ -1076,7 +1076,7 @@ xqc_parse_max_data_frame(xqc_packet_in_t *packet_in, uint64_t *max_data)
    |                    Maximum Stream Data (i)                  ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-int
+ssize_t
 xqc_gen_max_stream_data_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_id, uint64_t max_stream_data)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
@@ -1098,7 +1098,8 @@ xqc_gen_max_stream_data_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stre
     return dst_buf - begin;
 }
 
-int
+
+xqc_int_t
 xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *max_stream_data)
 {
     unsigned char *p = packet_in->pos;
@@ -1134,7 +1135,7 @@ xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *str
    |                     Maximum Streams (i)                     ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-int
+ssize_t
 xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, int bidirectional)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
@@ -1155,7 +1156,8 @@ xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, in
     return dst_buf - begin;
 }
 
-int
+
+xqc_int_t
 xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, int *bidirectional)
 {
     unsigned char *p = packet_in->pos;
@@ -1192,7 +1194,7 @@ xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, i
    |                            Token (*)                        ...
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
  */
-int
+ssize_t
 xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *token, unsigned token_len)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
@@ -1219,7 +1221,8 @@ xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *token
     return dst_buf - begin;
 }
 
-int
+
+xqc_int_t
 xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsigned *token_len)
 {
     unsigned char *p = packet_in->pos;
@@ -1256,7 +1259,7 @@ xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsi
 }
 
 
-int
+ssize_t
 xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
@@ -1273,7 +1276,8 @@ xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out)
     return dst_buf - begin;
 }
 
-int
+
+xqc_int_t
 xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in)
 {
     ++packet_in->pos;

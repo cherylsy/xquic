@@ -561,7 +561,7 @@ error:
 int
 xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t max_stream_data)
 {
-    int ret;
+    ssize_t ret = XQC_OK;
     xqc_packet_out_t *packet_out;
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
@@ -584,13 +584,13 @@ xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stre
 
 error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
+    return -XQC_EWRITE_PKT;
 }
 
 int
 xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int bidirectional)
 {
-    int ret;
+    ssize_t ret = XQC_ERROR;
     xqc_packet_out_t *packet_out;
 
     if (max_stream > XQC_MAX_STREAMS) {
@@ -619,13 +619,13 @@ xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int
 
 error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
+    return -XQC_EWRITE_PKT;
 }
 
 int
 xqc_write_new_token_to_packet(xqc_connection_t *conn)
 {
-    int ret;
+    ssize_t ret = 0;
     unsigned need;
     xqc_packet_out_t *packet_out;
 
@@ -714,7 +714,7 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 int
 xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn)
 {
-    int n_written = 0;
+    ssize_t n_written = 0;
     xqc_packet_out_t *packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);  
     if (packet_out == NULL) {
         return -XQC_EWRITE_PKT;
