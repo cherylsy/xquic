@@ -121,6 +121,8 @@ typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id, void *conn_user_data
 typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id, void *conn_user_data, 
     struct iovec *msg_iov, unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen);
 
+typedef void (*xqc_conn_ready_to_create_path_notify_pt)(xqc_cid_t *scid, void *conn_user_data);
+
 
 
 /* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */
@@ -321,6 +323,10 @@ typedef struct xqc_engine_callback_s {
 
     /* for server, custom cid generator */
     xqc_cid_generate_pt         cid_generate_cb;
+
+    /* for multi-path */
+    xqc_conn_ready_to_create_path_notify_pt  ready_to_create_path_notify;
+
 } xqc_engine_callback_t;
 
 #define XQC_ALPN_HTTP3      "h3-29"

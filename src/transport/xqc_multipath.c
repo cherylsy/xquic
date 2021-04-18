@@ -179,6 +179,10 @@ void
 xqc_path_update_status(xqc_path_ctx_t *path, 
     uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio)
 {
+    if (path == NULL) {
+        return;
+    }
+
     if (path_status_seq > path->path_status_seq_number) {
         path->path_status = path_status;
         path->path_prio = path_prio;

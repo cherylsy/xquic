@@ -71,6 +71,7 @@ XQUIC_VERS_1.0 {
         xqc_recv_record_del;
         xqc_get_random;
         xqc_vint_read;
+        xqc_conn_create_path;
     local:
         *;
 };

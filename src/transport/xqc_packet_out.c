@@ -8,7 +8,10 @@
 #include "src/common/xqc_timer.h"
 #include "src/transport/xqc_packet_parser.h"
 #include "src/transport/xqc_stream.h"
+#include "src/transport/xqc_utils.h"
+#include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_multipath.h"
+
 
 xqc_packet_out_t *
 xqc_packet_out_create()
@@ -730,10 +733,64 @@ xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn)
 
 
 xqc_int_t
+xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
+{
+    ssize_t ret = XQC_ERROR;
+    xqc_packet_out_t *packet_out = NULL;
+
+    if (conn->avail_scid_count >= XQC_MAX_AVAILABLE_CID_COUNT) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|Too many generated cid|");
+        return -XQC_EGENERATE_CID;
+    }
+    xqc_cid_t * new_conn_cid = &(conn->avail_scid[conn->avail_scid_count]);
+
+    /* only reserve bits for server side */
+    ++conn->largest_scid_seq_num;
+    if (xqc_generate_cid(conn->engine, new_conn_cid, conn->largest_scid_seq_num) != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|generate cid error|");
+        return -XQC_EGENERATE_CID;
+    }
+    
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
+        return -XQC_EWRITE_PKT;
+    }
+
+    ret = xqc_gen_new_conn_id_frame(packet_out, new_conn_cid);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_new_conn_id_frame error|");
+        goto error;
+    }
+
+    packet_out->po_used_size += ret;
+
+    /* insert conns_hash & add avail_scid_count */
+    ret = xqc_insert_conns_hash(conn->engine->conns_hash, conn, new_conn_cid);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|insert new_cid into conns_hash failed|%s|",
+                                          xqc_scid_str(new_conn_cid));
+        goto error;
+    }
+
+    conn->avail_scid_count++;
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_new_scid:%s|", xqc_scid_str(new_conn_cid));
+
+    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
+    return XQC_OK;
+
+error:
+    xqc_maybe_recycle_packet_out(packet_out, conn);
+    return ret;
+}
+
+
+xqc_int_t
 xqc_write_path_status_to_packet(xqc_connection_t *conn, 
     xqc_path_ctx_t *path)
 {
-    xqc_int_t ret;
+    ssize_t ret = 0;
     xqc_packet_out_t *packet_out;
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
