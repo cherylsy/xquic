@@ -585,7 +585,6 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
 }
 
 
-
 xqc_int_t
 xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
@@ -707,8 +706,8 @@ xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
 
     /*
      * An endpoint that receives a STOP_SENDING frame
-   MUST send a RESET_STREAM frame if the stream is in the Ready or Send
-   state.
+     * MUST send a RESET_STREAM frame if the stream is in the Ready or Send
+     * state.
      */
     if (stream->stream_state_send < XQC_SEND_STREAM_ST_RESET_SENT) {
         xqc_write_reset_stream_to_packet(conn, stream, H3_REQUEST_CANCELLED, stream->stream_send_offset);
@@ -717,10 +716,11 @@ xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
     return XQC_OK;
 }
 
+
 xqc_int_t
 xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    int ret;
+    xqc_int_t ret;
     uint64_t data_limit;
 
     ret = xqc_parse_data_blocked_frame(packet_in, &data_limit);
@@ -753,7 +753,7 @@ xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
 xqc_int_t
 xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    int ret;
+    xqc_int_t ret;
     uint64_t stream_data_limit;
     xqc_stream_id_t stream_id;
     xqc_stream_t *stream;
@@ -806,7 +806,7 @@ xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *p
 xqc_int_t
 xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    int ret;
+    xqc_int_t ret;
     uint64_t stream_limit;
     int bidirectional;
 
@@ -841,7 +841,7 @@ xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packe
 xqc_int_t
 xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    int ret;
+    xqc_int_t ret;
     uint64_t max_data;
 
     ret = xqc_parse_max_data_frame(packet_in, &max_data);

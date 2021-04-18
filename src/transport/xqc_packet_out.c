@@ -208,7 +208,8 @@ error:
 int
 xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns)
 {
-    int ret, has_gap;
+    ssize_t ret;
+    int has_gap;
     xqc_packet_number_t largest_ack;
     xqc_msec_t now = xqc_now();
 
@@ -302,7 +303,7 @@ done:
 int
 xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
@@ -333,7 +334,7 @@ error:
 int
 xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_INIT;
 
@@ -366,9 +367,9 @@ error:
 
 int
 xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 uint64_t err_code, uint64_t final_size)
+    uint64_t err_code, uint64_t final_size)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
@@ -408,9 +409,9 @@ error:
 
 int
 xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 uint64_t err_code)
+    uint64_t err_code)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
 
     /*
@@ -440,13 +441,13 @@ xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 
 error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
+    return -XQC_EWRITE_PKT;
 }
 
 int
 xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
@@ -469,13 +470,13 @@ xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
 
 error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
+    return -XQC_EWRITE_PKT;
 }
 
 int
 xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t stream_data_limit)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
@@ -497,13 +498,13 @@ xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t 
 
 error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
+    return -XQC_EWRITE_PKT;
 }
 
 int
 xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limit, int bidirectional)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_NUM);
@@ -526,13 +527,13 @@ xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limi
 
 error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
+    return -XQC_EWRITE_PKT;
 }
 
 int
 xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data)
 {
-    int ret;
+    ssize_t ret;
     xqc_packet_out_t *packet_out;
 
     packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
@@ -555,7 +556,7 @@ xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data)
 
 error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
+    return -XQC_EWRITE_PKT;
 }
 
 int
