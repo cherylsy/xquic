@@ -108,6 +108,8 @@ void xqc_conn_destroy_path(xqc_connection_t *conn);
 xqc_path_ctx_t *xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id);
 xqc_path_ctx_t *xqc_path_create(xqc_connection_t *conn,
     xqc_cid_t *scid, xqc_cid_t *dcid);
+xqc_int_t xqc_path_init(xqc_path_ctx_t *path,
+    xqc_connection_t *conn);
 
 
 /* path status manage */
