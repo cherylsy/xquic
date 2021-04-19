@@ -1012,15 +1012,15 @@ xqc_process_path_status_frame(xqc_connection_t *conn,
     /* try to create new path */
     if (path == NULL) {
 
-        xqc_cid_t *scid = xqc_conn_get_scid_by_seq(conn, path_id);
-        if (scid == NULL) {
+        xqc_cid_t *dcid = xqc_conn_get_dcid_by_seq(conn, path_id);
+        if (dcid == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR,
-                        "|can't find scid with seq_number|%ui|", path_id);
+                        "|can't find dcid with seq_number|%ui|", path_id);
             /* not format error here */
             return XQC_OK;
         }
 
-        xqc_cid_t *dcid = &(packet_in->pi_pkt.pkt_dcid);
+        xqc_cid_t *scid = &(packet_in->pi_pkt.pkt_dcid);
 
         path = xqc_path_create(conn, scid, dcid);
         if (path == NULL) {
