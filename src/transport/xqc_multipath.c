@@ -20,6 +20,8 @@
 
 #include "xquic/xqc_errno.h"
 
+#include "src/http3/xqc_h3_conn.h" /* TODO:delete me */
+
 
 xqc_path_ctx_t *
 xqc_path_create(xqc_connection_t *conn,

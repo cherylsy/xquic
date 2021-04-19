@@ -1471,7 +1471,7 @@ xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
-    uint64_t frame_type = 0, ;
+    uint64_t frame_type = 0;
     int vlen;
 
     vlen = xqc_vint_read(p, end, &frame_type);

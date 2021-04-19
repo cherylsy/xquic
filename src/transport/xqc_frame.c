@@ -1020,7 +1020,7 @@ xqc_process_path_status_frame(xqc_connection_t *conn,
             return XQC_OK;
         }
 
-        xqc_cid_t *dcid = packet_in->pi_pkt.pkt_dcid;
+        xqc_cid_t *dcid = &(packet_in->pi_pkt.pkt_dcid);
 
         path = xqc_path_create(conn, scid, dcid);
         if (path == NULL) {
