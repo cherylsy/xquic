@@ -132,6 +132,7 @@ set(
     "src/common/xqc_str.c"
     "src/common/xqc_log.c"
     "src/common/xqc_time.c"
+    "src/common/xqc_defs.c"
 )
 
 set(

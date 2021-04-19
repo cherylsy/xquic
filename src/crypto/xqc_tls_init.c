@@ -11,6 +11,8 @@
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_transport_params.h"
 #include "src/http3/xqc_h3_conn.h"
+#include "src/common/xqc_defs.h"
+
 #ifndef OPENSSL_IS_BORINGSSL
 SSL_QUIC_METHOD xqc_ssl_quic_method;
 #endif

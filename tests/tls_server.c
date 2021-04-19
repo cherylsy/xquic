@@ -134,7 +134,7 @@ int main(int argc, char *argv[]){
 
     engine.ssl_ctx = xqc_create_server_ssl_ctx(&xs_config);
     xqc_connection_t conn;
-    conn.version = XQC_IDRAFT_VER_29;
+    conn.version = XQC_VERSION_V1;
     xqc_tlsref_init(& conn.tlsref);
     xqc_server_tls_initial(&engine, &conn, &xs_config);
     conn.tlsref.server = 1;

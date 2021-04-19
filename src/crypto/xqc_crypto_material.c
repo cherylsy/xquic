@@ -5,6 +5,7 @@
 #include "src/crypto/xqc_hkdf.h"
 #include "src/crypto/xqc_digist.h"
 #include "src/crypto/xqc_crypto.h"
+#include "src/common/xqc_defs.h"
 
 /** private */
 

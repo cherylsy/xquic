@@ -1841,13 +1841,13 @@ int main(int argc, char *argv[]) {
             .cong_ctrl_callback = cong_ctrl,
             .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
             //.so_sndbuf  =   1024*1024,
-            .proto_version = XQC_IDRAFT_VER_29,
+            .proto_version = XQC_VERSION_V1,
             .spurious_loss_detect_on = 0,
     };
 
     /* check initial version */
     if (g_test_case == 17) {
-        conn_settings.proto_version = XQC_IDRAFT_INIT_VER;
+        conn_settings.proto_version = XQC_VERSION_V1;
     }
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_test_case == 20) { /* test sendmmsg */

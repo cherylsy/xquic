@@ -68,12 +68,6 @@
 
 #define XQC_INITIAL_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 
-/* XQC_INITIAL_SALT is a salt value which is used to derive initial
-   secret. */
-#define XQC_INITIAL_SALT                                                    \
-  "\xef\x4f\xb0\xab\xb4\x74\x70\xc4\x1b\xef\xcf\x80\x31\x33\x4f\xae\x48\x5e"   \
-  "\x09\xa0"
-
 
 extern const char *xqc_crypto_initial_salt[];
 
