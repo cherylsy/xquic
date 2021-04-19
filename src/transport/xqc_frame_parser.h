@@ -95,7 +95,8 @@ ssize_t xqc_gen_path_status_frame(xqc_packet_out_t *packet_out,
     uint64_t path_status, uint64_t path_prio);
 
 xqc_int_t xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
-    xqc_connection_t *conn);
+    uint64_t *path_id, uint64_t *path_status, uint64_t *path_status_seq, uint64_t *path_prio);
+
 
 
 #endif /*_XQC_FRAME_PARSER_H_INCLUDED_*/
