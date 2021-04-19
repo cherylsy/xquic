@@ -210,6 +210,10 @@ xqc_path_update_status(xqc_path_ctx_t *path,
         path->path_status = path_status;
         path->path_prio = path_prio;
     }
+
+    xqc_log(path->parent_conn->log, XQC_LOG_DEBUG, 
+                            "|path %ui update status %ui, seq %ui|", 
+                            path->path_id, path->path_status, path->path_status_seq_number);
 }
 
 
