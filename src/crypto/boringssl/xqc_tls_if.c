@@ -110,10 +110,6 @@ SSL_QUIC_METHOD  xqc_ssl_quic_method =
 };
 
 
-#define XQC_EARLY_DATA_CONTEXT          "xquic"
-#define XQC_EARLY_DATA_CONTEXT_LEN      (sizeof(XQC_EARLY_DATA_CONTEXT) - 1)
-
-
 static int 
 xqc_configure_quic(xqc_connection_t *conn)
 {
@@ -137,9 +133,6 @@ xqc_configure_quic(xqc_connection_t *conn)
         break;
     }
     case XQC_CONN_TYPE_SERVER:{
-        SSL_set_quic_early_data_context(ssl, (const uint8_t *)XQC_EARLY_DATA_CONTEXT, 
-                                        XQC_EARLY_DATA_CONTEXT_LEN);
-
         rv = xqc_serialize_server_transport_params(conn,
                             XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS,
                             &out, &outlen);

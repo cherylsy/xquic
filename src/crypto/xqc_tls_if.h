@@ -23,6 +23,9 @@ typedef struct {
 #define XQC_HP_RX   (1)
 #define XQC_HP_MAX_DIRECTION (2)
 
+#define XQC_EARLY_DATA_CONTEXT          "xquic"
+#define XQC_EARLY_DATA_CONTEXT_LEN      (sizeof(XQC_EARLY_DATA_CONTEXT) - 1)
+
 struct xqc_tls_context
 {
     //aead suites

@@ -241,27 +241,37 @@ int xqc_recv_client_initial_cb(xqc_connection_t * conn,
     return xqc_recv_client_hello_derive_key(conn, dcid);
 }
 
-static int
-xqc_set_encryption_secrets(SSL *ssl, enum ssl_encryption_level_t level,
-    const uint8_t *read_secret, const uint8_t *write_secret, size_t secret_len)
+
+static int 
+xqc_set_encryption_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
+    const SSL_CIPHER *cipher, const uint8_t *secret, size_t secret_len)
+{
+    xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
+#ifdef XQC_PRINT_SECRET
+    xqc_tls_print_secret(ssl, conn, level, secret, NULL, secret_len);
+#endif
+    int rv = XQC_SSL_SUCCESS;
+    if (XQC_LIKELY(rv == XQC_SSL_SUCCESS) && secret != NULL) {
+        rv = xqc_set_read_secret(ssl, level, cipher, secret, secret_len);
+    }
+    return rv;
+}
+
+static int 
+xqc_set_encryption_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
+    const SSL_CIPHER *cipher, const uint8_t *secret, size_t secret_len)
 {
     xqc_connection_t *conn = (xqc_connection_t *) SSL_get_app_data(ssl);
-
 #ifdef XQC_PRINT_SECRET
-    xqc_tls_print_secret(ssl, conn, level, read_secret, write_secret, secret_len);
+    xqc_tls_print_secret(ssl, conn, level, NULL, secret, secret_len);
 #endif
-
     int rv = XQC_SSL_SUCCESS;
-    if (write_secret != NULL) {
-        rv = xqc_set_write_secret(ssl, level, SSL_get_current_cipher(ssl), write_secret,secret_len);
+    if (XQC_LIKELY(rv == XQC_SSL_SUCCESS) && secret != NULL) {
+        rv = xqc_set_write_secret(ssl, level, cipher, secret, secret_len);
     }
-
-    if (XQC_LIKELY(rv == XQC_SSL_SUCCESS) && read_secret != NULL) {
-        rv = xqc_set_read_secret(ssl, level, SSL_get_current_cipher(ssl), read_secret, secret_len);
-    }
-
-    return rv ;
+    return rv;
 }
+
 
 int
 xqc_add_handshake_data(SSL *ssl, enum ssl_encryption_level_t level,
@@ -312,7 +322,8 @@ xqc_send_alert(SSL *ssl, enum ssl_encryption_level_t level, uint8_t alert)
 }
 
 SSL_QUIC_METHOD xqc_ssl_quic_method = {
-    .set_encryption_secrets = xqc_set_encryption_secrets,
+    .set_read_secret        = xqc_set_encryption_read_secret,
+    .set_write_secret       = xqc_set_encryption_write_secret,
     .add_handshake_data     = xqc_add_handshake_data,
     .flush_flight           = xqc_flush_flight,
     .send_alert             = xqc_send_alert,
