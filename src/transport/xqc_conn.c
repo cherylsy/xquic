@@ -2396,3 +2396,29 @@ xqc_conn_try_add_new_conn_id(xqc_connection_t *conn)
         xqc_write_new_conn_id_frame_to_packet(conn);
     }
 }
+
+
+xqc_cid_t *
+xqc_conn_get_scid_by_seq(xqc_connection_t *conn, uint64_t seq_num)
+{
+    for (int i = 0; i < conn->avail_scid_count; i++) {
+        if (conn->avail_scid[i].cid_seq_num == seq_num) {
+            return &conn->avail_scid[i];
+        }
+    }
+
+    return NULL;
+}
+
+
+xqc_cid_t *
+xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num)
+{
+    for (int i = 0; i < conn->avail_dcid_count; i++) {
+        if (conn->avail_dcid[i].cid_seq_num == seq_num) {
+            return &conn->avail_dcid[i];
+        }
+    }
+
+    return NULL;
+}

@@ -254,7 +254,7 @@ xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
 
 xqc_int_t
 xqc_packet_parse_short_header(xqc_connection_t *c,
-                              xqc_packet_in_t *packet_in)
+    xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
     xqc_packet_t *packet = &packet_in->pi_pkt;

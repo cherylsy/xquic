@@ -106,6 +106,8 @@ uint64_t xqc_conn_enable_multipath(xqc_connection_t *conn);
 /* path create & close */
 void xqc_conn_destroy_path(xqc_connection_t *conn);
 xqc_path_ctx_t *xqc_conn_find_path_by_path_id(xqc_connection_t *conn, uint64_t path_id);
+xqc_path_ctx_t *xqc_path_create(xqc_connection_t *conn,
+    xqc_cid_t *scid, xqc_cid_t *dcid);
 
 
 /* path status manage */
