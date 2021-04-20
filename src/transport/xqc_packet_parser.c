@@ -287,7 +287,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     /* check dcid */
     xqc_cid_set(&(packet->pkt_dcid), pos, cid_len);
     pos += cid_len;
-    if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK) {
+    if (xqc_conn_check_dcid(c, &(packet->pkt_dcid)) != XQC_OK) {
         /* log & ignore */
         xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid, pkt dcid: %s, conn scid: %s|", xqc_dcid_str(&packet->pkt_dcid), xqc_scid_str(&c->scid));
         return -XQC_EILLPKT;

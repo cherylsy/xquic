@@ -96,6 +96,7 @@ typedef enum {
     XQC_EGENERATE_CID                   = 632,      // CID 生成错误
     XQC_EANTI_AMPLIFICATION_LIMIT       = 633,      // server reached the anti-amplification limit
     XQC_ECONN_NO_AVAIL_CID              = 634,      // no available cid
+    XQC_ECONN_CID_NOT_FOUND             = 635,      // can't find cid in connection
 
     XQC_EMP_NOT_SUPPORT_MP              = 650,      // Multipath - don't support multipath
     XQC_EMP_NO_AVAIL_PATH_ID            = 651,      // Multipath - no available path id
