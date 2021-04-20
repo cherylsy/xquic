@@ -168,7 +168,7 @@ xqc_path_move_unack_packets_from_conn(xqc_path_ctx_t *path, xqc_connection_t *co
             continue;
         }
 
-        if (po->out_path_id == closing_path_id) {
+        if (po->po_path_id == closing_path_id) {
             if (po->po_flag & XQC_POF_IN_FLIGHT) {
                 xqc_send_ctl_decrease_inflight(path_send_ctl, po);
                 /*In the worst case, we have two redundant pkts on the same path.*/
