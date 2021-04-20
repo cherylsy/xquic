@@ -1339,7 +1339,7 @@ xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size)
     unsigned char calc_token[XQC_RESET_TOKEN_LEN] = {0};
     xqc_gen_reset_token(cid, calc_token, XQC_RESET_TOKEN_LEN);
 
-    if (memcmp(token,calc_token, XQC_RESET_TOKEN_LEN) == 0) {
+    if (memcmp(token, calc_token, XQC_RESET_TOKEN_LEN) == 0) {
         return 1;
     }
     return 0;

@@ -31,4 +31,7 @@ int xqc_server_tls_initial(xqc_engine_t * engine, xqc_connection_t *conn, xqc_en
 
 BIO_METHOD *xqc_create_bio_method();
 
+xqc_int_t xqc_set_cipher_suites(xqc_engine_t * engine);
+
+
 #endif

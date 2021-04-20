@@ -792,4 +792,27 @@ xqc_client_setup_initial_crypto_context(xqc_connection_t *conn, xqc_cid_t *dcid)
 }
 
 
+xqc_int_t
+xqc_set_cipher_suites(xqc_engine_t * engine)
+{
+    if (engine->ssl_ctx 
+        && engine->ssl_config.ciphers && strlen(engine->ssl_config.ciphers) > 0)
+    {
+#ifndef OPENSSL_IS_BORINGSSL
+        if (XQC_SSL_SUCCESS != SSL_CTX_set_ciphersuites(engine->ssl_ctx, engine->ssl_config.ciphers)) {
+            xqc_log(engine->log, XQC_LOG_ERROR, 
+                    "|SSL_CTX_set_ciphersuites failed|error info:%s|ciphers:%s|", 
+                    ERR_error_string(ERR_get_error(), NULL), engine->ssl_config.ciphers);
+            return -XQC_TLS_SET_CIPHER_SUITES_ERROR;
+        }
+#endif
+    /* boringssl have a built-in preference order 
+       and do not support setting TLS 1.3 cipher */
+    }
+
+    xqc_log(engine->log, XQC_LOG_DEBUG,
+            "|set cipheer suites suc|ciphers:%s|", engine->ssl_config.ciphers);
+
+    return XQC_OK;
+}
 
