@@ -292,7 +292,7 @@ xqc_engine_wakeup_after(xqc_engine_t *engine)
 }
 
 
-int
+xqc_int_t
 xqc_engine_schedule_reset(xqc_engine_t *engine,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_msec_t now)
 {
