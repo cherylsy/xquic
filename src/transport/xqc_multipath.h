@@ -117,25 +117,8 @@ void xqc_path_update_status(xqc_path_ctx_t *path,
     uint64_t path_status_seq, uint64_t path_status, uint64_t path_prio);
 
 
-void xqc_mp_server_try_activate_path(xqc_connection_t *conn, uint64_t path_id, 
-    const struct sockaddr *local_addr, socklen_t local_addrlen,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen);
-
-void xqc_mp_client_activate_path(xqc_path_ctx_t *path);
-
 
 /* path statistics */
-xqc_int_t xqc_mp_conn_active_path_count(xqc_connection_t *conn);
-void xqc_mp_conn_stat_print(xqc_connection_t *conn, xqc_conn_stats_t *stats);
-void xqc_mp_request_stat_print(xqc_connection_t *conn, 
-    xqc_stream_t *stream, xqc_request_stats_t *stats);
-void xqc_mp_path_stats_print(xqc_connection_t *conn, char *buff, unsigned buff_size);
-void xqc_mp_request_path_stats_print(xqc_connection_t *conn, 
-    xqc_stream_t *stream, char *buff, unsigned buff_size);
-
-void xqc_mp_path_stats_to_stream_on_send(xqc_connection_t *conn, xqc_packet_out_t *po);
-void xqc_mp_path_stats_to_stream_on_recv(xqc_connection_t *conn, 
-    xqc_stream_t *stream, xqc_packet_in_t *packet_in);
 
 
 /* path scheduler & send ctl */
@@ -150,10 +133,6 @@ void xqc_mp_path_send_ctl_timer_expire(xqc_connection_t *conn, xqc_msec_t now);
 xqc_int_t xqc_mp_should_reinject(xqc_connection_t *conn, xqc_send_ctl_t *real_ctl);
 void xqc_mp_try_reinject_one_packet(xqc_connection_t *conn, 
     xqc_packet_out_t *packet_out, xqc_mp_pkt_prioirty_t prio);
-
-void xqc_mp_reset_request_stats(xqc_connection_t *conn);
-void xqc_mp_check_app_limited(xqc_connection_t *conn);
-xqc_msec_t xqc_mp_get_min_srtt_for_fc(xqc_connection_t *conn);
 
 
 #endif /* XQC_MULTIPATH_H */
