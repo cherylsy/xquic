@@ -122,7 +122,7 @@ uint64_t g_last_sock_op_time;
 int g_test_case;
 int g_ipv6;
 int g_no_crypt;
-int g_conn_timeout = 3;
+int g_conn_timeout = 1;
 char g_write_file[64];
 char g_read_file[64];
 char g_host[64] = "test.xquic.com";
