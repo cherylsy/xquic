@@ -799,13 +799,11 @@ xqc_set_cipher_suites(xqc_engine_t * engine)
         && engine->ssl_config.ciphers && strlen(engine->ssl_config.ciphers) > 0)
     {
 #ifndef OPENSSL_IS_BORINGSSL
-        if (XQC_SSL_SUCCESS != SSL_CTX_set_ciphersuites(
-            engine->ssl_ctx, engine->ssl_config.ciphers))
-        {
+        if (XQC_SSL_SUCCESS != SSL_CTX_set_ciphersuites(engine->ssl_ctx, engine->ssl_config.ciphers)) {
             xqc_log(engine->log, XQC_LOG_ERROR, 
                     "|SSL_CTX_set_ciphersuites failed|error info:%s|ciphers:%s|", 
                     ERR_error_string(ERR_get_error(), NULL), engine->ssl_config.ciphers);
-            return XQC_ERROR;
+            return -XQC_TLS_SET_CIPHER_SUITES_ERROR;
         }
 #endif
     /* boringssl have a built-in preference order 

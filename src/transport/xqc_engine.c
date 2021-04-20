@@ -398,7 +398,9 @@ xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * ssl_c
     }
 
     /* set ssl ctx cipher suites */
-    xqc_set_cipher_suites(engine);
+    if (xqc_set_cipher_suites(engine) != XQC_OK) {
+        goto fail;
+    }
 
     engine->h3_ctx = xqc_h3_context_create();
     if (engine->h3_ctx == NULL) {
