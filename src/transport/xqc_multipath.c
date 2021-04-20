@@ -131,7 +131,8 @@ xqc_path_init(xqc_path_ctx_t *path,
     if (path->path_id != XQC_MP_INITIAL_PATH_ID
         && conn->engine->eng_callback.path_created_notify)
     {
-        conn->engine->eng_callback.path_created_notify(&conn->scid, path->path_id, xqc_conn_get_user_data(conn));
+        conn->engine->eng_callback.path_created_notify(&conn->scid, path->path_id, 
+                                                       xqc_conn_get_user_data(conn));
     }
 
     /* TODO: 4-tuple init */
