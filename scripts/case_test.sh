@@ -877,6 +877,18 @@ else
     case_print_result "load_balancer_cid_generate" "fail"
 fi
 
+clear_log
+echo -e "set cipher suites ...\c"
+./test_client -s 1024 -l d -t 1 -x 27 >> clog
+result=`grep "set cipheer suites suc|ciphers:TLS_CHACHA20_POLY1305_SHA256" clog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" != "" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "set_cipher_suites" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "set_cipher_suites" "fail"
+fi
 
 
 killall test_server

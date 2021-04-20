@@ -812,6 +812,9 @@ xqc_set_cipher_suites(xqc_engine_t * engine)
        and do not support setting TLS 1.3 cipher */
     }
 
+    xqc_log(engine->log, XQC_LOG_DEBUG,
+            "|set cipheer suites suc|ciphers:%s|", engine->ssl_config.ciphers);
+
     return XQC_OK;
 }
 

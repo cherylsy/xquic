@@ -1626,6 +1626,10 @@ int main(int argc, char *argv[]) {
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
     engine_ssl_config.groups = XQC_TLS_GROUPS;
 
+    if (g_test_case == 27) {
+        engine_ssl_config.ciphers = "TLS_CHACHA20_POLY1305_SHA256";
+    }
+
     xqc_engine_callback_t callback = {
             /* HTTP3不用设置这个回调 */
             .conn_callbacks = {
