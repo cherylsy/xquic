@@ -742,11 +742,12 @@ xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 
 #define MIN_CRYPTO_FRAME_SIZE 8
 
-int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encrypt_t encrypt_func,
-                           xqc_pkt_type_t pkt_type)
+int 
+xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encrypt_t encrypt_func,
+    xqc_pkt_type_t pkt_type)
 {
     size_t send_data_written = 0;
-    int n_written = 0;
+    ssize_t n_written = 0;
     xqc_packet_out_t *packet_out;
     xqc_connection_t *c = stream->stream_conn;
 
@@ -791,7 +792,7 @@ int xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encry
                 xqc_msec_t now = xqc_now();
                 packet_out->po_sent_time = now;
                 xqc_long_packet_update_length(packet_out);
-                xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data|pkt_num:%ui|size:%ud|sent:%d|pkt_type:%s|frame:%s|now:%ui|",
+                xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data|pkt_num:%ui|size:%z|sent:%d|pkt_type:%s|frame:%s|now:%ui|",
                     packet_out->po_pkt.pkt_num, packet_out->po_used_size, n_written,
                     xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                     xqc_frame_type_2_str(packet_out->po_frame_types), now);

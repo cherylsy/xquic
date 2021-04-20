@@ -426,11 +426,11 @@ void
 xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if (!(packet_out->po_flag & XQC_POF_IN_FLIGHT) && XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
-        ctl->ctl_bytes_in_flight += packet_out->po_used_size;
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            ctl->ctl_bytes_in_flight += packet_out->po_used_size;
             ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] += packet_out->po_used_size;
+            packet_out->po_flag |= XQC_POF_IN_FLIGHT;
         }
-        packet_out->po_flag |= XQC_POF_IN_FLIGHT;
     }
 }
 
@@ -438,23 +438,17 @@ void
 xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
     if (packet_out->po_flag & XQC_POF_IN_FLIGHT) {
-        if (ctl->ctl_bytes_in_flight < packet_out->po_used_size) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
-            ctl->ctl_bytes_in_flight = 0;
-
-        } else {
-            ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
-        }
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
             if (ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] < packet_out->po_used_size) {
                 xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
                 ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] = 0;
-
+                ctl->ctl_bytes_in_flight = 0;
             } else {
                 ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] -= packet_out->po_used_size;
+                ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
             }
+            packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
         }
-        packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
     }
 }
 
@@ -1500,10 +1494,12 @@ xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet,
  * OnPacketAckedCC
  */
 void
-xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now, int do_cc)
+xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, 
+    xqc_packet_out_t *acked_packet, xqc_msec_t now, int do_cc)
 {
     xqc_stream_t *stream;
     xqc_packet_out_t *packet_out = acked_packet;
+    xqc_connection_t *conn = ctl->ctl_conn;
 
     xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
 
@@ -1515,15 +1511,22 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet
             xqc_send_ctl_on_reset_stream_acked(ctl, packet_out);
         }
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO && packet_out->po_pkt.pkt_pns == XQC_PNS_HSK) {
-            ctl->ctl_conn->conn_flag |= XQC_CONN_FLAG_HSK_ACKED;
+            conn->conn_flag |= XQC_CONN_FLAG_HSK_ACKED;
         }
         if (packet_out->po_frame_types & XQC_FRAME_BIT_PING) {
-            if (ctl->ctl_conn->conn_callbacks.conn_ping_acked) {
-                ctl->ctl_conn->conn_callbacks.conn_ping_acked(ctl->ctl_conn, &ctl->ctl_conn->scid,
-                                                              ctl->ctl_conn->user_data,
-                                                              packet_out->po_ping_user_data);
+            if (conn->conn_callbacks.conn_ping_acked) {
+                conn->conn_callbacks.conn_ping_acked(conn, &conn->scid,
+                                                     conn->user_data,
+                                                     packet_out->po_ping_user_data);
             }
         }
+
+        /* TODO: fix NEW_CID_RECEIVED */
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_NEW_CONNECTION_ID) {
+            packet_out->po_frame_types &= ~XQC_FRAME_BIT_NEW_CONNECTION_ID;
+            conn->conn_flag |= XQC_CONN_FLAG_NEW_CID_RECEIVED;
+        }
+
         if (do_cc) {
             xqc_send_ctl_cc_on_ack(ctl, packet_out, now);
         }

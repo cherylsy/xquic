@@ -126,6 +126,7 @@ typedef enum {
     XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT,
     XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
+    XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 }xqc_conn_flag_shift_t;
 
@@ -157,6 +158,7 @@ typedef enum {
     XQC_CONN_FLAG_VERSION_NEGOTIATION   = 1 << XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT,
     XQC_CONN_FLAG_HANDSHAKE_CONFIRMED   = 1 << XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT,
     XQC_CONN_FLAG_ADDR_VALIDATED        = 1 << XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
+    XQC_CONN_FLAG_NEW_CID_RECEIVED      = 1 << XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
 }xqc_conn_flag_t;
 
 
@@ -275,6 +277,7 @@ struct xqc_connection_s{
     xqc_cid_t               ocid; /* original connection id */
     unsigned char           dcid_str[XQC_MAX_CID_LEN * 2 + 1];
     unsigned char           scid_str[XQC_MAX_CID_LEN * 2 + 1];
+    uint64_t                largest_scid_seq_num;
 
     xqc_cid_t               avail_dcid[XQC_MAX_AVAILABLE_CID_COUNT];
     uint32_t                avail_dcid_count;
@@ -522,6 +525,7 @@ xqc_int_t xqc_conn_get_new_dcid(xqc_connection_t *conn,
 xqc_int_t xqc_conn_get_new_scid(xqc_connection_t *conn,
     xqc_cid_t *scid);
 xqc_int_t xqc_conn_check_available_cids(xqc_connection_t *conn);
+void xqc_conn_try_add_new_conn_id(xqc_connection_t *conn);
 
 
 #endif /* _XQC_CONN_H_INCLUDED_ */
