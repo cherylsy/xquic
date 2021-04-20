@@ -21,6 +21,7 @@
 #include "src/crypto/xqc_tls_header.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_wakeup_pq.h"
+#include "src/transport/xqc_multipath.h"
 
 xqc_conn_settings_t default_conn_settings = {
     .pacing_on        = 0,
