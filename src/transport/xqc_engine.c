@@ -23,7 +23,6 @@
 
 
 uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
-
     0x00000001,
     0xFF00001B,
     0xFF00001C,
@@ -44,6 +43,7 @@ xqc_config_t default_client_config = {
     .cid_negotiate = 0,
 };
 
+
 xqc_config_t default_server_config = {
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
@@ -56,34 +56,43 @@ xqc_config_t default_server_config = {
     .cid_negotiate = 0,
 };
 
-int
+
+xqc_int_t
 xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
 {
     if (src->conn_pool_size > 0) {
         dst->conn_pool_size = src->conn_pool_size;
     }
+
     if (src->streams_hash_bucket_size > 0) {
         dst->streams_hash_bucket_size = src->streams_hash_bucket_size;
     }
+
     if (src->conns_hash_bucket_size > 0) {
         dst->conns_hash_bucket_size = src->conns_hash_bucket_size;
     }
+
     if (src->conns_active_pq_capacity > 0) {
         dst->conns_active_pq_capacity = src->conns_active_pq_capacity;
     }
+
     if (src->conns_wakeup_pq_capacity > 0) {
         dst->conns_wakeup_pq_capacity = src->conns_wakeup_pq_capacity;
     }
+
     if (src->support_version_count > 0 && src->support_version_count <= XQC_SUPPORT_VERSION_MAX) {
         dst->support_version_count = src->support_version_count;
         for (int i = 0; i < src->support_version_count; ++i) {
             dst->support_version_list[i] = src->support_version_list[i];
         }
+
     } else if (src->support_version_count > XQC_SUPPORT_VERSION_MAX) {
         return XQC_ERROR;
     }
+
     if (src->cid_len > 0 && src->cid_len <= XQC_MAX_CID_LEN) {
         dst->cid_len = src->cid_len;
+
     } else if (src->cid_len > XQC_MAX_CID_LEN) {
         return XQC_ERROR;
     }
@@ -99,10 +108,12 @@ xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_typ
 {
     if (engine_type == XQC_ENGINE_SERVER) {
         return xqc_set_config(config, &default_server_config);
+
     } else {
         return xqc_set_config(config, &default_client_config);
     }
 }
+
 
 /* TODO: Obsolete */
 int
@@ -110,6 +121,7 @@ xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type)
 {
     if (engine_type == XQC_ENGINE_SERVER) {
         return xqc_set_config(&default_server_config, config);
+
     } else {
         return xqc_set_config(&default_client_config, config);
     }
@@ -135,6 +147,7 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
 
     if (engine_type == XQC_ENGINE_SERVER) {
         xqc_set_config(config, &default_server_config);
+
     } else if (engine_type == XQC_ENGINE_CLIENT) {
         xqc_set_config(config, &default_client_config);
     }
@@ -142,11 +155,13 @@ xqc_engine_config_create(xqc_engine_type_t engine_type)
     return config;
 }
 
+
 void
 xqc_engine_config_destroy(xqc_config_t *config)
 {
     xqc_free(config);
 }
+
 
 xqc_str_hash_table_t *
 xqc_engine_conns_hash_create(xqc_config_t *config)
@@ -168,12 +183,14 @@ fail:
     return NULL;
 }
 
+
 void
 xqc_engine_conns_hash_destroy(xqc_str_hash_table_t *hash_table)
 {
     xqc_str_hash_release(hash_table);
     xqc_free(hash_table);
 }
+
 
 xqc_pq_t *
 xqc_engine_conns_pq_create(xqc_config_t *config)
@@ -184,9 +201,9 @@ xqc_engine_conns_pq_create(xqc_config_t *config)
     }
 
     xqc_memzero(q, sizeof(xqc_pq_t));
-
-    if (xqc_pq_init(q, sizeof(xqc_conns_pq_elem_t), config->conns_active_pq_capacity,
-                    xqc_default_allocator, xqc_pq_revert_cmp)) {
+    if (xqc_pq_init(q, sizeof(xqc_conns_pq_elem_t),
+        config->conns_active_pq_capacity, xqc_default_allocator, xqc_pq_revert_cmp))
+    {
         goto fail;
     }
 
@@ -197,6 +214,7 @@ fail:
     xqc_free(q);
     return NULL;
 }
+
 
 xqc_wakeup_pq_t *
 xqc_engine_wakeup_pq_create(xqc_config_t *config)
@@ -209,18 +227,18 @@ xqc_engine_wakeup_pq_create(xqc_config_t *config)
     xqc_memzero(q, sizeof(xqc_wakeup_pq_t));
 
     if (xqc_wakeup_pq_init(q, config->conns_wakeup_pq_capacity,
-                    xqc_default_allocator, xqc_wakeup_pq_revert_cmp)) {
+                           xqc_default_allocator, xqc_wakeup_pq_revert_cmp))
+    {
         goto fail;
     }
 
     return q;
 
-    fail:
+fail:
     xqc_wakeup_pq_destroy(q);
     xqc_free(q);
     return NULL;
 }
-
 
 
 xqc_connection_t *
@@ -236,10 +254,11 @@ xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type)
     str.len = cid->cid_len;
 
     if (type == 's') {
-        /* 本地cid */
+        /* search by endpoint's cid */
         return xqc_str_hash_find(engine->conns_hash, hash, str);
+
     } else {
-        /* 对端cid */
+        /* search by peer's cid */
         return xqc_str_hash_find(engine->conns_hash_dcid, hash, str);
     }
 }
@@ -259,50 +278,50 @@ xqc_engine_wakeup_pq_destroy(xqc_wakeup_pq_t *q)
     xqc_free(q);
 }
 
+
 xqc_msec_t
-xqc_engine_wakeup_after (xqc_engine_t *engine)
+xqc_engine_wakeup_after(xqc_engine_t *engine)
 {
     xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
     if (el) {
         xqc_msec_t now = xqc_now();
-
         return el->wakeup_time > now ? el->wakeup_time - now : 1;
     }
-
 
     return 0;
 }
 
+
 int
 xqc_engine_schedule_reset(xqc_engine_t *engine,
-                          const struct sockaddr *peer_addr,
-                          socklen_t peer_addrlen,
-                          xqc_msec_t now)
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_msec_t now)
 {
     /* Can send 2 reset packets in 5 seconds */
-    if (now - engine->reset_sent_cnt_cleared > 5000*1000) {
+    if (now - engine->reset_sent_cnt_cleared > 5000 * 1000) {
         memset(engine->reset_sent_cnt, 0, sizeof(engine->reset_sent_cnt));
         engine->reset_sent_cnt_cleared = now;
     }
+
     uint32_t hash = xqc_murmur_hash2((unsigned char*)peer_addr, peer_addrlen);
     hash = hash % XQC_RESET_CNT_ARRAY_LEN;
-    xqc_log(engine->log, XQC_LOG_DEBUG, "|hash:%ud|cnt:%ud|",hash, engine->reset_sent_cnt[hash]);
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|hash:%ud|cnt:%ud|", hash, engine->reset_sent_cnt[hash]);
+
     if (engine->reset_sent_cnt[hash] < 2) {
         engine->reset_sent_cnt[hash]++;
         return XQC_OK;
     }
+
     return XQC_ERROR;
 }
+
 
 /**
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 xqc_engine_t *
-xqc_engine_create(xqc_engine_type_t engine_type,
-                  xqc_engine_ssl_config_t * ssl_config,
-                  xqc_engine_callback_t engine_callback,
-                  void *user_data)
+xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * ssl_config,
+    xqc_engine_callback_t engine_callback, void *user_data)
 {
     xqc_engine_t *engine = NULL;
 
@@ -351,13 +370,13 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
-    if (ssl_config != NULL) { //ssl_config null for test
+    if (ssl_config != NULL) {
         if (xqc_ssl_init_engine_config(engine, ssl_config, &engine->session_ticket_key) < 0) {
             goto fail;
         }
 
         engine->ssl_meth = xqc_create_bio_method();
-        if(engine->ssl_meth == NULL){
+        if (engine->ssl_meth == NULL) {
             goto fail;
         }
 
@@ -366,20 +385,26 @@ xqc_engine_create(xqc_engine_type_t engine_type,
             if (engine->ssl_ctx == NULL) {
                 goto fail;
             }
+
         } else {
             engine->ssl_ctx = xqc_create_client_ssl_ctx(engine, ssl_config);
             if (engine->ssl_ctx == NULL) {
                 goto fail;
             }
         }
+
     } else {
         goto fail;
     }
+
+    /* set ssl ctx cipher suites */
+    xqc_set_cipher_suites(engine);
 
     engine->h3_ctx = xqc_h3_context_create();
     if (engine->h3_ctx == NULL) {
         goto fail;
     }
+
     xqc_qpack_init_static_token_index();
 
     return engine;
@@ -389,9 +414,13 @@ fail:
     return NULL;
 }
 
-xqc_connection_t * xqc_conns_pq_pop_top_conn(xqc_pq_t *pq){ //遍历cons_pq队列用该函数。因为取出来后需要立即从堆中删除，否则发生push动作再pop就会发生错误
+
+xqc_connection_t *
+xqc_conns_pq_pop_top_conn(xqc_pq_t *pq)
+{
+    /* used to traverse conns_pq */
     xqc_conns_pq_elem_t *el = xqc_conns_pq_top(pq);
-    if(XQC_UNLIKELY(el == NULL || el->conn == NULL)){
+    if (XQC_UNLIKELY(el == NULL || el->conn == NULL)) {
         xqc_conns_pq_pop(pq);
         return NULL;
     }
@@ -400,6 +429,7 @@ xqc_connection_t * xqc_conns_pq_pop_top_conn(xqc_pq_t *pq){ //遍历cons_pq队�
     xqc_conns_pq_pop(pq);
     return conn;
 }
+
 
 void
 xqc_engine_destroy(xqc_engine_t *engine)
@@ -414,7 +444,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
         xqc_log(engine->log, XQC_LOG_DEBUG, "|begin|");
     }
 
-    /* 必须先释放连接，再释放其他结构 */
+    /* free destroy first, then destroy others */
     if (engine->conns_active_pq) {
         while (!xqc_pq_empty(engine->conns_active_pq)) {
             conn = xqc_conns_pq_pop_top_conn(engine->conns_active_pq);
@@ -424,27 +454,33 @@ xqc_engine_destroy(xqc_engine_t *engine)
                 }
                 continue;
             }
+
             conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
             if (conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
                 xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
                 conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
             }
+
             xqc_conn_destroy(conn);
         }
     }
 
     if (engine->conns_wait_wakeup_pq) {
         while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
+            /* get conn from pq top and pop */
             xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
             if (el == NULL || el->conn == NULL) {
                 if (engine->log) {
                     xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
                 }
+
                 xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
                 continue;
             }
-            conn = el->conn; //必须先取值再pop，否则值会被修改
-            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq); // pop 操作需要紧跟top操作,中间不能有push动作
+
+            /* get conn first then pop */
+            conn = el->conn;
+            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
 
             conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
             xqc_conn_destroy(conn);
@@ -455,6 +491,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
         xqc_engine_conns_pq_destroy(engine->conns_active_pq);
         engine->conns_active_pq = NULL;
     }
+
     if (engine->conns_wait_wakeup_pq) {
         xqc_engine_wakeup_pq_destroy(engine->conns_wait_wakeup_pq);
         engine->conns_wait_wakeup_pq = NULL;
@@ -474,6 +511,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
         xqc_engine_conns_hash_destroy(engine->conns_hash);
         engine->conns_hash = NULL;
     }
+
     if (engine->conns_hash_dcid) {
         xqc_engine_conns_hash_destroy(engine->conns_hash_dcid);
         engine->conns_hash_dcid = NULL;
@@ -484,6 +522,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
     if (engine->ssl_ctx) {
         SSL_CTX_free(engine->ssl_ctx);
     }
+
     if (engine->ssl_meth) {
         BIO_meth_free(engine->ssl_meth);
     }
@@ -514,12 +553,14 @@ xqc_engine_init(xqc_engine_t *engine,
     engine->user_data = user_data;
 }
 
+
 void
 xqc_engine_set_callback(xqc_engine_t *engine,
                         xqc_engine_callback_t *engine_callback)
 {
     engine->eng_callback = *engine_callback;
 }
+
 
 #define XQC_CHECK_UNDECRYPT_PACKETS() do {                      \
     if (XQC_UNLIKELY(xqc_conn_has_undecrypt_packets(conn))) {   \
@@ -534,6 +575,7 @@ xqc_engine_set_callback(xqc_engine_t *engine,
         goto end;                                               \
     }                                                           \
 } while(0);                                                     \
+
 
 void
 xqc_engine_process_conn(xqc_connection_t *conn, xqc_msec_t now)
@@ -610,30 +652,35 @@ end:
     return;
 }
 
+
 void
 xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t * conn)
 {
     xqc_engine_main_logic_internal(engine, conn);
 }
 
+
 void xqc_engine_finish_recv (xqc_engine_t *engine){
     xqc_engine_main_logic(engine);
 }
 
+
 void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * conn){
-    if(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY){
+    if (conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY) {
         return;
     }
+
     conn->conn_flag |= XQC_CONN_FLAG_CANNOT_DESTROY;
     xqc_engine_main_logic(engine);
     conn->conn_flag &= ~XQC_CONN_FLAG_CANNOT_DESTROY;
 }
 
+
 /**
  * Process all connections
  */
 void
-xqc_engine_main_logic (xqc_engine_t *engine)
+xqc_engine_main_logic(xqc_engine_t *engine)
 {
     if (engine->engine_flag & XQC_ENG_FLAG_RUNNING) {
         xqc_log(engine->log, XQC_LOG_DEBUG, "|engine is running|");
@@ -647,27 +694,29 @@ xqc_engine_main_logic (xqc_engine_t *engine)
     xqc_connection_t *conn;
 
     while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
-        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq); //
+        xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
         if (XQC_UNLIKELY(el == NULL || el->conn == NULL)) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|NULL ptr, skip|");
-            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq); //pop操作与top操作中不能有push动作
+            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);    /* no push between top and pop */
             continue;
         }
         conn = el->conn;
 
-        //xqc_log(conn->log, XQC_LOG_DEBUG, "|wakeup|conn:%p|state:%s|flag:%s|now:%ui|wakeup:%ui|",
-        //        conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now, el->wakeup_time);
+        /* xqc_log(conn->log, XQC_LOG_DEBUG, "|wakeup|conn:%p|state:%s|flag:%s|now:%ui|wakeup:%ui|",
+                conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now, el->wakeup_time); */
         if (el->wakeup_time <= now) {
-            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);//pop操作需要尽量靠近top操作，中间不能有push动作
+            xqc_wakeup_pq_pop(engine->conns_wait_wakeup_pq);
             conn->conn_flag &= ~XQC_CONN_FLAG_WAIT_WAKEUP;
 
             if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
                 if (0 == xqc_conns_pq_push(engine->conns_active_pq, conn, conn->last_ticked_time)) {
                     conn->conn_flag |= XQC_CONN_FLAG_TICKING;
+
                 } else {
                     xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conns_pq_push error|");
                 }
             }
+
         } else {
             break;
         }
@@ -689,9 +738,10 @@ xqc_engine_main_logic (xqc_engine_t *engine)
         if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
             conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
             //xqc_conn_destroy(conn);
-            if(!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)){
+            if (!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)) {
                 xqc_conn_destroy(conn);
-            }else{
+
+            } else {
                 if ((conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP)) {
                     xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
                 }
@@ -699,14 +749,16 @@ xqc_engine_main_logic (xqc_engine_t *engine)
                 conn->conn_flag |= XQC_CONN_FLAG_WAIT_WAKEUP;
             }
             continue;
+
         } else {
             conn->last_ticked_time = now;
 
-            if(engine->eng_callback.write_mmsg){
+            if (engine->eng_callback.write_mmsg) {
                 xqc_conn_transmit_pto_probe_packets_batch(conn);
                 xqc_conn_retransmit_lost_packets_batch(conn);
                 xqc_conn_send_packets_batch(conn);
-            }else{
+
+            } else {
                 xqc_conn_transmit_pto_probe_packets(conn);
                 xqc_conn_retransmit_lost_packets(conn);
                 xqc_conn_send_packets(conn);
@@ -715,45 +767,46 @@ xqc_engine_main_logic (xqc_engine_t *engine)
             if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
                 conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
                 //xqc_conn_destroy(conn);
-                if(!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)){
+                if (!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)) {
                     xqc_conn_destroy(conn);
-                }else{
+
+                } else {
                     if ((conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP)) {
                         xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
                     }
                     xqc_wakeup_pq_push(engine->conns_wait_wakeup_pq, 0, conn);
                     conn->conn_flag |= XQC_CONN_FLAG_WAIT_WAKEUP;
-
                 }
                 continue;
             }
+
             conn->next_tick_time = xqc_conn_next_wakeup_time(conn);
             if (conn->next_tick_time) {
                 if (!(conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP)) {
                     xqc_wakeup_pq_push(engine->conns_wait_wakeup_pq, conn->next_tick_time, conn);
                     conn->conn_flag |= XQC_CONN_FLAG_WAIT_WAKEUP;
-                }
-                else {
-                    //remove from pq then push again, update wakeup time
+
+                } else {
+                    /* remove from pq then push again, update wakeup time */
                     xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
                     xqc_wakeup_pq_push(engine->conns_wait_wakeup_pq, conn->next_tick_time, conn);
                     conn->conn_flag |= XQC_CONN_FLAG_WAIT_WAKEUP;
                 }
+
             } else {
-                /* 至少会有idle定时器，这是异常分支 */
+                /* it's unexpected that conn's tick timer is unset */
                 xqc_log(conn->log, XQC_LOG_ERROR, "|destroy_connection|");
                 conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
-                //xqc_conn_destroy(conn);
-                if(!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)){
-                    xqc_conn_destroy(conn);
-                }else{
 
+                if (!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)) {
+                    xqc_conn_destroy(conn);
+
+                } else {
                     if ((conn->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP)) {
                         xqc_wakeup_pq_remove(engine->conns_wait_wakeup_pq, conn);
                     }
                     xqc_wakeup_pq_push(engine->conns_wait_wakeup_pq, 0, conn);
                     conn->conn_flag |= XQC_CONN_FLAG_WAIT_WAKEUP;
-
                 }
                 continue;
             }
@@ -766,7 +819,6 @@ xqc_engine_main_logic (xqc_engine_t *engine)
 
     xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
     if (wake_after > 0) {
-
         engine->eng_callback.set_event_timer(engine->user_data, wake_after);
     }
 
@@ -778,15 +830,11 @@ xqc_engine_main_logic (xqc_engine_t *engine)
  * Pass received UDP packet payload into xquic engine.
  * @param recv_time   UDP packet recieved time in microsecond
  */
-int xqc_engine_packet_process (xqc_engine_t *engine,
-                               const unsigned char *packet_in_buf,
-                               size_t packet_in_size,
-                               const struct sockaddr *local_addr,
-                               socklen_t local_addrlen,
-                               const struct sockaddr *peer_addr,
-                               socklen_t peer_addrlen,
-                               xqc_msec_t recv_time,
-                               void *user_data)
+int xqc_engine_packet_process(xqc_engine_t *engine,
+    const unsigned char *packet_in_buf, size_t packet_in_size,
+    const struct sockaddr *local_addr, socklen_t local_addrlen,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    xqc_msec_t recv_time, void *user_data)
 {
     int ret = 0;
     xqc_connection_t *conn = NULL;
@@ -836,7 +884,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
             }
 
         } else {
-            // RST包只有对端cid
+            /* reset is associated with peer's cid */
             conn = xqc_engine_conns_hash_find(engine, &scid, 'd');
             if (conn) {
                 xqc_log(engine->log, XQC_LOG_WARN, "|====>|receive reset, enter draining|size:%uz|scid:%s|",
