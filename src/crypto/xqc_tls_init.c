@@ -189,6 +189,12 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
         return XQC_ERROR;
     }
 
+#ifndef OPENSSL_IS_BORINGSSL
+    SSL_set_quic_transport_version(conn->xc_ssl, conn->version > XQC_VERSION_V1);
+#else
+    SSL_set_quic_use_legacy_codepoint(conn->xc_ssl, conn->version > XQC_VERSION_V1);
+#endif
+
     xqc_init_list_head(&conn->tlsref.initial_pktns.msg_cb_head);
     xqc_init_list_head(&conn->tlsref.hs_pktns.msg_cb_head);
     xqc_init_list_head(&conn->tlsref.pktns.msg_cb_head);
@@ -280,7 +286,12 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
         return XQC_ERROR;
     }
 
+#ifndef OPENSSL_IS_BORINGSSL
     SSL_set_quic_early_data_enabled(conn->xc_ssl, 1); /* enable 0rtt */
+#else
+    SSL_set_early_data_enabled(conn->xc_ssl, 1); 
+#endif
+
     SSL_set_quic_early_data_context(conn->xc_ssl, (const uint8_t *)XQC_EARLY_DATA_CONTEXT, 
                                     XQC_EARLY_DATA_CONTEXT_LEN);
 
@@ -699,6 +710,8 @@ xqc_create_client_ssl(xqc_engine_t *engine, xqc_connection_t *conn,
             conn->tlsref.resumption = XQC_TRUE;
 #ifndef OPENSSL_IS_BORINGSSL
             SSL_set_quic_early_data_enabled(ssl, 1);
+#else
+            SSL_set_early_data_enabled(ssl, 1); 
 #endif
         }
     }

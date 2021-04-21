@@ -121,6 +121,8 @@ xqc_configure_quic(xqc_connection_t *conn)
     SSL_set_quic_method(ssl, &xqc_ssl_quic_method);
     SSL_set_early_data_enabled(ssl, 1);
 
+    SSL_set_quic_use_legacy_codepoint(conn->xc_ssl, conn->version > XQC_VERSION_V1);
+
     switch(conn->conn_type)
     {
     case XQC_CONN_TYPE_CLIENT:{
@@ -218,7 +220,7 @@ xqc_client_initial_cb(xqc_connection_t *conn)
         conn->tlsref.initial = 0 ;
         xqc_configure_quic(conn);
     }
-    
+
     return xqc_do_handshake(conn);
 }
 
