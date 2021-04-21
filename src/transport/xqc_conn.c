@@ -21,6 +21,7 @@
 #include "src/crypto/xqc_tls_header.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_wakeup_pq.h"
+#include "src/transport/xqc_multipath.h"
 
 xqc_conn_settings_t default_conn_settings = {
     .pacing_on        = 0,
@@ -2396,3 +2397,90 @@ xqc_conn_try_add_new_conn_id(xqc_connection_t *conn)
         xqc_write_new_conn_id_frame_to_packet(conn);
     }
 }
+
+
+xqc_cid_t *
+xqc_conn_get_scid_by_seq(xqc_connection_t *conn, uint64_t seq_num)
+{
+    xqc_path_ctx_t *path = NULL;
+    xqc_list_head_t *pos, *next;
+
+    if (conn->scid.cid_seq_num == seq_num) {
+        return &conn->scid;
+    }
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
+        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
+
+        if (path->path_scid.cid_seq_num == seq_num) {
+            return &path->path_scid;
+        }
+    }
+
+    for (int i = 0; i < conn->avail_scid_count; i++) {
+        if (conn->avail_scid[i].cid_seq_num == seq_num) {
+            return &conn->avail_scid[i];
+        }
+    }
+
+    return NULL;
+}
+
+
+xqc_cid_t *
+xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num)
+{
+    xqc_path_ctx_t *path = NULL;
+    xqc_list_head_t *pos, *next;
+
+    if (conn->dcid.cid_seq_num == seq_num) {
+        return &conn->dcid;
+    }
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
+        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
+
+        if (path->path_dcid.cid_seq_num == seq_num) {
+            return &path->path_dcid;
+        }
+    }
+
+    for (int i = 0; i < conn->avail_dcid_count; i++) {
+        if (conn->avail_dcid[i].cid_seq_num == seq_num) {
+            return &conn->avail_dcid[i];
+        }
+    }
+
+    return NULL;
+}
+
+
+/* check whether if the dcid is valid for the connection */
+xqc_int_t
+xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
+{
+    xqc_path_ctx_t *path = NULL;
+    xqc_list_head_t *pos, *next;
+
+    if (xqc_cid_is_equal(dcid, &conn->scid) == XQC_OK) {
+        return XQC_OK;
+    }
+
+    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
+        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
+
+        if (xqc_cid_is_equal(dcid, &path->path_scid) == XQC_OK) {
+            return XQC_OK;
+        }
+    }
+
+    for (int i = 0; i < conn->avail_scid_count; i++) {
+        if (xqc_cid_is_equal(dcid, &conn->avail_scid[i]) == XQC_OK) {
+            return XQC_OK;
+        }
+    }
+
+    return -XQC_ECONN_CID_NOT_FOUND;
+}
+
+

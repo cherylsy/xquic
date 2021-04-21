@@ -512,12 +512,10 @@ xqc_conn_should_ack(xqc_connection_t *conn)
 }
 
 /* process an UDP datagram */
-xqc_int_t
-xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
+xqc_int_t xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
                         size_t packet_in_size, xqc_msec_t recv_time);
 
-xqc_int_t
-xqc_conn_check_handshake_complete(xqc_connection_t *conn);
+xqc_int_t xqc_conn_check_handshake_complete(xqc_connection_t *conn);
 
 
 xqc_int_t xqc_conn_get_new_dcid(xqc_connection_t *conn,
@@ -526,6 +524,9 @@ xqc_int_t xqc_conn_get_new_scid(xqc_connection_t *conn,
     xqc_cid_t *scid);
 xqc_int_t xqc_conn_check_available_cids(xqc_connection_t *conn);
 void xqc_conn_try_add_new_conn_id(xqc_connection_t *conn);
+xqc_cid_t *xqc_conn_get_scid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
+xqc_cid_t *xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
+xqc_int_t xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid);
 
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

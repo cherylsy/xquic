@@ -254,7 +254,7 @@ xqc_gen_short_packet_header (xqc_packet_out_t *packet_out,
 
 xqc_int_t
 xqc_packet_parse_short_header(xqc_connection_t *c,
-                              xqc_packet_in_t *packet_in)
+    xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
     xqc_packet_t *packet = &packet_in->pi_pkt;
@@ -287,7 +287,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     /* check dcid */
     xqc_cid_set(&(packet->pkt_dcid), pos, cid_len);
     pos += cid_len;
-    if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK) {
+    if (xqc_conn_check_dcid(c, &(packet->pkt_dcid)) != XQC_OK) {
         /* log & ignore */
         xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid, pkt dcid: %s, conn scid: %s|", xqc_dcid_str(&packet->pkt_dcid), xqc_scid_str(&c->scid));
         return -XQC_EILLPKT;

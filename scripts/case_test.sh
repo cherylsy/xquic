@@ -67,7 +67,7 @@ fi
 
 clear_log
 echo -e "illegal packet ...\c"
-result=`./test_client -s 1024000 -l d -t 2 -E -x 10|grep ">>>>>>>> pass" `
+result=`./test_client -s 1024000 -l d -t 1 -E -x 10|grep ">>>>>>>> pass" `
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -79,7 +79,7 @@ fi
 
 clear_log
 echo -e "duplicate packet ...\c"
-result=`./test_client -s 1024000 -l d -t 2 -E -x 9|grep ">>>>>>>> pass" `
+result=`./test_client -s 1024000 -l d -t 1 -E -x 9|grep ">>>>>>>> pass" `
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -91,7 +91,7 @@ fi
 
 clear_log
 echo -e "packet with wrong cid ...\c"
-result=`./test_client -s 1024000 -l d -t 2 -E -x 8|grep ">>>>>>>> pass"`
+result=`./test_client -s 1024000 -l d -t 1 -E -x 8|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -115,7 +115,7 @@ fi
 
 clear_log
 echo -e "socket recv fail ...\c"
-result=`./test_client -s 1024000 -l d -t 2 -E -x 6|grep ">>>>>>>> pass" `
+result=`./test_client -s 1024000 -l d -t 1 -E -x 6|grep ">>>>>>>> pass" `
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -508,7 +508,7 @@ fi
 
 clear_log
 echo -e "BBR with cwnd compensation ...\c"
-result=`./test_client -s 10240000 -l e -t 4 -E -c bbr+|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -l e -E -c bbr+|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -520,7 +520,7 @@ fi
 
 clear_log
 echo -e "BBRv2 ...\c"
-result=`./test_client -s 10240000 -l e -t 4 -E -c bbr2|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -l e -E -c bbr2|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -532,7 +532,7 @@ fi
 
 clear_log
 echo -e "BBRv2+ ...\c"
-result=`./test_client -s 10240000 -l e -t 4 -E -c bbr2+|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -l e -E -c bbr2+|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
@@ -655,7 +655,7 @@ grep_err_log
 
 clear_log
 echo -e "stream concurrency flow control ...\c"
-./test_client -s 1 -l e -t 6 -E -P 1025 -G >> clog
+./test_client -s 1 -l e -t 1 -E -P 1025 -G >> clog
 if [[ `grep ">>>>>>>> pass:1" clog|wc -l` -eq 1024 ]]; then
     echo ">>>>>>>> pass:1"
     case_print_result "stream_concurrency_flow_control" "pass"
@@ -708,7 +708,7 @@ sleep 1
 
 clear_log
 echo -e "sendmmsg with 10% loss ...\c"
-result=`./test_client -s 10240000 -t 2 -l e -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -t 1 -l e -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then

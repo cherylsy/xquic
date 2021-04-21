@@ -20,9 +20,12 @@
 
 #include "xquic/xqc_errno.h"
 
+#include "src/http3/xqc_h3_conn.h" /* TODO:delete me */
+
 
 xqc_path_ctx_t *
-xqc_path_create(xqc_connection_t *conn)
+xqc_path_create(xqc_connection_t *conn,
+    xqc_cid_t *scid, xqc_cid_t *dcid)
 {
     xqc_path_ctx_t *path = NULL;
 
@@ -39,7 +42,7 @@ xqc_path_create(xqc_connection_t *conn)
         xqc_init_list_head(&path->path_recv_record[i].list_head);
     }
 
-    path->path_state = XQC_MP_STATE_CREATED;
+    path->path_state = XQC_MP_STATE_INIT;
     path->path_status = XQC_MP_STATE_AVAILABLE;
     path->path_status_seq_number = 0;
     path->path_send_ctl = xqc_send_ctl_create(conn);
@@ -52,16 +55,27 @@ xqc_path_create(xqc_connection_t *conn)
     path->path_send_ctl->ctl_conn = conn;
 
     /* cid & path_id init */
-    if (xqc_conn_get_new_scid(conn, &(path->path_scid)) != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available scid|");
-        goto err;
-    }
-    if (xqc_conn_get_new_dcid(conn, &(path->path_dcid)) != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available dcid|");
-        goto err;
+    if (scid == NULL || dcid == NULL) {
+        if (xqc_conn_get_new_scid(conn, &(path->path_scid)) != XQC_OK) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available scid|");
+            goto err;
+        }
+        if (xqc_conn_get_new_dcid(conn, &(path->path_dcid)) != XQC_OK) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available dcid|");
+            goto err;
+        }
+
+    } else {
+        /* already have scid & dcid */
+
+        xqc_cid_copy(&(path->path_scid), scid);
+        xqc_cid_copy(&(path->path_dcid), dcid);
     }
 
-    path->path_id = path->path_dcid.cid_seq_num;
+    path->path_id = path->path_scid.cid_seq_num;
+
+    /* insert path to conn_paths_list */
+    xqc_list_add_tail(&path->path_list, &conn->conn_paths_list);
 
     xqc_log(conn->engine->log, XQC_LOG_DEBUG, "|MP|init a new path (%ui): dcid=%s, scid=%s, state: %d|",
             path->path_id, xqc_dcid_str(&(path->path_dcid)), xqc_scid_str(&(path->path_scid)), 
@@ -111,6 +125,16 @@ xqc_path_init(xqc_path_ctx_t *path,
         return ret;
     }
 
+    path->path_state = XQC_MP_STATE_CREATED;
+
+    /* create path notify */
+    if (path->path_id != XQC_MP_INITIAL_PATH_ID
+        && conn->engine->eng_callback.path_created_notify)
+    {
+        conn->engine->eng_callback.path_created_notify(&conn->scid, path->path_id, 
+                                                       xqc_conn_get_user_data(conn));
+    }
+
     /* TODO: 4-tuple init */
     if (conn->peer_addrlen > 0) {
         xqc_memcpy(path->peer_addr, conn->peer_addr, conn->peer_addrlen);
@@ -144,7 +168,7 @@ xqc_path_move_unack_packets_from_conn(xqc_path_ctx_t *path, xqc_connection_t *co
             continue;
         }
 
-        if (po->out_path_id == closing_path_id) {
+        if (po->po_path_id == closing_path_id) {
             if (po->po_flag & XQC_POF_IN_FLIGHT) {
                 xqc_send_ctl_decrease_inflight(path_send_ctl, po);
                 /*In the worst case, we have two redundant pkts on the same path.*/
@@ -187,6 +211,10 @@ xqc_path_update_status(xqc_path_ctx_t *path,
         path->path_status = path_status;
         path->path_prio = path_prio;
     }
+
+    xqc_log(path->parent_conn->log, XQC_LOG_DEBUG, 
+                            "|path %ui update status %ui, seq %ui|", 
+                            path->path_id, path->path_status, path->path_status_seq_number);
 }
 
 
@@ -221,30 +249,27 @@ xqc_conn_create_path(xqc_engine_t *engine,
 
     /* check mp-support */
     if (!xqc_conn_enable_multipath(conn)) {
-        xqc_log(engine->log, XQC_LOG_WARN,
+        xqc_log(conn->log, XQC_LOG_WARN,
                 "|Multipath is not supported in remote host, use the first path as default!|");
         return -XQC_EMP_NOT_SUPPORT_MP;
     }
 
     /* must have at least one available unused scid & dcid */
     if (xqc_conn_check_available_cids(conn) != XQC_OK) {
-        xqc_log(engine->log, XQC_LOG_WARN,
+        xqc_log(conn->log, XQC_LOG_WARN,
                 "|don't have available cid for new path|");
         return -XQC_EMP_NO_AVAIL_PATH_ID;
     }
 
-    path = xqc_path_create(conn);
+    path = xqc_path_create(conn, NULL, NULL);
     if (path == NULL) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_path_create error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_path_create error|");
         return -XQC_EMP_CREATE_PATH;
     }
 
-    /* insert path to conn_paths_list */
-    xqc_list_add_tail(&path->path_list, &conn->conn_paths_list);
-
     ret = xqc_path_init(path, conn);
     if (ret != XQC_OK) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_path_init err=%d|", ret);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_path_init err=%d|", ret);
         return ret;
     }
 
