@@ -1814,7 +1814,7 @@ int main(int argc, char *argv[]) {
     }
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
-    //xqc_conn_send_ping(ctx.engine, &user_conn->cid, &g_ping_id);
+
     for (int i = 0; i < req_paral; i++) {
         g_req_cnt++;
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
@@ -1827,7 +1827,7 @@ int main(int argc, char *argv[]) {
                 continue;
             }
             xqc_client_request_send(user_stream->h3_request, user_stream);
-            //xqc_h3_request_close(user_stream->h3_request);
+
         } else {
             user_stream->stream = xqc_stream_create(ctx.engine, cid, user_stream);
             if (user_stream->stream == NULL) {
