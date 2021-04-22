@@ -470,14 +470,14 @@ else
 fi
 
 clear_log
-echo -e "client initial version setting ...\c"
+echo -e "new client 29 - new server ...\c"
 result=`./test_client -s 1024 -l d -t 1 -E -x 17 |grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
-    case_print_result "client_initial_version_setting" "pass"
+    case_print_result "new_client_29_&_new_server" "pass"
 else
-    case_print_result "client_initial_version_setting" "fail"
+    case_print_result "new_client_29_&_new_server" "fail"
     echo "$errlog"
 fi
 

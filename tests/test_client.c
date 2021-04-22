@@ -1845,9 +1845,9 @@ int main(int argc, char *argv[]) {
             .spurious_loss_detect_on = 0,
     };
 
-    /* check initial version */
+    /* check draft-29 version */
     if (g_test_case == 17) {
-        conn_settings.proto_version = XQC_VERSION_V1;
+        conn_settings.proto_version = XQC_IDRAFT_VER_29;
     }
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_test_case == 20) { /* test sendmmsg */
