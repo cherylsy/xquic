@@ -877,6 +877,7 @@ else
     case_print_result "load_balancer_cid_generate" "fail"
 fi
 
+
 clear_log
 echo -e "set cipher suites ...\c"
 ./test_client -s 1024 -l d -t 1 -x 27 >> clog
@@ -889,6 +890,27 @@ else
     echo ">>>>>>>> pass:0"
     case_print_result "set_cipher_suites" "fail"
 fi
+
+
+killall test_server 2> /dev/null
+./test_server -l d -e -x 8 > /dev/null &
+sleep 1
+
+clear_log
+rm -f test_session xqc_token tp_localhost
+echo -e "server amplification limit ...\c"
+./test_client -s 1024 -l d -t 3 -x 25 -1 >> clog
+enter_aal=`grep "amplification limit" slog`
+aal=`grep "blocked by anti amplification limit" slog`
+leave_aal=`grep "anti-amplification state unlock" slog`
+if [ -n "$enter_aal" ] || [ -n "$aal" ] || [ -n "$leave_aal" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "server_amplification_limit" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "server_amplification_limit" "fail"
+fi
+
 
 
 killall test_server

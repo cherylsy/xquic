@@ -707,6 +707,17 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
             printf("!!!!!!!!!recvfrom: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
             break;
         }
+
+        /* amplification limit */
+        if (g_test_case == 8) {
+            static int loss_num = 0;
+            loss_num++;
+            /* continous loss to make server at amplification limit */
+            if (loss_num >= 2 && loss_num <= 10) {
+                continue;
+            }
+        }
+
         recv_sum += recv_size;
 
         uint64_t recv_time = now();

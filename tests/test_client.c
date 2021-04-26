@@ -1290,6 +1290,17 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         static char copy[XQC_PACKET_TMP_BUF_LEN];
         if (g_test_case == 9/*接收到重复的包*/) {memcpy(copy, packet_buf, recv_size); again:;}
         if (g_test_case == 10/*不合法的packet*/) {g_test_case = -1; recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_B)-1; memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_B, recv_size);}
+
+        /* amplification limit */
+        if (g_test_case == 25) {
+            static int loss_num = 0;
+            loss_num++;
+            /* continous loss to make server at amplification limit */
+            if (loss_num >= 1 && loss_num <= 10) {
+                continue;
+            }
+        }
+
         if (xqc_engine_packet_process(ctx.engine, packet_buf, recv_size,
                                       user_conn->local_addr, user_conn->local_addrlen,
                                       user_conn->peer_addr, user_conn->peer_addrlen,
@@ -1297,6 +1308,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
             printf("xqc_client_read_handler: packet process err\n");
             return;
         }
+
         if (g_test_case == 9/*接收到重复的包*/) {g_test_case = -1; memcpy(packet_buf, copy, recv_size); goto again;}
     } while (recv_size > 0);
 
@@ -1790,6 +1802,7 @@ int main(int argc, char *argv[]) {
         printf("sessoin data read error or use_1rtt\n");
         conn_ssl_config.session_ticket_data = NULL;
         conn_ssl_config.transport_parameter_data = NULL;
+
     } else {
         conn_ssl_config.session_ticket_data = session_ticket_data;
         conn_ssl_config.session_ticket_len = session_len;

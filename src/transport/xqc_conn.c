@@ -1073,7 +1073,8 @@ xqc_process_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 ssize_t
 xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    if (xqc_send_ctl_check_anti_amplification(conn, packet_out->po_used_size)) {
+    /* allow to slightly across 3x limit */
+    if (xqc_send_ctl_check_anti_amplification(conn, 0)) {
         xqc_log(conn->log, XQC_LOG_INFO, 
                 "|blocked by anti amplification limit|total_sent:%ui|3*total_recv:%ui|",
                 conn->conn_send_ctl->ctl_bytes_send, 3 * conn->conn_send_ctl->ctl_bytes_recv);
