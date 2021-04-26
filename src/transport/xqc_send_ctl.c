@@ -1269,7 +1269,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
     ctl->sampler.loss = 0;
 
     if (ctl->ctl_largest_acked[pns] == XQC_MAX_UINT64_VALUE) {
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|exception|largest acked is not recorded|");
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_WARN, "|exception|largest acked is not recorded|");
         return;
     }
 
@@ -1628,7 +1628,7 @@ xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *ctl, xqc_msec_t now, xqc_pkt
     if (ctl->ctl_bytes_in_flight == 0) {
         /* assert(!PeerCompletedAddressValidation()) */
         if (xqc_conn_peer_complete_address_validation(c)) {
-            xqc_log(c->log, XQC_LOG_ERROR, "|exception|handshake not confirmed");
+            xqc_log(c->log, XQC_LOG_WARN, "|exception|handshake not confirmed");
             // return pto_timeout;
         }
 
@@ -1861,7 +1861,7 @@ xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now
     } else {
         /* assert(!PeerCompletedAddressValidation()) */
         if (xqc_conn_peer_complete_address_validation(conn)) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|exception, peer validated address while inflight bytes is 0|");
+            xqc_log(conn->log, XQC_LOG_WARN, "|exception|peer validated address while inflight bytes is 0|");
             return;
         }
 
