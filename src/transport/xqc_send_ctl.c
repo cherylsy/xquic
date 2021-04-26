@@ -1193,7 +1193,8 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
 
         /* rttvar = 3/4 * rttvar + 1/4 * abs(smoothed_rtt - adjusted_rtt)  */
         ctl->ctl_rttvar -= ctl->ctl_rttvar >> 2;
-        ctl->ctl_rttvar += (ctl->ctl_srtt > *latest_rtt ? ctl->ctl_srtt - *latest_rtt : *latest_rtt - ctl->ctl_srtt) >> 2;
+        ctl->ctl_rttvar += (ctl->ctl_srtt > adjusted_rtt
+                            ? ctl->ctl_srtt - adjusted_rtt : adjusted_rtt - ctl->ctl_srtt) >> 2;
 
         /* smoothed_rtt = 7/8 * smoothed_rtt + 1/8 * adjusted_rtt */
         ctl->ctl_srtt -= ctl->ctl_srtt >> 3;
@@ -1571,6 +1572,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl,
         if (packet_out->po_frame_types & XQC_FRAME_BIT_CRYPTO && packet_out->po_pkt.pkt_pns == XQC_PNS_HSK) {
             conn->conn_flag |= XQC_CONN_FLAG_HSK_ACKED;
         }
+
         if (packet_out->po_frame_types & XQC_FRAME_BIT_PING) {
             if (conn->conn_callbacks.conn_ping_acked) {
                 conn->conn_callbacks.conn_ping_acked(conn, &conn->scid,

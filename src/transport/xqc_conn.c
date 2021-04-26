@@ -1217,7 +1217,7 @@ xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn)
     }
 }
 
-xqc_packet_out_t *
+static inline xqc_packet_out_t *
 xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
 {
     /* convert pns to ptype */
@@ -1259,7 +1259,7 @@ xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
     return packet_out;
 }
 
-xqc_int_t
+static inline xqc_int_t
 xqc_conn_send_ping_on_pto(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
 {
     xqc_packet_out_t *packet_out = xqc_conn_gen_ping(conn, pns);
