@@ -1268,6 +1268,10 @@ xqc_conn_send_ping_on_pto(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
         return -XQC_EWRITE_PKT;
     }
 
+    /* put PING into probe list, which is not limited by amplification or congestion-control */
+    xqc_send_ctl_remove_send(&packet_out->po_list);
+    xqc_send_ctl_insert_probe(&packet_out->po_list, &conn->conn_send_ctl->ctl_pto_probe_packets);
+
     return XQC_OK;
 }
 
@@ -1321,12 +1325,12 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
 }
 
 
+/* used by client to break amplification limit at server, or to prove address ownership */
 void
 xqc_conn_send_one_ack_eliciting_pkt(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|send one PING pkt|");
-    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
-    xqc_packet_out_t *packet_out = xqc_conn_gen_ping(conn, pns);
+    /* PING will be put into send list */
+    xqc_conn_gen_ping(conn, pns);
 }
 
 

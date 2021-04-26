@@ -818,7 +818,6 @@ xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl,
 }
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.5
  * OnPacketSent
  */
 void
@@ -920,7 +919,6 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
 }
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.6F
  * OnAckReceived
  */
 int
@@ -1140,7 +1138,6 @@ xqc_send_ctl_on_ack_received(xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info
 }
 
 /**
- * https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.6
  * OnDatagramReceived
  */
 void
@@ -1162,7 +1159,6 @@ xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_msec_
 }
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.6
  * UpdateRtt
  */
 void
@@ -1389,7 +1385,6 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
 }
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B.8
  * InPersistentCongestion
  */
 xqc_bool_t
@@ -1407,7 +1402,6 @@ xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *lar
 }
 
 /**
- * https://tools.ietf.org/html/draft-ietf-quic-recovery-19#section-7.7
  * IsWindowLost
  */
 int
@@ -1477,7 +1471,6 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
 }
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-B.6
  * CongestionEvent
  */
 void
@@ -1732,12 +1725,9 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 
 }
 
+
 /**
  * GetLossTimeAndSpace
- *
- * Returns the earliest loss_time and the packet number
- * space it's from.  Returns 0 if all times are 0.
- * https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.8
  */
 xqc_msec_t
 xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret)
@@ -1752,7 +1742,6 @@ xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pn
     }
     return time;
 }
-
 
 
 xqc_msec_t
@@ -1827,7 +1816,6 @@ xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx
 }
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#appendix-A.9
  * OnLossDetectionTimeout
  */
 void
@@ -1863,15 +1851,13 @@ xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now
             return;
         }
 
-        /**
-         * Client sends an anti-deadlock packet: 
-         * 1) Initial to earn more anti-amplification credit,
-         * 2) Handshake packet proves address ownership.
-         */
+        /* Client sends an anti-deadlock packet */
         if (xqc_conn_has_hsk_keys(conn)) {
+            /* send Handshake packet proves address ownership. */
             xqc_conn_send_one_ack_eliciting_pkt(conn, XQC_PNS_HSK);
 
         } else {
+            /* send Initial to earn more anti-amplification credit */
             xqc_conn_send_one_ack_eliciting_pkt(conn, XQC_PNS_INIT);
         }
     }
