@@ -594,7 +594,7 @@ xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 }
 
 xqc_int_t
-xqc_check_dumplicate_acked_pkt(xqc_connection_t *conn,
+xqc_check_duplicate_acked_pkt(xqc_connection_t *conn,
     xqc_packet_out_t *packet_out, xqc_send_type_t send_type, xqc_msec_t now)
 {
     xqc_int_t ret;
@@ -754,7 +754,10 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
         iov_array[burst_cnt].iov_base = enc_pkt_array[burst_cnt];
         iov_array[burst_cnt].iov_len = XQC_PACKET_OUT_SIZE_EXT;
         if (xqc_has_packet_number(&packet_out->po_pkt)) {
-            if (xqc_check_dumplicate_acked_pkt(conn, packet_out, send_type, now)) {
+            /* duplicated probe packets shall be retransmitted */
+            if (send_type != XQC_SEND_TYPE_PTO_PROBE
+                && xqc_check_duplicate_acked_pkt(conn, packet_out, send_type, now))
+            {
                 continue;
             }
 
@@ -773,10 +776,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
                 break;
             }
 
-            /*
-            * 0RTT packets might be lost during handshake, once client get 1RTT keys,
-            * it should retransmit the lost data with 1RTT packets instead.
-            */
+            /* retransmit 0-RTT packets in 1-RTT if 1-RTT keys are ready. */
             if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
                 && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
             {
@@ -1267,11 +1267,6 @@ xqc_conn_send_ping_on_pto(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
         return -XQC_EWRITE_PKT;
     }
 
-#if 0
-    /* move to pto list */
-    xqc_send_ctl_copy_to_pto_probe_list(packet_out, conn->conn_send_ctl);
-#endif
-
     return XQC_OK;
 }
 
@@ -1279,7 +1274,7 @@ xqc_conn_send_ping_on_pto(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
 void
 xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_t pns)
 {
-    xqc_log(c->log, XQC_LOG_DEBUG, "|send one or two pkt|pns:%d|", pns);
+    xqc_log(c->log, XQC_LOG_DEBUG, "|send two ack-eliciting pkts|pns:%d|", pns);
 
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
@@ -1303,7 +1298,6 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
                         xqc_frame_type_2_str(packet_out->po_frame_types),
                         xqc_conn_state_2_str(c->conn_state));
 
-                // xqc_send_ctl_remove_unacked(packet_out, c->conn_send_ctl);
                 xqc_send_ctl_decrease_inflight(c->conn_send_ctl, packet_out);
                 xqc_send_ctl_copy_to_pto_probe_list(packet_out, c->conn_send_ctl);
 
@@ -1329,10 +1323,9 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
 void
 xqc_conn_send_one_ack_eliciting_pkt(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|send one PING pkt");
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|send one PING pkt|");
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
     xqc_packet_out_t *packet_out = xqc_conn_gen_ping(conn, pns);
-    // xqc_send_ctl_insert_send(&packet_out->po_list, &ctl->ctl_send_packets, ctl);
 }
 
 

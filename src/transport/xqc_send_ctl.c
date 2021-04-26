@@ -1056,9 +1056,7 @@ xqc_send_ctl_on_ack_received(xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info
         xqc_msec_t now = ack_recv_time;
 
         /* Make sure that we do not call BBR with a invalid sampler. */
-        if(xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
-
-            
+        if (xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
             if ((ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate != NULL)
                 && (ctl->ctl_info.last_bw_time + ctl->ctl_info.record_interval <= now))
             {
@@ -1121,7 +1119,7 @@ xqc_send_ctl_on_ack_received(xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info
                 ctl->ctl_srtt, ctl->ctl_latest_rtt, min_rtt,
                 pacing_gain, cwnd_gain);*/
 
-        if(bw_record_flag){
+        if (bw_record_flag) {
             bw_after = ctl->ctl_cong_callback->xqc_cong_ctl_get_bandwidth_estimate(ctl->ctl_cong);
             if (bw_after > 0) {
                 if (xqc_sub_abs(bw_after, bw_before) * 100 > (bw_before * ctl->ctl_info.bw_change_threshold)) {
@@ -1644,7 +1642,7 @@ xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *ctl, xqc_msec_t now, xqc_pkt
         *pns_ret = XQC_PNS_INIT;
 
         for (xqc_pkt_num_space_t pns = XQC_PNS_INIT; pns <= XQC_PNS_APP_DATA; ++pns) {
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|conn:%p|PNS: %ud, unacked: %ud|", 
+            xqc_log(c->log, XQC_LOG_DEBUG, "|conn:%p|PNS: %ud, unacked: %ud|", 
                     c, pns, ctl->ctl_bytes_ack_eliciting_inflight[pns]);
 
             /* skip if no bytes inflight in pns */
@@ -1673,19 +1671,18 @@ xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *ctl, xqc_msec_t now, xqc_pkt
         if (pto_timeout - now > xqc_pto_timeout_threshold_hsk) {
             pto_timeout = now + xqc_pto_timeout_threshold_hsk;
         }
-        
+
     } else {
         if (pto_timeout - now > xqc_pto_timeout_threshold) {
             pto_timeout = now + xqc_pto_timeout_threshold;
         }
     }
-    
+
     return pto_timeout;
 }
 
 
 /**
- * see https://tools.ietf.org/html/draft-ietf-quic-recovery-29#appendix-A.8
  * SetLossDetectionTimer
  */
 void
@@ -1699,11 +1696,11 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
-        /* Time threshold loss detection. */
-        xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION, loss_time);
-
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_set|earliest losss time|XQC_TIMER_LOSS_DETECTION|"
                 "conn:%p|expire:%ui|now:%ui|interval:%ui|", conn, loss_time, now, loss_time - now);
+
+        /* Time threshold loss detection. */
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION, loss_time);
         return;
     }
 
@@ -1853,7 +1850,7 @@ xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now
     if (ctl->ctl_bytes_in_flight > 0) {
         /* PTO. Send new data if available, else retransmit old data.
            If neither is available, send a single PING frame */
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_conn_send_probe_packets|conn:%p|bytes_in_flight:%ud|", 
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|send Probe pkts|conn:%p|bytes_in_flight:%ud|", 
                 conn, ctl->ctl_bytes_in_flight);
         xqc_msec_t t = xqc_send_ctl_get_pto_time_and_space(ctl, now, &pns);
         xqc_conn_send_one_or_two_ack_elicit_pkts(conn, pns);
