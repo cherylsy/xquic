@@ -1153,7 +1153,6 @@ xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_msec_
 
     /* reflash recv state */
     c->conn_send_ctl->ctl_recv_count++;
-    c->last_recv_time = recv_time;
     c->conn_send_ctl->ctl_bytes_recv += dgram_size;
 
     /* If this datagram unblocks the server's anti-amplification limit,
