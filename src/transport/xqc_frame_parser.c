@@ -409,15 +409,6 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     }
 
     ack_delay = (now - recv_record->largest_pkt_recv_time);
-    /*
-     * Because the receiver
-      doesn't use the ACK Delay for Initial and Handshake packets, a
-      sender SHOULD send a value of 0.
-     */
-    if (packet_out->po_pkt.pkt_pns == XQC_PNS_INIT || packet_out->po_pkt.pkt_pns == XQC_PNS_HSK) {
-        ack_delay = 0;
-    }
-
     lagest_recv = first_range->pktno_range.high;
     first_ack_range = lagest_recv - first_range->pktno_range.low;
     prev_low = first_range->pktno_range.low;

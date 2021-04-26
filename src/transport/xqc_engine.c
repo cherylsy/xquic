@@ -929,10 +929,6 @@ process:
         conn->local_addrlen = local_addrlen;
     }
 
-    conn->conn_send_ctl->ctl_bytes_recv += packet_in_size;
-    conn->conn_send_ctl->ctl_recv_count++;
-    xqc_send_ctl_on_dgram_received(conn->conn_send_ctl, packet_in_size);
-
     /* process packets */
     ret = xqc_conn_process_packet(conn, packet_in_buf, packet_in_size, recv_time);
     if (ret) {

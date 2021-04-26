@@ -8,4 +8,8 @@
 
 #define XQC_CONN_ADDR_VALIDATION_CID_ENTROPY    8
 
+
+#define XQC_CONN_PTO_PKT_CNT_MAX    2
+
+
 #endif

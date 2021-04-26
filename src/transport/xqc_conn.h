@@ -413,7 +413,10 @@ void
 xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn);
 
 void
-xqc_conn_send_probe_packets(xqc_connection_t *conn);
+xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_t pns);
+
+void
+xqc_conn_send_one_ack_eliciting_pkt(xqc_connection_t *conn, xqc_pkt_num_space_t pns);
 
 xqc_int_t
 xqc_conn_check_handshake_completed(xqc_connection_t *conn);
@@ -528,5 +531,14 @@ xqc_cid_t *xqc_conn_get_scid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
 xqc_cid_t *xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
 xqc_int_t xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid);
 
+
+xqc_int_t
+xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
+
+xqc_bool_t
+xqc_conn_has_hsk_keys(xqc_connection_t *c);
+
+void
+xqc_conn_on_hsk_sent(xqc_connection_t *c);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */
