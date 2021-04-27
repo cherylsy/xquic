@@ -532,7 +532,7 @@ xqc_cid_t *xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
 xqc_int_t xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid);
 
 
-xqc_int_t
+xqc_bool_t
 xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
 
 xqc_bool_t

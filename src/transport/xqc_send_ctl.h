@@ -334,11 +334,18 @@ xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
 float
 xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
 
+/**
+ * check amplification limit state
+ * @param conn xquic connection handler
+ * @param byte_cnt input 0 to check if server is at limit now, input non-zero to
+ * check if this byte count will trigger amplification limit
+ * @return XQC_FALSE: not at amplification limit, XQC_TRUE: at amplification limit
+ */
 xqc_bool_t
-xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, int byte_cnt);
+xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, size_t byte_cnt);
 
 xqc_bool_t
-xqc_send_ctl_ack_recved_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns);
+xqc_send_ctl_ack_received_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns);
 
 
 /*

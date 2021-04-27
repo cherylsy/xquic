@@ -1318,9 +1318,10 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
         }
     }
 
-    while (probe_num-- > 0) {
+    while (probe_num > 0) {
         xqc_log(c->log, XQC_LOG_DEBUG, "PING on PTO, cnt: %d", probe_num);
         xqc_conn_send_ping_on_pto(c, pns);
+        probe_num--;
     }
 }
 
@@ -2566,7 +2567,7 @@ xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
 }
 
 
-xqc_int_t
+xqc_bool_t
 xqc_conn_peer_complete_address_validation(xqc_connection_t *c)
 {
     /* server assume clients validate server's address implicitly */
@@ -2575,7 +2576,7 @@ xqc_conn_peer_complete_address_validation(xqc_connection_t *c)
 
     } else {
         return (c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED)
-            || xqc_send_ctl_ack_recved_in_pns(c->conn_send_ctl, XQC_PNS_HSK);
+            || xqc_send_ctl_ack_received_in_pns(c->conn_send_ctl, XQC_PNS_HSK);
     }
 }
 

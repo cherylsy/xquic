@@ -1765,7 +1765,7 @@ xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl)
 
 
 xqc_bool_t
-xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, int byte_cnt)
+xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, size_t byte_cnt)
 {
     xqc_bool_t limit = XQC_FALSE;
     /* anti-amplifier attack limit */
@@ -1780,7 +1780,7 @@ xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, int byte_cnt)
 }
 
 xqc_bool_t
-xqc_send_ctl_ack_recved_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns)
+xqc_send_ctl_ack_received_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns)
 {
     return ctl->ctl_largest_acked_sent_time[pns] > 0;
 }
