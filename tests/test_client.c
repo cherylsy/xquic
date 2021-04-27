@@ -270,6 +270,9 @@ xqc_client_write_socket(void *user,
     //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
+
+        g_last_sock_op_time = now();
+
         //res = write(fd, buf, size);
         if (TEST_DROP) return size;
         if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
@@ -298,7 +301,6 @@ xqc_client_write_socket(void *user,
                 res = XQC_SOCKET_EAGAIN;
             }
         }
-        g_last_sock_op_time = now();
     } while ((res < 0) && (errno == EINTR));
     /*socklen_t tmp = sizeof(struct sockaddr_in);
     getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);*/
