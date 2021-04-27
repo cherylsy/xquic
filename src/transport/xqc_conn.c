@@ -2585,12 +2585,4 @@ xqc_conn_has_hsk_keys(xqc_connection_t *c)
     return xqc_tls_check_hs_tx_key_ready(c) && xqc_tls_check_hs_rx_key_ready(c);
 }
 
-#if 0
-void
-xqc_conn_on_hsk_sent(xqc_connection_t *c)
-{
-    if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
-        xqc_send_ctl_drop_pkts_with_pn(c->conn_send_ctl, XQC_PNS_INIT);
-    }
-}
-#endif
+

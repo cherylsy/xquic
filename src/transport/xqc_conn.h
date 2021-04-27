@@ -538,7 +538,5 @@ xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
 xqc_bool_t
 xqc_conn_has_hsk_keys(xqc_connection_t *c);
 
-void
-xqc_conn_on_hsk_sent(xqc_connection_t *c);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */
