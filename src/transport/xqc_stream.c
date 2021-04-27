@@ -396,7 +396,8 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
                             void *user_data)
 {
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|conn closing, cannot create stream|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|conn closing, cannot create stream|type:%d|state:%d|flag:%s|",
+                conn->conn_type, conn->conn_state, xqc_conn_flag_2_str(conn->conn_flag));
         return NULL;
     }
     if (xqc_stream_do_create_flow_ctl(conn, stream_id, stream_type)) {
@@ -647,8 +648,6 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
                 stream_frame->data_offset + stream_frame->data_length - stream->stream_data_in.next_read_offset;
         char *data_start = stream_frame->data + (stream->stream_data_in.next_read_offset - stream_frame->data_offset);
 
-        //printf("recv crypto data:%d\n",data_len);
-        //hex_print(data_start, data_len);
         int ret = conn->tlsref.callbacks.recv_crypto_data(conn, 0, data_start, data_len, stream->stream_encrypt_level ,NULL);
 
         xqc_list_del(pos);
@@ -656,7 +655,8 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
 
         stream->stream_data_in.next_read_offset = stream->stream_data_in.next_read_offset + data_len;
         if (ret < 0) {
-            return ret;
+            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|recv_crypto_data error: %d|", ret);
+            return -XQC_EILLPKT;
         }
     }
 
@@ -792,7 +792,7 @@ xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encrypt_t
                 xqc_msec_t now = xqc_now();
                 packet_out->po_sent_time = now;
                 xqc_long_packet_update_length(packet_out);
-                xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data|pkt_num:%ui|size:%z|sent:%d|pkt_type:%s|frame:%s|now:%ui|",
+                xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data|pkt_num:%ui|size:%ud|sent:%d|pkt_type:%s|frame:%s|now:%ui|",
                     packet_out->po_pkt.pkt_num, packet_out->po_used_size, n_written,
                     xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                     xqc_frame_type_2_str(packet_out->po_frame_types), now);

@@ -594,7 +594,7 @@ xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 }
 
 xqc_int_t
-xqc_check_dumplicate_acked_pkt(xqc_connection_t *conn,
+xqc_check_duplicate_acked_pkt(xqc_connection_t *conn,
     xqc_packet_out_t *packet_out, xqc_send_type_t send_type, xqc_msec_t now)
 {
     xqc_int_t ret;
@@ -701,6 +701,38 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
     }
 }
 
+
+void
+xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+{
+    /* long header to short header, directly write old buffer */
+    unsigned int ori_po_used_size = packet_out->po_used_size;
+    unsigned char *ori_payload = packet_out->po_payload;
+    unsigned int ori_payload_len = 
+        ori_po_used_size - (packet_out->po_payload - packet_out->po_buf);
+
+    /* convert pkt info */
+    packet_out->po_pkt.pkt_pns = XQC_PNS_APP_DATA;
+    packet_out->po_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
+
+    /* copy header */
+    packet_out->po_used_size = 0;
+    int ret = xqc_gen_short_packet_header(packet_out,
+                               conn->dcid.cid_buf, conn->dcid.cid_len,
+                               XQC_PKTNO_BITS, 0);
+    packet_out->po_used_size = ret;
+
+    /* copy frame directly */
+    memmove(packet_out->po_buf + ret, ori_payload, ori_payload_len);
+    packet_out->po_payload = packet_out->po_buf + ret;
+    packet_out->po_used_size += ori_payload_len;
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|0RTT to 1RTT|conn:%p|type:%d|pkt_num:%ui|pns:%d|frame:%s|", 
+            conn, packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num, packet_out->po_pkt.pkt_pns, 
+            xqc_frame_type_2_str(packet_out->po_frame_types));
+}
+
+
 ssize_t
 xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int congest, xqc_send_type_t send_type)
 {
@@ -722,7 +754,10 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
         iov_array[burst_cnt].iov_base = enc_pkt_array[burst_cnt];
         iov_array[burst_cnt].iov_len = XQC_PACKET_OUT_SIZE_EXT;
         if (xqc_has_packet_number(&packet_out->po_pkt)) {
-            if (xqc_check_dumplicate_acked_pkt(conn, packet_out, send_type, now)) {
+            /* duplicated probe packets shall be retransmitted */
+            if (send_type != XQC_SEND_TYPE_PTO_PROBE
+                && xqc_check_duplicate_acked_pkt(conn, packet_out, send_type, now))
+            {
                 continue;
             }
 
@@ -739,6 +774,13 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
                                                     total_bytes_to_send + packet_out->po_used_size))
             {
                 break;
+            }
+
+            /* retransmit 0-RTT packets in 1-RTT if 1-RTT keys are ready. */
+            if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
+                && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
+            {
+                xqc_convert_pkt_0rtt_2_1rtt(conn, packet_out);
             }
 
             /* enc packet */
@@ -1031,7 +1073,8 @@ xqc_process_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 ssize_t
 xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    if (xqc_send_ctl_check_anti_amplification(conn, packet_out->po_used_size)) {
+    /* allow to slightly across 3x limit */
+    if (xqc_send_ctl_check_anti_amplification(conn, 0)) {
         xqc_log(conn->log, XQC_LOG_INFO, 
                 "|blocked by anti amplification limit|total_sent:%ui|3*total_recv:%ui|",
                 conn->conn_send_ctl->ctl_bytes_send, 3 * conn->conn_send_ctl->ctl_bytes_recv);
@@ -1063,10 +1106,6 @@ xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn)
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types));
 
-        if (xqc_send_ctl_indirectly_ack_po(conn->conn_send_ctl, packet_out)) {
-            continue;
-        }
-
         /* do neither CC nor Pacing */
         ret = xqc_conn_send_one_packet(conn, packet_out);
         if (ret < 0) {
@@ -1078,37 +1117,6 @@ xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn)
                                     &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
                                     conn->conn_send_ctl);
     }
-}
-
-
-void
-xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
-{
-    /* long header to short header, directly write old buffer */
-    unsigned int ori_po_used_size = packet_out->po_used_size;
-    unsigned char *ori_payload = packet_out->po_payload;
-    unsigned int ori_payload_len = 
-        ori_po_used_size - (packet_out->po_payload - packet_out->po_buf);
-
-    /* convert pkt info */
-    packet_out->po_pkt.pkt_pns = XQC_PNS_APP_DATA;
-    packet_out->po_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
-
-    /* copy header */
-    packet_out->po_used_size = 0;
-    int ret = xqc_gen_short_packet_header(packet_out,
-                               conn->dcid.cid_buf, conn->dcid.cid_len,
-                               XQC_PKTNO_BITS, 0);
-    packet_out->po_used_size = ret;
-
-    /* copy frame directly */
-    memmove(packet_out->po_buf + ret, ori_payload, ori_payload_len);
-    packet_out->po_payload = packet_out->po_buf + ret;
-    packet_out->po_used_size += ori_payload_len;
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|0RTT to 1RTT|conn:%p|type:%d|pkt_num:%ui|pns:%d|frame:%s|", 
-            conn, packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num, packet_out->po_pkt.pkt_pns, 
-            xqc_frame_type_2_str(packet_out->po_frame_types));
 }
 
 
@@ -1209,51 +1217,123 @@ xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn)
     }
 }
 
-
-/* see https://tools.ietf.org/html/draft-ietf-quic-recovery-19#section-6.3.2 */
-void
-xqc_conn_send_probe_packets(xqc_connection_t *conn)
+static inline xqc_packet_out_t *
+xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
 {
-    unsigned cnt = 0, probe_num = 2;
-    xqc_pkt_num_space_t pns;
+    /* convert pns to ptype */
+    xqc_pkt_type_t ptype = XQC_PTYPE_NUM;
+    switch (pns) {
+    case XQC_PNS_INIT:
+        ptype = XQC_PTYPE_INIT;
+        break;
+    
+    case XQC_PNS_HSK:
+        ptype = XQC_PTYPE_HSK;
+        break;
+
+    case XQC_PNS_APP_DATA:
+        ptype = XQC_PTYPE_SHORT_HEADER;
+        break;
+
+    default:
+        break;
+    }
+
+    /* get pkt, which is inserted into sent list */
+    xqc_packet_out_t *packet_out = xqc_write_new_packet(conn, ptype);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
+        return NULL;
+    }
+
+    /* write PING to pkt */
+    xqc_int_t ret = xqc_gen_ping_frame(packet_out);
+    if (ret < 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_ping_frame error|");
+        xqc_maybe_recycle_packet_out(packet_out, conn);
+        return NULL;
+    }
+
+    packet_out->po_used_size += ret;
+
+    return packet_out;
+}
+
+static inline xqc_int_t
+xqc_conn_send_ping_on_pto(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
+{
+    xqc_packet_out_t *packet_out = xqc_conn_gen_ping(conn, pns);
+    if (packet_out == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
+        return -XQC_EWRITE_PKT;
+    }
+
+    /* put PING into probe list, which is not limited by amplification or congestion-control */
+    xqc_send_ctl_remove_send(&packet_out->po_list);
+    xqc_send_ctl_insert_probe(&packet_out->po_list, &conn->conn_send_ctl->ctl_pto_probe_packets);
+
+    return XQC_OK;
+}
+
+
+void
+xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_t pns)
+{
+    xqc_log(c->log, XQC_LOG_DEBUG, "|send two ack-eliciting pkts|pns:%d|", pns);
+
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
-    ssize_t ret;
+    xqc_int_t ret;
+    xqc_int_t probe_num = XQC_CONN_PTO_PKT_CNT_MAX;
 
-    for (pns = XQC_PNS_INIT; pns < XQC_PNS_N; ++pns) {
-        xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_unacked_packets[pns]) {
+    /* if only one packet is in pns unacked list, this loop will try to send this packet again */
+    while (probe_num > 0)
+    {
+        xqc_list_for_each_safe(pos, next, &c->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
-            if (xqc_send_ctl_indirectly_ack_po(conn->conn_send_ctl, packet_out)) {
-                continue;
-            }
-
-            if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
+            if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)
+                && XQC_NEED_REPAIR(packet_out->po_frame_types))
+            {
                 packet_out->po_flag |= XQC_POF_TLP;
-                xqc_log(conn->log, XQC_LOG_DEBUG,
-                        "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|conn_state:%s|",
-                        conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
+
+                xqc_log(c->log, XQC_LOG_DEBUG, "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|conn_state:%s|",
+                        c, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
                         xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                         xqc_frame_type_2_str(packet_out->po_frame_types),
-                        xqc_conn_state_2_str(conn->conn_state));
+                        xqc_conn_state_2_str(c->conn_state));
 
-                xqc_send_ctl_decrease_inflight(conn->conn_send_ctl, packet_out);
-                xqc_send_ctl_copy_to_pto_probe_list(packet_out, conn->conn_send_ctl);
+                xqc_send_ctl_decrease_inflight(c->conn_send_ctl, packet_out);
+                xqc_send_ctl_copy_to_pto_probe_list(packet_out, c->conn_send_ctl);
 
-                /*
-                 * handshake packets are not limited by retransmit count,
-                 * or the crypto key might not be generated,
-                 * and no ack might be returned 
-                 */
-                if (pns >= XQC_PNS_APP_DATA) {
-                    if (++cnt >= probe_num) {
-                        return;
-                    }
+                if (--probe_num == 0) {
+                    break;
                 }
             }
         }
+
+        /* no data found in PTO pns, break and send PING */
+        if (XQC_CONN_PTO_PKT_CNT_MAX == probe_num) {
+            break;
+        }
+    }
+
+    while (probe_num > 0) {
+        xqc_log(c->log, XQC_LOG_DEBUG, "PING on PTO, cnt: %d", probe_num);
+        xqc_conn_send_ping_on_pto(c, pns);
+        probe_num--;
     }
 }
+
+
+/* used by client to break amplification limit at server, or to prove address ownership */
+void
+xqc_conn_send_one_ack_eliciting_pkt(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
+{
+    /* PING will be put into send list */
+    xqc_conn_gen_ping(conn, pns);
+}
+
 
 xqc_int_t
 xqc_conn_check_handshake_completed(xqc_connection_t *conn)
@@ -1721,8 +1801,9 @@ xqc_int_t
 xqc_conn_handshake_confirmed(xqc_connection_t *conn)
 {
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED)) {
+        xqc_log(conn->log, XQC_LOG_INFO, "|handshake confirmed|conn:%p|");
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
-        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_HSK);
+        xqc_send_ctl_drop_pkts_with_pn(conn->conn_send_ctl, XQC_PNS_HSK);
     }
 
     return XQC_OK;
@@ -1769,7 +1850,7 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
          * client MUST discard Initial keys when it first sends a Handshake packet,
          * equivalent to handshake complete and can send 1RTT
          */
-        xqc_send_ctl_drop_packets_with_type(conn->conn_send_ctl, XQC_PTYPE_INIT);
+        xqc_send_ctl_drop_pkts_with_pn(conn->conn_send_ctl, XQC_PNS_INIT);
     }
 
     /* 0RTT rejected, send in 1RTT again */
@@ -2175,7 +2256,7 @@ xqc_conn_on_hsk_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
         }
 
         /* server MUST discard Initial keys when it first successfully processes a Handshake packet */
-        xqc_send_ctl_drop_packets_with_type(c->conn_send_ctl, XQC_PTYPE_INIT);
+        xqc_send_ctl_drop_pkts_with_pn(c->conn_send_ctl, XQC_PNS_INIT);
     }
 
     return XQC_OK;
@@ -2259,6 +2340,8 @@ xqc_conn_process_packet(xqc_connection_t *c,
     xqc_packet_in_t packet;
     unsigned char decrypt_payload[XQC_MAX_PACKET_LEN];
 
+    xqc_send_ctl_on_dgram_received(c->conn_send_ctl, packet_in_size, recv_time);
+
     /* process all QUIC packets in UDP datagram */
     while (pos < end) {
         last_pos = pos;
@@ -2317,7 +2400,7 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
         && conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX)
     {
         xqc_tls_free_msg_cb_buffer(conn);
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|");
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|conn:%p|", conn);
         xqc_conn_handshake_complete(conn);
 
         if (conn->conn_callbacks.conn_handshake_finished) {
@@ -2481,6 +2564,26 @@ xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
     }
 
     return -XQC_ECONN_CID_NOT_FOUND;
+}
+
+
+xqc_bool_t
+xqc_conn_peer_complete_address_validation(xqc_connection_t *c)
+{
+    /* server assume clients validate server's address implicitly */
+    if (c->conn_type == XQC_CONN_TYPE_SERVER) {
+        return XQC_TRUE;
+
+    } else {
+        return (c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED)
+            || xqc_send_ctl_ack_received_in_pns(c->conn_send_ctl, XQC_PNS_HSK);
+    }
+}
+
+xqc_bool_t
+xqc_conn_has_hsk_keys(xqc_connection_t *c)
+{
+    return xqc_tls_check_hs_tx_key_ready(c) && xqc_tls_check_hs_rx_key_ready(c);
 }
 
 

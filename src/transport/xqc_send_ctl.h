@@ -165,8 +165,8 @@ typedef struct xqc_send_ctl_s {
 static inline xqc_msec_t
 xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
 {
-    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity*1000) +
-           ctl->ctl_conn->local_settings.max_ack_delay*1000;
+    return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity * 1000)
+        + ctl->ctl_conn->local_settings.max_ack_delay * 1000;
 }
 
 /*
@@ -269,7 +269,7 @@ void
 xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl);
 
 void
-xqc_send_ctl_drop_packets_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_t pn);
+xqc_send_ctl_drop_pkts_with_pn(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pn);
 
 void
 xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stream_id);
@@ -281,7 +281,7 @@ int
 xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time);
 
 void
-xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size);
+xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_msec_t recv_time);
 
 void
 xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t ack_delay);
@@ -295,8 +295,8 @@ xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_
 void
 xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t now);
 
-int
-xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost);
+xqc_bool_t
+xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t now);
 
 int
 xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t congestion_period);
@@ -334,8 +334,18 @@ xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
 float
 xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
 
+/**
+ * check amplification limit state
+ * @param conn xquic connection handler
+ * @param byte_cnt input 0 to check if server is at limit now, input non-zero to
+ * check if this byte count will trigger amplification limit
+ * @return XQC_FALSE: not at amplification limit, XQC_TRUE: at amplification limit
+ */
 xqc_bool_t
-xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, int byte_cnt);
+xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, size_t byte_cnt);
+
+xqc_bool_t
+xqc_send_ctl_ack_received_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns);
 
 
 /*
@@ -358,8 +368,8 @@ xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_ms
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|",
-            xqc_timer_type_2_str(type), expire, xqc_now());
+    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|interv:%ui|",
+            xqc_timer_type_2_str(type), expire, xqc_now(), expire - xqc_now());
 }
 
 static inline void
