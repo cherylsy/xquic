@@ -166,7 +166,7 @@ static inline xqc_msec_t
 xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
 {
     return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity * 1000)
-        * (1 << ctl->ctl_pto_count) + ctl->ctl_conn->local_settings.max_ack_delay * 1000;
+        + ctl->ctl_conn->local_settings.max_ack_delay * 1000;
 }
 
 /*
