@@ -66,6 +66,7 @@ typedef struct xqc_server_ctx_s {
     struct event        *ev_socket;
     struct event        *ev_engine;
     int                  log_fd;
+    int                  keylog_fd;
     xqc_quic_lb_ctx_t    quic_lb_ctx;
 } xqc_server_ctx_t;
 
@@ -908,6 +909,45 @@ ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_
 }
 
 
+/**
+ * key log functions
+ */
+
+int xqc_server_open_keylog_file(xqc_server_ctx_t *ctx)
+{
+    ctx->keylog_fd = open("./skeys.log", (O_WRONLY | O_APPEND | O_CREAT), 0644);
+    if (ctx->keylog_fd <= 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int xqc_server_close_keylog_file(xqc_server_ctx_t *ctx)
+{
+    if (ctx->keylog_fd <= 0) {
+        return -1;
+    }
+
+    close(ctx->keylog_fd);
+    ctx->keylog_fd = 0;
+    return 0;
+}
+
+
+void xqc_keylog_cb(const char *line, void *user_data)
+{
+    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)user_data;
+    if (ctx->keylog_fd <= 0) {
+        printf("write keys error!\n");
+        return;
+    }
+
+    write(ctx->keylog_fd, line, strlen(line));
+    write(ctx->keylog_fd, "\n", 1);
+}
+
+
 ssize_t xqc_server_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
                                 const struct sockaddr *peer_addr,
                                 socklen_t peer_addrlen)
@@ -1071,6 +1111,7 @@ int main(int argc, char *argv[]) {
 
     char g_session_ticket_file[] = "session_ticket.key";
 
+    xqc_server_open_keylog_file(&ctx);
 
     xqc_engine_ssl_config_t  engine_ssl_config;
     memset(&engine_ssl_config, 0, sizeof(engine_ssl_config));
@@ -1094,38 +1135,39 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-            .conn_callbacks = {
-                    .conn_create_notify = xqc_server_conn_create_notify,
-                    .conn_close_notify = xqc_server_conn_close_notify,
-                    .conn_handshake_finished = xqc_server_conn_handshake_finished,
-            },
-            .h3_conn_callbacks = {
-                    .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
-                    .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
-                    .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
-            },
-            .stream_callbacks = {
-                    .stream_write_notify = xqc_server_stream_write_notify,
-                    .stream_read_notify = xqc_server_stream_read_notify,
-                    .stream_create_notify = xqc_server_stream_create_notify,
-                    .stream_close_notify = xqc_server_stream_close_notify,
-            },
-            .h3_request_callbacks = {
-                    .h3_request_write_notify = xqc_server_request_write_notify,
-                    .h3_request_read_notify = xqc_server_request_read_notify,
-                    .h3_request_create_notify = xqc_server_request_create_notify,
-                    .h3_request_close_notify = xqc_server_request_close_notify,
-            },
-            .write_socket = xqc_server_write_socket,
-            .server_accept = xqc_server_accept,
-            .set_event_timer = xqc_server_set_event_timer,
-            .log_callbacks = {
-                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG),
-                    //.log_level = XQC_LOG_INFO,
-                    .xqc_open_log_file = xqc_server_open_log_file,
-                    .xqc_close_log_file = xqc_server_close_log_file,
-                    .xqc_write_log_file = xqc_server_write_log_file,
-            },
+        .conn_callbacks = {
+            .conn_create_notify = xqc_server_conn_create_notify,
+            .conn_close_notify = xqc_server_conn_close_notify,
+            .conn_handshake_finished = xqc_server_conn_handshake_finished,
+        },
+        .h3_conn_callbacks = {
+            .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
+            .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
+            .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
+        },
+        .stream_callbacks = {
+            .stream_write_notify = xqc_server_stream_write_notify,
+            .stream_read_notify = xqc_server_stream_read_notify,
+            .stream_create_notify = xqc_server_stream_create_notify,
+            .stream_close_notify = xqc_server_stream_close_notify,
+        },
+        .h3_request_callbacks = {
+            .h3_request_write_notify = xqc_server_request_write_notify,
+            .h3_request_read_notify = xqc_server_request_read_notify,
+            .h3_request_create_notify = xqc_server_request_create_notify,
+            .h3_request_close_notify = xqc_server_request_close_notify,
+        },
+        .write_socket = xqc_server_write_socket,
+        .server_accept = xqc_server_accept,
+        .set_event_timer = xqc_server_set_event_timer,
+        .log_callbacks = {
+            .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG),
+            //.log_level = XQC_LOG_INFO,
+            .xqc_open_log_file = xqc_server_open_log_file,
+            .xqc_close_log_file = xqc_server_close_log_file,
+            .xqc_write_log_file = xqc_server_write_log_file,
+        },
+        .keylog_cb = xqc_keylog_cb,
     };
 
     if (g_batch) {
@@ -1242,5 +1284,6 @@ int main(int argc, char *argv[]) {
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);
+    xqc_server_close_keylog_file(&ctx);
     return 0;
 }

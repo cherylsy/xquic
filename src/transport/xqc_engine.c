@@ -314,7 +314,6 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
     return XQC_ERROR;
 }
 
-
 /**
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
@@ -400,6 +399,11 @@ xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * ssl_c
     /* set ssl ctx cipher suites */
     if (xqc_set_cipher_suites(engine) != XQC_OK) {
         goto fail;
+    }
+
+    /* set keylog callback */
+    if (engine_callback.keylog_cb) {
+        xqc_set_keylog(engine);
     }
 
     engine->h3_ctx = xqc_h3_context_create();

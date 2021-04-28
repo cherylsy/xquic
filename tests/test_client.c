@@ -102,6 +102,7 @@ typedef struct client_ctx_s {
     xqc_engine_t    *engine;
     struct event    *ev_engine;
     int             log_fd;
+    int             keylog_fd;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -1443,6 +1444,44 @@ ssize_t xqc_client_write_log_file(void *engine_user_data, const void *buf, size_
     return write(ctx->log_fd, buf, count);
 }
 
+/**
+ * key log functions
+ */
+
+int xqc_client_open_keylog_file(client_ctx_t *ctx)
+{
+    ctx->keylog_fd = open("./ckeys.log", (O_WRONLY | O_APPEND | O_CREAT), 0644);
+    if (ctx->keylog_fd <= 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+int xqc_client_close_keylog_file(client_ctx_t *ctx)
+{
+    if (ctx->keylog_fd <= 0) {
+        return -1;
+    }
+
+    close(ctx->keylog_fd);
+    ctx->keylog_fd = 0;
+    return 0;
+}
+
+
+void xqc_keylog_cb(const char *line, void *user_data)
+{
+    client_ctx_t *ctx = (client_ctx_t*)user_data;
+    if (ctx->keylog_fd <= 0) {
+        printf("write keys error!\n");
+        return;
+    }
+
+    write(ctx->keylog_fd, line, strlen(line));
+    write(ctx->keylog_fd, "\n", 1);
+}
+
 void usage(int argc, char *argv[]) {
     char *prog = argv[0];
     char *const slash = strrchr(prog, '/');
@@ -1633,6 +1672,8 @@ int main(int argc, char *argv[]) {
 
     memset(&ctx, 0, sizeof(ctx));
 
+    xqc_client_open_keylog_file(&ctx);
+
 
     xqc_engine_ssl_config_t  engine_ssl_config;
     memset(&engine_ssl_config, 0 ,sizeof(engine_ssl_config));
@@ -1645,44 +1686,45 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-            /* HTTP3不用设置这个回调 */
-            .conn_callbacks = {
-                    .conn_create_notify = xqc_client_conn_create_notify,
-                    .conn_close_notify = xqc_client_conn_close_notify,
-                    .conn_handshake_finished = xqc_client_conn_handshake_finished,
-                    .conn_ping_acked = xqc_client_conn_ping_acked_notify,
-            },
-            .h3_conn_callbacks = {
-                    .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-                    .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
-                    .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* 握手完成时回调 */
-                    .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
-            },
-            /* 仅使用传输层时实现 */
-            .stream_callbacks = {
-                    .stream_write_notify = xqc_client_stream_write_notify, /* 可写时回调，用户可以继续调用写接口 */
-                    .stream_read_notify = xqc_client_stream_read_notify, /* 可读时回调，用户可以继续调用读接口 */
-                    .stream_close_notify = xqc_client_stream_close_notify, /* 关闭时回调，用户可以回收资源 */
-            },
-            /* 使用应用层时实现 */
-            .h3_request_callbacks = {
-                    .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
-                    .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
-                    .h3_request_close_notify = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
-            },
-            .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
-            .ready_to_create_path_notify = xqc_client_ready_to_create_path,  /* init path when notified */
-            .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
-            .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
-            .log_callbacks = {
-                    .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_STATS: XQC_LOG_DEBUG),
-                    //.log_level = XQC_LOG_INFO,
-                    .xqc_open_log_file = xqc_client_open_log_file,
-                    .xqc_close_log_file = xqc_client_close_log_file,
-                    .xqc_write_log_file = xqc_client_write_log_file,
-            },
-            .save_session_cb = save_session_cb,
-            .save_tp_cb = save_tp_cb,
+        /* HTTP3不用设置这个回调 */
+        .conn_callbacks = {
+                .conn_create_notify = xqc_client_conn_create_notify,
+                .conn_close_notify = xqc_client_conn_close_notify,
+                .conn_handshake_finished = xqc_client_conn_handshake_finished,
+                .conn_ping_acked = xqc_client_conn_ping_acked_notify,
+        },
+        .h3_conn_callbacks = {
+                .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+                .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
+                .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* 握手完成时回调 */
+                .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
+        },
+        /* 仅使用传输层时实现 */
+        .stream_callbacks = {
+                .stream_write_notify = xqc_client_stream_write_notify, /* 可写时回调，用户可以继续调用写接口 */
+                .stream_read_notify = xqc_client_stream_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+                .stream_close_notify = xqc_client_stream_close_notify, /* 关闭时回调，用户可以回收资源 */
+        },
+        /* 使用应用层时实现 */
+        .h3_request_callbacks = {
+                .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
+                .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+                .h3_request_close_notify = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
+        },
+        .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
+        .ready_to_create_path_notify = xqc_client_ready_to_create_path,  /* init path when notified */
+        .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
+        .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
+        .log_callbacks = {
+                .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_STATS: XQC_LOG_DEBUG),
+                //.log_level = XQC_LOG_INFO,
+                .xqc_open_log_file = xqc_client_open_log_file,
+                .xqc_close_log_file = xqc_client_close_log_file,
+                .xqc_write_log_file = xqc_client_write_log_file,
+        },
+        .save_session_cb = save_session_cb,
+        .save_tp_cb = save_tp_cb,
+        .keylog_cb = xqc_keylog_cb,
     };
 
     xqc_cong_ctrl_callback_t cong_ctrl;
@@ -1856,5 +1898,7 @@ int main(int argc, char *argv[]) {
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);
+    xqc_client_close_keylog_file(&ctx);
+
     return 0;
 }

@@ -84,6 +84,8 @@ typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, xqc_cid_t *c
 
 typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
 
+
+
 /**
  * write socket
  * @param conn_user_data user_data of connection
@@ -139,6 +141,13 @@ typedef int (*xqc_cert_verify_pt)(unsigned char *certs[],size_t cert_len[],size_
  * if the length of bytes written shorter than cid_buflen , xquic will fill rest of them with random bytes
  * */
 typedef ssize_t (*xqc_cid_generate_pt)(uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data);
+
+
+/**
+ * keylog callback
+ */
+typedef void (*xqc_keylog_pt)(const char *line, void *user_data);
+
 
 /*
  * Callbacks below return -1 for fatal error, e.g. malloc fail, xquic will close the connection, return 0 otherwise
@@ -329,6 +338,9 @@ typedef struct xqc_engine_callback_s {
     /* for multi-path */
     xqc_conn_ready_to_create_path_notify_pt  ready_to_create_path_notify;
     xqc_path_created_notify_pt               path_created_notify;
+
+    /* keylog */
+    xqc_keylog_pt               keylog_cb;
 } xqc_engine_callback_t;
 
 #define XQC_ALPN_HTTP3      "h3-29"
