@@ -557,10 +557,10 @@ xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
         return XQC_OK;
     }
 
-    xqc_packet_out_t *po = xqc_write_ping_to_packet(conn, user_data, XQC_TRUE);
-    if (po == NULL) {
+    ret = xqc_write_ping_to_packet(conn, user_data, XQC_TRUE);
+    if (ret < 0) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|write ping error|");
-        return -XQC_EWRITE_PKT;
+        return ret;
     }
 
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
@@ -1256,8 +1256,7 @@ xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
         return NULL;
     }
 
-    /* set po_user_data as NULL to diff from upper level's PING */
-    packet_out->po_ping_user_data = NULL;
+    packet_out->po_user_data = NULL;
     packet_out->po_used_size += ret;
 
     return packet_out;

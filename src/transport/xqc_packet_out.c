@@ -56,7 +56,7 @@ xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src)
     }
     dst->po_origin = origin;
     origin->po_origin_ref_cnt++;
-    dst->po_ping_user_data = src->po_ping_user_data;
+    dst->po_user_data = src->po_user_data;
 }
 
 xqc_packet_out_t *
