@@ -138,7 +138,7 @@ xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl,
     packet_out->po_delivered_time = ctl->ctl_delivered_time;
     packet_out->po_first_sent_time = ctl->ctl_first_sent_time;
     packet_out->po_delivered = ctl->ctl_delivered;
-    packet_out->po_is_app_limited = ctl->ctl_app_limited > 0 ? 1 : 0;
+    packet_out->po_is_app_limited = ctl->ctl_app_limited > 0 ? XQC_TRUE : XQC_FALSE;
     packet_out->po_lost = ctl->ctl_lost_pkts_number;
     packet_out->po_tx_in_flight = ctl->ctl_bytes_in_flight + 
                                   packet_out->po_used_size;

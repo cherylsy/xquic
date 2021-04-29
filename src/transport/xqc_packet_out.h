@@ -30,6 +30,7 @@ typedef enum {
     XQC_POF_TLP              = 1 << 4,
     XQC_POF_STREAM_UNACK     = 1 << 5,
     XQC_POF_RETRANSED        = 1 << 6,
+    XQC_POF_USER_EVENT       = 1 << 7,  /* user might be interested when a packet is acked, lost, etc. */
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {
@@ -64,7 +65,7 @@ typedef struct xqc_packet_out_s {
     uint64_t                po_delivered;       /* 在发送packet P之前已经标记为发送完毕的数据量 */
     xqc_msec_t              po_delivered_time;  /* 在发送packet P之前最后一个被ack的包的时间 */
     xqc_msec_t              po_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
-    unsigned char           po_is_app_limited;
+    xqc_bool_t              po_is_app_limited;
 
     /*For BBRv2*/
     /*the inflight bytes when the packet is sent (including itself)*/
