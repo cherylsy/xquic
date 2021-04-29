@@ -427,12 +427,16 @@ echo -e "server cid negotiate ...\c"
 killall test_server
 ./test_server -l d -e -x 1 > /dev/null &
 sleep 1
-result=`./test_client -s 1024000 -l d -t 1 -E|grep ">>>>>>>> pass"`
+./test_client -s 1024000 -l d -t 1 -E >> clog
+result=`grep ">>>>>>>> pass:1" clog`
+dcid=`grep "====>DCID" clog | awk -F ":" '{print $2}'`
+dcid_res=`grep "new:$dcid" clog`
 errlog=`grep_err_log`
-echo "$result"
-if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ] && [ -n "$dcid_res" ] && [ -n "$dcid" ]; then
+    echo ">>>>>>>> pass:1"
     case_print_result "server_cid_negotiate" "pass"
 else
+    echo ">>>>>>>> pass:0"
     case_print_result "server_cid_negotiate" "fail"
     echo "$errlog"
 fi

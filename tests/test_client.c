@@ -605,6 +605,8 @@ void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
     xqc_conn_send_ping(ctx.engine, &user_conn->cid, NULL);
     xqc_conn_send_ping(ctx.engine, &user_conn->cid, &g_ping_id);
 
+    printf("====>DCID:%s\n", xqc_dcid_str_by_scid(ctx.engine, &user_conn->cid));
+    printf("====>SCID:%s\n", xqc_scid_str(&user_conn->cid));
 }
 
 int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
@@ -662,6 +664,9 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     if (g_enable_multipath) {
         printf("transport_parameter:enable_multipath=%d\n", stats.enable_multipath);
     }
+
+    printf("====>DCID:%s\n", xqc_dcid_str_by_scid(ctx.engine, &user_conn->cid));
+    printf("====>SCID:%s\n", xqc_scid_str(&user_conn->cid));
 }
 
 void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
