@@ -104,5 +104,7 @@ xqc_dcid_str_by_scid(xqc_engine_t *engine, xqc_cid_t *scid)
         xqc_log(engine->log, XQC_LOG_ERROR, "|can not find connection|");
         return NULL;
     }
+
+    xqc_hex_dump(conn->dcid_str, conn->dcid.cid_buf, conn->dcid.cid_len);
     return conn->dcid_str;
 }
