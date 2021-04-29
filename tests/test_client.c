@@ -591,15 +591,20 @@ void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, v
 {
     DEBUG;
     if (ping_user_data) {
-        printf("ping_id:%d\n", *(int *) ping_user_data);
+        printf("====>ping_id:%d\n", *(int *) ping_user_data);
+
+    } else {
+        printf("====>no ping_id\n");
     }
-    return;
 }
 
 void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
+    xqc_conn_send_ping(ctx.engine, &user_conn->cid, NULL);
+    xqc_conn_send_ping(ctx.engine, &user_conn->cid, &g_ping_id);
+
 }
 
 int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
@@ -648,6 +653,9 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
 
+    xqc_h3_conn_send_ping(ctx.engine, &user_conn->cid, NULL);
+    xqc_h3_conn_send_ping(ctx.engine, &user_conn->cid, &g_ping_id);
+
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
 
@@ -660,7 +668,10 @@ void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, v
 {
     DEBUG;
     if (ping_user_data) {
-        printf("ping_id:%d\n", *(int *) ping_user_data);
+        printf("====>ping_id:%d\n", *(int *) ping_user_data);
+
+    } else {
+        printf("====>no ping_id\n");
     }
 }
 
@@ -1872,6 +1883,7 @@ int main(int argc, char *argv[]) {
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
+
     for (int i = 0; i < req_paral; i++) {
         g_req_cnt++;
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
@@ -1894,6 +1906,7 @@ int main(int argc, char *argv[]) {
             xqc_client_stream_send(user_stream->stream, user_stream);
         }
     }
+
     last_recv_ts = now();
     event_base_dispatch(eb);
 

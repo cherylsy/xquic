@@ -217,9 +217,9 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 }
 
 int 
-xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
+xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data)
 {
-    return xqc_conn_send_ping(engine, cid, user_data);
+    return xqc_conn_send_ping(engine, cid, ping_user_data);
 }
 
 int

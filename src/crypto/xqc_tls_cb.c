@@ -28,7 +28,7 @@ int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t 
 
 
 /**
- * select aplication layer proto, now only just support XQC_ALPN_V1
+ * select aplication layer proto
  */
 int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
         unsigned char *outlen, const unsigned char *in,

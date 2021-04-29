@@ -336,6 +336,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
 
         conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
                                settings, user_data, XQC_CONN_TYPE_SERVER);
+
     } else {
         /* 
          * if use the peer's dcid as scid directly, must make sure
@@ -540,8 +541,9 @@ xqc_conn_get_local_addr(xqc_connection_t *conn, socklen_t *local_addr_len)
     return (struct sockaddr*)conn->local_addr;
 }
 
+/* used by upper level, shall never be invoked in xquic */
 xqc_int_t
-xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
+xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data)
 {
     xqc_connection_t *conn;
     xqc_int_t ret;
@@ -555,7 +557,7 @@ xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data)
         return XQC_OK;
     }
 
-    ret = xqc_write_ping_to_packet(conn, user_data);
+    ret = xqc_write_ping_to_packet(conn, ping_user_data, XQC_TRUE);
     if (ret < 0) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|write ping error|");
         return ret;
@@ -1254,6 +1256,7 @@ xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
         return NULL;
     }
 
+    packet_out->po_user_data = NULL;
     packet_out->po_used_size += ret;
 
     return packet_out;

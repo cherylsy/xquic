@@ -272,6 +272,37 @@ else
     echo "$errlog"
 fi
 
+
+clear_log
+rm -f test_session xqc_token tp_localhost
+echo -e "transport ping ...\c"
+./test_client -s 1024 -l d -E -x 28 -T >> clog
+ret_ping_id=`grep "====>ping_id:" clog`
+ret_no_ping_id=`grep "====>no ping_id" clog`
+if [ -n "$ret_ping_id" ] && [ -n "$ret_no_ping_id" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "transport_ping" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "transport_ping" "fail"
+fi
+
+
+clear_log
+rm -f test_session xqc_token tp_localhost
+echo -e "h3 ping ...\c"
+./test_client -s 1024 -l d -E -x 28 >> clog
+ret_ping_id=`grep "====>ping_id:" clog`
+ret_no_ping_id=`grep "====>no ping_id" clog`
+if [ -n "$ret_ping_id" ] && [ -n "$ret_no_ping_id" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "h3_ping" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "h3_ping" "fail"
+fi
+
+
 clear_log
 echo -e "0RTT accept ...\c"
 ./test_client -s 1024000 -l e -t 1 -E > stdlog
@@ -286,6 +317,7 @@ else
     echo "$flag"
     echo "$errlog"
 fi
+
 
 clear_log
 echo -e "0RTT reject. restart server ....\c"
@@ -690,7 +722,7 @@ else
 fi
 
 clear_log
-result=`./test_client -s 10240000 -t 1 -l e -E -d 100|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -t 5 -l e -E -d 100|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "10_percent_loss" "pass"
@@ -910,7 +942,6 @@ else
     echo ">>>>>>>> pass:0"
     case_print_result "server_amplification_limit" "fail"
 fi
-
 
 
 killall test_server

@@ -528,7 +528,7 @@ struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
+int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data);
 
 
 /**
@@ -697,7 +697,7 @@ struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *user_data);
+int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data);
 
 /**
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt

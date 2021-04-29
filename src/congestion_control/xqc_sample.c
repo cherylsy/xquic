@@ -109,16 +109,13 @@ xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
     uint32_t cwnd = send_ctl->ctl_cong_callback->
                     xqc_cong_ctl_get_cwnd(send_ctl->ctl_cong);
     if (send_ctl->ctl_bytes_in_flight < cwnd) {
-        /*QUIC MSS*/
+        /* QUIC MSS */
         not_cwnd_limited = (cwnd - send_ctl->ctl_bytes_in_flight) >= XQC_QUIC_MSS; 
     }
 
-    if (/* We are not limited by CWND. */
-        not_cwnd_limited 
-        /* We have no packet to send. */
-        && xqc_list_empty(&send_ctl->ctl_send_packets) 
-        /* All lost packets have been retransmitted. */
-        && xqc_list_empty(&send_ctl->ctl_lost_packets)
+    if (not_cwnd_limited    /* We are not limited by CWND. */
+        && xqc_list_empty(&send_ctl->ctl_send_packets)  /* We have no packet to send. */
+        && xqc_list_empty(&send_ctl->ctl_lost_packets)  /* All lost packets have been retransmitted. */
         && xqc_list_empty(&send_ctl->ctl_pto_probe_packets))
     {
         send_ctl->ctl_app_limited = (send_ctl->ctl_delivered + 
@@ -138,7 +135,7 @@ xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl,
     packet_out->po_delivered_time = ctl->ctl_delivered_time;
     packet_out->po_first_sent_time = ctl->ctl_first_sent_time;
     packet_out->po_delivered = ctl->ctl_delivered;
-    packet_out->po_is_app_limited = ctl->ctl_app_limited > 0 ? 1 : 0;
+    packet_out->po_is_app_limited = ctl->ctl_app_limited > 0 ? XQC_TRUE : XQC_FALSE;
     packet_out->po_lost = ctl->ctl_lost_pkts_number;
     packet_out->po_tx_in_flight = ctl->ctl_bytes_in_flight + 
                                   packet_out->po_used_size;
