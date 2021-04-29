@@ -48,7 +48,7 @@ typedef struct xqc_packet_out_s {
     unsigned char          *po_ppktno;
     unsigned char          *po_payload;
     xqc_packet_out_t       *po_origin;          /* point to original packet before retransmitted */
-    void                   *po_ping_user_data;  /* 上层用于区别哪个ping被ack */
+    void                   *po_ping_user_data;  /* used to differ inner PING and user PING */
 
     unsigned int            po_buf_size;
     unsigned int            po_used_size;

@@ -336,6 +336,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
 
         conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
                                settings, user_data, XQC_CONN_TYPE_SERVER);
+
     } else {
         /* 
          * if use the peer's dcid as scid directly, must make sure
@@ -1246,7 +1247,7 @@ xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
         return NULL;
     }
 
-    /* write PING to pkt */
+    /* write PING to pkt, set po_user_data as NULL to diff from upper level's PING */
     xqc_int_t ret = xqc_gen_ping_frame(packet_out);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_ping_frame error|");
