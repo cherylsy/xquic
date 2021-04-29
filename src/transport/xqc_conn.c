@@ -1247,7 +1247,7 @@ xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
         return NULL;
     }
 
-    /* write PING to pkt, set po_user_data as NULL to diff from upper level's PING */
+    /* write PING to pkt */
     xqc_int_t ret = xqc_gen_ping_frame(packet_out);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_ping_frame error|");
@@ -1255,6 +1255,8 @@ xqc_conn_gen_ping(xqc_connection_t *conn, xqc_pkt_num_space_t pns)
         return NULL;
     }
 
+    /* set po_user_data as NULL to diff from upper level's PING */
+    packet_out->po_ping_user_data = NULL;
     packet_out->po_used_size += ret;
 
     return packet_out;
