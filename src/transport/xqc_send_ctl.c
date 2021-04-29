@@ -1574,14 +1574,12 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl,
         }
 
         if (packet_out->po_frame_types & XQC_FRAME_BIT_PING) {
-            /* xquic supports inner PING and user PING, user PING shall be notified to upper level while 
-               inner PING shall not.  if po_ping_user_data is NULL, it's an inner PING, do no callback */
             if (conn->conn_callbacks.conn_ping_acked
-                && packet_out->po_ping_user_data)
+                && (packet_out->po_flag & XQC_POF_NOTIFY))
             {
                 conn->conn_callbacks.conn_ping_acked(conn, &conn->scid,
                                                      conn->user_data,
-                                                     packet_out->po_ping_user_data);
+                                                     packet_out->po_user_data);
             }
         }
 

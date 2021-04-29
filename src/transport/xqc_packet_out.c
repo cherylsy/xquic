@@ -376,7 +376,7 @@ done:
 }
 
 int
-xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data)
+xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data, xqc_bool_t notify)
 {
     ssize_t ret;
     xqc_packet_out_t *packet_out;
@@ -392,9 +392,15 @@ xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_ping_frame error|");
         goto error;
     }
-    packet_out->po_ping_user_data = user_data;
 
+    packet_out->po_user_data = user_data;
     packet_out->po_used_size += ret;
+
+    /* xquic supports inner PING and user PING, user PING shall be notified to upper level while 
+       inner PING shall not.  if XQC_POF_NOTIFY is not set, it's an inner PING, do no callback */
+    if (notify) {
+        packet_out->po_flag |= XQC_POF_NOTIFY;
+    }
 
     conn->conn_flag &= ~XQC_CONN_FLAG_PING;
 

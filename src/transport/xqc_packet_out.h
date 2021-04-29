@@ -30,13 +30,14 @@ typedef enum {
     XQC_POF_TLP              = 1 << 4,
     XQC_POF_STREAM_UNACK     = 1 << 5,
     XQC_POF_RETRANSED        = 1 << 6,
+    XQC_POF_NOTIFY           = 1 << 7,  /* need to notify user when a packet is acked, lost, etc. */
 } xqc_packet_out_flag_t;
 
 typedef struct xqc_po_stream_frame_s {
     xqc_stream_id_t         ps_stream_id;
     unsigned char           ps_is_used;
-    unsigned char           ps_has_fin; /* stream frame是否带fin */
-    unsigned char           ps_is_reset; /* 是否是RESET STREAM frame */
+    unsigned char           ps_has_fin;     /* whether fin flag from stream frame is set  */
+    unsigned char           ps_is_reset;    /* whether frame is RESET_STREAM */
 } xqc_po_stream_frame_t;
 
 typedef struct xqc_packet_out_s {
@@ -48,23 +49,24 @@ typedef struct xqc_packet_out_s {
     unsigned char          *po_ppktno;
     unsigned char          *po_payload;
     xqc_packet_out_t       *po_origin;          /* point to original packet before retransmitted */
-    void                   *po_ping_user_data;  /* used to differ inner PING and user PING */
+    void                   *po_user_data;       /* used to differ inner PING and user PING */
 
     unsigned int            po_buf_size;
     unsigned int            po_used_size;
     xqc_packet_out_flag_t   po_flag;
-    /* Largest Acknowledged in ACK frame, if there is no ACK frame, it should be 0 */
+    /* Largest Acknowledged in ACK frame, initiated to be 0 */
     xqc_packet_number_t     po_largest_ack;
     xqc_msec_t              po_sent_time;
     xqc_frame_type_bit_t    po_frame_types;
-    /* stream frame 关联的stream */
+
+    /* the stream related to stream frame */
     xqc_po_stream_frame_t   po_stream_frames[XQC_MAX_STREAM_FRAME_IN_PO];
     uint32_t                po_origin_ref_cnt;  /* reference count of original packet */
     uint32_t                po_acked;
-    uint64_t                po_delivered;       /* 在发送packet P之前已经标记为发送完毕的数据量 */
-    xqc_msec_t              po_delivered_time;  /* 在发送packet P之前最后一个被ack的包的时间 */
-    xqc_msec_t              po_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
-    unsigned char           po_is_app_limited;
+    uint64_t                po_delivered;       /* the sum of delivered data before sending packet P */
+    xqc_msec_t              po_delivered_time;  /* the time of last acked packet before sending packet P */
+    xqc_msec_t              po_first_sent_time; /* the time of first sent packet during current sample period */
+    xqc_bool_t              po_is_app_limited;
 
     /*For BBRv2*/
     /*the inflight bytes when the packet is sent (including itself)*/
@@ -106,7 +108,7 @@ int
 xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
 
 int
-xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data);
+xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data, xqc_bool_t notify);
 
 int
 xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code);
