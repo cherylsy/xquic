@@ -376,7 +376,7 @@ done:
 }
 
 int
-xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data, xqc_bool_t notify)
+xqc_write_ping_to_packet(xqc_connection_t *conn, void *po_user_data, xqc_bool_t notify)
 {
     ssize_t ret;
     xqc_packet_out_t *packet_out;
@@ -393,7 +393,7 @@ xqc_write_ping_to_packet(xqc_connection_t *conn, void *user_data, xqc_bool_t not
         goto error;
     }
 
-    packet_out->po_user_data = user_data;
+    packet_out->po_user_data = po_user_data;
     packet_out->po_used_size += ret;
 
     /* xquic supports inner PING and user PING, user PING shall be notified to upper level while 
