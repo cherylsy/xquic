@@ -311,9 +311,6 @@ const char*
 xqc_conn_state_2_str(xqc_conn_state_t state);
 
 void
-xqc_conn_init_trans_param(xqc_connection_t *conn);
-
-void
 xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
 xqc_connection_t *
