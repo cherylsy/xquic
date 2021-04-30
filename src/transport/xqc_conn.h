@@ -16,14 +16,14 @@
 #define XQC_STATELESS_RESET_TOKENLEN 16
 #define XQC_MAX_TOKEN_LEN 32
 
-#define XQC_TOKEN_EXPIRE_DELTA (7*24*60*60) /* expire in N seconds */
+#define XQC_TOKEN_EXPIRE_DELTA (7 * 24 * 60 * 60)           /* expire in N seconds */
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */
 
 #define XQC_MAX_AVAILABLE_CID_COUNT  16
 
 #define XQC_MAX_PACKET_PROCESS_BATCH 100 /* maximum accumulated number of xqc_engine_packet_process */
 
-#define XQC_MAX_RECV_WINDOW (16*1024*1024)
+#define XQC_MAX_RECV_WINDOW (16 * 1024 * 1024)
 
 /* the max_streams transmission parameter or the value received in the MAX_STREAMS frame must <= 2^60 */
 #define XQC_MAX_STREAMS ((uint64_t)1 << 60)
