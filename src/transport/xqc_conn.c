@@ -180,6 +180,7 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
     settings->max_udp_payload_size = XQC_MAX_UDP_PAYLOAD_SIZE;
     settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
     settings->enable_multipath = conn->conn_settings.enable_multipath;
+    settings->disable_active_migration = 1;
 
     /* TODO: fix me */
     memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
@@ -502,6 +503,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
             xqc_log(xc->log, XQC_LOG_INFO, "|remove abnormal odcid conn hash: %s", xqc_dcid_str(&xc->ocid));
             xqc_remove_conns_hash(xc->engine->conns_hash, xc, &xc->ocid);
         }
+
+        xqc_conn_destroy_cids(xc);
     }
 
     if (xc->engine->conns_hash_dcid && (xc->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
@@ -1804,7 +1807,7 @@ xqc_int_t
 xqc_conn_handshake_confirmed(xqc_connection_t *conn)
 {
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED)) {
-        xqc_log(conn->log, XQC_LOG_INFO, "|handshake confirmed|conn:%p|");
+        xqc_log(conn->log, XQC_LOG_INFO, "|handshake confirmed|conn:%p|", conn);
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_CONFIRMED;
         xqc_send_ctl_drop_pkts_with_pn(conn->conn_send_ctl, XQC_PNS_HSK);
     }

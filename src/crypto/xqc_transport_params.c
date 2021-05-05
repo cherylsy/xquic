@@ -105,8 +105,7 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
     }
     if (params->disable_active_migration) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_DISABLE_ACTIVE_MIGRATION) + 
-               xqc_put_varint_len(xqc_put_varint_len(params->disable_active_migration)) +
-               xqc_put_varint_len(params->disable_active_migration);
+               xqc_put_varint_len(0);   /* disable_active_migration is zero-length transport parameter */
     }
     /* PREFERRED_ADDRESS */
     if (exttype == XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS 
@@ -947,6 +946,7 @@ int
 xqc_serialize_client_transport_params(xqc_connection_t * conn, xqc_transport_params_type_t exttype,const unsigned char **out,size_t *outlen)
 {
     xqc_transport_params_t params;
+    memset(&params, 0, sizeof(xqc_transport_params_t));
 
     /* initialize params */
     int rv = xqc_conn_get_local_transport_params(conn, &params, exttype);
