@@ -646,7 +646,7 @@ xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint3
         }
 
         if (xqc_pacing_is_on(&ctl->ctl_pacing)) {
-            if (!xqc_pacing_can_write(&ctl->ctl_pacing, total_bytes)) {
+            if (!xqc_pacing_can_write(&ctl->ctl_pacing, total_bytes + packet_out->po_used_size)) {
                 xqc_log(conn->log, XQC_LOG_DEBUG, "|pacing blocked|");
                 return XQC_FALSE;
             }
@@ -775,8 +775,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
             }
 
             /* check cc limit */
-            if (congest && !xqc_send_burst_check_cc(ctl, packet_out, inflight + packet_out->po_used_size,
-                                                    total_bytes_to_send + packet_out->po_used_size))
+            if (congest && !xqc_send_burst_check_cc(ctl, packet_out, inflight, total_bytes_to_send))
             {
                 break;
             }
