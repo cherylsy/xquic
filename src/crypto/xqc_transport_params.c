@@ -67,7 +67,7 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
                XQC_STATELESS_RESET_TOKENLEN;
     }
 
-    if (params->max_udp_payload_size) {
+    if (params->max_udp_payload_size != XQC_DEFAULT_MAX_UDP_PAYLOAD_SIZE) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_MAX_UDP_PAYLOAD_SIZE) + 
                xqc_put_varint_len(xqc_put_varint_len(params->max_udp_payload_size)) +
                xqc_put_varint_len(params->max_udp_payload_size);
@@ -109,13 +109,13 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
                xqc_put_varint_len(params->initial_max_streams_uni);
     }
 
-    if (params->ack_delay_exponent) {
+    if (params->ack_delay_exponent != XQC_DEFAULT_ACK_DELAY_EXPONENT) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_ACK_DELAY_EXPONENT) + 
                xqc_put_varint_len(xqc_put_varint_len(params->ack_delay_exponent)) +
                xqc_put_varint_len(params->ack_delay_exponent);
     }
 
-    if (params->max_ack_delay) {
+    if (params->max_ack_delay != XQC_DEFAULT_MAX_ACK_DELAY) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_MAX_ACK_DELAY) + 
                xqc_put_varint_len(xqc_put_varint_len(params->max_ack_delay)) +
                xqc_put_varint_len(params->max_ack_delay);
@@ -143,7 +143,7 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
              xqc_put_varint_len(preferred_addrlen) + preferred_addrlen;
     }
 
-    if (params->active_connection_id_limit) {
+    if (params->active_connection_id_limit != XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_ACTIVE_CONNECTION_ID_LIMIT) +
                xqc_put_varint_len(xqc_put_varint_len(params->active_connection_id_limit)) +
                xqc_put_varint_len(params->active_connection_id_limit);
@@ -238,7 +238,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
         p = xqc_cpymem(p, params->stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
     }
 
-    if (params->max_udp_payload_size) {
+    if (params->max_udp_payload_size != XQC_DEFAULT_MAX_UDP_PAYLOAD_SIZE) {
         p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_MAX_UDP_PAYLOAD_SIZE, 
                                  params->max_udp_payload_size);
     }
@@ -273,12 +273,12 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
                                  params->initial_max_streams_uni);
     }
 
-    if (params->ack_delay_exponent) {
+    if (params->ack_delay_exponent != XQC_DEFAULT_ACK_DELAY_EXPONENT) {
         p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_ACK_DELAY_EXPONENT,
                                  params->ack_delay_exponent);
     }
 
-    if (params->max_ack_delay) {
+    if (params->max_ack_delay != XQC_DEFAULT_MAX_ACK_DELAY) {
         p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_MAX_ACK_DELAY,
                                  params->max_ack_delay);
     }
@@ -310,7 +310,7 @@ xqc_encode_transport_params(uint8_t *dest, size_t destlen,
         p = xqc_cpymem(p, params->preferred_address.stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
     }
 
-    if (params->active_connection_id_limit) {
+    if (params->active_connection_id_limit != XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT) {
         p = xqc_put_varint_param(p, XQC_TRANSPORT_PARAM_ACTIVE_CONNECTION_ID_LIMIT,
                                  params->active_connection_id_limit);
     }
