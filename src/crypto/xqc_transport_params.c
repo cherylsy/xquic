@@ -102,11 +102,13 @@ xqc_transport_params_calc_length(xqc_transport_params_type_t exttype,
                xqc_put_varint_len(xqc_put_varint_len(params->initial_max_streams_bidi)) +
                xqc_put_varint_len(params->initial_max_streams_bidi);
     }
+
     if (params->initial_max_streams_uni) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAMS_UNI) + 
                xqc_put_varint_len(xqc_put_varint_len(params->initial_max_streams_uni)) +
                xqc_put_varint_len(params->initial_max_streams_uni);
     }
+
     if (params->ack_delay_exponent) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_ACK_DELAY_EXPONENT) + 
                xqc_put_varint_len(xqc_put_varint_len(params->ack_delay_exponent)) +
