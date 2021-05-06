@@ -200,7 +200,7 @@ xqc_conn_init_trans_settings(xqc_connection_t *conn)
 
     ls->max_udp_payload_size = XQC_CONN_SETTINGS_MAX_UDP_PAYLOAD_SIZE;
 
-    ls->disable_active_migration = 1;
+    ls->disable_active_migration = XQC_TRUE;
 
     ls->enable_multipath = conn->conn_settings.enable_multipath;
 }

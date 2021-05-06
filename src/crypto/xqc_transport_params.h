@@ -65,7 +65,7 @@ typedef struct {
     uint64_t                initial_max_streams_uni;
     uint64_t                ack_delay_exponent;
     xqc_msec_t              max_ack_delay;
-    xqc_flag_t              disable_active_migration;
+    xqc_bool_t              disable_active_migration;
     uint64_t                active_connection_id_limit;
 
     xqc_cid_t               initial_source_connection_id;
@@ -103,37 +103,65 @@ void xqc_transport_parames_serialization_free(void *buf) {
     }
 }
 
+/**
+ * set transport parameters from previous connection to xqc_connection_t
+ * @param conn xquic connection handler
+ * @param params transport parameters
+ * @return XQC_OK for success, negative for failure
+ */
+xqc_int_t xqc_conn_set_early_remote_transport_params(
+    xqc_connection_t *conn, const xqc_transport_params_t *params);
 
-xqc_int_t xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
-
-xqc_int_t xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params);
+/**
+ * read transport parameters from buffer, which was stored during previous connection
+ * @param tp_data transport parameters buffer, with xquic's pattern
+ * @param tp_data_len transport parameters buffer length
+ * @param params output transport parameter structure
+ * @return XQC_OK for success, negative for failure
+ */
+xqc_int_t xqc_read_transport_params(char *tp_data, size_t tp_data_len, xqc_transport_params_t *params);
 
 /**
  * serialize client transport parameters. 
  * @param conn xquic connection handler
- * @param exttype the occasion of transport paramter. aka, client or server
- * @return ZERO on success 
+ * @param exttype the occasion of transport paramter
+ * @param out pointer of destination buffer, to be freed with xqc_transport_parames_serialization_free
+ * @param outlen serialized buffer len
+ * @return XQC_OK for success, negative for failure
  */
-xqc_int_t xqc_serialize_client_transport_params(xqc_connection_t * conn,
+xqc_int_t xqc_serialize_client_transport_params(xqc_connection_t *conn,
     xqc_transport_params_type_t exttype, const unsigned char **out, size_t *outlen);
 
 /**
- * 在客户端上反序列化收到的对端的transport params。
+ * used by client to decode transport params from server
+ * @param conn xquic connection handler
+ * @param inbuf encoded transport parameter buf
+ * @param inlen encoded transport parameter buf len
+ * @return XQC_OK for success, negative for failure
  */
-xqc_int_t xqc_on_client_recv_peer_transport_params(xqc_connection_t * conn,
+xqc_int_t xqc_on_client_recv_peer_transport_params(xqc_connection_t *conn,
     const unsigned char *inbuf, size_t inlen);
 
 /**
- * 序列化服务端的tansport参数。out需要使用xqc_transport_parames_serialization_free释放。
- * return ZERO on success 
+ * serialize server's transport parameters
+ * @param conn xquic connection handler
+ * @param exttype the occurrence of transport parameter
+ * @param out pointer of destination buffer, 
+ * to be freed with xqc_transport_parames_serialization_free
+ * @param outlen serialized buffer len
+ * @return XQC_OK for success, negative for failure
  */
-xqc_int_t xqc_serialize_server_transport_params(xqc_connection_t * conn,
-    xqc_transport_params_type_t exttype,const unsigned char **out, size_t *outlen);
+xqc_int_t xqc_serialize_server_transport_params(xqc_connection_t *conn,
+    xqc_transport_params_type_t exttype, const unsigned char **out, size_t *outlen);
 
 /**
- * 在服务端反序列化收到的对端的transport params。
+ * used by server to docode transport params from client
+ * @param conn xquic connection handler
+ * @param inbuf encoded transport parameter buf
+ * @param inlen encoded transport parameter buf len
+ * @return XQC_OK for success, negative for failure
  */
 xqc_int_t xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,
     const unsigned char *inbuf, size_t inlen);
 
-#endif // XQC_TRANSPORT_PARAMS_H_
+#endif /* XQC_TRANSPORT_PARAMS_H_ */

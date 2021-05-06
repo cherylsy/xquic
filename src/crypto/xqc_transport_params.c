@@ -10,6 +10,8 @@
 #define XQC_PREFERRED_ADDR_IPV6_LEN         16
 #define XQC_PREFERRED_ADDR_IPV6_PORT_LEN    2
 
+/* ack_delay_exponent above 20 is invalid */
+#define XQC_MAX_ACK_DELAY_EXPONENT          20
 
 static void 
 xqc_transport_params_copy_from_settings(xqc_transport_params_t *dest,
@@ -421,7 +423,7 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn,
 }
 
 
-static int 
+static xqc_int_t
 xqc_conn_client_validate_transport_params(xqc_connection_t *conn,
     const xqc_transport_params_t *params)
 {
@@ -459,7 +461,7 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
             return -XQC_TLS_INVALID_ARGUMENT;
         }
         rv = xqc_conn_client_validate_transport_params(conn, params);
-        if (rv != 0) {
+        if (rv != XQC_OK) {
             return rv;
         }
         break;
@@ -581,7 +583,7 @@ xqc_decode_ack_delay_exponent(xqc_transport_params_t *params, xqc_transport_para
 {
     ssize_t nread = xqc_vint_read(p, end, &params->ack_delay_exponent);
     /* [TRANSPORT] Values above 20 are invalid */
-    if (nread < 0 || params->ack_delay_exponent > 20) {
+    if (nread < 0 || params->ack_delay_exponent > XQC_MAX_ACK_DELAY_EXPONENT) {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
     return XQC_OK;
@@ -599,7 +601,7 @@ xqc_decode_disable_active_migration(xqc_transport_params_t *params, xqc_transpor
                                        const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     /* disable_active_migration param is a zero-length value, if present, set to true */
-    params->disable_active_migration = 1;
+    params->disable_active_migration = XQC_TRUE;
     return XQC_OK;
 }
 
@@ -825,9 +827,8 @@ xqc_trans_param_decode_one(xqc_connection_t *conn,
 }
 
 static xqc_int_t
-xqc_trans_param_decode(xqc_connection_t *conn,
-    xqc_transport_params_t *params, xqc_transport_params_type_t exttype, 
-    const uint8_t *data, size_t datalen)
+xqc_trans_param_decode(xqc_connection_t *conn, xqc_transport_params_t *params,
+    xqc_transport_params_type_t exttype, const uint8_t *data, size_t datalen)
 {
     const uint8_t *p, *end;
     xqc_int_t ret = XQC_OK;
@@ -852,7 +853,7 @@ xqc_trans_param_decode(xqc_connection_t *conn,
 
     params->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     params->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-    params->disable_active_migration = 1;  /* default disable */
+    params->disable_active_migration = XQC_FALSE;    /* default 0 */
     params->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
 
     params->initial_source_connection_id_present = 0;
@@ -868,7 +869,7 @@ xqc_trans_param_decode(xqc_connection_t *conn,
             return ret;
         }
     }
-    
+
     if (end != p) {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
@@ -909,7 +910,7 @@ xqc_write_transport_params(xqc_connection_t * conn,
 }
 
 
-// public functions declared in header file
+/* public functions declared in header file */
 
 xqc_int_t
 xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params)
@@ -1054,20 +1055,21 @@ xqc_on_client_recv_peer_transport_params(xqc_connection_t * conn,
 
     xqc_int_t rv = xqc_trans_param_decode(conn,
                 &params, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, inbuf, inlen);
-    if (rv != 0) {
+    if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_trans_param_decode failed| ret code:%d |", rv);
         return rv;
     }
 
     rv = xqc_conn_set_remote_transport_params(
             conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &params);
-    if (rv != 0) {
+    if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_set_remote_transport_params failed | ret code:%d |", rv);
         return rv;
     }
 
     if (conn->tlsref.save_tp_cb != NULL) {
-        if (xqc_write_transport_params(conn, &params) < 0) {
+        rv = xqc_write_transport_params(conn, &params);
+        if (rv != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_transport_params failed|");
             return rv;
         }
@@ -1081,7 +1083,7 @@ xqc_int_t
 xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,
     const unsigned char *inbuf, size_t inlen)
 {
-    int rv;
+    xqc_int_t rv;
     xqc_transport_params_t params;
 
     rv = xqc_trans_param_decode(conn, 
