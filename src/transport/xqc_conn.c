@@ -176,7 +176,7 @@ xqc_conn_set_default_settings(xqc_trans_settings_t *settings)
 }
 
 static inline void
-xqc_conn_init_trans_param(xqc_connection_t *conn)
+xqc_conn_init_trans_settings(xqc_connection_t *conn)
 {
     /* set local and remote settings to default */
     xqc_trans_settings_t *ls = &conn->local_settings;
@@ -200,8 +200,9 @@ xqc_conn_init_trans_param(xqc_connection_t *conn)
 
     ls->max_udp_payload_size = XQC_CONN_SETTINGS_MAX_UDP_PAYLOAD_SIZE;
 
+    ls->disable_active_migration = 1;
+
     ls->enable_multipath = conn->conn_settings.enable_multipath;
-    settings->disable_active_migration = 1;
 }
 
 
@@ -245,7 +246,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
 
     xc->conn_settings = *settings;
 
-    xqc_conn_init_trans_param(xc);
+    xqc_conn_init_trans_settings(xc);
     xqc_conn_init_flow_ctl(xc);
 
     xc->conn_pool = pool;
