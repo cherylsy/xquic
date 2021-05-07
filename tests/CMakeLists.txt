@@ -97,9 +97,12 @@ if(HAVE_CUNIT)
   )
   target_include_directories(run_tests PRIVATE ${CUNIT_INCLUDE_DIRS})
   target_link_libraries(run_tests
-    xquic
+    xquic-static
     m
+    dl
+    pthread
     ${CUNIT_LIBRARIES}
+    ${LIB_SSL_PATH}
   )
   add_test(run_tests run_tests)
   add_dependencies(check run_tests)
