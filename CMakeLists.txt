@@ -188,10 +188,16 @@ add_library(
 )
 
 
+if (XQC_ENABLE_TESTING)
+    set(XQC_LDS_FILE "xquic_test.lds")
+else()
+    set(XQC_LDS_FILE "xquic.lds")
+endif()
+
 if(XQC_OPENSSL_IS_BORINGSSL)
     target_link_libraries(
         xquic
-        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
+        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/${XQC_LDS_FILE}"
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/ssl/libssl.a
         ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/crypto/libcrypto.a
         "-Wl,--no-whole-archive"
@@ -209,7 +215,7 @@ elseif(PLATFORM MATCHES "mac")
 else()
     target_link_libraries(
         xquic
-        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
+        "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/${XQC_LDS_FILE}"
         ${BABASSL_PATH}/lib/libssl.a
         ${BABASSL_PATH}/lib/libcrypto.a
         "-Wl,--no-whole-archive"
