@@ -740,31 +740,45 @@ xqc_trans_param_decode_func xqc_trans_param_decode_func_list[] = {
     xqc_decode_enable_multipath
 };
 
-/* convert param_type to param's index in dpvf_list */
-xqc_int_t
+
+/* convert param_type to param's index in xqc_trans_param_decode_func_list */
+xqc_int_t 
 xqc_trans_param_get_index(uint64_t param_type) 
 {
-    /**
-     *  param in space below is illegal:
-     * [XQC_TRANSPORT_PARAM_PROTOCOL_MAX, XQC_TRANSPORT_PARAM_NO_CRYPTO)
-     * [XQC_TRANSPORT_PARAM_CUSTOMIZED_MAX, +infinite)
-     */
+    switch (param_type) {
 
-    if (param_type < XQC_TRANSPORT_PARAM_PROTOCOL_MAX) {
+    case XQC_TRANSPORT_PARAM_ORIGINAL_DEST_CONNECTION_ID:
+    case XQC_TRANSPORT_PARAM_MAX_IDLE_TIMEOUT:
+    case XQC_TRANSPORT_PARAM_STATELESS_RESET_TOKEN:
+    case XQC_TRANSPORT_PARAM_MAX_UDP_PAYLOAD_SIZE:
+    case XQC_TRANSPORT_PARAM_INITIAL_MAX_DATA:
+    case XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL:
+    case XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE:
+    case XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAM_DATA_UNI:
+    case XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAMS_BIDI:
+    case XQC_TRANSPORT_PARAM_INITIAL_MAX_STREAMS_UNI:
+    case XQC_TRANSPORT_PARAM_ACK_DELAY_EXPONENT:
+    case XQC_TRANSPORT_PARAM_MAX_ACK_DELAY:
+    case XQC_TRANSPORT_PARAM_DISABLE_ACTIVE_MIGRATION:
+    case XQC_TRANSPORT_PARAM_PREFERRED_ADDRESS:
+    case XQC_TRANSPORT_PARAM_ACTIVE_CONNECTION_ID_LIMIT:
+    case XQC_TRANSPORT_PARAM_INITIAL_SOURCE_CONNECTION_ID:
+    case XQC_TRANSPORT_PARAM_RETRY_SOURCE_CONNECTION_ID:
         return param_type;
-    } else if (param_type >= XQC_TRANSPORT_PARAM_NO_CRYPTO 
-               && param_type < XQC_TRANSPORT_PARAM_UNKNOWN)
-    {
-        /* TBD: need to change to formal IANA registration */
-        if (param_type == XQC_TRANSPORT_PARAM_ENABLE_MULTIPATH) {
-            return XQC_TRANSPORT_PARAM_PROTOCOL_MAX + 1;
-        }
-            
-        return XQC_TRANSPORT_PARAM_PROTOCOL_MAX + param_type - XQC_TRANSPORT_PARAM_NO_CRYPTO;
+
+    case XQC_TRANSPORT_PARAM_NO_CRYPTO:
+        return XQC_TRANSPORT_PARAM_PROTOCOL_MAX;
+
+    case XQC_TRANSPORT_PARAM_ENABLE_MULTIPATH:
+        return XQC_TRANSPORT_PARAM_PROTOCOL_MAX + 1;
+
+    default:
+        break;
     }
 
     return XQC_TRANSPORT_PARAM_UNKNOWN; 
 }
+
 
 static inline xqc_int_t
 xqc_check_transport_params(xqc_transport_params_t *params)
