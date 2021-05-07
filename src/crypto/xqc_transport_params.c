@@ -491,7 +491,7 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
 
 static xqc_int_t
 xqc_decode_original_dest_cid(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     if (exttype != XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS) {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
@@ -504,14 +504,14 @@ xqc_decode_original_dest_cid(xqc_transport_params_t *params, xqc_transport_param
 
 static xqc_int_t
 xqc_decode_max_idle_timeout(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->max_idle_timeout, p, end);
 }
 
 static xqc_int_t
 xqc_decode_stateless_token(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     if (exttype != XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS) {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
@@ -530,7 +530,7 @@ xqc_decode_stateless_token(xqc_transport_params_t *params, xqc_transport_params_
 
 static xqc_int_t
 xqc_decode_max_udp_payload_size(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->max_udp_payload_size, p, end);
 }
@@ -544,14 +544,14 @@ xqc_decode_initial_max_data(xqc_transport_params_t *params, xqc_transport_params
 
 static xqc_int_t
 xqc_decode_initial_max_stream_data_bidi_local(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->initial_max_stream_data_bidi_local, p, end);
 }
 
 static xqc_int_t
 xqc_decode_initial_max_stream_data_bidi_remote(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->initial_max_stream_data_bidi_remote, p, end);
 }
@@ -565,21 +565,21 @@ xqc_decode_initial_max_stream_data_uni(xqc_transport_params_t *params, xqc_trans
 
 static xqc_int_t
 xqc_decode_initial_max_streams_bidi(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->initial_max_streams_bidi, p, end);
 }
 
 static xqc_int_t
 xqc_decode_initial_max_streams_uni(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->initial_max_streams_uni, p, end);
 }
 
 static xqc_int_t
 xqc_decode_ack_delay_exponent(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     ssize_t nread = xqc_vint_read(p, end, &params->ack_delay_exponent);
     /* [TRANSPORT] Values above 20 are invalid */
@@ -591,14 +591,14 @@ xqc_decode_ack_delay_exponent(xqc_transport_params_t *params, xqc_transport_para
 
 static xqc_int_t
 xqc_decode_max_ack_delay(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->max_ack_delay, p, end);
 }
 
 static xqc_int_t
 xqc_decode_disable_active_migration(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     /* disable_active_migration param is a zero-length value, if present, set to true */
     params->disable_active_migration = XQC_TRUE;
@@ -607,7 +607,7 @@ xqc_decode_disable_active_migration(xqc_transport_params_t *params, xqc_transpor
 
 static xqc_int_t
 xqc_decode_preferred_address(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     if (exttype != XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS) {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
@@ -675,14 +675,14 @@ xqc_decode_preferred_address(xqc_transport_params_t *params, xqc_transport_param
 
 static xqc_int_t
 xqc_decode_active_cid_limit(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->active_connection_id_limit, p, end);
 }
 
 static xqc_int_t
 xqc_decode_initial_scid(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                            const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     xqc_cid_init(&params->initial_source_connection_id, p, param_len);
     params->initial_source_connection_id_present = 1;
@@ -691,7 +691,7 @@ xqc_decode_initial_scid(xqc_transport_params_t *params, xqc_transport_params_typ
 
 static xqc_int_t
 xqc_decode_retry_scid(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                          const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     xqc_cid_init(&params->retry_source_connection_id, p, param_len);
     params->retry_source_connection_id_present = 1;
@@ -700,7 +700,7 @@ xqc_decode_retry_scid(xqc_transport_params_t *params, xqc_transport_params_type_
 
 static xqc_int_t
 xqc_decode_no_crypto(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                          const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->no_crypto, p, end);
 }
