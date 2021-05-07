@@ -11,7 +11,10 @@
 /* connection PTO packet count */
 #define XQC_CONN_PTO_PKT_CNT_MAX    2
 
+/* connection max UDP payload size */
+#define XQC_CONN_MAX_UDP_PAYLOAD_SIZE   1500
+
 /* connection active cid limit */
-#define XQC_CONN_SETTINGS_ACTIVE_CID_LIMIT  8
+#define XQC_CONN_ACTIVE_CID_LIMIT       8
 
 #endif
