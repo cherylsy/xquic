@@ -198,7 +198,7 @@ xqc_conn_init_trans_settings(xqc_connection_t *conn)
 
     ls->max_idle_timeout = default_conn_settings.idle_time_out;
 
-    ls->max_udp_payload_size = XQC_CONN_SETTINGS_MAX_UDP_PAYLOAD_SIZE;
+    ls->max_udp_payload_size = XQC_MAX_PACKET_LEN;
 
     ls->active_connection_id_limit = XQC_CONN_SETTINGS_ACTIVE_CID_LIMIT;
 
