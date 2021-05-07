@@ -14,5 +14,7 @@
 /* connection max UDP payload size */
 #define XQC_CONN_SETTINGS_MAX_UDP_PAYLOAD_SIZE  1360
 
+/* connection active cid limit */
+#define XQC_CONN_SETTINGS_ACTIVE_CID_LIMIT  8
 
 #endif
