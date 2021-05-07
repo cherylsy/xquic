@@ -17,6 +17,8 @@
 #include "xqc_stream_frame_test.h"
 #include "xqc_wakeup_pq_test.h"
 #include "xqc_process_frame_test.h"
+#include "xqc_tp_test.h"
+
 
 static int xqc_init_suite(void) { return 0; }
 static int xqc_clean_suite(void) { return 0; }
@@ -55,6 +57,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_process_frame", xqc_test_process_frame)
         || !CU_add_test(pSuite, "xqc_test_parse_padding_frame", xqc_test_parse_padding_frame)
         || !CU_add_test(pSuite, "xqc_test_large_ack_frame", xqc_test_large_ack_frame)
+        || !CU_add_test(pSuite, "xqc_test_decode_transport_params", xqc_test_decode_transport_params)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

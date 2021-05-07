@@ -161,7 +161,7 @@ xqc_int_t xqc_serialize_server_transport_params(xqc_connection_t *conn,
  * @param inlen encoded transport parameter buf len
  * @return XQC_OK for success, negative for failure
  */
-xqc_int_t xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,
+xqc_int_t xqc_on_server_recv_peer_transport_params(xqc_connection_t *conn,
     const unsigned char *inbuf, size_t inlen);
 
 #endif /* XQC_TRANSPORT_PARAMS_H_ */

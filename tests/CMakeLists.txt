@@ -25,6 +25,7 @@ if(HAVE_CUNIT)
     xqc_stream_frame_test.c
     xqc_wakeup_pq_test.c
     xqc_process_frame_test.c
+    xqc_tp_test.c
   )
 
 

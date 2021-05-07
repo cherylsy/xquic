@@ -73,6 +73,7 @@ XQUIC_VERS_1.0 {
         xqc_vint_read;
         xqc_conn_create_path;
         xqc_dcid_str_by_scid;
+        xqc_on_client_recv_peer_transport_params;
     local:
         *;
 };
