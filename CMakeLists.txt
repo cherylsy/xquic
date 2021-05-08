@@ -189,29 +189,43 @@ add_library(
 
 
 if(XQC_OPENSSL_IS_BORINGSSL)
+    set(LIB_SSL_PATH
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/ssl/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/crypto/libcrypto.a
+    )
+
     target_link_libraries(
         xquic
         "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/ssl/libssl.a
-        ${CMAKE_CURRENT_SOURCE_DIR}/third_party/boringssl/build/crypto/libcrypto.a
+        ${LIB_SSL_PATH}
         "-Wl,--no-whole-archive"
         -lpthread
     )
+
 elseif(PLATFORM MATCHES "mac")
+    set(LIB_SSL_PATH
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libssl.a
+        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libcrypto.a
+    )
+
     target_link_libraries(
         xquic
         "-ldl -Wl,-all_load"
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libssl.a
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libcrypto.a
+        ${LIB_SSL_PATH}
         "-Wl,-noall_load"
         -lpthread
     )
+
 else()
+    set(LIB_SSL_PATH
+        ${BABASSL_PATH}/lib/libssl.a
+        ${BABASSL_PATH}/lib/libcrypto.a
+    )
+
     target_link_libraries(
         xquic
         "-ldl -Wl,--whole-archive -Wl,--version-script=${CMAKE_CURRENT_SOURCE_DIR}/scripts/xquic.lds"
-        ${BABASSL_PATH}/lib/libssl.a
-        ${BABASSL_PATH}/lib/libcrypto.a
+        ${LIB_SSL_PATH}
         "-Wl,--no-whole-archive"
         -lpthread
     )

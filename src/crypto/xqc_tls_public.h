@@ -157,13 +157,6 @@ typedef enum {
 
 
 
-typedef enum {
-    XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO,
-    XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS
-} xqc_transport_params_type_t;
-
-
-
 typedef struct {
     xqc_client_initial client_initial;
     xqc_recv_client_initial recv_client_initial;

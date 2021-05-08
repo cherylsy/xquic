@@ -59,18 +59,6 @@ XQUIC_VERS_1.0 {
         xqc_conn_send_ping;
         xqc_http3_qpack_hash_find;
         xqc_engine_conns_hash_find;
-        xqc_recv_record_add;
-        xqc_null_log_cb;
-        xqc_insert_stream_frame;
-        xqc_create_stream_with_conn;
-        xqc_process_frames;
-        xqc_random_generator_create;
-        xqc_cid_init_zero;
-        xqc_hex_dump;
-        xqc_recv_record_largest;
-        xqc_recv_record_del;
-        xqc_get_random;
-        xqc_vint_read;
         xqc_conn_create_path;
         xqc_dcid_str_by_scid;
     local:

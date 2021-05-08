@@ -22,6 +22,8 @@
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_wakeup_pq.h"
 #include "src/transport/xqc_multipath.h"
+#include "src/crypto/xqc_transport_params.h"
+
 
 xqc_conn_settings_t default_conn_settings = {
     .pacing_on        = 0,
@@ -155,36 +157,56 @@ xqc_conn_print_secret(xqc_connection_t *conn)
 
 
 /* local parameter */
-void
-xqc_conn_init_trans_param(xqc_connection_t *conn)
-{
-    memset(&conn->local_settings, 0, sizeof(xqc_trans_settings_t));
-    xqc_trans_settings_t *settings = &conn->local_settings;
 
+/**
+ * set settings to default, integer parameters default to be 0,
+ * while some are defined in [Transport] as non-zero values.
+ * if a parameter is absent, default value below will be used.
+ */
+static inline void
+xqc_conn_set_default_settings(xqc_trans_settings_t *settings)
+{
+    memset(settings, 0, sizeof(xqc_trans_settings_t));
+
+    /* transport paramter related attributes */
     settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
     settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
-    /* temporary value */
-    settings->max_idle_timeout = default_conn_settings.idle_time_out;
-
-    /* data credit */
-    settings->max_streams_bidi = 1024;
-    settings->max_stream_data_bidi_remote = 16 * 1024 * 1024;
-    settings->max_stream_data_bidi_local = 16 * 1024 * 1024;
-
-    settings->max_streams_uni = 1024;
-    settings->max_stream_data_uni = 16 * 1024 * 1024;
-
-    settings->max_data = settings->max_streams_bidi * settings->max_stream_data_bidi_local
-        + settings->max_streams_uni * settings->max_stream_data_uni;
-
-    settings->max_udp_payload_size = XQC_MAX_UDP_PAYLOAD_SIZE;
+    settings->max_udp_payload_size = XQC_DEFAULT_MAX_UDP_PAYLOAD_SIZE;
     settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
-    settings->enable_multipath = conn->conn_settings.enable_multipath;
-    settings->disable_active_migration = 1;
-
-    /* TODO: fix me */
-    memcpy(&conn->remote_settings, &conn->local_settings, sizeof(xqc_trans_settings_t));
 }
+
+static inline void
+xqc_conn_init_trans_settings(xqc_connection_t *conn)
+{
+    /* set local and remote settings to default */
+    xqc_trans_settings_t *ls = &conn->local_settings;
+    xqc_trans_settings_t *rs = &conn->remote_settings;
+    xqc_conn_set_default_settings(ls);
+    xqc_conn_set_default_settings(rs);
+
+    /* set local default setting values */
+    ls->max_streams_bidi = 1024;
+    ls->max_stream_data_bidi_remote = 16 * 1024 * 1024;
+    ls->max_stream_data_bidi_local = 16 * 1024 * 1024;
+
+    ls->max_streams_uni = 1024;
+    ls->max_stream_data_uni = 16 * 1024 * 1024;
+
+    /* max_data is the sum of stream_data on all uni and bidi streams */
+    ls->max_data = ls->max_streams_bidi * ls->max_stream_data_bidi_local
+        + ls->max_streams_uni * ls->max_stream_data_uni;
+
+    ls->max_idle_timeout = default_conn_settings.idle_time_out;
+
+    ls->max_udp_payload_size = XQC_CONN_MAX_UDP_PAYLOAD_SIZE;
+
+    ls->active_connection_id_limit = XQC_CONN_ACTIVE_CID_LIMIT;
+
+    ls->disable_active_migration = 1;
+
+    ls->enable_multipath = conn->conn_settings.enable_multipath;
+}
+
 
 void 
 xqc_conn_init_flow_ctl(xqc_connection_t *conn)
@@ -226,7 +248,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
 
     xc->conn_settings = *settings;
 
-    xqc_conn_init_trans_param(xc);
+    xqc_conn_init_trans_settings(xc);
     xqc_conn_init_flow_ctl(xc);
 
     xc->conn_pool = pool;
@@ -309,7 +331,8 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_init_list_head(&xc->conn_paths_list);
     xc->conn_initial_path = NULL;
 
-    xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|", xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid), xc);
+    xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|",
+            xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid), xc);
     return xc;
 
 fail:

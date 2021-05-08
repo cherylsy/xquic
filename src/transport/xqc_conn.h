@@ -12,34 +12,18 @@
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_recv_record.h"
 
-#define XQC_TRANSPORT_VERSION "1.0"
-
-/*
- * XQC_DEFAULT_MAX_ACK_DELAY is a default value of the maximum
- * amount of time in milliseconds by which endpoint delays sending
- * acknowledgement.
- */
-#define XQC_DEFAULT_MAX_ACK_DELAY 25
-
-/*
- * XQC_DEFAULT_ACK_DELAY_EXPONENT is a default value of scaling
- * factor of ACK Delay field in ACK frame.
- */
-#define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
-
-#define XQC_MAX_UDP_PAYLOAD_SIZE 65527 /* quic protocol define */
 
 #define XQC_STATELESS_RESET_TOKENLEN 16
 #define XQC_MAX_TOKEN_LEN 32
 
-#define XQC_TOKEN_EXPIRE_DELTA (7*24*60*60) /* expire in N seconds */
+#define XQC_TOKEN_EXPIRE_DELTA (7 * 24 * 60 * 60)           /* expire in N seconds */
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */
 
 #define XQC_MAX_AVAILABLE_CID_COUNT  16
 
 #define XQC_MAX_PACKET_PROCESS_BATCH 100 /* maximum accumulated number of xqc_engine_packet_process */
 
-#define XQC_MAX_RECV_WINDOW (16*1024*1024)
+#define XQC_MAX_RECV_WINDOW (16 * 1024 * 1024)
 
 /* the max_streams transmission parameter or the value received in the MAX_STREAMS frame must <= 2^60 */
 #define XQC_MAX_STREAMS ((uint64_t)1 << 60)
@@ -84,12 +68,12 @@ typedef enum {
     XQC_CONN_STATE_DRAINING,
     XQC_CONN_STATE_CLOSED,
     XQC_CONN_STATE_N,
-}xqc_conn_state_t;
+} xqc_conn_state_t;
 
 typedef enum {
     XQC_CONN_TYPE_SERVER,
     XQC_CONN_TYPE_CLIENT,
-}xqc_conn_type_t;
+} xqc_conn_type_t;
 
 #define XQC_CONN_FLAG_SHOULD_ACK (XQC_CONN_FLAG_SHOULD_ACK_INIT   \
                                     |XQC_CONN_FLAG_SHOULD_ACK_HSK    \
@@ -128,7 +112,7 @@ typedef enum {
     XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
-}xqc_conn_flag_shift_t;
+} xqc_conn_flag_shift_t;
 
 typedef enum {
     XQC_CONN_FLAG_WAIT_WAKEUP           = 1 << XQC_CONN_FLAG_WAIT_WAKEUP_SHIFT,
@@ -159,7 +143,7 @@ typedef enum {
     XQC_CONN_FLAG_HANDSHAKE_CONFIRMED   = 1 << XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT,
     XQC_CONN_FLAG_ADDR_VALIDATED        = 1 << XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED      = 1 << XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
-}xqc_conn_flag_t;
+} xqc_conn_flag_t;
 
 
 typedef struct {
@@ -170,46 +154,6 @@ typedef struct {
     xqc_cid_t   cid;
     uint8_t     stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
 } xqc_preferred_addr_t;
-
-#define XQC_PREFERRED_ADDR_IPV4_LEN         4
-#define XQC_PREFERRED_ADDR_IPV4_PORT_LEN    2
-#define XQC_PREFERRED_ADDR_IPV6_LEN         16
-#define XQC_PREFERRED_ADDR_IPV6_PORT_LEN    2
-
-
-/* For Handshake */
-typedef struct {
-    xqc_preferred_addr_t    preferred_address;
-    uint8_t                 preferred_address_present;
-
-    xqc_cid_t               original_dest_connection_id;
-    uint8_t                 original_dest_connection_id_present;
-
-    xqc_msec_t              max_idle_timeout;
-    uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-    uint8_t                 stateless_reset_token_present;
-    uint64_t                max_udp_payload_size;
-    uint64_t                initial_max_data;
-    uint64_t                initial_max_stream_data_bidi_local;
-    uint64_t                initial_max_stream_data_bidi_remote;
-    uint64_t                initial_max_stream_data_uni;
-    uint64_t                initial_max_streams_bidi;
-    uint64_t                initial_max_streams_uni;
-    uint64_t                ack_delay_exponent;
-    xqc_msec_t              max_ack_delay;
-    xqc_flag_t              disable_active_migration;
-    uint64_t                active_connection_id_limit;
-    xqc_cid_t               initial_source_connection_id;
-    uint8_t                 initial_source_connection_id_present;
-    xqc_cid_t               retry_source_connection_id;
-    uint8_t                 retry_source_connection_id_present;
-
-    uint64_t                no_crypto;
-
-    uint64_t                enable_multipath;
-} xqc_transport_params_t;
-
-#define XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT 8
 
 
 typedef struct {
@@ -365,9 +309,6 @@ xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);
 
 const char*
 xqc_conn_state_2_str(xqc_conn_state_t state);
-
-void
-xqc_conn_init_trans_param(xqc_connection_t *conn);
 
 void
 xqc_conn_init_flow_ctl(xqc_connection_t *conn);

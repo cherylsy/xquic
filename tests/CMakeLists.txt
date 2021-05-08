@@ -25,6 +25,7 @@ if(HAVE_CUNIT)
     xqc_stream_frame_test.c
     xqc_wakeup_pq_test.c
     xqc_process_frame_test.c
+    xqc_tp_test.c
   )
 
 
@@ -96,9 +97,12 @@ if(HAVE_CUNIT)
   )
   target_include_directories(run_tests PRIVATE ${CUNIT_INCLUDE_DIRS})
   target_link_libraries(run_tests
-    xquic
+    xquic-static
     m
+    dl
+    pthread
     ${CUNIT_LIBRARIES}
+    ${LIB_SSL_PATH}
   )
   add_test(run_tests run_tests)
   add_dependencies(check run_tests)
