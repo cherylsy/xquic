@@ -563,8 +563,9 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
 {
     xqc_int_t ret = XQC_ERROR;
     xqc_cid_t new_conn_cid;
+    uint64_t retire_prior_to;
 
-    ret = xqc_parse_new_conn_id_frame(packet_in, &new_conn_cid);
+    ret = xqc_parse_new_conn_id_frame(packet_in, &new_conn_cid, &retire_prior_to);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|xqc_parse_new_conn_id_frame error|");
@@ -572,6 +573,43 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|new_conn_id|%s|", xqc_scid_str(&new_conn_cid));
+
+    if (retire_prior_to > new_conn_cid.cid_seq_num) {
+        /* The Retire Prior To field MUST be less than or equal to the Sequence Number field. 
+         * Receiving a value greater than the Sequence Number MUST be treated as a connection
+         * error of type FRAME_ENCODING_ERROR. */
+        xqc_log(conn->log, XQC_LOG_ERROR, "|retire_prior_to:%ui greater than seq_num:%ui|",
+                retire_prior_to, new_conn_cid.cid_seq_num);
+        XQC_CONN_ERR(conn, TRA_FRAME_ENCODING_ERROR);
+        return -XQC_EPROTO;
+    }
+
+    if (new_conn_cid.cid_seq_num < conn->dcid_set.largest_retire_prior_to) {
+        /* An endpoint that receives a NEW_CONNECTION_ID frame with a sequence number smaller
+         * than the Retire Prior To field of a previously received NEW_CONNECTION_ID frame
+         * MUST send a corresponding RETIRE_CONNECTION_ID frame that retires the newly received
+         * connection ID, unless it has already done so for that sequence number. */
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|seq_num:%ui smaller than largest_retire_prior_to:%ui|",
+                new_conn_cid.cid_seq_num, conn->dcid_set.largest_retire_prior_to);
+
+        //TODO: xqc_write_retire_conn_id_frame_to_packet(conn, new_conn_cid.cid_seq_num);
+
+        return XQC_OK;
+    }
+
+    if (retire_prior_to > conn->dcid_set.largest_retire_prior_to) {
+        /* Upon receipt of an increased Retire Prior To field, the peer MUST stop using the
+         * corresponding connection IDs and retire them with RETIRE_CONNECTION_ID frames before
+         * adding the newly provided connection ID to the set of active connection IDs. */
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|retire_prior_to|%ui|increase to|%ui|",
+                conn->dcid_set.largest_retire_prior_to, retire_prior_to);
+
+        for (uint64_t i = conn->dcid_set.largest_retire_prior_to; i < retire_prior_to; i++) {
+            //TODO: xqc_write_retire_conn_id_frame_to_packet(conn, i);
+        }
+
+        conn->dcid_set.largest_retire_prior_to = retire_prior_to;
+    }
 
     /* store dcid & add unused_dcid_count */
     if (xqc_cid_in_cid_set(&conn->dcid_set.cid_set, &new_conn_cid) != NULL) {

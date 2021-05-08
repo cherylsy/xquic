@@ -2470,13 +2470,12 @@ xqc_conn_destroy_cids(xqc_connection_t *conn)
 
 
 void
-xqc_conn_try_add_new_conn_id(xqc_connection_t *conn)
+xqc_conn_try_add_new_conn_id(xqc_connection_t *conn, uint64_t retire_prior_to)
 {
     xqc_cid_t new_conn_cid;
 
     if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->scid_set.cid_set.unused_cnt == 0) {
-
-        xqc_write_new_conn_id_frame_to_packet(conn);
+        xqc_write_new_conn_id_frame_to_packet(conn, retire_prior_to);
     }
 }
 

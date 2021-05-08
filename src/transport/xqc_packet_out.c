@@ -827,9 +827,9 @@ xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn)
 
 
 xqc_int_t
-xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
+xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t retire_prior_to)
 {
-    ssize_t ret = XQC_ERROR;
+    xqc_int_t ret = XQC_ERROR;
     xqc_packet_out_t *packet_out = NULL;
 
     if (conn->scid_set.cid_set.unused_cnt >= XQC_MAX_AVAILABLE_CID_COUNT) {
@@ -851,9 +851,10 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
         return -XQC_EWRITE_PKT;
     }
 
-    ret = xqc_gen_new_conn_id_frame(packet_out, &new_conn_cid,
+    ret = xqc_gen_new_conn_id_frame(packet_out, &new_conn_cid, retire_prior_to,
                                     conn->engine->config->reset_token_key,
                                     conn->engine->config->reset_token_keylen);
+
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_new_conn_id_frame error|");
         goto error;
@@ -870,7 +871,7 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
     /* insert to scid_set & add scid_unused_cnt */
     xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED);
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_new_scid:%s|", xqc_scid_str(&new_conn_cid));
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_new_scid:%s|seq_num:%ui|", xqc_scid_str(&new_conn_cid), new_conn_cid.cid_seq_num);
 
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
     return XQC_OK;
