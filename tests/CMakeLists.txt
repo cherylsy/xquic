@@ -100,6 +100,7 @@ if(HAVE_CUNIT)
     xquic-static
     m
     dl
+    pthread
     ${CUNIT_LIBRARIES}
     ${LIB_SSL_PATH}
   )
