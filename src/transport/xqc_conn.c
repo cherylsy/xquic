@@ -202,7 +202,7 @@ xqc_conn_init_trans_settings(xqc_connection_t *conn)
 
     ls->active_connection_id_limit = XQC_CONN_ACTIVE_CID_LIMIT;
 
-    ls->disable_active_migration = XQC_TRUE;
+    ls->disable_active_migration = 1;
 
     ls->enable_multipath = conn->conn_settings.enable_multipath;
 }

@@ -65,7 +65,7 @@ typedef struct {
     uint64_t                initial_max_streams_uni;
     uint64_t                ack_delay_exponent;
     xqc_msec_t              max_ack_delay;
-    xqc_bool_t              disable_active_migration;
+    xqc_flag_t              disable_active_migration;
     uint64_t                active_connection_id_limit;
 
     xqc_cid_t               initial_source_connection_id;

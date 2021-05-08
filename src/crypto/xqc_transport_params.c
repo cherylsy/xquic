@@ -600,8 +600,8 @@ static xqc_int_t
 xqc_decode_disable_active_migration(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
     const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
-    /* disable_active_migration param is a zero-length value, if present, set to true */
-    params->disable_active_migration = XQC_TRUE;
+    /* disable_active_migration param is a zero-length value, presentation means disable */
+    params->disable_active_migration = 1;
     return XQC_OK;
 }
 
@@ -867,7 +867,7 @@ xqc_trans_param_decode(xqc_connection_t *conn, xqc_transport_params_t *params,
 
     params->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
     params->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-    params->disable_active_migration = XQC_FALSE;    /* default 0 */
+    params->disable_active_migration = 0;   /* default 0 in protocol */
     params->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
 
     params->initial_source_connection_id_present = 0;
