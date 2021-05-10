@@ -1307,6 +1307,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
                 /* if a packet don't need to be repair, don't retransmit it */
                 if (!XQC_NEED_REPAIR(po->po_frame_types)) {
                     xqc_send_ctl_remove_unacked(po, ctl);
+                    xqc_send_ctl_insert_free(&(po->po_list), &ctl->ctl_free_packets, ctl);
 
                 } else {
                     xqc_send_ctl_copy_to_lost(po, ctl);
