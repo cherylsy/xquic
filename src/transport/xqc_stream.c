@@ -502,9 +502,10 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_log(stream->stream_conn->log, XQC_LOG_REPORT, "|hash|delete stream|conn:%p|strm_id:%ui|",
             stream->stream_conn, stream->stream_id);
 
-    if (xqc_id_hash_delete(stream->stream_conn->streams_hash, stream->stream_id) == XQC_ID_HASH_LOOP) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|conn:%p|stream_id:%ui|",
-                stream->stream_conn, stream->stream_id);
+    int ret = xqc_id_hash_delete(stream->stream_conn->streams_hash, stream->stream_id);
+    if (ret != XQC_OK) {
+        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|delete stream error|conn:%p|stream_id:%ui|ret:%d|",
+                stream->stream_conn, stream->stream_id, ret);
     }
 
     if (xqc_id_hash_delete(stream->stream_conn->passive_streams_hash, stream->stream_id) == XQC_ID_HASH_LOOP) {
