@@ -582,7 +582,6 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
            stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
 
-    free(user_conn);
     event_base_loopbreak(eb);
     return 0;
 }
@@ -645,7 +644,6 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *u
     printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
            stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
 
-    free(user_conn);
     event_base_loopbreak(eb);
     return 0;
 }
@@ -1914,6 +1912,13 @@ int main(int argc, char *argv[]) {
 
     last_recv_ts = now();
     event_base_dispatch(eb);
+
+    event_free(user_conn->ev_socket);
+    event_free(user_conn->ev_timeout);
+
+    free(user_conn->peer_addr);
+    free(user_conn->local_addr);
+    free(user_conn);
 
     xqc_engine_destroy(ctx.engine);
     xqc_client_close_keylog_file(&ctx);

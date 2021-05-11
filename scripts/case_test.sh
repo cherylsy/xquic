@@ -744,7 +744,7 @@ sleep 1
 
 clear_log
 echo -e "sendmmsg with 10% loss ...\c"
-result=`./test_client -s 10240000 -t 1 -l e -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"`
+result=`./test_client -s 10240000 -t 5 -l e -E -d 100 -x 20 -c c|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 echo "$result"
 if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
