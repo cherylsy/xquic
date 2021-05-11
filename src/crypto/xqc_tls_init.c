@@ -44,16 +44,16 @@ xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * src,
     }
 
     if (src->ciphers != NULL && strlen(src->ciphers) > 0 ) {
-        int len = strlen(src->ciphers) + 1;
-        ssl_config->ciphers = (char *)xqc_malloc(len);
-        strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len);
-        ssl_config->ciphers[len - 1] = '\0';
+        int len = strlen(src->ciphers);
+        ssl_config->ciphers = (char *)xqc_malloc(len + 1);
+        strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len + 1);
+        ssl_config->ciphers[len] = '\0';
 
     } else {
-        int len = strlen(src->ciphers) + 1;
-        ssl_config->ciphers = (char *)xqc_malloc(len);
-        strncpy(ssl_config->ciphers, XQC_TLS_CIPHERS, strlen(XQC_TLS_CIPHERS) + 1);
-        ssl_config->ciphers[len - 1] = '\0';
+        int len = strlen(XQC_TLS_CIPHERS);
+        ssl_config->ciphers = (char *)xqc_malloc(len + 1);
+        strncpy(ssl_config->ciphers, XQC_TLS_CIPHERS, len + 1);
+        ssl_config->ciphers[len] = '\0';
     }
 
     if (src->groups != NULL && strlen(src->groups) > 0 ) {
