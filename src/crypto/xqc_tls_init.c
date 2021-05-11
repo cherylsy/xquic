@@ -47,10 +47,13 @@ xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * src,
         int len = strlen(src->ciphers) + 1;
         ssl_config->ciphers = (char *)xqc_malloc(len);
         strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len);
+        ssl_config->ciphers[len - 1] = '\0';
 
     } else {
-        ssl_config->ciphers = xqc_malloc(strlen(XQC_TLS_CIPHERS) + 1);
+        int len = strlen(src->ciphers) + 1;
+        ssl_config->ciphers = (char *)xqc_malloc(len);
         strncpy(ssl_config->ciphers, XQC_TLS_CIPHERS, strlen(XQC_TLS_CIPHERS) + 1);
+        ssl_config->ciphers[len - 1] = '\0';
     }
 
     if (src->groups != NULL && strlen(src->groups) > 0 ) {
