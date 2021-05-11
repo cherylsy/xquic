@@ -438,6 +438,9 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
         stream->stream_type = xqc_get_stream_type(stream_id);
     }
 
+    xqc_log(conn->log, XQC_LOG_REPORT, "|hash|add stream|conn:%p|strm_id:%ui|",
+            conn, stream->stream_id);
+
     xqc_id_hash_element_t e = {stream->stream_id, stream};
     if (xqc_id_hash_add(conn->streams_hash, e)) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_id_hash_add error|");
@@ -495,6 +498,9 @@ xqc_destroy_stream(xqc_stream_t *stream)
     xqc_destroy_frame_list(&stream->stream_data_in.frames_tailq);
 
     xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
+
+    xqc_log(stream->stream_conn->log, XQC_LOG_REPORT, "|hash|delete stream|conn:%p|strm_id:%ui|",
+            stream->stream_conn, stream->stream_id);
 
     xqc_id_hash_delete(stream->stream_conn->streams_hash, stream->stream_id);
     if (xqc_id_hash_delete(stream->stream_conn->passive_streams_hash, stream->stream_id) == XQC_ID_HASH_LOOP) {
