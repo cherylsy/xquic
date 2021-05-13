@@ -242,6 +242,22 @@ else
 fi
 
 clear_log
+echo -e "Send header after reset stream...\c"
+./test_client -s 1024000 -l d -t 1 -E -x 28 > stdlog
+result=`grep "xqc_conn_destroy.*err:0x0" clog`
+flag=`grep "send_state:5|recv_state:5" clog`
+errlog=`grep_err_log|grep -v stream`
+if [ -n "$flag" ] && [ -z "$errlog" ] && [ -n "$result" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "send_header_after_reset_stream" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "send_header_after_reset_stream" "fail"
+    echo "$flag"
+    echo "$errlog"
+fi
+
+clear_log
 echo -e "1RTT ...\c"
 ./test_client -s 1024000 -l e -t 1 -E -1 > stdlog
 result=`grep ">>>>>>>> pass:" stdlog`

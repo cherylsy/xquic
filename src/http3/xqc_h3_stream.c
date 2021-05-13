@@ -194,7 +194,6 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3_stream, xqc_http_headers_t *heade
     n_write = xqc_h3_write_headers(h3_conn, h3_stream, headers, fin);
     if (n_write < 0) {
         xqc_log(h3_conn->log, XQC_LOG_ERROR, "|n_write:%z error|stream_id:%ui|", n_write, h3_stream->stream->stream_id);
-        XQC_H3_CONN_ERR(h3_conn, H3_INTERNAL_ERROR, n_write);
     }
 
     h3_stream->header_sent += n_write;

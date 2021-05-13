@@ -1044,10 +1044,31 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    if (g_test_case == 21/*Reset stream*/) {
+    if (g_test_case == 21 /*Reset stream*/) {
         xqc_h3_request_close(h3_request);
         return 0;
     }
+
+    if (g_test_case == 28) { /* Send header after reset stream */
+        xqc_h3_request_close(h3_request);
+        xqc_http_header_t header = {
+                .name = {
+                        .iov_base = "name",
+                        .iov_len = sizeof("name")
+                },
+                .value = {
+                        .iov_base = "value",
+                        .iov_len = sizeof("value")
+                },
+        };
+        xqc_http_headers_t headers = {
+                .headers = &header,
+                .count = 1,
+        };
+        xqc_h3_request_send_headers(h3_request,&headers, 1);
+        return 0;
+    }
+
     if (g_test_case == 12/*流读通知失败*/) { return -1;}
     if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_http_headers_t *headers;
