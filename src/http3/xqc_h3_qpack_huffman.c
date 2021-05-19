@@ -1,4 +1,5 @@
 #include "src/http3/xqc_h3_qpack_huffman.h"
+#include "xquic/xqc_errno.h"
 
 #include <string.h>
 #include <assert.h>
@@ -136,7 +137,7 @@ ssize_t xqc_http3_qpack_huffman_decode(xqc_http3_qpack_huffman_decode_context *c
                 dst_sz--;
 
             } else {
-                return -2;
+                return -XQC_ENOBUF;
             }
         }
 
@@ -150,7 +151,7 @@ ssize_t xqc_http3_qpack_huffman_decode(xqc_http3_qpack_huffman_decode_context *c
                 dst_sz--;
 
             } else {
-                return -2;
+                return -XQC_ENOBUF;
             }
         }
 
