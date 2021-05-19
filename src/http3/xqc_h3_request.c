@@ -239,6 +239,13 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
             pt++;
+
+            if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
+                || headers->headers[i].value.iov_len > XQC_HTTP3_QPACK_MAX_VALUELEN)
+            {
+                XQC_H3_CONN_ERR(h3_request->h3_stream->h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
+                return -XQC_H3_BUFFER_EXCEED;
+            }
         }
     }
 
@@ -249,6 +256,13 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
             pt++;
+
+            if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
+                || headers->headers[i].value.iov_len > XQC_HTTP3_QPACK_MAX_VALUELEN)
+            {
+                XQC_H3_CONN_ERR(h3_request->h3_stream->h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
+                return -XQC_H3_BUFFER_EXCEED;
+            }
         }
     }
 
