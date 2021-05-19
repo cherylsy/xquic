@@ -75,7 +75,6 @@ void xqc_http3_qpack_huffman_decode_context_init(xqc_http3_qpack_huffman_decode_
  *     Could not decode huffman string.
  */
 ssize_t xqc_http3_qpack_huffman_decode(xqc_http3_qpack_huffman_decode_context *ctx,
-        uint8_t *dest, const uint8_t *src,
-        size_t srclen, int fin);
+   uint8_t *dest, size_t dstlen, const uint8_t *src, size_t srclen, int fin);
 
 #endif /* XQC_HTTP3_QPACK_HUFFMAN_H */

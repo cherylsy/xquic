@@ -176,7 +176,8 @@ xqc_qpack_read_huffman_string(xqc_http3_qpack_read_state *rstate,
         fin = 1;
     }
 
-    ssize_t nwrite = xqc_http3_qpack_huffman_decode(&rstate->huffman_ctx, dest->data + dest->used_len, begin, len, fin);
+    ssize_t nwrite = xqc_http3_qpack_huffman_decode(&rstate->huffman_ctx, dest->data + dest->used_len,
+                                                    dest->capacity - dest->used_len, begin, len, fin);
     if (nwrite < 0) {
         return nwrite;
     }
@@ -1163,7 +1164,7 @@ xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xq
             nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.name, p, end);
             if (nread < 0) {
                 rv = (int)nread;
-                xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_huffman_string error, return value:%d|",nread);
+                xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_NAME error, return value:%d|", nread);
                 goto fail;
             }
 
@@ -1231,7 +1232,7 @@ xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xq
             nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.value, p, end);
             if (nread < 0) {
                 rv = (int)nread;
-                xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_read_string error, return value:%d|",nread);
+                xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_VALUE error, return value:%d|", nread);
                 goto fail;
             }
 
@@ -1991,6 +1992,7 @@ xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * src, size
                 nread = xqc_qpack_read_huffman_string(&decoder->rstate, decoder->rstate.name, p, end);
                 if (nread < 0) {
                     rv = (int)nread;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_NAME error, return value:%d|", nread);
                     goto fail;
                 }
 
@@ -2052,6 +2054,7 @@ xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * src, size
                 nread = xqc_qpack_read_huffman_string(&decoder->rstate, decoder->rstate.value, p, end);
                 if (nread < 0) {
                     rv = (int)nread;
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_VALUE error, return value:%d|", nread);
                     goto fail;
                 }
 

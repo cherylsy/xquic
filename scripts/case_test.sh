@@ -785,6 +785,33 @@ echo "$result"
 
 
 clear_log
+echo -e "test client long header ...\c"
+./test_client -l d -x 29 >> clog
+clog_res=`grep "xqc_process_conn_close_frame|with err:" clog`
+slog_res=`grep "READ_VALUE error" slog`
+if [ -n "$clog_res" ] && [ -n "$slog_res" ]; then
+    case_print_result "test_client_long_header" "pass"
+else
+    case_print_result "test_client_long_header" "fail"
+fi
+
+
+killall test_server 2> /dev/null
+./test_server -l d -x 9 > /dev/null &
+
+clear_log
+echo -e "test server long header ...\c"
+./test_client -l d >> clog
+slog_res=`grep "xqc_process_conn_close_frame|with err:" slog`
+clog_res=`grep "READ_VALUE error" clog`
+if [ -n "$clog_res" ] && [ -n "$slog_res" ]; then
+    case_print_result "test_server_long_header" "pass"
+else
+    case_print_result "test_server_long_header" "fail"
+fi
+
+
+clear_log
 killall test_server
 echo -e "client Initial dcid corruption ...\c"
 ./test_server -l d -e > /dev/null &
