@@ -798,6 +798,7 @@ fi
 
 killall test_server 2> /dev/null
 ./test_server -l d -x 9 > /dev/null &
+sleep 1
 
 clear_log
 echo -e "test server long header ...\c"
