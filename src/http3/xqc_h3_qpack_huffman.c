@@ -1,4 +1,5 @@
 #include "src/http3/xqc_h3_qpack_huffman.h"
+#include "xquic/xqc_errno.h"
 
 #include <string.h>
 #include <assert.h>
@@ -116,21 +117,28 @@ void xqc_http3_qpack_huffman_decode_context_init(
 }
 
 ssize_t xqc_http3_qpack_huffman_decode(xqc_http3_qpack_huffman_decode_context *ctx,
-        uint8_t *dest, const uint8_t *src,
-        size_t srclen, int fin) {
+    uint8_t *dest, size_t dstlen, const uint8_t *src, size_t srclen, int fin)
+{
     uint8_t *p = dest;
     size_t i;
+    size_t dst_sz = dstlen;
     const xqc_http3_qpack_huffman_decode_node *t;
 
     /* We use the decoding algorithm described in
-http://graphics.ics.uci.edu/pub/Prefix.pdf */
+       http://graphics.ics.uci.edu/pub/Prefix.pdf */
     for (i = 0; i < srclen; ++i) {
         t = &xqc_g_qpack_huffman_decode_table[ctx->state][src[i] >> 4];
         if (t->flags & XQC_HTTP3_QPACK_HUFFMAN_FAIL) {
             return -1;
         }
         if (t->flags & XQC_HTTP3_QPACK_HUFFMAN_SYM) {
-            *p++ = t->sym;
+            if (dst_sz > 0) {
+                *p++ = t->sym;
+                dst_sz--;
+
+            } else {
+                return -XQC_ENOBUF;
+            }
         }
 
         t = &xqc_g_qpack_huffman_decode_table[t->state][src[i] & 0xf];
@@ -138,12 +146,19 @@ http://graphics.ics.uci.edu/pub/Prefix.pdf */
             return -1;
         }
         if (t->flags & XQC_HTTP3_QPACK_HUFFMAN_SYM) {
-            *p++ = t->sym;
+            if (dst_sz > 0) {
+                *p++ = t->sym;
+                dst_sz--;
+
+            } else {
+                return -XQC_ENOBUF;
+            }
         }
 
         ctx->state = t->state;
         ctx->accept = (t->flags & XQC_HTTP3_QPACK_HUFFMAN_ACCEPTED) != 0;
     }
+
     if (fin && !ctx->accept) {
         return -1;
     }

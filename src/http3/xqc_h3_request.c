@@ -220,6 +220,8 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
         return -XQC_H3_EPARAM;
     }
 
+    xqc_h3_conn_t *h3_conn = h3_request->h3_stream->h3_conn;
+
     /* move pesudo headers in the front of list */
     xqc_http_headers_t new_headers;
     xqc_http_headers_t *headers_in = &new_headers;
@@ -239,6 +241,15 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
             pt++;
+
+            if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
+                || headers->headers[i].value.iov_len > XQC_HTTP3_QPACK_MAX_VALUELEN)
+            {
+                XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
+                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
+                        h3_conn->conn, headers->headers[i].name.iov_len, headers->headers[i].value.iov_len);
+                return -XQC_H3_BUFFER_EXCEED;
+            }
         }
     }
 
@@ -249,6 +260,15 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
             pt++;
+
+            if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
+                || headers->headers[i].value.iov_len > XQC_HTTP3_QPACK_MAX_VALUELEN)
+            {
+                XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
+                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
+                        h3_conn->conn, headers->headers[i].name.iov_len, headers->headers[i].value.iov_len);
+                return -XQC_H3_BUFFER_EXCEED;
+            }
         }
     }
 
