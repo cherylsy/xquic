@@ -5,6 +5,8 @@
 #include "src/http3/xqc_h3_request.h"
 
 
+#define XQC_H3_RESPONSE_HDR_MAX_VALUELEN (16*1024)
+
 xqc_h3_request_t*
 xqc_h3_request_create(xqc_engine_t *engine,
                       xqc_cid_t *cid,
@@ -243,7 +245,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             pt++;
 
             if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
-                || headers->headers[i].value.iov_len > XQC_HTTP3_QPACK_MAX_VALUELEN)
+                || headers->headers[i].value.iov_len > XQC_H3_RESPONSE_HDR_MAX_VALUELEN)
             {
                 XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
@@ -262,7 +264,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             pt++;
 
             if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
-                || headers->headers[i].value.iov_len > XQC_HTTP3_QPACK_MAX_VALUELEN)
+                || headers->headers[i].value.iov_len > XQC_H3_RESPONSE_HDR_MAX_VALUELEN)
             {
                 XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
