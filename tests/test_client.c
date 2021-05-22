@@ -882,11 +882,41 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
     ssize_t ret = 0;
     char content_len[10];
+
+    if (user_stream->send_body == NULL) {
+        user_stream->send_body_max = MAX_BUF_SIZE;
+        if (g_read_body) {
+            user_stream->send_body = malloc(user_stream->send_body_max);
+        } else {
+            user_stream->send_body = malloc(g_send_body_size);
+            memset(user_stream->send_body, 1, g_send_body_size);
+        }
+        if (user_stream->send_body == NULL) {
+            printf("send_body malloc error\n");
+            return -1;
+        }
+
+        /* 指定大小 > 指定文件 > 默认大小 */
+        if (g_send_body_size_defined) {
+            user_stream->send_body_len = g_send_body_size;
+        } else if (g_read_body) {
+            ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
+            if (ret < 0) {
+                printf("read body error\n");
+                return -1;
+            } else {
+                user_stream->send_body_len = ret;
+            }
+        } else {
+            user_stream->send_body_len = g_send_body_size;
+        }
+    }
+
     if (g_is_get) {
         snprintf(content_len, sizeof(content_len), "%d", 0);
 
     } else {
-        snprintf(content_len, sizeof(content_len), "%d", g_send_body_size);
+        snprintf(content_len, sizeof(content_len), "%zu", user_stream->send_body_len);
     }
     int header_size = 6;
     xqc_http_header_t header[MAX_HEADER] = {
@@ -975,34 +1005,6 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         }
     }
 
-    if (user_stream->send_body == NULL) {
-        user_stream->send_body_max = MAX_BUF_SIZE;
-        if (g_read_body) {
-            user_stream->send_body = malloc(user_stream->send_body_max);
-        } else {
-            user_stream->send_body = malloc(g_send_body_size);
-            memset(user_stream->send_body, 1, g_send_body_size);
-        }
-        if (user_stream->send_body == NULL) {
-            printf("send_body malloc error\n");
-            return -1;
-        }
-
-        /* 指定大小 > 指定文件 > 默认大小 */
-        if (g_send_body_size_defined) {
-            user_stream->send_body_len = g_send_body_size;
-        } else if (g_read_body) {
-            ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
-            if (ret < 0) {
-                printf("read body error\n");
-                return -1;
-            } else {
-                user_stream->send_body_len = ret;
-            }
-        } else {
-            user_stream->send_body_len = g_send_body_size;
-        }
-    }
 
     int fin = 1;
     if (g_test_case == 4) { //test fin_only
@@ -1675,7 +1677,7 @@ int main(int argc, char *argv[]) {
                 break;
             case 'H': //请求header
                 printf("option header :%s\n", optarg);
-                snprintf(g_headers[g_header_cnt], sizeof(g_headers[g_header_cnt]), optarg);
+                snprintf(g_headers[g_header_cnt], sizeof(g_headers[g_header_cnt]), "%s", optarg);
                 g_header_cnt++;
                 break;
             case 'h': /* host & sni */
