@@ -166,7 +166,7 @@ xqc_qpack_read_string(xqc_http3_qpack_read_state *rstate,
 
 ssize_t
 xqc_qpack_read_huffman_string(xqc_http3_qpack_read_state *rstate,
-                              xqc_var_buf_t *dest, uint8_t *begin, uint8_t *end)
+    xqc_var_buf_t *dest, uint8_t *begin, uint8_t *end, xqc_log_t *log)
 {
     int fin = 0;
     size_t len = (size_t)(end - begin);
@@ -179,6 +179,7 @@ xqc_qpack_read_huffman_string(xqc_http3_qpack_read_state *rstate,
     ssize_t nwrite = xqc_http3_qpack_huffman_decode(&rstate->huffman_ctx, dest->data + dest->used_len,
                                                     dest->capacity - dest->used_len, begin, len, fin);
     if (nwrite < 0) {
+        xqc_log(log, XQC_LOG_ERROR, "|too long huffman_string|%*s|", xqc_min(dest->capacity, 1024), dest->data);
         return nwrite;
     }
 
@@ -1161,7 +1162,7 @@ xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xq
             break;
 
         case XQC_HTTP3_QPACK_RS_STATE_READ_NAME_HUFFMAN:
-            nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.name, p, end);
+            nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.name, p, end, decoder->h3_conn->log);
             if (nread < 0) {
                 rv = (int)nread;
                 xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_NAME error, return value:%z|", nread);
@@ -1229,7 +1230,7 @@ xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xq
             break;
 
         case XQC_HTTP3_QPACK_RS_STATE_READ_VALUE_HUFFMAN:
-            nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.value, p, end);
+            nread = xqc_qpack_read_huffman_string(&sctx->rstate, sctx->rstate.value, p, end, decoder->h3_conn->log);
             if (nread < 0) {
                 rv = (int)nread;
                 xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_VALUE error, return value:%z|", nread);
@@ -1989,7 +1990,7 @@ xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * src, size
                 break;
 
             case XQC_HTTP3_QPACK_ES_STATE_READ_NAME_HUFFMAN:
-                nread = xqc_qpack_read_huffman_string(&decoder->rstate, decoder->rstate.name, p, end);
+                nread = xqc_qpack_read_huffman_string(&decoder->rstate, decoder->rstate.name, p, end, decoder->h3_conn->log);
                 if (nread < 0) {
                     rv = (int)nread;
                     xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_NAME error, return value:%z|", nread);
@@ -2051,7 +2052,7 @@ xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * src, size
 
                 break;
             case XQC_HTTP3_QPACK_ES_STATE_READ_VALUE_HUFFMAN:
-                nread = xqc_qpack_read_huffman_string(&decoder->rstate, decoder->rstate.value, p, end);
+                nread = xqc_qpack_read_huffman_string(&decoder->rstate, decoder->rstate.value, p, end, decoder->h3_conn->log);
                 if (nread < 0) {
                     rv = (int)nread;
                     xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|READ_VALUE error, return value:%z|", nread);
