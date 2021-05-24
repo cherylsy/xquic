@@ -883,7 +883,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     ssize_t ret = 0;
     char content_len[10];
 
-    if (user_stream->send_body == NULL) {
+    if (user_stream->send_body == NULL && !g_is_get /* POST */) {
         user_stream->send_body_max = MAX_BUF_SIZE;
         if (g_read_body) {
             user_stream->send_body = malloc(user_stream->send_body_max);
