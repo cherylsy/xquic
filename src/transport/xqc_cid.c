@@ -67,6 +67,7 @@ xqc_cid_init_zero(xqc_cid_t *cid)
 {
     cid->cid_len = 0;
     xqc_memzero(cid->cid_buf, XQC_MAX_CID_LEN);
+    cid->cid_seq_num = 0;
 }
 
 void
