@@ -96,6 +96,14 @@ static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_
     }
 
     node->element = e;
+    node->element.str.data = a->malloc(a->opaque, e.str.len);
+    if (node->element.str.data == NULL) {
+        a->free(a->opaque, node);
+        return XQC_ERROR;
+    }
+    xqc_memcpy(node->element.str.data, e.str.data, e.str.len);
+    node->element.str.len = e.str.len;
+    
     node->next = hash_tab->list[index];
     hash_tab->list[index] = node;
 
@@ -114,6 +122,7 @@ static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t h
     while (node) {
         if (node->element.hash == hash && xqc_str_equal(str, node->element.str)) {
             *pp = node->next; /*从冲突链删除*/
+            a->free(a->opaque, node->element.str.data);
             a->free(a->opaque, node);
             return XQC_OK;
         }
