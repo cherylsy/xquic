@@ -2,18 +2,26 @@ XQUIC is an implementation for QUIC protocol discussed in IETF QUIC Working Grou
 document space: https://yuque.antfin-inc.com/awm/xquic
 
 
-## install openssl
+## Install openssl
+~~~
 sudo yum install babassl-8.1.4 -b current -y 
+~~~
 
-## if you want to run test cases, install libevent
+## Install libevent if you want to run test cases
+~~~
 sudo yum install libevent -y
 sudo yum install libevent-devel -y
+~~~
 
-## build xquic on linux & run test cases
+## Build xquic on linux & run test cases
+~~~
 mkdir build
 cd build
 sh ../scripts/xquic_test.sh
+~~~
 
-## run test server & client
+## Run test server & client
+~~~
 ./test_server -l d > /dev/null &
 ./test_client -a 127.0.0.1 -p 8443 -s 1024000 -E
+~~~
