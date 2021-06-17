@@ -84,7 +84,6 @@ set(
     "src/transport/xqc_packet.c"
     "src/transport/xqc_frame.c"
     "src/transport/xqc_recv_record.c"
-    "src/transport/xqc_wakeup_pq.c"
     "src/transport/xqc_pacing.c"
     "src/transport/xqc_utils.c"
     "src/transport/xqc_multipath.c"
@@ -204,15 +203,15 @@ if(XQC_OPENSSL_IS_BORINGSSL)
 
 elseif(PLATFORM MATCHES "mac")
     set(LIB_SSL_PATH
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libssl.a
-        ${CMAKE_CURRENT_SOURCE_DIR}/libs/BabaSSL/libcrypto.a
+        ${BABASSL_PATH}/libssl.a
+        ${BABASSL_PATH}/libcrypto.a
     )
 
     target_link_libraries(
         xquic
         "-ldl -Wl,-all_load"
         ${LIB_SSL_PATH}
-        "-Wl,-noall_load"
+        "-Wl"
         -lpthread
     )
 
