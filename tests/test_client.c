@@ -313,6 +313,7 @@ xqc_client_write_socket(void *user,
 }
 
 
+#if defined(XQC_SUPPORT_SENDMMSG)
 ssize_t 
 xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
     const struct sockaddr *peer_addr,
@@ -342,7 +343,7 @@ xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
     } while ((res < 0) && (errno == EINTR));
     return res;
 }
-
+#endif
 
 static int 
 xqc_client_create_socket(int type, 
@@ -447,10 +448,12 @@ xqc_client_bind_to_interface(int fd,
 
     printf("bind to nic: %s\n", interface_name);
 
+#if (XQC_TEST_MP)
     if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (char *)&ifr, sizeof(ifr)) < 0) {
         printf("bind to nic error: %d, try use sudo\n", errno);
         return XQC_ERROR;
     }
+#endif
 
     return XQC_OK;
 }
@@ -1829,10 +1832,12 @@ int main(int argc, char *argv[]) {
     if (g_test_case == 17) {
         conn_settings.proto_version = XQC_IDRAFT_INIT_VER;
     }
+#if defined(XQC_SUPPORT_SENDMMSG)
     if (g_test_case == 20) { /* test sendmmsg */
         printf("test sendmmsg!\n");
         callback.write_mmsg = xqc_client_write_mmsg;
     }
+#endif
     if (g_test_case == 24) {
         conn_settings.idle_time_out = 10000;
     }

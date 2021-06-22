@@ -1345,11 +1345,11 @@ int client_print_stats(){
         localtime_r(&tv.tv_sec, &tm);
         tm.tm_mon++;
         tm.tm_year += 1900;
-        fprintf(g_stats_fp, "%4d/%02d/%02d %02d:%02d:%02d %06ld\n",
+        fprintf(g_stats_fp, "%4d/%02d/%02d %02d:%02d:%02d %06d\n",
                 tm.tm_year, tm.tm_mon,
                 tm.tm_mday, tm.tm_hour,
                 tm.tm_min, tm.tm_sec, tv.tv_usec);
-        fprintf(g_stats_fp, "total_conn:%lu, total_stream:%lu, conc_conn:%lu, conc_stream:%lu, total_send:%lu, total_recv:%lu, total_req:%lu, total_res:%lu\n",
+        fprintf(g_stats_fp, "total_conn:%" PRIu64 ", total_stream:%" PRIu64 ", conc_conn:%" PRIu64 ", conc_stream:%" PRIu64 ", total_send:%" PRIu64 ", total_recv:%" PRIu64 ", total_req:%" PRIu64 ", total_res:%" PRIu64 "\n",
                 g_user_stats.total_conn_count, g_user_stats.total_stream_count, g_user_stats.conc_conn_count, g_user_stats.conc_stream_count,
                 g_user_stats.send_bytes_count, g_user_stats.recv_bytes_count, g_user_stats.send_request_count, g_user_stats.recv_response_count);
 
@@ -1367,7 +1367,7 @@ int client_print_stats(){
         recv_b = (recv_b *1000000)/past_time;
         send_req = (send_req * 1000000)/past_time;
         recv_res = (recv_res * 1000000)/past_time;
-        fprintf(g_stats_fp,"new_conn_rate:%lu, new_stream_rate:%lu, send_byte_rate:%luKB, recv_byte_rate:%luKB, send_req_rate:%lu, recv_req_rate:%lu\n\n",
+        fprintf(g_stats_fp,"new_conn_rate:%" PRIu64 ", new_stream_rate:%" PRIu64 ", send_byte_rate:%" PRIu64 "KB, recv_byte_rate:%" PRIu64 "KB, send_req_rate:%" PRIu64 ", recv_req_rate:%" PRIu64 "\n\n",
                 new_conn, new_stream, send_b/1000, recv_b/1000, send_req, recv_res);
 
         fflush(g_stats_fp);
