@@ -966,7 +966,7 @@ void xqc_keylog_cb(const char *line, void *user_data)
     write(ctx->keylog_fd, "\n", 1);
 }
 
-
+#if defined(XQC_SUPPORT_SENDMMSG)
 ssize_t xqc_server_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
                                 const struct sockaddr *peer_addr,
                                 socklen_t peer_addrlen)
@@ -994,6 +994,7 @@ ssize_t xqc_server_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vl
     } while ((res < 0) && (errno == EINTR));
     return res;
 }
+#endif
 
 void stop(int signo)
 {
@@ -1189,9 +1190,11 @@ int main(int argc, char *argv[]) {
         .keylog_cb = xqc_keylog_cb,
     };
 
+#if defined(XQC_SUPPORT_SENDMMSG)
     if (g_batch) {
         callback.write_mmsg = xqc_server_write_mmsg;
     }
+#endif
 
     xqc_cong_ctrl_callback_t cong_ctrl;
     uint32_t cong_flags = 0;
