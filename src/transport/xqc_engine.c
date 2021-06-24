@@ -22,7 +22,7 @@
 #include "src/http3/xqc_h3_conn.h"
 
 
-uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
+const uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
     0x00000001,
     0xFF00001B,
     0xFF00001C,
@@ -319,8 +319,8 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 xqc_engine_t *
-xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * ssl_config,
-    xqc_engine_callback_t engine_callback, void *user_data)
+xqc_engine_create(xqc_engine_type_t engine_type, const xqc_engine_ssl_config_t *ssl_config,
+    const xqc_engine_callback_t *engine_callback, void *user_data)
 {
     xqc_engine_t *engine = NULL;
 
@@ -337,7 +337,7 @@ xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * ssl_c
         goto fail;
     }
 
-    xqc_engine_set_callback(engine, &engine_callback);
+    xqc_engine_set_callback(engine, engine_callback);
     engine->user_data = user_data;
 
     engine->log = xqc_log_init(&engine->eng_callback.log_callbacks, engine->user_data);
@@ -402,7 +402,7 @@ xqc_engine_create(xqc_engine_type_t engine_type, xqc_engine_ssl_config_t * ssl_c
     }
 
     /* set keylog callback */
-    if (engine_callback.keylog_cb) {
+    if (engine_callback->keylog_cb) {
         xqc_set_keylog(engine);
     }
 
@@ -552,7 +552,7 @@ xqc_engine_destroy(xqc_engine_t *engine)
  */
 void
 xqc_engine_init(xqc_engine_t *engine,
-                xqc_engine_callback_t *engine_callback,
+                const xqc_engine_callback_t *engine_callback,
                 void *user_data)
 {
     xqc_engine_set_callback(engine, engine_callback);
@@ -562,7 +562,7 @@ xqc_engine_init(xqc_engine_t *engine,
 
 void
 xqc_engine_set_callback(xqc_engine_t *engine,
-                        xqc_engine_callback_t *engine_callback)
+                        const xqc_engine_callback_t *engine_callback)
 {
     engine->eng_callback = *engine_callback;
 }

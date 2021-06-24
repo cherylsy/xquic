@@ -42,7 +42,7 @@ typedef enum xqc_proto_version_s {
 
 #define XQC_PROTO_VERSION_LEN 4
 
-extern uint32_t xqc_proto_version_value[];
+extern const uint32_t xqc_proto_version_value[];
 
 #define XQC_IDRAFT_INIT_VER_VALUE   0x00000001
 #define XQC_IDRAFT_VER_27_VALUE     0xFF00001B
@@ -366,7 +366,7 @@ typedef struct xqc_conn_ssl_config_s {
     size_t     transport_parameter_data_len;    /* For client */
     int        cert_verify_flag;                /* For client certificate verify flag, now only boringssl lib support cert_verify_flag */
 
-    char       *alpn;                           /* User does't care */
+    //char       *alpn;                           /* User does't care */
 } xqc_conn_ssl_config_t;
 
 
@@ -439,7 +439,7 @@ int xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type);
 /**
  * For server, it can be called anytime. settings will take effect on new connections
  */
-void xqc_server_set_conn_settings(xqc_conn_settings_t settings);
+void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
 
 /**
  * Create new xquic engine.
@@ -447,8 +447,8 @@ void xqc_server_set_conn_settings(xqc_conn_settings_t settings);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
-                                xqc_engine_ssl_config_t * ssl_config,
-                                xqc_engine_callback_t engine_callback,
+                                const xqc_engine_ssl_config_t *ssl_config,
+                                const xqc_engine_callback_t *engine_callback,
                                 void *user_data);
 
 XQC_EXPORT_PUBLIC_API
@@ -468,10 +468,10 @@ void xqc_engine_destroy(xqc_engine_t *engine);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
-                          xqc_conn_settings_t conn_settings,
-                          unsigned char *token, unsigned token_len,
-                          char *server_host, int no_crypto_flag,
-                          xqc_conn_ssl_config_t *conn_ssl_config,
+                          const xqc_conn_settings_t *conn_settings,
+                          const unsigned char *token, unsigned token_len,
+                          const char *server_host, int no_crypto_flag,
+                          const xqc_conn_ssl_config_t *conn_ssl_config,
                           const struct sockaddr *peer_addr,
                           socklen_t peer_addrlen);
 
@@ -503,7 +503,7 @@ void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
-                              xqc_h3_conn_settings_t h3_conn_settings);
+                              const xqc_h3_conn_settings_t *h3_conn_settings);
 
 /**
  * Server should get peer addr when h3_conn_create_notify callbacks
@@ -647,10 +647,10 @@ void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, uint64_t va
  */
 XQC_EXPORT_PUBLIC_API
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
-                       xqc_conn_settings_t conn_settings,
-                       unsigned char *token, unsigned token_len,
-                       char *server_host, int no_crypto_flag,
-                       xqc_conn_ssl_config_t *conn_ssl_config,
+                       const xqc_conn_settings_t *conn_settings,
+                       const unsigned char *token, unsigned token_len,
+                       const char *server_host, int no_crypto_flag,
+                       const xqc_conn_ssl_config_t *conn_ssl_config,
                        const struct sockaddr *peer_addr,
                        socklen_t peer_addrlen);
 

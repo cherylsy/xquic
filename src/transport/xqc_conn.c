@@ -36,23 +36,23 @@ xqc_conn_settings_t default_conn_settings = {
 };
 
 void
-xqc_server_set_conn_settings(xqc_conn_settings_t settings)
+xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
 {
-    default_conn_settings.cong_ctrl_callback = settings.cong_ctrl_callback;
-    default_conn_settings.cc_params = settings.cc_params;
-    default_conn_settings.pacing_on = settings.pacing_on;
-    default_conn_settings.ping_on = settings.ping_on;
-    default_conn_settings.so_sndbuf = settings.so_sndbuf;
-    default_conn_settings.spurious_loss_detect_on = settings.spurious_loss_detect_on;
-    if (settings.idle_time_out > 0) {
-        default_conn_settings.idle_time_out = settings.idle_time_out;
+    default_conn_settings.cong_ctrl_callback = settings->cong_ctrl_callback;
+    default_conn_settings.cc_params = settings->cc_params;
+    default_conn_settings.pacing_on = settings->pacing_on;
+    default_conn_settings.ping_on = settings->ping_on;
+    default_conn_settings.so_sndbuf = settings->so_sndbuf;
+    default_conn_settings.spurious_loss_detect_on = settings->spurious_loss_detect_on;
+    if (settings->idle_time_out > 0) {
+        default_conn_settings.idle_time_out = settings->idle_time_out;
     }
 
-    if (xqc_check_proto_version_valid(settings.proto_version)) {
-        default_conn_settings.proto_version = settings.proto_version;
+    if (xqc_check_proto_version_valid(settings->proto_version)) {
+        default_conn_settings.proto_version = settings->proto_version;
     }
 
-    default_conn_settings.enable_multipath = settings.enable_multipath;
+    default_conn_settings.enable_multipath = settings->enable_multipath;
 }
 
 static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
@@ -227,14 +227,8 @@ xqc_conn_init_flow_ctl(xqc_connection_t *conn)
 
 xqc_connection_t *
 xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
-    xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type)
+    const xqc_conn_callbacks_t *callbacks, const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type)
 {
-    if (type == XQC_CONN_TYPE_CLIENT
-        && !xqc_check_proto_version_valid(settings->proto_version)) 
-    {
-        settings->proto_version = XQC_IDRAFT_VER_29;
-    }
-
     xqc_connection_t *xc = NULL;
     xqc_memory_pool_t *pool = xqc_create_pool(engine->config->conn_pool_size);
     if (pool == NULL) {
@@ -247,6 +241,11 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xc->conn_settings = *settings;
+    if (type == XQC_CONN_TYPE_CLIENT
+        && !xqc_check_proto_version_valid(settings->proto_version)) 
+    {
+        xc->conn_settings.proto_version = XQC_IDRAFT_VER_29;
+    }
 
     xqc_conn_init_trans_settings(xc);
     xqc_conn_init_flow_ctl(xc);

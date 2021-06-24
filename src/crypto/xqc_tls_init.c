@@ -19,8 +19,8 @@ SSL_QUIC_METHOD xqc_ssl_quic_method;
 #define XQC_SESSION_DEFAULT_TIMEOUT (7 * 24 * 60 * 60)
 
 xqc_int_t
-xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * src,
-    xqc_ssl_session_ticket_key_t * session_ticket_key)
+xqc_ssl_init_engine_config(xqc_engine_t *engine, const xqc_engine_ssl_config_t *src,
+    xqc_ssl_session_ticket_key_t *session_ticket_key)
 {
     xqc_engine_ssl_config_t *ssl_config = &engine->ssl_config;
     memset(ssl_config, 0, sizeof(xqc_engine_ssl_config_t));
@@ -108,7 +108,7 @@ xqc_ssl_init_engine_config(xqc_engine_t * engine, xqc_engine_ssl_config_t * src,
 }
 
 xqc_int_t
-xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src)
+xqc_ssl_init_conn_config(xqc_connection_t *conn, const xqc_conn_ssl_config_t *src, const char *alpn)
 {
     xqc_conn_ssl_config_t * ssl_config = &(conn->tlsref.conn_ssl_config);
     memset(ssl_config, 0, sizeof(xqc_conn_ssl_config_t));
@@ -144,25 +144,16 @@ xqc_ssl_init_conn_config(xqc_connection_t * conn, xqc_conn_ssl_config_t * src)
         xqc_log(conn->log, XQC_LOG_WARN, "|no transport parameter data|");
     }
 
-    if (src->alpn == NULL) {
-        ssl_config->alpn = xqc_malloc(strlen(XQC_ALPN_HTTP3) + 1);
-        if (NULL == ssl_config->alpn) {
-            return -XQC_TLS_INVALID_ARGUMENT;
-        }
-        strncpy(ssl_config->alpn, XQC_ALPN_HTTP3, strlen(XQC_ALPN_HTTP3) + 1);
-
-    } else {
-        ssl_config->alpn = xqc_malloc(strlen(src->alpn) + 1);
-        strncpy(ssl_config->alpn, src->alpn, strlen(src->alpn) + 1);
-    }
-
-    size_t alpn_len = strlen(ssl_config->alpn);
-    if (alpn_len == strlen(XQC_ALPN_HTTP3) && memcmp(ssl_config->alpn, XQC_ALPN_HTTP3, alpn_len) == 0) {
+    if (alpn == NULL) {
         conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
-
     } else {
-        conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
+        if (strlen(alpn) == (sizeof(XQC_ALPN_HTTP3) - 1) && memcmp(alpn, XQC_ALPN_HTTP3, sizeof(XQC_ALPN_HTTP3) - 1) == 0) {
+            conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+        } else {
+            conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
+        }
     }
+
     return XQC_OK;
 }
 
@@ -178,7 +169,7 @@ xqc_tlsref_zero(xqc_tlsref_t * tlsref)
  */
 xqc_int_t
 xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
-    char *hostname, xqc_conn_ssl_config_t *sc, xqc_cid_t *dcid, uint16_t no_crypto_flag)
+    const char *hostname, const xqc_conn_ssl_config_t *sc, const char *alpn, xqc_cid_t *dcid, uint16_t no_crypto_flag)
 {
     xqc_tlsref_t *tlsref = &conn->tlsref;
     xqc_tlsref_zero(tlsref);
@@ -186,12 +177,12 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     tlsref->initial = 1;
 
     /* connection ssl config, early data flag should be initialled before call xqc_create_client_ssl */
-    if (xqc_ssl_init_conn_config(conn, sc) != XQC_OK) {
+    if (xqc_ssl_init_conn_config(conn, sc, alpn) != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|initial conn config error |");
         return XQC_ERROR;
     }
 
-    conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc);
+    conn->xc_ssl = xqc_create_client_ssl(engine, conn, hostname, sc, alpn);
     if (conn->xc_ssl == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_client_ssl error |");
         return XQC_ERROR;
@@ -274,7 +265,7 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
 }
 
 xqc_int_t
-xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, xqc_engine_ssl_config_t *sc)
+xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_engine_ssl_config_t *sc)
 {
     xqc_tlsref_t *tlsref = &conn->tlsref;
     xqc_tlsref_zero(tlsref);
@@ -400,7 +391,7 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 #endif
 
 static void
-xqc_ssl_ctx_set_timeout(SSL_CTX *ssl_ctx, xqc_engine_ssl_config_t *xs_config)
+xqc_ssl_ctx_set_timeout(SSL_CTX *ssl_ctx, const xqc_engine_ssl_config_t *xs_config)
 {
     if (xs_config->session_timeout != 0) {
         SSL_CTX_set_timeout(ssl_ctx, xs_config->session_timeout);
@@ -416,7 +407,7 @@ xqc_ssl_ctx_set_timeout(SSL_CTX *ssl_ctx, xqc_engine_ssl_config_t *xs_config)
 }
 
 SSL_CTX *
-xqc_create_client_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_config)
+xqc_create_client_ssl_ctx(xqc_engine_t *engine, const xqc_engine_ssl_config_t *xs_config)
 {
     SSL_CTX *ssl_ctx = SSL_CTX_new(TLS_method());
     SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_3_VERSION); //todo: get from config file if needed
@@ -443,7 +434,7 @@ xqc_create_client_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_conf
  * @return SSL_CTX, if error return null
  */
 SSL_CTX *
-xqc_create_server_ssl_ctx(xqc_engine_t *engine, xqc_engine_ssl_config_t *xs_config)
+xqc_create_server_ssl_ctx(xqc_engine_t *engine, const xqc_engine_ssl_config_t *xs_config)
 {
     SSL_CTX *ssl_ctx = SSL_CTX_new(TLS_method());
     SSL_CTX_set_min_proto_version(ssl_ctx, TLS1_3_VERSION);
@@ -641,7 +632,7 @@ xqc_create_bio_method()
 }
 
 xqc_int_t
-xqc_set_alpn_proto(SSL *ssl, char *alpn)
+xqc_set_alpn_proto(SSL *ssl, const char *alpn)
 {
     if (NULL == alpn) {
         return -XQC_TLS_INVALID_ARGUMENT;
@@ -676,8 +667,8 @@ xqc_set_alpn_proto(SSL *ssl, char *alpn)
 }
 
 SSL *
-xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn,
-    char * hostname,  xqc_conn_ssl_config_t * sc)
+xqc_create_client_ssl(xqc_engine_t *engine, xqc_connection_t *conn,
+    const char *hostname, const xqc_conn_ssl_config_t *sc, const char *alpn)
 {
     SSL *ssl = xqc_create_ssl(engine, conn, XQC_CLIENT);
     if (ssl == NULL) {
@@ -694,7 +685,7 @@ xqc_create_client_ssl(xqc_engine_t * engine, xqc_connection_t * conn,
         SSL_set_tlsext_host_name(ssl, hostname);
     }
 
-    if (xqc_set_alpn_proto(ssl, sc->alpn) < 0) {
+    if (xqc_set_alpn_proto(ssl, alpn) < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_client_ssl|set alpn error|");
         return NULL;
     }

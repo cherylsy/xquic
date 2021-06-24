@@ -120,7 +120,7 @@ void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const c
         } \
     } while (0)
 
-extern xqc_log_callbacks_t xqc_null_log_cb;
+extern const xqc_log_callbacks_t xqc_null_log_cb;
 
 #endif /*_XQC_H_LOG_INCLUDED_*/
 

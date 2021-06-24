@@ -393,10 +393,10 @@ int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
         xqc_free(ssl_config->transport_parameter_data);
         ssl_config->transport_parameter_data = NULL;
     }
-    if(ssl_config->alpn){
-        xqc_free(ssl_config->alpn);
-        ssl_config->alpn = NULL;
-    }
+    //if(ssl_config->alpn){
+        //xqc_free(ssl_config->alpn);
+        //ssl_config->alpn = NULL;
+    //}
     return 0;
 }
 
@@ -486,7 +486,7 @@ ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
                                   size_t adlen, void *user_data,
                                   xqc_aead_crypter_t * crypter)
 {
-    xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
+    xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (uintptr_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];   
 
     ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest, destlen, plaintext, plaintextlen , key, keylen,
@@ -507,7 +507,7 @@ xqc_do_decrypt(xqc_connection_t *conn,
     const uint8_t *ad, size_t adlen, 
     void *user_data, xqc_aead_crypter_t * crypter)
 {
-    xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
+    xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (uintptr_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
 
     ssize_t nwrite = xqc_aead_decrypt(&ctx->aead, 
@@ -545,7 +545,7 @@ xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
     size_t samplelen, void *user_data,
     xqc_crypter_t * crypter)
 {
-    xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (user_data);
+    xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (uintptr_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
 
     ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen, XQC_FAKE_HP_MASK,
