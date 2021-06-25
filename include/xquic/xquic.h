@@ -503,7 +503,7 @@ void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
-                              const xqc_h3_conn_settings_t *h3_conn_settings);
+    const xqc_h3_conn_settings_t *h3_conn_settings);
 
 /**
  * Server should get peer addr when h3_conn_create_notify callbacks
