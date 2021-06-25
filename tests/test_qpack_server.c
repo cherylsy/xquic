@@ -721,7 +721,7 @@ int main(int argc, char *argv[]) {
             .cong_ctrl_callback = xqc_cubic_cb,
             //.cong_ctrl_callback = xqc_bbr_cb,
     };
-    xqc_server_set_conn_settings(conn_settings);
+    xqc_server_set_conn_settings(&conn_settings);
 
     eb = event_base_new();
 
