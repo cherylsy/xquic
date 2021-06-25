@@ -900,7 +900,7 @@ client_ctx_t * client_create_context_new(){
     tv.tv_usec = 0;
     event_add(ctx->ev_conc, &tv);
 
-    ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, ctx);
+    ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, ctx);
 
     if(ctx->engine == NULL){
         return NULL;
@@ -985,10 +985,10 @@ user_conn_t * client_create_connection(client_ctx_t * ctx){
     int no_crypto_flag = g_no_crypto_flag?1:0;
     xqc_cid_t *cid;
     if (user_conn->h3) {
-        cid = xqc_h3_connect(engine, user_conn, conn_settings, g_token, g_token_len, g_server_addr, no_crypto_flag,
+        cid = xqc_h3_connect(engine, user_conn, &conn_settings, g_token, g_token_len, g_server_addr, no_crypto_flag,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
-        cid = xqc_connect(engine, user_conn, conn_settings, g_token, g_token_len, g_server_addr, no_crypto_flag,
+        cid = xqc_connect(engine, user_conn, &conn_settings, g_token, g_token_len, g_server_addr, no_crypto_flag,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
 
@@ -1345,10 +1345,10 @@ int client_print_stats(){
         localtime_r(&tv.tv_sec, &tm);
         tm.tm_mon++;
         tm.tm_year += 1900;
-        fprintf(g_stats_fp, "%4d/%02d/%02d %02d:%02d:%02d %06d\n",
+        fprintf(g_stats_fp, "%4d/%02d/%02d %02d:%02d:%02d \n",
                 tm.tm_year, tm.tm_mon,
                 tm.tm_mday, tm.tm_hour,
-                tm.tm_min, tm.tm_sec, tv.tv_usec);
+                tm.tm_min, tm.tm_sec);
         fprintf(g_stats_fp, "total_conn:%" PRIu64 ", total_stream:%" PRIu64 ", conc_conn:%" PRIu64 ", conc_stream:%" PRIu64 ", total_send:%" PRIu64 ", total_recv:%" PRIu64 ", total_req:%" PRIu64 ", total_res:%" PRIu64 "\n",
                 g_user_stats.total_conn_count, g_user_stats.total_stream_count, g_user_stats.conc_conn_count, g_user_stats.conc_stream_count,
                 g_user_stats.send_bytes_count, g_user_stats.recv_bytes_count, g_user_stats.send_request_count, g_user_stats.recv_response_count);

@@ -888,7 +888,7 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, &ctx);
 
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));
@@ -948,10 +948,10 @@ int main(int argc, char *argv[]) {
 
     xqc_cid_t *cid;
     if (user_conn->h3) {
-        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
+        cid = xqc_h3_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
-        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
+        cid = xqc_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
     if (cid == NULL) {

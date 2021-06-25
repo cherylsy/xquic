@@ -42,7 +42,7 @@ static inline xqc_engine_t* test_create_engine()
     };
 
     xqc_conn_settings_t conn_settings;
-    return xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, NULL);
+    return xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, NULL);
 }
 
 static inline xqc_cid_t* test_cid_connect(xqc_engine_t *engine)
@@ -53,7 +53,7 @@ static inline xqc_cid_t* test_cid_connect(xqc_engine_t *engine)
     
     xqc_conn_ssl_config_t conn_ssl_config;
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
-    xqc_cid_t *cid = xqc_connect(engine, NULL, conn_settings, NULL, 0, "", 0, &conn_ssl_config, NULL, 0);
+    xqc_cid_t *cid = xqc_connect(engine, NULL, &conn_settings, NULL, 0, "", 0, &conn_ssl_config, NULL, 0);
     return cid;
 }
 

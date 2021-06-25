@@ -135,7 +135,7 @@ xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
                                          conn->version, XQC_PKTNO_BITS);
     }
     if (ret < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|gen header error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|gen header error|%d|", ret);
         return ret;
     }
     packet_out->po_used_size += ret;

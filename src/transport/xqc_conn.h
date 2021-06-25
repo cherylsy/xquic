@@ -314,8 +314,8 @@ void
 xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
 xqc_connection_t *
-xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_callbacks_t *callbacks,
-    xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type);
+xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid, const xqc_conn_callbacks_t *callbacks,
+    const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type);
 
 xqc_connection_t *
 xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, socklen_t local_addrlen,
