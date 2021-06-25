@@ -107,7 +107,6 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
     const struct sockaddr *peer_addr,
     socklen_t peer_addrlen)
 {
-    //conn_ssl_config->alpn = XQC_ALPN_TRANSPORT;
     xqc_connection_t *conn;
     conn = xqc_client_connect(engine, user_data, conn_settings, token, token_len,
                               server_host, no_crypto_flag, conn_ssl_config, XQC_ALPN_TRANSPORT,
