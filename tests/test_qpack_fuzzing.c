@@ -1345,10 +1345,10 @@ int client_print_stats(){
         localtime_r(&tv.tv_sec, &tm);
         tm.tm_mon++;
         tm.tm_year += 1900;
-        fprintf(g_stats_fp, "%4d/%02d/%02d %02d:%02d:%02d %06d\n",
+        fprintf(g_stats_fp, "%4d/%02d/%02d %02d:%02d:%02d \n",
                 tm.tm_year, tm.tm_mon,
                 tm.tm_mday, tm.tm_hour,
-                tm.tm_min, tm.tm_sec, tv.tv_usec);
+                tm.tm_min, tm.tm_sec);
         fprintf(g_stats_fp, "total_conn:%" PRIu64 ", total_stream:%" PRIu64 ", conc_conn:%" PRIu64 ", conc_stream:%" PRIu64 ", total_send:%" PRIu64 ", total_recv:%" PRIu64 ", total_req:%" PRIu64 ", total_res:%" PRIu64 "\n",
                 g_user_stats.total_conn_count, g_user_stats.total_stream_count, g_user_stats.conc_conn_count, g_user_stats.conc_stream_count,
                 g_user_stats.send_bytes_count, g_user_stats.recv_bytes_count, g_user_stats.send_request_count, g_user_stats.recv_response_count);
