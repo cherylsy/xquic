@@ -365,8 +365,6 @@ typedef struct xqc_conn_ssl_config_s {
     char       *transport_parameter_data;       /* For client, client should Use the domain as the key to save */
     size_t     transport_parameter_data_len;    /* For client */
     int        cert_verify_flag;                /* For client certificate verify flag, now only boringssl lib support cert_verify_flag */
-
-    //char       *alpn;                           /* User does't care */
 } xqc_conn_ssl_config_t;
 
 
