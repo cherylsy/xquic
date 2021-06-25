@@ -393,10 +393,6 @@ int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
         xqc_free(ssl_config->transport_parameter_data);
         ssl_config->transport_parameter_data = NULL;
     }
-    //if(ssl_config->alpn){
-        //xqc_free(ssl_config->alpn);
-        //ssl_config->alpn = NULL;
-    //}
     return 0;
 }
 

@@ -721,13 +721,13 @@ int main(int argc, char *argv[]) {
             .cong_ctrl_callback = xqc_cubic_cb,
             //.cong_ctrl_callback = xqc_bbr_cb,
     };
-    xqc_server_set_conn_settings(conn_settings);
+    xqc_server_set_conn_settings(&conn_settings);
 
     eb = event_base_new();
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, &callback, &ctx);
 
     if(ctx.engine == NULL){
         printf("error create engine\n");

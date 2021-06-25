@@ -87,7 +87,7 @@ xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
 
 void
 xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
-                         const xqc_h3_conn_settings_t *h3_conn_settings)
+    const xqc_h3_conn_settings_t *h3_conn_settings)
 {
     if (h3_conn_settings->max_field_section_size) {
         h3_conn->local_h3_conn_settings.max_field_section_size = h3_conn_settings->max_field_section_size;

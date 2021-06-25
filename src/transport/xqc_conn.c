@@ -241,10 +241,13 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xc->conn_settings = *settings;
+    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;    
+
     if (type == XQC_CONN_TYPE_CLIENT
         && !xqc_check_proto_version_valid(settings->proto_version)) 
     {
         xc->conn_settings.proto_version = XQC_IDRAFT_VER_29;
+        xc->version = XQC_IDRAFT_VER_29;
     }
 
     xqc_conn_init_trans_settings(xc);
@@ -266,7 +269,6 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xc->log = engine->log;
     xc->conn_callbacks = *callbacks;
     xc->user_data = user_data;
-    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
     xc->conn_flag = 0;
