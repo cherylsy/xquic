@@ -948,10 +948,10 @@ int main(int argc, char *argv[]) {
 
     xqc_cid_t *cid;
     if (user_conn->h3) {
-        cid = xqc_h3_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
+        cid = xqc_h3_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     } else {
-        cid = xqc_connect(ctx.engine, user_conn, conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
+        cid = xqc_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 1,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
     }
     if (cid == NULL) {

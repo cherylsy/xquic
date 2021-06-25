@@ -647,12 +647,12 @@ void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, uint64_t va
  */
 XQC_EXPORT_PUBLIC_API
 xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
-                       const xqc_conn_settings_t *conn_settings,
-                       const unsigned char *token, unsigned token_len,
-                       const char *server_host, int no_crypto_flag,
-                       const xqc_conn_ssl_config_t *conn_ssl_config,
-                       const struct sockaddr *peer_addr,
-                       socklen_t peer_addrlen);
+    const xqc_conn_settings_t *conn_settings,
+    const unsigned char *token, unsigned token_len,
+    const char *server_host, int no_crypto_flag,
+    const xqc_conn_ssl_config_t *conn_ssl_config,
+    const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen);
 
 /**
  * Send CONNECTION_CLOSE to peer, conn_close_notify will callback when connection destroyed
