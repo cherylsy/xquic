@@ -888,7 +888,7 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, &ctx);
 
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));

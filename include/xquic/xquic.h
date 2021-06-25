@@ -447,9 +447,9 @@ void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
-                                const xqc_engine_ssl_config_t *ssl_config,
-                                const xqc_engine_callback_t *engine_callback,
-                                void *user_data);
+    const xqc_engine_ssl_config_t *ssl_config,
+    const xqc_engine_callback_t *engine_callback,
+    void *user_data);
 
 XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);

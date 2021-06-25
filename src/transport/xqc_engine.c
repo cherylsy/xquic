@@ -319,8 +319,10 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 xqc_engine_t *
-xqc_engine_create(xqc_engine_type_t engine_type, const xqc_engine_ssl_config_t *ssl_config,
-    const xqc_engine_callback_t *engine_callback, void *user_data)
+xqc_engine_create(xqc_engine_type_t engine_type, 
+    const xqc_engine_ssl_config_t *ssl_config,
+    const xqc_engine_callback_t *engine_callback, 
+    void *user_data)
 {
     xqc_engine_t *engine = NULL;
 

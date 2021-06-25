@@ -899,7 +899,7 @@ client_ctx_t * client_create_context_new(){
     tv.tv_usec = 0;
     event_add(ctx->ev_conc, &tv);
 
-    ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, ctx);
+    ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, ctx);
 
     if(ctx->engine == NULL){
         free(ctx);
