@@ -242,7 +242,7 @@ fail:
 
 
 xqc_connection_t *
-xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type)
+xqc_engine_conns_hash_find(xqc_engine_t *engine, const xqc_cid_t *cid, char type)
 {
     if (cid == NULL || cid->cid_len == 0) {
         return NULL;
@@ -250,7 +250,7 @@ xqc_engine_conns_hash_find(xqc_engine_t *engine, xqc_cid_t *cid, char type)
 
     uint64_t hash = xqc_hash_string(cid->cid_buf, cid->cid_len);
     xqc_str_t str;
-    str.data = cid->cid_buf;
+    str.data = (unsigned char *)cid->cid_buf;
     str.len = cid->cid_len;
 
     if (type == 's') {
@@ -840,7 +840,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
 
     xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
     if (wake_after > 0) {
-        engine->eng_callback.set_event_timer(engine->user_data, wake_after);
+        engine->eng_callback.set_event_timer(wake_after, engine->user_data);
     }
 
     engine->engine_flag &= ~XQC_ENG_FLAG_RUNNING;

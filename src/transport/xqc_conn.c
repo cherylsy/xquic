@@ -570,7 +570,7 @@ xqc_conn_get_local_addr(xqc_connection_t *conn, socklen_t *local_addr_len)
 
 /* used by upper level, shall never be invoked in xquic */
 xqc_int_t
-xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data)
+xqc_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data)
 {
     xqc_connection_t *conn;
     xqc_int_t ret;
@@ -609,8 +609,8 @@ typedef enum {
 ssize_t
 xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 {
-    ssize_t ret = conn->engine->eng_callback.write_mmsg(xqc_conn_get_user_data(conn), iov, cnt,
-                                                        (struct sockaddr *)conn->peer_addr, conn->peer_addrlen);
+    ssize_t ret = conn->engine->eng_callback.write_mmsg(iov, cnt,
+                                                        (struct sockaddr *)conn->peer_addr, conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|error send mmsg|");
         if (ret == XQC_SOCKET_ERROR) {
@@ -1011,8 +1011,8 @@ ssize_t
 xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
 {
     ssize_t sent = conn->engine->eng_callback.write_socket(
-                        xqc_conn_get_user_data(conn), data, len, 
-                        (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
+                        data, len, 
+                        (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (sent != len) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "|write_socket error|conn:%p|size:%ud|sent:%z|", conn, len, sent);
@@ -1377,7 +1377,7 @@ xqc_conn_is_handshake_confirmed(xqc_connection_t *conn)
 }
 
 int
-xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
+xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
 {
     int ret;
     xqc_connection_t *conn;
@@ -1475,7 +1475,7 @@ xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
     }
 
     size = (xqc_int_t)engine->eng_callback.write_socket(
-        user_data, buf, (size_t)size, peer_addr, peer_addrlen);
+        buf, (size_t)size, peer_addr, peer_addrlen, user_data);
     if (size < 0) {
         return size;
     }
@@ -1500,8 +1500,8 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
     }
 
     size = (xqc_int_t)engine->eng_callback.write_socket(
-        xqc_conn_get_user_data(conn), buf, (size_t)size,
-        (struct sockaddr*)conn->peer_addr, conn->peer_addrlen);
+        buf, (size_t)size,
+        (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (size < 0) {
         return size;
     }
@@ -1603,7 +1603,7 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
 
 
 int
-xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
+xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid)
 {
     xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, cid, 's');
     if (!conn) {
@@ -1625,7 +1625,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid)
 
 
 xqc_conn_stats_t
-xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid)
+xqc_conn_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid)
 {
     xqc_connection_t *conn;
     xqc_send_ctl_t *ctl;

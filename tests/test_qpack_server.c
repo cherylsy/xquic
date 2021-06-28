@@ -67,7 +67,7 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_server_set_event_timer(void *user_data, xqc_msec_t wake_after)
+void xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
@@ -102,7 +102,7 @@ int read_file_data( char * data, size_t data_len, char *filename){
 
 }
 
-int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
@@ -115,7 +115,7 @@ int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *
     return 0;
 }
 
-int xqc_server_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
@@ -201,7 +201,7 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
@@ -214,7 +214,7 @@ int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, voi
     return 0;
 }
 
-int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
@@ -366,7 +366,7 @@ int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
+int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *user_data)
 {
     DEBUG;
     int ret;
@@ -439,9 +439,9 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     return 0;
 }
 
-ssize_t xqc_server_send(void *user_data, unsigned char *buf, size_t size,
+ssize_t xqc_server_send(const unsigned char *buf, size_t size,
                         const struct sockaddr *peer_addr,
-                        socklen_t peer_addrlen) {
+                        socklen_t peer_addrlen, void *user_data) {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
     ssize_t res;
@@ -618,7 +618,7 @@ int xqc_server_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_t count)
+ssize_t xqc_server_write_log_file(const void *buf, size_t count, void *engine_user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {

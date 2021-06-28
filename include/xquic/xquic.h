@@ -66,23 +66,25 @@ typedef enum {
     XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
 } xqc_request_notify_flag_t;
 
-typedef void (*xqc_set_event_timer_pt)(void *engine_user_data, xqc_msec_t wake_after);
+typedef void (*xqc_set_event_timer_pt)(xqc_msec_t wake_after, void *engine_user_data);
 
-typedef void (*xqc_save_token_pt)(void *conn_user_data, const unsigned char *token, uint32_t token_len);
+typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len, void *conn_user_data);
+
+typedef void (*xqc_save_string_pt)(const char *data, size_t data_len, void *conn_user_data);
 
 /* session save callback */
-typedef void (*xqc_save_session_pt)(char *data, size_t data_len, void *conn_user_data);
+typedef xqc_save_string_pt xqc_save_session_pt;
 
 /* transport parameters save callback */
-typedef void (*xqc_save_trans_param_pt)(char *data, size_t data_len, void *conn_user_data);
+typedef xqc_save_string_pt xqc_save_trans_param_pt;
 
-typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *user_data);
+typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *conn_user_data);
 
-typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *user_data);
+typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *conn_user_data);
 
-typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
+typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *conn_user_data);
 
-typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data, void *ping_user_data);
+typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *ping_user_data, void *conn_user_data);
 
 
 
@@ -98,12 +100,12 @@ typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t
  * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket write event is ready
  * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
  */
-typedef ssize_t (*xqc_socket_write_pt)(void *conn_user_data, unsigned char *buf, size_t size,
+typedef ssize_t (*xqc_socket_write_pt)(const unsigned char *buf, size_t size,
                                        const struct sockaddr *peer_addr,
-                                       socklen_t peer_addrlen);
-typedef ssize_t (*xqc_send_mmsg_pt)(void *conn_user_data, struct iovec *msg_iov, unsigned int vlen,
+                                       socklen_t peer_addrlen, void *conn_user_data);
+typedef ssize_t (*xqc_send_mmsg_pt)(const struct iovec *msg_iov, unsigned int vlen,
                                         const struct sockaddr *peer_addr,
-                                        socklen_t peer_addrlen);
+                                        socklen_t peer_addrlen, void *conn_user_data);
 
 /**
  * for multi-path write socket
@@ -118,19 +120,19 @@ typedef ssize_t (*xqc_send_mmsg_pt)(void *conn_user_data, struct iovec *msg_iov,
  * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket write event is ready
  * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
  */
-typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id, void *conn_user_data, 
-    unsigned char *buf, size_t size, const struct sockaddr *peer_addr, socklen_t peer_addrlen);
-typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id, void *conn_user_data, 
-    struct iovec *msg_iov, unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen);
+typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id,
+    const unsigned char *buf, size_t size, const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
+typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id,
+    const struct iovec *msg_iov, unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
 
-typedef void (*xqc_conn_ready_to_create_path_notify_pt)(xqc_cid_t *scid, void *conn_user_data);
-typedef void (*xqc_path_created_notify_pt)(xqc_cid_t *scid, uint64_t path_id, 
+typedef void (*xqc_conn_ready_to_create_path_notify_pt)(const xqc_cid_t *scid, void *conn_user_data);
+typedef void (*xqc_path_created_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
     void *conn_user_data);
-typedef void (*xqc_path_removed_notify_pt)(xqc_cid_t *scid, uint64_t path_id, 
+typedef void (*xqc_path_removed_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
     void *conn_user_data);
 
 /* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */
-typedef int (*xqc_cert_verify_pt)(unsigned char *certs[],size_t cert_len[],size_t certs_len, void * conn_user_data);
+typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cert_len[], size_t certs_len, void *conn_user_data);
 
 /**
  * for server, custom cid generate handler,
@@ -146,19 +148,19 @@ typedef ssize_t (*xqc_cid_generate_pt)(uint8_t *cid_buf, size_t cid_buflen, void
 /**
  * keylog callback
  */
-typedef void (*xqc_keylog_pt)(const char *line, void *user_data);
+typedef void (*xqc_keylog_pt)(const char *line, void *engine_user_data);
 
 
 /*
  * Callbacks below return -1 for fatal error, e.g. malloc fail, xquic will close the connection, return 0 otherwise
  */
-typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
-typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data);
-typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *user_data);
-typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *user_data);
-typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag);
+typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *cid, void *conn_user_data);
+typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *conn_user_data);
+typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
+typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *strm_user_data);
+typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *strm_user_data);
 /* user_data is the parameter of xqc_engine_packet_process */
-typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data);
+typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data);
 
 
 /* log interface */
@@ -167,10 +169,10 @@ typedef struct xqc_log_callbacks_s {
     int (*xqc_open_log_file)(void *engine_user_data);
     int (*xqc_close_log_file)(void *engine_user_data);
     /* return bytes write, -1 for error*/
-    ssize_t (*xqc_write_log_file)(void *engine_user_data, const void *buf, size_t size);
+    ssize_t (*xqc_write_log_file)(const void *buf, size_t size, void *engine_user_data);
 
-    void (*xqc_log_write_err)(void *engine_user_data, const void *buf, size_t size);
-    void (*xqc_log_write_stat)(void *engine_user_data, const void *buf, size_t size);
+    void (*xqc_log_write_err)(const void *buf, size_t size, void *engine_user_data);
+    void (*xqc_log_write_stat)(const void *buf, size_t size, void *engine_user_data);
 
     xqc_log_level_t log_level;
 } xqc_log_callbacks_t;
@@ -465,7 +467,7 @@ void xqc_engine_destroy(xqc_engine_t *engine);
  * @return scid of the connection; user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 XQC_EXPORT_PUBLIC_API
-xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
+const xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           const xqc_conn_settings_t *conn_settings,
                           const unsigned char *token, unsigned token_len,
                           const char *server_host, int no_crypto_flag,
@@ -474,7 +476,7 @@ xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                           socklen_t peer_addrlen);
 
 XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
+int xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
 
 /**
  * Return quic_connection on which h3_conn rely
@@ -526,7 +528,7 @@ struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data);
+int xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
 
 
 /**
@@ -540,7 +542,7 @@ int xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
-                                        xqc_cid_t *cid,
+                                        const xqc_cid_t *cid,
                                         void *user_data);
 
 /**
@@ -644,7 +646,7 @@ void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, uint64_t va
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 XQC_EXPORT_PUBLIC_API
-xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
+const xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
     const xqc_conn_settings_t *conn_settings,
     const unsigned char *token, unsigned token_len,
     const char *server_host, int no_crypto_flag,
@@ -657,7 +659,7 @@ xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_close(xqc_engine_t *engine, xqc_cid_t *cid);
+int xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
 
 /**
  * Get errno when conn_close_notify, 0 For no-error
@@ -695,7 +697,7 @@ struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data);
+int xqc_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
 
 /**
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt
@@ -709,7 +711,7 @@ int xqc_conn_is_ready_to_send_early_data(xqc_connection_t * conn);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
-                                 xqc_cid_t *cid,
+                                 const xqc_cid_t *cid,
                                  void *user_data);
 
 /**
@@ -808,10 +810,10 @@ int xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
-                               unsigned char *buf, size_t size);
+                               const unsigned char *buf, size_t size);
 
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src);
+xqc_int_t xqc_cid_is_equal(const xqc_cid_t *dst, const xqc_cid_t *src);
 
 /**
  * Get scid in hex, end with '\0'
@@ -825,7 +827,7 @@ XQC_EXPORT_PUBLIC_API
 unsigned char* xqc_dcid_str(const xqc_cid_t *dcid);
 
 XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_dcid_str_by_scid(xqc_engine_t *engine, xqc_cid_t *scid);
+unsigned char* xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid);
 
 XQC_EXPORT_PUBLIC_API
 uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
@@ -835,13 +837,13 @@ uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
  * User should call xqc_conn_continue_send when write event ready
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_continue_send(xqc_engine_t *engine, xqc_cid_t *cid);
+int xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid);
 
 /**
  * User can get xqc_conn_stats_t by cid
  */
 XQC_EXPORT_PUBLIC_API
-xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid);
+xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid);
 
 /**
  * create new path for client
@@ -850,8 +852,8 @@ xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine, xqc_cid_t *cid);
  * @return XQC_OK (0) when success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_conn_create_path(xqc_engine_t *engine, 
-    xqc_cid_t *cid, uint64_t *new_path_id);
+xqc_int_t xqc_conn_create_path(xqc_engine_t *engine,
+    const xqc_cid_t *cid, uint64_t *new_path_id);
 
 
 /**
@@ -861,7 +863,7 @@ xqc_int_t xqc_conn_create_path(xqc_engine_t *engine,
  * @return XQC_OK (0) when success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_conn_close_path(xqc_engine_t *engine, xqc_cid_t *cid, uint64_t closed_path_id);
+xqc_int_t xqc_conn_close_path(xqc_engine_t *engine, const xqc_cid_t *cid, uint64_t closed_path_id);
 
 
 

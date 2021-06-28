@@ -484,7 +484,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|notify_flag empty|");
             return -XQC_H3_EPARAM;
         }
-        ret = h3_request->request_if->h3_request_read_notify(h3_request, h3_request->user_data, flag);
+        ret = h3_request->request_if->h3_request_read_notify(h3_request, flag, h3_request->user_data);
         if (ret < 0) {
             xqc_log(h3_conn->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|stream_id:%ui|conn:%p|",
                     ret, h3_stream->stream->stream_id, h3_conn->conn);

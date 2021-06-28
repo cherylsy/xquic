@@ -20,14 +20,14 @@ engine_ssl_config.session_ticket_key_data = NULL;       \
 engine_ssl_config.alpn_list_len = 0;                    \
 engine_ssl_config.alpn_list = NULL;
 
-static inline ssize_t null_socket_write(void *conn_user_data, unsigned char *buf, size_t size,
+static inline ssize_t null_socket_write(const unsigned char *buf, size_t size,
                                const struct sockaddr *peer_addr,
-                               socklen_t peer_addrlen)
+                               socklen_t peer_addrlen, void *conn_user_data)
 {
     return size;
 }
 
-static inline void null_set_event_timer(void *engine_user_data, xqc_msec_t wake_after)
+static inline void null_set_event_timer(xqc_msec_t wake_after, void *engine_user_data)
 {
     return;
 }

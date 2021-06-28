@@ -52,7 +52,7 @@
  * 1.字符串hash函数
  * */
 static inline uint64_t 
-xqc_hash_string(u_char* data, size_t len)
+xqc_hash_string(const u_char* data, size_t len)
 {
     uint64_t hash_value = 0;
     for (size_t i = 0; i < len; ++i) {

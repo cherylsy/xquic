@@ -11,7 +11,7 @@ xqc_int_t xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid, uint64_t cid_se
 
 void xqc_cid_copy(xqc_cid_t *dst, xqc_cid_t *src);
 void xqc_cid_init_zero(xqc_cid_t *cid);
-void xqc_cid_set(xqc_cid_t *cid, unsigned char *data, uint8_t len);
+void xqc_cid_set(xqc_cid_t *cid, const unsigned char *data, uint8_t len);
 
 #endif /* _XQC_CID_H_INCLUDED_ */
 

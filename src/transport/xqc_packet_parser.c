@@ -54,9 +54,9 @@ xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, uns
 
 xqc_int_t
 xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
-    unsigned char *buf, size_t size)
+    const unsigned char *buf, size_t size)
 {
-    unsigned char *pos = NULL;
+    const unsigned char *pos = NULL;
     const unsigned char *end = buf + size;
 
     if (size <= 0) {
@@ -968,7 +968,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     hex_print(c->conn_token,c->conn_token_len);*/
 
     //存储token
-    c->engine->eng_callback.save_token(xqc_conn_get_user_data(c), c->conn_token, c->conn_token_len);
+    c->engine->eng_callback.save_token(c->conn_token, c->conn_token_len, xqc_conn_get_user_data(c));
 
     /* 重新发起握手 */
     c->conn_state = XQC_CONN_STATE_CLIENT_INIT;

@@ -17,7 +17,7 @@ xqc_close_log_file_default(void *user_data)
 }
 
 ssize_t 
-xqc_write_log_file_default(void *user_data, const void *buf, size_t count)
+xqc_write_log_file_default(const void *buf, size_t count, void *user_data)
 {
     return 0;
 }
@@ -88,13 +88,13 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     if ((level == XQC_LOG_STATS || level == XQC_LOG_REPORT)
         && log->log_callbacks->xqc_log_write_stat)
     {
-        log->log_callbacks->xqc_log_write_stat(log->user_data, buf, p - buf);
+        log->log_callbacks->xqc_log_write_stat(buf, p - buf, log->user_data);
 
     } else if (log->log_callbacks->xqc_log_write_err) {
-        log->log_callbacks->xqc_log_write_err(log->user_data, buf, p - buf);
+        log->log_callbacks->xqc_log_write_err(buf, p - buf, log->user_data);
 
     } else {
-        log->log_callbacks->xqc_write_log_file(log->user_data, buf, p - buf);
+        log->log_callbacks->xqc_write_log_file(buf, p - buf, log->user_data);
     }
 }
 
