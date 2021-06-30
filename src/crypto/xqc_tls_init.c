@@ -373,7 +373,7 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
             }
 
             if (conn->tlsref.cert_verify_cb != NULL) {
-                if (conn->tlsref.cert_verify_cb(certs_array, cert_len_array, certs_array_len, user_data) < 0) {
+                if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, cert_len_array, certs_array_len, user_data) < 0) {
                     preverify_ok = XQC_SSL_FAIL;
 
                 } else {

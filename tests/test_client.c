@@ -281,6 +281,7 @@ xqc_client_write_socket(
         if (TEST_DROP) return size;
         if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
 
+#if 0
         // client Initial dcid corruption ...
         if (g_test_case == 22) {
             /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
@@ -296,6 +297,7 @@ xqc_client_write_socket(
             buf[15] = ~buf[15];
             printf("test case 23, corrupt byte[15]\n");
         }
+#endif
 
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
         //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
@@ -1913,7 +1915,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    xqc_cid_t *cid;
+    const xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
         cid = xqc_h3_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, g_host, g_no_crypt,

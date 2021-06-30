@@ -1152,7 +1152,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    xqc_cid_t *cid;
+    const xqc_cid_t *cid;
     if (user_conn->h3) {
         cid = xqc_h3_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", 0,
                           &conn_ssl_config, (struct sockaddr*)&user_conn->peer_addr, user_conn->peer_addrlen);
@@ -1167,17 +1167,17 @@ int main(int argc, char *argv[]) {
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
-    user_stream_t *user_stream = create_user_stream(ctx.engine, user_conn, cid) ;
-    user_stream_t *user_stream1 = create_user_stream(ctx.engine, user_conn, cid) ;
-    user_stream_t *user_stream2 = create_user_stream(ctx.engine, user_conn, cid) ;
-    user_stream_t *user_stream3 = create_user_stream(ctx.engine, user_conn, cid) ;
-    user_stream_t *user_stream4 = create_user_stream(ctx.engine, user_conn, cid) ;
-    user_stream_t *user_stream5 = create_user_stream(ctx.engine, user_conn, cid);
-    user_stream_t *user_stream6 = create_user_stream(ctx.engine, user_conn, cid);
-    user_stream_t *user_stream7 = create_user_stream(ctx.engine, user_conn, cid);
-    user_stream_t *user_stream8 = create_user_stream(ctx.engine, user_conn, cid);
-    user_stream_t *user_stream9 = create_user_stream(ctx.engine, user_conn, cid);
-    user_stream_t *user_stream10 = create_user_stream(ctx.engine, user_conn, cid);
+    user_stream_t *user_stream = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream1 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream2 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream3 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream4 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream5 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream6 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream7 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream8 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream9 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
+    user_stream_t *user_stream10 = create_user_stream(ctx.engine, user_conn, &user_conn->cid);
 
 
 

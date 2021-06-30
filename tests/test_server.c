@@ -594,9 +594,11 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
     return 0;
 }
 
-ssize_t xqc_server_write_socket(const unsigned char *buf, size_t size,
-                        const struct sockaddr *peer_addr,
-                        socklen_t peer_addrlen, void *user_data)
+
+ssize_t 
+xqc_server_write_socket(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, void *user_data)
 {
     //DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
@@ -606,6 +608,7 @@ ssize_t xqc_server_write_socket(const unsigned char *buf, size_t size,
     int fd = ctx.fd;
     //printf("xqc_server_send size=%zd now=%llu\n",size, now());
 
+#if 0
     /* server Initial dcid corruption ... */
     if (g_test_case == 3) {
         /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
@@ -619,6 +622,7 @@ ssize_t xqc_server_write_socket(const unsigned char *buf, size_t size,
         g_test_case = -1;
         buf[15] = ~buf[15];
     }
+#endif
 
     /* server odcid hash ... */
     if (g_test_case == 5) {
