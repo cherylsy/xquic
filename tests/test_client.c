@@ -271,6 +271,18 @@ xqc_client_write_socket(
     user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res = 0;
     int fd = user_conn->fd;
+
+    /* COPY to run corruption test cases */
+    unsigned char send_buf[XQC_PACKET_TMP_BUF_LEN];
+    size_t send_buf_size = 0;
+    
+    if (size > XQC_PACKET_TMP_BUF_LEN) {
+        printf("xqc_client_write_socket err: size=%zu is too long\n", size);
+        return XQC_SOCKET_ERROR;
+    }
+    send_buf_size = size;
+    memcpy(send_buf, buf, send_buf_size);
+
     //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
@@ -278,15 +290,16 @@ xqc_client_write_socket(
         g_last_sock_op_time = now();
 
         //res = write(fd, buf, size);
-        if (TEST_DROP) return size;
+        if (TEST_DROP) { 
+            return send_buf_size;
+        }
         if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
 
-#if 0
         // client Initial dcid corruption ...
         if (g_test_case == 22) {
             /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
             g_test_case = -1;
-            buf[6] = ~buf[6];
+            send_buf[6] = ~send_buf[6];
             printf("test case 22, corrupt byte[6]\n");
         }
 
@@ -294,12 +307,11 @@ xqc_client_write_socket(
         if (g_test_case == 23) {
             /* bytes [15, 22] is the SCID of xquic's Initial packet */
             g_test_case = -1;
-            buf[15] = ~buf[15];
+            send_buf[15] = ~send_buf[15];
             printf("test case 23, corrupt byte[15]\n");
         }
-#endif
 
-        res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
+        res = sendto(fd, send_buf, send_buf_size, 0, peer_addr, peer_addrlen);
         //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
