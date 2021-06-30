@@ -57,7 +57,7 @@ xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine,
     ctx->qpack_encoder_max_table_capacity = value;
 }
 
-xqc_cid_t *
+const xqc_cid_t *
 xqc_h3_connect(xqc_engine_t *engine, void *user_data,
                const xqc_conn_settings_t *conn_settings,
                const unsigned char *token, unsigned token_len,
@@ -118,7 +118,7 @@ xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
 }
 
 int
-xqc_h3_conn_close(xqc_engine_t *engine, xqc_cid_t *cid)
+xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
 {
     return xqc_conn_close(engine, cid);
 }
@@ -217,7 +217,7 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
 }
 
 int 
-xqc_h3_conn_send_ping(xqc_engine_t *engine, xqc_cid_t *cid, void *ping_user_data)
+xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data)
 {
     return xqc_conn_send_ping(engine, cid, ping_user_data);
 }
@@ -276,7 +276,7 @@ xqc_h3_conn_setting_recvd(xqc_h3_conn_t *h3_conn)//TODO
 }
 
 int
-xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+xqc_h3_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     int ret;
     xqc_h3_conn_t *h3_conn;
@@ -316,7 +316,7 @@ xqc_h3_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_dat
 }
 
 int
-xqc_h3_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+xqc_h3_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
     xqc_h3_conn_destroy(h3_conn);
@@ -335,12 +335,12 @@ xqc_h3_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 }
 
 void
-xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
+xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *user_data)
 {
     xqc_h3_conn_t *h3_conn = (xqc_h3_conn_t*)user_data;
     if (h3_conn->h3_conn_callbacks.h3_conn_ping_acked) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|Ping acked notify|");
-        h3_conn->h3_conn_callbacks.h3_conn_ping_acked(h3_conn, &h3_conn->conn->scid, h3_conn->user_data, ping_user_data);
+        h3_conn->h3_conn_callbacks.h3_conn_ping_acked(h3_conn, &h3_conn->conn->scid, ping_user_data, h3_conn->user_data);
     }
     return;
 }

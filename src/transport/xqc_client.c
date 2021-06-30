@@ -98,7 +98,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
     return xc;
 }
 
-xqc_cid_t *
+const xqc_cid_t *
 xqc_connect(xqc_engine_t *engine, void *user_data,
     const xqc_conn_settings_t *conn_settings,
     const unsigned char *token, unsigned token_len,

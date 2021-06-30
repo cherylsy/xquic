@@ -37,7 +37,7 @@ xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *cid,
 
 
 xqc_int_t
-xqc_cid_is_equal(xqc_cid_t *dst, xqc_cid_t *src)
+xqc_cid_is_equal(const xqc_cid_t *dst, const xqc_cid_t *src)
 {
     if (dst == NULL || src == NULL) {
         return XQC_ERROR;
@@ -70,7 +70,7 @@ xqc_cid_init_zero(xqc_cid_t *cid)
 }
 
 void
-xqc_cid_set(xqc_cid_t *cid, unsigned char *data, uint8_t len)
+xqc_cid_set(xqc_cid_t *cid, const unsigned char *data, uint8_t len)
 {
     cid->cid_len = len;
     xqc_memcpy(cid->cid_buf, data, len);
@@ -96,7 +96,7 @@ xqc_scid_str(const xqc_cid_t *scid)
 }
 
 unsigned char*
-xqc_dcid_str_by_scid(xqc_engine_t *engine, xqc_cid_t *scid)
+xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid)
 {
     xqc_connection_t *conn;
     conn = xqc_engine_conns_hash_find(engine, scid, 's');

@@ -232,7 +232,7 @@ xqc_conn_enable_multipath(xqc_connection_t *conn)
 
 xqc_int_t
 xqc_conn_create_path(xqc_engine_t *engine, 
-    xqc_cid_t *scid, uint64_t *new_path_id)
+    const xqc_cid_t *scid, uint64_t *new_path_id)
 {
     xqc_connection_t *conn = NULL;
     xqc_path_ctx_t *path = NULL;

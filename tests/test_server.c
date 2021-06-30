@@ -105,7 +105,7 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_server_set_event_timer(void *user_data, xqc_msec_t wake_after)
+void xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
     //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
@@ -140,14 +140,14 @@ int read_file_data( char * data, size_t data_len, char *filename){
 
 }
 
-int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
 
     return 0;
 }
 
-int xqc_server_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
@@ -302,7 +302,7 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)user_data;
@@ -319,7 +319,7 @@ int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, voi
     return 0;
 }
 
-int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data) {
+int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
 
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
@@ -499,7 +499,7 @@ int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
+int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *user_data)
 {
     //DEBUG;
     int ret;
@@ -594,9 +594,11 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, void *user_data
     return 0;
 }
 
-ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size,
-                        const struct sockaddr *peer_addr,
-                        socklen_t peer_addrlen)
+
+ssize_t 
+xqc_server_write_socket(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, void *user_data)
 {
     //DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
@@ -606,18 +608,29 @@ ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size
     int fd = ctx.fd;
     //printf("xqc_server_send size=%zd now=%llu\n",size, now());
 
+    /* COPY to run corruption test cases */
+    unsigned char send_buf[XQC_PACKET_TMP_BUF_LEN];
+    size_t send_buf_size = 0;
+    
+    if (size > XQC_PACKET_TMP_BUF_LEN) {
+        printf("xqc_server_write_socket err: size=%zu is too long\n", size);
+        return XQC_SOCKET_ERROR;
+    }
+    send_buf_size = size;
+    memcpy(send_buf, buf, send_buf_size);
+
     /* server Initial dcid corruption ... */
     if (g_test_case == 3) {
         /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
         g_test_case = -1;
-        buf[6] = ~buf[6];
+        send_buf[6] = ~send_buf[6];
     }
 
     /* server Initial scid corruption ... */
     if (g_test_case == 4) {
         /* bytes [15, 22] is the SCID of xquic's Initial packet */
         g_test_case = -1;
-        buf[15] = ~buf[15];
+        send_buf[15] = ~send_buf[15];
     }
 
     /* server odcid hash ... */
@@ -629,7 +642,7 @@ ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size
 
     do {
         errno = 0;
-        res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
+        res = sendto(fd, send_buf, send_buf_size, 0, peer_addr, peer_addrlen);
         //printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_server_write_socket err %zd %s\n", res, strerror(errno));
@@ -777,7 +790,7 @@ xqc_server_socket_event_callback(int fd, short what, void *arg)
     }
 }
 
-int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
@@ -920,7 +933,7 @@ int xqc_server_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_t count)
+ssize_t xqc_server_write_log_file(const void *buf, size_t count, void *engine_user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
@@ -969,9 +982,9 @@ void xqc_keylog_cb(const char *line, void *user_data)
 }
 
 #if defined(XQC_SUPPORT_SENDMMSG)
-ssize_t xqc_server_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
+ssize_t xqc_server_write_mmsg(const struct iovec *msg_iov, unsigned int vlen,
                                 const struct sockaddr *peer_addr,
-                                socklen_t peer_addrlen)
+                                socklen_t peer_addrlen, void *user)
 {
     printf("write_mmsg!\n");
     const int MAX_SEG = 128;

@@ -157,7 +157,7 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
+void xqc_client_set_event_timer(xqc_msec_t wake_after, void *user_data)
 {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
@@ -169,7 +169,7 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 }
 
-void save_session_cb( char * data, size_t data_len, void *user_data)
+void save_session_cb(const char * data, size_t data_len, void *user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("save_session_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -186,7 +186,7 @@ void save_session_cb( char * data, size_t data_len, void *user_data)
 }
 
 
-void save_tp_cb(char * data, size_t data_len, void * user_data)
+void save_tp_cb(const char * data, size_t data_len, void * user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("save_tp_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -202,7 +202,7 @@ void save_tp_cb(char * data, size_t data_len, void * user_data)
     return;
 }
 
-void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
+void xqc_client_save_token(const unsigned char *token, unsigned token_len, void *user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("xqc_client_save_token use client ip as the key. h3[%d]\n", user_conn->h3);
@@ -264,13 +264,25 @@ int read_file_data( char * data, size_t data_len, char *filename){
 
 int g_send_total = 0;
 ssize_t 
-xqc_client_write_socket(void *user, 
-    unsigned char *buf, size_t size,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen)
+xqc_client_write_socket(
+    const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user)
 {
     user_conn_t *user_conn = (user_conn_t *) user;
     ssize_t res = 0;
     int fd = user_conn->fd;
+
+    /* COPY to run corruption test cases */
+    unsigned char send_buf[XQC_PACKET_TMP_BUF_LEN];
+    size_t send_buf_size = 0;
+    
+    if (size > XQC_PACKET_TMP_BUF_LEN) {
+        printf("xqc_client_write_socket err: size=%zu is too long\n", size);
+        return XQC_SOCKET_ERROR;
+    }
+    send_buf_size = size;
+    memcpy(send_buf, buf, send_buf_size);
+
     //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
@@ -278,14 +290,16 @@ xqc_client_write_socket(void *user,
         g_last_sock_op_time = now();
 
         //res = write(fd, buf, size);
-        if (TEST_DROP) return size;
+        if (TEST_DROP) { 
+            return send_buf_size;
+        }
         if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
 
         // client Initial dcid corruption ...
         if (g_test_case == 22) {
             /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
             g_test_case = -1;
-            buf[6] = ~buf[6];
+            send_buf[6] = ~send_buf[6];
             printf("test case 22, corrupt byte[6]\n");
         }
 
@@ -293,11 +307,11 @@ xqc_client_write_socket(void *user,
         if (g_test_case == 23) {
             /* bytes [15, 22] is the SCID of xquic's Initial packet */
             g_test_case = -1;
-            buf[15] = ~buf[15];
+            send_buf[15] = ~send_buf[15];
             printf("test case 23, corrupt byte[15]\n");
         }
 
-        res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
+        res = sendto(fd, send_buf, send_buf_size, 0, peer_addr, peer_addrlen);
         //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
@@ -316,9 +330,9 @@ xqc_client_write_socket(void *user,
 
 #if defined(XQC_SUPPORT_SENDMMSG)
 ssize_t 
-xqc_client_write_mmsg(void *user, struct iovec *msg_iov, unsigned int vlen,
+xqc_client_write_mmsg(const struct iovec *msg_iov, unsigned int vlen,
     const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen)
+    socklen_t peer_addrlen, void *user)
 {
     const int MAX_SEG = 128;
     user_conn_t *user_conn = (user_conn_t *) user;
@@ -540,7 +554,7 @@ xqc_client_user_conn_create(const char *server_addr, int server_port,
 
 
 void 
-xqc_client_ready_to_create_path(xqc_cid_t *cid, 
+xqc_client_ready_to_create_path(const xqc_cid_t *cid, 
     void *conn_user_data)
 {
     uint64_t path_id = 0;
@@ -568,7 +582,7 @@ xqc_client_ready_to_create_path(xqc_cid_t *cid,
 }
 
 
-int xqc_client_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
@@ -578,7 +592,7 @@ int xqc_client_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *
     return 0;
 }
 
-int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
@@ -592,7 +606,7 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
-void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
+void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *user_data)
 {
     DEBUG;
     if (ping_user_data) {
@@ -614,7 +628,7 @@ void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
     printf("====>SCID:%s\n", xqc_scid_str(&user_conn->cid));
 }
 
-int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
@@ -639,7 +653,7 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *
     return 0;
 }
 
-int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
@@ -673,7 +687,7 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     printf("====>SCID:%s\n", xqc_scid_str(&user_conn->cid));
 }
 
-void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
+void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *user_data)
 {
     DEBUG;
     if (ping_user_data) {
@@ -1059,7 +1073,7 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
+int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *user_data)
 {
     //DEBUG;
     unsigned char fin = 0;
@@ -1490,7 +1504,7 @@ int xqc_client_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_client_write_log_file(void *engine_user_data, const void *buf, size_t count)
+ssize_t xqc_client_write_log_file(const void *buf, size_t count, void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
@@ -1913,7 +1927,7 @@ int main(int argc, char *argv[]) {
     }
 
 
-    xqc_cid_t *cid;
+    const xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
         cid = xqc_h3_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, g_host, g_no_crypt,
