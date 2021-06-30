@@ -608,21 +608,30 @@ xqc_server_write_socket(const unsigned char *buf, size_t size,
     int fd = ctx.fd;
     //printf("xqc_server_send size=%zd now=%llu\n",size, now());
 
-#if 0
+    /* COPY to run corruption test cases */
+    unsigned char send_buf[XQC_PACKET_TMP_BUF_LEN];
+    size_t send_buf_size = 0;
+    
+    if (size > XQC_PACKET_TMP_BUF_LEN) {
+        printf("xqc_server_write_socket err: size=%z is too long\n", size);
+        return XQC_SOCKET_ERROR;
+    }
+    send_buf_size = size;
+    memcpy(send_buf, buf, send_buf_size);
+
     /* server Initial dcid corruption ... */
     if (g_test_case == 3) {
         /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
         g_test_case = -1;
-        buf[6] = ~buf[6];
+        send_buf[6] = ~send_buf[6];
     }
 
     /* server Initial scid corruption ... */
     if (g_test_case == 4) {
         /* bytes [15, 22] is the SCID of xquic's Initial packet */
         g_test_case = -1;
-        buf[15] = ~buf[15];
+        send_buf[15] = ~send_buf[15];
     }
-#endif
 
     /* server odcid hash ... */
     if (g_test_case == 5) {
@@ -633,7 +642,7 @@ xqc_server_write_socket(const unsigned char *buf, size_t size,
 
     do {
         errno = 0;
-        res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
+        res = sendto(fd, send_buf, send_buf_size, 0, peer_addr, peer_addrlen);
         //printf("xqc_server_send write %zd, %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_server_write_socket err %zd %s\n", res, strerror(errno));
