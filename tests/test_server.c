@@ -613,7 +613,7 @@ xqc_server_write_socket(const unsigned char *buf, size_t size,
     size_t send_buf_size = 0;
     
     if (size > XQC_PACKET_TMP_BUF_LEN) {
-        printf("xqc_server_write_socket err: size=%z is too long\n", size);
+        printf("xqc_server_write_socket err: size=%zu is too long\n", size);
         return XQC_SOCKET_ERROR;
     }
     send_buf_size = size;
