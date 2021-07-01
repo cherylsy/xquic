@@ -142,7 +142,7 @@ static void
 xqc_bbr2_init(void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params)
 {
     xqc_bbr2_t *bbr2 = (xqc_bbr2_t *)(cong_ctl);
-    uint64_t now = xqc_now();
+    uint64_t now = xqc_monotonic_timestamp();
     memset(bbr2, 0, sizeof(*bbr2));
 
 #if XQC_BBR2_PLUS_ENABLED
@@ -588,7 +588,7 @@ xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
                     bbr2->srtt_in_last_round,
                     bbr2->srtt_in_current_round);
             if (bbr2->srtt_in_current_round != XQC_BBR2_INF_RTT) {
-                xqc_msec_t rtt_thresh = xqc_bbr2_fast_convergence_rtt_factor *
+                xqc_usec_t rtt_thresh = xqc_bbr2_fast_convergence_rtt_factor *
                                         bbr2->srtt_in_last_round;
                 xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                             "|BBRv2 Plus|rtt_thresh %ui|", rtt_thresh);
@@ -634,7 +634,7 @@ xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
 #if XQC_BBR2_PLUS_ENABLED
     case BBR2_BW_PROBE_PRE_UP:
         if (bbr2->round_start) {
-            xqc_msec_t rtt_thresh = bbr2->srtt_in_last_round + 
+            xqc_usec_t rtt_thresh = bbr2->srtt_in_last_round + 
                                     xqc_bbr2_fast_convergence_srtt_error;
             xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                     "|BBRv2 Plus|State probe pre_up|last_round_srtt %ui|"
@@ -735,7 +735,7 @@ xqc_bbr2_update_cycle_phase(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
                     bbr2->srtt_in_last_round,
                     bbr2->srtt_in_current_round);
             if (bbr2->srtt_in_current_round != XQC_BBR2_INF_RTT) {
-                xqc_msec_t rtt_thresh = xqc_bbr2_fast_convergence_rtt_factor *
+                xqc_usec_t rtt_thresh = xqc_bbr2_fast_convergence_rtt_factor *
                                         bbr2->srtt_in_last_round;
                 xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                         "|BBRv2 Plus|State probe down| rtt_thresh %ui|",
@@ -1072,7 +1072,7 @@ xqc_bbr2_reset_cwnd(void *cong_ctl)
     /* enter loss state */
     bbr2->recovery_mode = BBR2_LOSS;
     bbr2->last_bandwidth = 0;
-    bbr2->loss_start_time = xqc_now();
+    bbr2->loss_start_time = xqc_monotonic_timestamp();
     if (!xqc_bbr2_is_probing_bandwidth(bbr2) 
         && bbr2->inflight_lo == XQC_BBR2_UNSIGNED_INF) {
         bbr2->inflight_lo = bbr2->prior_cwnd;
@@ -1085,14 +1085,14 @@ xqc_bbr2_reset_cwnd(void *cong_ctl)
 static uint32_t
 xqc_bbr2_compensate_cwnd_for_rttvar(xqc_bbr2_t *bbr2, xqc_sample_t *sampler)
 {
-	xqc_msec_t srtt = sampler->srtt;
-    xqc_msec_t recent_max_rtt = xqc_win_filter_get_u64(&bbr2->max_rtt);
-    xqc_msec_t compensation_thresh = (1 + bbr2->rtt_compensation_thresh) * 
+	xqc_usec_t srtt = sampler->srtt;
+    xqc_usec_t recent_max_rtt = xqc_win_filter_get_u64(&bbr2->max_rtt);
+    xqc_usec_t compensation_thresh = (1 + bbr2->rtt_compensation_thresh) * 
                                      bbr2->min_rtt;
     uint32_t cwnd_addition = 0;
     if (recent_max_rtt >= compensation_thresh) {
         if (srtt > bbr2->min_rtt) {
-            xqc_msec_t rtt_var = (srtt - bbr2->min_rtt);
+            xqc_usec_t rtt_var = (srtt - bbr2->min_rtt);
             cwnd_addition = (xqc_bbr2_bw(bbr2) * rtt_var / MSEC2SEC) * 
                                        xqc_bbr2_rtt_compensation_cwnd_factor;
 
@@ -1157,7 +1157,7 @@ done:
 }
 
 static void 
-xqc_bbr2_on_lost(void *cong_ctl, xqc_msec_t lost_sent_time)
+xqc_bbr2_on_lost(void *cong_ctl, xqc_usec_t lost_sent_time)
 {
     xqc_bbr2_t *bbr2 = (xqc_bbr2_t *)cong_ctl;
     /* we do not enter RECOVERY from LOSS */
@@ -1166,7 +1166,7 @@ xqc_bbr2_on_lost(void *cong_ctl, xqc_msec_t lost_sent_time)
     }
     /* start loss recovery epoch */
     if (lost_sent_time > bbr2->recovery_start_time) {
-        bbr2->recovery_start_time = xqc_now();
+        bbr2->recovery_start_time = xqc_monotonic_timestamp();
     }
 }
 
@@ -1401,7 +1401,7 @@ xqc_bbr2_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     /*maintain windowed max rtt here*/
     if (bbr2->rtt_compensation_on) {
         if (sampler->rtt >= 0) {
-            xqc_msec_t last_max_rtt = xqc_win_filter_get_u64(&bbr2->max_rtt);
+            xqc_usec_t last_max_rtt = xqc_win_filter_get_u64(&bbr2->max_rtt);
             xqc_win_filter_max_u64(&bbr2->max_rtt, bbr2->max_rtt_win_len,
                                 bbr2->round_cnt, sampler->rtt);
             xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
@@ -1430,7 +1430,7 @@ xqc_bbr2_on_ack(void *cong_ctl, xqc_sample_t *sampler)
                     bbr2->srtt_in_current_round = sampler->rtt;
                 } else {
                     /*calculate EWMA*/
-                    xqc_msec_t _tmp = 7 * bbr2->srtt_in_current_round;
+                    xqc_usec_t _tmp = 7 * bbr2->srtt_in_current_round;
                     bbr2->srtt_in_current_round = (_tmp + sampler->rtt) / 8;
                 }
             }
@@ -1481,7 +1481,7 @@ xqc_bbr2_restart_from_idle(void *cong_ctl, uint64_t conn_delivered)
 {
     xqc_bbr2_t *bbr = (xqc_bbr2_t *)(cong_ctl);
     uint32_t rate;
-    uint64_t now = xqc_now();
+    uint64_t now = xqc_monotonic_timestamp();
     bbr->idle_restart = 1;
     bbr->extra_ack_stamp = now;
     bbr->epoch_ack = 0;

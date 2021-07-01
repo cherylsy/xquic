@@ -373,14 +373,14 @@ xqc_parse_ping_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
  */
 ssize_t
 xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
-    xqc_msec_t now, int ack_delay_exponent,
+    xqc_usec_t now, int ack_delay_exponent,
     xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size + XQC_ACK_SPACE;
 
     xqc_packet_number_t lagest_recv, prev_low;
-    xqc_msec_t ack_delay;
+    xqc_usec_t ack_delay;
 
     const unsigned char *begin = dst_buf;
     const unsigned char *end = dst_buf + dst_buf_len;

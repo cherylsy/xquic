@@ -37,7 +37,7 @@ xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out
 xqc_send_ctl_t *
 xqc_send_ctl_create (xqc_connection_t *conn)
 {
-    uint64_t now = xqc_now();
+    uint64_t now = xqc_monotonic_timestamp();
     xqc_send_ctl_t *send_ctl;
     send_ctl = xqc_pcalloc(conn->conn_pool, sizeof(xqc_send_ctl_t));
     if (send_ctl == NULL) {
@@ -195,7 +195,7 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
     xqc_send_ctl_t *conn_send_ctl = conn->conn_send_ctl;
     xqc_send_ctl_info_t *ctl_info = &conn_send_ctl->ctl_info;
 
-    xqc_msec_t now = xqc_now();
+    xqc_usec_t now = xqc_monotonic_timestamp();
     if (ctl_info->record_interval < 10000) { /* 最低10ms间隔，避免日志泛滥 */
         return;
     }
@@ -212,7 +212,7 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
     int mode = 0;
     int recovery = 0;
     int slow_start = 0;
-    xqc_msec_t min_rtt = 0;
+    xqc_usec_t min_rtt = 0;
 
     if (conn_send_ctl->ctl_cong_callback->xqc_cong_ctl_init_bbr) {
         bw = conn_send_ctl->ctl_cong_callback->
@@ -419,7 +419,7 @@ xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *
                     }
 
                     if (packet_out->po_stream_frames[i].ps_has_fin && stream->stream_stats.first_fin_ack_time == 0) {
-                        stream->stream_stats.first_fin_ack_time = xqc_now();
+                        stream->stream_stats.first_fin_ack_time = xqc_monotonic_timestamp();
                     }
                     
                     /* Update stream state */
@@ -790,7 +790,7 @@ xqc_send_ctl_update_cwnd_limited(xqc_send_ctl_t *ctl)
 
 static void
 xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl, 
-    xqc_packet_out_t *packet_out, xqc_msec_t now)
+    xqc_packet_out_t *packet_out, xqc_usec_t now)
 {
     xqc_stream_id_t stream_id;
     xqc_stream_t *stream;
@@ -821,7 +821,7 @@ xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl,
  * OnPacketSent
  */
 void
-xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_msec_t now)
+xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_usec_t now)
 {
     xqc_pkt_num_space_t pns = packet_out->po_pkt.pkt_pns;
 
@@ -922,14 +922,14 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
  * OnAckReceived
  */
 int
-xqc_send_ctl_on_ack_received(xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time)
+xqc_send_ctl_on_ack_received(xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_usec_t ack_recv_time)
 {
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
     unsigned char update_rtt = 0, has_ack_eliciting = 0, spurious_loss_detected = 0;
     xqc_packet_number_t largest_ack = ack_info->ranges[0].high;
     xqc_packet_number_t spurious_loss_pktnum = 0;
-    xqc_msec_t spurious_loss_sent_time = 0;
+    xqc_usec_t spurious_loss_sent_time = 0;
     xqc_pktno_range_t *range = &ack_info->ranges[ack_info->n_ranges - 1];
     xqc_pkt_num_space_t pns = ack_info->pns;
     unsigned char need_del_record = 0;
@@ -1051,7 +1051,7 @@ xqc_send_ctl_on_ack_received(xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info
 
         uint64_t bw_before = 0, bw_after = 0;
         int bw_record_flag = 0;
-        xqc_msec_t now = ack_recv_time;
+        xqc_usec_t now = ack_recv_time;
 
         /* Make sure that we do not call BBR with a invalid sampler. */
         if (xqc_generate_sample(&ctl->sampler, ctl, ack_recv_time)) {
@@ -1141,7 +1141,7 @@ xqc_send_ctl_on_ack_received(xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info
  * OnDatagramReceived
  */
 void
-xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_msec_t recv_time)
+xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_usec_t recv_time)
 {
     xqc_connection_t *c = ctl->ctl_conn;
     xqc_bool_t aal = xqc_send_ctl_check_anti_amplification(c, 0);
@@ -1162,7 +1162,7 @@ xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_msec_
  * UpdateRtt
  */
 void
-xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t ack_delay)
+xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_usec_t *latest_rtt, xqc_usec_t ack_delay)
 {
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
             "|before update rtt|conn:%p|srtt:%ui|rttvar:%ui|minrtt:%ui|latest_rtt:%ui|ack_delay:%ui|",
@@ -1173,7 +1173,7 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
         ctl->ctl_minrtt = *latest_rtt;
         ctl->ctl_srtt = *latest_rtt;
         ctl->ctl_rttvar = *latest_rtt >> 1;
-        ctl->ctl_first_rtt_sample_time = xqc_now();
+        ctl->ctl_first_rtt_sample_time = xqc_monotonic_timestamp();
 
     } else {
         ctl->ctl_minrtt = xqc_min(*latest_rtt, ctl->ctl_minrtt);
@@ -1183,7 +1183,7 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
         }
 
         /* Adjust for ack delay if it's plausible. */
-        xqc_msec_t adjusted_rtt = *latest_rtt;
+        xqc_usec_t adjusted_rtt = *latest_rtt;
         if (*latest_rtt >= (ctl->ctl_minrtt + ack_delay)) {
             adjusted_rtt -= ack_delay;
         }
@@ -1201,7 +1201,7 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
         ctl->ctl_srtt += adjusted_rtt >> 3;
 
         if (xqc_sub_abs(ctl->ctl_srtt, srtt)  > ctl->ctl_info.rtt_change_threshold) {
-            xqc_msec_t now = xqc_now();
+            xqc_usec_t now = xqc_monotonic_timestamp();
             if (ctl->ctl_info.last_rtt_time + ctl->ctl_info.record_interval <= now) {
                 ctl->ctl_info.last_rtt_time = now;
                 xqc_conn_log(ctl->ctl_conn, XQC_LOG_STATS, "|before update rtt|srtt:%ui|rttvar:%ui|"
@@ -1217,10 +1217,10 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t 
 }
 
 void
-xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_time,
+xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_usec_t ack_recv_time,
     xqc_packet_number_t largest_ack,
     xqc_packet_number_t spurious_loss_pktnum,
-    xqc_msec_t spurious_loss_sent_time)
+    xqc_usec_t spurious_loss_sent_time)
 {
     if (!ctl->ctl_conn->conn_settings.spurious_loss_detect_on) {
         return;
@@ -1238,8 +1238,8 @@ xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_
     if (ack_recv_time < spurious_loss_sent_time) {
         return;
     }
-    xqc_msec_t reorder_time_interval = ack_recv_time - spurious_loss_sent_time;
-    xqc_msec_t max_rtt = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
+    xqc_usec_t reorder_time_interval = ack_recv_time - spurious_loss_sent_time;
+    xqc_usec_t max_rtt = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
     while (max_rtt + (max_rtt >> ctl->ctl_reordering_time_threshold_shift) < reorder_time_interval
            && ctl->ctl_reordering_time_threshold_shift > 0)
     {
@@ -1254,7 +1254,7 @@ xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_
  * DetectAndRemoveLostPackets + OnPacketsLost
  */
 void
-xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t now)
+xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_usec_t now)
 {
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *po, *largest_lost = NULL;
@@ -1269,14 +1269,14 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
     }
 
     /* loss_delay = 9/8 * max(latest_rtt, smoothed_rtt) */
-    xqc_msec_t loss_delay = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
+    xqc_usec_t loss_delay = xqc_max(ctl->ctl_latest_rtt, ctl->ctl_srtt);
     loss_delay += loss_delay >> ctl->ctl_reordering_time_threshold_shift;
 
     /* Minimum time of kGranularity before packets are deemed lost. */
     loss_delay = xqc_max(loss_delay, XQC_kGranularity);
 
     /* Packets sent before this time are deemed lost. */
-    xqc_msec_t lost_send_time = now - loss_delay;
+    xqc_usec_t lost_send_time = now - loss_delay;
 
     /* Packets with packet numbers before this are deemed lost. */
     xqc_packet_number_t lost_pn = ctl->ctl_largest_acked[pns];
@@ -1368,7 +1368,7 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
         }
 
         if (ctl->ctl_info.last_lost_time + ctl->ctl_info.record_interval <= now) {
-            xqc_msec_t lost_interval = now - ctl->ctl_info.last_lost_time;
+            xqc_usec_t lost_interval = now - ctl->ctl_info.last_lost_time;
             ctl->ctl_info.last_lost_time = now;
             uint64_t lost_count = ctl->ctl_lost_count + lost_n - ctl->ctl_info.last_lost_count;
             uint64_t send_count = ctl->ctl_send_count - ctl->ctl_info.last_send_count;
@@ -1390,10 +1390,10 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_
  * InPersistentCongestion
  */
 xqc_bool_t
-xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t now)
+xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t now)
 {
     if (ctl->ctl_pto_count >= XQC_CONSECUTIVE_PTO_THRESH) {
-        xqc_msec_t duration = (ctl->ctl_srtt + xqc_max(ctl->ctl_rttvar << 2, XQC_kGranularity)
+        xqc_usec_t duration = (ctl->ctl_srtt + xqc_max(ctl->ctl_rttvar << 2, XQC_kGranularity)
             + ctl->ctl_conn->remote_settings.max_ack_delay * 1000) * XQC_kPersistentCongestionThreshold;
         if (now - largest_lost->po_sent_time > duration) {
             return XQC_TRUE;
@@ -1407,7 +1407,7 @@ xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *lar
  * IsWindowLost
  */
 int
-xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t congestion_period)
+xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t congestion_period)
 {
     /*This function is currently not reliably implemented.*/
     return 0;
@@ -1476,7 +1476,7 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
  * CongestionEvent
  */
 void
-xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_msec_t sent_time)
+xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_usec_t sent_time)
 {
     if (ctl->ctl_cong_callback->xqc_cong_ctl_on_lost) {
         ctl->ctl_cong_callback->xqc_cong_ctl_on_lost(ctl->ctl_cong, sent_time);
@@ -1509,7 +1509,7 @@ xqc_send_ctl_is_cwnd_limited(xqc_send_ctl_t *ctl)
 
 void
 xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, 
-                       xqc_msec_t now)
+                       xqc_usec_t now)
 {
     if (ctl->ctl_cong_callback->xqc_cong_ctl_on_ack) {
         ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet,
@@ -1554,7 +1554,7 @@ xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet,
  */
 void
 xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, 
-    xqc_packet_out_t *acked_packet, xqc_msec_t now, int do_cc)
+    xqc_packet_out_t *acked_packet, xqc_usec_t now, int do_cc)
 {
     xqc_stream_t *stream;
     xqc_packet_out_t *packet_out = acked_packet;
@@ -1604,20 +1604,20 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl,
 
 
 /* if handshake is not completed, endpoint will try to send something more agreessively */
-static const xqc_msec_t xqc_pto_timeout_threshold_hsk = 2000000;
+static const xqc_usec_t xqc_pto_timeout_threshold_hsk = 2000000;
 
-static const xqc_msec_t xqc_pto_timeout_threshold = 5 * 1000000;
+static const xqc_usec_t xqc_pto_timeout_threshold = 5 * 1000000;
 
-xqc_msec_t
-xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *ctl, xqc_msec_t now, xqc_pkt_num_space_t *pns_ret)
+xqc_usec_t
+xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *ctl, xqc_usec_t now, xqc_pkt_num_space_t *pns_ret)
 {
-    xqc_msec_t t;
-    xqc_msec_t pto_timeout = XQC_MAX_UINT64_VALUE;
+    xqc_usec_t t;
+    xqc_usec_t pto_timeout = XQC_MAX_UINT64_VALUE;
     xqc_connection_t *c = ctl->ctl_conn;
     xqc_int_t pto_cnt = ctl->ctl_pto_count;
 
     /* get pto duration */
-    xqc_msec_t duration = (ctl->ctl_srtt
+    xqc_usec_t duration = (ctl->ctl_srtt
         + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity * 1000)) * xqc_send_ctl_pow(pto_cnt);
 
     /* Arm PTO from now when there are no inflight packets */
@@ -1628,7 +1628,7 @@ xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *ctl, xqc_msec_t now, xqc_pkt
             // return pto_timeout;
         }
 
-        pto_timeout = xqc_now() + duration;
+        pto_timeout = xqc_monotonic_timestamp() + duration;
         if (xqc_conn_has_hsk_keys(c)) {
             *pns_ret = XQC_PNS_HSK;
 
@@ -1687,10 +1687,10 @@ void
 xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 {
     xqc_pkt_num_space_t pns;
-    xqc_msec_t loss_time;
+    xqc_usec_t loss_time;
 
     xqc_connection_t *conn = ctl->ctl_conn;
-    xqc_msec_t now = xqc_now();
+    xqc_usec_t now = xqc_monotonic_timestamp();
 
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
@@ -1721,7 +1721,7 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
     }
 
     /* get PTO timeout and update loss detection timer */
-    xqc_msec_t timeout = xqc_send_ctl_get_pto_time_and_space(ctl, now, &pns);
+    xqc_usec_t timeout = xqc_send_ctl_get_pto_time_and_space(ctl, now, &pns);
     xqc_send_ctl_timer_set(ctl, XQC_TIMER_LOSS_DETECTION, timeout);
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_ctl_timer_set|update|PTO|XQC_TIMER_LOSS_DETECTION"
@@ -1734,10 +1734,10 @@ xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl)
 /**
  * GetLossTimeAndSpace
  */
-xqc_msec_t
+xqc_usec_t
 xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret)
 {
-    xqc_msec_t time = ctl->ctl_loss_time[XQC_PNS_INIT];
+    xqc_usec_t time = ctl->ctl_loss_time[XQC_PNS_INIT];
     *pns_ret = XQC_PNS_INIT;
     for (xqc_pkt_num_space_t pns = XQC_PNS_HSK; pns <= XQC_PNS_APP_DATA; ++pns) {
         if (time == 0 || ctl->ctl_loss_time[pns] < time) {
@@ -1749,7 +1749,7 @@ xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pn
 }
 
 
-xqc_msec_t
+xqc_usec_t
 xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl)
 {
     return ctl->ctl_srtt;
@@ -1811,7 +1811,7 @@ xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type)
 
 /* timer callbacks */
 void
-xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {
     xqc_connection_t *conn = ((xqc_send_ctl_t*)ctx)->ctl_conn;
     xqc_pkt_num_space_t pns = type - XQC_TIMER_ACK_INIT;
@@ -1824,12 +1824,12 @@ xqc_send_ctl_ack_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx
  * OnLossDetectionTimeout
  */
 void
-xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
     xqc_log(conn->log, XQC_LOG_DEBUG, "|loss_detection_timeout|");
-    xqc_msec_t loss_time;
+    xqc_usec_t loss_time;
     xqc_pkt_num_space_t pns;
     loss_time = xqc_send_ctl_get_earliest_loss_time(ctl, &pns);
     if (loss_time != 0) {
@@ -1846,7 +1846,7 @@ xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now
            If neither is available, send a single PING frame */
         xqc_log(conn->log, XQC_LOG_DEBUG, "|send Probe pkts|conn:%p|bytes_in_flight:%ud|", 
                 conn, ctl->ctl_bytes_in_flight);
-        xqc_msec_t t = xqc_send_ctl_get_pto_time_and_space(ctl, now, &pns);
+        xqc_usec_t t = xqc_send_ctl_get_pto_time_and_space(ctl, now, &pns);
         xqc_conn_send_one_or_two_ack_elicit_pkts(conn, pns);
 
     } else {
@@ -1874,7 +1874,7 @@ xqc_send_ctl_loss_detection_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now
 }
 
 void
-xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
@@ -1883,7 +1883,7 @@ xqc_send_ctl_idle_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ct
 }
 
 void
-xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
@@ -1892,7 +1892,7 @@ xqc_send_ctl_draining_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void
 }
 
 void
-xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_pacing_t *pacing = &ctl->ctl_pacing;
@@ -1900,14 +1900,14 @@ xqc_send_ctl_pacing_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *
 }
 
 void
-xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t*)ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
 
     xqc_list_head_t *pos, *next;
     xqc_stream_t *stream;
-    xqc_msec_t min_expire = XQC_MAX_UINT64_VALUE, later = 0;
+    xqc_usec_t min_expire = XQC_MAX_UINT64_VALUE, later = 0;
     xqc_list_for_each_safe(pos, next, &conn->conn_closing_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, closing_stream_list);
         if (stream->stream_close_time <= now) {
@@ -1926,7 +1926,7 @@ xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, 
 }
 
 void
-xqc_send_ctl_ping_timeout(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx)
+xqc_send_ctl_ping_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t *) ctx;
     xqc_connection_t *conn = ctl->ctl_conn;

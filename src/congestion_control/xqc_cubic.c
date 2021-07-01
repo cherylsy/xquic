@@ -32,7 +32,7 @@ const static uint64_t xqc_cube_factor =
  * beta为窗口降低系数
  */
 static void
-xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_msec_t now)
+xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
     uint64_t t; //单位ms
@@ -126,7 +126,7 @@ xqc_cubic_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_para
  * Decrease CWND when lost detected
  */
 static void
-xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
+xqc_cubic_on_lost (void *cong_ctl, xqc_usec_t lost_sent_time)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
 
@@ -151,13 +151,13 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
  * Increase CWND when packet acked
  */
 static void
-xqc_cubic_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now)
+xqc_cubic_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
-    xqc_msec_t  sent_time = po->po_sent_time;
+    xqc_usec_t  sent_time = po->po_sent_time;
     uint32_t    acked_bytes = po->po_used_size;
 
-    xqc_msec_t rtt = now - sent_time;
+    xqc_usec_t rtt = now - sent_time;
 
     if (cubic->min_rtt == 0 || rtt < cubic->min_rtt) {
         cubic->min_rtt = rtt;

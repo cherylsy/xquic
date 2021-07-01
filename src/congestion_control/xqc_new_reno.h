@@ -9,7 +9,7 @@
 typedef struct {
     unsigned        reno_congestion_window;
     unsigned        reno_ssthresh;
-    xqc_msec_t      reno_recovery_start_time;
+    xqc_usec_t      reno_recovery_start_time;
     xqc_send_ctl_t  *ctl_ctx;
 } xqc_new_reno_t;
 

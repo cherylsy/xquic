@@ -45,7 +45,8 @@ typedef struct xqc_memory_pool_s xqc_memory_pool_t;
 typedef struct xqc_bbr_info_interface_s xqc_bbr_info_interface_t;
 typedef struct xqc_path_ctx_s xqc_path_ctx_t;
 
-typedef uint64_t xqc_msec_t;
+typedef uint64_t xqc_msec_t; //存储毫秒值。
+typedef uint64_t xqc_usec_t; //存储微秒值。
 
 typedef uint64_t xqc_packet_number_t;
 typedef uint64_t xqc_stream_id_t;

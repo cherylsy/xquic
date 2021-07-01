@@ -10,11 +10,11 @@ typedef char bool;
 typedef struct xqc_sample_s
 {
     /*采样时间点 */
-    xqc_msec_t       now;
+    xqc_usec_t       now;
     /*当前ack的packet在发送的时候传输完成的packet数目 */
     uint64_t         prior_delivered;
     /*两次采样的时间间隔 */
-    xqc_msec_t       interval;
+    xqc_usec_t       interval;
     /*两次采样之间传输完成(ack)的数据量 */
     uint32_t         delivered;
     /*the amount of newly delivered data*/
@@ -24,21 +24,21 @@ typedef struct xqc_sample_s
     /*before processing this ack */
     uint32_t         prior_inflight;
     /*采样所得的rtt */
-    xqc_msec_t       rtt;
+    xqc_usec_t       rtt;
     uint32_t         is_app_limited;
     /*是否出现丢包情况 */
     uint32_t         loss;
     uint64_t         total_acked;
-    xqc_msec_t       srtt;
+    xqc_usec_t       srtt;
     /* 用来判断是否需要调用generate_sample */
-    xqc_msec_t       prior_time;
-    xqc_msec_t       ack_elapse;
-    xqc_msec_t       send_elapse;
+    xqc_usec_t       prior_time;
+    xqc_usec_t       ack_elapse;
+    xqc_usec_t       send_elapse;
     uint32_t         delivery_rate;
-    xqc_msec_t       lagest_ack_time;
+    xqc_usec_t       lagest_ack_time;
     xqc_send_ctl_t  *send_ctl;
  
-    xqc_msec_t       po_sent_time;
+    xqc_usec_t       po_sent_time;
 
     bool             is_initialized;
  
@@ -50,12 +50,12 @@ typedef struct xqc_sample_s
 } xqc_sample_t;
 
 bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
-    xqc_msec_t now);
+    xqc_usec_t now);
 void xqc_update_sample(xqc_sample_t *sample, xqc_packet_out_t *packet, 
-    xqc_send_ctl_t *send_ctl, xqc_msec_t now);
+    xqc_send_ctl_t *send_ctl, xqc_usec_t now);
 bool xqc_sample_check_app_limited(xqc_sample_t *sampler, 
     xqc_send_ctl_t *send_ctl);
 void xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, 
-    xqc_msec_t now);
+    xqc_usec_t now);
 
 #endif

@@ -53,7 +53,7 @@ typedef struct {
     xqc_cid_t               original_dest_connection_id;
     uint8_t                 original_dest_connection_id_present;
 
-    xqc_msec_t              max_idle_timeout;
+    xqc_usec_t              max_idle_timeout;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
     uint64_t                max_udp_payload_size;
@@ -64,7 +64,7 @@ typedef struct {
     uint64_t                initial_max_streams_bidi;
     uint64_t                initial_max_streams_uni;
     uint64_t                ack_delay_exponent;
-    xqc_msec_t              max_ack_delay;
+    xqc_usec_t              max_ack_delay;
     xqc_flag_t              disable_active_migration;
     uint64_t                active_connection_id_limit;
 

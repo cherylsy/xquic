@@ -128,7 +128,7 @@ xqc_path_ctx_t* xqc_mp_schedule_a_path(xqc_connection_t *conn,
 xqc_path_ctx_t* xqc_mp_schedule_paths_for_burst_sending(xqc_connection_t *conn, 
     xqc_list_head_t * po_head, int congest);
 void xqc_mp_server_send_packets(xqc_connection_t *conn);
-void xqc_mp_path_send_ctl_timer_expire(xqc_connection_t *conn, xqc_msec_t now);
+void xqc_mp_path_send_ctl_timer_expire(xqc_connection_t *conn, xqc_usec_t now);
 
 xqc_int_t xqc_mp_should_reinject(xqc_connection_t *conn, xqc_send_ctl_t *real_ctl);
 void xqc_mp_try_reinject_one_packet(xqc_connection_t *conn, 

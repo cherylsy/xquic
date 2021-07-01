@@ -279,12 +279,12 @@ xqc_engine_wakeup_pq_destroy(xqc_wakeup_pq_t *q)
 }
 
 
-xqc_msec_t
+xqc_usec_t
 xqc_engine_wakeup_after(xqc_engine_t *engine)
 {
     xqc_wakeup_pq_elem_t *el = xqc_wakeup_pq_top(engine->conns_wait_wakeup_pq);
     if (el) {
-        xqc_msec_t now = xqc_now();
+        xqc_usec_t now = xqc_monotonic_timestamp();
         return el->wakeup_time > now ? el->wakeup_time - now : 1;
     }
 
@@ -294,7 +294,7 @@ xqc_engine_wakeup_after(xqc_engine_t *engine)
 
 xqc_int_t
 xqc_engine_schedule_reset(xqc_engine_t *engine,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_msec_t now)
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_usec_t now)
 {
     /* Can send 2 reset packets in 5 seconds */
     if (now - engine->reset_sent_cnt_cleared > 5000 * 1000) {
@@ -586,7 +586,7 @@ xqc_engine_set_callback(xqc_engine_t *engine,
 
 
 void
-xqc_engine_process_conn(xqc_connection_t *conn, xqc_msec_t now)
+xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
 {
     xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|state:%s|flag:%s|now:%ui|",
             conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now);
@@ -711,7 +711,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|");
 
-    xqc_msec_t now = xqc_now();
+    xqc_usec_t now = xqc_monotonic_timestamp();
     xqc_connection_t *conn;
 
     while (!xqc_wakeup_pq_empty(engine->conns_wait_wakeup_pq)) {
@@ -753,7 +753,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|ticking|conn:%p|state:%s|flag:%s|now:%ui|",
                 conn, xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag), now);
 
-        now = xqc_now();
+        now = xqc_monotonic_timestamp();
         xqc_engine_process_conn(conn, now);
 
         if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
@@ -838,7 +838,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
         conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
     }
 
-    xqc_msec_t wake_after = xqc_engine_wakeup_after(engine);
+    xqc_usec_t wake_after = xqc_engine_wakeup_after(engine);
     if (wake_after > 0) {
         engine->eng_callback.set_event_timer(wake_after, engine->user_data);
     }
@@ -855,7 +855,7 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
     const unsigned char *packet_in_buf, size_t packet_in_size,
     const struct sockaddr *local_addr, socklen_t local_addrlen,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen,
-    xqc_msec_t recv_time, void *user_data)
+    xqc_usec_t recv_time, void *user_data)
 {
     int ret = 0;
     xqc_connection_t *conn = NULL;
@@ -913,7 +913,7 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
                 if (conn->conn_state < XQC_CONN_STATE_DRAINING) {
                     conn->conn_state = XQC_CONN_STATE_DRAINING;
                     xqc_send_ctl_drop_packets(conn->conn_send_ctl);
-                    xqc_msec_t pto = xqc_send_ctl_calc_pto(conn->conn_send_ctl);
+                    xqc_usec_t pto = xqc_send_ctl_calc_pto(conn->conn_send_ctl);
                     if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
                         xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_DRAINING, 3 * pto + recv_time);
                     }

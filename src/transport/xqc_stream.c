@@ -98,7 +98,7 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream)
     if (stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_RECVD
         && stream->stream_stats.all_data_acked_time == 0)
     {
-        stream->stream_stats.all_data_acked_time = xqc_now();
+        stream->stream_stats.all_data_acked_time = xqc_monotonic_timestamp();
     }
 
     if ((stream->stream_state_send == XQC_SEND_STREAM_ST_DATA_RECVD &&
@@ -108,13 +108,13 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream)
     {
         xqc_log(stream->stream_conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|", stream->stream_id, stream->stream_type);
         stream->stream_flag |= XQC_STREAM_FLAG_NEED_CLOSE;
-        xqc_msec_t now = xqc_now();
+        xqc_usec_t now = xqc_monotonic_timestamp();
         if (stream->stream_stats.close_time == 0) {
             stream->stream_stats.close_time = now;
         }
 
         xqc_send_ctl_t *ctl = stream->stream_conn->conn_send_ctl;
-        xqc_msec_t new_expire = 3 * xqc_send_ctl_calc_pto(ctl) + now;
+        xqc_usec_t new_expire = 3 * xqc_send_ctl_calc_pto(ctl) + now;
         if ((ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set &&
                 new_expire < ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_expire_time) ||
             !ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set) {
@@ -255,7 +255,7 @@ xqc_stream_do_recv_flow_ctl(xqc_stream_t *stream)
     //return XQC_OK;
 
     xqc_connection_t *conn = stream->stream_conn;
-    xqc_msec_t now = xqc_now();
+    xqc_usec_t now = xqc_monotonic_timestamp();
 
     /* it is impossible */
     if (conn->conn_flow_ctl.fc_data_recved > conn->conn_flow_ctl.fc_max_data_can_recv) {
@@ -422,7 +422,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
 
     stream->stream_refcnt = 0;
     xqc_memset(&stream->stream_stats, 0, sizeof(stream->stream_stats));
-    stream->stream_stats.create_time = xqc_now();
+    stream->stream_stats.create_time = xqc_monotonic_timestamp();
 
     xqc_stream_set_flow_ctl(stream);
 
@@ -794,7 +794,7 @@ xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encrypt_t
                 stream->stream_send_offset += send_data_written;
                 packet_out->po_used_size += n_written;
 
-                xqc_msec_t now = xqc_now();
+                xqc_usec_t now = xqc_monotonic_timestamp();
                 packet_out->po_sent_time = now;
                 xqc_long_packet_update_length(packet_out);
                 xqc_log(stream->stream_conn->log, XQC_LOG_INFO, "|crypto send data|pkt_num:%ui|size:%ud|sent:%d|pkt_type:%s|frame:%s|now:%ui|",
@@ -1032,7 +1032,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
     if (stream->stream_data_in.stream_length > 0 &&
         stream->stream_data_in.next_read_offset == stream->stream_data_in.stream_length) {
         *fin = 1;
-        stream->stream_stats.peer_fin_read_time = xqc_now();
+        stream->stream_stats.peer_fin_read_time = xqc_monotonic_timestamp();
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_DATA_RECVD) {
             stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_READ;
             xqc_stream_maybe_need_close(stream);
@@ -1179,7 +1179,7 @@ do_buff:
     }
 
     if((!conn->first_data_send_time) && ((stream->stream_type == XQC_CLI_BID) || (stream->stream_type == XQC_SVR_BID))){
-        conn->first_data_send_time = xqc_now();
+        conn->first_data_send_time = xqc_monotonic_timestamp();
     }
 
 

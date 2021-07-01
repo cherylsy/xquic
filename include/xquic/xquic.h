@@ -66,7 +66,7 @@ typedef enum {
     XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
 } xqc_request_notify_flag_t;
 
-typedef void (*xqc_set_event_timer_pt)(xqc_msec_t wake_after, void *engine_user_data);
+typedef void (*xqc_set_event_timer_pt)(xqc_usec_t wake_after, void *engine_user_data);
 
 typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len, void *conn_user_data);
 
@@ -233,9 +233,9 @@ typedef struct xqc_congestion_control_callback_s {
     /* 连接初始化时回调，支持传入拥塞算法参数 */
     void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params);
     /* 核心回调，检测到丢包时回调，按照算法策略降低拥塞窗口 */
-    void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_msec_t lost_sent_time);
+    void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_usec_t lost_sent_time);
     /* 核心回调，报文被ack时回调，按照算法策略增加拥塞窗口 */
-    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now);
+    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now);
     /* 发包时回调，用于判断包是否能发送 */
     uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
     /* 检测到一个RTT内所有包都丢失时回调，重置拥塞窗口 */
@@ -412,7 +412,7 @@ typedef struct xqc_conn_stats_s {
     uint32_t    lost_count;
     uint32_t    tlp_count;
     uint32_t    spurious_loss_count;
-    xqc_msec_t  srtt;
+    xqc_usec_t  srtt;
     xqc_0rtt_flag_t    early_data_flag;
     uint32_t    recv_count;
     int         enable_multipath;
@@ -428,6 +428,11 @@ typedef struct xqc_request_stats_s {
     size_t      recv_header_size;   /* compressed header size */
     int         stream_err;         /* 0 For no-error */
 } xqc_request_stats_t;
+
+typedef xqc_usec_t (*xqc_timestamp_pt)(void);
+
+extern xqc_timestamp_pt xqc_realtime_timestamp;  //获取现实世界的时间戳。
+extern xqc_timestamp_pt xqc_monotonic_timestamp; //获取单调递增的时间戳。
 
 /**
  * Modify engine config before engine created. Default config will be used otherwise.
@@ -779,7 +784,7 @@ int xqc_engine_packet_process (xqc_engine_t *engine,
                                socklen_t local_addrlen,
                                const struct sockaddr *peer_addr,
                                socklen_t peer_addrlen,
-                               xqc_msec_t recv_time,
+                               xqc_usec_t recv_time,
                                void *user_data);
 
 /**

@@ -243,14 +243,14 @@ xqc_cubic_init(void *cong, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
 
 /* @last_snd_time: the time when the last pkt (except pure ACK and CONN_CLOSE) was sent */
 static void 
-xqc_cubic_restart_from_idle(void *cong, xqc_msec_t last_snd_time)
+xqc_cubic_restart_from_idle(void *cong, xqc_usec_t last_snd_time)
 {
     if (last_snd_time == 0) {
         return;
     }
     
     xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t*)(cong);
-    xqc_msec_t now = xqc_now();
+    xqc_usec_t now = xqc_monotonic_timestamp();
     /* We were application limited (idle) for a while.
      * Shift epoch_start to keep cwnd growth to cubic curve.
      */
@@ -266,7 +266,7 @@ xqc_cubic_restart_from_idle(void *cong, xqc_msec_t last_snd_time)
  * Compute congestion window to use.
  */
 static inline void 
-xqc_cubic_update(void *cong, uint32_t acked, xqc_msec_t now)
+xqc_cubic_update(void *cong, uint32_t acked, xqc_usec_t now)
 {
     uint32_t delta, bic_target, max_cnt;
     uint64_t offs, t;
@@ -410,7 +410,7 @@ xqc_cubic_cong_avoid_ai(void *cong, uint32_t w, uint32_t acked) {
 
 static void
 xqc_cubic_maintain_hspp_state(xqc_cubic_kernel_t *ca, 
-    xqc_packet_out_t *po, xqc_msec_t rtt)
+    xqc_packet_out_t *po, xqc_usec_t rtt)
 {
     if (rtt != 0) {
         /*A new round starts*/
@@ -437,7 +437,7 @@ xqc_cubic_hspp_try_to_enter_lss(xqc_cubic_kernel_t *ca) {
         && ca->rtt_sample_cnt >= XQC_HSPP_MIN_SAMPLES 
         && ca->last_round_mrtt != XQC_INF_RTT)
     {
-        xqc_msec_t eta = xqc_clamp(ca->last_round_mrtt>>3, 
+        xqc_usec_t eta = xqc_clamp(ca->last_round_mrtt>>3, 
                                    XQC_HSPP_DELAY_MIN_US,
                                    XQC_HSPP_DELAY_MAX_US);
         if (ca->current_round_mrtt >= (ca->last_round_mrtt + eta)) {
@@ -450,12 +450,12 @@ xqc_cubic_hspp_try_to_enter_lss(xqc_cubic_kernel_t *ca) {
 }
 
 static void 
-xqc_cubic_on_ack(void *cong, xqc_packet_out_t *po, xqc_msec_t now)
+xqc_cubic_on_ack(void *cong, xqc_packet_out_t *po, xqc_usec_t now)
 {
     xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t*)(cong);
-    xqc_msec_t sent_time = po->po_sent_time;
+    xqc_usec_t sent_time = po->po_sent_time;
     uint32_t acked_pkts = xqc_max(1U, po->po_used_size / XQC_CUBIC_MSS);
-    xqc_msec_t rtt_us = now > sent_time ? now - sent_time : 0;
+    xqc_usec_t rtt_us = now > sent_time ? now - sent_time : 0;
     uint32_t new_cwnd, cubic_cwnd, lss_cwnd;
 
     if (ca->delay_min == 0 || ca->delay_min >= rtt_us) {
@@ -510,14 +510,14 @@ xqc_cubic_on_ack(void *cong, xqc_packet_out_t *po, xqc_msec_t now)
 }
 
 static void 
-xqc_cubic_on_lost(void *cong, xqc_msec_t lost_sent_time)
+xqc_cubic_on_lost(void *cong, xqc_usec_t lost_sent_time)
 {
     xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t*)(cong);
     if (xqc_cubic_in_recovery(ca)) {
         return;
     }
 
-    ca->recovery_start_time = xqc_now();
+    ca->recovery_start_time = xqc_monotonic_timestamp();
     ca->epoch_start = 0; /* end of epoch */
     ca->in_lss = XQC_HSPP_LSS_STATE_END; /* end of limited slow start. */
     /* Wmax and fast convergence */
