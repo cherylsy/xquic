@@ -1,11 +1,9 @@
 
-#include <stdio.h>
+#include "xqc_reno_test.h"
 #include "src/congestion_control/xqc_new_reno.h"
+#include <stdio.h>
 #include "src/common/xqc_time.h"
 #include "src/transport/xqc_packet_out.h"
-#include "tests/xqc_time_test.h"
-#include "tests/xqc_reno_test.h"
-
 
 void
 print_reno (xqc_new_reno_t *reno)
@@ -23,7 +21,7 @@ xqc_test_reno ()
 #ifdef XQC_DISABLE_RENO
     return;
 #endif
-    xqc_msec_t now = xqc_test_now();
+    xqc_msec_t now = xqc_monotonic_timestamp();
 
     xqc_new_reno_t reno;
     xqc_msec_t delay = 100;

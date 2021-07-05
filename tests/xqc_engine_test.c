@@ -11,8 +11,7 @@
 #include "src/transport/xqc_conn.h"
 #include "src/congestion_control/xqc_new_reno.h"
 #include "src/transport/xqc_packet_parser.h"
-#include "tests/xqc_common_test.h"
-#include "tests/xqc_time_test.h"
+#include "xqc_common_test.h"
 
 
 void xqc_test_engine_create()
@@ -41,7 +40,7 @@ void xqc_test_engine_packet_process()
     CU_ASSERT(engine != NULL);
     engine->eng_type = XQC_ENGINE_SERVER;
 
-    xqc_msec_t recv_time = xqc_test_now();
+    xqc_msec_t recv_time = xqc_monotonic_timestamp();
 
     xqc_int_t rc = xqc_engine_packet_process(engine, 
                          XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1,
@@ -63,7 +62,7 @@ void xqc_test_engine_packet_process()
     /* set handshake completed */
     conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
 
-    recv_time = xqc_test_now();
+    recv_time = xqc_monotonic_timestamp();
     rc = xqc_engine_packet_process(engine, 
                          XQC_TEST_SHORT_HEADER_PACKET_A, sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1,
                                    (struct sockaddr *)&local_addr, local_addrlen,

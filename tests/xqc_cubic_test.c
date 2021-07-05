@@ -1,11 +1,8 @@
 
-#include <stdio.h>
-
+#include "xqc_cubic_test.h"
 #include "src/congestion_control/xqc_cubic.h"
+#include <stdio.h>
 #include "src/common/xqc_time.h"
-#include "tests/xqc_cubic_test.h"
-#include "tests/xqc_time_test.h"
-
 void
 print_cubic (xqc_cubic_t *cubic)
 {
@@ -19,7 +16,7 @@ print_cubic (xqc_cubic_t *cubic)
 void
 xqc_test_cubic ()
 {
-    xqc_msec_t now = xqc_test_now();
+    xqc_msec_t now = xqc_monotonic_timestamp();
 
     xqc_cubic_t cubic;
     xqc_msec_t delay = 100;
