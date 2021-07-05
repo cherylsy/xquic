@@ -230,15 +230,6 @@ xqc_connection_t *
 xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     const xqc_conn_callbacks_t *callbacks, const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type)
 {
-<<<<<<< HEAD
-=======
-    if (type == XQC_CONN_TYPE_CLIENT
-        && !xqc_check_proto_version_valid(settings->proto_version)) 
-    {
-        settings->proto_version = XQC_VERSION_V1;
-    }
-
->>>>>>> [+] support quic v1
     xqc_connection_t *xc = NULL;
     xqc_memory_pool_t *pool = xqc_create_pool(engine->config->conn_pool_size);
     if (pool == NULL) {
@@ -251,13 +242,13 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xc->conn_settings = *settings;
-    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;    
+    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_VERSION_V1;
 
     if (type == XQC_CONN_TYPE_CLIENT
         && !xqc_check_proto_version_valid(settings->proto_version)) 
     {
-        xc->conn_settings.proto_version = XQC_IDRAFT_VER_29;
-        xc->version = XQC_IDRAFT_VER_29;
+        xc->conn_settings.proto_version = XQC_VERSION_V1;
+        xc->version = XQC_VERSION_V1;
     }
 
     xqc_conn_init_trans_settings(xc);
@@ -279,10 +270,6 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xc->log = engine->log;
     xc->conn_callbacks = *callbacks;
     xc->user_data = user_data;
-<<<<<<< HEAD
-=======
-    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_VERSION_V1;
->>>>>>> [+] support quic v1
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
     xc->conn_flag = 0;

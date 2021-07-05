@@ -35,23 +35,6 @@ typedef enum xqc_proto_version_s {
     XQC_VERSION_MAX
 } xqc_proto_version_t;
 
-<<<<<<< HEAD
-#define xqc_check_proto_version_valid(ver) \
-        ((ver) > XQC_IDRAFT_INIT_VER && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
-
-#define XQC_PROTO_VERSION_LEN 4
-
-extern const uint32_t xqc_proto_version_value[];
-
-#define XQC_IDRAFT_INIT_VER_VALUE   0x00000001
-#define XQC_IDRAFT_VER_27_VALUE     0xFF00001B
-#define XQC_IDRAFT_VER_28_VALUE     0xFF00001C
-#define XQC_IDRAFT_VER_29_VALUE     0xFF00001D
-
-
-
-=======
->>>>>>> [+] support quic v1
 
 #define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 #define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"

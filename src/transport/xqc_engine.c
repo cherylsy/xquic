@@ -23,18 +23,6 @@
 #include "src/http3/xqc_h3_conn.h"
 
 
-<<<<<<< HEAD
-const uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
-    0x00000001,
-    0xFF00001B,
-    0xFF00001C,
-    0xFF00001D,
-    0x00000000,
-};
-
-
-=======
->>>>>>> [+] support quic v1
 xqc_config_t default_client_config = {
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
