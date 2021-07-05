@@ -16,7 +16,7 @@ print_cubic (xqc_cubic_t *cubic)
 void
 xqc_test_cubic ()
 {
-    xqc_msec_t now = xqc_now();
+    xqc_msec_t now = xqc_monotonic_timestamp();
 
     xqc_cubic_t cubic;
     xqc_msec_t delay = 100;

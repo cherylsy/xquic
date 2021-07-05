@@ -359,7 +359,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             goto error;
         }
         if (!stream->stream_stats.peer_fin_rcv_time) {
-            stream->stream_stats.peer_fin_rcv_time = xqc_now();
+            stream->stream_stats.peer_fin_rcv_time = xqc_monotonic_timestamp();
         }
         stream->stream_data_in.stream_length = stream_frame->data_offset + stream_frame->data_length;
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_RECV) {
@@ -395,7 +395,7 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_RECVD;
         }
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_ready_to_read all recvd|");
-        //printf("==================time_cost:%lld================\n", xqc_now() - conn->conn_create_time);
+        //printf("==================time_cost:%lld================\n", xqc_monotonic_timestamp() - conn->conn_create_time);
         xqc_stream_ready_to_read(stream);
     }
     else if (stream->stream_data_in.next_read_offset < stream->stream_data_in.merged_offset_end) {
@@ -663,7 +663,7 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
     if (stream->stream_state_recv < XQC_RECV_STREAM_ST_RESET_RECVD) {
         stream->stream_state_recv = XQC_RECV_STREAM_ST_RESET_RECVD;
         if (stream->stream_stats.peer_reset_time == 0) {
-            stream->stream_stats.peer_reset_time = xqc_now(); 
+            stream->stream_stats.peer_reset_time = xqc_monotonic_timestamp(); 
         }
         conn->conn_flow_ctl.fc_data_recved += (int64_t)final_size - (int64_t)stream->stream_max_recv_offset;
         conn->conn_flow_ctl.fc_data_read += (int64_t)final_size - (int64_t)stream->stream_data_in.next_read_offset;

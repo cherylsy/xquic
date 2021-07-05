@@ -274,7 +274,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xc->conn_flag = 0;
     xc->conn_state = (type == XQC_CONN_TYPE_SERVER) ? XQC_CONN_STATE_SERVER_INIT : XQC_CONN_STATE_CLIENT_INIT;
     xc->zero_rtt_count = 0;
-    xc->conn_create_time = xqc_now();
+    xc->conn_create_time = xqc_monotonic_timestamp();
     xc->handshake_complete_time = 0;
     xc->first_data_send_time = 0;
     xc->max_stream_id_bidi_remote = -1;
@@ -473,7 +473,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
             xc->conn_type == XQC_CONN_TYPE_SERVER ? (xc->conn_flag & XQC_CONN_FLAG_TOKEN_OK ? 1:0) : (-1),
             (xc->handshake_complete_time > xc->conn_create_time) ? (xc->handshake_complete_time - xc->conn_create_time) : 0,
             (xc->first_data_send_time > xc->conn_create_time) ? (xc->first_data_send_time - xc->conn_create_time) : 0,
-            xqc_now() - xc->conn_create_time, xc->conn_err, xqc_conn_addr_str(xc));
+            xqc_monotonic_timestamp() - xc->conn_create_time, xc->conn_err, xqc_conn_addr_str(xc));
 
     if (xc->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
         xqc_wakeup_pq_remove(xc->engine->conns_wait_wakeup_pq, xc);
@@ -624,7 +624,7 @@ xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 
 xqc_int_t
 xqc_check_duplicate_acked_pkt(xqc_connection_t *conn,
-    xqc_packet_out_t *packet_out, xqc_send_type_t send_type, xqc_msec_t now)
+    xqc_packet_out_t *packet_out, xqc_send_type_t send_type, xqc_usec_t now)
 {
     xqc_int_t ret;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
@@ -680,7 +680,7 @@ xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint3
 }
 
 void
-xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t sent, xqc_msec_t now)
+xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t sent, xqc_usec_t now)
 {
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out;
@@ -776,7 +776,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
     uint32_t inflight = ctl->ctl_bytes_in_flight;
 
     /* process packets */
-    xqc_msec_t now = xqc_now();
+    xqc_usec_t now = xqc_monotonic_timestamp();
     xqc_list_for_each_safe(pos, next, head) {
         /* process one packet */
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
@@ -978,7 +978,7 @@ xqc_need_padding(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
 xqc_int_t
 xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
-    char *enc_pkt, size_t * enc_pkt_len, xqc_msec_t current_time)
+    char *enc_pkt, size_t * enc_pkt_len, xqc_usec_t current_time)
 {
     /* pad packet if needed */
     if (xqc_need_padding(conn, packet_out)) {
@@ -1045,7 +1045,7 @@ ssize_t
 xqc_send_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
     /* record the send time of packet */
-    xqc_msec_t now = xqc_now();
+    xqc_usec_t now = xqc_monotonic_timestamp();
     packet_out->po_sent_time = now;
 
     /* send data */
@@ -1427,7 +1427,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 
     int ret;
     xqc_send_ctl_t *ctl;
-    xqc_msec_t now;
+    xqc_usec_t now;
 
     if (conn->conn_state < XQC_CONN_STATE_CLOSING) {
         conn->conn_state = XQC_CONN_STATE_CLOSING;
@@ -1435,8 +1435,8 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         xqc_send_ctl_drop_packets(conn->conn_send_ctl);
 
         ctl = conn->conn_send_ctl;
-        now = xqc_now();
-        xqc_msec_t pto = xqc_send_ctl_calc_pto(ctl);
+        now = xqc_monotonic_timestamp();
+        xqc_usec_t pto = xqc_send_ctl_calc_pto(ctl);
         if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
             xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, 3 * pto + now);
         }
@@ -1713,7 +1713,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
     /* check token lifetime */
     uint32_t *expire = (uint32_t*)pos;
     *expire = ntohl(*expire);
-    xqc_msec_t now = xqc_now() / 1000000;
+    uint64_t now = xqc_monotonic_timestamp() / 1000000;
     if (*expire < now) {
         xqc_log(conn->log, XQC_LOG_INFO, "|token_expire|expire:%ud|now:%ui|", *expire, now);
         return XQC_ERROR;
@@ -1759,7 +1759,7 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
         *token_len = 21;
     }
 
-    uint32_t expire = xqc_now() / 1000000 + XQC_TOKEN_EXPIRE_DELTA;
+    uint32_t expire = xqc_monotonic_timestamp() / 1000000 + XQC_TOKEN_EXPIRE_DELTA;
     xqc_log(conn->log, XQC_LOG_DEBUG, "|expire:%ud|", expire);
     expire = htonl(expire);
     memcpy(token, &expire, sizeof(expire));
@@ -2026,11 +2026,11 @@ xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn)
 }
 
 
-xqc_msec_t
+xqc_usec_t
 xqc_conn_next_wakeup_time(xqc_connection_t *conn)
 {
-    xqc_msec_t min_time = XQC_MAX_UINT64_VALUE;
-    xqc_msec_t wakeup_time;
+    xqc_usec_t min_time = XQC_MAX_UINT64_VALUE;
+    xqc_usec_t wakeup_time;
     xqc_send_ctl_timer_t *timer;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
 
@@ -2360,7 +2360,7 @@ xqc_conn_tolerant_error(xqc_int_t ret)
 
 xqc_int_t
 xqc_conn_process_packet(xqc_connection_t *c,
-    const unsigned char *packet_in_buf, size_t packet_in_size, xqc_msec_t recv_time)
+    const unsigned char *packet_in_buf, size_t packet_in_size, xqc_usec_t recv_time)
 {
     xqc_int_t ret = XQC_ERROR;
     const unsigned char *last_pos = NULL;

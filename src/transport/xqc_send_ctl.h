@@ -48,11 +48,11 @@ typedef enum {
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 
-typedef void (*xqc_send_ctl_timer_callback)(xqc_send_ctl_timer_type type, xqc_msec_t now, void *ctx);
+typedef void (*xqc_send_ctl_timer_callback)(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx);
 
 typedef struct {
     uint8_t                     ctl_timer_is_set;
-    xqc_msec_t                  ctl_expire_time;
+    xqc_usec_t                  ctl_expire_time;
     void                        *ctl_ctx;
     xqc_send_ctl_timer_callback ctl_timer_callback;
     int                         ctl_pacing_time_isexpire;
@@ -63,10 +63,10 @@ typedef struct {
 #define XQC_DEFAULT_RTT_CHANGE_THRESHOLD (50 * 1000) //50毫秒
 #define XQC_DEFAULT_BW_CHANGE_THRESHOLD (50) //带宽改变的百分比
 typedef struct {
-    xqc_msec_t  last_record_time; //上次周期性记录的时间
-    xqc_msec_t  last_rtt_time; //上次rtt发生大变化的时间
-    xqc_msec_t  last_lost_time; //上次记录发生丢包的时间
-    xqc_msec_t  last_bw_time; //上次记录bandwidth发生剧烈变化的时间
+    xqc_usec_t  last_record_time; //上次周期性记录的时间
+    xqc_usec_t  last_rtt_time; //上次rtt发生大变化的时间
+    xqc_usec_t  last_lost_time; //上次记录发生丢包的时间
+    xqc_usec_t  last_bw_time; //上次记录bandwidth发生剧烈变化的时间
     uint64_t    record_interval; //所有类型的记录在该间隔内都只记录一次
     uint64_t    rtt_change_threshold; //rtt发生变化的阈值
     uint64_t    bw_change_threshold;//bandwidth发生变化的阈值
@@ -103,18 +103,18 @@ typedef struct xqc_send_ctl_s {
     xqc_packet_number_t         ctl_largest_acked[XQC_PNS_N];
 
     /* packet_out的发送时间 */
-    xqc_msec_t                  ctl_largest_acked_sent_time[XQC_PNS_N];
+    xqc_usec_t                  ctl_largest_acked_sent_time[XQC_PNS_N];
 
-    xqc_msec_t                  ctl_loss_time[XQC_PNS_N];
+    xqc_usec_t                  ctl_loss_time[XQC_PNS_N];
 
-    xqc_msec_t                  ctl_last_inflight_pkt_sent_time;
-    xqc_msec_t                  ctl_time_of_last_sent_ack_eliciting_packet[XQC_PNS_N];
+    xqc_usec_t                  ctl_last_inflight_pkt_sent_time;
+    xqc_usec_t                  ctl_time_of_last_sent_ack_eliciting_packet[XQC_PNS_N];
     xqc_packet_number_t         ctl_last_sent_ack_eliciting_packet_number[XQC_PNS_N];
-    xqc_msec_t                  ctl_srtt,
+    xqc_usec_t                  ctl_srtt,
                                 ctl_rttvar,
                                 ctl_minrtt,
                                 ctl_latest_rtt;
-    xqc_msec_t                  ctl_first_rtt_sample_time; /*The time when the conn gets the first RTT sample.*/
+    xqc_usec_t                  ctl_first_rtt_sample_time; /*The time when the conn gets the first RTT sample.*/
 
     xqc_send_ctl_timer_t        ctl_timer[XQC_TIMER_N];
 
@@ -148,8 +148,8 @@ typedef struct xqc_send_ctl_s {
     uint64_t                    ctl_app_limited; /* The index of the last transmitted packet marked as
    application-limited, or 0 if the connection is not currently
    application-limited. */
-    xqc_msec_t                  ctl_delivered_time; /* 当前packet P被ack的时间 */
-    xqc_msec_t                  ctl_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
+    xqc_usec_t                  ctl_delivered_time; /* 当前packet P被ack的时间 */
+    xqc_usec_t                  ctl_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
     /*how many packets have been lost so far?*/
     uint32_t                    ctl_lost_pkts_number; 
 
@@ -162,7 +162,7 @@ typedef struct xqc_send_ctl_s {
 } xqc_send_ctl_t;
 
 
-static inline xqc_msec_t
+static inline xqc_usec_t
 xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
 {
     return ctl->ctl_srtt + xqc_max(4 * ctl->ctl_rttvar, XQC_kGranularity * 1000)
@@ -275,37 +275,37 @@ void
 xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stream_id);
 
 void
-xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_msec_t now);
+xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_usec_t now);
 
 int
-xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_msec_t ack_recv_time);
+xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_usec_t ack_recv_time);
 
 void
-xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_msec_t recv_time);
+xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_usec_t recv_time);
 
 void
-xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_msec_t *latest_rtt, xqc_msec_t ack_delay);
+xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_usec_t *latest_rtt, xqc_usec_t ack_delay);
 
 void
-xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_msec_t ack_recv_time,
+xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_usec_t ack_recv_time,
     xqc_packet_number_t largest_ack,
     xqc_packet_number_t spurious_loss_pktnum,
-    xqc_msec_t spurious_loss_sent_time);
+    xqc_usec_t spurious_loss_sent_time);
 
 void
-xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_msec_t now);
+xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_usec_t now);
 
 xqc_bool_t
-xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t now);
+xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t now);
 
 int
-xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_msec_t congestion_period);
+xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t congestion_period);
 
 void
-xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_msec_t sent_time);
+xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_usec_t sent_time);
 
 int
-xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_msec_t sent_time);
+xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_usec_t sent_time);
 
 int
 xqc_send_ctl_is_app_limited(xqc_send_ctl_t *ctl);
@@ -314,10 +314,10 @@ int
 xqc_send_ctl_is_cwnd_limited(xqc_send_ctl_t *ctl);
 
 void
-xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now);
+xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_usec_t now);
 
 void
-xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_msec_t now, int do_cc);
+xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_usec_t now, int do_cc);
 
 void
 xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
@@ -325,10 +325,10 @@ xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *
 void
 xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl);
 
-xqc_msec_t
+xqc_usec_t
 xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret);
 
-xqc_msec_t
+xqc_usec_t
 xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
 
 float
@@ -364,12 +364,12 @@ xqc_send_ctl_timer_is_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 }
 
 static inline void
-xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t expire)
+xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_usec_t expire)
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|interv:%ui|",
-            xqc_timer_type_2_str(type), expire, xqc_now(), expire - xqc_now());
+            xqc_timer_type_2_str(type), expire, xqc_monotonic_timestamp(), expire - xqc_monotonic_timestamp());
 }
 
 static inline void
@@ -385,17 +385,17 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
  * add by zhiyou
  */
 static inline void
-xqc_send_pacing_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t expire) {
+xqc_send_pacing_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_usec_t expire) {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
     ctl->ctl_timer[type].ctl_expire_time = expire;
 
     ctl->ctl_timer[type].ctl_pacing_time_isexpire = 0;
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|",
-            xqc_timer_type_2_str(type), expire, xqc_now());
+            xqc_timer_type_2_str(type), expire, xqc_monotonic_timestamp());
 }
 
 static inline void
-xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_msec_t new_expire) {
+xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_usec_t new_expire) {
 
     if (new_expire - ctl->ctl_timer[type].ctl_expire_time < 1000)
         return;
@@ -406,7 +406,7 @@ xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, 
         // update
         ctl->ctl_timer[type].ctl_expire_time = new_expire;
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|new_expire:%ui|now:%ui|",
-                xqc_timer_type_2_str(type), new_expire, xqc_now());
+                xqc_timer_type_2_str(type), new_expire, xqc_monotonic_timestamp());
     } else {
         xqc_send_pacing_timer_set(ctl, type, new_expire);
     }
@@ -420,7 +420,7 @@ xqc_send_pacing_timer_isset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type) {
 
 
 static inline void
-xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_msec_t now)
+xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_usec_t now)
 {
     xqc_send_ctl_timer_t *timer;
     for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {

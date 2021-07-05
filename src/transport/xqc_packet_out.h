@@ -56,7 +56,7 @@ typedef struct xqc_packet_out_s {
     xqc_packet_out_flag_t   po_flag;
     /* Largest Acknowledged in ACK frame, initiated to be 0 */
     xqc_packet_number_t     po_largest_ack;
-    xqc_msec_t              po_sent_time;
+    xqc_usec_t              po_sent_time;
     xqc_frame_type_bit_t    po_frame_types;
 
     /* the stream related to stream frame */
@@ -64,8 +64,8 @@ typedef struct xqc_packet_out_s {
     uint32_t                po_origin_ref_cnt;  /* reference count of original packet */
     uint32_t                po_acked;
     uint64_t                po_delivered;       /* the sum of delivered data before sending packet P */
-    xqc_msec_t              po_delivered_time;  /* the time of last acked packet before sending packet P */
-    xqc_msec_t              po_first_sent_time; /* the time of first sent packet during current sample period */
+    xqc_usec_t              po_delivered_time;  /* the time of last acked packet before sending packet P */
+    xqc_usec_t              po_first_sent_time; /* the time of first sent packet during current sample period */
     xqc_bool_t              po_is_app_limited;
 
     /*For BBRv2*/

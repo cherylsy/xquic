@@ -11,12 +11,12 @@ typedef struct
     uint32_t        cnt;              /* increase cwnd by 1 after ACKs */
     uint32_t        last_max_cwnd;    /* last maximum snd_cwnd */
     uint32_t        last_cwnd;        /* the last snd_cwnd */
-    xqc_msec_t      last_time;        /* time when updated last_cwnd */
+    xqc_usec_t      last_time;        /* time when updated last_cwnd */
     uint32_t        bic_origin_point; /* origin point of bic function */
     uint32_t        bic_K;            /* time to origin point
                                           from the beginning of the current epoch */
-    xqc_msec_t      delay_min;        /* min delay (us) */
-    xqc_msec_t      epoch_start;      /* beginning of an epoch */
+    xqc_usec_t      delay_min;        /* min delay (us) */
+    xqc_usec_t      epoch_start;      /* beginning of an epoch */
     uint32_t        ack_cnt;          /* number of acks */
     uint32_t        tcp_cwnd;         /* estimated tcp cwnd */
 
@@ -27,13 +27,13 @@ typedef struct
 
     uint64_t        prev_round_delivered;
     uint64_t        next_round_delivered; /* A sentiel to watch if the next round is started. */
-    xqc_msec_t      current_round_mrtt;   /* min rtt of current round */
-    xqc_msec_t      last_round_mrtt;      /* min rtt of last round */
+    xqc_usec_t      current_round_mrtt;   /* min rtt of current round */
+    xqc_usec_t      last_round_mrtt;      /* min rtt of last round */
     uint32_t        rtt_sample_cnt;
     uint8_t         in_lss;             /*is in Limited Slow Start*/
     uint32_t        lss_accumulated_bytes; 
 
-    xqc_msec_t      recovery_start_time; /* 0 means not in recovery*/
+    xqc_usec_t      recovery_start_time; /* 0 means not in recovery*/
     xqc_send_ctl_t *ctl_ctx;           /* To read ctl->ctl_delivered */
 } xqc_cubic_kernel_t;
 

@@ -14,8 +14,8 @@ typedef struct {
     uint64_t        ssthresh;           /* 慢启动阈值 */
     uint64_t        bic_origin_point;   /* Wmax饱和点 */
     uint64_t        bic_K;              /* 代表从W增长到Wmax的时间周期 */
-    xqc_msec_t      epoch_start;        /* 拥塞状态切换开始的时刻,单位microsecond微秒 */
-    xqc_msec_t      min_rtt;
+    xqc_usec_t      epoch_start;        /* 拥塞状态切换开始的时刻,单位microsecond微秒 */
+    xqc_usec_t      min_rtt;
 } xqc_cubic_t;
 
 extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;

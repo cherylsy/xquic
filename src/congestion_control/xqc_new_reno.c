@@ -36,21 +36,21 @@ xqc_reno_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_param
  * InRecovery
  */
 static int
-xqc_reno_was_pkt_sent_in_recovery(void *cong_ctl, xqc_msec_t sent_time)
+xqc_reno_was_pkt_sent_in_recovery(void *cong_ctl, xqc_usec_t sent_time)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
     return sent_time <= reno->reno_recovery_start_time;
 }
 
 static void
-xqc_reno_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
+xqc_reno_on_lost (void *cong_ctl, xqc_usec_t lost_sent_time)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
 
     // Start a new congestion event if the sent time is larger
     // than the start time of the previous recovery epoch.
     if (!xqc_reno_was_pkt_sent_in_recovery(cong_ctl, lost_sent_time)) {
-        reno->reno_recovery_start_time = xqc_now();
+        reno->reno_recovery_start_time = xqc_monotonic_timestamp();
         reno->reno_congestion_window *= XQC_kLossReductionFactor;
         reno->reno_congestion_window = xqc_max(reno->reno_congestion_window, XQC_kMinimumWindow);
         reno->reno_ssthresh = reno->reno_congestion_window;
@@ -59,10 +59,10 @@ xqc_reno_on_lost (void *cong_ctl, xqc_msec_t lost_sent_time)
 }
 
 static void
-xqc_reno_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_msec_t now)
+xqc_reno_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
-    xqc_msec_t sent_time = po->po_sent_time;
+    xqc_usec_t sent_time = po->po_sent_time;
     uint32_t acked_bytes = po->po_used_size;
     if (xqc_reno_was_pkt_sent_in_recovery(cong_ctl, sent_time)) {
         // Do not increase congestion window in recovery period.

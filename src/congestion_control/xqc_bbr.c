@@ -112,7 +112,7 @@ static void
 xqc_bbr_init(void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t *)(cong_ctl);
-    uint64_t now = xqc_now();
+    uint64_t now = xqc_monotonic_timestamp();
 
     memset(bbr, 0, sizeof(*bbr));
     xqc_win_filter_reset(&bbr->bandwidth, 0, 0);
@@ -211,7 +211,7 @@ xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     /*FIXED: It may reduce the est. bw due to network instability. */
     /*  if (sampler->lagest_ack_time > bbr->last_round_trip_time) {
         bbr->round_cnt++;
-        bbr->last_round_trip_time = xqc_now();
+        bbr->last_round_trip_time = xqc_monotonic_timestamp();
     } */
     uint32_t bandwidth;
     /*Calculate the new bandwidth, bytes per second */
@@ -240,14 +240,14 @@ xqc_bbr_bdp(xqc_bbr_t *bbr)
 static uint32_t
 xqc_bbr_compensate_cwnd_for_rttvar(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
-	xqc_msec_t srtt = sampler->srtt;
-    xqc_msec_t recent_max_rtt = xqc_win_filter_get_u64(&bbr->max_rtt);
-    xqc_msec_t compensation_thresh = (1 + bbr->rtt_compensation_thresh) *
+	xqc_usec_t srtt = sampler->srtt;
+    xqc_usec_t recent_max_rtt = xqc_win_filter_get_u64(&bbr->max_rtt);
+    xqc_usec_t compensation_thresh = (1 + bbr->rtt_compensation_thresh) *
                                      bbr->min_rtt;
     uint32_t cwnd_addition = 0;
     if (recent_max_rtt >= compensation_thresh) {
         if (srtt > bbr->min_rtt) {
-            xqc_msec_t rtt_var = (srtt - bbr->min_rtt);
+            xqc_usec_t rtt_var = (srtt - bbr->min_rtt);
             cwnd_addition = (xqc_bbr_max_bw(bbr) * rtt_var / MSEC2SEC) * 
                                        xqc_bbr_rtt_compensation_cwnd_factor;
 
@@ -779,7 +779,7 @@ xqc_bbr_set_cwnd(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 }
 
 static void 
-xqc_bbr_on_lost(void *cong_ctl, xqc_msec_t lost_sent_time)
+xqc_bbr_on_lost(void *cong_ctl, xqc_usec_t lost_sent_time)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t *)cong_ctl;
     /* Unlike the definition of "recovery epoch" for loss-based CCs, 
@@ -788,7 +788,7 @@ xqc_bbr_on_lost(void *cong_ctl, xqc_msec_t lost_sent_time)
        ability of BBR to sustain network where high loss rate presents 
        is hampered because of frequently entering packet conservation state. */
     xqc_bbr_save_cwnd(bbr);
-    bbr->recovery_start_time = xqc_now();
+    bbr->recovery_start_time = xqc_monotonic_timestamp();
     /*If losses happened, we do not increase cwnd beyond target_cwnd.*/
     bbr->snd_cwnd_cnt_bytes = 0;
     bbr->beyond_target_cwnd = 0;
@@ -839,7 +839,7 @@ xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     /*maintain windowed max rtt here*/
     if (bbr->rttvar_compensation_on) {
         if (sampler->rtt >= 0) {
-            xqc_msec_t last_max_rtt = xqc_win_filter_get_u64(&bbr->max_rtt);
+            xqc_usec_t last_max_rtt = xqc_win_filter_get_u64(&bbr->max_rtt);
             xqc_win_filter_max_u64(&bbr->max_rtt, bbr->max_rtt_win_len,
                                    bbr->round_cnt, sampler->rtt);
             xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
@@ -894,7 +894,7 @@ xqc_bbr_restart_from_idle(void *cong_ctl, uint64_t conn_delivered)
 {
     xqc_bbr_t *bbr = (xqc_bbr_t *)(cong_ctl);
     uint32_t rate;
-    uint64_t now = xqc_now();
+    uint64_t now = xqc_monotonic_timestamp();
     bbr->idle_restart = 1;
     bbr->extra_ack_stamp = now;
     bbr->epoch_ack = 0;

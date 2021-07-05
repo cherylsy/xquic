@@ -32,7 +32,7 @@ xqc_conn_handshake_completed(xqc_connection_t *conn)
     conn->tlsref.flags |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX;
 
     if ((conn->tlsref.flags & XQC_CONN_FLAG_HANDSHAKE_COMPLETED_HANDLED) == 0) {
-        conn->handshake_complete_time = xqc_now();
+        conn->handshake_complete_time = xqc_monotonic_timestamp();
         return xqc_conn_handshake_completed_handled(conn);
     }
     return XQC_OK;

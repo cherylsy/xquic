@@ -10,7 +10,7 @@
 #include <xquic/xquic.h>
 
 struct xqc_win_sample {
-    xqc_msec_t      t;
+    xqc_usec_t      t;
     uint64_t        val;
 };
 

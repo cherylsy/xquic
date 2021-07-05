@@ -17,7 +17,7 @@ struct xqc_packet_in_s
     size_t                  decode_payload_len;
     unsigned char          *pos;
     unsigned char          *last;
-    xqc_msec_t              pkt_recv_time;  /* microsecond */
+    xqc_usec_t              pkt_recv_time;  /* microsecond */
     xqc_frame_type_bit_t    pi_frame_types;
 };
 
@@ -30,7 +30,7 @@ void xqc_packet_in_init(xqc_packet_in_t *packet_in,
                    size_t packet_in_size,
                    unsigned char *decode_payload,
                    size_t decode_payload_size,
-                   xqc_msec_t recv_time);
+                   xqc_usec_t recv_time);
 
 void xqc_packet_in_destroy(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
 

@@ -21,7 +21,7 @@ xqc_test_reno ()
 #ifdef XQC_DISABLE_RENO
     return;
 #endif
-    xqc_msec_t now = xqc_now();
+    xqc_msec_t now = xqc_monotonic_timestamp();
 
     xqc_new_reno_t reno;
     xqc_msec_t delay = 100;

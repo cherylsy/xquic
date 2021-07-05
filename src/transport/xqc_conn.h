@@ -158,7 +158,7 @@ typedef struct {
 
 typedef struct {
     xqc_preferred_addr_t    preferred_address;
-    xqc_msec_t              max_idle_timeout;
+    xqc_usec_t              max_idle_timeout;
     uint8_t                 stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
     uint8_t                 stateless_reset_token_present;
     uint64_t                max_udp_payload_size;
@@ -169,7 +169,7 @@ typedef struct {
     uint64_t                max_streams_bidi;
     uint64_t                max_streams_uni;
     uint64_t                ack_delay_exponent;
-    xqc_msec_t              max_ack_delay;
+    xqc_usec_t              max_ack_delay;
     xqc_flag_t              disable_active_migration;
     uint64_t                active_connection_id_limit;
     uint64_t                no_crypto;
@@ -191,7 +191,7 @@ typedef struct {
     uint64_t                fc_max_streams_uni_can_recv;
 
     uint64_t                fc_recv_windows_size;
-    xqc_msec_t              fc_last_window_update_time;
+    xqc_usec_t              fc_last_window_update_time;
 } xqc_conn_flow_ctl_t;
 
 #ifdef XQC_PRINT_SECRET
@@ -278,11 +278,11 @@ struct xqc_connection_s{
     xqc_send_ctl_t         *conn_send_ctl;
     //xqc_send_ctl_info_t     ctl_info;
 
-    xqc_msec_t              last_ticked_time;
-    xqc_msec_t              next_tick_time;
-    xqc_msec_t              conn_create_time;
-    xqc_msec_t              handshake_complete_time; /* record the time when the handshake ends */
-    xqc_msec_t              first_data_send_time;    /* record the time when the bidirectional stream first sent data */
+    xqc_usec_t              last_ticked_time;
+    xqc_usec_t              next_tick_time;
+    xqc_usec_t              conn_create_time;
+    xqc_usec_t              handshake_complete_time; /* record the time when the handshake ends */
+    xqc_usec_t              first_data_send_time;    /* record the time when the bidirectional stream first sent data */
 
     SSL                     *xc_ssl; /* ssl for connection */
     xqc_tlsref_t            tlsref;  /* all tls reference */
@@ -339,7 +339,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn);
 
 xqc_int_t
 xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
-                    char *enc_pkt, size_t * enc_pkt_len, xqc_msec_t current_time);
+                    char *enc_pkt, size_t * enc_pkt_len, xqc_usec_t current_time);
 
 void
 xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
@@ -408,7 +408,7 @@ xqc_conn_buff_1rtt_packets(xqc_connection_t *conn);
 void
 xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn);
 
-xqc_msec_t
+xqc_usec_t
 xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
 char *
@@ -457,7 +457,7 @@ xqc_conn_should_ack(xqc_connection_t *conn)
 
 /* process an UDP datagram */
 xqc_int_t xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
-                        size_t packet_in_size, xqc_msec_t recv_time);
+                        size_t packet_in_size, xqc_usec_t recv_time);
 
 xqc_int_t xqc_conn_check_handshake_complete(xqc_connection_t *conn);
 

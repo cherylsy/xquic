@@ -34,13 +34,13 @@ typedef struct xqc_bbr_s{
     /*State of the sender */
     xqc_send_ctl_t         *send_ctl;
     /*Minimum rrt in the time window, in usec */
-    xqc_msec_t             min_rtt;
+    xqc_usec_t             min_rtt;
     /*Time stamp of min_rtt */
     uint64_t               min_rtt_stamp;
     /*min_rtt does not update in the time window */
     bool                   min_rtt_expired;
     /*Time to exit PROBE_RTT */
-    xqc_msec_t             probe_rtt_round_done_stamp;
+    xqc_usec_t             probe_rtt_round_done_stamp;
     /*Maximum bandwidth byte/sec */
     xqc_win_filter_t       bandwidth;
     /*Count round trips during the connection */
@@ -61,7 +61,7 @@ typedef struct xqc_bbr_s{
     uint32_t               pacing_rate;
     /*Gain currently applied to pacing rate */
     float                  pacing_gain;
-    xqc_msec_t             last_cycle_start;
+    xqc_usec_t             last_cycle_start;
     /*Gain currently applied to congestion window */
     float                  cwnd_gain;
     /*If packet loss in STARTUP without bandwidth increase, exit STARTUP and
@@ -97,7 +97,7 @@ typedef struct xqc_bbr_s{
     bool                   probe_rtt_disabled_if_app_limited;
     /* record extra acks in 2 cycles, a cycle contain 10 rtts*/
     uint32_t               extra_ack[2];
-    xqc_msec_t             extra_ack_stamp;
+    xqc_usec_t             extra_ack_stamp;
     uint32_t               extra_ack_round_rtt;
     uint32_t               extra_ack_idx;
     uint32_t               epoch_ack;
@@ -107,13 +107,13 @@ typedef struct xqc_bbr_s{
     uint32_t               extra_ack_win_len;
     uint32_t               extra_ack_win_len_in_startup;
 
-    xqc_msec_t             last_round_trip_time;
+    xqc_usec_t             last_round_trip_time;
 
     /*adjust cwnd in loss recovery*/
     xqc_bbr_recovery_mode  recovery_mode;
     bool                   just_enter_recovery_mode;
     bool                   just_exit_recovery_mode;
-    xqc_msec_t             recovery_start_time;
+    xqc_usec_t             recovery_start_time;
     bool                   packet_conservation;
     uint32_t               expect_bw;
     bool                   enable_expect_bw;

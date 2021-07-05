@@ -131,6 +131,7 @@ set(
     "src/common/xqc_variable_len_int.c"
     "src/common/xqc_str.c"
     "src/common/xqc_log.c"
+    "src/common/xqc_time.c"
 )
 
 set(

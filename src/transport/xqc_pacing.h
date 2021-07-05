@@ -6,7 +6,7 @@
 typedef struct xqc_pacing_s {
     int             pacing_on;
     uint32_t        bytes_budget;
-    xqc_msec_t      last_sent_time;
+    xqc_usec_t      last_sent_time;
     xqc_send_ctl_t *ctl_ctx;
     uint32_t        pending_budget;
 }xqc_pacing_t;

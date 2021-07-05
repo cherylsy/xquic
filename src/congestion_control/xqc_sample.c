@@ -10,7 +10,7 @@
 /* Upon receiving ACK, fill in delivery rate sample rs. */
 bool 
 xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, 
-    xqc_msec_t now)
+    xqc_usec_t now)
 {
     /* Clear app-limited field if bubble is ACKed and gone. */
     if (send_ctl->ctl_app_limited 
@@ -66,7 +66,7 @@ xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
 /* Update rs when packet is SACKed or ACKed. */
 void 
 xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
-    xqc_send_ctl_t *send_ctl, xqc_msec_t now)
+    xqc_send_ctl_t *send_ctl, xqc_usec_t now)
 {
     if (packet->po_delivered_time == 0) {
         xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
@@ -127,7 +127,7 @@ xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 
 void 
 xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, 
-    xqc_msec_t now)
+    xqc_usec_t now)
 {
     if (ctl->ctl_bytes_in_flight == 0) {
         ctl->ctl_delivered_time = ctl->ctl_first_sent_time = now;

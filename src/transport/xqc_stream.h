@@ -52,7 +52,7 @@ typedef struct {
     uint64_t                fc_max_stream_data_can_send;
     uint64_t                fc_max_stream_data_can_recv;
     uint64_t                fc_stream_recv_window_size;
-    xqc_msec_t              fc_last_window_update_time;
+    xqc_usec_t              fc_last_window_update_time;
 } xqc_stream_flow_ctl_t;
 
 
@@ -116,23 +116,23 @@ struct xqc_stream_s {
     int64_t                 stream_refcnt;
     xqc_send_stream_state_t stream_state_send;
     xqc_recv_stream_state_t stream_state_recv;
-    xqc_msec_t              stream_close_time;
+    xqc_usec_t              stream_close_time;
     uint64_t                stream_err;
 
     struct{
-        xqc_msec_t          create_time;
-        xqc_msec_t          peer_fin_rcv_time; /*quic stack rcv fin*/
-        xqc_msec_t          peer_fin_read_time; /*app read fin.*/
-        xqc_msec_t          local_fin_write_time; /*app send fin*/
-        xqc_msec_t          local_fin_snd_time; /*socket send fin*/
-        xqc_msec_t          first_write_time; /*app send data*/
-        xqc_msec_t          first_snd_time; /*socket send data*/
-        xqc_msec_t          first_fin_ack_time;
-        xqc_msec_t          all_data_acked_time;
-        xqc_msec_t          close_time; /*stream close time: fin/reset read*/
-        xqc_msec_t          app_reset_time; /*app snd reset*/
-        xqc_msec_t          local_reset_time; /*socket snd reset*/
-        xqc_msec_t          peer_reset_time; /*quic stack rcv reset*/
+        xqc_usec_t          create_time;
+        xqc_usec_t          peer_fin_rcv_time; /*quic stack rcv fin*/
+        xqc_usec_t          peer_fin_read_time; /*app read fin.*/
+        xqc_usec_t          local_fin_write_time; /*app send fin*/
+        xqc_usec_t          local_fin_snd_time; /*socket send fin*/
+        xqc_usec_t          first_write_time; /*app send data*/
+        xqc_usec_t          first_snd_time; /*socket send data*/
+        xqc_usec_t          first_fin_ack_time;
+        xqc_usec_t          all_data_acked_time;
+        xqc_usec_t          close_time; /*stream close time: fin/reset read*/
+        xqc_usec_t          app_reset_time; /*app snd reset*/
+        xqc_usec_t          local_reset_time; /*socket snd reset*/
+        xqc_usec_t          peer_reset_time; /*quic stack rcv reset*/
     }stream_stats;
 };
 
