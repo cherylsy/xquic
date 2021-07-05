@@ -335,7 +335,7 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
 }
 
 
-#define XQC_MAX_VERIFY_DEPTH 100  /* the default max depth of cert chain if 100 */
+#define XQC_MAX_VERIFY_DEPTH 10  /* the default max depth of cert chain if 10 */
 int
 xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
