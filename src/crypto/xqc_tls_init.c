@@ -334,7 +334,7 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
     return XQC_OK;
 }
 
-#ifdef OPENSSL_IS_BORINGSSL
+
 #define XQC_MAX_VERIFY_DEPTH 100  /* the default max depth of cert chain if 100 */
 int
 xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
@@ -343,7 +343,6 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     size_t certs_array_len = 0;
     unsigned char *certs_array[XQC_MAX_VERIFY_DEPTH];
     size_t cert_len_array[XQC_MAX_VERIFY_DEPTH];
-    void *user_data = NULL;
 
     if (preverify_ok == XQC_SSL_FAIL) {
         SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
@@ -360,19 +359,6 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
         if (err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
             || err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
         {
-            /*
-             * http3 创建的时候将传输层connection的user_data替换成h3_conn，传递给应用回调时的user_data需要取h3_conn的user_data
-             * 非http3时则默认传递传输层connection的user_data给应用
-             * 此处的user_data强转类型时容易出错，需要注意
-             */
-            if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
-                xqc_h3_conn_t * h3_conn = (xqc_h3_conn_t *)(conn->user_data);
-                user_data = h3_conn->user_data;
-
-            } else {
-                user_data = conn->user_data;
-            }
-
             const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
             certs_array_len = sk_CRYPTO_BUFFER_num(chain);
             if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
@@ -387,7 +373,9 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
             }
 
             if (conn->tlsref.cert_verify_cb != NULL) {
-                if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, cert_len_array, certs_array_len, user_data) < 0) {
+                if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, cert_len_array, certs_array_len, 
+                                                 xqc_conn_get_user_data(conn)) < 0) 
+                {
                     preverify_ok = XQC_SSL_FAIL;
 
                 } else {
@@ -400,9 +388,10 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
             XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
         }
     }
+
     return preverify_ok;
 }
-#endif
+
 
 static void
 xqc_ssl_ctx_set_timeout(SSL_CTX *ssl_ctx, const xqc_engine_ssl_config_t *xs_config)
@@ -717,12 +706,11 @@ xqc_create_client_ssl(xqc_engine_t *engine, xqc_connection_t *conn,
     }
 
     if (sc->cert_verify_flag) { /* cert_verify_flag default value is 0 */
-#ifdef OPENSSL_IS_BORINGSSL
+
         if (X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname)) != XQC_SSL_SUCCESS) {
             xqc_log(conn->log,  XQC_LOG_DEBUG, "|centificate verify set hostname failed|");  /* hostname set failed need log */
         }
-        SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback); /* xqc_cert_verify_callback only for boringssl */
-#endif
+        SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback);
     }
 
     return ssl;

@@ -342,11 +342,11 @@ typedef struct xqc_engine_ssl_config_s {
 } xqc_engine_ssl_config_t;
 
 typedef struct xqc_conn_ssl_config_s {
-    char       *session_ticket_data;            /* For client, client should Use the domain as the key to save */
-    size_t     session_ticket_len;              /* For client */
-    char       *transport_parameter_data;       /* For client, client should Use the domain as the key to save */
-    size_t     transport_parameter_data_len;    /* For client */
-    int        cert_verify_flag;                /* For client certificate verify flag, now only boringssl lib support cert_verify_flag */
+    char       *session_ticket_data;             /* For client, client should Use the domain as the key to save */
+    size_t      session_ticket_len;              /* For client */
+    char       *transport_parameter_data;        /* For client, client should Use the domain as the key to save */
+    size_t      transport_parameter_data_len;    /* For client */
+    uint8_t     cert_verify_flag;                /* For client certificate verify flag, now only boringssl lib support cert_verify_flag */
 } xqc_conn_ssl_config_t;
 
 
