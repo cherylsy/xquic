@@ -7,7 +7,7 @@
 #include "src/common/xqc_str_hash.h"
 #include "src/common/xqc_timer.h"
 #include "src/common/xqc_hash.h"
-#include "src/common/xqc_defs.h"
+#include "src/transport/xqc_defs.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_stream.h"

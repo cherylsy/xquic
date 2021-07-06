@@ -11,7 +11,7 @@
 #include "src/common/xqc_priority_q.h"
 #include "src/common/xqc_memory_pool.h"
 #include "src/common/xqc_id_hash.h"
-#include "src/common/xqc_defs.h"
+#include "src/transport/xqc_defs.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_engine.h"

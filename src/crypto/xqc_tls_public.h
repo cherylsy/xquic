@@ -12,7 +12,7 @@
 #include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_frame.h"
 #include "src/crypto/xqc_tls_if.h"
-#include "src/common/xqc_defs.h"
+#include "src/transport/xqc_defs.h"
 #include "src/common/xqc_malloc.h"
 
 #ifdef WORDS_BIGENDIAN

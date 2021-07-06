@@ -87,6 +87,7 @@ set(
     "src/transport/xqc_pacing.c"
     "src/transport/xqc_utils.c"
     "src/transport/xqc_multipath.c"
+    "src/transport/xqc_defs.c"
 )
 
 set (
@@ -132,7 +133,6 @@ set(
     "src/common/xqc_str.c"
     "src/common/xqc_log.c"
     "src/common/xqc_time.c"
-    "src/common/xqc_defs.c"
 )
 
 set(
