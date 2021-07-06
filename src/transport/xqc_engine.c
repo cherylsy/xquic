@@ -29,8 +29,8 @@ xqc_config_t default_client_config = {
     .conns_hash_bucket_size = 1024,
     .conns_active_pq_capacity = 128,
     .conns_wakeup_pq_capacity = 128,
-    .support_version_count = 2,
-    .support_version_list = {XQC_VERSION_V1_VALUE, XQC_IDRAFT_VER_29_VALUE},
+    .support_version_count = 1,
+    .support_version_list[0] = XQC_VERSION_V1_VALUE,
     .cid_len = XQC_DEFAULT_CID_LEN,
     .cid_negotiate = 0,
 };
