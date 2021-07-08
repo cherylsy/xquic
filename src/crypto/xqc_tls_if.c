@@ -53,10 +53,10 @@ xqc_convert_ssl_to_xqc_level(enum ssl_encryption_level_t level)
  *
  */
 int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn) {
-#ifndef OPENSSL_IS_BORINGSSL
-    if(SSL_get_early_data_status(conn->xc_ssl) == SSL_EARLY_DATA_ACCEPTED) {
-#else
+#ifdef OPENSSL_IS_BORINGSSL
     if(xqc_tls_is_early_data_accepted(conn) == XQC_TLS_EARLY_DATA_ACCEPT) {
+#else
+    if(SSL_get_early_data_status(conn->xc_ssl) == SSL_EARLY_DATA_ACCEPTED) {
 #endif
         return XQC_TRUE;
     } else {
