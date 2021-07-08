@@ -7,6 +7,7 @@
 #include "src/common/xqc_str_hash.h"
 #include "src/common/xqc_timer.h"
 #include "src/common/xqc_hash.h"
+#include "src/transport/xqc_defs.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_stream.h"
@@ -22,15 +23,6 @@
 #include "src/http3/xqc_h3_conn.h"
 
 
-const uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
-    0x00000001,
-    0xFF00001B,
-    0xFF00001C,
-    0xFF00001D,
-    0x00000000,
-};
-
-
 xqc_config_t default_client_config = {
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
@@ -38,7 +30,7 @@ xqc_config_t default_client_config = {
     .conns_active_pq_capacity = 128,
     .conns_wakeup_pq_capacity = 128,
     .support_version_count = 1,
-    .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
+    .support_version_list[0] = XQC_VERSION_V1_VALUE,
     .cid_len = XQC_DEFAULT_CID_LEN,
     .cid_negotiate = 0,
 };
@@ -50,8 +42,8 @@ xqc_config_t default_server_config = {
     .conns_hash_bucket_size = 1024*1024, //不能扩展，连接多了查找性能
     .conns_active_pq_capacity = 1024,
     .conns_wakeup_pq_capacity = 16*1024,
-    .support_version_count = 1,
-    .support_version_list[0] = XQC_IDRAFT_VER_29_VALUE,
+    .support_version_count = 2,
+    .support_version_list = {XQC_VERSION_V1_VALUE, XQC_IDRAFT_VER_29_VALUE},
     .cid_len = XQC_DEFAULT_CID_LEN,
     .cid_negotiate = 0,
 };

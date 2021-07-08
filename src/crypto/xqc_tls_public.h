@@ -12,7 +12,7 @@
 #include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_frame.h"
 #include "src/crypto/xqc_tls_if.h"
-#include "src/common/xqc_defs.h"
+#include "src/transport/xqc_defs.h"
 #include "src/common/xqc_malloc.h"
 
 #ifdef WORDS_BIGENDIAN
@@ -67,12 +67,6 @@
 #define INITIAL_SECRET_MAX_LEN  32
 
 #define XQC_INITIAL_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
-
-/* XQC_INITIAL_SALT is a salt value which is used to derive initial
-   secret. */
-#define XQC_INITIAL_SALT                                                    \
-  "\xef\x4f\xb0\xab\xb4\x74\x70\xc4\x1b\xef\xcf\x80\x31\x33\x4f\xae\x48\x5e"   \
-  "\x09\xa0"
 
 
 extern const char *xqc_crypto_initial_salt[];

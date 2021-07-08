@@ -7,6 +7,7 @@
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_utils.h"
+#include "src/transport/xqc_defs.h"
 
 xqc_connection_t *
 xqc_client_connect(xqc_engine_t *engine, void *user_data,

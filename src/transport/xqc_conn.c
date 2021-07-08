@@ -11,6 +11,7 @@
 #include "src/common/xqc_priority_q.h"
 #include "src/common/xqc_memory_pool.h"
 #include "src/common/xqc_id_hash.h"
+#include "src/transport/xqc_defs.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_engine.h"
@@ -29,7 +30,7 @@ xqc_conn_settings_t default_conn_settings = {
     .pacing_on        = 0,
     .ping_on          = 0,
     .so_sndbuf        = 0,
-    .proto_version    = XQC_IDRAFT_VER_29,
+    .proto_version    = XQC_VERSION_V1,
     .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath = 0,
     .spurious_loss_detect_on = 0,
@@ -241,13 +242,13 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xc->conn_settings = *settings;
-    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;    
+    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;
 
     if (type == XQC_CONN_TYPE_CLIENT
         && !xqc_check_proto_version_valid(settings->proto_version)) 
     {
-        xc->conn_settings.proto_version = XQC_IDRAFT_VER_29;
-        xc->version = XQC_IDRAFT_VER_29;
+        xc->conn_settings.proto_version = XQC_VERSION_V1;
+        xc->version = XQC_VERSION_V1;
     }
 
     xqc_conn_init_trans_settings(xc);
@@ -1494,7 +1495,7 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         buf, conn->dcid.cid_buf, conn->dcid.cid_len,
         conn->scid.cid_buf, conn->scid.cid_len,
         conn->ocid.cid_buf, conn->ocid.cid_len,
-        token, token_len, XQC_QUIC_VERSION);
+        token, token_len, XQC_VERSION_V1);
     if (size < 0) {
         return size;
     }

@@ -19,37 +19,22 @@
 extern "C" {
 #endif
 
-#define XQC_QUIC_VERSION                1
-#define XQC_SUPPORT_VERSION_MAX         64
 
 /* support version for IETF drafts */
+#define XQC_SUPPORT_VERSION_MAX         64
 
 typedef enum xqc_proto_version_s {
 
     XQC_IDRAFT_INIT_VER,            /* placeholder */
+    XQC_VERSION_V1,                 /* former version of QUIC RFC */
 
-    XQC_IDRAFT_VER_27,              /* IETF Draft-27 */
-    XQC_IDRAFT_VER_28,              /* IETF Draft-28 */
     XQC_IDRAFT_VER_29,              /* IETF Draft-29 */
+    XQC_IDRAFT_VER_33,              /* IETF Draft-33 */
 
     XQC_IDRAFT_VER_NEGOTIATION,     /* Special version for version negotiation. */
 
     XQC_VERSION_MAX
 } xqc_proto_version_t;
-
-#define xqc_check_proto_version_valid(ver) \
-        ((ver) > XQC_IDRAFT_INIT_VER && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
-
-#define XQC_PROTO_VERSION_LEN 4
-
-extern const uint32_t xqc_proto_version_value[];
-
-#define XQC_IDRAFT_INIT_VER_VALUE   0x00000001
-#define XQC_IDRAFT_VER_27_VALUE     0xFF00001B
-#define XQC_IDRAFT_VER_28_VALUE     0xFF00001C
-#define XQC_IDRAFT_VER_29_VALUE     0xFF00001D
-
-
 
 
 #define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"

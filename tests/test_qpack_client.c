@@ -1090,7 +1090,7 @@ int main(int argc, char *argv[]) {
             //.cong_ctrl_callback = xqc_reno_cb,
             .cong_ctrl_callback = xqc_cubic_cb,
             //.cong_ctrl_callback = xqc_bbr_cb,
-            .proto_version = XQC_IDRAFT_VER_29,
+            .proto_version = XQC_VERSION_V1,
     };
 
     eb = event_base_new();

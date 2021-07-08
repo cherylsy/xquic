@@ -5,7 +5,7 @@
 #include "src/transport/xqc_conn.h"
 #include "src/common/xqc_algorithm.h"
 #include "src/common/xqc_variable_len_int.h"
-#include "src/common/xqc_defs.h"
+#include "src/transport/xqc_defs.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_recv_record.h"
 #include "src/transport/xqc_packet_parser.h"

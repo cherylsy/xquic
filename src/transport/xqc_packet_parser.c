@@ -18,15 +18,6 @@
 
 #define XQC_RESET_TOKEN_LEN 16
 
-static const unsigned char xqc_proto_version_field[XQC_VERSION_MAX][XQC_PROTO_VERSION_LEN] = {
-
-    [XQC_IDRAFT_INIT_VER] = { 0, 0, 0, 1 },
-    [XQC_IDRAFT_VER_27] = { 0xFF, 0, 0, 27, },
-    [XQC_IDRAFT_VER_28] = { 0xFF, 0, 0, 28, },
-    [XQC_IDRAFT_VER_29] = { 0xFF, 0, 0, 29, },
-    [XQC_IDRAFT_VER_NEGOTIATION] = { 0x00, 0x00, 0x00, 0x00, },
-};
-
 
 
 unsigned
@@ -1203,7 +1194,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
 
     /* check protocol version */
     if (xqc_conn_version_check(c, version) != XQC_OK) {
-        xqc_log(c->log, XQC_LOG_INFO, "|version not supported|v:%u|", version);
+        xqc_log(c->log, XQC_LOG_INFO, "|version not supported|v:%ui|", version);
         c->conn_flag |= XQC_CONN_FLAG_VERSION_NEGOTIATION;
         return -XQC_EVERSION;
     }

@@ -87,6 +87,7 @@ set(
     "src/transport/xqc_pacing.c"
     "src/transport/xqc_utils.c"
     "src/transport/xqc_multipath.c"
+    "src/transport/xqc_defs.c"
 )
 
 set (

@@ -1,10 +1,11 @@
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_tls_public.h"
 #include "src/crypto/xqc_tls_cb.h"
-#include "src/transport/xqc_conn.h"
 #include "src/crypto/xqc_hkdf.h"
 #include "src/crypto/xqc_digist.h"
 #include "src/crypto/xqc_crypto.h"
+#include "src/transport/xqc_conn.h"
+#include "src/transport/xqc_defs.h"
 
 /** private */
 

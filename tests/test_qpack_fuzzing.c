@@ -979,7 +979,7 @@ user_conn_t * client_create_connection(client_ctx_t * ctx){
             .pacing_on  =   g_pacing_on,
             .cong_ctrl_callback = cong_ctrl,
             .ping_on    =   0,
-            .proto_version = XQC_IDRAFT_VER_29,
+            .proto_version = XQC_VERSION_V1,
     };
 
     int no_crypto_flag = g_no_crypto_flag?1:0;
