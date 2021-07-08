@@ -2,6 +2,7 @@
 #include <xquic/xquic.h>
 
 uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
+    0xFFFFFFFF,
     0x00000001,
     0xFF00001D,
     0xFF000021,

@@ -242,7 +242,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xc->conn_settings = *settings;
-    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_VERSION_V1;
+    xc->version = (type == XQC_CONN_TYPE_CLIENT) ? settings->proto_version : XQC_IDRAFT_INIT_VER;
 
     if (type == XQC_CONN_TYPE_CLIENT
         && !xqc_check_proto_version_valid(settings->proto_version)) 
@@ -1518,7 +1518,7 @@ xqc_conn_version_check(xqc_connection_t *c, uint32_t version)
     xqc_engine_t* engine = c->engine;
     int i = 0;
 
-    if (c->conn_type == XQC_CONN_TYPE_SERVER && c->version == XQC_VERSION_V1) {
+    if (c->conn_type == XQC_CONN_TYPE_SERVER && c->version == XQC_IDRAFT_INIT_VER) {
 
         uint32_t *list = engine->config->support_version_list;
         uint32_t count = engine->config->support_version_count;
@@ -1527,7 +1527,7 @@ xqc_conn_version_check(xqc_connection_t *c, uint32_t version)
             return -XQC_EPROTO;
         }
 
-        for (i = XQC_VERSION_V1; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
+        for (i = XQC_IDRAFT_INIT_VER + 1; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
             if (xqc_proto_version_value[i] == version) {
                 c->version = i;
                 return XQC_OK;

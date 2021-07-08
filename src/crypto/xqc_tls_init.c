@@ -190,9 +190,9 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     }
 
 #ifdef OPENSSL_IS_BORINGSSL
-    SSL_set_quic_use_legacy_codepoint(conn->xc_ssl, conn->version > XQC_VERSION_V1);
+    SSL_set_quic_use_legacy_codepoint(conn->xc_ssl, conn->version != XQC_VERSION_V1);
 #else
-    SSL_set_quic_transport_version(conn->xc_ssl, conn->version > XQC_VERSION_V1);
+    SSL_set_quic_transport_version(conn->xc_ssl, conn->version != XQC_VERSION_V1);
 #endif
 
     xqc_init_list_head(&conn->tlsref.initial_pktns.msg_cb_head);

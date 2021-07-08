@@ -17,7 +17,7 @@ xqc_server_tls_handshake(xqc_connection_t * conn)
     
     if (conn->tlsref.initial) {
         conn->tlsref.initial = 0;
-        SSL_set_quic_transport_version(conn->xc_ssl, conn->version > XQC_VERSION_V1);
+        SSL_set_quic_transport_version(conn->xc_ssl, conn->version != XQC_VERSION_V1);
     }
 
     /* SSL_do_handshake return 1 means handshake complete, 
