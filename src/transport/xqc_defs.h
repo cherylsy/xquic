@@ -31,7 +31,7 @@ extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
 
 
 #define xqc_check_proto_version_valid(ver) \
-        ((ver) >= XQC_VERSION_V1 && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
+        ((ver) > XQC_IDRAFT_INIT_VER && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
 
 
 /**

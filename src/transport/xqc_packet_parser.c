@@ -1072,7 +1072,7 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
     }
 
     /* translate version to enum, and set to the connection */
-    for (uint32_t i = XQC_VERSION_V1 + 1; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
+    for (uint32_t i = XQC_IDRAFT_INIT_VER + 1; i < XQC_IDRAFT_VER_NEGOTIATION; i++) {
         if (xqc_proto_version_value[i] == version_chosen) {
             c->version = i;
             break;
