@@ -77,9 +77,7 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     p = xqc_vsprintf(p, last, fmt, args);
     va_end(args);
 
-    if (p + 2 < last) {
-        /* \n */
-        *p++ = '\n';
+    if (p + 1 < last) {
         /* may use printf("%s") outside, add '\0' and don't count into size */
         *p = '\0';
     }
