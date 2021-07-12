@@ -1196,8 +1196,6 @@ int main(int argc, char *argv[]) {
         .server_accept = xqc_server_accept,
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
-            .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG),
-            //.log_level = XQC_LOG_INFO,
             .xqc_open_log_file = xqc_server_open_log_file,
             .xqc_close_log_file = xqc_server_close_log_file,
             .xqc_write_log_file = xqc_server_write_log_file,
@@ -1271,6 +1269,7 @@ int main(int argc, char *argv[]) {
     if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
         return -1;
     }
+    config.cfg_log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG);
 
     eb = event_base_new();
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
