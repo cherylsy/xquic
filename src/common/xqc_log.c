@@ -83,10 +83,9 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
 
     } else if (log->log_callbacks->xqc_log_write_err) {
         log->log_callbacks->xqc_log_write_err(buf, p - buf, log->user_data);
-
-    } else {
-        log->log_callbacks->xqc_write_log_file(buf, p - buf, log->user_data);
     }
+
+    /* if didn't set log callback, just return */
 }
 
 void
