@@ -422,7 +422,8 @@ extern xqc_timestamp_pt xqc_monotonic_timestamp; //获取单调递增的时间�
  * Item value 0 means use default value.
  * @return 0 for success, <0 for error. default value is used if config item is illegal
  */
-int xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, xqc_config_t *config);
+
 
 /**
  * For server, it can be called anytime. settings will take effect on new connections
@@ -435,12 +436,20 @@ void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
+    const xqc_config_t *engine_config,
     const xqc_engine_ssl_config_t *ssl_config,
     const xqc_engine_callback_t *engine_callback,
     void *user_data);
 
 XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);
+
+/**
+ * Set engine log level, call after engine is created
+ * @param log_level engine will print logs which level >= log_level
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
 
 
 /**
@@ -790,7 +799,7 @@ XQC_EXPORT_PUBLIC_API
 void xqc_engine_main_logic (xqc_engine_t *engine);
 
 XQC_EXPORT_PUBLIC_API
-int xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
 
 
 /**

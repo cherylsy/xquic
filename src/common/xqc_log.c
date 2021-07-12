@@ -51,6 +51,14 @@ xqc_log_level_str(xqc_log_level_t level)
     }
 }
 
+
+void
+xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level)
+{
+    log->log_level = level;
+}
+
+
 void
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...)
 {

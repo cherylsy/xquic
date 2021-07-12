@@ -95,7 +95,7 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
 }
 
 
-int
+xqc_int_t
 xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type)
 {
     if (engine_type == XQC_ENGINE_SERVER) {
@@ -103,19 +103,6 @@ xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_typ
 
     } else {
         return xqc_set_config(config, &default_client_config);
-    }
-}
-
-
-/* TODO: Obsolete */
-int
-xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type)
-{
-    if (engine_type == XQC_ENGINE_SERVER) {
-        return xqc_set_config(&default_server_config, config);
-
-    } else {
-        return xqc_set_config(&default_client_config, config);
     }
 }
 
@@ -152,6 +139,13 @@ void
 xqc_engine_config_destroy(xqc_config_t *config)
 {
     xqc_free(config);
+}
+
+
+void
+xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level)
+{
+    xqc_log_level_set(engine->log, level);
 }
 
 
@@ -312,6 +306,7 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
  */
 xqc_engine_t *
 xqc_engine_create(xqc_engine_type_t engine_type, 
+    const xqc_config_t *engine_config,
     const xqc_engine_ssl_config_t *ssl_config,
     const xqc_engine_callback_t *engine_callback, 
     void *user_data)
@@ -328,6 +323,12 @@ xqc_engine_create(xqc_engine_type_t engine_type,
 
     engine->config = xqc_engine_config_create(engine_type);
     if (engine->config == NULL) {
+        goto fail;
+    }
+
+    if (engine_config != NULL
+        && xqc_engine_set_config(engine, engine_config) != XQC_OK) 
+    {
         goto fail;
     }
 

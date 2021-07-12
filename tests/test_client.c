@@ -1845,6 +1845,16 @@ int main(int argc, char *argv[]) {
             .spurious_loss_detect_on = 0,
     };
 
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
+        return -1;
+    }
+
+    if (g_test_case == 13) {//test different cid_len
+        
+        config.cid_len = XQC_MAX_CID_LEN;
+    }
+
     /* check draft-29 version */
     if (g_test_case == 17) {
         conn_settings.proto_version = XQC_IDRAFT_VER_29;
@@ -1868,13 +1878,7 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
-    if (g_test_case == 13) {//test different cid_len
-        xqc_config_t config;
-        config.cid_len = XQC_MAX_CID_LEN;
-        xqc_set_engine_config(&config, XQC_ENGINE_CLIENT);
-    }
-
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &config, &engine_ssl_config, &callback, &ctx);
     if (ctx.engine == NULL) {
         printf("xqc_engine_create error\n");
         return -1;
