@@ -423,7 +423,7 @@ extern xqc_timestamp_pt xqc_monotonic_timestamp; //获取单调递增的时间�
  * Item value 0 means use default value.
  * @return 0 for success, <0 for error. default value is used if config item is illegal
  */
-xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, xqc_config_t *config);
+xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config);
 
 
 /**

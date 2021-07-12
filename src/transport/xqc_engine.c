@@ -113,7 +113,7 @@ xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_typ
 xqc_int_t
 xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config)
 {
-    return xqc_set_config(engine->config, config);
+    return xqc_set_config(engine->config, engine_config);
 }
 
 
@@ -338,7 +338,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     xqc_engine_set_callback(engine, engine_callback);
     engine->user_data = user_data;
 
-    engine->log = xqc_log_init(engine->config.cfg_log_level, &engine->eng_callback.log_callbacks, engine->user_data);
+    engine->log = xqc_log_init(engine->config->cfg_log_level, &engine->eng_callback.log_callbacks, engine->user_data);
     if (engine->log == NULL) {
         goto fail;
     }
