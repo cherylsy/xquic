@@ -1075,8 +1075,6 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = XQC_LOG_DEBUG,
-                    //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
                     .xqc_write_log_file = xqc_client_write_log_file,

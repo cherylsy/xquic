@@ -900,7 +900,7 @@ client_ctx_t * client_create_context_new(){
 
     xqc_config_t config;
     if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
-        return -1;
+        return NULL;
     }
     config.cfg_log_level = XQC_LOG_ERROR;
 
