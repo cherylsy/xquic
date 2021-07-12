@@ -867,8 +867,6 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = XQC_LOG_DEBUG,
-                    //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
                     .xqc_write_log_file = xqc_client_write_log_file,
@@ -888,7 +886,13 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config, &callback, &ctx);
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
+        return -1;
+    }
+    config.cfg_log_level = XQC_LOG_DEBUG;
+
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, &engine_ssl_config, &callback, &ctx);
 
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));

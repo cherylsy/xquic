@@ -1097,7 +1097,13 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config, &callback, &ctx);
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
+        return -1;
+    }
+    config.cfg_log_level = XQC_LOG_DEBUG;
+
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, &engine_ssl_config, &callback, &ctx);
 
     user_conn_t *user_conn;
     user_conn = calloc(1, sizeof(user_conn_t));
