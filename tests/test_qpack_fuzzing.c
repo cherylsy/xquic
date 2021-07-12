@@ -772,7 +772,8 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
 }
 
 
-int xqc_client_open_log_file(void *engine_user_data)
+int 
+xqc_client_open_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     ctx->log_fd = open("./clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
@@ -782,7 +783,8 @@ int xqc_client_open_log_file(void *engine_user_data)
     return 0;
 }
 
-int xqc_client_close_log_file(void *engine_user_data)
+int 
+xqc_client_close_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
@@ -792,15 +794,25 @@ int xqc_client_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_client_write_log_file(const void *buf, size_t count, void *engine_user_data)
+
+void 
+xqc_client_write_log(const void *buf, size_t count, void *engine_user_data)
 {
+    unsigned char log_buf[XQC_MAX_LOG_LEN + 1];
+
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
-        return -1;
+        printf("xqc_client_write_log fd err\n");
+        return;
     }
-    //printf("%s",(char*)buf);
-    return write(ctx->log_fd, buf, count);
+    int log_len = snprintf(log_buf, XQC_MAX_LOG_LEN + 1, "%s\n", (char*)buf);
+    if (log_len < 0) {
+        printf("xqc_client_write_log err\n");
+        return;
+    }
+    write(ctx->log_fd, log_buf, count);
 }
+
 
 user_stream_t * create_user_stream(xqc_engine_t * engine, user_conn_t *user_conn, xqc_cid_t * cid){
     user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
@@ -836,6 +848,7 @@ client_ctx_t * client_create_context_new(){
     client_ctx_t * ctx = malloc(sizeof(client_ctx_t));
     memset(ctx, 0, sizeof(client_ctx_t));
 
+    xqc_client_open_log_file(ctx);
 
     xqc_engine_ssl_config_t  engine_ssl_config;
     memset(&engine_ssl_config, 0 ,sizeof(engine_ssl_config));
@@ -871,9 +884,7 @@ client_ctx_t * client_create_context_new(){
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .xqc_open_log_file = xqc_client_open_log_file,
-                    .xqc_close_log_file = xqc_client_close_log_file,
-                    .xqc_write_log_file = xqc_client_write_log_file,
+                    .xqc_log_write_err = xqc_client_write_log,
             },
             .save_session_cb = save_session_cb,
             .save_tp_cb = save_tp_cb,
@@ -913,28 +924,6 @@ client_ctx_t * client_create_context_new(){
 
 
 }
-
-
-//no need ?
-#if 0
-int client_close_stream(user_stream_t *user_stream){
-
-    int fin = 1;
-    ssize_t send_success = xqc_stream_send(user_stream->stream, NULL, 0, fin);
-
-    if (send_success == 1) {
-        return 0;
-    }
-
-    if (send_success == -XQC_EAGAIN) {
-        return -EAGAIN;
-    }
-
-    return send_success;
-
-}
-#endif
-
 
 user_conn_t * client_create_connection(client_ctx_t * ctx){
     xqc_engine_t * engine = ctx->engine;
@@ -1614,6 +1603,7 @@ int main(int argc, char *argv[]) {
 
     event_base_dispatch(ctx->eb);
     xqc_engine_destroy(ctx->engine);
+    xqc_client_close_log_file(ctx);
 
     return 0;
 }

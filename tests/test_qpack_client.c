@@ -960,7 +960,8 @@ xqc_client_timeout_callback(int fd, short what, void *arg)
 }
 
 
-int xqc_client_open_log_file(void *engine_user_data)
+int 
+xqc_client_open_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     ctx->log_fd = open("./clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
@@ -970,7 +971,8 @@ int xqc_client_open_log_file(void *engine_user_data)
     return 0;
 }
 
-int xqc_client_close_log_file(void *engine_user_data)
+int 
+xqc_client_close_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
@@ -980,15 +982,25 @@ int xqc_client_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_client_write_log_file(const void *buf, size_t count, void *engine_user_data)
+
+void 
+xqc_client_write_log(const void *buf, size_t count, void *engine_user_data)
 {
+    unsigned char log_buf[XQC_MAX_LOG_LEN + 1];
+
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
-        return -1;
+        printf("xqc_client_write_log fd err\n");
+        return;
     }
-    //printf("%s",(char*)buf);
-    return write(ctx->log_fd, buf, count);
+    int log_len = snprintf(log_buf, XQC_MAX_LOG_LEN + 1, "%s\n", (char*)buf);
+    if (log_len < 0) {
+        printf("xqc_client_write_log err\n");
+        return;
+    }
+    write(ctx->log_fd, log_buf, count);
 }
+
 
 user_stream_t * create_user_stream(xqc_engine_t * engine, user_conn_t *user_conn, xqc_cid_t * cid){
     user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
@@ -1037,6 +1049,7 @@ int main(int argc, char *argv[]) {
 
     }
 
+    xqc_client_open_log_file(&ctx);
 
     memset(&ctx, 0, sizeof(ctx));
 
@@ -1075,9 +1088,7 @@ int main(int argc, char *argv[]) {
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .xqc_open_log_file = xqc_client_open_log_file,
-                    .xqc_close_log_file = xqc_client_close_log_file,
-                    .xqc_write_log_file = xqc_client_write_log_file,
+                    .xqc_log_write_err = xqc_client_write_log,
             },
             .save_session_cb = save_session_cb,
             .save_tp_cb = save_tp_cb,
@@ -1216,5 +1227,8 @@ int main(int argc, char *argv[]) {
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);
+
+    xqc_client_close_log_file(&ctx);
+
     return 0;
 }
