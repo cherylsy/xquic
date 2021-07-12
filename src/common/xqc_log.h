@@ -119,9 +119,6 @@ void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const c
         } \
     } while (0)
 
-
-extern const xqc_log_callbacks_t xqc_null_log_cb;
-
 void xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level);
 
 

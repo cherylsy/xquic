@@ -4,15 +4,6 @@
 FILE *g_malloc_info_fp;
 #endif
 
-void 
-xqc_write_log_default(const void *buf, size_t count, void *user_data)
-{
-    return 0;
-}
-
-const xqc_log_callbacks_t xqc_null_log_cb = {
-    .xqc_write_log_err = xqc_write_log_default,
-};
 
 const char*
 xqc_log_level_str(xqc_log_level_t level)

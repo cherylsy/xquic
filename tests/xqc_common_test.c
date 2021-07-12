@@ -204,6 +204,16 @@ null_set_event_timer(xqc_msec_t wake_after, void *engine_user_data)
     return;
 }
 
+void 
+xqc_write_log_default(const void *buf, size_t count, void *user_data)
+{
+    return;
+}
+
+const xqc_log_callbacks_t xqc_null_log_cb = {
+    .xqc_write_log_err = xqc_write_log_default,
+};
+
 xqc_engine_t* 
 test_create_engine()
 {
