@@ -111,7 +111,7 @@ xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_typ
 
 
 xqc_int_t
-xqc_engine_set_config(xqc_engine_t *engine, xqc_config_t *config)
+xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config)
 {
     return xqc_set_config(engine->config, config);
 }
@@ -148,7 +148,7 @@ xqc_engine_config_destroy(xqc_config_t *config)
 void
 xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level)
 {
-    xqc_log_level_set(engine->log, level);
+    xqc_log_level_set(engine->log, log_level);
 }
 
 
