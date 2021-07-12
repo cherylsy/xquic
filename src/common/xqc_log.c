@@ -4,7 +4,7 @@
 FILE *g_malloc_info_fp;
 #endif
 
-ssize_t 
+void 
 xqc_write_log_default(const void *buf, size_t count, void *user_data)
 {
     return 0;
