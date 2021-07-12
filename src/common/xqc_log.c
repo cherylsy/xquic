@@ -4,29 +4,6 @@
 FILE *g_malloc_info_fp;
 #endif
 
-int 
-xqc_open_log_file_default(void *user_data)
-{
-    return 0;
-}
-
-int 
-xqc_close_log_file_default(void *user_data)
-{
-    return 0;
-}
-
-ssize_t 
-xqc_write_log_file_default(const void *buf, size_t count, void *user_data)
-{
-    return 0;
-}
-
-const xqc_log_callbacks_t xqc_null_log_cb = {
-    .xqc_open_log_file = xqc_open_log_file_default,
-    .xqc_close_log_file = xqc_close_log_file_default,
-    .xqc_write_log_file = xqc_write_log_file_default,
-};
 
 const char*
 xqc_log_level_str(xqc_log_level_t level)
@@ -61,12 +38,12 @@ xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level)
 void
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...)
 {
-    unsigned char buf[2048];
+    unsigned char buf[XQC_MAX_LOG_LEN];
     unsigned char *p = buf;
     unsigned char *last = buf + sizeof(buf);
 
     /* do not need time & level if use outside log format */
-    if (log->log_callbacks->xqc_log_write_err == NULL) {
+    if (log->log_timestamp) {
         /* time */
         char time[64];
         xqc_log_time(time);
@@ -97,10 +74,9 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
 
     } else if (log->log_callbacks->xqc_log_write_err) {
         log->log_callbacks->xqc_log_write_err(buf, p - buf, log->user_data);
-
-    } else {
-        log->log_callbacks->xqc_write_log_file(buf, p - buf, log->user_data);
     }
+
+    /* if didn't set log callback, just return */
 }
 
 void

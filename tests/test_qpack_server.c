@@ -598,7 +598,8 @@ xqc_server_engine_callback(int fd, short what, void *arg)
 }
 
 
-int xqc_server_open_log_file(void *engine_user_data)
+int 
+xqc_server_open_log_file(void *engine_user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
     ctx->log_fd = open("./slog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
@@ -608,7 +609,8 @@ int xqc_server_open_log_file(void *engine_user_data)
     return 0;
 }
 
-int xqc_server_close_log_file(void *engine_user_data)
+int 
+xqc_server_close_log_file(void *engine_user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
@@ -618,14 +620,24 @@ int xqc_server_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_server_write_log_file(const void *buf, size_t count, void *engine_user_data)
+void 
+xqc_server_write_log(const void *buf, size_t count, void *engine_user_data)
 {
+    unsigned char log_buf[XQC_MAX_LOG_LEN + 1];
+
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
-        return -1;
+        printf("xqc_server_write_log fd err\n");
+        return;
     }
-    return write(ctx->log_fd, buf, count);
+    int log_len = snprintf(log_buf, XQC_MAX_LOG_LEN + 1, "%s\n", (char*)buf);
+    if (log_len < 0) {
+        printf("xqc_server_write_log err\n");
+        return;
+    }
+    write(ctx->log_fd, log_buf, count);
 }
+
 
 void stop(int signo)
 {
@@ -655,6 +667,8 @@ int main(int argc, char *argv[]) {
         }
 
     }
+
+    xqc_server_open_log_file(&ctx);    
 
     memset(&ctx, 0, sizeof(ctx));
 
@@ -707,9 +721,7 @@ int main(int argc, char *argv[]) {
             .write_socket = xqc_server_send,
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
-                    .xqc_open_log_file = xqc_server_open_log_file,
-                    .xqc_close_log_file = xqc_server_close_log_file,
-                    .xqc_write_log_file = xqc_server_write_log_file,
+                    .xqc_log_write_err = xqc_server_write_log,
             },
     };
 
@@ -751,5 +763,7 @@ int main(int argc, char *argv[]) {
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx.engine);
+    xqc_server_close_log_file(&ctx);  
+
     return 0;
 }

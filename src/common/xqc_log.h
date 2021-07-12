@@ -33,18 +33,17 @@ typedef struct xqc_log_s
 } xqc_log_t;
 
 static inline xqc_log_t *
-xqc_log_init(xqc_log_level_t log_level, xqc_log_callbacks_t *log_callbacks, void *user_data)
+xqc_log_init(xqc_log_level_t log_level, 
+    xqc_flag_t log_timestamp, xqc_log_callbacks_t *log_callbacks, void *user_data)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
-    log->log_level = log_level;
-    log->user_data = user_data;
-
-    int ret = log_callbacks->xqc_open_log_file(user_data);
-    if (ret < 0) {
-        printf("open file failed\n");
-        xqc_free(log);
+    if (log == NULL) {
         return NULL;
     }
+    
+    log->log_level = log_level;
+    log->user_data = user_data;
+    log->log_timestamp = log_timestamp;
     log->log_callbacks = log_callbacks;
     return log;
 }
@@ -52,7 +51,6 @@ xqc_log_init(xqc_log_level_t log_level, xqc_log_callbacks_t *log_callbacks, void
 static inline void
 xqc_log_release(xqc_log_t* log)
 {
-    log->log_callbacks->xqc_close_log_file(log->user_data);
     xqc_free(log);
     log = NULL;
 }
@@ -120,9 +118,6 @@ void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const c
             xqc_log_implement(log, XQC_LOG_DEBUG, __FUNCTION__, __VA_ARGS__); \
         } \
     } while (0)
-
-
-extern const xqc_log_callbacks_t xqc_null_log_cb;
 
 void xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level);
 

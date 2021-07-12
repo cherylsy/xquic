@@ -1,9 +1,11 @@
 #include <CUnit/CUnit.h>
 
+#include <xquic/xquic.h>
 #include "xqc_common_test.h"
 #include "src/common/xqc_object_manager.h"
 #include "src/common/xqc_rbtree.h"
 #include "src/common/xqc_fifo.h"
+
 
 typedef struct person_s
 {
@@ -203,6 +205,16 @@ null_set_event_timer(xqc_msec_t wake_after, void *engine_user_data)
 {
     return;
 }
+
+void 
+xqc_write_log_default(const void *buf, size_t count, void *user_data)
+{
+    return;
+}
+
+const xqc_log_callbacks_t xqc_null_log_cb = {
+    .xqc_log_write_err = xqc_write_log_default,
+};
 
 xqc_engine_t* 
 test_create_engine()

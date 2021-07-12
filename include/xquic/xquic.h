@@ -149,13 +149,8 @@ typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn
 
 
 /* log interface */
+#define XQC_MAX_LOG_LEN 2048
 typedef struct xqc_log_callbacks_s {
-    /* return 0 for success, -1 for error */
-    int (*xqc_open_log_file)(void *engine_user_data);
-    int (*xqc_close_log_file)(void *engine_user_data);
-    /* return bytes write, -1 for error*/
-    ssize_t (*xqc_write_log_file)(const void *buf, size_t size, void *engine_user_data);
-
     void (*xqc_log_write_err)(const void *buf, size_t size, void *engine_user_data);
     void (*xqc_log_write_stat)(const void *buf, size_t size, void *engine_user_data);
 } xqc_log_callbacks_t;
@@ -258,6 +253,7 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb;
  */
 typedef struct xqc_config_s {
     xqc_log_level_t cfg_log_level;
+    xqc_flag_t      cfg_log_timestamp;
     size_t          conn_pool_size;
     size_t          streams_hash_bucket_size;
     size_t          conns_hash_bucket_size;
