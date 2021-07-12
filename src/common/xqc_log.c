@@ -61,7 +61,7 @@ xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level)
 void
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...)
 {
-    unsigned char buf[2048];
+    unsigned char buf[XQC_MAX_LOG_LEN];
     unsigned char *p = buf;
     unsigned char *last = buf + sizeof(buf);
 
