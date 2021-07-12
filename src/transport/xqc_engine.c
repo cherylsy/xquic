@@ -24,6 +24,7 @@
 
 
 xqc_config_t default_client_config = {
+    .cfg_log_level = XQC_LOG_WARN,
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
     .conns_hash_bucket_size = 1024,
@@ -37,6 +38,7 @@ xqc_config_t default_client_config = {
 
 
 xqc_config_t default_server_config = {
+    .cfg_log_level = XQC_LOG_WARN,
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
     .conns_hash_bucket_size = 1024*1024, //不能扩展，连接多了查找性能
@@ -90,6 +92,7 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
     }
 
     dst->cid_negotiate = src->cid_negotiate;
+    dst->cfg_log_level = src->cfg_log_level;
 
     return XQC_OK;
 }
@@ -335,7 +338,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     xqc_engine_set_callback(engine, engine_callback);
     engine->user_data = user_data;
 
-    engine->log = xqc_log_init(&engine->eng_callback.log_callbacks, engine->user_data);
+    engine->log = xqc_log_init(engine->config.cfg_log_level, &engine->eng_callback.log_callbacks, engine->user_data);
     if (engine->log == NULL) {
         goto fail;
     }

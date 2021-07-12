@@ -1287,7 +1287,7 @@ int main(int argc, char *argv[]) {
     if (g_test_case == 2) {
         memset(&callback.stream_callbacks, 0, sizeof(callback.stream_callbacks));
     }
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, NULL, &config, &engine_ssl_config, &callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config, &callback, &ctx);
 
     if(ctx.engine == NULL){
         printf("error create engine\n");
