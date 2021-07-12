@@ -26,7 +26,8 @@
 
 typedef struct xqc_log_s
 {
-    xqc_log_level_t     log_level; /*日志级别*/
+    xqc_log_level_t      log_level;         
+    xqc_flag_t           log_timestamp; /* 1:add timestamp before log, 0:don't need timestamp */
     xqc_log_callbacks_t *log_callbacks;
     void *user_data;
 } xqc_log_t;
