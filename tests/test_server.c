@@ -1209,9 +1209,7 @@ int main(int argc, char *argv[]) {
         .server_accept = xqc_server_accept,
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
-            .xqc_open_log_file = xqc_server_open_log_file,
-            .xqc_close_log_file = xqc_server_close_log_file,
-            .xqc_write_log_file = xqc_server_write_log_file,
+            .xqc_log_write_err = xqc_server_write_log,
         },
         .keylog_cb = xqc_keylog_cb,
     };

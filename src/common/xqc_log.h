@@ -39,11 +39,13 @@ xqc_log_init(xqc_log_level_t log_level, xqc_log_callbacks_t *log_callbacks, void
     log->log_level = log_level;
     log->user_data = user_data;
 
-    int ret = log_callbacks->xqc_open_log_file(user_data);
-    if (ret < 0) {
-        printf("open file failed\n");
-        xqc_free(log);
-        return NULL;
+    if (log_callbacks->xqc_open_log_file) {
+        int ret = log_callbacks->xqc_open_log_file(user_data);
+        if (ret < 0) {
+            printf("open file failed\n");
+            xqc_free(log);
+            return NULL;
+        }
     }
     log->log_callbacks = log_callbacks;
     return log;
@@ -52,7 +54,9 @@ xqc_log_init(xqc_log_level_t log_level, xqc_log_callbacks_t *log_callbacks, void
 static inline void
 xqc_log_release(xqc_log_t* log)
 {
-    log->log_callbacks->xqc_close_log_file(log->user_data);
+    if (log->log_callbacks->xqc_close_log_file) {
+        log->log_callbacks->xqc_close_log_file(log->user_data);
+    }
     xqc_free(log);
     log = NULL;
 }
