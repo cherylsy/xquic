@@ -998,7 +998,7 @@ xqc_client_write_log(const void *buf, size_t count, void *engine_user_data)
         printf("xqc_client_write_log err\n");
         return;
     }
-    write(ctx->log_fd, log_buf, count);
+    write(ctx->log_fd, log_buf, log_len);
 }
 
 
