@@ -1786,8 +1786,6 @@ int main(int argc, char *argv[]) {
         .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
         .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
         .log_callbacks = {
-                .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_STATS: XQC_LOG_DEBUG),
-                //.log_level = XQC_LOG_INFO,
                 .xqc_open_log_file = xqc_client_open_log_file,
                 .xqc_close_log_file = xqc_client_close_log_file,
                 .xqc_write_log_file = xqc_client_write_log_file,
@@ -1845,6 +1843,17 @@ int main(int argc, char *argv[]) {
             .spurious_loss_detect_on = 0,
     };
 
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
+        return -1;
+    }
+    config.cfg_log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_STATS: XQC_LOG_DEBUG);
+
+    /* test different cid_len */
+    if (g_test_case == 13) {
+        config.cid_len = XQC_MAX_CID_LEN;
+    }
+
     /* check draft-29 version */
     if (g_test_case == 17) {
         conn_settings.proto_version = XQC_IDRAFT_VER_29;
@@ -1868,13 +1877,7 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
-    if (g_test_case == 13) {//test different cid_len
-        xqc_config_t config;
-        config.cid_len = XQC_MAX_CID_LEN;
-        xqc_set_engine_config(&config, XQC_ENGINE_CLIENT);
-    }
-
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, &engine_ssl_config, &callback, &ctx);
     if (ctx.engine == NULL) {
         printf("xqc_engine_create error\n");
         return -1;

@@ -23,10 +23,9 @@ xqc_write_log_file_default(const void *buf, size_t count, void *user_data)
 }
 
 const xqc_log_callbacks_t xqc_null_log_cb = {
-        .xqc_open_log_file = xqc_open_log_file_default,
-        .xqc_close_log_file = xqc_close_log_file_default,
-        .xqc_write_log_file = xqc_write_log_file_default,
-        .log_level = XQC_LOG_STATS,
+    .xqc_open_log_file = xqc_open_log_file_default,
+    .xqc_close_log_file = xqc_close_log_file_default,
+    .xqc_write_log_file = xqc_write_log_file_default,
 };
 
 const char*
@@ -50,6 +49,14 @@ xqc_log_level_str(xqc_log_level_t level)
         return "unknown";
     }
 }
+
+
+void
+xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level)
+{
+    log->log_level = level;
+}
+
 
 void
 xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...)
@@ -77,9 +84,7 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     p = xqc_vsprintf(p, last, fmt, args);
     va_end(args);
 
-    if (p + 2 < last) {
-        /* \n */
-        *p++ = '\n';
+    if (p + 1 < last) {
         /* may use printf("%s") outside, add '\0' and don't count into size */
         *p = '\0';
     }

@@ -158,8 +158,6 @@ typedef struct xqc_log_callbacks_s {
 
     void (*xqc_log_write_err)(const void *buf, size_t size, void *engine_user_data);
     void (*xqc_log_write_stat)(const void *buf, size_t size, void *engine_user_data);
-
-    xqc_log_level_t log_level;
 } xqc_log_callbacks_t;
 
 /* transport layer */
@@ -259,15 +257,16 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb;
  * QUIC config parameters
  */
 typedef struct xqc_config_s {
-    size_t      conn_pool_size;
-    size_t      streams_hash_bucket_size;
-    size_t      conns_hash_bucket_size;
-    size_t      conns_active_pq_capacity;
-    size_t      conns_wakeup_pq_capacity;
-    uint32_t    support_version_list[XQC_SUPPORT_VERSION_MAX];/* 支持的版本列表 */
-    uint32_t    support_version_count;                        /* 版本列表数量 */
-    uint8_t     cid_len;
-    uint8_t     cid_negotiate; /* just for server, default:0 */
+    xqc_log_level_t cfg_log_level;
+    size_t          conn_pool_size;
+    size_t          streams_hash_bucket_size;
+    size_t          conns_hash_bucket_size;
+    size_t          conns_active_pq_capacity;
+    size_t          conns_wakeup_pq_capacity;
+    uint32_t        support_version_list[XQC_SUPPORT_VERSION_MAX];/* 支持的版本列表 */
+    uint32_t        support_version_count;                        /* 版本列表数量 */
+    uint8_t         cid_len;
+    uint8_t         cid_negotiate; /* just for server, default:0 */
 } xqc_config_t;
 
 
@@ -424,7 +423,8 @@ extern xqc_timestamp_pt xqc_monotonic_timestamp; //获取单调递增的时间�
  * Item value 0 means use default value.
  * @return 0 for success, <0 for error. default value is used if config item is illegal
  */
-int xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config);
+
 
 /**
  * For server, it can be called anytime. settings will take effect on new connections
@@ -437,12 +437,20 @@ void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
+    const xqc_config_t *engine_config,
     const xqc_engine_ssl_config_t *ssl_config,
     const xqc_engine_callback_t *engine_callback,
     void *user_data);
 
 XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);
+
+/**
+ * Set engine log level, call after engine is created
+ * @param log_level engine will print logs which level >= log_level
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
 
 
 /**
@@ -792,7 +800,7 @@ XQC_EXPORT_PUBLIC_API
 void xqc_engine_main_logic (xqc_engine_t *engine);
 
 XQC_EXPORT_PUBLIC_API
-int xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
 
 
 /**

@@ -1196,8 +1196,6 @@ int main(int argc, char *argv[]) {
         .server_accept = xqc_server_accept,
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
-            .log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG),
-            //.log_level = XQC_LOG_INFO,
             .xqc_open_log_file = xqc_server_open_log_file,
             .xqc_close_log_file = xqc_server_close_log_file,
             .xqc_write_log_file = xqc_server_write_log_file,
@@ -1267,34 +1265,28 @@ int main(int argc, char *argv[]) {
 
     xqc_server_set_conn_settings(&conn_settings);
 
-    eb = event_base_new();
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
+        return -1;
+    }
+    config.cfg_log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_WARN: XQC_LOG_DEBUG);
 
+    eb = event_base_new();
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
     /* test server cid negotiate */
     if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6 || g_sid_len != 0) {
 
         callback.cid_generate_cb = xqc_server_cid_generate;
-    
-        xqc_config_t config;
-        if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
-            return -1;
-        }
-
         config.cid_negotiate = 1;
         config.cid_len = XQC_MAX_CID_LEN;
-
-        if (xqc_set_engine_config(&config, XQC_ENGINE_SERVER) < 0) {
-            printf("set engine config error\n");
-            return -1;
-        }
     }
 
     /* test NULL stream callback */
     if (g_test_case == 2) {
         memset(&callback.stream_callbacks, 0, sizeof(callback.stream_callbacks));
     }
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, &callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config, &callback, &ctx);
 
     if(ctx.engine == NULL){
         printf("error create engine\n");

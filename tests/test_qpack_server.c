@@ -707,8 +707,6 @@ int main(int argc, char *argv[]) {
             .write_socket = xqc_server_send,
             .set_event_timer = xqc_server_set_event_timer,
             .log_callbacks = {
-                    .log_level = XQC_LOG_DEBUG,
-                    //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_server_open_log_file,
                     .xqc_close_log_file = xqc_server_close_log_file,
                     .xqc_write_log_file = xqc_server_write_log_file,
@@ -727,7 +725,13 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &engine_ssl_config, &callback, &ctx);
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_SERVER) < 0) {
+        return -1;
+    }
+    config.cfg_log_level = XQC_LOG_DEBUG;
+
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, NULL, &engine_ssl_config, &callback, &ctx);
 
     if(ctx.engine == NULL){
         printf("error create engine\n");

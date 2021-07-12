@@ -24,6 +24,7 @@
 
 
 xqc_config_t default_client_config = {
+    .cfg_log_level = XQC_LOG_WARN,
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
     .conns_hash_bucket_size = 1024,
@@ -37,6 +38,7 @@ xqc_config_t default_client_config = {
 
 
 xqc_config_t default_server_config = {
+    .cfg_log_level = XQC_LOG_WARN,
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
     .conns_hash_bucket_size = 1024*1024, //不能扩展，连接多了查找性能
@@ -90,12 +92,13 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
     }
 
     dst->cid_negotiate = src->cid_negotiate;
+    dst->cfg_log_level = src->cfg_log_level;
 
     return XQC_OK;
 }
 
 
-int
+xqc_int_t
 xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type)
 {
     if (engine_type == XQC_ENGINE_SERVER) {
@@ -107,23 +110,10 @@ xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_typ
 }
 
 
-/* TODO: Obsolete */
-int
-xqc_set_engine_config(xqc_config_t *config, xqc_engine_type_t engine_type)
-{
-    if (engine_type == XQC_ENGINE_SERVER) {
-        return xqc_set_config(&default_server_config, config);
-
-    } else {
-        return xqc_set_config(&default_client_config, config);
-    }
-}
-
-
 xqc_int_t
-xqc_engine_set_config(xqc_engine_t *engine, xqc_config_t *config)
+xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config)
 {
-    return xqc_set_config(engine->config, config);
+    return xqc_set_config(engine->config, engine_config);
 }
 
 
@@ -152,6 +142,13 @@ void
 xqc_engine_config_destroy(xqc_config_t *config)
 {
     xqc_free(config);
+}
+
+
+void
+xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level)
+{
+    xqc_log_level_set(engine->log, log_level);
 }
 
 
@@ -312,6 +309,7 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
  */
 xqc_engine_t *
 xqc_engine_create(xqc_engine_type_t engine_type, 
+    const xqc_config_t *engine_config,
     const xqc_engine_ssl_config_t *ssl_config,
     const xqc_engine_callback_t *engine_callback, 
     void *user_data)
@@ -331,10 +329,16 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
+    if (engine_config != NULL
+        && xqc_engine_set_config(engine, engine_config) != XQC_OK) 
+    {
+        goto fail;
+    }
+
     xqc_engine_set_callback(engine, engine_callback);
     engine->user_data = user_data;
 
-    engine->log = xqc_log_init(&engine->eng_callback.log_callbacks, engine->user_data);
+    engine->log = xqc_log_init(engine->config->cfg_log_level, &engine->eng_callback.log_callbacks, engine->user_data);
     if (engine->log == NULL) {
         goto fail;
     }

@@ -215,7 +215,7 @@ test_create_engine()
     };
 
     xqc_conn_settings_t conn_settings;
-    return xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, NULL);
+    return xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config, &callback, NULL);
 }
 
 const xqc_cid_t* 

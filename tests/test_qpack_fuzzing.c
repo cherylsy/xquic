@@ -871,8 +871,6 @@ client_ctx_t * client_create_context_new(){
             .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
             .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
             .log_callbacks = {
-                    .log_level = XQC_LOG_ERROR,
-                    //.log_level = XQC_LOG_INFO,
                     .xqc_open_log_file = xqc_client_open_log_file,
                     .xqc_close_log_file = xqc_client_close_log_file,
                     .xqc_write_log_file = xqc_client_write_log_file,
@@ -900,7 +898,13 @@ client_ctx_t * client_create_context_new(){
     tv.tv_usec = 0;
     event_add(ctx->ev_conc, &tv);
 
-    ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, &callback, ctx);
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
+        return NULL;
+    }
+    config.cfg_log_level = XQC_LOG_ERROR;
+
+    ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, &engine_ssl_config, &callback, ctx);
 
     if(ctx->engine == NULL){
         return NULL;

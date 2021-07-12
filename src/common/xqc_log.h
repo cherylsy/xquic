@@ -26,16 +26,17 @@
 
 typedef struct xqc_log_s
 {
-    xqc_log_level_t     log_level; /*日志级别*/
+    xqc_log_level_t      log_level;         
+    xqc_flag_t           log_timestamp; /* 1:add timestamp before log, 0:don't need timestamp */
     xqc_log_callbacks_t *log_callbacks;
     void *user_data;
 } xqc_log_t;
 
 static inline xqc_log_t *
-xqc_log_init(xqc_log_callbacks_t *log_callbacks, void *user_data)
+xqc_log_init(xqc_log_level_t log_level, xqc_log_callbacks_t *log_callbacks, void *user_data)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
-    log->log_level = log_callbacks->log_level;
+    log->log_level = log_level;
     log->user_data = user_data;
 
     int ret = log_callbacks->xqc_open_log_file(user_data);
@@ -120,7 +121,11 @@ void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const c
         } \
     } while (0)
 
+
 extern const xqc_log_callbacks_t xqc_null_log_cb;
+
+void xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level);
+
 
 #endif /*_XQC_H_LOG_INCLUDED_*/
 
