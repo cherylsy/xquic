@@ -66,7 +66,7 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     unsigned char *last = buf + sizeof(buf);
 
     /* do not need time & level if use outside log format */
-    if (log->log_callbacks->xqc_log_write_err == NULL) {
+    if (log->log_timestamp) {
         /* time */
         char time[64];
         xqc_log_time(time);

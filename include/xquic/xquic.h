@@ -259,6 +259,7 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb;
  */
 typedef struct xqc_config_s {
     xqc_log_level_t cfg_log_level;
+    xqc_flag_t      cfg_log_timestamp;
     size_t          conn_pool_size;
     size_t          streams_hash_bucket_size;
     size_t          conns_hash_bucket_size;

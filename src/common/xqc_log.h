@@ -33,11 +33,13 @@ typedef struct xqc_log_s
 } xqc_log_t;
 
 static inline xqc_log_t *
-xqc_log_init(xqc_log_level_t log_level, xqc_log_callbacks_t *log_callbacks, void *user_data)
+xqc_log_init(xqc_log_level_t log_level, 
+    xqc_flag_t log_timestamp, xqc_log_callbacks_t *log_callbacks, void *user_data)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
     log->log_level = log_level;
     log->user_data = user_data;
+    log->log_timestamp = log_timestamp;
 
     if (log_callbacks->xqc_open_log_file) {
         int ret = log_callbacks->xqc_open_log_file(user_data);
