@@ -213,7 +213,7 @@ xqc_write_log_default(const void *buf, size_t count, void *user_data)
 }
 
 const xqc_log_callbacks_t xqc_null_log_cb = {
-    .xqc_write_log_err = xqc_write_log_default,
+    .xqc_log_write_err = xqc_write_log_default,
 };
 
 xqc_engine_t* 
