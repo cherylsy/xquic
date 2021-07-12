@@ -936,20 +936,22 @@ xqc_server_close_log_file(void *engine_user_data)
 }
 
 
-ssize_t 
+void 
 xqc_server_write_log(const void *buf, size_t count, void *engine_user_data)
 {
     unsigned char log_buf[XQC_MAX_LOG_LEN + 1];
 
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
-        return -1;
+        printf("xqc_server_write_log fd err\n");
+        return;
     }
     int log_len = snprintf(log_buf, XQC_MAX_LOG_LEN + 1, "%s\n", (char*)buf);
     if (log_len < 0) {
-        return -1;
+        printf("xqc_server_write_log err\n");
+        return;
     }
-    return write(ctx->log_fd, log_buf, count);
+    write(ctx->log_fd, log_buf, count);
 }
 
 
