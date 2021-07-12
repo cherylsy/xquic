@@ -4,28 +4,14 @@
 FILE *g_malloc_info_fp;
 #endif
 
-int 
-xqc_open_log_file_default(void *user_data)
-{
-    return 0;
-}
-
-int 
-xqc_close_log_file_default(void *user_data)
-{
-    return 0;
-}
-
 ssize_t 
-xqc_write_log_file_default(const void *buf, size_t count, void *user_data)
+xqc_write_log_default(const void *buf, size_t count, void *user_data)
 {
     return 0;
 }
 
 const xqc_log_callbacks_t xqc_null_log_cb = {
-    .xqc_open_log_file = xqc_open_log_file_default,
-    .xqc_close_log_file = xqc_close_log_file_default,
-    .xqc_write_log_file = xqc_write_log_file_default,
+    .xqc_write_log_err = xqc_write_log_default,
 };
 
 const char*

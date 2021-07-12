@@ -151,12 +151,6 @@ typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn
 /* log interface */
 #define XQC_MAX_LOG_LEN 2048
 typedef struct xqc_log_callbacks_s {
-    /* return 0 for success, -1 for error */
-    int (*xqc_open_log_file)(void *engine_user_data);
-    int (*xqc_close_log_file)(void *engine_user_data);
-    /* return bytes write, -1 for error*/
-    ssize_t (*xqc_write_log_file)(const void *buf, size_t size, void *engine_user_data);
-
     void (*xqc_log_write_err)(const void *buf, size_t size, void *engine_user_data);
     void (*xqc_log_write_stat)(const void *buf, size_t size, void *engine_user_data);
 } xqc_log_callbacks_t;
