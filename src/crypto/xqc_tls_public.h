@@ -9,11 +9,12 @@
 #include <xquic/xquic_typedef.h>
 #include "src/common/xqc_str.h"
 #include "src/common/xqc_list.h"
-#include "src/crypto/xqc_crypto.h"
-#include "src/transport/xqc_frame.h"
-#include "src/crypto/xqc_tls_if.h"
-#include "src/transport/xqc_defs.h"
 #include "src/common/xqc_malloc.h"
+#include "src/crypto/xqc_crypto.h"
+#include "src/crypto/xqc_tls_if.h"
+#include "src/transport/xqc_frame.h"
+#include "src/transport/xqc_defs.h"
+
 
 #ifdef WORDS_BIGENDIAN
 #  define bswap64(N) (N)
@@ -67,9 +68,6 @@
 #define INITIAL_SECRET_MAX_LEN  32
 
 #define XQC_INITIAL_AEAD_OVERHEAD XQC_TLS_AEAD_OVERHEAD_MAX_LEN
-
-
-extern const char *xqc_crypto_initial_salt[];
 
 
 typedef enum {
