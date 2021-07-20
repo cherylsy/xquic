@@ -26,10 +26,10 @@ extern "C" {
 typedef enum xqc_proto_version_s {
 
     XQC_IDRAFT_INIT_VER,            /* placeholder */
+
     XQC_VERSION_V1,                 /* former version of QUIC RFC */
 
     XQC_IDRAFT_VER_29,              /* IETF Draft-29 */
-    XQC_IDRAFT_VER_33,              /* IETF Draft-33 */
 
     XQC_IDRAFT_VER_NEGOTIATION,     /* Special version for version negotiation. */
 

@@ -26,7 +26,7 @@
 
 #define XQC_PROTO_VERSION_LEN 4
 
-extern uint32_t xqc_proto_version_value[];
+extern const uint32_t xqc_proto_version_value[];
 extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
 
 
@@ -35,9 +35,9 @@ extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
 
 
 /**
- * xquic tls definitions
+ * Initial salt for handshake
  */
-extern const char* xqc_crypto_initial_salt[];
+extern const char* const xqc_crypto_initial_salt[];
 
 
 #endif
