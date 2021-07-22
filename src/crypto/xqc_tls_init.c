@@ -340,60 +340,108 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
 }
 
 
-#define XQC_MAX_VERIFY_DEPTH 10  /* the default max depth of cert chain if 10 */
-int
+#define XQC_MAX_VERIFY_DEPTH 100  /* the default max depth of cert chain is 100 */
+static int
 xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
-    int i = 0, err_code = 0;
+    int i = 0, err_code = 0, ssl_rc = 0;
     size_t certs_array_len = 0;
-    unsigned char *certs_array[XQC_MAX_VERIFY_DEPTH];
-    size_t cert_len_array[XQC_MAX_VERIFY_DEPTH];
+    unsigned char *certs_array[XQC_MAX_VERIFY_DEPTH]={0};
+    size_t certs_len[XQC_MAX_VERIFY_DEPTH]={0};
 
-    if (preverify_ok == XQC_SSL_FAIL) {
-        SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
-        xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
-        if ((ssl == NULL) || (conn == NULL)) {
-            if (conn) {
-                xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed because ssl NULL|");
-                XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
-            }
-            return preverify_ok;
-        }
+    if (preverify_ok == XQC_SSL_SUCCESS) {
+        return preverify_ok;
+    }
 
-        err_code = X509_STORE_CTX_get_error(ctx);
-        if (err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
-            || err_code == X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
-        {
-            const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
-            certs_array_len = sk_CRYPTO_BUFFER_num(chain);
-            if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
-                preverify_ok = XQC_SSL_FAIL;
-                return preverify_ok;
-            }
-
-            for (i = 0; i < certs_array_len; i++) {
-                CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
-                certs_array[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
-                cert_len_array[i] = (size_t)CRYPTO_BUFFER_len(buffer);
-            }
-
-            if (conn->tlsref.cert_verify_cb != NULL) {
-                if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, cert_len_array, certs_array_len, 
-                                                 xqc_conn_get_user_data(conn)) < 0) 
-                {
-                    preverify_ok = XQC_SSL_FAIL;
-
-                } else {
-                    preverify_ok = XQC_SSL_SUCCESS;
-                }
-            }
-
-        } else { /* other err_code should log */
-            xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed with err_code:%d|", err_code);
+    SSL *ssl = X509_STORE_CTX_get_ex_data(ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl);
+    if ((ssl == NULL) || (conn == NULL)) {
+        if (conn) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed because ssl NULL|");
             XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
+        }
+        return preverify_ok;
+    }
+
+    err_code = X509_STORE_CTX_get_error(ctx);
+    if (err_code != X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
+        && err_code != X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
+    {
+        /* other err_code should log */
+        xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed with err_code:%d|", err_code);
+        XQC_CONN_ERR(conn, TRA_HS_CERTIFICATE_VERIFY_FAIL);
+
+        preverify_ok = XQC_SSL_FAIL;
+        return preverify_ok;
+    }
+
+#ifdef OPENSSL_IS_BORINGSSL
+    const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
+
+    certs_array_len = sk_CRYPTO_BUFFER_num(chain);
+    if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
+        preverify_ok = XQC_SSL_FAIL;
+
+        err_code = X509_V_ERR_CERT_CHAIN_TOO_LONG;
+        X509_STORE_CTX_set_error(ctx, err_code);
+
+        return preverify_ok;
+    }
+
+    for (i = 0; i < certs_array_len; i++) {
+        CRYPTO_BUFFER * buffer = sk_CRYPTO_BUFFER_value(chain, i);
+        certs_array[i] = (unsigned char *)CRYPTO_BUFFER_data(buffer);
+        certs_len[i] = (size_t)CRYPTO_BUFFER_len(buffer);
+    }
+
+#else 
+    unsigned char *cert_buf = NULL;
+    X509 *cert = NULL;
+    int cert_size = 0;
+    const STACK_OF(X509) *chain = X509_STORE_CTX_get_chain(ctx);
+
+    certs_array_len = sk_X509_num(chain);
+    if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
+        preverify_ok = XQC_SSL_FAIL;
+
+        err_code = X509_V_ERR_CERT_CHAIN_TOO_LONG;
+        X509_STORE_CTX_set_error(ctx, err_code);
+
+        return preverify_ok;
+    }
+
+    for (i = 0; i < certs_array_len; i++) {
+        cert = sk_X509_value(chain, i);
+
+        cert_size = i2d_X509(cert, &cert_buf);
+        if (cert_size <= 0) {
+            preverify_ok = XQC_SSL_FAIL;
+            break;
+        }
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|i=%d|cert_size=%d|", i, cert_size);
+        certs_array[i] = cert_buf;
+        certs_len[i] = cert_size;   
+    }
+#endif
+
+    if (conn->tlsref.cert_verify_cb != NULL) {
+        if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, certs_len, certs_array_len, 
+                                        xqc_conn_get_user_data(conn)) < 0) 
+        {
+            preverify_ok = XQC_SSL_FAIL;
+
+        } else {
+            preverify_ok = XQC_SSL_SUCCESS;
         }
     }
 
+#ifndef OPENSSL_IS_BORINGSSL
+    for (i = 0; i < certs_array_len; i++) {
+        if(certs_array[i] != NULL) {
+            OPENSSL_free(certs_array[i]);
+        }
+    }
+#endif
     return preverify_ok;
 }
 
