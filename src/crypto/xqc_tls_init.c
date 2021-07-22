@@ -170,8 +170,12 @@ xqc_tlsref_zero(xqc_tlsref_t * tlsref)
  */
 xqc_int_t
 xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
-    const char *hostname, const xqc_conn_ssl_config_t *sc, const char *alpn, xqc_cid_t *dcid, uint16_t no_crypto_flag)
+    const char *hostname, const xqc_conn_ssl_config_t *sc, const char *alpn, 
+    xqc_cid_t *dcid, uint16_t no_crypto_flag)
 {
+    xqc_int_t ret = XQC_ERROR;
+    int ssl_rc = 0; /* for ssl return code */
+
     xqc_tlsref_t *tlsref = &conn->tlsref;
     xqc_tlsref_zero(tlsref);
     tlsref->conn = conn;
@@ -230,29 +234,30 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
 
     const unsigned char *out;
     size_t outlen;
-    int rv = xqc_serialize_client_transport_params(conn,
+    ret = xqc_serialize_client_transport_params(conn,
             XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &out, &outlen);
-    if (rv != XQC_OK) {
+    if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|serialize client transport params error|");
         return XQC_ERROR;
     }
 
-    rv = SSL_set_quic_transport_params(conn->xc_ssl, out, outlen);
+    ssl_rc = SSL_set_quic_transport_params(conn->xc_ssl, out, outlen);
     xqc_transport_parames_serialization_free((void*)out);
-    if (rv != XQC_SSL_SUCCESS) {
+    if (ssl_rc != XQC_SSL_SUCCESS) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|set client transport params error|");
         return XQC_ERROR;
     }
 
     xqc_conn_ssl_config_t *config = &conn->tlsref.conn_ssl_config;
     if ((config->transport_parameter_data_len > 0) 
-        && (config->transport_parameter_data != NULL)) {
+        && (config->transport_parameter_data != NULL))
+    {
         xqc_transport_params_t params;
         memset(&params, 0, sizeof(xqc_transport_params_t));
         if (xqc_read_transport_params(config->transport_parameter_data,
                     config->transport_parameter_data_len, &params) == XQC_OK)
         {
-            int ret = xqc_conn_set_early_remote_transport_params(conn, &params);
+            ret = xqc_conn_set_early_remote_transport_params(conn, &params);
             if (ret != XQC_OK) {
                 xqc_log(conn->log, XQC_LOG_DEBUG, 
                         "|set early remote transport params failed|error_code:%d|", ret);
@@ -721,10 +726,9 @@ xqc_client_setup_initial_crypto_context(xqc_connection_t *conn, xqc_cid_t *dcid)
 {
     uint8_t initial_secret[INITIAL_SECRET_MAX_LEN] = { 0 };
     uint8_t secret[INITIAL_SECRET_MAX_LEN] = { 0 };
-    int rv = xqc_derive_initial_secret(
-                initial_secret, sizeof(initial_secret), dcid,
-                (const uint8_t*)(xqc_crypto_initial_salt[conn->version]),
-                strlen(xqc_crypto_initial_salt[conn->version]));
+    int rv = xqc_derive_initial_secret(initial_secret, sizeof(initial_secret), dcid,
+                                       (const uint8_t*)(xqc_crypto_initial_salt[conn->version]),
+                                       strlen(xqc_crypto_initial_salt[conn->version]));
     if (rv != 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive initial secret failed|");
         return -XQC_TLS_NOKEY;
