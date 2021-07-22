@@ -116,7 +116,12 @@ typedef void (*xqc_path_created_notify_pt)(const xqc_cid_t *scid, uint64_t path_
 typedef void (*xqc_path_removed_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
     void *conn_user_data);
 
-/* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */
+/**
+ * client certificate verify callback
+ * @param certs[] X509 certificates in DER format
+ * @param cert_len[] lengths of X509 certificates in DER format
+ * @return 0 for success, -1 for verify failed and xquic will close the connection 
+ */
 typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cert_len[], size_t certs_len, void *conn_user_data);
 
 /**

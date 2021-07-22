@@ -413,20 +413,31 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     for (i = 0; i < certs_array_len; i++) {
         cert = sk_X509_value(chain, i);
 
-        cert_size = i2d_X509(cert, &cert_buf);
+        cert_size = i2d_X509_AUX(cert, NULL);
         if (cert_size <= 0) {
             preverify_ok = XQC_SSL_FAIL;
             break;
         }
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|i=%d|cert_size=%d|", i, cert_size);
+        cert_buf = xqc_malloc(cert_size);
+        if (cert_buf == NULL) {
+            preverify_ok = XQC_SSL_FAIL;
+            break;
+        }
         certs_array[i] = cert_buf;
-        certs_len[i] = cert_size;   
+        cert_size = i2d_X509_AUX(cert, &cert_buf);
+        if (cert_size <= 0) {
+            preverify_ok = XQC_SSL_FAIL;
+            break;
+        }
+        certs_len[i] = cert_size;
+
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|i=%d|cert_size=%d|", i, cert_size);
     }
 #endif
 
     if (conn->tlsref.cert_verify_cb != NULL) {
-        if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, certs_len, certs_array_len, 
-                                        xqc_conn_get_user_data(conn)) < 0) 
+        if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, certs_len, 
+                                        certs_array_len, xqc_conn_get_user_data(conn)) < 0) 
         {
             preverify_ok = XQC_SSL_FAIL;
 
@@ -438,7 +449,7 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 #ifndef OPENSSL_IS_BORINGSSL
     for (i = 0; i < certs_array_len; i++) {
         if(certs_array[i] != NULL) {
-            OPENSSL_free(certs_array[i]);
+            xqc_free(certs_array[i]);
         }
     }
 #endif

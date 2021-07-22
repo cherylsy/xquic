@@ -1577,7 +1577,7 @@ int
 xqc_client_cert_verify(const unsigned char *certs[], 
     const size_t cert_len[], size_t certs_len, void *conn_user_data)
 {
-    return 1;
+    return 0;
 }
 
 
