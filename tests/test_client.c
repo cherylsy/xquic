@@ -135,6 +135,8 @@ int g_header_cnt = 0;
 int g_ping_id = 1;
 int g_enable_multipath = 0;
 int g_verify_cert = 0;
+int g_verify_cert_allow_self_sign = 0;
+
 char g_multi_interface[XQC_DEMO_MAX_PATH_COUNT][64];
 xqc_user_path_t g_client_path[XQC_DEMO_MAX_PATH_COUNT];
 int g_multi_interface_cnt = 0;
@@ -1577,6 +1579,7 @@ int
 xqc_client_cert_verify(const unsigned char *certs[], 
     const size_t cert_len[], size_t certs_len, void *conn_user_data)
 {
+    /* self-signed cert used in test cases, return >= 0 means success */
     return 0;
 }
 
@@ -1612,6 +1615,7 @@ void usage(int argc, char *argv[]) {
 "   -x    Test case ID\n"
 "   -N    No encryption\n"
 "   -6    IPv6\n"
+"   -V    Force cert verification. 0: don't allow self-signed cert. 1: allow self-signed cert.\n"
 , prog);
 }
 
@@ -1642,7 +1646,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -1763,6 +1767,7 @@ int main(int argc, char *argv[]) {
             case 'V':
                 printf("option enable cert verify: %s\n", "yes");
                 g_verify_cert = 1;
+                g_verify_cert_allow_self_sign = atoi(optarg);
                 break;
             default:
                 printf("other option :%c\n", ch);
@@ -1944,7 +1949,10 @@ int main(int argc, char *argv[]) {
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
 
     if (g_verify_cert) {
-        conn_ssl_config.cert_verify_flag = 1;
+        conn_ssl_config.cert_verify_flag |= XQC_TLS_CERT_FLAG_NEED_VERIFY;
+        if (g_verify_cert_allow_self_sign) {
+            conn_ssl_config.cert_verify_flag |= XQC_TLS_CERT_FLAG_ALLOW_SELF_SIGNED;
+        }
     }
 
     char session_ticket_data[8192]={0};

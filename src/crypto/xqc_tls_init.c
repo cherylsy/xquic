@@ -341,6 +341,7 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
 
 
 #define XQC_MAX_VERIFY_DEPTH 100  /* the default max depth of cert chain is 100 */
+#define XQC_TLS_SELF_SIGNED_CERT(err_code)  (err_code == X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT || err_code == X509_V_ERR_SELF_SIGNED_CERT_IN_CHAIN)
 static int
 xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 {
@@ -365,7 +366,9 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
     err_code = X509_STORE_CTX_get_error(ctx);
     if (err_code != X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
-        && err_code != X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY)
+        && err_code != X509_V_ERR_UNABLE_TO_GET_ISSUER_CERT_LOCALLY
+        && !((conn->tlsref.cert_verify_flag & XQC_TLS_CERT_FLAG_ALLOW_SELF_SIGNED) != 0
+             && XQC_TLS_SELF_SIGNED_CERT(err_code)))
     {
         /* other err_code should log */
         xqc_log(conn->log, XQC_LOG_ERROR, "|certificate verify failed with err_code:%d|", err_code);
@@ -771,7 +774,9 @@ xqc_create_client_ssl(xqc_engine_t *engine, xqc_connection_t *conn,
         }
     }
 
-    if (sc->cert_verify_flag) { /* cert_verify_flag default value is 0 */
+    if (sc->cert_verify_flag & XQC_TLS_CERT_FLAG_NEED_VERIFY) { 
+
+        conn->tlsref.cert_verify_flag = sc->cert_verify_flag;
 
         if (X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname)) != XQC_SSL_SUCCESS) {
             xqc_log(conn->log,  XQC_LOG_DEBUG, "|centificate verify set hostname failed|");  /* hostname set failed need log */

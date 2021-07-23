@@ -346,12 +346,19 @@ typedef struct xqc_engine_ssl_config_s {
     int        alpn_list_len;               /* For server */
 } xqc_engine_ssl_config_t;
 
+
+
+typedef enum {
+    XQC_TLS_CERT_FLAG_NEED_VERIFY        = 1 << 0,
+    XQC_TLS_CERT_FLAG_ALLOW_SELF_SIGNED  = 1 << 1,
+} xqc_cert_verify_flag_e;
+
 typedef struct xqc_conn_ssl_config_s {
     char       *session_ticket_data;             /* For client, client should Use the domain as the key to save */
     size_t      session_ticket_len;              /* For client */
     char       *transport_parameter_data;        /* For client, client should Use the domain as the key to save */
     size_t      transport_parameter_data_len;    /* For client */
-    uint8_t     cert_verify_flag;                /* For client certificate verify flag, now only boringssl lib support cert_verify_flag */
+    uint8_t     cert_verify_flag;                /* For client certificate verify, bit-map flag defined in xqc_cert_verify_flag_e */
 } xqc_conn_ssl_config_t;
 
 

@@ -311,6 +311,8 @@ struct xqc_tlsref
     xqc_save_session_pt     save_session_cb;
     xqc_save_trans_param_pt save_tp_cb;
     xqc_cert_verify_pt      cert_verify_cb;
+    uint8_t                 cert_verify_flag;
+
     void *                  tp_user_data;
     void *                  session_user_data;
 
