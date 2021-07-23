@@ -257,6 +257,21 @@ else
     echo "$errlog"
 fi
 
+
+clear_log
+./test_client -s 1024000 -l e -t 1 -E -1 -V 1 > stdlog
+echo -e "Cert verify ...\c"
+result=`grep ">>>>>>>> pass:" stdlog`
+echo "$result"
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "cert_verify" "pass"
+else
+    case_print_result "cert_verify" "fail"
+    echo "$errlog"
+fi
+
+
 clear_log
 echo -e "1RTT ...\c"
 ./test_client -s 1024000 -l e -t 1 -E -1 > stdlog

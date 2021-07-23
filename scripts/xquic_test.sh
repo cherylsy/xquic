@@ -4,7 +4,7 @@ function generate_cert() {
     if [[ ! -f "server.key" || ! -f "server.crt" ]]; then
     keyfile=server.key
     certfile=server.crt
-    openssl req -newkey rsa:2048 -x509 -nodes -keyout "$keyfile" -new -out "$certfile" -subj /CN=localhost
+    openssl req -newkey rsa:2048 -x509 -nodes -keyout "$keyfile" -new -out "$certfile" -subj /CN=test.xquic.com
     fi
 }
 

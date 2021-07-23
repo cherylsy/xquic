@@ -116,7 +116,12 @@ typedef void (*xqc_path_created_notify_pt)(const xqc_cid_t *scid, uint64_t path_
 typedef void (*xqc_path_removed_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
     void *conn_user_data);
 
-/* client certificate verify callback, return 0 for success, -1 for verify failed and xquic will close the connection */
+/**
+ * client certificate verify callback
+ * @param certs[] X509 certificates in DER format
+ * @param cert_len[] lengths of X509 certificates in DER format
+ * @return 0 for success, -1 for verify failed and xquic will close the connection 
+ */
 typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cert_len[], size_t certs_len, void *conn_user_data);
 
 /**
@@ -341,12 +346,19 @@ typedef struct xqc_engine_ssl_config_s {
     int        alpn_list_len;               /* For server */
 } xqc_engine_ssl_config_t;
 
+
+
+typedef enum {
+    XQC_TLS_CERT_FLAG_NEED_VERIFY        = 1 << 0,
+    XQC_TLS_CERT_FLAG_ALLOW_SELF_SIGNED  = 1 << 1,
+} xqc_cert_verify_flag_e;
+
 typedef struct xqc_conn_ssl_config_s {
-    char       *session_ticket_data;            /* For client, client should Use the domain as the key to save */
-    size_t     session_ticket_len;              /* For client */
-    char       *transport_parameter_data;       /* For client, client should Use the domain as the key to save */
-    size_t     transport_parameter_data_len;    /* For client */
-    int        cert_verify_flag;                /* For client certificate verify flag, now only boringssl lib support cert_verify_flag */
+    char       *session_ticket_data;             /* For client, client should Use the domain as the key to save */
+    size_t      session_ticket_len;              /* For client */
+    char       *transport_parameter_data;        /* For client, client should Use the domain as the key to save */
+    size_t      transport_parameter_data_len;    /* For client */
+    uint8_t     cert_verify_flag;                /* For client certificate verify, bit-map flag defined in xqc_cert_verify_flag_e */
 } xqc_conn_ssl_config_t;
 
 

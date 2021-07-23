@@ -32,8 +32,8 @@
 #define XQC_TRUE 1
 #define XQC_FALSE 0
 
-#define XQC_SSL_SUCCESS   1  /* openssl or boringssl 1 表示成功 */
-#define XQC_SSL_FAIL      0  /* openssl or boringssl 0 表示失败 */
+#define XQC_SSL_SUCCESS   1  /* openssl or boringssl 1 success */
+#define XQC_SSL_FAIL      0  /* openssl or boringssl 0 failure */
 
 #define XQC_SERVER 1
 #define XQC_CLIENT 0
@@ -310,7 +310,9 @@ struct xqc_tlsref
 
     xqc_save_session_pt     save_session_cb;
     xqc_save_trans_param_pt save_tp_cb;
-    xqc_cert_verify_pt      cert_verify_cb; /* now only for borring ssl */
+    xqc_cert_verify_pt      cert_verify_cb;
+    uint8_t                 cert_verify_flag;
+
     void *                  tp_user_data;
     void *                  session_user_data;
 
