@@ -379,7 +379,7 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     const STACK_OF(CRYPTO_BUFFER) *chain = SSL_get0_peer_certificates(ssl);
 
     certs_array_len = sk_CRYPTO_BUFFER_num(chain);
-    if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
+    if (certs_array_len > XQC_MAX_VERIFY_DEPTH) {
         preverify_ok = XQC_SSL_FAIL;
 
         err_code = X509_V_ERR_CERT_CHAIN_TOO_LONG;
