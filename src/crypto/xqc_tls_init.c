@@ -413,18 +413,20 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     for (i = 0; i < certs_array_len; i++) {
         cert = sk_X509_value(chain, i);
 
-        cert_size = i2d_X509_AUX(cert, NULL);
+        cert_size = i2d_X509(cert, NULL);
         if (cert_size <= 0) {
             preverify_ok = XQC_SSL_FAIL;
             break;
         }
-        cert_buf = xqc_malloc(cert_size);
-        if (cert_buf == NULL) {
+
+        /* remember to free memory before return */
+        certs_array[i] = xqc_malloc(cert_size);
+        if (certs_array[i] == NULL) {
             preverify_ok = XQC_SSL_FAIL;
             break;
         }
-        certs_array[i] = cert_buf;
-        cert_size = i2d_X509_AUX(cert, &cert_buf);
+        cert_buf = certs_array[i];
+        cert_size = i2d_X509(cert, &cert_buf);  /* this function modify cert_buf inside, use temp variable */
         if (cert_size <= 0) {
             preverify_ok = XQC_SSL_FAIL;
             break;
