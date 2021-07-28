@@ -247,7 +247,7 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                 break;
             default:
                 xqc_log(conn->log, XQC_LOG_ERROR, "|unknown frame type|");
-                return -XQC_EILLPKT;
+                return -XQC_EIGNORE_PKT;
         }
 
         if (ret != XQC_OK) {

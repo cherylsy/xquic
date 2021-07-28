@@ -153,7 +153,7 @@ xqc_packet_parse_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     } else {
         xqc_log(c->log, XQC_LOG_INFO, "unknown packet type, first byte[%d], "
                 "skip all buf, skip length: %d", pos[0], packet_in->last - packet_in->pos);
-        return -XQC_EIGNORE;
+        return -XQC_EIGNORE_PKT;
     }
 
     return ret;
@@ -179,12 +179,13 @@ xqc_packet_decrypt_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     } else {
         if (ret == -XQC_TLS_DATA_REJECT) {
             xqc_log(c->log, XQC_LOG_DEBUG, "|decrypt early data reject, continue|");
-            ret = -XQC_EIGNORE;
+            ret = -XQC_EIGNORE_PKT;
 
         } else {
             xqc_log(c->log, XQC_LOG_WARN, "|decrypt data error, return|%d|pkt_type:%s|pkt_num:%ui|",
                     ret, xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type), packet_in->pi_pkt.pkt_num);
             ret = -XQC_EILLPKT;
+            /* don't close connection, just drop the packet */
         }
         return ret;
     }
@@ -195,7 +196,7 @@ xqc_packet_decrypt_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
 xqc_int_t
 xqc_packet_process_single(xqc_connection_t *c,
-                          xqc_packet_in_t *packet_in)
+    xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret = XQC_ERROR;
 

@@ -661,7 +661,7 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
         stream->stream_data_in.next_read_offset = stream->stream_data_in.next_read_offset + data_len;
         if (ret < 0) {
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|recv_crypto_data error: %d|", ret);
-            return -XQC_EILLPKT;
+            return -XQC_EILLEGAL_FRAME;
         }
     }
 

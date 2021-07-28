@@ -2352,7 +2352,7 @@ xqc_conn_on_pkt_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 uint8_t
 xqc_conn_tolerant_error(xqc_int_t ret)
 {
-    if (-XQC_EVERSION == ret || -XQC_EILLPKT == ret || -XQC_EWAITING == ret || -XQC_EIGNORE == ret) {
+    if (-XQC_EVERSION == ret || -XQC_EILLPKT == ret || -XQC_EWAITING == ret || -XQC_EIGNORE_PKT == ret) {
         return XQC_TRUE;
     }
 
