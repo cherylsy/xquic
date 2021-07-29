@@ -93,7 +93,8 @@ err:
 }
 
 xqc_int_t
-xqc_setup_crypto_ctx(xqc_connection_t * conn, xqc_encrypt_level_t level, const uint8_t *secret, size_t secretlen,
+xqc_setup_crypto_ctx(xqc_connection_t * conn, 
+    xqc_encrypt_level_t level, const uint8_t *secret, size_t secretlen,
     uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
     uint8_t *iv, size_t *ivlen,
     uint8_t *hp, size_t *hplen)

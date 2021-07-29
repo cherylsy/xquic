@@ -65,7 +65,7 @@ typedef enum {
     XQC_EVINTREAD                       = 601,      // 解析帧错误
     XQC_ENULLPTR                        = 602,      // 空指针，一般是申请内存失败
     XQC_EMALLOC                         = 603,      // 申请内存失败
-    XQC_EILLPKT                         = 604,      // 非法报文
+    XQC_EILLPKT                         = 604,      // illegal packet, don't close connection, just drop it
     XQC_ELEVEL                          = 605,      // 加密等级错误
     XQC_ECREATE_CONN                    = 606,      // 创建连接失败
     XQC_CLOSING                         = 607,      // 连接正在关闭，拒绝操作
@@ -92,11 +92,13 @@ typedef enum {
     XQC_EFINAL_SIZE                     = 628,      // STREAM帧final size错误
     XQC_EVERSION                        = 629,      // version不支持，需要协商
     XQC_EWAITING                        = 630,      // 需要等待
-    XQC_EIGNORE                         = 631,      // 忽略
+    XQC_EIGNORE_PKT                     = 631,      // ignore unknown packet / frame, don't close connection
     XQC_EGENERATE_CID                   = 632,      // CID 生成错误
     XQC_EANTI_AMPLIFICATION_LIMIT       = 633,      // server reached the anti-amplification limit
     XQC_ECONN_NO_AVAIL_CID              = 634,      // no available cid
     XQC_ECONN_CID_NOT_FOUND             = 635,      // can't find cid in connection
+    XQC_EILLEGAL_FRAME                  = 636,      // illegal stream & frame, close connection
+
 
     XQC_EMP_NOT_SUPPORT_MP              = 650,      // Multipath - don't support multipath
     XQC_EMP_NO_AVAIL_PATH_ID            = 651,      // Multipath - no available path id

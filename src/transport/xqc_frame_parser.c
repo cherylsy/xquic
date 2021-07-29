@@ -166,7 +166,7 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
             return -XQC_EVINTREAD;
         }
         if (length > end - p) {
-            return -XQC_EILLPKT;
+            return -XQC_EILLEGAL_FRAME;
         }
         p += vlen;
         frame->data_length = length;
@@ -1241,7 +1241,7 @@ xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsi
         return -XQC_ENOBUF;
     }
     if (p + recv_token_len > end) {
-        return -XQC_EILLPKT;
+        return -XQC_EILLEGAL_FRAME;
     }
     xqc_memcpy(token, p, recv_token_len);
     *token_len = recv_token_len;
