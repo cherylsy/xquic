@@ -157,6 +157,7 @@ typedef enum {
     XQC_TLS_CRYPTO_CTX_NEGOTIATED_ERROR = 738, 
     XQC_TLS_SET_TRANSPORT_PARAM_ERROR   = 739,
     XQC_TLS_SET_CIPHER_SUITES_ERROR     = 740,
+    XQC_TLS_DERIVE_KEY_ERROR            = 741,
 
     XQC_TLS_ERR_MAX,
 } xqc_tls_error_t;
