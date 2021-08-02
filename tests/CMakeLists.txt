@@ -40,7 +40,6 @@ if(HAVE_CUNIT)
     xqc_common_test.c
     xqc_vint_test.c
     xqc_packet_test.c
-    xqc_tls_init_test.c
     xqc_tls_cb_test.c
   )
 
@@ -55,7 +54,6 @@ if(HAVE_CUNIT)
     xqc_common_test.c
     xqc_vint_test.c
     xqc_packet_test.c
-    xqc_tls_init_test.c
     xqc_tls_cb_test.c
   )
 
@@ -71,7 +69,6 @@ if(HAVE_CUNIT)
     xqc_common_test.c
     xqc_vint_test.c
     xqc_packet_test.c
-    xqc_tls_init_test.c
     xqc_tls_cb_test.c
   )
 
@@ -86,7 +83,6 @@ if(HAVE_CUNIT)
     xqc_common_test.c
     xqc_vint_test.c
     xqc_packet_test.c
-    xqc_tls_init_test.c
     xqc_tls_cb_test.c
   )
 
