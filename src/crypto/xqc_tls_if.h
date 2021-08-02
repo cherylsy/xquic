@@ -12,6 +12,15 @@
 #include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_packet.h"
 
+
+typedef struct xqc_ssl_session_ticket_key_s{
+    size_t                      size;
+    uint8_t                     name[16];
+    uint8_t                     hmac_key[32];
+    uint8_t                     aes_key[32];
+} xqc_ssl_session_ticket_key_t;
+
+
 typedef struct {
     const uint8_t *stateless_reset_token;
     const uint8_t *rand;

@@ -10,13 +10,6 @@ typedef enum {
     XQC_ENG_FLAG_RUNNING    = 1 << 0,
 } xqc_engine_flag_t;
 
-typedef struct xqc_ssl_session_ticket_key_s{
-    size_t                      size;
-    uint8_t                     name[16];
-    uint8_t                     hmac_key[32];
-    uint8_t                     aes_key[32];
-} xqc_ssl_session_ticket_key_t;
-
 typedef struct xqc_engine_s {
     xqc_engine_type_t       eng_type;
 
