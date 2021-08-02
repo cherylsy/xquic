@@ -470,11 +470,6 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     }
     pos += size;
 
-    if (XQC_BUFF_LEFT_SIZE(pos, end) < length) {
-        xqc_log(c->log, XQC_LOG_ERROR, "|last offset error|");
-        return -XQC_EILLPKT;
-    }
-
     packet_in->last = pos + length;
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
@@ -653,7 +648,7 @@ int xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 }
 
 
-int 
+xqc_int_t 
 xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_pkt_type_t pkt_type = packet_in->pi_pkt.pkt_type;
@@ -772,8 +767,10 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     char *decrypt_buf = (char *) (packet_in->decode_payload);
     unsigned char *payload = pkt + pkt_num_offset + packet_number_len;
     size_t payload_len = packet_in->pi_pkt.length - packet_number_len;
-    nwrite = (int)decrypt_func(conn, decrypt_buf, packet_in->decode_payload_size, payload, payload_len, ckm->key.base,
-                          ckm->key.len, nonce, ckm->iv.len, header_decrypt, header_len, (void*) encrypt_level, p_ctx->aead_decrypter);
+    nwrite = (int)decrypt_func(conn, decrypt_buf, packet_in->decode_payload_size, 
+                               payload, payload_len, ckm->key.base, ckm->key.len, 
+                               nonce, ckm->iv.len, header_decrypt, header_len, 
+                               (void*) encrypt_level, p_ctx->aead_decrypter);
 
     if (nwrite < 0 || nwrite > payload_len) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt_func return error:%d|", nwrite);
