@@ -66,14 +66,6 @@ int recv_session_ticket(xqc_connection_t * conn, char * buf, int recv_len){
         xqc_crypto_km_t *p_ckm = & pktns -> rx_ckm;
         //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
         xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
-#if 0
-        printf("decrypt key:\n");
-        hex_print(p_ckm->key.base, p_ckm->key.len);
-        printf("nonce:\n");
-        hex_print(nonce, p_ckm->iv.len);
-        printf("aead:\n");
-        hex_print(pkt_header, TEST_PKT_HEADER_LEN);
-#endif
 
         char decrypt_buf[2048];
         int nwrite = decrypt(conn, decrypt_buf, sizeof(decrypt_buf), encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
@@ -82,10 +74,6 @@ int recv_session_ticket(xqc_connection_t * conn, char * buf, int recv_len){
             return 0;
             //break;
         }
-#if 0
-        printf("decrypt %d bytes:\n", nwrite);
-        hex_print(decrypt_buf, nwrite);
-#endif
 
         conn->tlsref.callbacks.recv_crypto_data(conn, 0, decrypt_buf, nwrite, NULL);
 
@@ -139,28 +127,12 @@ int send_buf_packet( xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encryp
             memcpy(pkt_data, buf->data, buf->data_len);
             xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
 
-#if 0
-            printf("encrypt key:\n");
-            hex_print(p_ckm->key.base, p_ckm->key.len);
-            printf("nonce:\n");
-            hex_print(nonce, p_ckm->iv.len);
-            printf("aead:\n");
-            hex_print(pkt_header, TEST_PKT_HEADER_LEN);
-
-            printf("do encrypt %d bytes\n", buf->data_len);
-            hex_print(pkt_data, buf->data_len);
-
-#endif
             size_t nwrite = encrypt_func(conn, pkt_data, sizeof(send_buf) - TEST_PKT_HEADER_LEN, pkt_data, buf->data_len, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_header, TEST_PKT_HEADER_LEN, NULL);
 
             if(nwrite <= 0){
                 printf("error encrypt\n");
                 return -1;
             }
-#if 0
-            printf("encrypt %d bytes\n", nwrite);
-            hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
-#endif
             int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
             printf("client send data:%d\n", nwrite + TEST_PKT_HEADER_LEN);
             hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
@@ -261,14 +233,7 @@ int recv_server_hello(xqc_connection_t * conn){
         xqc_crypto_km_t *p_ckm = & pktns -> rx_ckm;
         //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
         xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
-#if 0
-        printf("decrypt key:\n");
-        hex_print(p_ckm->key.base, p_ckm->key.len);
-        printf("nonce:\n");
-        hex_print(nonce, p_ckm->iv.len);
-        printf("aead:\n");
-        hex_print(pkt_header, TEST_PKT_HEADER_LEN);
-#endif
+
         char decrypt_buf[2048];
         int nwrite = decrypt(conn, decrypt_buf, sizeof(decrypt_buf), encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
         if(nwrite < 0){
