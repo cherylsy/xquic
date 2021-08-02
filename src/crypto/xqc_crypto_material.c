@@ -123,14 +123,18 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,
         break;
     }
 
-    if (xqc_negotiated_aead_and_prf(ctx, cipher_id) == XQC_OK) {
-        // 计算密钥套件所需的key nonce 和 hp
-        if (xqc_derive_packet_protection(ctx, secret, secretlen, key, keylen, iv, ivlen, hp, hplen, conn->log) == XQC_SSL_SUCCESS) {
-            return XQC_OK ; 
-        }           
+    if (xqc_negotiated_aead_and_prf(ctx, cipher_id) != XQC_OK) {
+        XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR);
+        return -XQC_TLS_CRYPTO_CTX_NEGOTIATED_ERROR;
     }
-    
-    return -XQC_TLS_CRYPTO_CTX_NEGOTIATED_ERROR ;
+
+    // 计算密钥套件所需的key nonce 和 hp
+    if (xqc_derive_packet_protection(ctx, secret, secretlen, key, keylen, iv, ivlen, hp, hplen, conn->log) != XQC_SSL_SUCCESS) {
+        XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR);
+        return -XQC_TLS_DERIVE_KEY_ERROR ;
+    }
+
+    return XQC_OK ;
 }
 
 int xqc_derive_initial_secret(uint8_t *dest, size_t destlen,
