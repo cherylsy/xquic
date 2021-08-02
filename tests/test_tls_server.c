@@ -89,15 +89,6 @@ int send_server_handshake(xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_e
             memcpy(pkt_data, buf->data, buf->data_len);
             xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
 
-#if 0
-            printf("encrypt key:\n");
-            hex_print(p_ckm->key.base, p_ckm->key.len);
-            printf("nonce:\n");
-            hex_print(nonce, p_ckm->iv.len);
-            printf("aead:\n");
-            hex_print(pkt_header, TEST_PKT_HEADER_LEN);
-#endif
-
             printf("do encrypt %d bytes\n", buf->data_len);
             hex_print(pkt_data, buf->data_len);
 
@@ -107,10 +98,6 @@ int send_server_handshake(xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_e
                 printf("error encrypt\n");
                 return -1;
             }
-#if 0
-            printf("encrypt %d bytes\n", nwrite);
-            hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
-#endif
 
             int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (struct sockaddr *)(p_client_addr), sizeof(struct sockaddr_in));
             buf->data_len = 0;
@@ -187,9 +174,9 @@ int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
 
         if(nwrite > 0) {
 
-        printf("decrypt %d bytes\n",nwrite);
+            printf("decrypt %d bytes\n",nwrite);
 
-        hex_print(buf, nwrite);
+            hex_print(buf, nwrite);
         }else{
 
             printf("error decrypt data\n");
@@ -271,15 +258,6 @@ int recv_client_hello( xqc_connection_t *conn, struct sockaddr_in * p_client_add
         xqc_crypto_km_t *p_ckm = & pktns->rx_ckm;
         //xqc_vec_t  * p_hp = & p_pktns->tx_hp;
         xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
-
-#if 0
-        printf("decrypt key:\n");
-        hex_print(p_ckm->key.base, p_ckm->key.len);
-        printf("nonce:\n");
-        hex_print(nonce, p_ckm->iv.len);
-        printf("aead:\n");
-        hex_print(pkt_header, TEST_PKT_HEADER_LEN);
-#endif
 
         size_t nwrite = decrypt(conn, recv_buf, buf_len, encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
 

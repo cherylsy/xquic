@@ -9,22 +9,22 @@
 
 /** private */
 
-static
-int xqc_crypto_km_new(xqc_crypto_km_t * p_ckm, const uint8_t *key,
-                                 size_t keylen, const uint8_t *iv, size_t ivlen){
-
-    if(xqc_vec_assign(&p_ckm->key, key, keylen) < 0){
-        return -1;
+static xqc_int_t 
+xqc_crypto_km_new(xqc_crypto_km_t *p_ckm, 
+    const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen)
+{
+    if (xqc_vec_assign(&p_ckm->key, key, keylen) < 0) {
+        return -XQC_EMALLOC;
     }
 
-    if(xqc_vec_assign(&p_ckm->iv, iv, ivlen) < 0){
-        return -1;
+    if (xqc_vec_assign(&p_ckm->iv, iv, ivlen) < 0) {
+        return -XQC_EMALLOC;
     }
 
     p_ckm->pkt_num = 0;
     p_ckm->flags = XQC_CRYPTO_KM_FLAG_NONE;
-    return 0;
 
+    return XQC_OK;
 }
 
 int
