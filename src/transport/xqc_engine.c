@@ -704,11 +704,11 @@ void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * con
 void
 xqc_engine_main_logic(xqc_engine_t *engine)
 {
-    if (engine->engine_flag & XQC_ENG_FLAG_RUNNING) {
+    if (engine->eng_flag & XQC_ENG_FLAG_RUNNING) {
         xqc_log(engine->log, XQC_LOG_DEBUG, "|engine is running|");
         return;
     }
-    engine->engine_flag |= XQC_ENG_FLAG_RUNNING;
+    engine->eng_flag |= XQC_ENG_FLAG_RUNNING;
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|");
 
@@ -844,7 +844,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
         engine->eng_callback.set_event_timer(wake_after, engine->user_data);
     }
 
-    engine->engine_flag &= ~XQC_ENG_FLAG_RUNNING;
+    engine->eng_flag &= ~XQC_ENG_FLAG_RUNNING;
     return;
 }
 

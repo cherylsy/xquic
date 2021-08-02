@@ -17,7 +17,7 @@ typedef struct xqc_engine_s {
     /* for engine itself */
     xqc_engine_type_t       eng_type;
     xqc_engine_callback_t   eng_callback;
-    xqc_engine_flag_t       engine_flag;
+    xqc_engine_flag_t       eng_flag;
 
     /* for connections */
     xqc_config_t           *config;
