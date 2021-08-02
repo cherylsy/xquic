@@ -11,31 +11,36 @@ typedef enum {
 } xqc_engine_flag_t;
 
 typedef struct xqc_engine_s {
+    /* for engine itself */
     xqc_engine_type_t       eng_type;
-
     xqc_engine_callback_t   eng_callback;
-    xqc_config_t           *config;
-    xqc_str_hash_table_t   *conns_hash; /*scid*/
-    xqc_str_hash_table_t   *conns_hash_dcid; /*For reset packet*/
-    xqc_pq_t               *conns_active_pq; /* In process */
-    xqc_wakeup_pq_t        *conns_wait_wakeup_pq; /* Need wakeup after next tick time */
-
-    xqc_log_t              *log;
-    xqc_random_generator_t *rand_generator;
-
-    void                   *user_data;
-
-    SSL_CTX                *ssl_ctx;  //for ssl
-    BIO_METHOD             *ssl_meth; //for ssl bio method
-    xqc_engine_ssl_config_t       ssl_config; //ssl config, such as cipher suit, cert file path etc.
-    xqc_ssl_session_ticket_key_t  session_ticket_key;
-
-    xqc_h3_context_t       *h3_ctx;
-
     xqc_engine_flag_t       engine_flag;
+
+    /* for connections */
+    xqc_config_t           *config;
+    xqc_str_hash_table_t   *conns_hash;             /* scid */
+    xqc_str_hash_table_t   *conns_hash_dcid;        /* For reset packet */
+    xqc_pq_t               *conns_active_pq;        /* In process */
+    xqc_wakeup_pq_t        *conns_wait_wakeup_pq;   /* Need wakeup after next tick time */
 #define XQC_RESET_CNT_ARRAY_LEN 16384
     uint8_t                 reset_sent_cnt[XQC_RESET_CNT_ARRAY_LEN]; /* remote addr hash */
     xqc_usec_t              reset_sent_cnt_cleared;
+
+    /* for tls */
+    SSL_CTX                *ssl_ctx;                /* for ssl */
+    BIO_METHOD             *ssl_meth;               /* for ssl bio method */ 
+    xqc_engine_ssl_config_t       ssl_config;       /* ssl config, such as cipher suit, cert file path etc. */
+    xqc_ssl_session_ticket_key_t  session_ticket_key;
+
+    /* for http3 */
+    xqc_h3_context_t       *h3_ctx;
+
+    /* common */
+    xqc_log_t              *log;
+    xqc_random_generator_t *rand_generator;
+
+    /* for user */
+    void                   *user_data;
 }xqc_engine_t;
 
 xqc_usec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
