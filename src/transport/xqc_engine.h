@@ -6,7 +6,7 @@
 
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
-#include "src/transport/crypto/xqc_tls_if.h"
+#include "src/crypto/xqc_tls_if.h"
 
 
 typedef enum {
