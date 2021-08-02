@@ -244,8 +244,7 @@ xqc_ossl_aead_decrypt_ex(const xqc_aead_t * aead, EVP_CIPHER_CTX *actx, uint8_t 
     }
 
     outlen = len;
-    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_TAG, taglen,
-                (uint8_t *)(tag)) != XQC_SSL_SUCCESS) {
+    if (EVP_CIPHER_CTX_ctrl(actx, EVP_CTRL_AEAD_SET_TAG, taglen, (uint8_t *)(tag)) != XQC_SSL_SUCCESS) {
         return -XQC_TLS_INTERNAL;
     }
 

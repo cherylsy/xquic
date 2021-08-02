@@ -628,7 +628,8 @@ xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
     return stream;
 }
 
-int xqc_read_crypto_stream(xqc_stream_t * stream)
+xqc_int_t 
+xqc_read_crypto_stream(xqc_stream_t * stream)
 {
     xqc_list_head_t *pos, *next;
 
@@ -649,23 +650,23 @@ int xqc_read_crypto_stream(xqc_stream_t * stream)
             continue;
         }
 
-        size_t data_len =
-                stream_frame->data_offset + stream_frame->data_length - stream->stream_data_in.next_read_offset;
-        char *data_start = stream_frame->data + (stream->stream_data_in.next_read_offset - stream_frame->data_offset);
+        size_t data_len = stream_frame->data_offset + stream_frame->data_length - stream->stream_data_in.next_read_offset;
+        unsigned char *data_start = stream_frame->data + (stream->stream_data_in.next_read_offset - stream_frame->data_offset);
+
+        stream->stream_data_in.next_read_offset = stream->stream_data_in.next_read_offset + data_len;
 
         int ret = conn->tlsref.callbacks.recv_crypto_data(conn, 0, data_start, data_len, stream->stream_encrypt_level ,NULL);
 
         xqc_list_del(pos);
         xqc_destroy_stream_frame(stream_frame);
 
-        stream->stream_data_in.next_read_offset = stream->stream_data_in.next_read_offset + data_len;
         if (ret < 0) {
             xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|recv_crypto_data error: %d|", ret);
             return -XQC_EILLEGAL_FRAME;
         }
     }
 
-    return 0;
+    return XQC_OK;
 }
 
 int 
