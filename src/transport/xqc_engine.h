@@ -2,9 +2,12 @@
 #ifndef _XQC_ENGINE_H_INCLUDED_
 #define _XQC_ENGINE_H_INCLUDED_
 
+#include <openssl/ssl.h>
+
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
-#include <openssl/ssl.h>
+#include "src/transport/crypto/xqc_tls_if.h"
+
 
 typedef enum {
     XQC_ENG_FLAG_RUNNING    = 1 << 0,
