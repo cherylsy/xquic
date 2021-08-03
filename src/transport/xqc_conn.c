@@ -353,6 +353,8 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     xqc_connection_t *conn;
     xqc_cid_t new_scid;
 
+    xqc_cid_copy(&new_scid, scid);
+
     /* Server enable cid negotiate, or client initial dcid length not equal to server config length. 
      *
      * If use the peer's dcid as scid directly, must make sure
@@ -370,9 +372,6 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return NULL;
         }
-    } else {
-
-        xqc_cid_copy(&new_scid, scid);
     }
 
     conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
