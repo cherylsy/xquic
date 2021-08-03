@@ -34,8 +34,6 @@ xqc_conn_settings_t default_conn_settings = {
     .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath = 0,
     .spurious_loss_detect_on = 0,
-    .cid_pid_offset   = 0,
-    .cid_pid_len      = 0,
 };
 
 void
@@ -54,9 +52,6 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     if (xqc_check_proto_version_valid(settings->proto_version)) {
         default_conn_settings.proto_version = settings->proto_version;
     }
-
-    default_conn_settings.cid_pid_offset = settings->cid_pid_offset;
-    default_conn_settings.cid_pid_len = settings->cid_pid_len;
 
     default_conn_settings.enable_multipath = settings->enable_multipath;
 }
@@ -368,9 +363,9 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
         || new_scid.cid_len != engine->config->cid_len) 
     {
         /* server generates it's own cid */
-        if (xqc_generate_cid_with_reserved(conn->engine, &new_scid, scid, 
-                                           conn->conn_settings.cid_pid_offset, 
-                                           conn->conn_settings.cid_pid_len) != XQC_OK)
+        if (xqc_generate_cid_with_reserved(engine, &new_scid, scid, 
+                                           engine->config->cid_pid_offset, 
+                                           engine->config->cid_pid_len) != XQC_OK)
         {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return NULL;

@@ -269,6 +269,9 @@ typedef struct xqc_config_s {
     uint32_t        support_version_count;                        /* 版本列表数量 */
     uint8_t         cid_len;
     uint8_t         cid_negotiate; /* just for server, default:0 */
+    /* TODO: delete me */
+    size_t          cid_pid_offset; /* [cid_pid_offset, cid_pid_offset + cid_pid_len) is used to hash packets for process */
+    size_t          cid_pid_len;
 } xqc_config_t;
 
 
@@ -386,11 +389,6 @@ typedef struct xqc_conn_settings_s {
     uint32_t                    idle_time_out;      /* idle timeout interval */
     uint64_t                    enable_multipath;   /* default: 0 */
     int32_t                     spurious_loss_detect_on;
-
-    /* TODO: delete me */
-    size_t                      cid_pid_offset;     /* [cid_pid_offset, cid_pid_offset + cid_pid_len) is used to hash packets for process */
-    size_t                      cid_pid_len;
-
 } xqc_conn_settings_t;
 
 typedef struct xqc_h3_conn_settings_s {
