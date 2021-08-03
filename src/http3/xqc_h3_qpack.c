@@ -1601,6 +1601,8 @@ xqc_h3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, size_t ca
                 cap, ctx->max_dtable_size);
 
     if (cap > ctx->max_table_capacity) {
+        xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "exceed max dtable capacity|cap:%z|"
+                "max_cap:%ui", cap, ctx->max_table_capacity);
         return -XQC_QPACK_SET_DTABLE_CAP_ERROR;
     }
 
@@ -1608,6 +1610,7 @@ xqc_h3_qpack_decoder_set_dtable_cap(xqc_http3_qpack_decoder * decoder, size_t ca
     if (ctx->max_dtable_size > ctx->dtable_data.capacity) {
         ret = xqc_http3_qpack_encoder_expand_dtable_size(ctx, ctx->max_dtable_size);
         if (ret < 0) {
+            xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|expand dtable error|");
             return -XQC_QPACK_SET_DTABLE_CAP_ERROR;
         }
     }
@@ -2126,7 +2129,7 @@ xqc_http3_qpack_decoder_read_encoder(xqc_h3_conn_t *h3_conn, uint8_t * src, size
     return (p - src);
 
 fail:
-    return -rv;
+    return rv;
 }
 
 
