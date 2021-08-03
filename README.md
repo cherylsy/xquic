@@ -4,7 +4,7 @@ document space: https://yuque.antfin-inc.com/awm/xquic
 
 ## Install openssl
 ~~~
-sudo yum install babassl-8.1.4 -b current -y 
+sudo yum install babassl-8.2.0 -b current -y 
 ~~~
 
 ## Install libevent if you want to run test cases
