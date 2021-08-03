@@ -34,6 +34,8 @@ xqc_conn_settings_t default_conn_settings = {
     .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath = 0,
     .spurious_loss_detect_on = 0,
+    .cid_pid_offset   = 0,
+    .cid_pid_len      = 0,
 };
 
 void
@@ -52,6 +54,9 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     if (xqc_check_proto_version_valid(settings->proto_version)) {
         default_conn_settings.proto_version = settings->proto_version;
     }
+
+    default_conn_settings.cid_pid_offset = settings.cid_pid_offset;
+    default_conn_settings.cid_pid_len = settings.cid_pid_len;
 
     default_conn_settings.enable_multipath = settings->enable_multipath;
 }
@@ -351,36 +356,32 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data)
 {
     xqc_connection_t *conn;
+    xqc_cid_t new_scid;
 
-    if (engine->config->cid_negotiate) {
+    /* Server enable cid negotiate, or client initial dcid length not equal to server config length. 
+     *
+     * If use the peer's dcid as scid directly, must make sure
+     * its length equals to the config cid_len, otherwise might fail
+     * decoding dcid from subsequent short header packets
+     */ 
+    if (engine->config->cid_negotiate
+        || new_scid.cid_len != engine->config->cid_len) 
+    {
         /* server generates it's own cid */
-        xqc_cid_t new_scid;
-        if (xqc_generate_cid(engine, scid, &new_scid, 1) != XQC_OK) {
+        if (xqc_generate_cid_with_reserved(conn->engine, &new_scid, scid, 
+                                           conn->conn_settings.cid_pid_offset, 
+                                           conn->conn_settings.cid_pid_len) != XQC_OK)
+        {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return NULL;
         }
-
-        conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
-                               settings, user_data, XQC_CONN_TYPE_SERVER);
-
     } else {
-        /* 
-         * if use the peer's dcid as scid directly, must make sure
-         * it equals to the config cid_len, otherwise might fail
-         * decoding dcid from subsequent short header packets
-         */
-        xqc_cid_t new_scid;
-        xqc_cid_copy(&new_scid, scid);
-        if (new_scid.cid_len != engine->config->cid_len) {
-            if (xqc_generate_cid(engine, scid, &new_scid, 1) != XQC_OK) {
-                xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
-                return NULL;
-            }
-        }
 
-        conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
-                               settings, user_data, XQC_CONN_TYPE_SERVER);
+        xqc_cid_copy(&new_scid, scid);
     }
+
+    conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
+                           settings, user_data, XQC_CONN_TYPE_SERVER);
 
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
