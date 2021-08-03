@@ -1887,7 +1887,9 @@ int main(int argc, char *argv[]) {
     config.cfg_log_level = c_log_level == 'e' ? XQC_LOG_ERROR : (c_log_level == 'i' ? XQC_LOG_INFO : c_log_level == 'w'? XQC_LOG_STATS: XQC_LOG_DEBUG);
 
     /* test different cid_len */
-    config.cid_len = 12;
+    if (g_test_case == 13) {
+        config.cid_len = XQC_MAX_CID_LEN;
+    }
 
     /* check draft-29 version */
     if (g_test_case == 17) {
