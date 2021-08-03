@@ -55,8 +55,8 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
         default_conn_settings.proto_version = settings->proto_version;
     }
 
-    default_conn_settings.cid_pid_offset = settings.cid_pid_offset;
-    default_conn_settings.cid_pid_len = settings.cid_pid_len;
+    default_conn_settings.cid_pid_offset = settings->cid_pid_offset;
+    default_conn_settings.cid_pid_len = settings->cid_pid_len;
 
     default_conn_settings.enable_multipath = settings->enable_multipath;
 }
