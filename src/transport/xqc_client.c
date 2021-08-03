@@ -35,8 +35,8 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
         return NULL;
     }
 
-    if (xqc_generate_cid(engine, &scid, 0) != XQC_OK
-        || xqc_generate_cid(engine, &dcid, 0) != XQC_OK)
+    if (xqc_generate_cid(engine, NULL, &scid, 0) != XQC_OK
+        || xqc_generate_cid(engine, NULL, &dcid, 0) != XQC_OK)
     {
         xqc_log(engine->log, XQC_LOG_ERROR,
                 "|generate dcid or scid error|");
