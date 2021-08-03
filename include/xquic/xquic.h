@@ -126,13 +126,14 @@ typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cer
 
 /**
  * for server, custom cid generate handler,
+ * @param ori_cid the original dcid sent by client.
  * @param cid_buf  buffer for cid generated
  * @param cid_buflen len for cid_buf
  * @param engine_user_data  user data of engine from `xqc_engine_create`
  * @return  negative for failed , non-negative (0 contians ) for the length of bytes written
  * if the length of bytes written shorter than cid_buflen , xquic will fill rest of them with random bytes
  * */
-typedef ssize_t (*xqc_cid_generate_pt)(uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data);
+typedef ssize_t (*xqc_cid_generate_pt)(const xqc_cid_t *ori_cid, uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data);
 
 
 /**

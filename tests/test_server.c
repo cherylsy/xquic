@@ -882,7 +882,7 @@ xqc_server_engine_callback(int fd, short what, void *arg)
 }
 
 static ssize_t
-xqc_server_cid_generate(uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data)
+xqc_server_cid_generate(const xqc_cid_t *ori_cid, uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data)
 {
     ssize_t              cid_buf_index = 0, i;
     ssize_t              cid_len, sid_len;

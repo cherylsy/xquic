@@ -355,7 +355,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     if (engine->config->cid_negotiate) {
         /* server generates it's own cid */
         xqc_cid_t new_scid;
-        if (xqc_generate_cid(engine, &new_scid, 1) != XQC_OK) {
+        if (xqc_generate_cid(engine, scid, &new_scid, 1) != XQC_OK) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return NULL;
         }
@@ -372,7 +372,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
         xqc_cid_t new_scid;
         xqc_cid_copy(&new_scid, scid);
         if (new_scid.cid_len != engine->config->cid_len) {
-            if (xqc_generate_cid(engine, &new_scid, 1) != XQC_OK) {
+            if (xqc_generate_cid(engine, scid, &new_scid, 1) != XQC_OK) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
                 return NULL;
             }
