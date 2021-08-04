@@ -36,7 +36,6 @@ int run(xqc_connection_t *conn){
         int n = recvfrom(g_sock, buf, sizeof(buf), 0, (struct sockaddr *)(&g_client_addr), &len );
 
         if(n > 0){
-            hex_print(buf, n);
             //recv_client_initial(conn, &dcid, NULL);
             //xqc_recv_client_hello_derive_key(conn, &dcid);
             conn->tlsref.callbacks.recv_client_initial(conn, &dcid, NULL);//recv client initial packets
