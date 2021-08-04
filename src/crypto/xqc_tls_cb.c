@@ -14,19 +14,6 @@
 #include "src/crypto/xqc_transport_params.h"
 
 
-int xqc_cache_client_hello(xqc_connection_t *conn, const void * buf, size_t buf_len)
-{
-    return 0;
-}
-
-int xqc_cache_server_handshake(xqc_connection_t *conn, const void * buf, size_t buf_len)
-{
-
-    return 0;
-}
-
-
-
 /**
  * select aplication layer proto
  */

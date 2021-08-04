@@ -56,10 +56,6 @@
 
 #define XQC_MAX_PKT_NUM ((1llu << 62) - 1)
 
-#ifndef xqc_min
-#define xqc_min(A, B) ((A) < (B) ? (A) : (B))
-#endif
-
 #define XQC_PKT_NUMLEN_MASK 0x03
 
 #define XQC_HP_SAMPLELEN 16
@@ -121,32 +117,6 @@ typedef enum {
   /*XQC_CONN_FLAG_RETRY_SENT means server already send retry packet */
   XQC_CONN_FLAG_RETRY_SENT = 0x1000,
 }xqc_conn_flag;
-
-
-#define XQC_MAX_SERVER_ID_BIDI 0x3fffffffffffff00ULL
-#define XQC_MAX_SERVER_ID_UNI 0x3fffffffffffff10ULL
-#define XQC_MAX_CLIENT_ID_BIDI 0x3fffffffffffff01ULL
-#define XQC_MAX_CLIENT_ID_UNI 0x3fffffffffffff11ULL
-
-
-#define XQC_256_K  (256*1024)
-#define XQC_1_M (1024*1024)
-
-#define XQC_CONN_TIMEOUT 30
-
-
-typedef enum {
-    XQC_IP_VERSION_NONE = 0,
-    XQC_IP_VERSION_4 = 4,
-    XQC_IP_VERSION_6 = 6
-} xqc_ip_version;
-
-typedef enum {
-    XQC_PKT_FLAG_NONE = 0,
-    XQC_PKT_FLAG_LONG_FORM = 0x01,
-    XQC_PKT_FLAG_KEY_PHASE = 0x04
-} xqc_pkt_flag;
-
 
 
 typedef struct {
