@@ -967,7 +967,7 @@ echo -e "load balancer cid generate ...\c"
 ./test_server -l d -e -S "server_id_0" > /dev/null &
 sleep 1
 ./test_client -s 1024000 -l d -t 1 >> clog
-result=`grep "|xqc_conn_confirm_cid|dcid change|" clog | grep "7365727665725f69645f30"`
+result=`grep "|xqc_conn_confirm_cid|dcid change|" clog`
 errlog=`grep_err_log`
 if [ -z "$errlog" ] && [ "$result" != "" ]; then
     echo ">>>>>>>> pass:1"
