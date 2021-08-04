@@ -52,26 +52,6 @@ struct xqc_tls_context
 
 typedef struct xqc_tls_context xqc_tls_context_t;
 
-typedef struct {
-  //xqc_cid_t dcid;
-  //xqc_cid_t scid;
-  uint64_t pkt_num;
-  uint8_t *token;
-  size_t tokenlen;
-  /**
-   * pkt_numlen is the number of bytes spent to encode pkt_num.
-   */
-  size_t pkt_numlen;
-  /**
-   * len is the sum of pkt_numlen and the length of QUIC packet
-   * payload.
-   */
-  size_t len;
-  uint32_t version;
-  uint8_t type;
-  uint8_t flags;
-} xqc_pkt_hd;
-
 
 /**
  * @functypedef
@@ -158,24 +138,6 @@ typedef int (*xqc_recv_crypto_data)(xqc_connection_t *conn, uint64_t offset,
  */
 typedef int (*xqc_handshake_completed)(xqc_connection_t *conn, void *user_data);
 
-/**
- * @functypedef
- *
- * :type:`xqc_recv_version_negotiation` is invoked when Version
- * Negotiation packet is received.  |hd| is the pointer to the QUIC
- * packet header object.  The vector |sv| of |nsv| elements contains
- * the QUIC version the server supports.  Since Version Negotiation is
- * only sent by server, this callback function is used by client only.
- *
- * The callback function must return 0 if it succeeds, or
- * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library call
- * return immediately.
- */
-typedef int (*xqc_recv_version_negotiation)(xqc_connection_t *conn,
-                                               const xqc_pkt_hd *hd,
-                                               const uint32_t *sv, size_t nsv,
-                                               void *user_data);
-
 
 /**
  * @functypedef
@@ -259,118 +221,6 @@ typedef ssize_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
                                   size_t samplelen, void *user_data, xqc_crypter_t * crypter);
 
 
-/**
- * @functypedef
- *
- * :type:`xqc_recv_stream_data` is invoked when stream data is
- * received.  The stream is specified by |stream_id|.  If |fin| is
- * nonzero, this portion of the data is the last data in this stream.
- * |offset| is the offset where this data begins.  The library ensures
- * that data is passed to the application in the non-decreasing order
- * of |offset|.  The data is passed as |data| of length |datalen|.
- * |datalen| may be 0 if and only if |fin| is nonzero.
- *
- * The callback function must return 0 if it succeeds, or
- * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library return
- * immediately.
- */
-typedef int (*xqc_recv_stream_data)(xqc_connection_t *conn, uint64_t stream_id,
-                                       int fin, uint64_t offset,
-                                       const uint8_t *data, size_t datalen,
-                                       void *user_data, void *stream_user_data);
-
-
-/**
- * @functypedef
- *
- * :type:`xqc_acked_crypto_offset` is a callback function which is
- * called when crypto stream data is acknowledged, and application can
- * free the data.  This works like
- * :type:`xqc_acked_stream_data_offset` but crypto stream has no
- * stream_id and stream_user_data, and |datalen| never become 0.
- *
- * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
- * call return immediately.
- */
-typedef int (*xqc_acked_crypto_offset)(xqc_connection_t *conn, uint64_t offset,
-                                          size_t datalen, void *user_data);
-
-
-
-/**
- * @functypedef
- *
- * :type:`xqc_acked_stream_data_offset` is a callback function
- * which is called when stream data is acked, and application can free
- * the data.  The acked range of data is [offset, offset + datalen).
- * For a given stream_id, this callback is called sequentially in
- * increasing order of |offset|.  |datalen| is normally strictly
- * greater than 0.  One exception is that when a packet which includes
- * STREAM frame which has fin flag set, and 0 length data, this
- * callback is invoked with 0 passed as |datalen|.
- *
- * If a stream is closed prematurely and stream data is still
- * in-flight, this callback function is not called for those data.
- *
- * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
- * call return immediately.
- */
-typedef int (*xqc_acked_stream_data_offset)(xqc_connection_t *conn,
-                                               uint64_t stream_id,
-                                               uint64_t offset, size_t datalen,
-                                               void *user_data,
-                                               void *stream_user_data);
-
-/**
- * @functypedef
- *
- * :type:`xqc_stream_open` is a callback function which is called
- * when remote stream is opened by peer.  This function is not called
- * if stream is opened by implicitly (we might reconsider this
- * behaviour).
- *
- * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
- * call return immediately.
- */
-typedef int (*xqc_stream_open)(xqc_connection_t *conn, uint64_t stream_id,
-                                  void *user_data);
-
-/**
- * @functypedef
- *
- * :type:`xqc_stream_close` is invoked when a stream is closed.
- * This callback is not called when QUIC connection is closed before
- * existing streams are closed.  |app_error_code| indicates the error
- * code of this closure.
- *
- * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
- * call return immediately.
- */
-/*typedef int (*xqc_stream_close)(xqc_connection_t *conn, uint64_t stream_id,
-                                   uint16_t app_error_code, void *user_data,
-                                   void *stream_user_data);*/
-
-/**
- * @functypedef
- *
- * :type:`xqc_recv_stateless_reset` is a callback function which is
- * called when Stateless Reset packet is received.  The |hd| is the
- * packet header, and the stateless reset details are given in |sr|.
- *
- * The implementation of this callback should return 0 if it succeeds.
- * Returning :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library
- * call return immediately.
- */
-typedef int (*xqc_recv_stateless_reset)(xqc_connection_t *conn,
-                                           const xqc_pkt_hd *hd,
-                                           const xqc_pkt_stateless_reset *sr,
-                                           void *user_data);
-
-
 
 /**
  * @functypedef
@@ -398,71 +248,6 @@ typedef int (*xqc_recv_retry)(xqc_connection_t *conn,
 /**
  * @functypedef
  *
- * :type:`xqc_extend_max_streams` is a callback function which is
- * called every time max stream ID is strictly extended.
- * |max_streams| is the cumulative number of streams which a local
- * endpoint can open.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
- * immediately.
- */
-typedef int (*xqc_extend_max_streams)(xqc_connection_t *conn,
-                                         uint64_t max_streams, void *user_data);
-
-/**
- * @functypedef
- *
- * :type:`xqc_rand` is a callback function to get randomized byte
- * string from application.  Application must fill random |destlen|
- * bytes to the buffer pointed by |dest|.  |ctx| provides the context
- * how the provided random byte string is used.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
- * immediately.
- */
-typedef int (*xqc_rand)(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-                           void * ctx, void *user_data);
-
-/**
- * @functypedef
- *
- * :type:`xqc_get_new_connection_id` is a callback function to ask
- * an application for new connection ID.  Application must generate
- * new unused connection ID with the exact |cidlen| bytes and store it
- * in |cid|.  It also has to generate stateless reset token into
- * |token|.  The length of stateless reset token is
- * :macro:`xqc_STATELESS_RESET_TOKENLEN` and it is guaranteed that
- * the buffer pointed by |cid| has the sufficient space to store the
- * token.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
- * immediately.
- */
-typedef int (*xqc_get_new_connection_id)(xqc_connection_t *conn, xqc_cid_t *cid,
-                                            uint8_t *token, size_t cidlen,
-                                            void *user_data);
-
-/**
- * @functypedef
- *
- * :type:`xqc_remove_connection_id` is a callback function which
- * notifies the application that connection ID |cid| is no longer used
- * by remote endpoint.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
- * immediately.
- */
-typedef int (*xqc_remove_connection_id)(xqc_connection_t *conn,
-                                           const xqc_cid_t *cid,
-                                           void *user_data);
-
-/**
- * @functypedef
- *
  * :type:`xqc_update_key` is a callback function which tells the
  * application that it should update and install new keys.
  *
@@ -475,27 +260,6 @@ typedef int (*xqc_remove_connection_id)(xqc_connection_t *conn,
  * immediately.
  */
 typedef int (*xqc_update_key_t)(xqc_connection_t *conn, void *user_data);
-
-
-/**
- * @functypedef
- *
- * :type:`ngtcp2_path_validation` is a callback function which tells
- * the application the outcome of path validation.  |path| is the path
- * to validate.  If |res| is
- * :enum:`NGTCP2_PATH_VALIDATION_RESULT_SUCCESS`, the path validation
- * succeeded.  If |res| is
- * :enum:`NGTCP2_PATH_VALIDATION_RESULT_FAILURE`, the path validation
- * failed.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`NGTCP2_ERR_CALLBACK_FAILURE` makes the library call return
- * immediately.
- */
-typedef int (*xqc_path_validation)(xqc_connection_t *conn,
-                                      void *path,
-                                      void * res,
-                                      void *user_data);
 
 
 

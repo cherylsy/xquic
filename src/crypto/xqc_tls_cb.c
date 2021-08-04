@@ -147,18 +147,6 @@ int xqc_do_update_key(xqc_connection_t *conn)
     return 0;
 }
 
-/*
- *  conn_key_phase_changed returns nonzero if |hd| indicates that the
- *  key phase has unexpected value.
- */
-static int xqc_conn_key_phase_changed(xqc_connection_t *conn, const xqc_pkt_hd *hd)
-{
-    xqc_pktns_t *pktns = &conn->tlsref.pktns;
-
-    // if return 1, means rx_ckm's flags is different from hd's flags
-    return !(pktns->rx_ckm.flags & XQC_CRYPTO_KM_FLAG_KEY_PHASE_ONE) ^
-        !(hd->flags & XQC_PKT_FLAG_KEY_PHASE);
-}
 
 int xqc_update_key(xqc_connection_t *conn, void *user_data){
     if(xqc_do_update_key(conn) < 0){
@@ -168,8 +156,6 @@ int xqc_update_key(xqc_connection_t *conn, void *user_data){
     xqc_log(conn->log, XQC_LOG_DEBUG, "|key update|");
     return 0;
 }
-
-
 
 
 /*
@@ -207,12 +193,6 @@ int xqc_conn_commit_key_update(xqc_connection_t *conn, uint64_t pkt_num)
     xqc_vec_move(&pktns->tx_ckm.iv, & tlsref->new_tx_ckm.iv);
     pktns->tx_ckm.flags = tlsref->new_tx_ckm.flags;
 
-#if 0
-    ngtcp2_crypto_km_del(pktns->tx_ckm, conn->mem);
-    pktns->tx_ckm = conn->new_tx_ckm;
-    conn->new_tx_ckm = NULL;
-    pktns->tx_ckm->pkt_num = pktns->last_tx_pkt_num + 1;// need notice
-#endif
     return 0;
 }
 

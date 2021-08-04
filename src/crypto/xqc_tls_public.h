@@ -154,7 +154,6 @@ typedef struct {
     xqc_recv_client_initial recv_client_initial;
     xqc_recv_crypto_data recv_crypto_data;
     xqc_handshake_completed handshake_completed;
-    xqc_recv_version_negotiation recv_version_negotiation;
     /**
      * in_encrypt is a callback function which is invoked to encrypt
      * Initial packets.
