@@ -578,7 +578,7 @@ xqc_create_ssl(xqc_engine_t *engine, xqc_connection_t *conn, int flag)
 
     SSL_set_app_data(ssl, conn);
 
-    xqc_set_quic_ssl_method(ssl);
+    xqc_set_ssl_quic_method(ssl);
 
     if (flag == XQC_CLIENT) {
         SSL_set_connect_state(ssl);
