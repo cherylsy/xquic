@@ -239,9 +239,8 @@ int xqc_client_initial_cb(xqc_connection_t *conn)
 }
 
 
-int xqc_recv_client_initial_cb(xqc_connection_t * conn,
-        xqc_cid_t *dcid,
-        void *user_data)
+xqc_int_t 
+xqc_tls_recv_initial_cb(xqc_connection_t *conn, xqc_cid_t *dcid)
 {
     return xqc_recv_client_hello_derive_key(conn, dcid);
 }

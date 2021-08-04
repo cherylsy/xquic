@@ -12,9 +12,9 @@
 #include "src/crypto/xqc_transport_params.h"
 #include "src/http3/xqc_h3_conn.h"
 #include "src/transport/xqc_defs.h"
-#ifndef OPENSSL_IS_BORINGSSL
+
 SSL_QUIC_METHOD xqc_ssl_quic_method;
-#endif
+
 
 
 #define XQC_SESSION_DEFAULT_TIMEOUT (7 * 24 * 60 * 60)
@@ -208,7 +208,7 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
 
     xqc_tls_callbacks_t *callbacks = &conn->tlsref.callbacks;
     callbacks->client_initial = xqc_client_initial_cb;
-    callbacks->recv_client_initial = NULL;
+    callbacks->tls_recv_initial = NULL;
     callbacks->tls_recv_crypto_data = xqc_tls_recv_crypto_data_cb;
     callbacks->handshake_completed = xqc_handshake_completed_cb;
     callbacks->in_encrypt = xqc_do_hs_encrypt;
@@ -309,7 +309,7 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
 
     xqc_tls_callbacks_t *callbacks = &conn->tlsref.callbacks;
     callbacks->client_initial = NULL;
-    callbacks->recv_client_initial = xqc_recv_client_initial_cb;
+    callbacks->tls_recv_initial = xqc_tls_recv_initial_cb;
     callbacks->tls_recv_crypto_data = xqc_tls_recv_crypto_data_cb;
     callbacks->handshake_completed = xqc_handshake_completed_cb;
     callbacks->in_encrypt = xqc_do_hs_encrypt;
@@ -580,9 +580,9 @@ xqc_create_ssl(xqc_engine_t *engine, xqc_connection_t *conn, int flag)
     }
 
     SSL_set_app_data(ssl, conn);
-#ifndef OPENSSL_IS_BORINGSSL
+
     SSL_set_quic_method(ssl, &xqc_ssl_quic_method);
-#endif
+
     if (flag == XQC_CLIENT) {
         SSL_set_connect_state(ssl);
 

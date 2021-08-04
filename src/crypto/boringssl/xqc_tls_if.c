@@ -99,8 +99,7 @@ xqc_send_alert(SSL *ssl, enum ssl_encryption_level_t level, uint8_t alert)
     return 1;
 }
 
-static SSL_QUIC_METHOD  xqc_ssl_quic_method = 
-{
+SSL_QUIC_METHOD  xqc_ssl_quic_method = {
     .set_read_secret    = xqc_set_read_secret ,
     .set_write_secret   = xqc_set_write_secret,
     .add_handshake_data = xqc_add_handshake_data,
@@ -117,7 +116,6 @@ xqc_configure_quic(xqc_connection_t *conn)
     size_t  outlen;
     int rv ;
 
-    SSL_set_quic_method(ssl, &xqc_ssl_quic_method);
     SSL_set_early_data_enabled(ssl, 1);
 
     SSL_set_quic_use_legacy_codepoint(conn->xc_ssl, conn->version != XQC_VERSION_V1);
@@ -268,9 +266,8 @@ xqc_tls_is_early_data_accepted(xqc_connection_t * conn)
     }
 }
 
-int xqc_recv_client_initial_cb(xqc_connection_t * conn,
-        xqc_cid_t *dcid,
-        void *user_data)
+xqc_int_t 
+xqc_tls_recv_initial_cb(xqc_connection_t * conn, xqc_cid_t *dcid)
 {
     return xqc_recv_client_hello_derive_key(conn, dcid);
 }
