@@ -11,41 +11,6 @@
 #include "src/crypto/xqc_transport_params.h"
 #include "src/crypto/xqc_tls_stack_cb.h"
 
-/** utils */
-
-static 
-xqc_int_t 
-xqc_generate_initial_secret(const xqc_tls_context_t * ctx , uint8_t * secret , size_t length , xqc_connection_t *conn , xqc_int_t server_secret)
-{
-    uint8_t initial_secret[INITIAL_SECRET_MAX_LEN]={0} ;
-
-    if (!xqc_check_proto_version_valid(conn->version)) {
-        return -XQC_TLS_PROTO;
-    }
-
-    int rv = xqc_derive_initial_secret(initial_secret, sizeof(initial_secret), &conn->dcid,
-            (const uint8_t *)(xqc_crypto_initial_salt[conn->version]),
-            strlen(xqc_crypto_initial_salt[conn->version]));
-    
-    if(XQC_UNLIKELY(rv != 0)) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|derive_initial_secret() failed|");
-        return 0 ;
-    }
-
-    if(server_secret) {
-        rv = xqc_derive_server_initial_secret(secret,length,initial_secret,sizeof(initial_secret));
-    }else {
-        rv = xqc_derive_client_initial_secret(secret,length,initial_secret,sizeof(initial_secret));
-    }
-
-    if(XQC_UNLIKELY(rv != 0)) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_%s_initial_secret() failed|" , server_secret ? "server" : "client" );
-        return 0;
-    }
-
-    return 1 ;
-}
-
 
 int 
 xqc_add_handshake_data (SSL *ssl, enum ssl_encryption_level_t level,
