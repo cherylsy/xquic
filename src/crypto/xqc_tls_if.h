@@ -101,30 +101,15 @@ typedef int (*xqc_recv_client_initial)(xqc_connection_t *conn,
                                           void *user_data);
 
 /**
- * @functypedef
+ * @brief `xqc_tls_recv_crypto_data_pt` is called when crypto data are received in crypto streams.
+ *         implementations should deliver the recvd data to TLS stack.
+ * @param data_pos buffer position of the received data
+ * @param data_len length of the received data
  *
- * :type`xqc_recv_crypto_data` is invoked when crypto data are
- * received.  The received data are pointed by |data|, and its length
- * is |datalen|.  The |offset| specifies the offset where |data| is
- * positioned.  |user_data| is the arbitrary pointer passed to
- * `xqc_conn_client_new` or `xqc_connection_t_server_new`.  The ngtcp2
- * library ensures that the crypto data is passed to the application
- * in the increasing order of |offset|.  |datalen| is always strictly
- * greater than 0.
- *
- * The application should provide the given data to TLS stack.
- *
- * The callback function must return 0 if it succeeds.  If TLS stack
- * reported error, return :enum:`XQC_TLS_CRYPTO`.  If application
- * encounters fatal error, return :enum:`XQC_TLS_CALLBACK_FAILURE`
- * which makes the library call return immediately.  If the other
- * value is returned, it is treated as
- * :enum:`XQC_TLS_CALLBACK_FAILURE`.
+ * @return XQC_OK means succeeds. <0 means error occurred calling TLS functions
  */
-typedef int (*xqc_recv_crypto_data)(xqc_connection_t *conn, uint64_t offset,
-                                       const uint8_t *data, size_t datalen,
-                                       xqc_encrypt_level_t  encrtpt_level,
-                                       void *user_data);
+typedef xqc_int_t (*xqc_tls_recv_crypto_data_pt)(xqc_connection_t *conn,
+    const unsigned char *data_pos, size_t data_len, xqc_encrypt_level_t encrypt_level);
 
 /**
  * @functypedef
@@ -268,10 +253,8 @@ int xqc_recv_client_initial_cb(xqc_connection_t * conn,
          xqc_cid_t *dcid,
         void *user_data);
 
-int xqc_recv_crypto_data_cb(xqc_connection_t *conn, uint64_t offset,
-        const uint8_t *data, size_t datalen,
-        xqc_encrypt_level_t level,
-        void *user_data);
+xqc_int_t xqc_tls_recv_crypto_data_cb(xqc_connection_t *conn,
+    const unsigned char *data_pos, size_t data_len, xqc_encrypt_level_t level);
 int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data);
 
 

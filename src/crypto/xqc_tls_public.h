@@ -122,7 +122,7 @@ typedef enum {
 typedef struct {
     xqc_client_initial client_initial;
     xqc_recv_client_initial recv_client_initial;
-    xqc_recv_crypto_data recv_crypto_data;
+    xqc_tls_recv_crypto_data_pt         tls_recv_crypto_data;
     xqc_handshake_completed handshake_completed;
     /**
      * in_encrypt is a callback function which is invoked to encrypt

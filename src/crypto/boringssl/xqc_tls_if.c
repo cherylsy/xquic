@@ -99,8 +99,7 @@ xqc_send_alert(SSL *ssl, enum ssl_encryption_level_t level, uint8_t alert)
     return 1;
 }
 
-static 
-SSL_QUIC_METHOD  xqc_ssl_quic_method = 
+static SSL_QUIC_METHOD  xqc_ssl_quic_method = 
 {
     .set_read_secret    = xqc_set_read_secret ,
     .set_write_secret   = xqc_set_write_secret,
@@ -155,8 +154,8 @@ xqc_configure_quic(xqc_connection_t *conn)
     return XQC_OK;
 }
 
-static 
-int xqc_do_handshake(xqc_connection_t *conn)
+static int 
+xqc_do_handshake(xqc_connection_t *conn)
 {
     SSL *ssl = conn->xc_ssl ;
     int rv ;
@@ -224,41 +223,34 @@ xqc_client_initial_cb(xqc_connection_t *conn)
     return xqc_do_handshake(conn);
 }
 
-int 
-xqc_recv_crypto_data_cb(xqc_connection_t *conn, 
-    uint64_t offset,
-    const uint8_t *data, size_t datalen,
-    xqc_encrypt_level_t encrypt_level ,
-    void *user_data)
+xqc_int_t 
+xqc_tls_recv_crypto_data_cb(xqc_connection_t *conn, 
+    const unsigned char *data_pos, size_t data_len, xqc_encrypt_level_t encrypt_level)
 {
-    if(conn->tlsref.initial) {
-        conn->tlsref.initial = 0 ;
+    if (conn->tlsref.initial) {
+        conn->tlsref.initial = 0;
         xqc_configure_quic(conn);
     }
 
-    (void) user_data ;
-    (void) offset ;
-
-    SSL * ssl = conn->xc_ssl ;
-    if (SSL_provide_quic_data(ssl, xqc_convert_xqc_to_ssl_level(encrypt_level), data, datalen) != 1) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|SSL_provide_quic_data failed[level:%d]|",encrypt_level);
-        return -1 ;
+    SSL * ssl = conn->xc_ssl;
+    if (SSL_provide_quic_data(ssl, xqc_convert_xqc_to_ssl_level(encrypt_level), data_pos, data_len) != XQC_SSL_SUCCESS) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|SSL_provide_quic_data failed[level:%d]|", encrypt_level);
+        return -XQC_TLS_INTERNAL;
     }
     
     if (!xqc_conn_get_handshake_completed(conn)) {
-        if (xqc_do_handshake(conn) != 0) {
+        if (xqc_do_handshake(conn) != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_do_handshake failed |");
-            return -1;
+            return -XQC_TLS_DO_HANDSHAKE_ERROR;
         }
-    }else 
-    {
-        if (SSL_process_quic_post_handshake(ssl) != 1) {
+    } else {
+        if (SSL_process_quic_post_handshake(ssl) != XQC_SSL_SUCCESS) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|SSL_process_quic_post_handshake failed |");
-            return -1;
+            return -XQC_TLS_POST_HANDSHAKE_ERROR;
         }
     }
 
-    return 0 ;
+    return XQC_OK;
 }
 
 
