@@ -159,37 +159,37 @@ xqc_client_tls_handshake(xqc_connection_t *conn)
     return XQC_OK;
 }
 
-int
-xqc_recv_crypto_data_cb(xqc_connection_t *conn,
-    uint64_t offset, const uint8_t *data, size_t datalen,
-    xqc_encrypt_level_t encrypt_level, void *user_data)
+xqc_int_t
+xqc_tls_recv_crypto_data_cb(xqc_connection_t *conn,
+    const unsigned char *data_pos, size_t data_len, xqc_encrypt_level_t encrypt_level)
 {
     SSL *ssl = conn->xc_ssl;
     if (SSL_provide_quic_data(ssl, xqc_convert_xqc_to_ssl_level(encrypt_level), 
-                data, datalen) != XQC_SSL_SUCCESS) {
+                              data_pos, data_len) != XQC_SSL_SUCCESS) 
+    {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "|SSL_provide_quic_data failed[level:%d]|", encrypt_level);
-        return XQC_ERROR;
+        return -XQC_TLS_INTERNAL;
     }
 
     if (xqc_conn_get_handshake_completed(conn) == XQC_FALSE) {
         if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
             if (xqc_server_tls_handshake(conn) != XQC_OK) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|error server handshake|");
-                return XQC_ERROR;
+                return -XQC_TLS_DO_HANDSHAKE_ERROR;
             }
 
         } else {
             if (xqc_client_tls_handshake(conn) != XQC_OK) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|error client handshake|");
-                return XQC_ERROR;
+                return -XQC_TLS_DO_HANDSHAKE_ERROR;
             }
         }
 
     } else {
         if (SSL_process_quic_post_handshake(ssl) != XQC_SSL_SUCCESS) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|SSL_process_quic_post_handshake failed |");
-            return XQC_ERROR;
+            return -XQC_TLS_POST_HANDSHAKE_ERROR;
         }
     }
 

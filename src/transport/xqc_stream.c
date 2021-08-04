@@ -655,13 +655,13 @@ xqc_read_crypto_stream(xqc_stream_t * stream)
 
         stream->stream_data_in.next_read_offset = stream->stream_data_in.next_read_offset + data_len;
 
-        int ret = conn->tlsref.callbacks.recv_crypto_data(conn, 0, data_start, data_len, stream->stream_encrypt_level ,NULL);
+        xqc_int_t ret = conn->tlsref.callbacks.tls_recv_crypto_data(conn, data_start, data_len, stream->stream_encrypt_level);
 
         xqc_list_del(pos);
         xqc_destroy_stream_frame(stream_frame);
 
         if (ret < 0) {
-            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|recv_crypto_data error: %d|", ret);
+            xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|tls_recv_crypto_data error: %d|", ret);
             return -XQC_EILLEGAL_FRAME;
         }
     }

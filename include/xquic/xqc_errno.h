@@ -158,6 +158,8 @@ typedef enum {
     XQC_TLS_SET_TRANSPORT_PARAM_ERROR   = 739,
     XQC_TLS_SET_CIPHER_SUITES_ERROR     = 740,
     XQC_TLS_DERIVE_KEY_ERROR            = 741,
+    XQC_TLS_DO_HANDSHAKE_ERROR          = 742,
+    XQC_TLS_POST_HANDSHAKE_ERROR        = 743,
 
     XQC_TLS_ERR_MAX,
 } xqc_tls_error_t;
