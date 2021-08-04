@@ -28,66 +28,6 @@ if(HAVE_CUNIT)
     xqc_tp_test.c
   )
 
-
-  set(test_TLS_C
-    test_tls_client.c
-    xqc_random_test.c
-    xqc_timer_test.c
-    xqc_pq_test.c
-    xqc_common_test.c
-    xqc_conn_test.c
-    xqc_engine_test.c
-    xqc_common_test.c
-    xqc_vint_test.c
-    xqc_packet_test.c
-    xqc_tls_cb_test.c
-  )
-
-  set(test_TLS_S
-    test_tls_server.c
-    xqc_random_test.c
-    xqc_timer_test.c
-    xqc_pq_test.c
-    xqc_common_test.c
-    xqc_conn_test.c
-    xqc_engine_test.c
-    xqc_common_test.c
-    xqc_vint_test.c
-    xqc_packet_test.c
-    xqc_tls_cb_test.c
-  )
-
-
-  set(test_TLS_0RTT
-      test_tls_0rtt.c
-    xqc_random_test.c
-    xqc_timer_test.c
-    xqc_pq_test.c
-    xqc_common_test.c
-    xqc_conn_test.c
-    xqc_engine_test.c
-    xqc_common_test.c
-    xqc_vint_test.c
-    xqc_packet_test.c
-    xqc_tls_cb_test.c
-  )
-
-  set(test_TLS_REKEY
-      test_tls_rekey.c
-    xqc_random_test.c
-    xqc_timer_test.c
-    xqc_pq_test.c
-    xqc_common_test.c
-    xqc_conn_test.c
-    xqc_engine_test.c
-    xqc_common_test.c
-    xqc_vint_test.c
-    xqc_packet_test.c
-    xqc_tls_cb_test.c
-  )
-
-
-
   add_executable(run_tests
     ${test_SOURCES}
   )
