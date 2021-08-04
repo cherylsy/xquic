@@ -236,6 +236,7 @@ typedef int (*xqc_recv_retry)(xqc_connection_t *conn,
 typedef int (*xqc_update_key_t)(xqc_connection_t *conn, void *user_data);
 
 
+void xqc_set_ssl_quic_method(SSL *ssl);
 
 int xqc_client_initial_cb(xqc_connection_t *conn);
 xqc_int_t xqc_tls_recv_initial_cb(xqc_connection_t * conn, xqc_cid_t *dcid);

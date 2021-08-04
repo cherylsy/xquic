@@ -13,9 +13,6 @@
 #include "src/http3/xqc_h3_conn.h"
 #include "src/transport/xqc_defs.h"
 
-SSL_QUIC_METHOD xqc_ssl_quic_method;
-
-
 
 #define XQC_SESSION_DEFAULT_TIMEOUT (7 * 24 * 60 * 60)
 
@@ -581,7 +578,7 @@ xqc_create_ssl(xqc_engine_t *engine, xqc_connection_t *conn, int flag)
 
     SSL_set_app_data(ssl, conn);
 
-    SSL_set_quic_method(ssl, &xqc_ssl_quic_method);
+    xqc_set_quic_ssl_method(ssl);
 
     if (flag == XQC_CLIENT) {
         SSL_set_connect_state(ssl);
