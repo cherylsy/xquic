@@ -99,7 +99,6 @@ int send_data(xqc_connection_t * conn, xqc_crypto_km_t * ckm, char *data, int da
     size_t nwrite = encrypt_func(conn, pkt_data, sizeof(send_buf) - TEST_PKT_HEADER_LEN, pkt_data, data_len, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_header, TEST_PKT_HEADER_LEN, NULL);
     int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
     printf("client send data:%d\n", nwrite + TEST_PKT_HEADER_LEN);
-    hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
 
     if(ret < 0){
         printf("error send data:%d",ret);
@@ -135,7 +134,6 @@ int send_buf_packet( xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encryp
             }
             int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
             printf("client send data:%d\n", nwrite + TEST_PKT_HEADER_LEN);
-            hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
 
             buf->data_len  = 0;
             if(ret < 0){
@@ -160,7 +158,6 @@ int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
             return -1;
         }
         printf("recv %d bytes\n",recv_len);
-        hex_print(buf, recv_len);
 
 
         if(buf[0] == APP_PKT_TYPE){
@@ -190,7 +187,6 @@ int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
         size_t nwrite = decrypt(conn, buf, sizeof(buf), encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
 
         printf("decrypt %d bytes\n",nwrite);
-        hex_print(buf, nwrite);
 
         break;
     }
@@ -207,7 +203,6 @@ int recv_server_hello(xqc_connection_t * conn){
 
         int recv_len = recvfrom(g_sock, buf, sizeof(buf), 0, NULL, NULL );
         printf("recv server hello len:%d\n", recv_len);
-        hex_print(buf,recv_len);
 
         xqc_pktns_t * pktns = NULL;
 

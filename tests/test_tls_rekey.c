@@ -98,12 +98,10 @@ int send_data(xqc_connection_t * conn, xqc_crypto_km_t * ckm, char *data, int da
     xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, p_ckm->pkt_num);
 
     printf("encryp data key:\n");
-    hex_print(p_ckm->key.base, p_ckm->key.len);
 
     size_t nwrite = encrypt_func(conn, pkt_data, sizeof(send_buf) - TEST_PKT_HEADER_LEN, pkt_data, data_len, p_ckm->key.base, p_ckm->key.len, nonce,p_ckm->iv.len, pkt_header, TEST_PKT_HEADER_LEN, NULL);
     int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
     printf("client send data:%d\n", nwrite + TEST_PKT_HEADER_LEN);
-    hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
 
     if(ret < 0){
         printf("error send data:%d",ret);
@@ -140,7 +138,6 @@ int send_buf_packet( xqc_connection_t * conn, xqc_pktns_t * p_pktns , xqc_encryp
 
             int ret =  sendto(g_sock, send_buf, nwrite + TEST_PKT_HEADER_LEN, 0, (const void *)( &g_server_addr ), sizeof(g_server_addr));
             printf("client send data:%d\n", nwrite + TEST_PKT_HEADER_LEN);
-            hex_print(send_buf, nwrite + TEST_PKT_HEADER_LEN);
 
             buf->data_len  = 0;
             if(ret < 0){
@@ -166,8 +163,6 @@ int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
             return -1;
         }
         printf("recv %d bytes\n",recv_len);
-        hex_print(recv_buf, recv_len);
-
 
         if(recv_buf[0] == APP_PKT_TYPE){
             //xqc_pktns_t * pktns = NULL;
@@ -214,15 +209,12 @@ int recv_data( xqc_connection_t *conn, struct sockaddr_in * p_client_addr){
         xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, 0); //not care about pkt_num , but pkt_num should be careful when doing integrated
 
         printf("decrypt  pkt num: %d, data key and iv key:\n", p_ckm->pkt_num);
-        hex_print(p_ckm->key.base, p_ckm->key.len);
-        hex_print(nonce, p_ckm->iv.len);
 
 
         int nwrite = decrypt(conn, buf, sizeof(buf), encrypt_data, recv_len - TEST_PKT_HEADER_LEN,  p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, pkt_header,TEST_PKT_HEADER_LEN, NULL);
 
         if(nwrite > 0){
-        printf("decrypt %d bytes\n",nwrite);
-        hex_print(buf, nwrite);
+            printf("decrypt %d bytes\n",nwrite);
         }else{
 
             printf("decrypt error\n");
@@ -244,7 +236,6 @@ int recv_server_hello(xqc_connection_t * conn){
 
         int recv_len = recvfrom(g_sock, buf, sizeof(buf), 0, NULL, NULL );
         printf("recv server hello len:%d\n", recv_len);
-        hex_print(buf,recv_len);
 
         xqc_pktns_t * pktns = NULL;
 
