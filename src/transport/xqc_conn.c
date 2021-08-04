@@ -351,36 +351,31 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data)
 {
     xqc_connection_t *conn;
+    xqc_cid_t new_scid;
 
-    if (engine->config->cid_negotiate) {
+    xqc_cid_copy(&new_scid, scid);
+
+    /* Server enable cid negotiate, or client initial dcid length not equal to server config length. 
+     *
+     * If use the peer's dcid as scid directly, must make sure
+     * its length equals to the config cid_len, otherwise might fail
+     * decoding dcid from subsequent short header packets
+     */ 
+    if (engine->config->cid_negotiate
+        || new_scid.cid_len != engine->config->cid_len) 
+    {
         /* server generates it's own cid */
-        xqc_cid_t new_scid;
-        if (xqc_generate_cid(engine, scid, &new_scid, 1) != XQC_OK) {
+        if (xqc_generate_cid_with_reserved(engine, &new_scid, scid, 
+                                           engine->config->cid_pid_offset, 
+                                           engine->config->cid_pid_len) != XQC_OK)
+        {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
             return NULL;
         }
-
-        conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
-                               settings, user_data, XQC_CONN_TYPE_SERVER);
-
-    } else {
-        /* 
-         * if use the peer's dcid as scid directly, must make sure
-         * it equals to the config cid_len, otherwise might fail
-         * decoding dcid from subsequent short header packets
-         */
-        xqc_cid_t new_scid;
-        xqc_cid_copy(&new_scid, scid);
-        if (new_scid.cid_len != engine->config->cid_len) {
-            if (xqc_generate_cid(engine, scid, &new_scid, 1) != XQC_OK) {
-                xqc_log(engine->log, XQC_LOG_ERROR, "|fail to generate_cid|");
-                return NULL;
-            }
-        }
-
-        conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
-                               settings, user_data, XQC_CONN_TYPE_SERVER);
     }
+
+    conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
+                           settings, user_data, XQC_CONN_TYPE_SERVER);
 
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
