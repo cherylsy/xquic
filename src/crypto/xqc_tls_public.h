@@ -121,7 +121,7 @@ typedef enum {
 
 typedef struct {
     xqc_client_initial client_initial;
-    xqc_recv_client_initial recv_client_initial;
+    xqc_tls_recv_initial_pt             tls_recv_initial;
     xqc_tls_recv_crypto_data_pt         tls_recv_crypto_data;
     xqc_handshake_completed handshake_completed;
     /**

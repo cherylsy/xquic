@@ -1204,8 +1204,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
             && (c->conn_state == XQC_CONN_STATE_SERVER_INIT)
             && ((c->tlsref.flags & XQC_CONN_FLAG_RETRY_SENT) == 0))
         {
-            ret = c->tlsref.callbacks.recv_client_initial(c, dcid, NULL);
-            if(ret < 0){
+            ret = c->tlsref.callbacks.tls_recv_initial(c, dcid);
+            if (ret < 0) {
                 return ret;
             }
         }
