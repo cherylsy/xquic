@@ -77,24 +77,27 @@ typedef struct xqc_tls_context xqc_tls_context_t;
  */
 typedef int (*xqc_client_initial)(xqc_connection_t *conn);
 
+
 /**
  * @brief `xqc_tls_recv_initial_pt` is called when server receives Initial packet. 
  *        Just used by server. Server can derive initial keys(packet protection & IV) in this fuction.
- * @param dcid the Destination Connection ID which is generated randomly by client.
- * @param data_len length of the received data
+ * @param[in] conn  Connection context
+ * @param[in] dcid  The Destination Connection ID which is generated randomly by client.
  *
- * @return XQC_OK means succeeds. <0 means error occurred calling TLS functions
+ * @retval XQC_OK means succeeds. <0 means error occurred 
  */
 typedef xqc_int_t (*xqc_tls_recv_initial_pt)(xqc_connection_t *conn, xqc_cid_t *dcid);
 
 
 /**
  * @brief `xqc_tls_recv_crypto_data_pt` is called when crypto data are received in crypto streams.
- *         implementations should deliver the recvd data to TLS stack.
- * @param data_pos buffer position of the received data
- * @param data_len length of the received data
+ *         Implementations should deliver the recvd data to TLS stack.
+ * @param[in] conn          Connection context
+ * @param[in] data_pos      Buffer position of the received data
+ * @param[in] data_len      Length of the received data
+ * @param[in] encrypt_level Encryption level of the 
  *
- * @return XQC_OK means succeeds. <0 means error occurred calling TLS functions
+ * @retval XQC_OK means succeeds. <0 means error occurred 
  */
 typedef xqc_int_t (*xqc_tls_recv_crypto_data_pt)(xqc_connection_t *conn,
     const unsigned char *data_pos, size_t data_len, xqc_encrypt_level_t encrypt_level);
