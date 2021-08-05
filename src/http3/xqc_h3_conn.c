@@ -66,7 +66,7 @@ xqc_h3_connect(xqc_engine_t *engine, void *user_data, const xqc_conn_settings_t 
         return NULL;
     }
 
-    return &conn->scid;
+    return &conn->scid_set.user_scid;
 }
 
 
@@ -249,7 +249,7 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 
     /* creation callback */
     if (h3c->h3_conn_callbacks.h3_conn_create_notify) {
-        if (h3c->h3_conn_callbacks.h3_conn_create_notify(h3c, &h3c->conn->scid, user_data)) {
+        if (h3c->h3_conn_callbacks.h3_conn_create_notify(h3c, &h3c->conn->scid_set.user_scid, user_data)) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|h3_conn_create_notify failed|");
             goto fail;
         }
@@ -273,7 +273,7 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
     if (h3_conn->h3_conn_callbacks.h3_conn_close_notify
         && (h3_conn->flags & XQC_H3_CONN_FLAG_UPPER_CONN_EXIST))
     {
-        h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, &h3_conn->conn->scid,
+        h3_conn->h3_conn_callbacks.h3_conn_close_notify(h3_conn, &h3_conn->conn->scid_set.user_scid,
                                                         h3_conn->user_data);
         h3_conn->flags &= ~XQC_H3_CONN_FLAG_UPPER_CONN_EXIST;
     }
@@ -467,7 +467,7 @@ xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void
     if (h3c->h3_conn_callbacks.h3_conn_ping_acked) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|Ping acked notify|");
 
-        h3c->h3_conn_callbacks.h3_conn_ping_acked(h3c, &h3c->conn->scid,
+        h3c->h3_conn_callbacks.h3_conn_ping_acked(h3c, &h3c->conn->scid_set.user_scid,
                                                   ping_user_data, h3c->user_data);
     }
 }

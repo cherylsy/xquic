@@ -77,7 +77,7 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
 
     /* conn_create should callback after tls_initial */
     if (xc->conn_callbacks.conn_create_notify) {
-        if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid, user_data)) {
+        if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid_set.user_scid, user_data)) {
             xqc_conn_destroy(xc);
             return NULL;
         }
@@ -114,7 +114,7 @@ xqc_connect(xqc_engine_t *engine, void *user_data,
                               server_host, no_crypto_flag, conn_ssl_config, XQC_ALPN_TRANSPORT,
                               peer_addr, peer_addrlen);
     if (conn) {
-        return &conn->scid;
+        return &conn->scid_set.user_scid;
     }
     return NULL;
 }
@@ -142,7 +142,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
         goto fail;
     }
 
-    xqc_cid_copy(&(xc->ocid), &(xc->dcid));
+    xqc_cid_copy(&(xc->original_dcid), &(xc->dcid_set.current_dcid));
 
     xc->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(xc, XQC_ENC_LEV_INIT, user_data);
     if (!xc->crypto_stream[XQC_ENC_LEV_INIT]) {

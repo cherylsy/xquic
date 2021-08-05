@@ -56,11 +56,11 @@ xqc_path_create(xqc_connection_t *conn,
 
     /* cid & path_id init */
     if (scid == NULL || dcid == NULL) {
-        if (xqc_conn_get_new_scid(conn, &(path->path_scid)) != XQC_OK) {
+        if (xqc_get_unused_scid(&(conn->scid_set), &(path->path_scid)) != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available scid|");
             goto err;
         }
-        if (xqc_conn_get_new_dcid(conn, &(path->path_dcid)) != XQC_OK) {
+        if (xqc_get_unused_dcid(&(conn->dcid_set), &(path->path_dcid)) != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available dcid|");
             goto err;
         }
@@ -131,7 +131,7 @@ xqc_path_init(xqc_path_ctx_t *path,
     if (path->path_id != XQC_MP_INITIAL_PATH_ID
         && conn->engine->eng_callback.path_created_notify)
     {
-        conn->engine->eng_callback.path_created_notify(&conn->scid, path->path_id, 
+        conn->engine->eng_callback.path_created_notify(&conn->scid_set.user_scid, path->path_id, 
                                                        xqc_conn_get_user_data(conn));
     }
 
@@ -255,7 +255,7 @@ xqc_conn_create_path(xqc_engine_t *engine,
     }
 
     /* must have at least one available unused scid & dcid */
-    if (xqc_conn_check_available_cids(conn) != XQC_OK) {
+    if (xqc_conn_check_unused_cids(conn) != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_WARN,
                 "|don't have available cid for new path|");
         return -XQC_EMP_NO_AVAIL_PATH_ID;

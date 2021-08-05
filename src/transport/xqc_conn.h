@@ -216,17 +216,11 @@ struct xqc_connection_s{
     /* set when client receives a non-VN package from server or receives a VN package and processes it */
     uint32_t                discard_vn_flag;
 
-    xqc_cid_t               dcid; /* peer connection id */
-    xqc_cid_t               scid; /* local connection id */
-    xqc_cid_t               ocid; /* original connection id */
-    unsigned char           dcid_str[XQC_MAX_CID_LEN * 2 + 1];
-    unsigned char           scid_str[XQC_MAX_CID_LEN * 2 + 1];
-    uint64_t                largest_scid_seq_num;
+    xqc_cid_t               original_dcid; /* original destination connection id, RFC 9000, Section 7.3. */
+    xqc_cid_t               initial_scid;  /* initial source connection id, RFC 9000, Section 7.3 */
 
-    xqc_cid_t               avail_dcid[XQC_MAX_AVAILABLE_CID_COUNT];
-    uint32_t                avail_dcid_count;
-    xqc_cid_t               avail_scid[XQC_MAX_AVAILABLE_CID_COUNT];
-    uint32_t                avail_scid_count;
+    xqc_dcid_set_t          dcid_set;
+    xqc_scid_set_t          scid_set;
 
     unsigned char           peer_addr[sizeof(struct sockaddr_in6)],
                             local_addr[sizeof(struct sockaddr_in6)];
@@ -462,14 +456,8 @@ xqc_int_t xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *pack
 xqc_int_t xqc_conn_check_handshake_complete(xqc_connection_t *conn);
 
 
-xqc_int_t xqc_conn_get_new_dcid(xqc_connection_t *conn,
-    xqc_cid_t *dcid);
-xqc_int_t xqc_conn_get_new_scid(xqc_connection_t *conn,
-    xqc_cid_t *scid);
-xqc_int_t xqc_conn_check_available_cids(xqc_connection_t *conn);
+xqc_int_t xqc_conn_check_unused_cids(xqc_connection_t *conn);
 void xqc_conn_try_add_new_conn_id(xqc_connection_t *conn);
-xqc_cid_t *xqc_conn_get_scid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
-xqc_cid_t *xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
 xqc_int_t xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid);
 void xqc_conn_destroy_cids(xqc_connection_t *conn);
 

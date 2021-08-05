@@ -249,7 +249,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
 {
     unsigned char *pos = packet_in->pos;
     xqc_packet_t *packet = &packet_in->pi_pkt;
-    uint8_t cid_len = c->scid.cid_len;
+    uint8_t cid_len = c->scid_set.user_scid.cid_len;
 
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_SHORT_HEADER;
     packet_in->pi_pkt.pkt_pns = XQC_PNS_APP_DATA;
@@ -280,7 +280,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c,
     pos += cid_len;
     if (xqc_conn_check_dcid(c, &(packet->pkt_dcid)) != XQC_OK) {
         /* log & ignore */
-        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid, pkt dcid: %s, conn scid: %s|", xqc_dcid_str(&packet->pkt_dcid), xqc_scid_str(&c->scid));
+        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid, pkt dcid: %s, conn scid: %s|", xqc_dcid_str(&packet->pkt_dcid), xqc_scid_str(&c->scid_set.user_scid));
         return -XQC_EILLPKT;
     }
 
@@ -314,7 +314,7 @@ xqc_short_packet_update_dcid(xqc_packet_out_t *packet_out, xqc_connection_t *con
 {
     unsigned char *dst = packet_out->po_buf + 1;
     //dcid len不能变
-    xqc_memcpy(dst, conn->dcid.cid_buf, conn->dcid.cid_len);
+    xqc_memcpy(dst, conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len);
 }
 
 int
@@ -944,9 +944,9 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     pos += odcid.cid_len;
 
     //判断odcid
-    if (c->ocid.cid_len != odcid.cid_len
-           || memcmp(c->ocid.cid_buf, odcid.cid_buf, odcid.cid_len) != 0) {
-        xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_retry|ocid not match|");
+    if (c->original_dcid.cid_len != odcid.cid_len
+           || memcmp(c->original_dcid.cid_buf, odcid.cid_buf, odcid.cid_len) != 0) {
+        xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_retry|original_dcid not match|");
         packet_in->pos = packet_in->last;
         return XQC_OK;
     }
@@ -965,7 +965,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     //xqc_destroy_stream(c->crypto_stream[XQC_ENC_LEV_INIT]);
     c->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(c, XQC_ENC_LEV_INIT, NULL);
 
-    if (c->tlsref.callbacks.recv_retry(c, &c->dcid) < 0) {
+    if (c->tlsref.callbacks.recv_retry(c, &c->dcid_set.current_dcid) < 0) {
         return -XQC_TLS_CLIENT_REINTIAL_ERROR;
     }
 
@@ -992,9 +992,9 @@ xqc_int_t
 xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
     /* check original DCID */
-    if (xqc_cid_is_equal(&c->ocid, &packet_in->pi_pkt.pkt_scid) != XQC_OK) {
-        xqc_log(c->log, XQC_LOG_ERROR, "|version negotiation pkt SCID error|ocid:%s|scid:%s|", 
-                xqc_dcid_str(&c->ocid), xqc_scid_str(&packet_in->pi_pkt.pkt_scid));
+    if (xqc_cid_is_equal(&c->original_dcid, &packet_in->pi_pkt.pkt_scid) != XQC_OK) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|version negotiation pkt SCID error|original_dcid:%s|scid:%s|", 
+                xqc_dcid_str(&c->original_dcid), xqc_scid_str(&packet_in->pi_pkt.pkt_scid));
         return -XQC_EILLPKT;
     }
 
@@ -1182,8 +1182,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         && XQC_CONN_FLAG_DCID_OK & c->conn_flag)
     {
         /* check cid */
-        if (xqc_cid_is_equal(&(packet->pkt_dcid), &c->scid) != XQC_OK
-            || xqc_cid_is_equal(&(packet->pkt_scid), &c->dcid) != XQC_OK)
+        if (!xqc_cid_in_scid_set(&(packet->pkt_dcid), &c->scid_set)
+            || !xqc_cid_in_dcid_set(&(packet->pkt_scid), &c->dcid_set))
         {
             /* log & ignore packet */
             xqc_log(c->log, XQC_LOG_ERROR, "|invalid dcid or scid|");
