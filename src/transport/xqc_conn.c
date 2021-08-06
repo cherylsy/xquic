@@ -1539,7 +1539,7 @@ xqc_conn_version_check(xqc_connection_t *c, uint32_t version)
 xqc_int_t
 xqc_conn_send_version_negotiation(xqc_connection_t *c)
 {
-    xqc_packet_out_t *packet_out = xqc_packet_out_get(c->conn_send_ctl, XQC_PTYPE_VERSION_NEGOTIATION);
+    xqc_packet_out_t *packet_out = xqc_packet_out_get_and_insert_send(c->conn_send_ctl, XQC_PTYPE_VERSION_NEGOTIATION);
     if (packet_out == NULL) {
         xqc_log(c->log, XQC_LOG_ERROR, "|get XQC_PTYPE_VERSION_NEGOTIATION error|");
         return -XQC_EWRITE_PKT;
