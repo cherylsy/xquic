@@ -145,7 +145,7 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t 
         }
     }
 
-    packet_out = xqc_packet_out_get(ctl, pkt_type);
+    packet_out = xqc_packet_out_get_and_insert_send(ctl, pkt_type);
     if (packet_out == NULL) {
         return NULL;
     }
@@ -314,7 +314,7 @@ xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *
 void
 xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 {
-    xqc_packet_out_t *new_po = xqc_packet_out_create();
+    xqc_packet_out_t *new_po = xqc_packet_out_get_or_create(ctl);
     if (!new_po) {
         XQC_CONN_ERR(ctl->ctl_conn, XQC_EMALLOC);
         return;
@@ -330,7 +330,7 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 void
 xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 {
-    xqc_packet_out_t *new_po = xqc_packet_out_create();
+    xqc_packet_out_t *new_po = xqc_packet_out_get_or_create(ctl);
     if (!new_po) {
         XQC_CONN_ERR(ctl->ctl_conn, XQC_EMALLOC);
         return;

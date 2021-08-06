@@ -84,7 +84,10 @@ void
 xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src);
 
 xqc_packet_out_t *
-xqc_packet_out_get(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
+xqc_packet_out_get_or_create(xqc_send_ctl_t *ctl);
+
+xqc_packet_out_t *
+xqc_packet_out_get_and_insert_send(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
 
 void
 xqc_packet_out_destroy(xqc_packet_out_t *packet_out);

@@ -59,8 +59,9 @@ xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src)
     dst->po_user_data = src->po_user_data;
 }
 
+
 xqc_packet_out_t *
-xqc_packet_out_get(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
+xqc_packet_out_get_or_create(xqc_send_ctl_t *ctl)
 {
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
@@ -74,7 +75,7 @@ xqc_packet_out_get(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
         unsigned char *tmp = packet_out->po_buf;
         memset(packet_out, 0, sizeof(xqc_packet_out_t));
         packet_out->po_buf = tmp;
-        goto set_packet;
+        return packet_out;
     }
 
     packet_out = xqc_packet_out_create();
@@ -82,7 +83,18 @@ xqc_packet_out_get(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
         return NULL;
     }
 
-set_packet:
+    return packet_out;
+}
+
+xqc_packet_out_t *
+xqc_packet_out_get_and_insert_send(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type)
+{
+    xqc_packet_out_t *packet_out;
+    packet_out = xqc_packet_out_get_or_create(ctl);
+    if (!packet_out) {
+        return NULL;
+    }
+
     packet_out->po_buf_size = XQC_PACKET_OUT_SIZE;
     packet_out->po_pkt.pkt_type = pkt_type;
     packet_out->po_pkt.pkt_pns = xqc_packet_type_to_pns(pkt_type);
@@ -191,9 +203,9 @@ xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type)
         pkt_type = xqc_state_to_pkt_type(conn);
     }
 
-    packet_out = xqc_packet_out_get(conn->conn_send_ctl, pkt_type);
+    packet_out = xqc_packet_out_get_and_insert_send(conn->conn_send_ctl, pkt_type);
     if (packet_out == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_out_get error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_out_get_and_insert_send error|");
         return NULL;
     }
 
@@ -224,9 +236,9 @@ xqc_write_new_packet_ex(xqc_connection_t *conn,
         pkt_type = xqc_state_to_pkt_type(conn);
     }
 
-    packet_out = xqc_packet_out_get(conn->conn_send_ctl, pkt_type);
+    packet_out = xqc_packet_out_get_and_insert_send(conn->conn_send_ctl, pkt_type);
     if (packet_out == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_out_get error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_out_get_and_insert_send error|");
         return NULL;
     }
 
