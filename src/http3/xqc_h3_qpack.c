@@ -3104,9 +3104,11 @@ xqc_h3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,
         } else if (flags & XQC_HTTP3_QPACK_DECODE_FLAG_BLOCKED) {
             xqc_qpack_decoder_block_stream_insert(h3_stream, sctx->ricnt, &h3_conn->block_stream_head);
             h3_stream->flags |= XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED;
+            xqc_qpack_name_value_free(&nv);
             break;
 
         } else {
+            xqc_qpack_name_value_free(&nv);
             if (start < end) {
                 return -XQC_QPACK_DECODER_ERROR;
             }
