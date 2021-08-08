@@ -322,73 +322,6 @@ static inline uint8_t * xqc_cpymem(uint8_t *dest, uint8_t * src, size_t n){
     return desc + n;
 }*/
 
-static inline size_t xqc_put_varint_len(uint64_t n) {
-  if (n < 64) {
-    return 1;
-  }
-  if (n < 16384) {
-    return 2;
-  }
-  if (n < 1073741824) {
-    return 4;
-  }
-  //assert(n < 4611686018427387904ULL);
-  return 8;
-}
-
-
-
-
-static inline uint8_t *xqc_put_uint64be(uint8_t *p, uint64_t n) {
-  n = bswap64(n);
-  return xqc_cpymem(p, (const uint8_t *)&n, sizeof(n));
-}
-
-static inline uint8_t *xqc_put_uint48be(uint8_t *p, uint64_t n) {
-  n = bswap64(n);
-  return xqc_cpymem(p, ((const uint8_t *)&n) + 2, 6);
-}
-
-static inline uint8_t *xqc_put_uint32be(uint8_t *p, uint32_t n) {
-  n = htonl(n);
-  return xqc_cpymem(p, (const uint8_t *)&n, sizeof(n));
-}
-
-static inline uint8_t *xqc_put_uint24be(uint8_t *p, uint32_t n) {
-  n = htonl(n);
-  return xqc_cpymem(p, ((const uint8_t *)&n) + 1, 3);
-}
-
-static inline uint8_t *xqc_put_uint16be(uint8_t *p, uint16_t n) {
-  n = htons(n);
-  return xqc_cpymem(p, (const uint8_t *)&n, sizeof(n));
-}
-
-
-static inline uint8_t *xqc_put_varint(uint8_t *p, uint64_t n) {
-  uint8_t *rv;
-  if (n < 64) {
-    *p++ = (uint8_t)n;
-    return p;
-  }
-  if (n < 16384) {
-    rv = xqc_put_uint16be(p, (uint16_t)n);
-    *p |= 0x40;
-    return rv;
-  }
-  if (n < 1073741824) {
-    rv = xqc_put_uint32be(p, (uint32_t)n);
-    *p |= 0x80;
-    return rv;
-  }
-  //assert(n < 4611686018427387904ULL);
-  if(n >= 4611686018427387904ULL){
-    return NULL;
-  }
-  rv = xqc_put_uint64be(p, n);
-  *p |= 0xc0;
-  return rv;
-}
 
 static inline int xqc_cid_eq(const xqc_cid_t *cid, const xqc_cid_t *other) {
     return cid->cid_len == other->cid_len &&
@@ -439,9 +372,6 @@ static inline int xqc_numeric_host(const char *hostname) {
   return xqc_check_numeric_host(hostname, AF_INET) || xqc_check_numeric_host(hostname, AF_INET6);
 }
 
-
-static inline size_t xqc_get_varint_len(const uint8_t *p) { return 1u << (*p >> 6); }
-static inline int64_t xqc_get_varint_fb(const uint8_t *p) { return *p & 0x3f; }
 
 static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
     union {

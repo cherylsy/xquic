@@ -8,6 +8,7 @@
 #include <xquic/xquic_typedef.h>
 #include <openssl/ssl.h>
 #include "src/common/xqc_common.h"
+#include "src/common/utils/vint/xqc_variable_len_int.h"
 
 typedef struct xqc_aead_st          xqc_aead_t ;
 typedef struct xqc_crypto_st        xqc_crypto_t ;
