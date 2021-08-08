@@ -67,7 +67,7 @@ xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
         /* If we cannot fill remaining buffer, we need to include data
          * length.
          */
-        if (size < n_avail) {
+        if (size <= n_avail) {
             length_bits = xqc_vint_get_2bit(size);
             length_len = xqc_vint_len(length_bits);
             n_avail -= length_len;
