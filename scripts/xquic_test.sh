@@ -64,8 +64,6 @@ function run_test_case() {
     # "case test..."
     sh ../scripts/case_test.sh | tee -a xquic_test.log
 
-    # "qpack test..."
-    sh ../scripts/qpack_test.sh | tee -a xquic_test.log
 }
 
 function run_gcov() {
@@ -86,12 +84,6 @@ function output_summary() {
     passed=`cat xquic_test.log | grep "pass:" | grep "pass:1" | wc -l`
     failed=`cat xquic_test.log | grep "pass:" | grep "pass:0" | wc -l`
     echo -e "\033[32m case test passed:$passed failed:$failed \033[0m"
-
-    echo -e "\nqpack test:"
-    cat xquic_test.log | grep "qpack test" | grep ">>"
-    passed=`cat xquic_test.log | grep "qpack test" | grep "pass" | wc -l`
-    failed=`cat xquic_test.log | grep "qpack test" | grep "failed" | wc -l`
-    echo -e "\033[32m qpack test passed:$passed failed:$failed \033[0m"
 
     echo -e "\nCode Coverage:                             Lines    Exec  Cover"
     cat xquic_test.log | grep "TOTAL"
