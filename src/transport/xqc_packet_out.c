@@ -1,5 +1,5 @@
 
-#include "src/common/xqc_variable_len_int.h"
+#include "src/common/utils/vint/xqc_variable_len_int.h"
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_conn.h"
 #include "src/common/xqc_memory_pool.h"

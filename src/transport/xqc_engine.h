@@ -35,9 +35,6 @@ typedef struct xqc_engine_s {
     xqc_engine_ssl_config_t       ssl_config;       /* ssl config, such as cipher suit, cert file path etc. */
     xqc_ssl_session_ticket_key_t  session_ticket_key;
 
-    /* for http3 */
-    xqc_h3_context_t       *h3_ctx;
-
     /* common */
     xqc_log_t              *log;
     xqc_random_generator_t *rand_generator;

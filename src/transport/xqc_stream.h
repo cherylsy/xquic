@@ -142,10 +142,16 @@ xqc_get_stream_type(xqc_stream_id_t stream_id)
     return stream_id & 0x03;
 }
 
-static inline int
+static inline xqc_int_t
 xqc_stream_is_bidi(xqc_stream_id_t stream_id)
 {
-    return !(stream_id & 0x02);
+    return stream_id == 0x00 || !(stream_id & 0x02);
+}
+
+static inline xqc_int_t
+xqc_stream_is_uni(xqc_stream_id_t stream_id)
+{
+    return stream_id & 0x02;
 }
 
 xqc_stream_t *

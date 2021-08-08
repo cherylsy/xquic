@@ -3,7 +3,7 @@
 #include "src/http3/xqc_h3_conn.h"
 #include "src/common/xqc_log.h"
 #include "src/transport/xqc_frame.h"
-#include "src/common/xqc_variable_len_int.h"
+#include "src/common/utils/vint/xqc_variable_len_int.h"
 #include "src/transport/xqc_engine.h"
 #include "src/common/xqc_log.h"
 #include "src/transport/xqc_packet_in.h"

@@ -188,6 +188,30 @@ else
 fi
 
 clear_log
+echo -e "header header data ...\c"
+./test_client -s 5120 -l d -t 1 -E -x 30 >> clog
+if [[ `grep "xqc_h3_request_recv_headers.*count:6" slog|wc -l` -eq 2 ]]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "header_header_data" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "header_header_data" "fail"
+fi
+grep_err_log
+
+clear_log
+echo -e "header data header ...\c"
+./test_client -s 5120 -l d -t 1 -E -x 31 >> clog
+if [[ `grep "xqc_h3_request_recv_headers.*count:6" slog|wc -l` -eq 2 ]]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "header_data_header" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "header_data_header" "fail"
+fi
+grep_err_log
+
+clear_log
 echo -e "user close connection ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 2 >> clog
 if grep "<==.*CONNECTION_CLOSE" clog >/dev/null && grep "==>.*CONNECTION_CLOSE" clog >/dev/null; then
@@ -500,10 +524,10 @@ clear_log
 echo -e "set h3 settings ...\c"
 ./test_client -s 1024 -l d -t 1 -E -x 18 >> clog
 if grep ">>>>>>>> pass:1" clog >/dev/null && \
-    grep -e "xqc_h3_conn_send_settings.*qpack_blocked_streams:32|qpack_max_table_capacity:4096|max_field_section_size:256" clog >/dev/null && \
+    grep -e "xqc_h3_conn_send_settings.*qpack_blocked_streams:32|qpack_max_table_capacity:4096|max_field_section_size:512" clog >/dev/null && \
     grep -e "xqc_h3_conn_on_settings_entry_received.*id:7.*value:32" slog >/dev/null && \
     grep -e "xqc_h3_conn_on_settings_entry_received.*id:1.*value:4096" slog >/dev/null && \
-    grep -e "xqc_h3_conn_on_settings_entry_received.*id:6.*value:256" slog >/dev/null; then
+    grep -e "xqc_h3_conn_on_settings_entry_received.*id:6.*value:512" slog >/dev/null; then
     echo ">>>>>>>> pass:1"
     case_print_result "set_h3_settings" "pass"
 else
@@ -804,8 +828,8 @@ echo -e "test client long header ...\c"
 ./test_client -l d -x 29 >> clog
 #clog_res=`grep "xqc_process_conn_close_frame|with err:" clog`
 #slog_res=`grep "READ_VALUE error" slog`
-clog_res=`grep "large nv|conn" clog`
-slog_res=`grep "xqc_process_conn_close_frame|with err:" slog`
+slog_res=`grep "large nv|conn" slog`
+clog_res=`grep "xqc_process_conn_close_frame|with err:" clog`
 if [ -n "$clog_res" ] && [ -n "$slog_res" ]; then
     case_print_result "test_client_long_header" "pass"
 else
@@ -824,8 +848,8 @@ echo -e "test server long header ...\c"
 #slog_res=`grep "xqc_process_conn_close_frame|with err:" slog`
 #clog_res=`grep "READ_VALUE error" clog`
 slog_res=`grep "large nv|conn" slog`
-clog_res=`grep "xqc_process_conn_close_frame|with err:" clog`
-if [ -n "$clog_res" ] && [ -n "$slog_res" ]; then
+#clog_res=`grep "xqc_process_conn_close_frame|with err:" clog`
+if [ -n "$slog_res" ]; then
     case_print_result "test_server_long_header" "pass"
 else
     case_print_result "test_server_long_header" "fail"
@@ -1010,6 +1034,24 @@ else
     echo ">>>>>>>> pass:0"
     case_print_result "server_amplification_limit" "fail"
 fi
+
+
+killall test_server 2> /dev/null
+./test_server -l d -e -x 10 > /dev/null &
+sleep 1
+clear_log
+echo -e "massive requests with massive header ...\c"
+./test_client -l d -q 50 -n 100 -x 32 -E >> clog
+result=`grep ">>>>>>>> pass:1" clog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" != "" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "massive_requests_with_massive_header" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "massive_requests_with_massive_header" "fail"
+fi
+
 
 
 killall test_server

@@ -12,6 +12,8 @@
 #include <sys/types.h>
 
 #include "src/common/xqc_config.h"
+#include "include/xquic/xquic_typedef.h"
+
 
 typedef struct xqc_str_s
 {
@@ -64,5 +66,13 @@ xqc_sprintf(unsigned char* buf, unsigned char* last, const char* fmt, ...)
     va_end(args);
     return p;
 }
+
+
+inline static xqc_bool_t
+xqc_memeq(const void *s1, const void *s2, size_t n)
+{
+    return n == 0 || memcmp(s1, s2, n) == 0;
+}
+
 
 #endif /*_XQC_STR_H_INCLUDED_*/

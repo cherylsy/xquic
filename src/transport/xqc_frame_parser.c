@@ -2,7 +2,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include "src/transport/xqc_frame_parser.h"
-#include "src/common/xqc_variable_len_int.h"
+#include "src/common/utils/vint/xqc_variable_len_int.h"
 #include "src/common/xqc_log.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_stream.h"
