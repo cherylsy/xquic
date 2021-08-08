@@ -2101,6 +2101,10 @@ xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen)
 char *
 xqc_conn_addr_str(xqc_connection_t *conn)
 {
+    if (conn->local_addrlen == 0 || conn->peer_addrlen == 0 || conn->scid.cid_len == 0 || conn->dcid.cid_len == 0) {
+        return "addr or cid not avail";
+    }
+
     if (conn->addr_str_len == 0) {
         struct sockaddr_in *sa_local = (struct sockaddr_in *)conn->local_addr;
         struct sockaddr_in *sa_peer = (struct sockaddr_in *)conn->peer_addr;
