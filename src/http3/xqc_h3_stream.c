@@ -417,7 +417,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
                 } else {
                     data_buf = xqc_create_data_buf(XQC_SIZE_4K, 0);
                     if (NULL == data_buf) {
-                        return XQC_H3_EMALLOC;
+                        return -XQC_H3_EMALLOC;
                     }
                     xqc_list_add_tail(&data_buf->list_head, head);
                 }
@@ -425,7 +425,7 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
             } else {
                 data_buf = xqc_create_data_buf(XQC_SIZE_4K, 0);
                 if (NULL == data_buf) {
-                    return XQC_H3_EMALLOC;
+                    return -XQC_H3_EMALLOC;
                 }
                 xqc_list_add_tail(&data_buf->list_head, head);
             }
