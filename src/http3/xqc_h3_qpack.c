@@ -907,7 +907,8 @@ xqc_qpack_decoder_block_stream_check_and_process(xqc_h3_conn_t *h3_conn, uint64_
 }
 
 int
-xqc_qpack_decoder_block_stream_insert(xqc_h3_stream_t *h3_stream, uint64_t ricnt, xqc_list_head_t *head)
+xqc_qpack_decoder_block_stream_insert(xqc_h3_stream_t *h3_stream, 
+    uint64_t ricnt, xqc_list_head_t *head)
 {
     xqc_qpack_decoder_block_stream_t *block_stream = xqc_malloc(sizeof(xqc_qpack_decoder_block_stream_t)); //it will be free when free list
     if (block_stream == NULL) {
