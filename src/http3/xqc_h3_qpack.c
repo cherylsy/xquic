@@ -2230,6 +2230,8 @@ xqc_h3_qpack_encoder_ack_header(xqc_h3_conn_t * h3_conn, uint64_t stream_id)
 
     xqc_h3_qpack_check_and_refresh_insert_count(&h3_conn->qenc, unack_block->max_rcnt);
 
+    xqc_free(unack_block);
+
     return XQC_OK;
 }
 
