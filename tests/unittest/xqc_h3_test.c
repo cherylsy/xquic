@@ -1,6 +1,7 @@
 #include <CUnit/CUnit.h>
 #include "xquic/xquic.h"
 #include "src/http3/frame/xqc_h3_frame.h"
+#include "src/http3/xqc_h3_conn.h"
 #include "src/http3/xqc_h3_stream.h"
 #include "src/http3/qpack/xqc_qpack.h"
 #include "src/transport/xqc_stream.h"
@@ -413,7 +414,7 @@ void xqc_test_stream()
     xqc_h3_stream_t *h3s = xqc_h3_stream_create(h3c, stream, XQC_H3_STREAM_TYPE_CONTROL, NULL);
     CU_ASSERT(h3s != NULL);
 
-    conn->engine->engine_flag &= XQC_CONN_FLAG_CANNOT_DESTROY;
+    conn->engine->eng_flag &= XQC_CONN_FLAG_CANNOT_DESTROY;
 
     char data[] = {"sdfjldksjf ldsjflkejwrfmmsldfpodsjcdsl;ml;fdsl;fkdlk"};
     size_t data_size = strlen(data);

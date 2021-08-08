@@ -2,6 +2,7 @@
 #include "src/http3/xqc_h3_request.h"
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_engine.h"
+#include "src/http3/xqc_h3_conn.h"
 
 xqc_h3_request_t*
 xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)

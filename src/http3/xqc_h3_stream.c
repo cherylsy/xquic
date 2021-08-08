@@ -3,6 +3,7 @@
 #include "src/http3/qpack/xqc_qpack.h"
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_engine.h"
+#include "src/http3/xqc_h3_conn.h"
 
 
 xqc_h3_blocked_stream_t *
