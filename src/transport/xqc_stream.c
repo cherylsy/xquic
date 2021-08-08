@@ -1060,9 +1060,9 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
 
 ssize_t
 xqc_stream_send (xqc_stream_t *stream,
-                 unsigned char *send_data,
-                 size_t send_data_size,
-                 uint8_t fin)
+    unsigned char *send_data,
+    size_t send_data_size,
+    uint8_t fin)
 {
     xqc_connection_t *conn = stream->stream_conn;
     if (conn->conn_state >= XQC_CONN_STATE_CLOSING) {
