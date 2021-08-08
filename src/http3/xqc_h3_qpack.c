@@ -541,7 +541,8 @@ xqc_qpack_read_state_check_huffman(xqc_http3_qpack_read_state *rstate, const uin
 
 
 int
-xqc_qpack_decoder_emit_dynamic_indexed_name(xqc_http3_qpack_decoder *decoder, xqc_http3_qpack_stream_context *sctx, xqc_qpack_name_value_t *nv)
+xqc_qpack_decoder_emit_dynamic_indexed_name(xqc_http3_qpack_decoder *decoder, 
+    xqc_http3_qpack_stream_context *sctx, xqc_qpack_name_value_t *nv)
 {
     nv->flag = sctx->rstate.never;
     uint64_t absidx = sctx->rstate.absidx;
@@ -604,7 +605,7 @@ int xqc_http3_qpack_decoder_emit_indexed_name(xqc_http3_qpack_decoder *decoder,
 
 int
 xqc_http3_qpack_context_init(xqc_http3_qpack_context *ctx, uint64_t max_table_capacity,
-                             uint64_t max_dtable_size, uint64_t max_blocked)
+    uint64_t max_dtable_size, uint64_t max_blocked)
 {
     ctx->max_table_capacity = max_table_capacity;
     ctx->max_dtable_size = max_dtable_size;
@@ -765,9 +766,9 @@ xqc_http3_qpack_encoder_free(xqc_http3_qpack_encoder *qenc)
 }
 
 int
-xqc_http3_qpack_decoder_emit_literal(xqc_http3_qpack_decoder *decoder,
-                                     xqc_http3_qpack_stream_context *sctx,
-                                     xqc_qpack_name_value_t *nv)
+xqc_qpack_decoder_emit_literal(xqc_http3_qpack_decoder *decoder,
+    xqc_http3_qpack_stream_context *sctx,
+    xqc_qpack_name_value_t *nv)
 {
     nv->name = xqc_create_var_string(sctx->rstate.name->data, sctx->rstate.name->used_len );
     if (nv->name == NULL) {
@@ -781,7 +782,7 @@ xqc_http3_qpack_decoder_emit_literal(xqc_http3_qpack_decoder *decoder,
         return -XQC_H3_EMALLOC;
     }
 
-    return 0;
+    return XQC_OK;
 }
 
 int
@@ -935,7 +936,7 @@ xqc_qpack_decoder_block_stream_insert(xqc_h3_stream_t *h3_stream,
 
 ssize_t
 xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xqc_http3_qpack_stream_context *sctx,
-                                            xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin)
+    xqc_qpack_name_value_t *nv, uint8_t *pflags, uint8_t *src, size_t srclen, int fin)
 { //streaming decode
 
     uint8_t *p = src, *end = src + srclen;
@@ -1246,9 +1247,9 @@ xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xq
 
             switch (sctx->opcode) {
             case XQC_HTTP3_QPACK_RS_OPCODE_LITERAL:
-                if (xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv) < 0) {
+                if (xqc_qpack_decoder_emit_literal(decoder, sctx, nv) < 0) {
                     rv = -XQC_QPACK_DECODER_ERROR;
-                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_emit_literal error|");
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_decoder_emit_literal error|");
                     goto fail;
                 }
                 break;
@@ -1285,9 +1286,9 @@ xqc_http3_qpack_decoder_read_request_header(xqc_http3_qpack_decoder *decoder, xq
 
             switch (sctx->opcode) {
             case XQC_HTTP3_QPACK_RS_OPCODE_LITERAL:
-                if (xqc_http3_qpack_decoder_emit_literal(decoder, sctx, nv) < 0) {
+                if (xqc_qpack_decoder_emit_literal(decoder, sctx, nv) < 0) {
                     rv = -XQC_QPACK_DECODER_ERROR;
-                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_http3_qpack_decoder_emit_literal error|");
+                    xqc_log(decoder->h3_conn->log, XQC_LOG_ERROR, "|xqc_qpack_decoder_emit_literal error|");
                     goto fail;
                 }
                 break;
@@ -3083,7 +3084,8 @@ xqc_h3_handle_header_data_streaming(xqc_h3_conn_t *h3_conn,
     char * end = data + len;
     while (start < end) {
         uint8_t flags = 0;
-        int read_len = xqc_http3_qpack_decoder_read_request_header(decoder, sctx, &nv, &flags,  start, end - start, fin_flag);
+        int read_len = xqc_http3_qpack_decoder_read_request_header(decoder, sctx, 
+                                                                   &nv, &flags,  start, end - start, fin_flag);
         if (read_len < 0) {
             return read_len;
         }
