@@ -43,7 +43,7 @@ function case_print_result() {
 clear_log
 echo -e "stream read notify fail ...\c"
 ./test_client -s 1024000 -l d -t 1 -E -x 12 >> clog
-result=`grep_err_log|grep -v xqc_process_read_streams|grep -v xqc_h3_stream_read_notify|grep -v xqc_process_conn_close_frame`
+result=`grep_err_log|grep -v xqc_h3_request_on_recv|grep -v xqc_h3_stream_process_in|grep -v xqc_h3_stream_read_notify|grep -v xqc_process_read_streams|grep -v xqc_process_conn_close_frame`
 if [ -z "$result" ]; then
     echo ">>>>>>>> pass:1"
     case_print_result "stream_read_notify_fail" "pass"
