@@ -250,7 +250,8 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
                 XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
                         h3_conn->conn, headers->headers[i].name.iov_len, headers->headers[i].value.iov_len);
-                return -XQC_H3_BUFFER_EXCEED;
+                ret = -XQC_H3_BUFFER_EXCEED;
+                goto free;
             }
         }
     }
@@ -269,7 +270,8 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
                 XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
                 xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
                         h3_conn->conn, headers->headers[i].name.iov_len, headers->headers[i].value.iov_len);
-                return -XQC_H3_BUFFER_EXCEED;
+                ret = -XQC_H3_BUFFER_EXCEED;
+                goto free;
             }
         }
     }
@@ -278,6 +280,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
 
     ssize_t ret = xqc_h3_stream_send_headers(h3_request->h3_stream, headers_in, fin);
 
+free:
     /* free headers_in->headers */
     xqc_free(headers_in->headers);
 
