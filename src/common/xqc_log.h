@@ -81,7 +81,7 @@ void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const c
 #endif
 
 #define xqc_conn_log(conn, level, fmt, ...) \
-    xqc_log(conn->log, level, "|%s " fmt, xqc_conn_addr_str(conn), __VA_ARGS__ )
+    xqc_log(conn->log, level, "|%s " fmt, xqc_conn_addr_str(conn), ##__VA_ARGS__ )
 
 
 #define xqc_log_fatal(log, ...) \
