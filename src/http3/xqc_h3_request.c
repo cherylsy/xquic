@@ -136,8 +136,6 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request, void *user_data)
 ssize_t
 xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers, uint8_t fin)
 {
-    ssize_t ret = XQC_ERROR;
-
     if (!headers) {
         xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR, "|headers MUST NOT be NULL|");
         return -XQC_H3_EPARAM;
