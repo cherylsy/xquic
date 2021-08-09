@@ -1436,7 +1436,8 @@ xqc_h3_stream_write_frame_data(xqc_h3_stream_t * h3_stream,
 
         if (sent_size < 0 && sent_size != -XQC_EAGAIN) {
             xqc_free(send_buf);
-            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, "|h3_stream send h3 data error,error code:%z|",send_success );
+            xqc_log(h3_stream->h3_conn->log, XQC_LOG_ERROR, 
+                "|h3_stream send h3 data error,error code:%z|", sent_size);
             return sent_size;
         }
 
