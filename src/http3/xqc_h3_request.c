@@ -218,6 +218,8 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
 ssize_t
 xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers, uint8_t fin)
 {
+    ssize_t ret = XQC_ERROR;
+
     if (!headers) {
         return -XQC_H3_EPARAM;
     }
@@ -278,7 +280,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
 
     headers_in->count = pt;
 
-    ssize_t ret = xqc_h3_stream_send_headers(h3_request->h3_stream, headers_in, fin);
+    ret = xqc_h3_stream_send_headers(h3_request->h3_stream, headers_in, fin);
 
 free:
     /* free headers_in->headers */
