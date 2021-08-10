@@ -547,8 +547,8 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out, unsigned char *enc_pkt, size_t *enc_pkt_len)
 {
     xqc_pktns_t *p_pktns;
-    xqc_encrypt_t encrypt_func;
-    xqc_hp_mask_t hp_mask;
+    xqc_encrypt_pt encrypt_func;
+    xqc_hp_mask_pt hp_mask;
 
     xqc_crypto_km_t *p_ckm = NULL;
     xqc_vec_t *tx_hp = NULL;
@@ -657,8 +657,8 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(pkt_type);
     xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
     xqc_pktns_t *p_pktns = NULL;
-    xqc_decrypt_t decrypt_func = NULL;
-    xqc_hp_mask_t hp_mask = NULL;
+    xqc_decrypt_pt decrypt_func = NULL;
+    xqc_hp_mask_pt hp_mask = NULL;
 
     xqc_crypto_km_t *ckm = NULL;
     xqc_vec_t *hp = NULL;

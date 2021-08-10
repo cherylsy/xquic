@@ -747,7 +747,8 @@ xqc_crypto_stream_on_read (xqc_stream_t *stream, void *user_data)
 #define MIN_CRYPTO_FRAME_SIZE 8
 
 int 
-xqc_crypto_stream_send(xqc_stream_t *stream, xqc_pktns_t *p_pktns, xqc_encrypt_t encrypt_func,
+xqc_crypto_stream_send(xqc_stream_t *stream, 
+    xqc_pktns_t *p_pktns, xqc_encrypt_pt encrypt_func,
     xqc_pkt_type_t pkt_type)
 {
     size_t send_data_written = 0;
@@ -833,9 +834,9 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
         pkt_type = XQC_PTYPE_INIT;
         switch (cur_state) {
             case XQC_CONN_STATE_CLIENT_INIT:
-                //conn->tlsref.callbacks.client_initial(conn);
+
                 if(!(conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY)){
-                    ret = conn->tlsref.callbacks.client_initial(conn);
+                    ret = conn->tlsref.callbacks.tls_client_initial(conn);
                     if(ret < 0){
                         xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|client handshake initial packet error|");
                         return -XQC_TLS_CLIENT_INITIAL_ERROR;

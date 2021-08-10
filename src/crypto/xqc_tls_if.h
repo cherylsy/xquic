@@ -54,33 +54,19 @@ typedef struct xqc_tls_context xqc_tls_context_t;
 
 
 /**
- * @functypedef
+ * @brief `xqc_tls_client_initial_pt` is called when client generates initial
  *
- * :type:`xqc_client_initial` is invoked when client application
- * asks TLS stack to produce first TLS cryptographic handshake data.
+ * @param[in] conn  Connection context
  *
- * This implementation of this callback must get the first handshake
- * data from TLS stack and pass it to xqc library using
- * `xqc_conn_submit_crypto_data` function.  Make sure that before
- * calling `xqc_conn_submit_crypto_data` function, client
- * application must create initial packet protection keys and IVs, and
- * provide them to xqc library using
- * `xqc_conn_set_initial_tx_keys` and
- * `xqc_conn_set_initial_rx_keys`.
- *
- * This callback function must return 0 if it succeeds, or
- * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library call
- * return immediately.
- *
- * TODO: Define error code for TLS stack failure.  Suggestion:
- * XQC_TLS_CRYPTO.
+ * @retval XQC_OK means succeeds. <0 means error occurred 
  */
-typedef int (*xqc_client_initial)(xqc_connection_t *conn);
+typedef int (*xqc_tls_client_initial_pt)(xqc_connection_t *conn);
 
 
 /**
  * @brief `xqc_tls_recv_initial_pt` is called when server receives Initial packet. 
  *        Just used by server. Server can derive initial keys(packet protection & IV) in this fuction.
+ *
  * @param[in] conn  Connection context
  * @param[in] dcid  The Destination Connection ID which is generated randomly by client.
  *
@@ -92,6 +78,7 @@ typedef xqc_int_t (*xqc_tls_recv_initial_pt)(xqc_connection_t *conn, xqc_cid_t *
 /**
  * @brief `xqc_tls_recv_crypto_data_pt` is called when crypto data are received in crypto streams.
  *         Implementations should deliver the recvd data to TLS stack.
+ *
  * @param[in] conn          Connection context
  * @param[in] data_pos      Buffer position of the received data
  * @param[in] data_len      Length of the received data
@@ -104,139 +91,96 @@ typedef xqc_int_t (*xqc_tls_recv_crypto_data_pt)(xqc_connection_t *conn,
 
 
 /**
- * @functypedef
+ * @brief `xqc_handshake_completed` is called when tls handshake is completed
  *
- * :type:`xqc_handshake_completed` is invoked when QUIC
- * cryptographic handshake has completed.
+ * @param[in] conn          Connection context
+ * @param[in] user_data     User data for connection
  *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
- * immediately.
+ * @retval XQC_OK means succeeds. <0 means error occurred 
  */
 typedef int (*xqc_handshake_completed)(xqc_connection_t *conn, void *user_data);
 
 
 /**
- * @functypedef
+ * @brief `xqc_encrypt_pt` is used to define fuctions for encryption
  *
- * :type:`xqc_encrypt` is invoked when the ngtcp2 library asks the
- * application to encrypt packet payload.  The packet payload to
- * encrypt is passed as |plaintext| of length |plaintextlen|.  The
- * encryption key is passed as |key| of length |keylen|.  The nonce is
- * passed as |nonce| of length |noncelen|.  The ad, Additional Data to
- * AEAD, is passed as |ad| of length |adlen|.
+ * @param[in] conn          Connection context
+ * @param[in] dest          Destination buffer position for encryption
+ * @param[in] dest_len      Length of destination buffer
+ * @param[in] plaintext     Plaintext buffer position
+ * @param[in] plaintext_len Length of Plaintext buffer
+ * @param[in] key           Key buffer position
+ * @param[in] key_len       Length of key
+ * @param[in] nonce         Nonce for encryption
+ * @param[in] nonce_len     Length of nonce
+ * @param[in] ad            Addition Data for AEAD encryption
+ * @param[in] ad_len        Length of Addition Data
  *
- * The implementation of this callback must encrypt |plaintext| using
- * the negotiated cipher suite and write the ciphertext into the
- * buffer pointed by |dest| of length |destlen|.
- *
- * |dest| and |plaintext| may point to the same buffer.
- *
- * The callback function must return the number of bytes written to
- * |dest|, or :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the
- * library call return immediately.
+ * @retval Length of the encrypted data. <0 means error occurred 
  */
-typedef ssize_t (*xqc_encrypt_t)(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data, xqc_aead_crypter_t * aead_crypter);
+typedef ssize_t (*xqc_encrypt_pt)(xqc_connection_t *conn, 
+    uint8_t *dest, size_t dest_len, 
+    const uint8_t *plaintext, size_t plaintext_len, 
+    const uint8_t *key, size_t key_len, 
+    const uint8_t *nonce, size_t nonce_len, 
+    const uint8_t *ad, size_t ad_len, 
+    void *user_data, xqc_aead_crypter_t * aead_crypter);
 
 /**
- * @functypedef
+ * @brief `xqc_decrypt_pt` is used to define fuctions for decryption
  *
- * :type:`xqc_decrypt` is invoked when the ngtcp2 library asks the
- * application to decrypt packet payload.  The packet payload to
- * decrypt is passed as |ciphertext| of length |ciphertextlen|.  The
- * decryption key is passed as |key| of length |keylen|.  The nonce is
- * passed as |nonce| of length |noncelen|.  The ad, Additional Data to
- * AEAD, is passed as |ad| of length |adlen|.
+ * @param[in] conn          Connection context
+ * @param[in] dest          Destination buffer position for decryption
+ * @param[in] dest_len      Length of destination buffer
+ * @param[in] plaintext     Ciphertext buffer position
+ * @param[in] plaintext_len Length of Ciphertext buffer
+ * @param[in] key           Key buffer position
+ * @param[in] key_len       Length of key
+ * @param[in] nonce         Nonce for encryption
+ * @param[in] nonce_len     Length of nonce
+ * @param[in] ad            Addition Data for AEAD encryption
+ * @param[in] ad_len        Length of Addition Data
  *
- * The implementation of this callback must decrypt |ciphertext| using
- * the negotiated cipher suite and write the ciphertext into the
- * buffer pointed by |dest| of length |destlen|.
- *
- * |dest| and |ciphertext| may point to the same buffer.
- *
- * The callback function must return the number of bytes written to
- * |dest|.  If TLS stack fails to decrypt data, return
- * :enum:`XQC_TLS_DECRYPT`.  For any other errors, return
- * :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the library call
- * return immediately.
+ * @retval Length of the decrypted data. <0 means error occurred 
  */
-typedef ssize_t (*xqc_decrypt_t)(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data, xqc_aead_crypter_t * aead_crypter);
+typedef ssize_t (*xqc_decrypt_pt)(xqc_connection_t *conn, 
+    uint8_t *dest, size_t dest_len, 
+    const uint8_t *ciphertext, size_t ciphertext_len, 
+    const uint8_t *key, size_t key_len, 
+    const uint8_t *nonce, size_t nonce_len, 
+    const uint8_t *ad, size_t ad_len, 
+    void *user_data, xqc_aead_crypter_t * aead_crypter);
 
 
 /**
- * @functypedef
+ * @brief `xqc_hp_mask_pt` is used to calculate hp mask
  *
- * :type:`xqc_hp_mask` is invoked when the ngtcp2 library asks the
- * application to produce mask to encrypt or decrypt packet header.
- * The key is passed as |key| of length |keylen|.  The sample is
- * passed as |sample| of length |samplelen|.
+ * @param[in] conn          Connection context
+ * @param[in] dest          Destination buffer position for decryption
+ * @param[in] dest_len      Length of destination buffer
+ * @param[in] key           Key buffer position
+ * @param[in] key_len       Length of key
+ * @param[in] sample        Sample
+ * @param[in] sample_len    Length of Sample
  *
- * The implementation of this callback must produce a mask using the
- * header protection cipher suite specified by QUIC specification and
- * write the result into the buffer pointed by |dest| of length
- * |destlen|.  The length of mask must be at least
- * :macro:`XQC_HP_MASKLEN`.  The library ensures that |destlen| is
- * at least :macro:`XQC_HP_MASKLEN`.
- *
- * The callback function must return the number of bytes written to
- * |dest|, or :enum:`XQC_TLS_CALLBACK_FAILURE` which makes the
- * library call return immediately.
+ * @retval Length of the calculated hp mask. <0 means error occurred 
  */
-typedef ssize_t (*xqc_hp_mask_t)(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *sample,
-                                  size_t samplelen, void *user_data, xqc_crypter_t * crypter);
-
-
+typedef ssize_t (*xqc_hp_mask_pt)(xqc_connection_t *conn, 
+    uint8_t *dest, size_t dest_len, 
+    const uint8_t *key, size_t key_len, 
+    const uint8_t *sample, size_t sample_len, 
+    void *user_data, xqc_crypter_t * crypter);
 
 /**
- * @functypedef
+ * @brief `xqc_recv_retry` is called when transport recv retry packet
  *
- * :type:`xqc_recv_retry` is invoked when Retry packet is received.
- * This callback is client only.
+ * @param[in] conn          Connection context
+ * @param[in] user_data     User data for connection
  *
- * Application must regenerate packet protection key, IV, and header
- * protection key for Initial packets using the destination connection
- * ID obtained by `xqc_conn_get_dcid()` and install them by calling
- * `xqc_conn_install_initial_tx_keys()` and
- * `xqc_conn_install_initial_rx_keys()`.
- *
- * 0-RTT data accepted by the xqc library will be retransmitted by
- * the library automatically.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
- * immediately.
+ * @retval XQC_OK means succeeds. <0 means error occurred 
  */
 typedef int (*xqc_recv_retry)(xqc_connection_t *conn,
                                  xqc_cid_t * dcid);
-
-
-/**
- * @functypedef
- *
- * :type:`xqc_update_key` is a callback function which tells the
- * application that it should update and install new keys.
- *
- * In the callback function, the application has to generate new keys
- * for both encryption and decryption, and install them to |conn|
- * using `xqc_conn_update_tx_key` and `ngtcp2_conn_update_rx_key`.
- *
- * The callback function must return 0 if it succeeds.  Returning
- * :enum:`XQC_TLS_CALLBACK_FAILURE` makes the library call return
- * immediately.
- */
-typedef int (*xqc_update_key_t)(xqc_connection_t *conn, void *user_data);
 
 
 void xqc_set_ssl_quic_method(SSL *ssl);
@@ -296,8 +240,6 @@ int xqc_is_ready_to_send_early_data(xqc_connection_t * conn);
 
 // create crypto nonce
 void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,uint64_t pkt_num) ;
-int xqc_conn_prepare_key_update(xqc_connection_t * conn);
-int xqc_start_key_update(xqc_connection_t * conn);
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn);
 int xqc_tls_check_rx_key_ready(xqc_connection_t * conn);
 int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn);
