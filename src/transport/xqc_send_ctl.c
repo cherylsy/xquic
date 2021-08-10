@@ -20,7 +20,7 @@
 int
 xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
-    if ((packet_out->po_flag & XQC_POF_RETRANSED) || packet_out->po_acked
+    if (packet_out->po_acked
         || (packet_out->po_origin && packet_out->po_origin->po_acked))
     {
         if (packet_out->po_origin && packet_out->po_origin->po_acked) {
