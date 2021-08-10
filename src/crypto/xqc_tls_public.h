@@ -120,44 +120,42 @@ typedef enum {
 
 
 typedef struct {
-    xqc_client_initial client_initial;
+    xqc_tls_client_initial_pt           tls_client_initial;
     xqc_tls_recv_initial_pt             tls_recv_initial;
     xqc_tls_recv_crypto_data_pt         tls_recv_crypto_data;
-    xqc_handshake_completed handshake_completed;
+    xqc_handshake_completed             handshake_completed;
     /**
      * in_encrypt is a callback function which is invoked to encrypt
      * Initial packets.
      */
-    xqc_encrypt_t in_encrypt;
+    xqc_encrypt_pt                      in_encrypt;
     /**
      * in_decrypt is a callback function which is invoked to decrypt
      * Initial packets.
      */
-    xqc_decrypt_t in_decrypt;
+    xqc_decrypt_pt                      in_decrypt;
     /**
      * encrypt is a callback function which is invoked to encrypt
      * packets other than Initial packets.
      */
-    xqc_encrypt_t encrypt;
+    xqc_encrypt_pt                      encrypt;
     /**
      * decrypt is a callback function which is invoked to decrypt
      * packets other than Initial packets.
      */
-    xqc_decrypt_t decrypt;
+    xqc_decrypt_pt                      decrypt;
     /**
      * in_hp_mask is a callback function which is invoked to get mask to
      * encrypt or decrypt Initial packet header.
      */
-    xqc_hp_mask_t in_hp_mask;
+    xqc_hp_mask_pt                      in_hp_mask;
     /**
      * hp_mask is a callback function which is invoked to get mask to
      * encrypt or decrypt packet header other than Initial packets.
      */
-    xqc_hp_mask_t hp_mask;
+    xqc_hp_mask_pt                      hp_mask;
 
-    xqc_update_key_t update_key;
-
-    xqc_recv_retry recv_retry;
+    xqc_recv_retry                      recv_retry;
 } xqc_tls_callbacks_t;
 
 /**

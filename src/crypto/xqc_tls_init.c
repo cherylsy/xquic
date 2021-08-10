@@ -204,7 +204,7 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     xqc_init_list_head(&conn->tlsref.pktns.msg_cb_buffer);
 
     xqc_tls_callbacks_t *callbacks = &conn->tlsref.callbacks;
-    callbacks->client_initial = xqc_client_initial_cb;
+    callbacks->tls_client_initial = xqc_client_initial_cb;
     callbacks->tls_recv_initial = NULL;
     callbacks->tls_recv_crypto_data = xqc_tls_recv_crypto_data_cb;
     callbacks->handshake_completed = xqc_handshake_completed_cb;
@@ -305,7 +305,7 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
     xqc_init_list_head(&conn->tlsref.pktns.msg_cb_buffer);
 
     xqc_tls_callbacks_t *callbacks = &conn->tlsref.callbacks;
-    callbacks->client_initial = NULL;
+    callbacks->tls_client_initial = NULL;
     callbacks->tls_recv_initial = xqc_tls_recv_initial_cb;
     callbacks->tls_recv_crypto_data = xqc_tls_recv_crypto_data_cb;
     callbacks->handshake_completed = xqc_handshake_completed_cb;

@@ -165,58 +165,6 @@ void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
     }
 }
 
-int xqc_conn_prepare_key_update(xqc_connection_t * conn)
-{
-
-    int rv;
-    xqc_tlsref_t *tlsref = &conn->tlsref;
-    if(xqc_judge_ckm_null(&tlsref->new_rx_ckm) == 1  || xqc_judge_ckm_null(&tlsref->new_tx_ckm) == 1){
-
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|error call xqc_conn_prepare_key_update because new_rx_ckm or new_tx_ckm is not null|");
-        return -1;
-    }
-
-    if(tlsref->callbacks.update_key == NULL){
-
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|callback function update_key is null|");
-        return -1;
-    }
-
-    rv = tlsref->callbacks.update_key(conn, NULL);
-
-    if(rv != 0){
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|update key error|");
-        return rv;
-    }
-    return 0;
-}
-
-int xqc_start_key_update(xqc_connection_t * conn)
-{
-    if(xqc_do_update_key(conn) < 0){
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|start key error|");
-        return -1;
-    }
-
-    if (conn->tlsref.flags & XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE){
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|flags error,cannot start key update|");
-        return -1;
-    }
-
-    if(xqc_judge_ckm_null(& conn->tlsref.new_rx_ckm) != 1 ||
-            xqc_judge_ckm_null(& conn->tlsref.new_tx_ckm) != 1){
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|new_rx_ckm is  null ,start key update error|");
-        return -1;
-    }
-
-    if(xqc_conn_commit_key_update(conn, XQC_MAX_PKT_NUM) < 0){ //pkt num right? should be careful when integrated
-
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|update key commit error|");
-        return -1;
-    }
-    conn->tlsref.flags |= XQC_CONN_FLAG_WAIT_FOR_REMOTE_KEY_UPDATE;
-    return 0;
-}
 
 //0 means not ready, 1 means ready
 int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
