@@ -137,11 +137,12 @@ static inline void* xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
 
     xqc_memory_block_t* b = (xqc_memory_block_t*)m;
 
+    b->end = m + psize;
+
     m += sizeof(xqc_memory_block_t);
     m = xqc_align_ptr(m, XQC_ALIGNMENT);
 
     b->last = m + size;
-    b->end = m + psize;
     b->failed = 0;
     b->next = NULL;
 
