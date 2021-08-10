@@ -214,7 +214,6 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     callbacks->decrypt = xqc_do_decrypt;
     callbacks->in_hp_mask = xqc_in_hp_mask_cb;
     callbacks->hp_mask = xqc_hp_mask_cb;
-    callbacks->update_key = xqc_update_key;
     callbacks->recv_retry = xqc_tls_recv_retry_cb;
 
     tlsref->save_session_cb = engine->eng_callback.save_session_cb;
@@ -315,7 +314,6 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
     callbacks->decrypt = xqc_do_decrypt;
     callbacks->in_hp_mask = xqc_in_hp_mask_cb;
     callbacks->hp_mask = xqc_hp_mask_cb;
-    callbacks->update_key = xqc_update_key;   /* update key */
 
     const unsigned char *out;
     size_t outlen;
