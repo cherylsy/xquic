@@ -149,12 +149,12 @@ xqc_qpack_set_enc_insert_limit(xqc_qpack_t *qpk, double name_limit, double entry
  * decode bytes from request stream
  * @param qpk qpack handler
  * @param ctx context for decoding representation
- * @param data_buf input data
+ * @param data input data
  * @param headers output headers
  * 
  */
 ssize_t
-xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, xqc_var_buf_t *data_buf,
+xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, unsigned char *data, size_t data_len,
     xqc_http_headers_t *headers, xqc_bool_t fin, xqc_bool_t *blocked);
 
 /**

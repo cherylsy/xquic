@@ -29,7 +29,6 @@ xqc_h3_frm_reset_pctx(xqc_h3_frame_pctx_t *pctx)
             xqc_var_buf_free(pctx->frame.frame_payload.data.data);
             break;
         case XQC_H3_FRM_HEADERS:
-            xqc_var_buf_free(pctx->frame.frame_payload.headers.encoded_field_section);
             break;
         case XQC_H3_FRM_CANCEL_PUSH:
             break;
@@ -56,9 +55,10 @@ xqc_h3_frm_parse_data(const unsigned char *p, size_t sz, xqc_h3_frame_t *frame, 
 {
     const unsigned char *pos = p;
     *fin = XQC_FALSE;
+
     xqc_h3_frame_data_t *data = &frame->frame_payload.data;
     if (data->data == NULL) {
-        data->data = xqc_var_buf_create(XQC_DATA_BUF_SIZE_4K);
+        data->data = xqc_var_buf_create(xqc_min(sz, frame->len));
         if (data->data == NULL) {
             return -XQC_H3_EMALLOC;
         }
@@ -76,33 +76,6 @@ xqc_h3_frm_parse_data(const unsigned char *p, size_t sz, xqc_h3_frame_t *frame, 
     return pos - p;
 }
 
-ssize_t
-xqc_h3_frm_parse_headers(const unsigned char *p, size_t sz, xqc_h3_frame_t *frame, xqc_bool_t *fin)
-{
-    const unsigned char *pos = p;
-    *fin = XQC_FALSE;
-    xqc_h3_frame_headers_t *headers = &frame->frame_payload.headers;
-
-    if (headers->encoded_field_section == NULL) {
-        headers->encoded_field_section = xqc_var_buf_create(frame->len);
-        if (headers->encoded_field_section == NULL) {
-            return -XQC_H3_EMALLOC;
-        }
-    }
-
-    if (sz > 0) {
-        ssize_t len = xqc_min(sz, frame->len - headers->encoded_field_section->data_len);
-        xqc_int_t ret = xqc_var_buf_save_data(headers->encoded_field_section, pos, len);
-        if (ret != XQC_OK) {
-            return ret;
-        }
-
-        pos += len;
-        *fin = headers->encoded_field_section->data_len == frame->len ? XQC_TRUE : XQC_FALSE;
-    }
-
-    return pos - p;
-}
 
 ssize_t
 xqc_h3_frm_parse_cancel_push(const unsigned char *p, size_t sz, xqc_h3_frame_t *frame, xqc_bool_t *fin)
@@ -193,7 +166,7 @@ ssize_t
 xqc_h3_frm_parse(const unsigned char *p, size_t sz, xqc_h3_frame_pctx_t *pctx)
 {
     const unsigned char *pos = p;
-    xqc_bool_t fin;
+    xqc_bool_t fin = 0;
 
     if (pctx->state == XQC_H3_FRM_STATE_END) {
         return -XQC_H3_DECODE_ERROR;
@@ -205,6 +178,7 @@ xqc_h3_frm_parse(const unsigned char *p, size_t sz, xqc_h3_frame_pctx_t *pctx)
             pctx->frame.type = pctx->pctx.vi;
             xqc_h3_vint_pctx_clear(&pctx->pctx);
             pctx->state = XQC_H3_FRM_STATE_LEN;
+            fin = 0;
         }
     }
 
@@ -215,6 +189,7 @@ xqc_h3_frm_parse(const unsigned char *p, size_t sz, xqc_h3_frame_pctx_t *pctx)
             xqc_h3_vint_pctx_clear(&pctx->pctx);
             pctx->state = XQC_H3_FRM_STATE_PAYLOAD;
             memset(&pctx->frame.frame_payload, 0 ,sizeof(xqc_h3_frame_pl_t));
+            fin = 0;
         }
     }
 
@@ -225,7 +200,6 @@ xqc_h3_frm_parse(const unsigned char *p, size_t sz, xqc_h3_frame_pctx_t *pctx)
             break;
         }
         case XQC_H3_FRM_HEADERS: {
-            XQC_H3_DECODE_FRM(xqc_h3_frm_parse_headers, pos, sz, pctx->frame, &fin);
             break;
         }
         case XQC_H3_FRM_CANCEL_PUSH: {

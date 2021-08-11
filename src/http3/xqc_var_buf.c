@@ -11,10 +11,13 @@ xqc_var_buf_create(size_t capacity)
         return NULL;
     }
 
-    uint64_t cap = xqc_pow2_upper(capacity);
-    p->data = xqc_malloc(cap);
+    if (capacity == 0) {
+        capacity = 1;
+    }
 
-    p->buf_len = cap;
+    p->data = xqc_malloc(capacity);
+
+    p->buf_len = capacity;
     p->data_len = 0;
     p->consumed_len = 0;
     p->fin_flag = 0;

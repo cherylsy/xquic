@@ -443,13 +443,12 @@ xqc_qpack_enc_headers(xqc_qpack_t *qpk, uint64_t stream_id,
 
 
 ssize_t
-xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, xqc_var_buf_t *data_buf,
+xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, unsigned char *data, size_t data_len,
     xqc_http_headers_t *headers, xqc_bool_t fin, xqc_bool_t *blocked)
 {
     ssize_t read = 0;
-    ssize_t consumed = data_buf->consumed_len;
-    unsigned char *pos = data_buf->data + data_buf->consumed_len;
-    unsigned char *end = data_buf->data + data_buf->data_len;
+    unsigned char *pos = data;
+    unsigned char *end = data + data_len;
 
     /* prepare write headers */
     if (headers->capacity == 0) {
@@ -475,7 +474,6 @@ xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, xqc_var_buf_t *d
             return -XQC_QPACK_DECODER_ERROR;
         }
         pos += read;
-        data_buf->consumed_len += read;
 
         /* one field line is available */
         if (req_ctx->state == XQC_REP_DECODE_STATE_FINISH) {
@@ -486,7 +484,7 @@ xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, xqc_var_buf_t *d
         } else {
             if (*blocked == XQC_TRUE) {
                 xqc_log(qpk->log, XQC_LOG_DEBUG, "|be blocked|");
-                return data_buf->consumed_len - consumed;
+                return pos - data;
 
             } else {
                 /* if not blocked, and not all bytes are processed, consider it as an error */
@@ -506,7 +504,7 @@ xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, xqc_var_buf_t *d
         }
     }
 
-    return data_buf->consumed_len - consumed;
+    return pos - data;
 }
 
 void

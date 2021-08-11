@@ -394,7 +394,8 @@ xqc_int_t
 xqc_ins_write_insert_name_ref(xqc_var_buf_t *buf, xqc_flag_t table, uint64_t index,
     unsigned char *value, uint64_t vlen)
 {
-    xqc_int_t ret = xqc_var_buf_save_prepare(buf, xqc_prefixed_int_put_len(index, 6));
+    xqc_int_t ret = xqc_var_buf_save_prepare(buf, xqc_prefixed_int_put_len(index, 6)
+                                                  + xqc_prefixed_int_put_len(vlen, 7) + vlen);
     if (ret != XQC_OK) {
         return ret;
     }
@@ -423,11 +424,17 @@ xqc_int_t
 xqc_ins_write_insert_literal_name(xqc_var_buf_t *buf, unsigned char *name, uint64_t nlen, unsigned char *value,
     uint64_t vlen)
 {
+    xqc_int_t ret = xqc_var_buf_save_prepare(buf, xqc_prefixed_int_put_len(nlen, 5) + nlen
+                                                  + xqc_prefixed_int_put_len(vlen, 7) + vlen);
+    if (ret != XQC_OK) {
+        return ret;
+    }
+
     /* write prefix, name, value */
     unsigned char *pos = buf->data + buf->data_len;
     *pos = 0x40;
 
-    xqc_int_t ret = xqc_write_prefixed_str(buf, name, nlen, 5);
+    ret = xqc_write_prefixed_str(buf, name, nlen, 5);
     if (ret != XQC_OK) {
         return ret;
     }
@@ -446,7 +453,6 @@ xqc_ins_write_insert_literal_name(xqc_var_buf_t *buf, unsigned char *name, uint6
 xqc_int_t
 xqc_ins_write_dup(xqc_var_buf_t *buf, uint64_t index)
 {
-
     xqc_int_t ret = xqc_var_buf_save_prepare(buf, xqc_prefixed_int_put_len(index, 5));
     if (ret != XQC_OK) {
         return ret;

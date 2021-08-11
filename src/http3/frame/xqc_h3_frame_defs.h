@@ -21,7 +21,6 @@ typedef struct xqc_h3_frm_data_s {
 } xqc_h3_frame_data_t;
 
 typedef struct xqc_h3_frm_headers_s {
-    xqc_var_buf_t           *encoded_field_section;
 } xqc_h3_frame_headers_t;
 
 typedef struct xqc_h3_frm_cancel_push_s
