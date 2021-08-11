@@ -21,7 +21,8 @@ typedef struct {
  * @param fin:  output for parse finished
  */
 void xqc_h3_vint_pctx_clear(xqc_discrete_vint_pctx_t *pctx);
-ssize_t xqc_discrete_vint_parse(const uint8_t *p, size_t sz, xqc_discrete_vint_pctx_t *s, xqc_bool_t *fin);
+ssize_t xqc_discrete_vint_parse(const uint8_t *p, size_t sz, xqc_discrete_vint_pctx_t *s,
+    xqc_bool_t *fin);
 
 
 #endif
