@@ -208,10 +208,6 @@ xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data)
     return xqc_h3_stream_get_send_buf(h3s);
 }
 
-const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb = {
-    .get_buf_cb = xqc_h3_conn_get_ins_buf,
-    .write_ins_cb = xqc_h3_conn_send_ins
-};
 
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)

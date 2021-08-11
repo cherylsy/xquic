@@ -356,9 +356,6 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
-    /* init h3 and qpack */
-    xqc_qpack_set_instruction_callback(&xqc_h3_qpack_ins_cb);
-
     engine->rand_generator = xqc_random_generator_create(engine->log);
     if (engine->rand_generator == NULL) {
         goto fail;

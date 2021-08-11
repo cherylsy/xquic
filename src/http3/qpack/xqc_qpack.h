@@ -37,10 +37,6 @@ typedef struct xqc_qpack_ins_cb_s {
 } xqc_qpack_ins_cb_t;
 
 
-void
-xqc_qpack_set_instruction_callback(const xqc_qpack_ins_cb_t *ins_cb);
-
-
 /**
  * @brief create qpack handler, qpack module is responsible for:
  * 1. write and parse encode/decode instruction,

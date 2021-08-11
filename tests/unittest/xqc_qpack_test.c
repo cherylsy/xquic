@@ -159,9 +159,6 @@ xqc_qpack_test_basic()
     /* encoder side */
     xqc_engine_t *engine = test_create_engine();
 
-    xqc_qpack_set_instruction_callback(&ins_cb);
-
-//     xqc_qpack_t *qpk_client = xqc_qpack_create(&ins_cb, &ins_buf_client, engine->log, 16384);
     xqc_qpack_t *qpk_client = xqc_qpack_create(16384, engine->log, &ins_buf_client);
 
     CU_ASSERT(qpk_client != NULL);
@@ -177,7 +174,6 @@ xqc_qpack_test_basic()
 
 
     /* decoder side */
-    // xqc_qpack_t *qpk_server = xqc_qpack_create(&ins_cb, &ins_buf_server, engine->log, 16384);
     xqc_qpack_t *qpk_server = xqc_qpack_create(16384, engine->log, &ins_buf_server);
 
     CU_ASSERT(qpk_server != NULL);
@@ -334,7 +330,6 @@ xqc_qpack_test_duplicate()
 
     /* encoder side */
     xqc_engine_t *engine = test_create_engine();
-    xqc_qpack_set_instruction_callback(&ins_cb);
 
     // xqc_qpack_t *qpk_client = xqc_qpack_create(&ins_cb, &buf_client, engine->log, 512);
     xqc_qpack_t *qpk_client = xqc_qpack_create(512, engine->log, &buf_client);
@@ -515,7 +510,6 @@ xqc_qpack_test_robust()
 
     /* encoder side */
     xqc_engine_t *engine = test_create_engine();
-    xqc_qpack_set_instruction_callback(&ins_cb);
 
     // xqc_qpack_t *qpk_client = xqc_qpack_create(&ins_cb, &buf_client, engine->log, 512);
     xqc_qpack_t *qpk_client = xqc_qpack_create(16*1024, engine->log, &buf_client);

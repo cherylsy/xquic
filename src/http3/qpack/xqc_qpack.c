@@ -3,14 +3,10 @@
 
 
 /* callback for processing instruction buffer */
-xqc_qpack_ins_cb_t      xqc_qpack_ins_cb = {0};
-
-void
-xqc_qpack_set_instruction_callback(const xqc_qpack_ins_cb_t *ins_cb)
-{
-    xqc_qpack_ins_cb = *ins_cb;
-}
-
+const xqc_qpack_ins_cb_t xqc_qpack_ins_cb = {
+    .get_buf_cb = xqc_h3_conn_get_ins_buf,
+    .write_ins_cb = xqc_h3_conn_send_ins
+};
 
 /* qpack handler */
 typedef struct xqc_qpack_s {
