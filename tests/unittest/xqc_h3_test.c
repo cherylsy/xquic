@@ -23,6 +23,9 @@ ssize_t xqc_test_frame_parse(const char *p, size_t sz, xqc_h3_frame_pctx_t *stat
         if (ret < 0) {
             return ret;
         }
+        if (ret == 0) {
+            return offset;
+        }
         offset += ret;
         if (state->state == XQC_H3_FRM_STATE_END) {
             return offset;
@@ -100,11 +103,8 @@ void xqc_test_frame()
     /* parse headers frame */
     processed = xqc_test_frame_parse(buf->data + buf->consumed_len, buf->data_len - buf->consumed_len, &pctx);
     CU_ASSERT(processed > 0);
-    CU_ASSERT(pctx.state == XQC_H3_FRM_STATE_END);
-    for (int i = 0; i < strlen(data); i++) {
-        CU_ASSERT(data[i] == pctx.frame.frame_payload.headers.encoded_field_section->data[i]);
-    }
-    buf->consumed_len += processed;
+    CU_ASSERT(pctx.state == XQC_H3_FRM_STATE_PAYLOAD);
+    buf->consumed_len += processed + pctx.frame.len;
     xqc_h3_frm_reset_pctx(&pctx);
     /* parse data frame */
     processed = xqc_test_frame_parse(buf->data + buf->consumed_len, buf->data_len - buf->consumed_len, &pctx);

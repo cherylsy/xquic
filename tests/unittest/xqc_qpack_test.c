@@ -213,19 +213,20 @@ xqc_qpack_test_basic()
 
     /* decode stream 0, shall be blocked */
     void *req_ctx = xqc_qpack_create_req_ctx(0);
-    read = xqc_qpack_dec_headers(qpk_server, req_ctx, efs_buf_client, &hdrs_out, 1, &blocked);
+    read = xqc_qpack_dec_headers(qpk_server, req_ctx, efs_buf_client->data + efs_buf_client->consumed_len, efs_buf_client->data_len - efs_buf_client->consumed_len, &hdrs_out, 1, &blocked);
     CU_ASSERT(read > 0 && blocked == XQC_TRUE);
     efs_buf_client->consumed_len += read;
 
     /* try again will do nothing */
-    read = xqc_qpack_dec_headers(qpk_server, req_ctx, efs_buf_client, &hdrs_out, 1, &blocked);
+    read = xqc_qpack_dec_headers(qpk_server, req_ctx, efs_buf_client->data + efs_buf_client->consumed_len, efs_buf_client->data_len - efs_buf_client->consumed_len, &hdrs_out, 1, &blocked);
     CU_ASSERT(read == 0 && blocked == XQC_TRUE);
+    efs_buf_client->consumed_len += read;
 
 
     /* decode stream 1, shall not be blocked */
     xqc_bool_t blocked2 = XQC_FALSE;
     void *req_ctx2 = xqc_qpack_create_req_ctx(1);
-    read = xqc_qpack_dec_headers(qpk_server, req_ctx2, efs_buf_server, &hdrs_out2, 1, &blocked);
+    read = xqc_qpack_dec_headers(qpk_server, req_ctx2, efs_buf_server->data + efs_buf_server->consumed_len, efs_buf_server->data_len - efs_buf_server->consumed_len, &hdrs_out2, 1, &blocked);
     CU_ASSERT(read == efs_buf_server->data_len && blocked2 == XQC_FALSE);
     efs_buf_server->consumed_len += read;
     xqc_qpack_destroy_req_ctx(req_ctx2);
@@ -242,8 +243,10 @@ xqc_qpack_test_basic()
 
     /* decode blocked stream, shall finish */
     blocked = XQC_FALSE;
-    read = xqc_qpack_dec_headers(qpk_server, req_ctx, efs_buf_client, &hdrs_out, 1, &blocked);
-    CU_ASSERT(read > 0 && blocked == XQC_FALSE && (efs_buf_client->data_len == efs_buf_client->consumed_len));
+    read = xqc_qpack_dec_headers(qpk_server, req_ctx, efs_buf_client->data + efs_buf_client->consumed_len, efs_buf_client->data_len - efs_buf_client->consumed_len, &hdrs_out, 1, &blocked);
+    CU_ASSERT(read > 0);
+    efs_buf_client->consumed_len += read;
+    CU_ASSERT(blocked == XQC_FALSE && (efs_buf_client->data_len == efs_buf_client->consumed_len));
     xqc_qpack_destroy_req_ctx(req_ctx);
 
     /* input decoder's instruction into encoder */
@@ -382,8 +385,9 @@ xqc_qpack_test_duplicate()
 
     /* server received headers frame */
     void *req_ctx_0 = xqc_qpack_create_req_ctx(0);
-    read = xqc_qpack_dec_headers(qpk_server, req_ctx_0, efs_buf_client, &hdrs_out, 1, &blocked);
+    read = xqc_qpack_dec_headers(qpk_server, req_ctx_0, efs_buf_client->data + efs_buf_client->consumed_len, efs_buf_client->data_len - efs_buf_client->consumed_len, &hdrs_out, 1, &blocked);
     CU_ASSERT(read == efs_buf_client->data_len && hdrs_out.count == header_in_cnt);
+    efs_buf_client->consumed_len += read;
     for (size_t i = 0; i < header_in_cnt && i < hdrs_out.count; i++) {
         CU_ASSERT(memcmp(header_in[i].name.iov_base, hdrs_out.headers[i].name.iov_base,
                          header_in[i].name.iov_len) == 0);
@@ -413,9 +417,10 @@ xqc_qpack_test_duplicate()
 
     /* decode header */
     void *req_ctx_1 = xqc_qpack_create_req_ctx(1);
-    read = xqc_qpack_dec_headers(qpk_server, req_ctx_1, efs_buf_client, &hdrs_out_draining, 1, 
+    read = xqc_qpack_dec_headers(qpk_server, req_ctx_1, efs_buf_client->data + efs_buf_client->consumed_len, efs_buf_client->data_len - efs_buf_client->consumed_len, &hdrs_out_draining, 1,
                                  &blocked);
     CU_ASSERT(read == efs_buf_client->data_len && hdrs_out_draining.count == 1);
+    efs_buf_client->consumed_len += read;
     CU_ASSERT(memcmp(header_in[0].name.iov_base, hdrs_out_draining.headers[0].name.iov_base,
                         header_in[0].name.iov_len) == 0);
     CU_ASSERT(memcmp(header_in[0].value.iov_base, hdrs_out_draining.headers[0].value.iov_base,
@@ -563,9 +568,10 @@ xqc_qpack_test_robust()
 
     /* server decode headers */
     void *req_ctx_0 = xqc_qpack_create_req_ctx(0);
-    ret = xqc_qpack_dec_headers(qpk_server, req_ctx_0, efs_buf_client, &hdrs_out, 1, &blocked);
+    ret = xqc_qpack_dec_headers(qpk_server, req_ctx_0, efs_buf_client->data + efs_buf_client->consumed_len, efs_buf_client->data_len - efs_buf_client->consumed_len, &hdrs_out, 1, &blocked);
     CU_ASSERT(ret == efs_buf_client->data_len && dec_ins_buf_server->data_len > 0
               && hdrs_out.count == hdrs_in.count);
+    efs_buf_client->consumed_len += read;
     if (hdrs_out.count == hdrs_in.count)
     {
         for (int i = 0; i < hdrs_in.count; i++) {
