@@ -20,7 +20,7 @@
 int
 xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out)
 {
-    if ((packet_out->po_flag & XQC_POF_RETRANSED) || packet_out->po_acked
+    if (packet_out->po_acked
         || (packet_out->po_origin && packet_out->po_origin->po_acked))
     {
         if (packet_out->po_origin && packet_out->po_origin->po_acked) {
@@ -1316,8 +1316,9 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_usec_
                 lost_n++;
 
             } else {
-                /* This branch should never be reached!!! */
-                xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|A Non-inflight packet is detected as lost!|");
+                xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|it's a copy of origin pkt|acked:%d|origin_acked:%d|origin_ref_cnt:%d|",
+                        po->po_acked, po->po_origin ? po->po_origin->po_acked : -1,
+                        po->po_origin ? po->po_origin->po_origin_ref_cnt : -1);
             }
 
             /* remember largest_loss for OnPacketsLost */
