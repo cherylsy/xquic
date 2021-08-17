@@ -1,6 +1,7 @@
 #include <CUnit/CUnit.h>
 #include "xqc_qpack_test.h"
 #include "src/http3/xqc_h3_header.h"
+#include "src/http3/xqc_h3_conn.h"
 #include "src/http3/qpack/xqc_qpack.h"
 #include <inttypes.h>
 #include <stdlib.h>
