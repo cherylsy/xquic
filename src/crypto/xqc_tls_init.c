@@ -396,7 +396,7 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
     unsigned char *cert_buf = NULL;
     X509 *cert = NULL;
     int cert_size = 0;
-    const STACK_OF(X509) *chain = X509_STORE_CTX_get_chain(ctx);
+    const STACK_OF(X509) *chain = X509_STORE_CTX_get0_chain(ctx);
 
     certs_array_len = sk_X509_num(chain);
     if (certs_array_len > XQC_MAX_VERIFY_DEPTH) { /* imposible */
