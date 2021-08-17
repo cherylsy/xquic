@@ -16,32 +16,9 @@ typedef struct xqc_ins_buf_s {
     xqc_var_buf_t *dec_ins;
 } xqc_ins_buf_t;
 
-#if 0
-ssize_t
-xqc_on_ins_enc_cb_normal(unsigned char *buf, size_t len, void *user_data)
-{
-    xqc_var_buf_t *enc_ins_buf = ((xqc_ins_buf_t *)user_data)->enc_ins;
-    xqc_var_buf_save_data(enc_ins_buf, buf, len);
-    return len;
-}
 
-ssize_t
-xqc_on_ins_dec_cb_normal(unsigned char *buf, size_t len, void *user_data)
-{
-    xqc_var_buf_t *dec_ins_buf = ((xqc_ins_buf_t *)user_data)->dec_ins;
-    xqc_var_buf_save_data(dec_ins_buf, buf, len);
-    return len;
-}
-
-
-ssize_t
-xqc_on_ins_cb_abnormal(unsigned char *buf, size_t len, void *user_data)
-{
-    return -1;
-}
-#endif
-
-xqc_var_buf_t *xqc_qpk_test_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data)
+xqc_var_buf_t *
+xqc_qpk_test_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data)
 {
     xqc_ins_buf_t *ins_buf = ((xqc_ins_buf_t *)user_data);
     if (type == XQC_INS_TYPE_ENCODER) {
@@ -51,7 +28,8 @@ xqc_var_buf_t *xqc_qpk_test_get_ins_buf(xqc_qpack_ins_type_t type, void *user_da
     }
 }
 
-ssize_t xqc_qpk_test_write_ins(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf,
+ssize_t 
+xqc_qpk_test_write_ins(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf,
     void *user_data)
 {
     return buf->data_len;
