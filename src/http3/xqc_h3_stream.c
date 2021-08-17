@@ -621,6 +621,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
     xqc_h3_frame_pctx_t *pctx = &h3s->pctx.frame_pctx;
     ssize_t processed = 0;
+    ssize_t len = 0;
     xqc_int_t ret;
 
     while (processed < data_len) {
@@ -651,8 +652,9 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                     xqc_log(h3s->log, XQC_LOG_WARN, "|prev header still not read|");
                 }
 
+                len = xqc_min(pctx->frame.len, data_len - processed);
                 read = xqc_qpack_dec_headers(h3s->qpack, h3s->ctx,
-                                             data + processed, xqc_min(pctx->frame.len, data_len - processed),
+                                             data + processed, len,
                                              &h3s->h3r->h3_header.headers, fin, &h3s->blocked);
                 if (read < 0) {
                     xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_request error"
@@ -676,7 +678,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                     if (h3s->h3r->header_frame_count > 1) {
                         xqc_log(h3s->log, XQC_LOG_DEBUG, "|headers_frame_count exceed 1|"
                                 "stream_id:%ui|cnt:%uz|", h3s->stream->stream_id,
-                                 h3s->h3r->header_frame_count);
+                                h3s->h3r->header_frame_count);
                     }
 
                     xqc_h3_frm_reset_pctx(pctx);
@@ -694,29 +696,32 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 break;
 
             case XQC_H3_FRM_DATA:
-                if (pctx->frame.frame_payload.data.data != NULL) {
+                len = xqc_min(pctx->frame.len, data_len - processed);
+                xqc_var_buf_t *buf = xqc_var_buf_create(len);
+                if (buf == NULL) {
+                    return -XQC_EMALLOC;
+                }
+                ret = xqc_var_buf_save_data(buf, data + processed, len);
+                if (ret != XQC_OK) {
+                    xqc_var_buf_free(buf);
+                    xqc_h3_frm_reset_pctx(pctx);
+                    return ret;
+                }
+                ret = xqc_list_buf_to_tail(&h3s->h3r->body_buf, buf);
+                if (ret < 0) {
+                    xqc_h3_frm_reset_pctx(pctx);
+                    return ret;
+                }
+                h3s->h3r->body_buf_count++;
+
+                processed += len;
+                pctx->frame.len -= len;
+
+                if (pctx->frame.len == 0) {
+                    fin = 1;
                     if (fin_flag && processed == data_len) {
                         h3s->h3r->fin_flag = fin_flag;
                     }
-                    ret = xqc_list_buf_to_tail(&h3s->h3r->body_buf,
-                                               pctx->frame.frame_payload.data.data);
-                    if (ret < 0) {
-                        xqc_h3_frm_reset_pctx(pctx);
-                        return ret;
-                    }
-
-                    h3s->h3r->body_buf_count++;
-                    pctx->frame.len -= pctx->frame.frame_payload.data.data->data_len;
-
-                } else {
-                    xqc_log(h3s->log, XQC_LOG_WARN, "|processed data is empty|");
-                }
-                pctx->frame.frame_payload.data.data = NULL;
-
-                if (fin && pctx->frame.len > 0) {
-                    xqc_log(h3s->log, XQC_LOG_ERROR, "|read data error|");
-                    xqc_h3_frm_reset_pctx(pctx);
-                    return -XQC_H3_DECODE_ERROR;
                 }
                 break;
 

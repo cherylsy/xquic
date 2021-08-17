@@ -17,7 +17,6 @@ typedef enum xqc_h3_frm_type_s {
 
 
 typedef struct xqc_h3_frm_data_s {
-    xqc_var_buf_t           *data;
 } xqc_h3_frame_data_t;
 
 typedef struct xqc_h3_frm_headers_s {

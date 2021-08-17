@@ -26,7 +26,6 @@ xqc_h3_frm_reset_pctx(xqc_h3_frame_pctx_t *pctx)
 {
     switch (pctx->frame.type) {
         case XQC_H3_FRM_DATA:
-            xqc_var_buf_free(pctx->frame.frame_payload.data.data);
             break;
         case XQC_H3_FRM_HEADERS:
             break;
@@ -48,32 +47,6 @@ xqc_h3_frm_reset_pctx(xqc_h3_frame_pctx_t *pctx)
     memset(pctx, 0, sizeof(xqc_h3_frame_pctx_t));
     pctx->state = XQC_H3_FRM_STATE_TYPE;
     pctx->frame.type = XQC_H3_FRM_UNKNOWN;
-}
-
-ssize_t
-xqc_h3_frm_parse_data(const unsigned char *p, size_t sz, xqc_h3_frame_t *frame, xqc_bool_t *fin)
-{
-    const unsigned char *pos = p;
-    *fin = XQC_FALSE;
-
-    xqc_h3_frame_data_t *data = &frame->frame_payload.data;
-    if (data->data == NULL) {
-        data->data = xqc_var_buf_create(xqc_min(sz, frame->len));
-        if (data->data == NULL) {
-            return -XQC_H3_EMALLOC;
-        }
-    }
-
-    ssize_t len = xqc_min(sz, frame->len - data->data->data_len);
-    xqc_int_t ret = xqc_var_buf_save_data(data->data, pos, len);
-    if (ret != XQC_OK) {
-        return ret;
-    }
-
-    pos += len;
-    *fin = data->data->data_len == frame->len ? XQC_TRUE : XQC_FALSE;
-
-    return pos - p;
 }
 
 
@@ -196,7 +169,6 @@ xqc_h3_frm_parse(const unsigned char *p, size_t sz, xqc_h3_frame_pctx_t *pctx)
     if (pctx->state == XQC_H3_FRM_STATE_PAYLOAD) {
         switch (pctx->frame.type) {
         case XQC_H3_FRM_DATA: {
-            XQC_H3_DECODE_FRM(xqc_h3_frm_parse_data, pos, sz, pctx->frame, &fin);
             break;
         }
         case XQC_H3_FRM_HEADERS: {
@@ -269,7 +241,7 @@ xqc_h3_frm_parse_setting(xqc_var_buf_t *data, void *user_data)
 }
 
 xqc_int_t
-xqc_h3_frm_write_headers(xqc_list_head_t* send_buf, xqc_var_buf_t * encoded_field_section,
+xqc_h3_frm_write_headers(xqc_list_head_t* send_buf, xqc_var_buf_t *encoded_field_section,
     uint8_t fin)
 {
     xqc_var_buf_t *buf = xqc_var_buf_create(xqc_put_varint_len(XQC_H3_FRM_HEADERS)

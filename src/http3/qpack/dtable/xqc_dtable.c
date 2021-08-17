@@ -124,8 +124,7 @@ xqc_dtable_compare_nv(void *data, void *v1, size_t len1, void *v2, size_t len2,
             /* 2d compare is required, continue to compare value if name if matched */
             if (dims == XQC_2D_CMP_DIM_2) {
                 if (nv->vlen == len2) {
-                    /* as we used last byte of name as it's hash,  */
-                    res = xqc_ring_mem_cmp(dt->rmem, nv->vidx, value, len2 - 1);
+                    res = xqc_ring_mem_cmp(dt->rmem, nv->vidx, value, len2);
                     if (res == 0) {
                         cmp_res = XQC_2D_CMP_RES_2D;
                     }
