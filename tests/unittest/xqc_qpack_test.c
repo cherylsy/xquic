@@ -159,6 +159,9 @@ xqc_qpack_test_basic()
     xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
+    xqc_connection_t *conn = test_engine_connect();
+    CU_ASSERT(conn != NULL);
+
     xqc_h3_conn_t *h3c = xqc_h3_conn_create(conn, NULL);
     CU_ASSERT(h3c != NULL);
 
