@@ -115,49 +115,6 @@ xqc_h3_stream_send_buffer(xqc_h3_stream_t *h3s)
 }
 
 
-#if 0
-xqc_int_t
-xqc_h3_stream_send_buffer_add(xqc_h3_stream_t *h3s, xqc_var_buf_t *buf)
-{
-    return xqc_list_buf_to_tail(&h3s->send_buf, buf);
-}
-
-
-ssize_t
-xqc_h3_stream_send(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_size, uint8_t fin)
-{
-    xqc_h3_conn_t *h3c = h3s->h3c;
-
-    xqc_int_t ret;
-    xqc_var_buf_t *send_buf = xqc_var_buf_create(data_size);
-    if (send_buf == NULL) {
-        return -XQC_EMALLOC;
-    }
-    ret = xqc_var_buf_save_data(send_buf, data, data_size);
-    if (ret != XQC_OK) {
-        xqc_var_buf_free(send_buf);
-        return ret;
-    }
-    send_buf->fin_flag = fin;
-
-    ret = xqc_h3_stream_send_buffer_add(h3s, send_buf);
-    if (ret != XQC_OK) {
-        xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_stream_send_buffer_add error|%z|", ret);
-        xqc_var_buf_free(send_buf);
-        return ret;
-    }
-
-    ret = xqc_h3_stream_send_buffer(h3s);
-    if (ret < 0 && ret != -XQC_EAGAIN) {
-        xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_stream_send error|%z|", ret);
-        XQC_H3_CONN_ERR(h3c, H3_INTERNAL_ERROR, ret);
-    }
-
-    return data_size;
-}
-#endif
-
-
 static inline uint64_t
 xqc_h3_uncompressed_fields_size(xqc_http_headers_t *headers)
 {
