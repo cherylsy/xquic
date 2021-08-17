@@ -1,5 +1,6 @@
 #include "src/http3/qpack/xqc_qpack.h"
 #include "src/http3/xqc_h3_request.h"
+#include "src/http3/xqc_h3_conn.h"
 
 
 /* callback for processing instruction buffer */

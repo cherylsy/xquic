@@ -137,4 +137,11 @@ xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_
 xqc_int_t
 xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c);
 
+xqc_var_buf_t *
+xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data);
+
+ssize_t
+xqc_h3_conn_send_ins(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf, void *user_data);
+
+
 #endif /* _XQC_H3_CONN_H_INCLUDED_ */
