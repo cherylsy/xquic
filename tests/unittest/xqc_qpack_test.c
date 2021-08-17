@@ -76,8 +76,6 @@ xqc_qpack_test_basic()
     xqc_ins_buf_t ins_buf_server = {enc_ins_buf_server, dec_ins_buf_server};
     xqc_bool_t blocked = XQC_FALSE;
 
-//    xqc_qpack_ins_cb_t ins_cb = {xqc_on_ins_enc_cb_normal, xqc_on_ins_dec_cb_normal};
-
     xqc_http_header_t header_in[XQC_TEST_ENCODER_MAX_HEADERS] = {
         {
             .name   = {.iov_base = ":method", .iov_len = 7},
@@ -158,10 +156,14 @@ xqc_qpack_test_basic()
 
     /* encoder side */
     xqc_engine_t *engine = test_create_engine();
+    CU_ASSERT(engine != NULL);
 
-    xqc_qpack_t *qpk_client = xqc_qpack_create(16384, engine->log, &ins_buf_client);
+    xqc_h3_conn_t *h3c = xqc_h3_conn_create(conn, NULL);
+    CU_ASSERT(h3c != NULL);
 
+    xqc_qpack_t *qpk_client = xqc_qpack_create(16384, engine->log, h3c);
     CU_ASSERT(qpk_client != NULL);
+
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_client, 16 * 1024);
     CU_ASSERT(ret == XQC_OK);
     xqc_qpack_set_enc_insert_limit(qpk_client, 0.25, 0.75);
