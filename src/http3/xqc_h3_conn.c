@@ -472,11 +472,26 @@ xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void
     }
 }
 
+void
+xqc_h3_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid,
+    void *user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
+    
+    if (h3c->h3_conn_callbacks.h3_conn_update_cid_notify) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|UPDATE_CID notify|");
+
+        h3c->h3_conn_callbacks.h3_conn_update_cid_notify(h3c, retire_cid,
+                                                         new_cid, h3c->user_data);
+    }
+}
+
 const xqc_conn_callbacks_t h3_conn_callbacks = {
     .conn_create_notify         = xqc_h3_conn_create_notify,
     .conn_close_notify          = xqc_h3_conn_close_notify,
     .conn_handshake_finished    = xqc_h3_conn_handshake_finished,
     .conn_ping_acked            = xqc_h3_conn_ping_acked_notify,
+    .conn_update_cid_notify     = xqc_h3_conn_update_cid_notify,
 };
 
 xqc_bool_t

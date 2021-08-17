@@ -236,6 +236,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             case 0x18:
                 ret = xqc_process_new_conn_id_frame(conn, packet_in);
                 break;
+            case 0x19:
+                ret = xqc_process_retire_conn_id_frame(conn, packet_in);
+                break;
             case 0x1c ... 0x1d:
                 ret = xqc_process_conn_close_frame(conn, packet_in);
                 break;
@@ -592,7 +595,7 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
         xqc_log(conn->log, XQC_LOG_DEBUG, "|seq_num:%ui smaller than largest_retire_prior_to:%ui|",
                 new_conn_cid.cid_seq_num, conn->dcid_set.largest_retire_prior_to);
 
-        //TODO: xqc_write_retire_conn_id_frame_to_packet(conn, new_conn_cid.cid_seq_num);
+        xqc_write_retire_conn_id_frame_to_packet(conn, new_conn_cid.cid_seq_num);
 
         return XQC_OK;
     }
@@ -605,7 +608,7 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
                 conn->dcid_set.largest_retire_prior_to, retire_prior_to);
 
         for (uint64_t i = conn->dcid_set.largest_retire_prior_to; i < retire_prior_to; i++) {
-            //TODO: xqc_write_retire_conn_id_frame_to_packet(conn, i);
+            xqc_write_retire_conn_id_frame_to_packet(conn, i);
         }
 
         conn->dcid_set.largest_retire_prior_to = retire_prior_to;
@@ -617,6 +620,70 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     }
 
     xqc_cid_set_insert_cid(&conn->dcid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED);
+
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    xqc_int_t ret = XQC_ERROR;
+    xqc_cid_t scid_to_retire;
+    uint64_t seq_num;
+
+    ret = xqc_parse_retire_conn_id_frame(packet_in, &seq_num);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_parse_retire_conn_id_frame error|");
+        return ret;
+    }
+
+    if (seq_num >= conn->scid_set.largest_scid_seq_num) {
+        /* Receipt of a RETIRE_CONNECTION_ID frame containing a sequence number
+         * greater than any previously sent to the peer MUST be treated as a
+         * connection error of type PROTOCOL_VIOLATION. */
+        xqc_log(conn->log, XQC_LOG_ERROR,"|no match seq_num|");
+        XQC_CONN_ERR(conn, TRA_PROTOCOL_VIOLATION);
+        return -XQC_EPROTO;
+    }
+
+    xqc_cid_t *scid = xqc_get_scid_by_seq(&conn->scid_set, seq_num);
+    if (scid == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|can't find scid with seq_number|%ui|", seq_num);
+        return XQC_ERROR;
+    }
+
+    xqc_cid_copy(&scid_to_retire, scid);
+
+    if (XQC_OK == xqc_cid_is_equal(&scid_to_retire, &packet_in->pi_pkt.pkt_dcid)) {
+        /* The sequence number specified in a RETIRE_CONNECTION_ID frame MUST NOT refer to
+         * the Destination Connection ID field of the packet in which the frame is contained.
+         * The peer MAY treat this as a connection error of type PROTOCOL_VIOLATION. */
+        xqc_log(conn->log, XQC_LOG_ERROR,"|seq_num refer to pkt_dcid|");
+        XQC_CONN_ERR(conn, TRA_PROTOCOL_VIOLATION);
+        return -XQC_EPROTO;
+    }
+
+    ret = xqc_set_cid_retired(conn, &scid_to_retire);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|set cid retired error|");
+        return ret;
+    }
+
+    /* set timer to remove the retired cids */
+    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+    xqc_usec_t now = xqc_monotonic_timestamp();
+    if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_RETIRE_CID)) {
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, 2 * ctl->ctl_srtt + now);
+    }
+
+    /* update SCID */
+    ret = xqc_update_user_scid(conn, &conn->scid_set);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|conn don't have other used scid, can't retire user_scid|");
+        return ret;
+    }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|switch scid to %ui|", conn->scid_set.user_scid.cid_seq_num);
 
     return XQC_OK;
 }

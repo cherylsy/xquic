@@ -2479,6 +2479,12 @@ xqc_conn_try_add_new_conn_id(xqc_connection_t *conn, uint64_t retire_prior_to)
     }
 }
 
+void
+xqc_conn_try_retire_conn_id(xqc_connection_t *conn, uint64_t seq_num)
+{
+    xqc_write_retire_conn_id_frame_to_packet(conn, seq_num);
+}
+
 
 /* check whether if the dcid is valid for the connection */
 xqc_int_t

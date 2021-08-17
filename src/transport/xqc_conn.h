@@ -458,8 +458,7 @@ xqc_int_t xqc_conn_check_handshake_complete(xqc_connection_t *conn);
 
 xqc_int_t xqc_conn_check_unused_cids(xqc_connection_t *conn);
 void xqc_conn_try_add_new_conn_id(xqc_connection_t *conn, uint64_t retire_prior_to);
-xqc_cid_t *xqc_conn_get_scid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
-xqc_cid_t *xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num);
+void xqc_conn_try_retire_conn_id(xqc_connection_t *conn, uint64_t seq_num);
 xqc_int_t xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid);
 void xqc_conn_destroy_cids(xqc_connection_t *conn);
 

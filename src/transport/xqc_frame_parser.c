@@ -1506,5 +1506,54 @@ xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
     return XQC_OK;
 }
 
+/*
+ * https://tools.ietf.org/html/draft-ietf-quic-transport-34#section-19.16
+ *
+ * RETIRE_CONNECTION_ID Frame {
+ *    Type (i) = 0x19,
+ *    Sequence Number (i),
+ * }
+ *
+ *               Figure 40: RETIRE_CONNECTION_ID Frame Format
+ * */
+ssize_t
+xqc_gen_retire_conn_id_frame(xqc_packet_out_t *packet_out, uint64_t seq_num)
+{
+    unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
+    const unsigned char *begin = dst_buf;
 
+    *dst_buf++ = 0x19;
+
+    unsigned sequence_number_bits = xqc_vint_get_2bit(seq_num);
+
+    xqc_vint_write(dst_buf, seq_num, sequence_number_bits, xqc_vint_len(sequence_number_bits));
+    dst_buf += xqc_vint_len(sequence_number_bits);
+
+    packet_out->po_frame_types |= XQC_FRAME_BIT_RETIRE_CONNECTION_ID;
+
+    return dst_buf - begin;
+}
+
+
+xqc_int_t
+xqc_parse_retire_conn_id_frame(xqc_packet_in_t *packet_in, uint64_t *seq_num)
+{
+    unsigned char *p = packet_in->pos;
+    const unsigned char *end = packet_in->last;
+    const unsigned char first_byte = *p++;
+
+    int vlen;
+
+    vlen = xqc_vint_read(p, end, seq_num);
+    if (vlen < 0) {
+        return -XQC_EVINTREAD;
+    }
+    p += vlen;
+
+    packet_in->pos = p;
+
+    packet_in->pi_frame_types |= XQC_FRAME_BIT_RETIRE_CONNECTION_ID;
+
+    return XQC_OK;
+}
 

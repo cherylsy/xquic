@@ -90,6 +90,10 @@ ssize_t xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_c
 
 xqc_int_t xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in, xqc_cid_t *new_cid, uint64_t *retire_prior_to);
 
+ssize_t xqc_gen_retire_conn_id_frame(xqc_packet_out_t *packet_out, uint64_t seq_num);
+
+xqc_int_t xqc_parse_retire_conn_id_frame(xqc_packet_in_t *packet_in, uint64_t *seq_num);
+
 ssize_t xqc_gen_path_status_frame(xqc_packet_out_t *packet_out, 
     uint64_t path_id, uint64_t path_status_seq_number,
     uint64_t path_status, uint64_t path_prio);

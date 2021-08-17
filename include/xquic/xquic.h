@@ -73,6 +73,10 @@ typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, const xqc_ci
 
 typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *ping_user_data, void *conn_user_data);
 
+typedef void (*xqc_conn_update_cid_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *conn_user_data);
+
+typedef void (*xqc_h3_conn_update_cid_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *conn_user_data);
+
 
 
 /**
@@ -166,25 +170,29 @@ typedef struct xqc_log_callbacks_s {
 /* transport layer */
 typedef struct xqc_conn_callbacks_s {
     /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_conn_notify_pt          conn_create_notify;         /* required for server, optional for client */
+    xqc_conn_notify_pt            conn_create_notify;         /* required for server, optional for client */
     /* 连接关闭时回调,用户可以回收资源 */
-    xqc_conn_notify_pt          conn_close_notify;
+    xqc_conn_notify_pt            conn_close_notify;
     /* for handshake done */
-    xqc_handshake_finished_pt   conn_handshake_finished;    /* optional */
+    xqc_handshake_finished_pt     conn_handshake_finished;    /* optional */
     /* ping is acked */
-    xqc_conn_ping_ack_notify_pt conn_ping_acked;            /* optional */
+    xqc_conn_ping_ack_notify_pt   conn_ping_acked;            /* optional */
+    /* user cid updated */
+    xqc_conn_update_cid_notify_pt conn_update_cid_notify;     /* optional */
 } xqc_conn_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_conn_callbacks_s {
     /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-    xqc_h3_conn_notify_pt          h3_conn_create_notify;       /* required for server, optional for client */
+    xqc_h3_conn_notify_pt            h3_conn_create_notify;       /* required for server, optional for client */
     /* 连接关闭时回调,用户可以回收资源 */
-    xqc_h3_conn_notify_pt          h3_conn_close_notify;
+    xqc_h3_conn_notify_pt            h3_conn_close_notify;
     /* for handshake done */
-    xqc_h3_handshake_finished_pt   h3_conn_handshake_finished;  /* optional */
+    xqc_h3_handshake_finished_pt     h3_conn_handshake_finished;  /* optional */
     /* ping is acked */
-    xqc_h3_conn_ping_ack_notify_pt h3_conn_ping_acked;          /* optional */
+    xqc_h3_conn_ping_ack_notify_pt   h3_conn_ping_acked;          /* optional */
+    /* user cid updated */
+    xqc_h3_conn_update_cid_notify_pt h3_conn_update_cid_notify;     /* optional */
 } xqc_h3_conn_callbacks_t;
 
 /* transport layer */

@@ -98,6 +98,7 @@ typedef enum {
     XQC_ECONN_NO_AVAIL_CID              = 634,      // no available cid
     XQC_ECONN_CID_NOT_FOUND             = 635,      // can't find cid in connection
     XQC_EILLEGAL_FRAME                  = 636,      // illegal stream & frame, close connection
+    XQC_ERETIRE_CID                     = 637,      // CID 回收错误
 
 
     XQC_EMP_NOT_SUPPORT_MP              = 650,      // Multipath - don't support multipath

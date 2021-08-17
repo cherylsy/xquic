@@ -68,5 +68,8 @@ xqc_int_t xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *
 xqc_int_t xqc_get_unused_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid);
 xqc_cid_t* xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num);
 
+xqc_int_t xqc_set_cid_retired(xqc_connection_t *conn, xqc_cid_t *cid);
+xqc_int_t xqc_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set);
+
 #endif /* _XQC_CID_H_INCLUDED_ */
 

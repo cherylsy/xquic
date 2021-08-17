@@ -45,6 +45,7 @@ typedef enum {
     XQC_TIMER_PACING,
     XQC_TIMER_STREAM_CLOSE,
     XQC_TIMER_PING,
+    XQC_TIMER_RETIRE_CID,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 

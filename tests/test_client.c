@@ -632,6 +632,20 @@ void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *
     }
 }
 
+void xqc_client_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *user_data)
+{
+    DEBUG;
+
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+
+    memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
+
+    printf("====>RETIRE SCID:%s\n", xqc_scid_str(retire_cid));
+    printf("====>SCID:%s\n", xqc_scid_str(new_cid));
+    printf("====>DCID:%s\n", xqc_dcid_str_by_scid(ctx.engine, new_cid));
+
+}
+
 void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 {
     DEBUG;
@@ -719,6 +733,20 @@ void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, const xqc_cid_t *
     } else {
         printf("====>no ping_id\n");
     }
+}
+
+void xqc_client_h3_conn_update_cid_notify(xqc_h3_conn_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *user_data)
+{
+    DEBUG;
+
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+
+    memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
+
+    printf("====>RETIRE SCID:%s\n", xqc_scid_str(retire_cid));
+    printf("====>SCID:%s\n", xqc_scid_str(new_cid));
+    printf("====>DCID:%s\n", xqc_dcid_str_by_scid(ctx.engine, new_cid));
+
 }
 
 int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
@@ -1857,12 +1885,14 @@ int main(int argc, char *argv[]) {
                 .conn_close_notify = xqc_client_conn_close_notify,
                 .conn_handshake_finished = xqc_client_conn_handshake_finished,
                 .conn_ping_acked = xqc_client_conn_ping_acked_notify,
+                .conn_update_cid_notify = xqc_client_conn_update_cid_notify,
         },
         .h3_conn_callbacks = {
                 .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
                 .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
                 .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* 握手完成时回调 */
                 .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
+                .h3_conn_update_cid_notify = xqc_client_h3_conn_update_cid_notify,
         },
         /* 仅使用传输层时实现 */
         .stream_callbacks = {
