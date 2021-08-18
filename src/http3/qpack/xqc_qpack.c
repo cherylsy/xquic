@@ -3,11 +3,6 @@
 #include "src/http3/xqc_h3_conn.h"
 
 
-/* callback for processing instruction buffer */
-const xqc_qpack_ins_cb_t xqc_qpack_ins_cb = {
-    .get_buf_cb = xqc_h3_conn_get_ins_buf,
-    .write_ins_cb = xqc_h3_conn_send_ins
-};
 
 /* qpack handler */
 typedef struct xqc_qpack_s {
@@ -26,6 +21,9 @@ typedef struct xqc_qpack_s {
     /* log handler */
     xqc_log_t              *log;
 
+    /* instruction callback for encoder/decoder instruction buffer and write */
+    xqc_qpack_ins_cb_t      ins_cb;
+
     /* user_data for xqc_qpack_ins_cb_t */
     void                   *user_data;
 
@@ -35,8 +33,13 @@ typedef struct xqc_qpack_s {
 
 
 xqc_qpack_t *
-xqc_qpack_create(uint64_t max_cap, xqc_log_t *log, void *user_data)
+xqc_qpack_create(uint64_t max_cap, xqc_log_t *log, const xqc_qpack_ins_cb_t *ins_cb,
+    void *user_data)
 {
+    if (NULL == ins_cb) {
+        return NULL;
+    }
+
     xqc_qpack_t *qpk = xqc_malloc(sizeof(xqc_qpack_t));
     if (qpk == NULL) {
         return NULL;
@@ -62,6 +65,7 @@ xqc_qpack_create(uint64_t max_cap, xqc_log_t *log, void *user_data)
         goto fail;
     }
 
+    qpk->ins_cb = *ins_cb;
     qpk->log = log;
     qpk->user_data = user_data;
     qpk->max_cap = max_cap;
@@ -103,7 +107,7 @@ xqc_qpack_destroy(xqc_qpack_t *qpk)
 static inline xqc_int_t
 xqc_qpack_notify_set_dtable_cap(xqc_qpack_t *qpk, uint64_t cap)
 {
-    xqc_var_buf_t *buf = xqc_qpack_ins_cb.get_buf_cb(XQC_INS_TYPE_ENCODER, qpk->user_data);
+    xqc_var_buf_t *buf = qpk->ins_cb.get_buf_cb(XQC_INS_TYPE_ENCODER, qpk->user_data);
     if (NULL == buf) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|get encoder instruction error|");
         return -XQC_ENOBUF;
@@ -116,7 +120,7 @@ xqc_qpack_notify_set_dtable_cap(xqc_qpack_t *qpk, uint64_t cap)
         goto fail;
     }
 
-    ssize_t cb_ret = xqc_qpack_ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, buf, qpk->user_data);
+    ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, buf, qpk->user_data);
     if (cb_ret < 0) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|encoder instruction callback error|ret:%z|", cb_ret);
         ret = cb_ret;
@@ -132,7 +136,7 @@ fail:
 static inline xqc_int_t
 xqc_qpack_notify_insert_cnt_increment(xqc_qpack_t *qpk, uint64_t increment)
 {
-    xqc_var_buf_t *buf = xqc_qpack_ins_cb.get_buf_cb(XQC_INS_TYPE_DECODER, qpk->user_data);
+    xqc_var_buf_t *buf = qpk->ins_cb.get_buf_cb(XQC_INS_TYPE_DECODER, qpk->user_data);
     if (NULL == buf) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|get encoder instruction error|");
         return -XQC_ENOBUF;
@@ -144,7 +148,7 @@ xqc_qpack_notify_insert_cnt_increment(xqc_qpack_t *qpk, uint64_t increment)
         goto fail;
     }
 
-    ssize_t cb_ret = xqc_qpack_ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
+    ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
     if (cb_ret < 0) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|decoder instruction callback error|ret:%z|", cb_ret);
         ret = cb_ret;
@@ -159,7 +163,7 @@ fail:
 static inline xqc_int_t
 xqc_qpack_notify_section_ack(xqc_qpack_t *qpk, uint64_t stream_id)
 {
-    xqc_var_buf_t *buf = xqc_qpack_ins_cb.get_buf_cb(XQC_INS_TYPE_DECODER, qpk->user_data);
+    xqc_var_buf_t *buf = qpk->ins_cb.get_buf_cb(XQC_INS_TYPE_DECODER, qpk->user_data);
     if (NULL == buf) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|get encoder instruction error|");
         return -XQC_ENOBUF;
@@ -171,7 +175,7 @@ xqc_qpack_notify_section_ack(xqc_qpack_t *qpk, uint64_t stream_id)
         goto fail;
     }
 
-    ssize_t cb_ret = xqc_qpack_ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
+    ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
     if (cb_ret < 0) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|decoder instruction callback error|ret:%z|", cb_ret);
         ret = cb_ret;
@@ -416,7 +420,7 @@ xqc_int_t
 xqc_qpack_enc_headers(xqc_qpack_t *qpk, uint64_t stream_id,
     xqc_http_headers_t *headers, xqc_var_buf_t *data)
 {
-    xqc_var_buf_t *ins_buf = xqc_qpack_ins_cb.get_buf_cb(XQC_INS_TYPE_ENCODER, qpk->user_data);
+    xqc_var_buf_t *ins_buf = qpk->ins_cb.get_buf_cb(XQC_INS_TYPE_ENCODER, qpk->user_data);
     if (NULL == ins_buf) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|get encoder instruction error|");
         return -XQC_ENOBUF;
@@ -428,7 +432,7 @@ xqc_qpack_enc_headers(xqc_qpack_t *qpk, uint64_t stream_id,
         return ret;
     }
 
-    ssize_t processed = xqc_qpack_ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, ins_buf,
+    ssize_t processed = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, ins_buf,
                                                       qpk->user_data);
     if (processed < 0) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|write instruction error|%d|", processed);

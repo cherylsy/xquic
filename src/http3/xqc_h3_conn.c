@@ -209,6 +209,13 @@ xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data)
 }
 
 
+
+/* callback for processing instruction buffer */
+const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb = {
+    .get_buf_cb = xqc_h3_conn_get_ins_buf,
+    .write_ins_cb = xqc_h3_conn_send_ins
+};
+
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 {
@@ -231,7 +238,7 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 
     /* create qpack */
     h3c->qpack = xqc_qpack_create(h3c->local_h3_conn_settings.qpack_max_table_capacity, 
-                                  h3c->log, h3c);
+                                  h3c->log, &xqc_h3_qpack_ins_cb, h3c);
     h3c->qdec_stream = NULL;
     h3c->qenc_stream = NULL;
 
