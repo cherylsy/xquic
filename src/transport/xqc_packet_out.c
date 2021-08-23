@@ -1,5 +1,5 @@
 
-#include "src/common/xqc_variable_len_int.h"
+#include "src/common/utils/vint/xqc_variable_len_int.h"
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_conn.h"
 #include "src/common/xqc_memory_pool.h"
@@ -42,7 +42,6 @@ xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src)
 {
     unsigned char *po_buf = dst->po_buf;
     xqc_memcpy(dst, src, sizeof(xqc_packet_out_t));
-    dst->po_origin_ref_cnt = 0;
 
     xqc_packet_out_t *origin = src->po_origin == NULL ? src : src->po_origin;
 

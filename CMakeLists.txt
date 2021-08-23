@@ -55,15 +55,28 @@ set(
 
     HTTP3_SOURCES
 
+    "src/common/utils/huffman/xqc_huffman_code.c"
+    "src/common/utils/huffman/xqc_huffman.c"
+    "src/common/utils/vint/xqc_discrete_vint_parser.c"
+    "src/common/utils/vint/xqc_variable_len_int.c"
+    "src/common/utils/ringarray/xqc_ring_array.c"
+    "src/common/utils/ringmem/xqc_ring_mem.c"
+    "src/common/utils/2d_hash/xqc_2d_hash_table.c"
+    "src/http3/xqc_var_buf.c"
     "src/http3/xqc_h3_conn.c"
     "src/http3/xqc_h3_stream.c"
     "src/http3/xqc_h3_request.c"
-    "src/http3/xqc_h3_frame.c"
-    "src/http3/xqc_h3_qpack.c"
-    "src/http3/xqc_h3_ringbuf.c"
-    "src/http3/xqc_h3_qpack_token.c"
-    "src/http3/xqc_h3_huffman_data.c"
-    "src/http3/xqc_h3_qpack_huffman.c"
+    "src/http3/frame/xqc_h3_frame.c"
+    "src/http3/qpack/xqc_qpack.c"
+    "src/http3/qpack/xqc_prefixed_int.c"
+    "src/http3/qpack/xqc_prefixed_str.c"
+    "src/http3/qpack/xqc_decoder.c"
+    "src/http3/qpack/xqc_encoder.c"
+    "src/http3/qpack/xqc_rep.c"
+    "src/http3/qpack/xqc_ins.c"
+    "src/http3/qpack/stable/xqc_stable.c"
+    "src/http3/qpack/dtable/xqc_dtable.c"
+    "src/http3/xqc_h3_header.c"
 )
 
 
@@ -129,7 +142,6 @@ set(
     COMMON_SOURCES
 
     "src/common/xqc_random.c"
-    "src/common/xqc_variable_len_int.c"
     "src/common/xqc_str.c"
     "src/common/xqc_log.c"
     "src/common/xqc_time.c"
@@ -257,9 +269,7 @@ add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
-add_executable(test_qpack_server tests/test_qpack_server.c)
-add_executable(test_qpack_client tests/test_qpack_client.c)
-add_executable(test_qpack_fuzzing tests/test_qpack_fuzzing.c)
+
 
 link_directories( /usr/local/lib )
 link_directories( ${BABASSL_PATH}/lib/)
@@ -276,10 +286,6 @@ elseif(PLATFORM STREQUAL "mac")
 else()
     target_link_libraries(test_server xquic -levent -lm)
     target_link_libraries(test_client xquic -levent -lm)
-
-    target_link_libraries(test_qpack_client xquic -levent -lm)
-    target_link_libraries(test_qpack_server xquic -levent -lm)
-    target_link_libraries(test_qpack_fuzzing xquic -levent -lm)
 endif()
 
 

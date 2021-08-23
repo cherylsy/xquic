@@ -18,4 +18,14 @@
 
 typedef unsigned char   u_char;
 
+
+static inline uint64_t
+xqc_pow2_upper(uint64_t n)
+{
+    size_t m = 1;
+    for(; m < n; m = m << 1);
+    return m;
+}
+
+
 #endif /*_XQC_COMMON_H_INCLUDED_*/

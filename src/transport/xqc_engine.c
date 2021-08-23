@@ -19,9 +19,10 @@
 #include "src/transport/xqc_wakeup_pq.h"
 #include "src/crypto/xqc_tls_header.h"
 #include "src/transport/xqc_utils.h"
-#include "src/http3/xqc_h3_qpack_token.h"
 #include "src/http3/xqc_h3_conn.h"
 
+
+extern const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb;
 
 xqc_config_t default_client_config = {
     .cfg_log_level = XQC_LOG_WARN,
@@ -416,13 +417,6 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         xqc_set_keylog(engine);
     }
 
-    engine->h3_ctx = xqc_h3_context_create();
-    if (engine->h3_ctx == NULL) {
-        goto fail;
-    }
-
-    xqc_qpack_init_static_token_index();
-
     return engine;
 
 fail:
@@ -545,11 +539,6 @@ xqc_engine_destroy(xqc_engine_t *engine)
 
     if (engine->log) {
         xqc_log_release(engine->log);
-    }
-
-    if (engine->h3_ctx) {
-        xqc_h3_context_free(engine->h3_ctx);
-        engine->h3_ctx = NULL;
     }
 
     xqc_free(engine);

@@ -366,6 +366,16 @@ typedef struct xqc_conn_ssl_config_s {
     uint8_t     cert_verify_flag;                /* For client certificate verify, bit-map flag defined in xqc_cert_verify_flag_e */
 } xqc_conn_ssl_config_t;
 
+typedef enum xqc_http3_nv_flag_s {
+    /* no flag is set */
+    XQC_HTTP_HEADER_FLAG_NONE = 0,
+
+    /* header's name and value shall be encoded as literal, and shall never be indexed */
+    XQC_HTTP_HEADER_FLAG_NEVER_INDEX = 0x01,
+
+    /* header's value shall never be indexed */
+    XQC_HTTP_HEADER_FLAG_NEVER_INDEX_VALUE = 0x02
+} xqc_http3_nv_flag_t;
 
 typedef struct xqc_http_header_s {
     struct iovec        name;
@@ -374,9 +384,10 @@ typedef struct xqc_http_header_s {
 } xqc_http_header_t;
 
 typedef struct xqc_http_headers_s {
-    xqc_http_header_t       *headers;
+    xqc_http_header_t      *headers;
     size_t                  count;
     size_t                  capacity;   /* User does't care */
+    size_t                  total_len;
 } xqc_http_headers_t;
 
 typedef struct xqc_conn_settings_s {
@@ -630,16 +641,44 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
 
 
 /**
+ * @deprecated use xqc_h3_engine_set_max_dtable_capacity instead
  * @param value 0:disable dynamic table
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_dec_max_dtable_capacity(xqc_engine_t *engine, uint64_t value);
+void xqc_h3_engine_set_dec_max_dtable_capacity(xqc_engine_t *engine, size_t value);
 
 /**
+ * @deprecated use xqc_h3_engine_set_max_dtable_capacity instead
  * @param value 0:disable dynamic table
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, uint64_t value);
+void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, size_t value);
+
+/**
+ * @brief set max h3 max dynamic table capacity
+ * @param engine 
+ * @param value capacity of dynamic table, 0 for disable dynamic table 
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_h3_engine_set_max_dtable_capacity(xqc_engine_t *engine, size_t capacity);
+
+/**
+ * @brief set max h3 field section size
+ * @param engine
+ * @param size size of field section size
+ */
+XQC_EXPORT_PUBLIC_API
+void
+xqc_h3_engine_set_max_field_section_size(xqc_engine_t *engine, size_t size);
+
+/**
+ * @brief set the dynamic table capacity of an existing h3 connection
+ * @param h3c h3 connection handler
+ * @param capacity capacity of dynamic table, 0 for disable dynamic table 
+ * @return XQC_OK for success, others for failure
+ */
+xqc_int_t
+xqc_h3_conn_set_qpack_dtable_cap(xqc_h3_conn_t *h3c, size_t capacity);
 
 
 /* ************************************************************

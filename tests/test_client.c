@@ -84,6 +84,8 @@ typedef struct user_conn_s {
 
 #define XQC_DEMO_INTERFACE_MAX_LEN 64
 #define XQC_DEMO_MAX_PATH_COUNT    8
+#define MAX_HEADER_KEY_LEN 128
+#define MAX_HEADER_VALUE_LEN 4096
 
 typedef struct xqc_user_path_s {
     int                 path_fd;
@@ -136,6 +138,9 @@ int g_ping_id = 1;
 int g_enable_multipath = 0;
 int g_verify_cert = 0;
 int g_verify_cert_allow_self_sign = 0;
+int g_header_num = 6;
+char g_header_key[MAX_HEADER_KEY_LEN];
+char g_header_value[MAX_HEADER_VALUE_LEN];
 
 char g_multi_interface[XQC_DEMO_MAX_PATH_COUNT][64];
 xqc_user_path_t g_client_path[XQC_DEMO_MAX_PATH_COUNT];
@@ -638,7 +643,15 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, 
     user_conn_t *user_conn = (user_conn_t *) user_data;
     if (g_test_case == 18) { /* test h3 settings */
         xqc_h3_conn_settings_t settings = {
-                .max_field_section_size = 256,
+                .max_field_section_size = 512,
+                .qpack_max_table_capacity = 4096,
+                .qpack_blocked_streams = 32,
+        };
+        xqc_h3_conn_set_settings(conn, &settings);
+    }
+    if (g_test_case == 32) {
+        xqc_h3_conn_settings_t settings = {
+                .max_field_section_size = 10000000,
                 .qpack_max_table_capacity = 4096,
                 .qpack_blocked_streams = 32,
         };
@@ -875,6 +888,8 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
     user_stream_t *user_stream = (user_stream_t*)user_data;
     if (g_echo_check) {
         int pass = 0;
+        printf("user_stream->recv_fin:%d, user_stream->send_body_len:%zu, user_stream->recv_body_len:%zd\n",
+               user_stream->recv_fin, user_stream->send_body_len, user_stream->recv_body_len);
         if (user_stream->recv_fin && user_stream->send_body_len == user_stream->recv_body_len
             && memcmp(user_stream->send_body, user_stream->recv_body, user_stream->send_body_len) == 0) {
             pass = 1;
@@ -1000,6 +1015,17 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             header_size++;
         }
     }
+    while (header_size < g_header_num) {
+        int m = 0, n = 0;
+        m = rand();
+        n = rand();
+        header[header_size].name.iov_base = g_header_key;
+        header[header_size].name.iov_len = m%(MAX_HEADER_KEY_LEN - 1) + 1;
+        header[header_size].value.iov_base = g_header_value;
+        header[header_size].value.iov_len = n%(MAX_HEADER_VALUE_LEN - 1) + 1;
+        header[header_size].flags = 0;
+        header_size++;
+    }
 
     xqc_http_headers_t headers = {
             .headers = header,
@@ -1014,7 +1040,11 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
 
 
     if (user_stream->header_sent == 0) {
-        ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
+        if (g_test_case == 30) {
+            ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
+        } else  {
+            ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
+        }
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %zd\n", ret);
             return ret;
@@ -1022,15 +1052,25 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
         }
-
-        if (header_only) {
-            return 0;
+        if (g_test_case == 30) {
+            usleep(200*1000);
+            ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
+            if (ret < 0) {
+                printf("xqc_h3_request_send_headers error %zd\n", ret);
+                return ret;
+            } else {
+                printf("xqc_h3_request_send_headers success size=%zd\n", ret);
+            }
         }
+    }
+
+    if (header_only) {
+        return 0;
     }
 
 
     int fin = 1;
-    if (g_test_case == 4) { //test fin_only
+    if (g_test_case == 4 || g_test_case == 31) { //test fin_only
         fin = 0;
     }
     if (user_stream->send_offset < user_stream->send_body_len) {
@@ -1043,6 +1083,15 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         } else {
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
+        }
+    }
+    if (user_stream->send_offset == user_stream->send_body_len && g_test_case == 31) {
+        ret = xqc_h3_request_send_headers(h3_request, &headers, 1);
+        if (ret < 0) {
+            printf("xqc_h3_request_send_headers error %zd\n", ret);
+            return ret;
+        } else {
+            printf("xqc_h3_request_send_headers success size=%zd\n", ret);
         }
     }
     if (g_test_case == 4) { //test fin_only
@@ -1616,6 +1665,7 @@ void usage(int argc, char *argv[]) {
 "   -N    No encryption\n"
 "   -6    IPv6\n"
 "   -V    Force cert verification. 0: don't allow self-signed cert. 1: allow self-signed cert.\n"
+"   -q    name-value pair num of request header, default and larger than 6\n"
 , prog);
 }
 
@@ -1646,7 +1696,7 @@ int main(int argc, char *argv[]) {
     int use_1rtt = 0;
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:q:")) != -1){
         switch(ch)
         {
             case 'a':
@@ -1769,6 +1819,10 @@ int main(int argc, char *argv[]) {
                 g_verify_cert = 1;
                 g_verify_cert_allow_self_sign = atoi(optarg);
                 break;
+            case 'q':
+                printf("option name-value pair num: %s\n", optarg);
+                g_header_num = atoi(optarg);
+                break;
             default:
                 printf("other option :%c\n", ch);
                 usage(argc, argv);
@@ -1777,7 +1831,8 @@ int main(int argc, char *argv[]) {
 
     }
 
-
+    memset(g_header_key, 'k', sizeof(g_header_key));
+    memset(g_header_value, 'v', sizeof(g_header_value));
     memset(&ctx, 0, sizeof(ctx));
 
     xqc_client_open_keylog_file(&ctx);

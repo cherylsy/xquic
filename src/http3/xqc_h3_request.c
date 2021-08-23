@@ -1,16 +1,11 @@
 
-#include <xquic/xquic.h>
+#include "src/http3/xqc_h3_request.h"
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_engine.h"
-#include "src/http3/xqc_h3_request.h"
-
-
-#define XQC_H3_RESPONSE_HDR_MAX_VALUELEN (16*1024)
+#include "src/http3/xqc_h3_conn.h"
 
 xqc_h3_request_t*
-xqc_h3_request_create(xqc_engine_t *engine,
-                      const xqc_cid_t *cid,
-                      void *user_data)
+xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)
 {
     xqc_stream_t *stream;
     xqc_h3_stream_t *h3_stream;
@@ -25,7 +20,7 @@ xqc_h3_request_create(xqc_engine_t *engine,
 
     h3_conn = (xqc_h3_conn_t*)stream->stream_conn->user_data;
 
-    h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_HTTP3_STREAM_TYPE_REQUEST, user_data);
+    h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_TYPE_REQUEST, user_data);
     if (!h3_stream) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_h3_stream_create error|");
         return NULL;
@@ -43,124 +38,45 @@ xqc_h3_request_create(xqc_engine_t *engine,
     return h3_request;
 }
 
-
-int 
-xqc_h3_headers_move_element(xqc_http_headers_t * dest, xqc_http_headers_t *src){
-
-    size_t new_capacity = dest->count + src->count;
-
-    if (dest->capacity < new_capacity) {
-
-        if (xqc_http_headers_realloc_buf(dest, new_capacity) < 0) {
-            return -XQC_QPACK_SAVE_HEADERS_ERROR;
-        }
-    }
-
-    int i = 0;
-    for (i = 0; i < src->count; i++) {
-
-        xqc_http_header_t * dest_header = & dest->headers[dest->count + i];
-        xqc_http_header_t * src_header = & src->headers[i];
-        dest_header->name = src_header->name;
-        dest_header->value = src_header->value;
-        dest_header->flags = src_header->flags;
-
-        src_header->name.iov_base = NULL;
-        src_header->value.iov_base = NULL;
-    }
-
-    return XQC_OK;
-}
-
-
-void 
-xqc_h3_headers_free(xqc_http_headers_t *headers){
-
-    int i = 0;
-    xqc_http_header_t * header;
-
-    if (headers->headers == NULL) {
-        return;
-    }
-
-    for (i = 0; i < headers->count; i++) {
-        header = & headers->headers[i];
-        if (header->name.iov_base) {
-            xqc_free(header->name.iov_base);
-            header->name.iov_base = NULL;
-        }
-        if (header->value.iov_base) {
-            xqc_free(header->value.iov_base);
-            header->value.iov_base = NULL;
-        }
-    }
-
-    xqc_free(headers->headers);
-    headers->headers = NULL;
-    headers->count = 0;
-    headers->capacity = 0;
-}
-
-
-void 
-xqc_h3_headers_initial(xqc_http_headers_t *headers)
-{
-    headers->headers = NULL;
-    headers->count = 0;
-    headers->capacity = 0;
-}
-
-
-void 
-xqc_h3_request_header_free(xqc_h3_request_header_t * h3_header)
-{
-    int i = 0;
-    for (i = 0; i < 2; i++) {
-        xqc_h3_headers_free(&h3_header->headers[i]);
-    }
-}
-
-
 void
 xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
 {
-    xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG, "|");
+    xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG, "|");
     if (h3_request->request_if->h3_request_close_notify) {
         h3_request->request_if->h3_request_close_notify(h3_request, h3_request->user_data);
     }
-    xqc_h3_request_header_free(&h3_request->h3_header);
+
+    xqc_h3_headers_free(&h3_request->h3_header.headers);
+    xqc_list_buf_list_free(&h3_request->body_buf);
     xqc_free(h3_request);
 }
 
-
 int 
-xqc_h3_request_close (xqc_h3_request_t *h3_request)
+xqc_h3_request_close(xqc_h3_request_t *h3_request)
 {
-    xqc_connection_t *conn = h3_request->h3_stream->h3_conn->conn;
+    xqc_connection_t *conn = h3_request->h3_stream->h3c->conn;
     xqc_stream_t *stream = h3_request->h3_stream->stream;
+
     int ret = xqc_stream_close(stream);
     if (ret) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|fail|ret:%d|stream_id:%ui|conn:%p|conn_state:%s|flag:%s|",
-                ret, stream->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
+        xqc_log(conn->log, XQC_LOG_ERROR, "|fail|ret:%d|stream_id:%ui|conn:%p|conn_state:%s|"
+                "flag:%s|", ret, stream->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
                 xqc_conn_flag_2_str(conn->conn_flag));
         return ret;
     }
+
     xqc_log(conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|conn:%p|conn_state:%s|flag:%s|",
             stream->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
             xqc_conn_flag_2_str(conn->conn_flag));
+
     return XQC_OK;
 }
 
-void 
+void
 xqc_h3_request_header_initial(xqc_h3_request_header_t * h3_header)
 {
-    int i = 0;
     h3_header->read_flag = XQC_H3_REQUEST_HEADER_DATA_NONE;
-    h3_header->writing_cursor = 0;
-
-    for(i = 0; i < 2; i++) {
-        xqc_h3_headers_initial(&h3_header->headers[i]);
-    }
+    xqc_h3_headers_initial(&h3_header->headers);
 }
 
 xqc_h3_request_t *
@@ -176,15 +92,18 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
     h3_request->h3_stream = h3_stream;
     h3_request->user_data = user_data;
     h3_request->request_if = &h3_conn->conn->engine->eng_callback.h3_request_callbacks;
-    h3_request->flag = 0;
+    h3_request->fin_flag = 0;
     xqc_h3_request_header_initial(&h3_request->h3_header);
 
-    h3_stream->h3_request = h3_request;
+    h3_stream->h3r = h3_request;
 
+    xqc_init_list_head(&h3_request->body_buf);
+    h3_request->body_buf_count = 0;
 
     if (h3_request->request_if->h3_request_create_notify) {
         h3_request->request_if->h3_request_create_notify(h3_request, h3_request->user_data);
     }
+
     return h3_request;
 }
 
@@ -195,15 +114,14 @@ xqc_h3_request_get_stats(xqc_h3_request_t *h3_request)
     uint64_t conn_err = h3_request->h3_stream->stream->stream_conn->conn_err;
     stats.recv_body_size = h3_request->body_recvd;
     stats.send_body_size = h3_request->body_sent;
-    stats.recv_header_size = h3_request->h3_stream->header_recvd;
-    stats.send_header_size = h3_request->h3_stream->header_sent;
+    stats.recv_header_size = h3_request->header_recvd;
+    stats.send_header_size = h3_request->header_sent;
     stats.stream_err = conn_err != 0 ? conn_err : h3_request->h3_stream->stream->stream_err;
     return stats;
 }
 
 void
-xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
-                             void *user_data)
+xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request, void *user_data)
 {
     h3_request->user_data = user_data;
 }
@@ -218,95 +136,80 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
 ssize_t
 xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers, uint8_t fin)
 {
-    ssize_t ret = XQC_ERROR;
-
     if (!headers) {
+        xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR, "|headers MUST NOT be NULL|");
         return -XQC_H3_EPARAM;
     }
 
-    xqc_h3_conn_t *h3_conn = h3_request->h3_stream->h3_conn;
-
-    /* move pesudo headers in the front of list */
+    /*  malloc a new  move pesudo headers in the front of list */
     xqc_http_headers_t new_headers;
     xqc_http_headers_t *headers_in = &new_headers;
-
     headers_in->headers = xqc_malloc(headers->count * sizeof(xqc_http_header_t));
     if (headers_in->headers == NULL) {
+        xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR, "|malloc error|");
         return -XQC_H3_EMALLOC;
     }
 
     headers_in->capacity = headers->count;
+    headers_in->total_len = 0;
 
-    /* copy pesudo headers first */
+    /* make pesudo headers first */
     int i = 0, pt = 0;
     for (i = 0; i < headers->count; i++) {
-        if (headers->headers[i].name.iov_len > 0 && *((unsigned char *)headers->headers[i].name.iov_base) == ':') {
+        if (headers->headers[i].name.iov_len > 0
+            && *((unsigned char *)headers->headers[i].name.iov_base) == ':')
+        {
             headers_in->headers[pt].name = headers->headers[i].name;
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
+            headers_in->total_len +=
+                (headers->headers[pt].name.iov_len + headers->headers[pt].value.iov_len);
             pt++;
-
-            if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
-                || headers->headers[i].value.iov_len > XQC_H3_RESPONSE_HDR_MAX_VALUELEN)
-            {
-                XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
-                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
-                        h3_conn->conn, headers->headers[i].name.iov_len, headers->headers[i].value.iov_len);
-                ret = -XQC_H3_BUFFER_EXCEED;
-                goto free;
-            }
         }
     }
 
     /* copy other headers */
     for (i = 0; i < headers->count; i++) {
-        if (headers->headers[i].name.iov_len > 0 && *((unsigned char *)headers->headers[i].name.iov_base) != ':') {
+        if (headers->headers[i].name.iov_len > 0
+            && *((unsigned char *)headers->headers[i].name.iov_base) != ':')
+        {
             headers_in->headers[pt].name = headers->headers[i].name;
             headers_in->headers[pt].value = headers->headers[i].value;
             headers_in->headers[pt].flags = headers->headers[i].flags;
+            headers_in->total_len +=
+                (headers->headers[pt].name.iov_len + headers->headers[pt].value.iov_len);
             pt++;
-
-            if (headers->headers[i].name.iov_len > XQC_HTTP3_QPACK_MAX_NAMELEN
-                || headers->headers[i].value.iov_len > XQC_H3_RESPONSE_HDR_MAX_VALUELEN)
-            {
-                XQC_H3_CONN_ERR(h3_conn, H3_EXCESSIVE_LOAD, -XQC_H3_BUFFER_EXCEED);
-                xqc_log(h3_conn->log, XQC_LOG_ERROR, "|large nv|conn:%p|nlen:%uz|vlen:%uz|",
-                        h3_conn->conn, headers->headers[i].name.iov_len, headers->headers[i].value.iov_len);
-                ret = -XQC_H3_BUFFER_EXCEED;
-                goto free;
-            }
         }
     }
 
     headers_in->count = pt;
+    ssize_t sent = xqc_h3_stream_send_headers(h3_request->h3_stream, headers_in, fin);
 
-    ret = xqc_h3_stream_send_headers(h3_request->h3_stream, headers_in, fin);
-
-free:
     /* free headers_in->headers */
     xqc_free(headers_in->headers);
 
-    return ret;
+    return sent;
 }
 
+
 ssize_t
-xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
-                         unsigned char *data,
-                         size_t data_size,
-                         uint8_t fin)
+xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size_t data_size,
+    uint8_t fin)
 {
+    /* data_size is allowed if it's fin only */
     if (data_size > 0 && data == NULL) {
         return -XQC_H3_EPARAM;
     }
-    ssize_t sent;
-    sent = xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
+
+    ssize_t sent = xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
     if (sent == -XQC_EAGAIN) {
-        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
+        xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG,
                 "|xqc_h3_stream_send_data eagain|stream_id:%ui|data_size:%z|fin:%d|",
                 h3_request->h3_stream->stream->stream_id, data_size, fin);
         return sent;
+
     } else if (sent < 0) {
-        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
+        xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_ERROR,
                 "|xqc_h3_stream_send_data error|stream_id:%ui|ret:%z|data_size:%z|fin:%d|",
                 h3_request->h3_stream->stream->stream_id, sent, data_size, fin);
         return sent;
@@ -316,11 +219,13 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
     if (fin && sent == data_size) {
         h3_request->body_sent_final_size = h3_request->body_sent;
     }
-    xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|stream_id:%ui|data_size:%z|sent:%z|body_sent:%uz|body_sent_final_size:%uz|fin:%d|flag:%d|conn:%p|",
-            h3_request->h3_stream->stream->stream_id,
-            data_size, sent, h3_request->body_sent, h3_request->body_sent_final_size, fin,
-            h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3_conn->conn);
+
+    xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|data_size:%z|sent:%z|"
+            "body_sent:%uz|body_sent_final_size:%uz|fin:%d|flag:%d|conn:%p|",
+            h3_request->h3_stream->stream->stream_id, data_size, sent, h3_request->body_sent, 
+            h3_request->body_sent_final_size, fin, h3_request->h3_stream->stream->stream_flag, 
+            h3_request->h3_stream->h3c->conn);
+
     return sent;
 }
 
@@ -328,98 +233,142 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
 xqc_http_headers_t *
 xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
 {
-    *fin = 0;
-    if (h3_request->flag & XQC_H3_REQUEST_HEADER_FIN) {
-        *fin = 1;
-    }
+    *fin = h3_request->fin_flag;
 
-    if (h3_request->h3_header.read_flag != XQC_H3_REQUEST_HEADER_DATA_NONE ) {
-        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-                "|stream_id:%ui|fin:%d|flag:%d|conn:%p|",
+    if (h3_request->h3_header.read_flag != XQC_H3_REQUEST_HEADER_DATA_NONE) {
+
+        xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG,
+                "|stream_id:%ui|fin:%d|flag:%d|conn:%p|count:%d|",
                 h3_request->h3_stream->stream->stream_id, *fin,
-                h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3_conn->conn);
+                h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3c->conn,
+                h3_request->h3_header.headers.count);
 
-        uint8_t read_cursor = h3_request->h3_header.read_flag - 1;
+        /* set headers flag to NONE */
         h3_request->h3_header.read_flag = XQC_H3_REQUEST_HEADER_DATA_NONE;
-        /* need set headers flag */
-        return &h3_request->h3_header.headers[read_cursor];
+        return &h3_request->h3_header.headers;
     }
+
     return NULL;
 }
 
 ssize_t
-xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
-                         unsigned char *recv_buf,
-                         size_t recv_buf_size,
-                         uint8_t *fin)
+xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
+    size_t recv_buf_size, uint8_t *fin)
 {
-    ssize_t n_recv;
-    n_recv = xqc_h3_stream_recv_data(h3_request->h3_stream, recv_buf, recv_buf_size, fin);
-    if (n_recv == -XQC_EAGAIN) {
-        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-                "|xqc_h3_stream_recv_data eagain|stream_id:%ui|ret:%z|conn:%p|",
-                h3_request->h3_stream->stream->stream_id, n_recv, h3_request->h3_stream->h3_conn->conn);
-        return -XQC_EAGAIN;
-    } else if (n_recv < 0) {
-        xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_ERROR,
-                "|xqc_h3_stream_recv_data error|stream_id:%ui|ret:%z|conn:%p|",
-                h3_request->h3_stream->stream->stream_id, n_recv, h3_request->h3_stream->h3_conn->conn);
-        return n_recv;
+    ssize_t n_recv = 0;
+    xqc_list_head_t *pos, *next;
+    xqc_list_buf_t *list_buf = NULL;
+    *fin = XQC_FALSE;
+
+    xqc_list_for_each_safe(pos, next, &h3_request->body_buf) {
+        list_buf = xqc_list_entry(pos, xqc_list_buf_t, list_head);
+        xqc_var_buf_t *buf = list_buf->buf;
+        if (buf->data_len == 0) {
+            h3_request->body_buf_count--;
+            xqc_list_buf_free(list_buf);
+            continue;
+        }
+
+        if (buf->data_len - buf->consumed_len <= recv_buf_size - n_recv) {
+            memcpy(recv_buf + n_recv, buf->data + buf->consumed_len,
+                   buf->data_len - buf->consumed_len);
+            n_recv += buf->data_len - buf->consumed_len;
+            h3_request->body_buf_count--;
+            xqc_list_buf_free(list_buf);
+
+        } else {
+            memcpy(recv_buf + n_recv, buf->data + buf->consumed_len, recv_buf_size - n_recv);
+            buf->consumed_len += recv_buf_size - n_recv;
+            n_recv = recv_buf_size;
+            break;
+        }
     }
 
     h3_request->body_recvd += n_recv;
-    if (*fin) {
-        h3_request->body_recvd_final_size = h3_request->body_recvd;
+    if (h3_request->body_buf_count == 0) {
+        *fin = h3_request->fin_flag;
+        if (*fin) {
+            h3_request->body_recvd_final_size = h3_request->body_recvd;
+        }
     }
-    xqc_log(h3_request->h3_stream->h3_conn->log, XQC_LOG_DEBUG,
-            "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|fin:%d|flag:%d|conn:%p|",
-            h3_request->h3_stream->stream->stream_id,
-            recv_buf_size, n_recv, h3_request->body_recvd, h3_request->body_recvd_final_size, *fin,
-            h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3_conn->conn);
+
+    if (n_recv == 0 && !*fin) {
+        return -XQC_EAGAIN;
+    }
+
+    xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG,
+            "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|"
+            "fin:%d|flag:%d|conn:%p|", h3_request->h3_stream->stream->stream_id, recv_buf_size,
+            n_recv, h3_request->body_recvd, h3_request->body_recvd_final_size, *fin,
+            h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3c->conn);
     return n_recv;
 }
 
+xqc_int_t
+xqc_h3_request_on_recv_header(xqc_h3_request_t *h3r)
+{
+    /* header is too large. */
+    if (h3r->h3_header.headers.total_len
+        > h3r->h3_stream->h3c->local_h3_conn_settings.max_field_section_size)
+    {
+        xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|large nv|conn:%p|fields_size:%ui|exceed|"
+                "SETTINGS_MAX_FIELD_SECTION_SIZE:%ui|", h3r->h3_stream->h3c->conn,
+                h3r->h3_header.headers.total_len, 
+                h3r->h3_stream->h3c->local_h3_conn_settings.max_field_section_size);
+        return -XQC_H3_INVALID_HEADER;
+    }
 
-int 
-xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header){
+    h3r->header_recvd += h3r->h3_header.headers.total_len;
 
-    if (h3_header->read_flag == XQC_H3_REQUEST_HEADER_DATA_NONE) {
-        h3_header->read_flag = 1 << h3_header->writing_cursor ;
-        h3_header->writing_cursor = 1 - h3_header->writing_cursor;
-        /* clear */
-    } else {
+    h3r->h3_header.read_flag = XQC_H3_REQUEST_HEADER_DATA;
+    xqc_request_notify_flag_t flag = XQC_REQ_NOTIFY_READ_HEADER;
 
-        if (h3_header->read_flag == 1 << h3_header->writing_cursor) {
-            /* impossible */
-            return -XQC_H3_EPROC_REQUEST;
+    xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, flag, h3r->user_data);
+    if (ret < 0) {
+        xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
+                "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream->stream_id,
+                h3r->h3_stream->h3c->conn);
+        return ret;
+    }
+
+    if (h3r->h3_header.read_flag == XQC_H3_REQUEST_HEADER_DATA_NONE) {
+        xqc_h3_headers_clear(&h3r->h3_header.headers);
+    }
+
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r)
+{
+    /* there might be a fin only operation, which shall be notified to user */
+    if (!xqc_list_empty(&h3r->body_buf) || (h3r->fin_flag == XQC_TRUE)) {
+        xqc_request_notify_flag_t flag = 0;
+
+        if (!xqc_list_empty(&h3r->body_buf)) {
+            flag |= XQC_REQ_NOTIFY_READ_BODY;
         }
-        xqc_http_headers_t * src_headers = &h3_header->headers[h3_header->writing_cursor];
-        xqc_http_headers_t * dest_headers = &h3_header->headers[1 - h3_header->writing_cursor];
-        int ret = xqc_h3_headers_move_element( dest_headers, src_headers);
-        if(ret < 0){
+
+        xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, flag, h3r->user_data);
+        if (ret < 0) {
+            xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
+                    "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream->stream_id,
+                    h3r->h3_stream->h3c->conn);
             return ret;
         }
     }
 
-    /* should clear write header */
-    xqc_h3_headers_free(&h3_header->headers[h3_header->writing_cursor]);
-
     return XQC_OK;
-
 }
 
+void*
+xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request)
+{
+    return h3_request->h3_stream->h3c->user_data;
+}
 
 xqc_stream_id_t
 xqc_h3_stream_id(xqc_h3_request_t *h3_request)
 {
     return h3_request->h3_stream->stream->stream_id;
 }
-
-
-void*
-xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request)
-{
-    return h3_request->h3_stream->h3_conn->user_data;
-}
-
-

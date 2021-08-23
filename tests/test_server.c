@@ -517,7 +517,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
         }
 
-        user_stream->header_recvd = 1;
+        user_stream->header_recvd++;
 
         if (fin) {
             /* 只有header，请求接收完成，处理业务逻辑 */
@@ -1304,6 +1304,9 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    if (g_test_case == 10) {
+        xqc_h3_engine_set_max_field_section_size(ctx.engine, 10000000);
+    }
     /* for lb cid generate */
     memcpy(ctx.quic_lb_ctx.sid_buf, g_sid, g_sid_len);
     ctx.quic_lb_ctx.sid_len = g_sid_len;

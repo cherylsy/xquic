@@ -196,6 +196,8 @@ typedef enum {
     XQC_H3_UNSUPPORT_FRAME_TYPE         = 822,  // 不支持的帧类型
     XQC_H3_INVALID_HEADER               = 823,  // 头部字段非法，如长度超过限制等
     XQC_H3_SETTING_ERROR                = 824,  // SETTING相关错误
+    XQC_H3_BLOCKED_STREAM_EXCEED        = 825,  // blocked_stream超过限制
+    XQC_H3_STREAM_RECV_ERROR            = 826,  // 调用xqc_stream_recv错误
 
     XQC_H3_ERR_MAX,
 } xqc_h3_error_t;
@@ -214,6 +216,14 @@ typedef enum {
     XQC_QPACK_SET_DTABLE_CAP_ERROR      = 905,  // qpack设置动态表容量出错
     XQC_QPACK_SEND_ERROR                = 906,  // qpack 发送数据或者控制报文出错
     XQC_QPACK_SAVE_HEADERS_ERROR        = 907,  // qpack 保存name-value到header结构体中时出错
+    XQC_QPACK_UNKNOWN_INSTRUCTION       = 908,  // 不识别的encoder/decoder指令
+    XQC_QPACK_INSTRUCTION_ERROR         = 909,  // error instruction
+    XQC_QPACK_DYNAMIC_TABLE_REFFERED    = 910,  // dynamic table entry is still reffered
+    XQC_QPACK_DYNAMIC_TABLE_VOID_ENTRY  = 911,  // entry inexists in dynamic table
+    XQC_QPACK_STATE_ERROR               = 912,  // state is error
+    XQC_QPACK_DYNAMIC_TABLE_NOT_ENOUGH  = 913,  // dynamic dable
+    XQC_QPACK_HUFFMAN_DEC_ERROR         = 914,  // huffman decode error
+    XQC_QPACK_HUFFMAN_DEC_STATE_ERROR   = 915,  // huffman decode state error
 
     XQC_QPACK_ERR_MAX,
 } xqc_qpack_error_t;

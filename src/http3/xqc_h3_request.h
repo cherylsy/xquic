@@ -2,42 +2,66 @@
 #define _XQC_H3_REQUEST_H_INCLUDED_
 
 #include "src/http3/xqc_h3_stream.h"
+#include "src/http3/xqc_h3_header.h"
 
-typedef enum{
-    XQC_H3_REQUEST_HEADER_FIN           = 1 << 0,
-    XQC_H3_REQUEST_BODY_CAN_READ        = 1 << 1,
-}xqc_h3_request_flag;
+#define XQC_H3_REQUEST_INITIAL_HEADERS_CAPACITY 32
 
-
-typedef enum{
-    XQC_H3_REQUEST_HEADER_DATA_NONE     = 0,
-    XQC_H3_REQUEST_HEADER_DATA_CURSOR_0 = 1,
-    XQC_H3_REQUEST_HEADER_DATA_CURSOR_1 = 2,
-}xqc_h3_request_header_read_flag;
-
-
-typedef struct xqc_h3_request_header_s {
-    xqc_http_headers_t          headers[2];
-    uint8_t                     read_flag;
-    uint8_t                     writing_cursor;
-} xqc_h3_request_header_t;
 
 typedef struct xqc_h3_request_s {
+    /* h3 stream handler */
     xqc_h3_stream_t            *h3_stream;
-    void                       *user_data;
-    xqc_h3_request_header_t     h3_header;
-    int                         flag;
 
+    /* user data for request callback */
+    void                       *user_data;
+
+    /* request callback */
     xqc_h3_request_callbacks_t *request_if;
+
+    /* receive fin flag */
+    xqc_bool_t                  fin_flag;
+
+    /* compressed header size recved */
+    size_t                      header_recvd;
+    /* received header buf */
+    xqc_h3_request_header_t     h3_header;
+    /* total received headers frame count */
+    size_t                      header_frame_count;
+
+    /* received body buf list and statistic information */
+    xqc_list_head_t             body_buf;
+    uint64_t                    body_buf_count;
     size_t                      body_recvd;
     size_t                      body_recvd_final_size;
+
+    /* compressed header size sent */
+    size_t                      header_sent;
+
+    /* send body statistic information */
     size_t                      body_sent;
     size_t                      body_sent_final_size;
+
 } xqc_h3_request_t;
 
-void xqc_h3_request_destroy(xqc_h3_request_t *h3_request);
 
-xqc_h3_request_t * xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data);
-int xqc_h3_request_header_notify_read(xqc_h3_request_header_t * h3_header);
+xqc_h3_request_t *
+xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data);
+
+void
+xqc_h3_request_destroy(xqc_h3_request_t *h3_request);
+
+xqc_h3_request_t *
+xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data);
+
+
+/**
+ * @brief process 
+ * 
+ */
+xqc_int_t
+xqc_h3_request_on_recv_header(xqc_h3_request_t *h3r);
+
+
+xqc_int_t xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r);
+
 
 #endif /* _XQC_H3_REQUEST_H_INCLUDED_ */

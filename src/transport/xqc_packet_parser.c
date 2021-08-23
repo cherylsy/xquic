@@ -2,7 +2,7 @@
 #include <openssl/hmac.h>
 #include "src/transport/xqc_packet_parser.h"
 #include "src/transport/xqc_cid.h"
-#include "src/common/xqc_variable_len_int.h"
+#include "src/common/utils/vint/xqc_variable_len_int.h"
 #include "src/transport/xqc_packet_out.h"
 #include "src/common/xqc_algorithm.h"
 #include "src/common/xqc_log.h"
@@ -773,7 +773,9 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                                (void*) encrypt_level, p_ctx->aead_decrypter);
 
     if (nwrite < 0 || nwrite > payload_len) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt_func return error:%d|", nwrite);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt_func return error:%d|"
+                "encrypt_level:%d|pkt_type:%d|", nwrite, encrypt_level,
+                xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type));
         return nwrite;
     }
 
