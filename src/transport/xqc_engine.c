@@ -36,8 +36,6 @@ xqc_config_t default_client_config = {
     .support_version_list[0] = XQC_VERSION_V1_VALUE,
     .cid_len = XQC_DEFAULT_CID_LEN,
     .cid_negotiate = 0,
-    .cid_pid_len = 0,
-    .cid_pid_offset = 0,
 };
 
 
@@ -53,8 +51,6 @@ xqc_config_t default_server_config = {
     .support_version_list = {XQC_VERSION_V1_VALUE, XQC_IDRAFT_VER_29_VALUE},
     .cid_len = XQC_DEFAULT_CID_LEN,
     .cid_negotiate = 0,
-    .cid_pid_len = 0,
-    .cid_pid_offset = 0,
 };
 
 
@@ -101,9 +97,6 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
     dst->cid_negotiate = src->cid_negotiate;
     dst->cfg_log_level = src->cfg_log_level;
     dst->cfg_log_timestamp = src->cfg_log_timestamp;
-
-    dst->cid_pid_len = src->cid_pid_len;
-    dst->cid_pid_offset = src->cid_pid_offset;
 
     return XQC_OK;
 }

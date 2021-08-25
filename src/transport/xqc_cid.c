@@ -36,41 +36,6 @@ xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *ori_cid, xqc_cid_t *cid,
 }
 
 
-/* TODO: delete me */
-xqc_int_t 
-xqc_generate_cid_with_reserved(xqc_engine_t *engine, xqc_cid_t *cid, 
-    xqc_cid_t *ocid, size_t cid_offset, size_t reserved_len)
-{
-    cid->cid_len = engine->config->cid_len;
-
-    if (cid_offset + reserved_len > cid->cid_len) {
-        return -XQC_EGENERATE_CID;
-    }
-
-    /* copy [cid_offset, cid_offset + reserved_len) from ocid to cid  */
-    xqc_memcpy(cid->cid_buf + cid_offset, ocid->cid_buf + cid_offset, reserved_len);
-
-    if (xqc_get_random(engine->rand_generator, cid->cid_buf, cid_offset) != XQC_OK) {
-        return -XQC_EGENERATE_CID;
-    } 
-
-    if (xqc_get_random(engine->rand_generator, 
-                       cid->cid_buf + cid_offset + reserved_len, 
-                       cid->cid_len - cid_offset - reserved_len) != XQC_OK) 
-    {
-        return -XQC_EGENERATE_CID;
-    }   
-
-    xqc_log(engine->log, XQC_LOG_DEBUG, 
-            "|cid:%s|cid_len:%ud|cid_offset:%z|reserved_len:%z|", 
-            xqc_scid_str(cid), cid->cid_len, cid_offset, reserved_len);
-    
-
-    return XQC_OK;
-}
-
-
-
 xqc_int_t
 xqc_cid_is_equal(const xqc_cid_t *dst, const xqc_cid_t *src)
 {

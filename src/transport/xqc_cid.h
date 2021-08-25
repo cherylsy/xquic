@@ -9,8 +9,6 @@
 
 xqc_int_t xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *ori_cid, xqc_cid_t *cid,
     uint64_t cid_seq_num);
-xqc_int_t xqc_generate_cid_with_reserved(xqc_engine_t *engine, xqc_cid_t *cid, 
-    xqc_cid_t *ocid, size_t cid_offset, size_t reserved_len);
 
 
 void xqc_cid_copy(xqc_cid_t *dst, xqc_cid_t *src);
