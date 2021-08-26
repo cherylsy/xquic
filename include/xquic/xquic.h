@@ -269,9 +269,6 @@ typedef struct xqc_config_s {
     uint32_t        support_version_count;                        /* 版本列表数量 */
     uint8_t         cid_len;
     uint8_t         cid_negotiate; /* just for server, default:0 */
-    /* TODO: delete me */
-    size_t          cid_pid_offset; /* [cid_pid_offset, cid_pid_offset + cid_pid_len) is used to hash packets for process */
-    size_t          cid_pid_len;
 } xqc_config_t;
 
 
