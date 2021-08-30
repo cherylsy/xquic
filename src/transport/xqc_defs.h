@@ -2,6 +2,7 @@
 #define XQC_DEFS_H
 
 #include <stdint.h>
+#include <xquic/xquic.h>
 
 #define XQC_MAX_PACKET_LEN 1500
 
