@@ -1,5 +1,4 @@
 #include "xqc_defs.h"
-#include <xquic/xquic.h>
 #include <string.h>
 
 const uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {

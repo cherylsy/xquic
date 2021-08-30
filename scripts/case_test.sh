@@ -522,6 +522,8 @@ else
     case_print_result "new_client_29_&_new_server" "fail"
     echo "$errlog"
 fi
+rm -f test_session xqc_token tp_localhost
+
 
 clear_log
 echo -e "set h3 settings ...\c"
