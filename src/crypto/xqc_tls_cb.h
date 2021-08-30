@@ -5,9 +5,6 @@
 #include "src/crypto/xqc_tls_public.h"
 #include "src/transport/xqc_conn.h"
 
-#define XQC_ALPN_V1 "\x5h3-29\x9transport"
-#define XQC_ALPN_LIST XQC_ALPN_V1
-
 
 int xqc_tls_key_cb(SSL *ssl, int name, const unsigned char *secret, size_t secretlen, void *arg);
 

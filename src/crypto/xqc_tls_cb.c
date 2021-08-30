@@ -35,16 +35,15 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn|%*s|", alpn_len, alpn);
 
-    if (alpn_len == strlen(XQC_ALPN_HTTP3) && memcmp(alpn, XQC_ALPN_HTTP3, alpn_len) == 0) {
-
+    /* parse alpn */
+    if (xqc_alpn_is_h3(alpn, alpn_len)) {
         conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
 
-    } else if (alpn_len == strlen(XQC_ALPN_TRANSPORT) && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0) {
-
+    } else if (xqc_alpn_is_transport(alpn, alpn_len)) {
         conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
 
     } else {
-
+        xqc_log(conn->log, XQC_LOG_ERROR, "|alpn not supported|alpn:%s|", alpn);
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
 

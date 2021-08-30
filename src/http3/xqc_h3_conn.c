@@ -59,7 +59,7 @@ xqc_h3_connect(xqc_engine_t *engine, void *user_data, const xqc_conn_settings_t 
 {
     xqc_connection_t *conn;
     conn = xqc_client_connect(engine, user_data, conn_settings, token, token_len, server_host,
-            no_crypto_flag, conn_ssl_config, XQC_ALPN_HTTP3, peer_addr, peer_addrlen);
+            no_crypto_flag, conn_ssl_config, XQC_ALPN_H3, peer_addr, peer_addrlen);
     if (!conn) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_client_connect error|");
         return NULL;

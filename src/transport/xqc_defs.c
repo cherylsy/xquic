@@ -1,5 +1,6 @@
 #include "xqc_defs.h"
 #include <xquic/xquic.h>
+#include <string.h>
 
 const uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
     0xFFFFFFFF,
@@ -22,4 +23,27 @@ const char* const xqc_crypto_initial_salt[] = {
     [XQC_VERSION_V1]             = "\x38\x76\x2c\xf7\xf5\x59\x34\xb3\x4d\x17\x9a\xe6\xa4\xc8\x0c\xad\xcc\xbb\x7f\x0a",  /* QUIC v1 */
     [XQC_IDRAFT_VER_29]          = "\xaf\xbf\xec\x28\x99\x93\xd2\x4c\x9e\x97\x86\xf1\x9c\x61\x11\xe0\x43\x90\xa8\x99",  /* draft-29 ~ draft-32 */
     [XQC_IDRAFT_VER_NEGOTIATION] = "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00",
+};
+
+
+int
+xqc_alpn_is_h3(const unsigned char *alpn, uint8_t alpn_len)
+{
+    return ((alpn_len == strlen(XQC_ALPN_H3) && memcmp(alpn, XQC_ALPN_H3, alpn_len) == 0)
+        || (alpn_len == strlen(XQC_ALPN_H3_29) && memcmp(alpn, XQC_ALPN_H3_29, alpn_len) == 0));
+}
+
+int
+xqc_alpn_is_transport(const unsigned char *alpn, uint8_t alpn_len)
+{
+    return (alpn_len == strlen(XQC_ALPN_TRANSPORT)
+        && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0);
+}
+
+const char* const xqc_h3_alpn[] = {
+    [XQC_IDRAFT_INIT_VER]        = "",     /* placeholder */
+    [XQC_VERSION_V1]             = XQC_ALPN_H3,     /* QUIC v1 */
+    [XQC_IDRAFT_VER_29]          = XQC_ALPN_H3_29,  /* draft-29 ~ draft-32 */
+    [XQC_IDRAFT_VER_NEGOTIATION] = "",
+
 };

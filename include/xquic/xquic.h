@@ -331,8 +331,6 @@ typedef struct xqc_engine_callback_s {
     xqc_keylog_pt               keylog_cb;
 } xqc_engine_callback_t;
 
-#define XQC_ALPN_HTTP3      "h3-29"
-#define XQC_ALPN_TRANSPORT  "transport"
 
 typedef struct xqc_engine_ssl_config_s {
     char       *private_key_file;           /* For server */

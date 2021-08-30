@@ -39,5 +39,24 @@ extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
  */
 extern const char* const xqc_crypto_initial_salt[];
 
+/**
+ * ALPN definitions
+ */
+#define XQC_ALPN_H3         "h3"
+#define XQC_ALPN_H3_29      "h3-29"
+
+#define XQC_ALPN_TRANSPORT  "transport"
+
+#define XQC_ALPN_V1 "\x2h3\x5h3-29\x9transport"
+#define XQC_ALPN_LIST XQC_ALPN_V1
+
+int
+xqc_alpn_is_h3(const unsigned char *alpn, uint8_t alpn_len);
+
+int
+xqc_alpn_is_transport(const unsigned char *alpn, uint8_t alpn_len);
+
+extern const char* const xqc_h3_alpn[];
+
 
 #endif
