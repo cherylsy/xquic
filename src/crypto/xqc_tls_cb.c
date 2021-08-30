@@ -36,10 +36,10 @@ int xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out,
     xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn|%*s|", alpn_len, alpn);
 
     /* parse alpn */
-    if (xqc_alpn_is_h3(alpn, alpn_len)) {
+    if (xqc_alpn_type_is_h3(alpn, alpn_len)) {
         conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
 
-    } else if (xqc_alpn_is_transport(alpn, alpn_len)) {
+    } else if (xqc_alpn_type_is_transport(alpn, alpn_len)) {
         conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
 
     } else {

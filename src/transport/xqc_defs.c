@@ -26,15 +26,15 @@ const char* const xqc_crypto_initial_salt[] = {
 };
 
 
-int
-xqc_alpn_is_h3(const unsigned char *alpn, uint8_t alpn_len)
+xqc_bool_t
+xqc_alpn_type_is_h3(const unsigned char *alpn, uint8_t alpn_len)
 {
     return ((alpn_len == strlen(XQC_ALPN_H3) && memcmp(alpn, XQC_ALPN_H3, alpn_len) == 0)
         || (alpn_len == strlen(XQC_ALPN_H3_29) && memcmp(alpn, XQC_ALPN_H3_29, alpn_len) == 0));
 }
 
-int
-xqc_alpn_is_transport(const unsigned char *alpn, uint8_t alpn_len)
+xqc_bool_t
+xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len)
 {
     return (alpn_len == strlen(XQC_ALPN_TRANSPORT)
         && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0);
