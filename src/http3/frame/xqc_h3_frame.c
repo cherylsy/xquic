@@ -285,6 +285,7 @@ xqc_h3_frm_write_data(xqc_list_head_t* send_buf, unsigned char* data, size_t siz
     buf->data_len = pos - buf->data;
     xqc_int_t ret = xqc_var_buf_save_data(buf, data, size);
     if (ret != XQC_OK) {
+        xqc_var_buf_free(buf);
         return ret;
     }
     buf->fin_flag = fin;
