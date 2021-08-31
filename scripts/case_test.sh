@@ -500,8 +500,9 @@ clear_log
 echo -e "GET request ...\c"
 result=`./test_client -l d -t 1 -E -G|grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
+alpn_res=`grep "|select alpn|h3|" slog`
 echo "$result"
-if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+if [ -z "$errlog" ] && [ -n "$alpn_res" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "GET_request" "pass"
 else
     case_print_result "GET_request" "fail"
@@ -509,16 +510,20 @@ else
 fi
 
 clear_log
+rm -f test_session xqc_token tp_localhost
 echo -e "new client 29 - new server ...\c"
 result=`./test_client -s 1024 -l d -t 1 -E -x 17 |grep ">>>>>>>> pass"`
+alpn_res=`grep "select alpn|h3-29|" slog`
 errlog=`grep_err_log`
 echo "$result"
-if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+if [ -z "$errlog" ] && [ -n "$alpn_res" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
     case_print_result "new_client_29_&_new_server" "pass"
 else
     case_print_result "new_client_29_&_new_server" "fail"
     echo "$errlog"
 fi
+rm -f test_session xqc_token tp_localhost
+
 
 clear_log
 echo -e "set h3 settings ...\c"
