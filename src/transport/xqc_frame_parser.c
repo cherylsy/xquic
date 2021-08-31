@@ -1303,14 +1303,19 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
 
     *dst_buf++ = 0x18;
 
-    /* TODO: get stateless reset token */
-    unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN] = {0};
+    /* TODO: support stateless reset token, token MUST NOT be all-zero bytes */
+    unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
 
     unsigned sequence_number_bits = xqc_vint_get_2bit(new_cid->cid_seq_num);
     uint64_t retire_prior_to = 0;
     unsigned retire_prior_to_bits = xqc_vint_get_2bit(retire_prior_to);
     uint64_t cid_len = new_cid->cid_len;
     uint8_t cid_len_bits = xqc_vint_get_2bit(cid_len);
+
+    /* make sure cid_len won't exceed XQC_MAX_CID_LEN */
+    if (cid_len > XQC_MAX_CID_LEN) {
+        return -XQC_EPARAM;
+    }
 
     xqc_vint_write(dst_buf, new_cid->cid_seq_num, 
                    sequence_number_bits, xqc_vint_len(sequence_number_bits));

@@ -638,6 +638,11 @@ xqc_send_ctl_drop_packets_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_t type)
     xqc_packet_out_t *packet_out;
 
     xqc_pkt_num_space_t pns = xqc_packet_type_to_pns(type);
+    if (pns == XQC_PNS_N) {
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|illegal packet type|type:%d|", type);
+        return;
+    }
+
     xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         xqc_send_ctl_remove_unacked(packet_out, ctl);
