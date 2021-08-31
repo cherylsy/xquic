@@ -647,7 +647,7 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return -XQC_EPROTO;
     }
 
-    xqc_cid_t *scid = xqc_get_scid_by_seq(&conn->scid_set, seq_num);
+    xqc_cid_t *scid = xqc_get_cid_by_seq(&conn->scid_set.cid_set, seq_num);
     if (scid == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|can't find scid with seq_number|%ui|", seq_num);
         return XQC_ERROR;

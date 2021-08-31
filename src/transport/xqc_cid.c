@@ -168,6 +168,8 @@ xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t s
 
     if (state == XQC_CID_UNUSED) {
         cid_set->unused_cnt++;
+    } else if (state == XQC_CID_RETIRED) {
+        cid_set->retired_cnt++;
     }
 
     return XQC_OK;
@@ -182,6 +184,13 @@ xqc_cid_set_delete_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid)
     xqc_list_for_each_safe(pos, next, &cid_set->list_head) {
         inner_cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
         if (xqc_cid_is_equal(cid, &inner_cid->cid) == XQC_OK) {
+
+            if (inner_cid->state == XQC_CID_UNUSED) {
+                cid_set->unused_cnt--;
+            } else if (inner_cid->state == XQC_CID_RETIRED) {
+                cid_set->retired_cnt--;
+            }
+
             xqc_list_del(pos);
             xqc_free(inner_cid);
             return XQC_OK;
@@ -275,7 +284,7 @@ xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num)
 xqc_int_t
 xqc_set_cid_retired(xqc_connection_t *conn, xqc_cid_t *cid)
 {
-    xqc_cid_inner_t* scid = xqc_cid_in_scid_set(cid, &conn->scid_set);
+    xqc_cid_inner_t* scid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, cid);
     if (scid == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|invalid cid to retire|");
         return -XQC_ERETIRE_CID;
@@ -283,7 +292,7 @@ xqc_set_cid_retired(xqc_connection_t *conn, xqc_cid_t *cid)
 
     scid->state = XQC_CID_RETIRED;
     scid->retired_ts = xqc_monotonic_timestamp();
-    conn->scid_set.retired_cnt++;
+    conn->scid_set.cid_set.retired_cnt++;
 
     return XQC_OK;
 }
@@ -294,7 +303,7 @@ xqc_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
     xqc_cid_inner_t *scid;
     xqc_list_head_t *pos, *next;
 
-    xqc_list_for_each_safe(pos, next, &scid_set->list_head) {
+    xqc_list_for_each_safe(pos, next, &scid_set->cid_set.list_head) {
         scid = xqc_list_entry(pos, xqc_cid_inner_t, list);
 
         if (scid->state == XQC_CID_USED
