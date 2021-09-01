@@ -27,6 +27,7 @@ xqc_alpn_select_proto_cb(SSL *ssl,
     size_t alpn_list_len = xs_config->alpn_list_len;
 
     if (SSL_select_next_proto((unsigned char **)out, outlen, alpn_list, alpn_list_len, in, inlen) != OPENSSL_NPN_NEGOTIATED) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|select proto error|");
         return SSL_TLSEXT_ERR_NOACK;
     }
 
@@ -42,6 +43,9 @@ xqc_alpn_select_proto_cb(SSL *ssl,
     } else if (xqc_alpn_type_is_transport(alpn, alpn_len)) {
         conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
 
+    } else if (xqc_alpn_type_is_hq(alpn, alpn_len)) {
+        conn->tlsref.alpn_num = XQC_ALPN_HQ_NUM;
+
     } else {
         xqc_log(conn->log, XQC_LOG_ERROR, "|alpn not supported|alpn:%s|", alpn);
         return SSL_TLSEXT_ERR_ALERT_FATAL;
@@ -50,7 +54,6 @@ xqc_alpn_select_proto_cb(SSL *ssl,
     xqc_conn_server_on_alpn(conn);
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn number:%d|", conn->tlsref.alpn_num);
-
 
     return SSL_TLSEXT_ERR_OK;
 }

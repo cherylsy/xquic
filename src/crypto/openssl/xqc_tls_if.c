@@ -129,12 +129,12 @@ xqc_client_tls_handshake(xqc_connection_t *conn)
         case SSL_ERROR_WANT_WRITE:
             return XQC_OK;
         case SSL_ERROR_SSL:
-            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|",
+            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake SSL_ERROR_SSL error:%s|",
                     ERR_error_string(ERR_get_error(), NULL));
             return XQC_ERROR;
         default:
-            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error:%s|",
-                    ERR_error_string(ERR_get_error(), NULL));
+            xqc_log(conn->log, XQC_LOG_ERROR, "|TLS handshake error: %d, %s|",
+                    err, ERR_error_string(ERR_get_error(), NULL));
             return XQC_ERROR;
         }
     }

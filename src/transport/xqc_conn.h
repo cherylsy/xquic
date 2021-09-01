@@ -14,7 +14,7 @@
 
 
 #define XQC_STATELESS_RESET_TOKENLEN 16
-#define XQC_MAX_TOKEN_LEN 32
+#define XQC_MAX_TOKEN_LEN 256
 
 #define XQC_TOKEN_EXPIRE_DELTA (7 * 24 * 60 * 60)           /* expire in N seconds */
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */

@@ -70,6 +70,7 @@ typedef enum {
     XQC_ALPN_DEFAULT_NUM = 0,
     XQC_ALPN_HTTP3_NUM = 1,
     XQC_ALPN_TRANSPORT_NUM = 2,
+    XQC_ALPN_HQ_NUM = 3,
 }xqc_alpn_num;
 
 typedef enum {

@@ -306,6 +306,9 @@ typedef struct xqc_engine_callback_s {
     /* for stream notify */
     xqc_stream_callbacks_t      stream_callbacks;
 
+    /* for hq stream notify */
+    xqc_stream_callbacks_t      hq_stream_callbacks;
+
     /* for request notify */
     xqc_h3_request_callbacks_t  h3_request_callbacks;
 

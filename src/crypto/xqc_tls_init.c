@@ -145,9 +145,13 @@ xqc_ssl_init_conn_config(xqc_connection_t *conn, const xqc_conn_ssl_config_t *sr
 
     if (alpn == NULL) {
         conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+
     } else {
         if (xqc_alpn_type_is_h3(alpn, strlen(alpn))) {
             conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
+
+        } else if (xqc_alpn_type_is_hq(alpn, strlen(alpn))) {
+            conn->tlsref.alpn_num = XQC_ALPN_HQ_NUM;
 
         } else {
             conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
