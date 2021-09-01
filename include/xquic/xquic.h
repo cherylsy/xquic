@@ -46,6 +46,8 @@ typedef enum xqc_proto_version_s {
 #define XQC_SOCKET_ERROR                -1
 #define XQC_SOCKET_EAGAIN               -2
 
+#define XQC_RESET_TOKEN_MAX_KEY_LEN     256
+
 typedef enum {
     XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
     XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
@@ -269,6 +271,8 @@ typedef struct xqc_config_s {
     uint32_t        support_version_count;                        /* 版本列表数量 */
     uint8_t         cid_len;
     uint8_t         cid_negotiate; /* just for server, default:0 */
+    char            reset_token_key[XQC_RESET_TOKEN_MAX_KEY_LEN];
+    size_t          reset_token_keylen;
 } xqc_config_t;
 
 

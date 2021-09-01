@@ -72,10 +72,10 @@ xqc_int_t
 xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packet_in);
 
 xqc_int_t
-xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf);
+xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf, char *key, size_t keylen);
 
 int
-xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size);
+xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size, char *key, size_t keylen);
 
 int
 xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in);

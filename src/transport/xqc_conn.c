@@ -1462,7 +1462,9 @@ xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen)
 {
     unsigned char buf[XQC_PACKET_OUT_SIZE];
-    xqc_int_t size = xqc_gen_reset_packet(dcid, buf);
+    xqc_int_t size = xqc_gen_reset_packet(dcid, buf,
+                                          engine->config->reset_token_key,
+                                          engine->config->reset_token_keylen);
     if (size < 0) {
         return size;
     }
