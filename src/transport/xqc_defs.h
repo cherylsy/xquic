@@ -60,7 +60,7 @@ xqc_bool_t
 xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len);
 
 xqc_bool_t
-xqc_alpn_type_is_hq(uint8_t *alpn, uint8_t alpn_len);
+xqc_alpn_type_is_hq(const unsigned char *alpn, uint8_t alpn_len);
 
 extern const char* const xqc_h3_alpn[];
 

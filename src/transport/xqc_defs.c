@@ -40,7 +40,7 @@ xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len)
 }
 
 xqc_bool_t
-xqc_alpn_type_is_hq(uint8_t *alpn, uint8_t alpn_len)
+xqc_alpn_type_is_hq(const unsigned char *alpn, uint8_t alpn_len)
 {
     return ((alpn_len == strlen(XQC_ALPN_HQ_INTEROP) && memcmp(alpn, XQC_ALPN_HQ_INTEROP, alpn_len) == 0)
             || (alpn_len == strlen(XQC_ALPN_HQ_29) && memcmp(alpn, XQC_ALPN_HQ_29, alpn_len) == 0));
