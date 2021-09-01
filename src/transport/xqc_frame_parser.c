@@ -1303,8 +1303,7 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
 
     *dst_buf++ = 0x18;
 
-    /* TODO: support stateless reset token, token MUST NOT be all-zero bytes */
-    unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
+    unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN] = {0};
 
     unsigned sequence_number_bits = xqc_vint_get_2bit(new_cid->cid_seq_num);
     uint64_t retire_prior_to = 0;
@@ -1330,6 +1329,7 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
     xqc_memcpy(dst_buf, new_cid->cid_buf, new_cid->cid_len);
     dst_buf += new_cid->cid_len;
 
+    xqc_gen_reset_token(new_cid, stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
     xqc_memcpy(dst_buf, stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
     dst_buf += XQC_STATELESS_RESET_TOKENLEN;
 

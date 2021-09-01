@@ -86,4 +86,7 @@ xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 int
 xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out, unsigned char *enc_pkt, size_t *enc_pkt_len);
 
+void
+xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len);
+
 #endif /* _XQC_PACKET_PARSER_H_INCLUDED_ */

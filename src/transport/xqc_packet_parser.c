@@ -724,17 +724,13 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     char mask[XQC_HP_SAMPLELEN];
     char header_decrypt[XQC_MAX_PACKET_LEN];
     size_t header_len = 0;
-
-    if (pkt_num_offset > XQC_MAX_PACKET_LEN) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|offset error|");
-        return -XQC_EILLPKT;
-    }
-
     char *p = header_decrypt;
+    char *end = header_decrypt + XQC_MAX_PACKET_LEN;
     memcpy(p, pkt, pkt_num_offset);
     p = p + pkt_num_offset;
 
-    int nwrite = (int)hp_mask(conn, mask, sizeof(mask), hp->base, hp->len, pkt + sample_offset, XQC_HP_SAMPLELEN, (void*)encrypt_level, p_ctx->hp[XQC_HP_RX]);
+    int nwrite = (int)hp_mask(conn, mask, sizeof(mask), hp->base, hp->len, pkt + sample_offset,
+                              XQC_HP_SAMPLELEN, (void*)encrypt_level, p_ctx->hp[XQC_HP_RX]);
     if (nwrite < XQC_HP_MASKLEN) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|hp_mask return error:%d|", nwrite);
         return nwrite;
@@ -742,14 +738,13 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
         header_decrypt[0] = (uint8_t) (header_decrypt[0] ^ (mask[0] & 0x1f));
+
     } else {
         header_decrypt[0] = (uint8_t) (header_decrypt[0] ^ (mask[0] & 0x0f));
     }
 
-
     xqc_uint_t packet_number_len = (header_decrypt[0] & 0x03) + 1;
-
-    for (unsigned i = 0; i < packet_number_len; ++i) {
+    for (unsigned i = 0; i < packet_number_len && p < end; ++i) {
         *p++ = *(pkt + pkt_num_offset + i) ^ mask[i + 1];
     }
 
