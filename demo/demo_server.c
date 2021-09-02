@@ -91,6 +91,8 @@ typedef struct quic_config_s
 #define PRIV_KEY_PATH "server.key"
 #define CERT_PEM_PATH "server.crt"
 
+
+
 /* environment config */
 typedef struct env_config_s
 {
@@ -140,6 +142,9 @@ typedef struct server_ctx_s {
     socklen_t           local_addrlen6;
     struct event        *ev_socket6;
 
+    /* fd or fd6, used to remember fd type to send stateless reset */
+    int                 current_fd;
+
     int                 log_fd;
     int                 keylog_fd;
 
@@ -149,7 +154,6 @@ typedef struct server_ctx_s {
 
 typedef struct user_conn_s {
     struct event       *ev_timeout;
-//    int                 fd;
     struct sockaddr_in6 peer_addr;
     socklen_t           peer_addrlen;
     xqc_cid_t           cid;
@@ -186,6 +190,9 @@ typedef struct user_stream_s {
 } user_stream_t;
 
 
+/* the global unique server context */
+server_ctx_t svr_ctx;
+
 
 static inline uint64_t now()
 {
@@ -196,9 +203,9 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_server_set_event_timer(void *user_data, xqc_msec_t wake_after)
+void xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
 {
-    server_ctx_t *ctx = (server_ctx_t *) user_data;
+    server_ctx_t *ctx = (server_ctx_t *)user_data;
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
@@ -206,7 +213,7 @@ void xqc_server_set_event_timer(void *user_data, xqc_msec_t wake_after)
     event_add(ctx->ev_engine, &tv);
 }
 
-int read_file_data( char * data, size_t data_len, char *filename)
+int read_file_data(char * data, size_t data_len, char *filename)
 {
     FILE * fp = fopen(filename, "rb");
     if (fp == NULL) {
@@ -228,7 +235,7 @@ int read_file_data( char * data, size_t data_len, char *filename)
     return read_len;
 }
 
-int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_server_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *conn_user_data)
 {
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
@@ -236,7 +243,7 @@ int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *
     printf("xqc_server_conn_create_notify, user_conn: %p, conn: %p\n", user_conn, conn);
 
     /* set ctx */
-    user_conn->ctx = (server_ctx_t*)user_data;
+    user_conn->ctx = (server_ctx_t*)conn_user_data; // TODO:
 
     /* set addr info */
     socklen_t peer_addrlen;
@@ -247,11 +254,11 @@ int xqc_server_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *
     return 0;
 }
 
-int xqc_server_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *conn_user_data)
 {
     DEBUG;
 
-    user_conn_t *user_conn = (user_conn_t*)user_data;
+    user_conn_t *user_conn = (user_conn_t*)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(user_conn->ctx->engine, cid);
     printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" "
         "early_data_flag:%d, conn_err:%d, ack_info:%s\n", stats.send_count, stats.lost_count,
@@ -262,11 +269,11 @@ int xqc_server_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
-void xqc_server_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
+void xqc_server_conn_handshake_finished(xqc_connection_t *conn, void *conn_user_data)
 {
     DEBUG;
-    printf("xqc_server_conn_handshake_finished, user_data: %p, conn: %p\n", user_data, conn);
-    user_conn_t *user_conn = (user_conn_t *) user_data;
+    printf("xqc_server_conn_handshake_finished, user_data: %p, conn: %p\n", conn_user_data, conn);
+    user_conn_t *user_conn = (user_conn_t *)conn_user_data;
 }
 
 
@@ -383,11 +390,11 @@ int send_file(xqc_stream_t *stream, user_stream_t *user_stream)
     return res->total_offset == res->total_len;
 }
 
-int xqc_server_stream_write_notify(xqc_stream_t *stream, void *user_data)
+int xqc_server_stream_write_notify(xqc_stream_t *stream, void *strm_user_data)
 {
     DEBUG;
     //printf("xqc_server_stream_write_notify user_data: %p\n", user_data);
-    user_stream_t *user_stream = (user_stream_t*)user_data;
+    user_stream_t *user_stream = (user_stream_t*)strm_user_data;
     int ret = send_file(stream, user_stream);
     if (ret != 0) {
         /* error or finish, close stream */
@@ -499,7 +506,7 @@ int xqc_server_hq_stream_read_notify(xqc_stream_t *stream, void *user_data) {
  ******************************************************************************/
 
 int
-server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data)
+server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
     server_ctx_t *ctx = (server_ctx_t*)user_data;
@@ -519,7 +526,7 @@ server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_
 }
 
 int
-server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, xqc_cid_t *cid, void *user_data)
+server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
@@ -544,12 +551,12 @@ server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
 }
 
 
-int server_h3_request_create_notify(xqc_h3_request_t *h3_request, void *user_data)
+int server_h3_request_create_notify(xqc_h3_request_t *h3_request, void *strm_user_data)
 {
     DEBUG;
     user_stream_t *user_stream = calloc(1, sizeof(*user_stream));
     user_stream->h3_request = h3_request;
-    user_stream->conn = (user_conn_t*)user_data;
+    user_stream->conn = (user_conn_t*)strm_user_data;
 
     xqc_h3_request_set_user_data(h3_request, user_stream);
     user_stream->recv_buf = calloc(1, REQ_BUF_SIZE);
@@ -557,10 +564,10 @@ int server_h3_request_create_notify(xqc_h3_request_t *h3_request, void *user_dat
     return 0;
 }
 
-int server_h3_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
+int server_h3_request_close_notify(xqc_h3_request_t *h3_request, void *strm_user_data)
 {
     DEBUG;
-    user_stream_t *user_stream = (user_stream_t*)user_data;
+    user_stream_t *user_stream = (user_stream_t*)strm_user_data;
     close_user_stream_resource(user_stream);
     free(user_stream);
 
@@ -723,12 +730,13 @@ h3_handle_error:
 }
 
 
-int server_h3_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
+int server_h3_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag,
+    void *strm_user_data)
 {
     DEBUG;
     int ret;
     unsigned char fin = 0;
-    user_stream_t *user_stream = (user_stream_t *)user_data;
+    user_stream_t *user_stream = (user_stream_t *)strm_user_data;
 
     /* recv headers */
     xqc_http_headers_t *headers;
@@ -745,7 +753,8 @@ int server_h3_request_read_notify(xqc_h3_request_t *h3_request, void *user_data,
             if (strcmp((char*)headers->headers[i].name.iov_base, ":path") == 0) {
                 strncpy(user_stream->recv_buf, (char*)headers->headers[i].value.iov_base, headers->headers[i].value.iov_len);
             }
-            printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
+            printf("%s = %s\n",(char*)headers->headers[i].name.iov_base,
+                (char*)headers->headers[i].value.iov_base);
         }
 
         printf("fin: %d\n", fin);
@@ -786,7 +795,7 @@ int server_h3_request_read_notify(xqc_h3_request_t *h3_request, void *user_data,
 int server_h3_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
-    //printf("xqc_server_stream_write_notify user_data: %p\n", user_data);
+    //printf("server_h3_request_write_notify user_data: %p\n", user_data);
     user_stream_t *user_stream = (user_stream_t*)user_data;
     int ret = server_send_body(user_stream);
 
@@ -805,11 +814,14 @@ int server_h3_request_write_notify(xqc_h3_request_t *h3_request, void *user_data
  *                     start of socket operation function                     *
  ******************************************************************************/
 
-ssize_t xqc_server_write_socket(void *user_data, unsigned char *buf, size_t size,
-                        const struct sockaddr *peer_addr,
-                        socklen_t peer_addrlen, int fd)
+ssize_t
+xqc_server_write_socket(const unsigned char *buf, size_t size, const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, void *conn_user_data)
 {
     ssize_t res;
+    /* conn_user_data might be NULL when server sending stateless reset token */
+    int fd = svr_ctx.current_fd;
+
     do {
         errno = 0;
         res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
@@ -840,6 +852,9 @@ xqc_server_socket_read_handler(server_ctx_t *ctx, int fd)
     socklen_t peer_addrlen = sizeof(peer_addr);
     ssize_t recv_size = 0;
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
+
+    ctx->current_fd = fd;
+
     do {
         recv_size = recvfrom(fd, packet_buf, sizeof(packet_buf), 0,
                              (struct sockaddr *) &peer_addr, &peer_addrlen);
@@ -858,7 +873,7 @@ xqc_server_socket_read_handler(server_ctx_t *ctx, int fd)
         int ret = xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen,
                                       (struct sockaddr *)(&peer_addr), peer_addrlen,
-                                      (xqc_msec_t) recv_time, ctx, fd);
+                                      (xqc_usec_t)recv_time, ctx);
         if (ret != 0) {
             printf("xqc_server_read_handler: packet process err, ret: %d\n", ret);
             return;
@@ -868,6 +883,7 @@ xqc_server_socket_read_handler(server_ctx_t *ctx, int fd)
 finish_recv:
     // printf("recvfrom size:%zu\n", recv_sum);
     xqc_engine_finish_recv(ctx->engine);
+    ctx->current_fd = -1;
 }
 
 
@@ -888,10 +904,10 @@ xqc_server_socket_event_callback(int fd, short what, void *arg)
     }
 }
 
-int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_cid_t *cid,
+    void *user_data)
 {
     DEBUG;
-
 
     return 0;
 }
@@ -982,10 +998,8 @@ xqc_server_engine_callback(int fd, short what, void *arg)
 /******************************************************************************
  *                       start of server keylog functions                     *
  ******************************************************************************/
-int xqc_server_open_log_file(void *engine_user_data)
+int server_open_log_file(server_ctx_t *ctx)
 {
-    server_ctx_t *ctx = (server_ctx_t*)engine_user_data;
-    //ctx->log_fd = open("/home/jiuhai.zjh/ramdisk/slog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
     ctx->log_fd = open(ctx->args->env_cfg.log_path, (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (ctx->log_fd <= 0) {
         return -1;
@@ -993,9 +1007,8 @@ int xqc_server_open_log_file(void *engine_user_data)
     return 0;
 }
 
-int xqc_server_close_log_file(void *engine_user_data)
+int server_close_log_file(server_ctx_t *ctx)
 {
-    server_ctx_t *ctx = (server_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
         return -1;
     }
@@ -1003,13 +1016,14 @@ int xqc_server_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_server_write_log_file(void *engine_user_data, const void *buf, size_t count)
+void server_write_log_file(const void *buf, size_t size, void *engine_user_data)
 {
     server_ctx_t *ctx = (server_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
-        return -1;
+        return;
     }
-    return write(ctx->log_fd, buf, count);
+
+    write(ctx->log_fd, buf, size);
 }
 
 
@@ -1219,22 +1233,22 @@ void init_callback(xqc_engine_callback_t *cb, server_args_t* args)
         .server_accept = xqc_server_accept,
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
-            .xqc_open_log_file = xqc_server_open_log_file,
-            .xqc_close_log_file = xqc_server_close_log_file,
-            .xqc_write_log_file = xqc_server_write_log_file,
+            .xqc_log_write_err = server_write_log_file,
+            .xqc_log_write_stat = server_write_log_file
         },
         .keylog_cb = xqc_keylog_cb,
     };
 
     *cb = callback;
-    cb->log_callbacks.log_level = (xqc_log_level_t)args->env_cfg.log_level;
 }
 
 /* init server ctx */
 void init_server_ctx(server_ctx_t *ctx, server_args_t *args)
 {
+    memset(ctx, 0, sizeof(server_ctx_t));
+    ctx->current_fd = -1;
     ctx->args = args;
-    // strcpy(ctx->log_path, args->env_cfg.log_path);
+    server_open_log_file(ctx);
     server_open_keylog_file(ctx);
 }
 
@@ -1284,11 +1298,10 @@ void init_conn_settings(server_args_t *args)
             .customize_on = 1,
             .init_cwnd = 32,
         },
-        .retry_on = args->quic_cfg.retry_on,
         .spurious_loss_detect_on = 1,
     };
 
-    xqc_server_set_conn_settings(conn_settings);
+    xqc_server_set_conn_settings(&conn_settings);
 }
 
 /* init xquic server engine */
@@ -1305,8 +1318,33 @@ int init_xquic_engine(server_ctx_t *ctx, server_args_t *args)
     /* init server connection settings */
     init_conn_settings(args);
 
+    /* init engine config */
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
+        return XQC_ERROR;
+    }
+
+    switch (args->env_cfg.log_level)
+    {
+    case 'd':
+        config.cfg_log_level = XQC_LOG_DEBUG;
+        break;
+    case 'i':
+        config.cfg_log_level = XQC_LOG_INFO;
+        break;
+    case 'w':
+        config.cfg_log_level = XQC_LOG_WARN;
+        break;
+    case 'e':
+        config.cfg_log_level = XQC_LOG_ERROR;
+        break;
+    default:
+        config.cfg_log_level = XQC_LOG_DEBUG;
+        break;
+    }
+
     /* create server engine */
-    ctx->engine = xqc_engine_create(XQC_ENGINE_SERVER, &cfg, callback, ctx);
+    ctx->engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &cfg, &callback, ctx);
     if (ctx->engine == NULL) {
         printf("xqc_engine_create error\n");
         return -1;
@@ -1329,6 +1367,7 @@ void stop(int signo)
 void free_ctx(server_ctx_t *ctx)
 {
     server_close_keylog_file(ctx);
+    server_close_log_file(ctx);
 
     if (ctx->args) {
         free(ctx->args);
@@ -1347,7 +1386,7 @@ int main(int argc, char *argv[])
     parse_args(argc, argv, args);
 
     /* init server ctx */
-    server_ctx_t *ctx = calloc(1, sizeof(server_ctx_t));
+    server_ctx_t *ctx = &svr_ctx;
     init_server_ctx(ctx, args);
 
     /* engine event */

@@ -63,6 +63,7 @@ xqc_bool_t
 xqc_alpn_type_is_hq(const unsigned char *alpn, uint8_t alpn_len);
 
 extern const char* const xqc_h3_alpn[];
+extern const char* const xqc_hq_alpn[];
 
 
 #endif

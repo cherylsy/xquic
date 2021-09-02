@@ -363,8 +363,8 @@ xqc_int_t
 xqc_conn_immediate_close(xqc_connection_t *conn);
 
 xqc_int_t
-xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
-                    const struct sockaddr *peer_addr, socklen_t peer_addrlen);
+xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen);
 
 xqc_int_t
 xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);

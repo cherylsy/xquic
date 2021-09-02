@@ -11,14 +11,10 @@
 #include "src/transport/xqc_defs.h"
 
 xqc_connection_t *
-xqc_client_connect(xqc_engine_t *engine, void *user_data,
-    const xqc_conn_settings_t *conn_settings,
-    const unsigned char *token, unsigned token_len,
-    const char *server_host, int no_crypto_flag,
-    const xqc_conn_ssl_config_t *conn_ssl_config,
-    const char *alpn,
-    const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen)
+xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
+    const unsigned char *token, unsigned token_len, const char *server_host, int no_crypto_flag,
+    const xqc_conn_ssl_config_t *conn_ssl_config, const char *alpn, 
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user_data)
 {
     xqc_cid_t dcid;
     xqc_cid_t scid;
@@ -101,18 +97,18 @@ xqc_client_connect(xqc_engine_t *engine, void *user_data,
 }
 
 const xqc_cid_t *
-xqc_connect(xqc_engine_t *engine, void *user_data,
+xqc_connect(xqc_engine_t *engine,
     const xqc_conn_settings_t *conn_settings,
     const unsigned char *token, unsigned token_len,
     const char *server_host, int no_crypto_flag,
     const xqc_conn_ssl_config_t *conn_ssl_config,
     const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen)
+    socklen_t peer_addrlen, void *user_data)
 {
     xqc_connection_t *conn;
-    conn = xqc_client_connect(engine, user_data, conn_settings, token, token_len,
-                              server_host, no_crypto_flag, conn_ssl_config, XQC_ALPN_TRANSPORT,
-                              peer_addr, peer_addrlen);
+    conn = xqc_client_connect(engine, conn_settings, token, token_len, server_host, no_crypto_flag, 
+                              conn_ssl_config, XQC_ALPN_TRANSPORT, peer_addr, peer_addrlen,
+                              user_data);
     if (conn) {
         return &conn->scid_set.user_scid;
     }

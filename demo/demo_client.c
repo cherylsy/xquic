@@ -362,7 +362,7 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
+void xqc_client_set_event_timer(xqc_usec_t wake_after, void *user_data)
 {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
@@ -374,9 +374,9 @@ void xqc_client_set_event_timer(void *user_data, xqc_msec_t wake_after)
 
 }
 
-void save_session_cb( char * data, size_t data_len, void *user_data)
+void save_session_cb(const char *data, size_t data_len, void *conn_user_data)
 {
-    user_conn_t *user_conn = (user_conn_t*)user_data;
+    user_conn_t *user_conn = (user_conn_t*)conn_user_data;
 
     FILE * fp  = fopen(SESSION_TICKET_FILE, "wb");
     int write_size = fwrite(data, 1, data_len, fp);
@@ -390,9 +390,9 @@ void save_session_cb( char * data, size_t data_len, void *user_data)
 }
 
 
-void save_tp_cb(char * data, size_t data_len, void * user_data)
+void save_tp_cb(const char *data, size_t data_len, void *conn_user_data)
 {
-    user_conn_t *user_conn = (user_conn_t*)user_data;
+    user_conn_t *user_conn = (user_conn_t*)conn_user_data;
     FILE * fp = fopen(TRANSPORT_PARAMS_FILE, "wb");
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
@@ -404,9 +404,9 @@ void save_tp_cb(char * data, size_t data_len, void * user_data)
 }
 
 
-void xqc_client_save_token(void *user_data, const unsigned char *token, unsigned token_len)
+void xqc_client_save_token(const unsigned char *token, uint32_t token_len, void *conn_user_data)
 {
-    user_conn_t *user_conn = (user_conn_t*)user_data;
+    user_conn_t *user_conn = (user_conn_t*)conn_user_data;
 
     int fd = open(TOKEN_FILE, O_TRUNC | O_CREAT | O_WRONLY, S_IRWXU);
     if (fd < 0) {
@@ -456,18 +456,17 @@ int read_file_data(char *data, size_t data_len, char *filename)
 }
 
 ssize_t
-xqc_client_write_socket(void *user, unsigned char *buf, size_t size,
-                                const struct sockaddr *peer_addr,
-                                socklen_t peer_addrlen, int fd)
+xqc_client_write_socket(const unsigned char *buf, size_t size, const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, void *conn_user_data)
 {
-    user_conn_t *user_conn = (user_conn_t *) user;
+    user_conn_t *user_conn = (user_conn_t *)conn_user_data;
     ssize_t res = 0;
     do {
         errno = 0;
-        res = sendto(fd, buf, size, 0, peer_addr, peer_addrlen);
+        res = sendto(user_conn->fd, buf, size, 0, peer_addr, peer_addrlen);
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s, fd: %d, buf: %p, size: %Zu, server_addr: %s\n",
-                res, strerror(errno), fd, buf, size, user_conn->ctx->args->net_cfg.server_addr);
+                res, strerror(errno), user_conn->fd, buf, size, user_conn->ctx->args->net_cfg.server_addr);
             if (errno == EAGAIN) {
                 res = XQC_SOCKET_EAGAIN;
             }
@@ -544,17 +543,17 @@ static int xqc_client_create_socket(user_conn_t *user_conn, net_config_t* cfg)
     return -1;
 }
 
-int xqc_client_conn_create_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
     printf("xqc_client_conn_create_notify, conn: %p, user_conn: %p\n", conn, user_data);
-    user_conn_t *user_conn = (user_conn_t *) user_data;
+    user_conn_t *user_conn = (user_conn_t *)user_data;
     printf("xqc_conn_is_ready_to_send_early_data:%d\n", xqc_conn_is_ready_to_send_early_data(conn));
     return 0;
 }
 
-int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data)
+int xqc_client_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
     printf("xqc_client_conn_close_notify, conn: %p, user_conn: %p\n", conn, user_data);
@@ -571,7 +570,8 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *u
     return 0;
 }
 
-void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
+void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, 
+    void *ping_user_data, void *conn_user_data)
 {
     DEBUG;
     if (ping_user_data) {
@@ -735,7 +735,7 @@ int client_h3_request_write_notify(xqc_h3_request_t *h3_request, void *user_data
     return 0;
 }
 
-int client_h3_request_read_notify(xqc_h3_request_t *h3_request, void *user_data, xqc_request_notify_flag_t flag)
+int client_h3_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *user_data)
 {
     DEBUG;
     unsigned char fin = 0;
@@ -870,9 +870,9 @@ client_socket_read_handler(user_conn_t *user_conn)
         uint64_t recv_time = now();
         user_conn->last_sock_op_time = recv_time;
         if (xqc_engine_packet_process(user_conn->ctx->engine, packet_buf, recv_size,
-                                      (struct sockaddr *)(&user_conn->local_addr), user_conn->local_addrlen,
-                                      (struct sockaddr *)(&addr), addr_len,
-                                      (xqc_msec_t) recv_time, user_conn, user_conn->fd) != 0)
+                                      (struct sockaddr *)(&user_conn->local_addr),
+                                      user_conn->local_addrlen, (struct sockaddr *)(&addr), addr_len,
+                                      (xqc_msec_t)recv_time, user_conn) != 0)
         {
             return;
         }
@@ -944,6 +944,7 @@ client_idle_callback(int fd, short what, void *arg)
  *                       start of log callback functions                      *
  ******************************************************************************/
 
+#if 0
 int client_open_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
@@ -963,15 +964,34 @@ int client_close_log_file(void *engine_user_data)
     close(ctx->log_fd);
     return 0;
 }
+#endif
 
-ssize_t client_write_log_file(void *engine_user_data, const void *buf, size_t count)
+int client_open_log_file(client_ctx_t *ctx)
 {
-    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    ctx->log_fd = open(ctx->log_path, (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (ctx->log_fd <= 0) {
         return -1;
     }
+    return 0;
+}
+
+int client_close_log_file(client_ctx_t *ctx)
+{
+    if (ctx->log_fd <= 0) {
+        return -1;
+    }
+    close(ctx->log_fd);
+    return 0;
+}
+
+void client_write_log_file(const void *buf, size_t size, void *engine_user_data)
+{
+    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
+    if (ctx->log_fd <= 0) {
+        return;
+    }
     //printf("%s",(char*)buf);
-    return write(ctx->log_fd, buf, count);
+    write(ctx->log_fd, buf, size);
 }
 
 
@@ -998,9 +1018,9 @@ int client_close_keylog_file(client_ctx_t *ctx)
     return 0;
 }
 
-void xqc_keylog_cb(const char *line, void *user_data)
+void xqc_keylog_cb(const char *line, void *engine_user_data)
 {
-    client_ctx_t *ctx = (client_ctx_t*)user_data;
+    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     if (ctx->keylog_fd <= 0) {
         printf("write keys error!\n");
         return;
@@ -1052,7 +1072,8 @@ void init_conn_ssl_config(xqc_conn_ssl_config_t *conn_ssl_config, client_args_t 
     memset(conn_ssl_config, 0, sizeof(xqc_conn_ssl_config_t));
 
     /* set alpn */
-    conn_ssl_config->alpn = args->quic_cfg.alpn;
+    // TODO: alpn选择
+    // conn_ssl_config->alpn = args->quic_cfg.alpn;
 
     /* set session ticket and transport parameter args */
     if (args->quic_cfg.st_len < 0 || args->quic_cfg.tp_len < 0) {
@@ -1510,15 +1531,15 @@ void on_max_streams(xqc_connection_t *conn, void *user_data, uint64_t max_stream
  *                     start of http/3 callback functions                     *
  ******************************************************************************/
 
-int client_h3_conn_create_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+int client_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
-    printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(conn));
+    printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(h3_conn));
     return 0;
 }
 
-int client_h3_conn_close_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data)
+int client_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
@@ -1539,7 +1560,8 @@ void client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
     printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
-void client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, xqc_cid_t *cid, void *user_data, void *ping_user_data)
+void client_h3_conn_ping_acked_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid,
+    void *ping_user_data, void *user_data)
 {
     if (ping_user_data) {
         // printf("ping_id:%d\n", *(int *) ping_user_data);
@@ -1564,14 +1586,14 @@ void init_callback(xqc_engine_callback_t *cb, client_args_t* args)
             .conn_close_notify = xqc_client_conn_close_notify,
             .conn_handshake_finished = xqc_client_conn_handshake_finished,
             .conn_ping_acked = xqc_client_conn_ping_acked_notify,
-            .conn_max_streams = on_max_streams,
+//            .conn_max_streams = on_max_streams,
         },
         .h3_conn_callbacks = {
             .h3_conn_create_notify = client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
             .h3_conn_close_notify = client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
             .h3_conn_handshake_finished = client_h3_conn_handshake_finished, /* 握手完成时回调 */
             .h3_conn_ping_acked = client_h3_conn_ping_acked_notify,
-            .h3_conn_max_streams = client_h3_conn_max_streams,
+//            .h3_conn_max_streams = client_h3_conn_max_streams,
         },
         /* 仅使用传输层时实现 */
         .stream_callbacks = {
@@ -1590,9 +1612,8 @@ void init_callback(xqc_engine_callback_t *cb, client_args_t* args)
         .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
         .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
         .log_callbacks = {
-            .xqc_open_log_file = client_open_log_file,
-            .xqc_close_log_file = client_close_log_file,
-            .xqc_write_log_file = client_write_log_file,
+            .xqc_log_write_err = client_write_log_file,
+            .xqc_log_write_stat = client_write_log_file
         },
         .save_session_cb = save_session_cb,
         .save_tp_cb = save_tp_cb,
@@ -1600,7 +1621,6 @@ void init_callback(xqc_engine_callback_t *cb, client_args_t* args)
     };
 
     *cb = callback;
-    cb->log_callbacks.log_level = (xqc_log_level_t)args->env_cfg.log_level;
 }
 
 
@@ -1614,7 +1634,32 @@ int init_xquic_engine(client_ctx_t *pctx, client_args_t *args)
     xqc_engine_callback_t callback;
     init_callback(&callback, args);
 
-    pctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &engine_ssl_config, callback, pctx);
+    xqc_config_t config;
+    if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
+        return XQC_ERROR;
+    }
+
+    switch (args->env_cfg.log_level)
+    {
+    case 'd':
+        config.cfg_log_level = XQC_LOG_DEBUG;
+        break;
+    case 'i':
+        config.cfg_log_level = XQC_LOG_INFO;
+        break;
+    case 'w':
+        config.cfg_log_level = XQC_LOG_WARN;
+        break;
+    case 'e':
+        config.cfg_log_level = XQC_LOG_ERROR;
+        break;
+    default:
+        config.cfg_log_level = XQC_LOG_DEBUG;
+        break;
+    }
+
+    pctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, 
+                                     &engine_ssl_config, &callback, pctx);
     if (pctx->engine == NULL) {
         printf("xqc_engine_create error\n");
         return XQC_ERROR;
@@ -1635,14 +1680,16 @@ int init_xquic_connection(user_conn_t *user_conn, client_args_t *args)
     xqc_conn_ssl_config_t conn_ssl_config;
     init_conn_ssl_config(&conn_ssl_config, args);
 
-    xqc_cid_t *cid = NULL;
+    const xqc_cid_t *cid = NULL;
     if (args->quic_cfg.alpn_type == ALPN_H3) {
-        cid = xqc_h3_connect(user_conn->ctx->engine, user_conn, conn_settings, args->quic_cfg.token, args->quic_cfg.token_len,
-                             args->net_cfg.host, 0, &conn_ssl_config, (struct sockaddr*)&args->net_cfg.addr, args->net_cfg.addr_len, user_conn->fd);
+        cid = xqc_h3_connect(user_conn->ctx->engine, &conn_settings, args->quic_cfg.token,
+                             args->quic_cfg.token_len, args->net_cfg.host, 0, &conn_ssl_config, 
+                             (struct sockaddr*)&args->net_cfg.addr, args->net_cfg.addr_len, user_conn);
 
     } else {
-        cid = xqc_connect(user_conn->ctx->engine, user_conn, conn_settings, args->quic_cfg.token, args->quic_cfg.token_len, 
-                          args->net_cfg.host, 0, &conn_ssl_config, (struct sockaddr*)&args->net_cfg.addr, args->net_cfg.addr_len, user_conn->fd);
+        cid = xqc_connect(user_conn->ctx->engine, &conn_settings, args->quic_cfg.token,
+                          args->quic_cfg.token_len, args->net_cfg.host, 0, &conn_ssl_config, 
+                          (struct sockaddr*)&args->net_cfg.addr, args->net_cfg.addr_len, user_conn);
     }
 
     if (cid == NULL) {
@@ -1650,7 +1697,7 @@ int init_xquic_connection(user_conn_t *user_conn, client_args_t *args)
         return XQC_OK;
     }
     /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
-    memcpy(&user_conn->cid, cid, sizeof(*cid));
+    memcpy(&user_conn->cid, cid, sizeof(xqc_cid_t));
     return XQC_OK;
 }
 
@@ -1682,6 +1729,7 @@ void init_client_ctx(client_ctx_t *pctx, client_args_t *args)
 {
     strcpy(pctx->log_path, args->env_cfg.log_path);
     pctx->args = args;
+    client_open_log_file(pctx);
     client_open_keylog_file(pctx);
 }
 
@@ -1912,6 +1960,7 @@ void start_task_manager(client_ctx_t *ctx)
 void free_ctx(client_ctx_t *ctx)
 {
     client_close_keylog_file(ctx);
+    client_close_log_file(ctx);
 
     if (ctx->args) {
         free(ctx->args);

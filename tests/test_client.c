@@ -2039,11 +2039,13 @@ int main(int argc, char *argv[]) {
     const xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
-        cid = xqc_h3_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, g_host, g_no_crypt,
-                          &conn_ssl_config, user_conn->peer_addr, user_conn->peer_addrlen);
+        cid = xqc_h3_connect(ctx.engine, &conn_settings, user_conn->token, user_conn->token_len,
+                             g_host, g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
+                             user_conn->peer_addrlen, user_conn);
     } else {
-        cid = xqc_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
-                          &conn_ssl_config, user_conn->peer_addr, user_conn->peer_addrlen);
+        cid = xqc_connect(ctx.engine, &conn_settings, user_conn->token, user_conn->token_len,
+                          "127.0.0.1", g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
+                          user_conn->peer_addrlen, user_conn);
     }
     if (cid == NULL) {
         printf("xqc_connect error\n");

@@ -88,8 +88,8 @@ typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc
  * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
  */
 typedef ssize_t (*xqc_socket_write_pt)(const unsigned char *buf, size_t size,
-                                       const struct sockaddr *peer_addr,
-                                       socklen_t peer_addrlen, void *conn_user_data);
+                                       const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+                                       void *conn_user_data);
 typedef ssize_t (*xqc_send_mmsg_pt)(const struct iovec *msg_iov, unsigned int vlen,
                                         const struct sockaddr *peer_addr,
                                         socklen_t peer_addrlen, void *conn_user_data);
@@ -491,13 +491,13 @@ void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
  * @return scid of the connection; user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 XQC_EXPORT_PUBLIC_API
-const xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, void *user_data,
+const xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine,
                           const xqc_conn_settings_t *conn_settings,
                           const unsigned char *token, unsigned token_len,
                           const char *server_host, int no_crypto_flag,
                           const xqc_conn_ssl_config_t *conn_ssl_config,
                           const struct sockaddr *peer_addr,
-                          socklen_t peer_addrlen);
+                          socklen_t peer_addrlen, void *user_data);
 
 XQC_EXPORT_PUBLIC_API
 int xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
@@ -698,13 +698,13 @@ xqc_h3_conn_set_qpack_dtable_cap(xqc_h3_conn_t *h3c, size_t capacity);
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 XQC_EXPORT_PUBLIC_API
-const xqc_cid_t *xqc_connect(xqc_engine_t *engine, void *user_data,
+const xqc_cid_t *xqc_connect(xqc_engine_t *engine,
     const xqc_conn_settings_t *conn_settings,
     const unsigned char *token, unsigned token_len,
     const char *server_host, int no_crypto_flag,
     const xqc_conn_ssl_config_t *conn_ssl_config,
     const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen);
+    socklen_t peer_addrlen, void *user_data);
 
 /**
  * Send CONNECTION_CLOSE to peer, conn_close_notify will callback when connection destroyed
