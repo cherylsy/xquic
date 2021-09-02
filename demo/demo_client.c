@@ -1519,13 +1519,14 @@ void continue_send_reqs(user_conn_t *user_conn)
     }
 }
 
+#if 0
 void on_max_streams(xqc_connection_t *conn, void *user_data, uint64_t max_streams, int type)
 {
     printf("--- on_max_streams: %Zu, type: %d, continue to send\n", max_streams, type);
     user_conn_t *user_conn = (user_conn_t *)user_data;
     continue_send_reqs(user_conn);
 }
-
+#endif
 
 /******************************************************************************
  *                     start of http/3 callback functions                     *
@@ -1535,7 +1536,7 @@ int client_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, v
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
-    printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(h3_conn));
+    // printf("xqc_h3_conn_is_ready_to_send_early_data:%d\n", xqc_h3_conn_is_ready_to_send_early_data(h3_conn));
     return 0;
 }
 
@@ -1544,8 +1545,10 @@ int client_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, vo
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(user_conn->ctx->engine, cid);
-    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
-           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
+    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" "
+           "early_data_flag:%d, conn_err:%d, ack_info:%s\n", stats.send_count, stats.lost_count,
+           stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err,
+           stats.ack_info);
 
     on_task_finish(user_conn->ctx, user_conn->task);
     free(user_conn);
@@ -1568,13 +1571,14 @@ void client_h3_conn_ping_acked_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *c
     }
 }
 
+#if 0
 void client_h3_conn_max_streams(xqc_h3_conn_t *conn, void *user_data, uint64_t max_streams, int type)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *)user_data;
     continue_send_reqs(user_conn);
 }
-
+#endif
 
 
 void init_callback(xqc_engine_callback_t *cb, client_args_t* args)
@@ -1715,14 +1719,15 @@ void start_xquic_client(user_conn_t *user_conn, client_args_t *args, request_t *
         return;
     }
 
-    if (is_0rtt_compliant(args))
-    {
+#if 0
+    if (is_0rtt_compliant(args)) {
         printf("0rtt compliant, send 0rtt streams\n");
         send_requests(user_conn, args, reqs, req_cnt);
     }
+#endif
 
-    // send_requests(user_conn, args, reqs, req_cnt);
-
+    /* TODO: fix MAX_STREAMS bug */
+    send_requests(user_conn, args, reqs, req_cnt);
 }
 
 void init_client_ctx(client_ctx_t *pctx, client_args_t *args)
