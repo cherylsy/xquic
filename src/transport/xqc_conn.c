@@ -2496,7 +2496,7 @@ xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
     }
 
     if (scid->state == XQC_CID_UNUSED) {
-        if (xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, scid)) {
+        if (xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, scid, XQC_CID_USED)) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_switch_to_next_state error|scid:%s|",
                     xqc_scid_str(&scid->cid));
             return XQC_ERROR;
@@ -2504,6 +2504,32 @@ xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
     }
 
     return XQC_OK;
+}
+
+/* switch another used scid to replace user_scid */
+xqc_int_t
+xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
+{
+    xqc_cid_inner_t *scid;
+    xqc_list_head_t *pos, *next;
+
+    xqc_list_for_each_safe(pos, next, &scid_set->cid_set.list_head) {
+        scid = xqc_list_entry(pos, xqc_cid_inner_t, list);
+
+        if (scid->state == XQC_CID_USED
+            && xqc_cid_is_equal(&scid_set->user_scid, &scid->cid) != XQC_OK)
+        {
+            if (conn->conn_callbacks.conn_update_cid_notify) {
+                conn->conn_callbacks.conn_update_cid_notify(conn, &scid_set->user_scid,
+                                                            &scid->cid, conn->user_data);
+            }
+
+            xqc_cid_copy(&scid_set->user_scid, &scid->cid);
+            return XQC_OK;
+        }
+    }
+
+    return XQC_ERROR;
 }
 
 

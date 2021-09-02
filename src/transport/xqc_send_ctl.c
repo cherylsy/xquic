@@ -1885,19 +1885,27 @@ xqc_send_ctl_retire_cid_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, vo
     xqc_send_ctl_t *ctl = (xqc_send_ctl_t *) ctx;
     xqc_connection_t *conn = ctl->ctl_conn;
 
-    xqc_cid_inner_t *scid;
+    xqc_cid_inner_t *inner_cid;
     xqc_list_head_t *pos, *next;
 
     xqc_list_for_each_safe(pos, next, &conn->scid_set.cid_set.list_head) {
-        scid = xqc_list_entry(pos, xqc_cid_inner_t, list);
+        inner_cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
 
-        if (scid->state == XQC_CID_RETIRED && (scid->retired_ts + 2 * ctl->ctl_srtt < now))
+        if (inner_cid->state == XQC_CID_RETIRED
+            && (inner_cid->retired_ts + 2 * ctl->ctl_srtt < now))
         {
-            if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &scid->cid)) {
-                xqc_remove_conns_hash(conn->engine->conns_hash, conn, &scid->cid);
+            if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid)) {
+                xqc_remove_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid);
             }
-            xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, scid);
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|remove retired cid|seq_num:%ui|", scid->cid.cid_seq_num);
+
+            /* switch state to REMOVED & delete from cid_set */
+            if (xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, inner_cid, XQC_CID_REMOVED) == XQC_OK) {
+                xqc_list_del(pos);
+                xqc_free(inner_cid);
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|remove retired cid|seq_num:%ui|", inner_cid->cid.cid_seq_num);
+            } else {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_switch_to_next_state error|");
+            }
         }
     }
 

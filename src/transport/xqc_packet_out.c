@@ -889,7 +889,7 @@ xqc_write_retire_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t seq_nu
 
     /* select new current_dcid to replace the cid to be retired */
     if (seq_num == conn->dcid_set.current_dcid.cid_seq_num) {
-        ret = xqc_get_unused_cid(&conn->dcid_set.cid_set, &conn->dcid_set.current_dcid);    
+        ret = xqc_get_unused_cid(&conn->dcid_set.cid_set, &conn->dcid_set.current_dcid);
         if (ret != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|conn don't have available dcid|");
             return ret;

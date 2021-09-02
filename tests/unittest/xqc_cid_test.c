@@ -69,7 +69,7 @@ void xqc_test_cid_new_and_retire()
     CU_ASSERT(ret == XQC_OK);
     CU_ASSERT(conn->scid_set.cid_set.unused_cnt == 0);
 
-    ret = xqc_update_user_scid(conn, &conn->scid_set);
+    ret = xqc_conn_update_user_scid(conn, &conn->scid_set);
     CU_ASSERT(xqc_cid_is_equal(&conn->scid_set.user_scid, &test_scid) == XQC_OK);
 
     /* Retire Conn ID */

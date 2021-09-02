@@ -477,7 +477,7 @@ xqc_h3_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_ci
     void *user_data)
 {
     xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
-    
+
     if (h3c->h3_conn_callbacks.h3_conn_update_cid_notify) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|UPDATE_CID notify|");
 

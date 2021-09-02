@@ -578,7 +578,7 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     xqc_log(conn->log, XQC_LOG_DEBUG, "|new_conn_id|%s|", xqc_scid_str(&new_conn_cid));
 
     if (retire_prior_to > new_conn_cid.cid_seq_num) {
-        /* The Retire Prior To field MUST be less than or equal to the Sequence Number field. 
+        /* The Retire Prior To field MUST be less than or equal to the Sequence Number field.
          * Receiving a value greater than the Sequence Number MUST be treated as a connection
          * error of type FRAME_ENCODING_ERROR. */
         xqc_log(conn->log, XQC_LOG_ERROR, "|retire_prior_to:%ui greater than seq_num:%ui|",
@@ -628,7 +628,6 @@ xqc_int_t
 xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret = XQC_ERROR;
-    xqc_cid_t scid_to_retire;
     uint64_t seq_num;
 
     ret = xqc_parse_retire_conn_id_frame(packet_in, &seq_num);
@@ -647,15 +646,15 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return -XQC_EPROTO;
     }
 
-    xqc_cid_t *scid = xqc_get_cid_by_seq(&conn->scid_set.cid_set, seq_num);
-    if (scid == NULL) {
+    xqc_cid_t *cid = xqc_get_cid_by_seq(&conn->scid_set.cid_set, seq_num);
+    if (cid == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|can't find scid with seq_number|%ui|", seq_num);
         return XQC_ERROR;
     }
 
-    xqc_cid_copy(&scid_to_retire, scid);
+    xqc_cid_inner_t* inner_cid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, cid);
 
-    if (XQC_OK == xqc_cid_is_equal(&scid_to_retire, &packet_in->pi_pkt.pkt_dcid)) {
+    if (XQC_OK == xqc_cid_is_equal(&inner_cid->cid, &packet_in->pi_pkt.pkt_dcid)) {
         /* The sequence number specified in a RETIRE_CONNECTION_ID frame MUST NOT refer to
          * the Destination Connection ID field of the packet in which the frame is contained.
          * The peer MAY treat this as a connection error of type PROTOCOL_VIOLATION. */
@@ -664,7 +663,7 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return -XQC_EPROTO;
     }
 
-    ret = xqc_set_cid_retired(conn, &scid_to_retire);
+    ret = xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, inner_cid, XQC_CID_RETIRED);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|set cid retired error|");
         return ret;
@@ -678,7 +677,7 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
     }
 
     /* update SCID */
-    ret = xqc_update_user_scid(conn, &conn->scid_set);
+    ret = xqc_conn_update_user_scid(conn, &conn->scid_set);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|conn don't have other used scid, can't retire user_scid|");
         return ret;

@@ -218,24 +218,28 @@ xqc_cid_in_cid_set(const xqc_cid_set_t *cid_set, const xqc_cid_t *cid)
 
 
 xqc_int_t
-xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid)
+xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_cid_state_t next_state)
 {
-    switch (cid->state) {
-
-    case XQC_CID_UNUSED:
-        cid->state = XQC_CID_USED;
-        cid_set->unused_cnt--;
-        break;
-    case XQC_CID_USED:
-        cid->state = XQC_CID_RETIRED;
-        cid_set->retired_cnt++;
-        break;
-    case XQC_CID_RETIRED:
-        cid->state = XQC_CID_REMOVED;
-        cid_set->retired_cnt--;
-        break;
-    default:
+    if (xqc_cid_in_cid_set(cid_set, &cid->cid) == NULL) {
         return XQC_ERROR;
+    }
+
+    xqc_cid_state_t current_state = cid->state;
+    if (current_state >= next_state) {
+        return XQC_ERROR;
+    }
+
+    if (current_state == XQC_CID_UNUSED) {
+        cid_set->unused_cnt--;
+    } else if (current_state == XQC_CID_RETIRED) {
+        cid_set->retired_cnt--;
+    }
+
+    cid->state = next_state;
+
+    if (next_state == XQC_CID_RETIRED) {
+        cid->retired_ts = xqc_monotonic_timestamp();
+        cid_set->retired_cnt++;
     }
 
     return XQC_OK;
@@ -256,7 +260,7 @@ xqc_get_unused_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid)
 
         if (inner_cid->state == XQC_CID_UNUSED) {
             xqc_cid_copy(cid, &inner_cid->cid);
-            return xqc_cid_switch_to_next_state(cid_set, inner_cid);
+            return xqc_cid_switch_to_next_state(cid_set, inner_cid, XQC_CID_USED);
         }
     }
 
@@ -278,48 +282,4 @@ xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num)
     }
 
     return NULL;
-}
-
-//TODO: conn->cid_set
-xqc_int_t
-xqc_set_cid_retired(xqc_connection_t *conn, xqc_cid_t *cid)
-{
-    xqc_cid_inner_t* scid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, cid);
-    if (scid == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|invalid cid to retire|");
-        return -XQC_ERETIRE_CID;
-    }
-
-    scid->state = XQC_CID_RETIRED;
-    scid->retired_ts = xqc_monotonic_timestamp();
-    conn->scid_set.cid_set.retired_cnt++;
-
-    return XQC_OK;
-}
-
-xqc_int_t
-xqc_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
-{
-    xqc_cid_inner_t *scid;
-    xqc_list_head_t *pos, *next;
-
-    xqc_list_for_each_safe(pos, next, &scid_set->cid_set.list_head) {
-        scid = xqc_list_entry(pos, xqc_cid_inner_t, list);
-
-        if (scid->state == XQC_CID_USED
-            && XQC_OK != xqc_cid_is_equal(&scid_set->user_scid, &scid->cid))
-        {
-            if (conn->conn_callbacks.conn_update_cid_notify) {
-                printf("retire | conn->conn_callbacks.conn_update_cid_notify\n");
-                conn->conn_callbacks.conn_update_cid_notify(conn, &scid_set->user_scid,
-                                                            &scid->cid, conn->user_data);
-            }
-
-            xqc_cid_copy(&scid_set->user_scid, &scid->cid);
-            return XQC_OK;
-        }
-    }
-
-    return XQC_ERROR;
-
 }

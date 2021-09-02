@@ -461,6 +461,7 @@ void xqc_conn_try_add_new_conn_id(xqc_connection_t *conn, uint64_t retire_prior_
 void xqc_conn_try_retire_conn_id(xqc_connection_t *conn, uint64_t seq_num);
 xqc_int_t xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid);
 void xqc_conn_destroy_cids(xqc_connection_t *conn);
+xqc_int_t xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set);
 
 xqc_bool_t
 xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
