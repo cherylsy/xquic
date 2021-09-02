@@ -43,7 +43,7 @@
 
 /* return 2Bit 00, 01, 10 or 11 (0, 1, 2, or 3) */
 #define xqc_vint_get_2bit(val) (    \
-    ((val) >= (1 << 6)) + ((val) >= (1 << 14)) + ((val) >= (1 << 30)))
+    ((val) >= (1 << 6) ? 1 : 0) + ((val) >= (1 << 14) ? 1 : 0) + ((val) >= (1 << 30) ? 1 : 0))
 
 /* return Usable Bits according to 2Bit.
  * parameter two_bit can be 0, 1, 2, 3
