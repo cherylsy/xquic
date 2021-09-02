@@ -1412,13 +1412,12 @@ xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *lar
 
 /**
  * IsWindowLost
+ * This function is currently not reliably implemented.
  */
+#if 0
 int
 xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t congestion_period)
 {
-    /*This function is currently not reliably implemented.*/
-    return 0;
-
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out, *smallest_lost_in_period = NULL;
     unsigned lost_pkts_in_between = 0;
@@ -1478,6 +1477,7 @@ xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost,
     }
     return 0;
 }
+#endif
 
 /**
  * CongestionEvent
