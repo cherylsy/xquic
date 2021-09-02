@@ -808,7 +808,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
             inflight += packet_out->po_used_size;
 
         } else {
-            xqc_memcmp(iov_array[burst_cnt].iov_base, packet_out->po_buf, packet_out->po_used_size);
+            xqc_memcpy(iov_array[burst_cnt].iov_base, packet_out->po_buf, packet_out->po_used_size);
             iov_array[burst_cnt].iov_len = packet_out->po_used_size;
         }
 
