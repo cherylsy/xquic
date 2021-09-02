@@ -461,6 +461,11 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     }
 
     xqc_stream_frame_t *stream_frame = xqc_calloc(1, sizeof(xqc_stream_frame_t));
+    if (stream_frame == NULL) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_calloc error|");
+        return -XQC_EMALLOC;
+    }
+
     ret = xqc_parse_crypto_frame(packet_in, conn, stream_frame);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_parse_crypto_frame error|");
