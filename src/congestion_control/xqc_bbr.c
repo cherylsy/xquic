@@ -505,9 +505,7 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     bool probe_rtt_expired, min_rtt_expired;
     probe_rtt_expired = sampler->now > (bbr->probe_rtt_min_us_stamp +  
         xqc_bbr2_probertt_win_size_us);
-    if (sampler->rtt >= 0 
-        && (sampler->rtt <= bbr->probe_rtt_min_us || probe_rtt_expired))
-    {
+    if (sampler->rtt <= bbr->probe_rtt_min_us || probe_rtt_expired) {
         xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, "|probertt expire|rtt:%ui, old_rtt:%ui|",
                 sampler->rtt,
                 bbr->probe_rtt_min_us);
