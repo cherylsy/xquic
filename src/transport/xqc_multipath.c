@@ -56,11 +56,11 @@ xqc_path_create(xqc_connection_t *conn,
 
     /* cid & path_id init */
     if (scid == NULL || dcid == NULL) {
-        if (xqc_get_unused_scid(&(conn->scid_set), &(path->path_scid)) != XQC_OK) {
+        if (xqc_get_unused_cid(&(conn->scid_set.cid_set), &(path->path_scid)) != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available scid|");
             goto err;
         }
-        if (xqc_get_unused_dcid(&(conn->dcid_set), &(path->path_dcid)) != XQC_OK) {
+        if (xqc_get_unused_cid(&(conn->dcid_set.cid_set), &(path->path_dcid)) != XQC_OK) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|MP|conn don't have available dcid|");
             goto err;
         }

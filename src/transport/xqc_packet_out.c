@@ -832,7 +832,7 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
     ssize_t ret = XQC_ERROR;
     xqc_packet_out_t *packet_out = NULL;
 
-    if (conn->scid_set.unused_cnt >= XQC_MAX_AVAILABLE_CID_COUNT) {
+    if (conn->scid_set.cid_set.unused_cnt >= XQC_MAX_AVAILABLE_CID_COUNT) {
         xqc_log(conn->log, XQC_LOG_WARN, "|Too many generated cid|");
         return -XQC_EGENERATE_CID;
     }
@@ -866,7 +866,7 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
     }
     
     /* insert to scid_set & add scid_unused_cnt */
-    xqc_scid_set_insert_cid(&conn->scid_set, &new_conn_cid, XQC_CID_UNUSED);
+    xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED);
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_new_scid:%s|", xqc_scid_str(&new_conn_cid));
 

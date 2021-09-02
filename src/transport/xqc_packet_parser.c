@@ -945,7 +945,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     //判断odcid
     if (c->original_dcid.cid_len != odcid.cid_len
-           || memcmp(c->original_dcid.cid_buf, odcid.cid_buf, odcid.cid_len) != 0) {
+        || memcmp(c->original_dcid.cid_buf, odcid.cid_buf, odcid.cid_len) != 0) {
         xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_retry|original_dcid not match|");
         packet_in->pos = packet_in->last;
         return XQC_OK;
@@ -1182,8 +1182,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         && XQC_CONN_FLAG_DCID_OK & c->conn_flag)
     {
         /* check cid */
-        if (!xqc_cid_in_scid_set(&(packet->pkt_dcid), &c->scid_set)
-            || !xqc_cid_in_dcid_set(&(packet->pkt_scid), &c->dcid_set))
+        if (!xqc_cid_in_cid_set(&c->scid_set.cid_set, &(packet->pkt_dcid))
+            || !xqc_cid_in_cid_set(&c->dcid_set.cid_set, &(packet->pkt_scid)))
         {
             /* log & ignore packet */
             xqc_log(c->log, XQC_LOG_ERROR, "|invalid dcid or scid|");

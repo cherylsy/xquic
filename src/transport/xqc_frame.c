@@ -569,11 +569,11 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     xqc_log(conn->log, XQC_LOG_DEBUG, "|new_conn_id|%s|", xqc_scid_str(&new_conn_cid));
 
     /* store dcid & add unused_dcid_count */
-    if (xqc_cid_in_dcid_set(&new_conn_cid, &conn->dcid_set)) {
+    if (xqc_cid_in_cid_set(&conn->dcid_set.cid_set, &new_conn_cid)) {
         return XQC_OK;
     }
 
-    xqc_dcid_set_insert_cid(&conn->dcid_set, &new_conn_cid, XQC_CID_UNUSED);
+    xqc_cid_set_insert_cid(&conn->dcid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED);
 
     return XQC_OK;
 }
@@ -1004,7 +1004,7 @@ xqc_process_path_status_frame(xqc_connection_t *conn,
     /* try to create new path */
     if (path == NULL) {
 
-        xqc_cid_t *dcid = xqc_get_dcid_by_seq(&conn->dcid_set, path_id);
+        xqc_cid_t *dcid = xqc_get_cid_by_seq(&conn->dcid_set.cid_set, path_id);
         if (dcid == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR,
                         "|can't find dcid with seq_number|%ui|", path_id);
