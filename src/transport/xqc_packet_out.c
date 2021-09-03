@@ -851,7 +851,9 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn)
         return -XQC_EWRITE_PKT;
     }
 
-    ret = xqc_gen_new_conn_id_frame(packet_out, &new_conn_cid);
+    ret = xqc_gen_new_conn_id_frame(packet_out, &new_conn_cid,
+                                    conn->engine->config->reset_token_key,
+                                    conn->engine->config->reset_token_keylen);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_new_conn_id_frame error|");
         goto error;

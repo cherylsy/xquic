@@ -1296,7 +1296,7 @@ xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in)
  *               Figure 39: NEW_CONNECTION_ID Frame Format
  * */
 ssize_t
-xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
+xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid, char *key, size_t keylen)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     const unsigned char *begin = dst_buf;
@@ -1329,7 +1329,7 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
     xqc_memcpy(dst_buf, new_cid->cid_buf, new_cid->cid_len);
     dst_buf += new_cid->cid_len;
 
-    xqc_gen_reset_token(new_cid, stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
+    xqc_gen_reset_token(new_cid, stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN, key, keylen);
     xqc_memcpy(dst_buf, stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
     dst_buf += XQC_STATELESS_RESET_TOKENLEN;
 
