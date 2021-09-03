@@ -828,6 +828,7 @@ server_write_socket(const unsigned char *buf, size_t size, const struct sockaddr
 {
     ssize_t res;
     /* conn_user_data might be NULL when server sending stateless reset token */
+    
     int fd = svr_ctx.current_fd;
 
     do {

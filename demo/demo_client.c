@@ -1691,9 +1691,9 @@ int init_xquic_connection(user_conn_t *user_conn, client_args_t *args)
                              (struct sockaddr*)&args->net_cfg.addr, args->net_cfg.addr_len, user_conn);
 
     } else {
-        cid = xqc_connect(user_conn->ctx->engine, &conn_settings, args->quic_cfg.token,
-                          args->quic_cfg.token_len, args->net_cfg.host, 0, &conn_ssl_config, 
-                          (struct sockaddr*)&args->net_cfg.addr, args->net_cfg.addr_len, user_conn);
+        cid = xqc_hq_connect(user_conn->ctx->engine, &conn_settings, args->quic_cfg.token,
+                             args->quic_cfg.token_len, args->net_cfg.host, 0, &conn_ssl_config, 
+                             (struct sockaddr*)&args->net_cfg.addr, args->net_cfg.addr_len, user_conn);
     }
 
     if (cid == NULL) {

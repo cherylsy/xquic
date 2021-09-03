@@ -178,9 +178,16 @@ if(XQC_ENABLE_BBR2)
     )
 endif()
 
+set(
+    HQ_SOURCES
+
+    "src/hq/xqc_hq.c"
+)
+
 set (
     XQC_SOURCE 
-    
+
+    ${HQ_SOURCES}
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${CRYPTO_SOURCE}
