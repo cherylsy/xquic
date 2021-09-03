@@ -394,6 +394,11 @@ void save_tp_cb(const char *data, size_t data_len, void *conn_user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)conn_user_data;
     FILE * fp = fopen(TRANSPORT_PARAMS_FILE, "wb");
+    if (NULL == fp) {
+        printf("open file for transport parameter error\n");
+        return;
+    }
+
     int write_size = fwrite(data, 1, data_len, fp);
     if(data_len != write_size){
         fclose(fp);
@@ -992,7 +997,7 @@ void client_write_log_file(const void *buf, size_t size, void *engine_user_data)
     }
     //printf("%s",(char*)buf);
     write(ctx->log_fd, buf, size);
-    write(ctx->log_fd, '\n', 1);
+    write(ctx->log_fd, line_break, 1);
 }
 
 

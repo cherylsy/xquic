@@ -34,6 +34,7 @@ char method_s[][16] = {
     {"POST"}
 };
 
+const char *line_break = "\n";
 
 static size_t READ_FILE_BUF_LEN = 2 *1024 * 1024;
 
