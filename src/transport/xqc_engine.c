@@ -36,6 +36,8 @@ xqc_config_t default_client_config = {
     .support_version_list[0] = XQC_VERSION_V1_VALUE,
     .cid_len = XQC_DEFAULT_CID_LEN,
     .cid_negotiate = 0,
+    .reset_token_key = {0},
+    .reset_token_keylen = 0,
 };
 
 
@@ -51,6 +53,8 @@ xqc_config_t default_server_config = {
     .support_version_list = {XQC_VERSION_V1_VALUE, XQC_IDRAFT_VER_29_VALUE},
     .cid_len = XQC_DEFAULT_CID_LEN,
     .cid_negotiate = 0,
+    .reset_token_key = {0},
+    .reset_token_keylen = 0,
 };
 
 
@@ -94,9 +98,15 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
         return XQC_ERROR;
     }
 
+    if (src->reset_token_keylen > 0 && src->reset_token_keylen <= XQC_RESET_TOKEN_MAX_KEY_LEN) {
+        dst->reset_token_keylen = src->reset_token_keylen;
+        memcpy(dst->reset_token_key, src->reset_token_key, src->reset_token_keylen);
+    }
+
     dst->cid_negotiate = src->cid_negotiate;
     dst->cfg_log_level = src->cfg_log_level;
     dst->cfg_log_timestamp = src->cfg_log_timestamp;
+
 
     return XQC_OK;
 }
@@ -883,7 +893,9 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
     }
 
     if (XQC_UNLIKELY(conn == NULL)) {
-        if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size)) {
+        if (!xqc_is_reset_packet(&scid, packet_in_buf, packet_in_size,
+                                 engine->config->reset_token_key,
+                                 engine->config->reset_token_keylen)) {
             if (xqc_engine_schedule_reset(engine, peer_addr, peer_addrlen, recv_time) != XQC_OK) {
                 return -XQC_ECONN_NFOUND;
             }

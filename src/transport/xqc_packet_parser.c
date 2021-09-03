@@ -1240,11 +1240,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
 
 
 void
-xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len)
+xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len, char *key, size_t keylen)
 {
-    // HMAC or HKDF with static key
-    //memcpy(token, cid->cid_buf, cid->cid_len);
-    char key[] = ".@34dshj+={}";
     unsigned char *input = cid->cid_buf;
     int input_len = cid->cid_len;
     unsigned char output[EVP_MAX_MD_SIZE];
@@ -1253,7 +1250,7 @@ xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len)
     engine = EVP_md5();
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_CTX_reset(ctx);
-    HMAC_Init_ex(ctx, key, strlen(key), engine, NULL);
+    HMAC_Init_ex(ctx, key, keylen, engine, NULL);
     HMAC_Update(ctx, input, input_len);
 
     HMAC_Final(ctx, output, &output_len);
@@ -1280,7 +1277,7 @@ xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len)
                      Figure 6: Stateless Reset Packet
  */
 xqc_int_t
-xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf)
+xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf, char *key, size_t keylen)
 {
     const unsigned char *begin = dst_buf;
     const int unpredictable_len = 23;
@@ -1305,7 +1302,7 @@ xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf)
     memset(dst_buf, 0, padding_len);
     dst_buf += padding_len;
 
-    xqc_gen_reset_token(cid, token, XQC_RESET_TOKEN_LEN);
+    xqc_gen_reset_token(cid, token, XQC_RESET_TOKEN_LEN, key, keylen);
     memcpy(dst_buf, token, sizeof(token));
     dst_buf += sizeof(token);
 
@@ -1313,7 +1310,7 @@ xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf)
 }
 
 int
-xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size)
+xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size, char *key, size_t keylen)
 {
     if (XQC_PACKET_IS_LONG_HEADER(buf)) {
         return 0;
@@ -1327,7 +1324,7 @@ xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size)
     token = buf + (buf_size - XQC_RESET_TOKEN_LEN);
 
     unsigned char calc_token[XQC_RESET_TOKEN_LEN] = {0};
-    xqc_gen_reset_token(cid, calc_token, XQC_RESET_TOKEN_LEN);
+    xqc_gen_reset_token(cid, calc_token, XQC_RESET_TOKEN_LEN, key, keylen);
 
     if (memcmp(token, calc_token, XQC_RESET_TOKEN_LEN) == 0) {
         return 1;
