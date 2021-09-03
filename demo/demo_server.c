@@ -1033,6 +1033,7 @@ void server_write_log_file(const void *buf, size_t size, void *engine_user_data)
     }
 
     write(ctx->log_fd, buf, size);
+    write(ctx->log_fd, '\n', 1);
 }
 
 
