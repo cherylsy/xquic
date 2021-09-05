@@ -773,6 +773,9 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
             if (send_type != XQC_SEND_TYPE_PTO_PROBE
                 && xqc_check_duplicate_acked_pkt(conn, packet_out, send_type, now))
             {
+                xqc_send_ctl_remove_send(&packet_out->po_list);
+                packet_out->po_flag &= ~XQC_POF_ENCRYPTED;  //pkt num no longer save
+                xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
                 continue;
             }
 
