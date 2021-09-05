@@ -91,6 +91,9 @@ xqc_h3_stream_send_buffer(xqc_h3_stream_t *h3s)
                 if (sent == -XQC_EAGAIN) {
                     return -XQC_EAGAIN;
 
+                } else if (sent == -XQC_ESTREAM_RESET) {
+                    return 0;
+
                 } else if (sent < 0) {
                     xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_stream_send error|ret:%z|", sent);
                     return sent;
@@ -408,14 +411,12 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
     /* send frame buffer */
     ret = xqc_h3_stream_send_buffer(h3s);
     if (ret == -XQC_EAGAIN) {
-        xqc_log(h3s->log, XQC_LOG_DEBUG,
-                "|send buf eagain|stream_id:%ui|",
-                h3s->stream->stream_id);
+        xqc_log(h3s->log, XQC_LOG_DEBUG, "|send buf eagain|stream_id:%ui|", h3s->stream->stream_id);
         return XQC_OK;
+
     } else if (ret < 0) {
-        xqc_log(h3s->log, XQC_LOG_ERROR,
-                "|send buf error|%z|stream_id:%ui|",
-                h3s->stream->stream_id, ret);
+        xqc_log(h3s->log, XQC_LOG_ERROR, "|send buf error|%z|stream_id:%ui|", ret,
+                h3s->stream->stream_id);
         XQC_H3_CONN_ERR(h3s->h3c, H3_INTERNAL_ERROR, ret);
         return ret;
     }
