@@ -769,7 +769,6 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
         iov_array[burst_cnt].iov_base = enc_pkt_array[burst_cnt];
         iov_array[burst_cnt].iov_len = XQC_PACKET_OUT_SIZE_EXT;
         if (xqc_has_packet_number(&packet_out->po_pkt)) {
-            /* duplicated probe packets shall be retransmitted */
             if (xqc_check_duplicate_acked_pkt(conn, packet_out, send_type, now)) {
                 xqc_send_ctl_remove_send(&packet_out->po_list);
                 packet_out->po_flag &= ~XQC_POF_ENCRYPTED;  //pkt num no longer save
