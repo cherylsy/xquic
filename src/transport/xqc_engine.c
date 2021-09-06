@@ -641,10 +641,10 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
 
     /* for multi-path */
     if ((conn->conn_flag & XQC_CONN_FLAG_NEW_CID_RECEIVED)
-        && xqc_conn_check_available_cids(conn) == XQC_OK)
+        && xqc_conn_check_unused_cids(conn) == XQC_OK)
     {
         if (conn->engine->eng_callback.ready_to_create_path_notify) {
-            conn->engine->eng_callback.ready_to_create_path_notify(&conn->scid, 
+            conn->engine->eng_callback.ready_to_create_path_notify(&conn->scid_set.user_scid, 
                                                                    xqc_conn_get_user_data(conn));
         }
         conn->conn_flag &= ~XQC_CONN_FLAG_NEW_CID_RECEIVED;

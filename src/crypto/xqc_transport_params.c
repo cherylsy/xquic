@@ -402,10 +402,10 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn,
 
     xqc_transport_params_copy_from_settings(params, &conn->local_settings);
     if (conn->conn_type == XQC_CONN_TYPE_SERVER 
-        && conn->ocid.cid_len > 0) 
+        && conn->original_dcid.cid_len > 0) 
     {
-        xqc_cid_init(&params->original_dest_connection_id, conn->ocid.cid_buf,
-                     conn->ocid.cid_len);
+        xqc_cid_init(&params->original_dest_connection_id, conn->original_dcid.cid_buf,
+                     conn->original_dcid.cid_len);
         params->original_dest_connection_id_present = 1;
 
     } else {
@@ -413,7 +413,7 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn,
     }
 
     xqc_cid_init(&params->initial_source_connection_id, 
-                 conn->scid.cid_buf, conn->scid.cid_len);
+                 conn->initial_scid.cid_buf, conn->initial_scid.cid_len);
     params->initial_source_connection_id_present = 1;
 
     params->retry_source_connection_id.cid_len = 0;

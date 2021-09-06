@@ -255,16 +255,20 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_conn_init_flow_ctl(xc);
 
     xc->conn_pool = pool;
-    xqc_cid_copy(&(xc->dcid), dcid);
-    xqc_cid_copy(&(xc->scid), scid);
-    xqc_hex_dump(xc->scid_str, scid->cid_buf, scid->cid_len);
-    xc->scid_str[scid->cid_len * 2] = '\0';
-    xqc_hex_dump(xc->dcid_str, dcid->cid_buf, dcid->cid_len);
-    xc->dcid_str[dcid->cid_len * 2] = '\0';
 
-    xc->largest_scid_seq_num = scid->cid_seq_num;
-    xc->avail_dcid_count = 0;
-    xc->avail_scid_count = 0;
+    xqc_init_dcid_set(&xc->dcid_set);
+    xqc_init_scid_set(&xc->scid_set);
+
+    xqc_cid_copy(&(xc->dcid_set.current_dcid), dcid);
+    xqc_cid_set_insert_cid(&xc->dcid_set.cid_set, dcid, XQC_CID_USED);
+    xqc_hex_dump(xc->dcid_set.current_dcid_str, dcid->cid_buf, dcid->cid_len);
+    xc->dcid_set.current_dcid_str[dcid->cid_len * 2] = '\0';
+
+    xqc_cid_copy(&(xc->scid_set.user_scid), scid);
+    xqc_cid_set_insert_cid(&xc->scid_set.cid_set, scid, XQC_CID_USED);
+    xc->scid_set.largest_scid_seq_num = scid->cid_seq_num;
+
+    xqc_cid_copy(&(xc->initial_scid), scid);
 
     xc->engine = engine;
     xc->log = engine->log;
@@ -320,7 +324,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     /* insert into engine's conns_hash */
-    if (xqc_insert_conns_hash(engine->conns_hash, xc, &xc->scid)) {
+    if (xqc_insert_conns_hash(engine->conns_hash, xc, &xc->scid_set.user_scid)) {
         goto fail;
     }
 
@@ -334,7 +338,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xc->conn_initial_path = NULL;
 
     xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|",
-            xqc_scid_str(&xc->scid), xqc_dcid_str(&xc->dcid), xc);
+            xqc_scid_str(&xc->scid_set.user_scid), xqc_dcid_str(&xc->dcid_set.current_dcid), xc);
     return xc;
 
 fail:
@@ -379,17 +383,19 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
         return NULL;
     }
 
-    xqc_cid_copy(&conn->ocid, scid);
-    if (XQC_OK != xqc_cid_is_equal(&conn->scid, &conn->ocid)) {
+    xqc_cid_copy(&conn->original_dcid, scid);
+
+    if (!xqc_cid_in_cid_set(&conn->scid_set.cid_set, &conn->original_dcid)) {
         /*
          * if server choose it's own cid, then if server Initial is lost,
          * and if client Initial retransmit, server might use odcid to
          * find the created conn
          */
-        if (xqc_insert_conns_hash(engine->conns_hash, conn, &conn->ocid)) {
+        xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &conn->original_dcid, XQC_CID_USED);
+        if (xqc_insert_conns_hash(engine->conns_hash, conn, &conn->original_dcid)) {
             goto fail;
         }
-        xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|", xqc_dcid_str(&conn->ocid), conn);
+        xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|", xqc_dcid_str(&conn->original_dcid), conn);
     }
 
     xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
@@ -405,7 +411,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
     if (engine->eng_callback.server_accept) {
-        if (engine->eng_callback.server_accept(engine, conn, &conn->scid, user_data) < 0) {
+        if (engine->eng_callback.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
             goto fail;
         }
@@ -434,7 +440,7 @@ xqc_conn_server_on_alpn(xqc_connection_t *conn)
 
     /* do callback */
     if (conn->conn_callbacks.conn_create_notify) {
-        if (conn->conn_callbacks.conn_create_notify(conn, &conn->scid, conn->user_data)) {
+        if (conn->conn_callbacks.conn_create_notify(conn, &conn->scid_set.user_scid, conn->user_data)) {
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             return;
         }
@@ -484,7 +490,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
     }
 
     if (xc->conn_callbacks.conn_close_notify && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
-        xc->conn_callbacks.conn_close_notify(xc, &xc->scid, xc->user_data);
+        xc->conn_callbacks.conn_close_notify(xc, &xc->scid_set.user_scid, xc->user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
@@ -512,21 +518,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
         }
     }
 
-    /* remove from engine's conns_hash */
-    if (xc->engine->conns_hash) {
-        xqc_remove_conns_hash(xc->engine->conns_hash, xc, &xc->scid);
-
-        if (xqc_find_conns_hash(xc->engine->conns_hash, xc, &xc->ocid)) {
-            xqc_log(xc->log, XQC_LOG_INFO, "|remove abnormal odcid conn hash: %s", xqc_dcid_str(&xc->ocid));
-            xqc_remove_conns_hash(xc->engine->conns_hash, xc, &xc->ocid);
-        }
-
-        xqc_conn_destroy_cids(xc);
-    }
-
-    if (xc->engine->conns_hash_dcid && (xc->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
-        xqc_remove_conns_hash(xc->engine->conns_hash_dcid, xc, &xc->dcid);
-    }
+    /* remove from engine's conns_hash and destroy cid_set*/
+    xqc_conn_destroy_cids(xc);
 
     if (xc->xc_ssl) {
         SSL_free(xc->xc_ssl);
@@ -740,7 +733,7 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     /* copy header */
     packet_out->po_used_size = 0;
     int ret = xqc_gen_short_packet_header(packet_out,
-                               conn->dcid.cid_buf, conn->dcid.cid_len,
+                               conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len,
                                XQC_PKTNO_BITS, 0);
     packet_out->po_used_size = ret;
 
@@ -1486,9 +1479,9 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
     xqc_engine_t *engine = conn->engine;
     unsigned char buf[XQC_PACKET_OUT_SIZE];
     xqc_int_t size = (xqc_int_t)xqc_gen_retry_packet(
-        buf, conn->dcid.cid_buf, conn->dcid.cid_len,
-        conn->scid.cid_buf, conn->scid.cid_len,
-        conn->ocid.cid_buf, conn->ocid.cid_len,
+        buf, conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len,
+        conn->scid_set.user_scid.cid_buf, conn->scid_set.user_scid.cid_len,
+        conn->original_dcid.cid_buf, conn->original_dcid.cid_len,
         token, token_len, XQC_VERSION_V1);
     if (size < 0) {
         return size;
@@ -1553,20 +1546,20 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
     p += sizeof(uint32_t);
 
     /* dcid len */
-    *p = c->dcid.cid_len;
+    *p = c->dcid_set.current_dcid.cid_len;
     ++p;
 
     /* dcid */
-    memcpy(p, c->dcid.cid_buf, c->dcid.cid_len);
-    p += c->dcid.cid_len;
+    memcpy(p, c->dcid_set.current_dcid.cid_buf, c->dcid_set.current_dcid.cid_len);
+    p += c->dcid_set.current_dcid.cid_len;
 
     /* original destination ID len */
-    *p = c->ocid.cid_len;
+    *p = c->original_dcid.cid_len;
     ++p;
 
     /* original destination ID */
-    memcpy(p, c->ocid.cid_buf, c->ocid.cid_len);
-    p += c->ocid.cid_len;
+    memcpy(p, c->original_dcid.cid_buf, c->original_dcid.cid_len);
+    p += c->original_dcid.cid_len;
 
     /* set supported version list */
     uint32_t* version_list = c->engine->config->support_version_list;
@@ -2100,7 +2093,7 @@ xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen)
 char *
 xqc_conn_addr_str(xqc_connection_t *conn)
 {
-    if (conn->local_addrlen == 0 || conn->peer_addrlen == 0 || conn->scid.cid_len == 0 || conn->dcid.cid_len == 0) {
+    if (conn->local_addrlen == 0 || conn->peer_addrlen == 0 || conn->scid_set.user_scid.cid_len == 0 || conn->dcid_set.current_dcid.cid_len == 0) {
         return "addr or cid not avail";
     }
 
@@ -2110,9 +2103,9 @@ xqc_conn_addr_str(xqc_connection_t *conn)
 
         conn->addr_str_len = snprintf(conn->addr_str, sizeof(conn->addr_str), "l-%s-%d-%s p-%s-%d-%s",
                                       xqc_conn_local_addr_str((struct sockaddr*)sa_local, conn->local_addrlen),
-                                      ntohs(sa_local->sin_port), xqc_scid_str(&conn->scid),
+                                      ntohs(sa_local->sin_port), xqc_scid_str(&conn->scid_set.user_scid),
                                       xqc_conn_peer_addr_str((struct sockaddr*)sa_peer, conn->peer_addrlen),
-                                      ntohs(sa_peer->sin_port), xqc_dcid_str(&conn->dcid));
+                                      ntohs(sa_peer->sin_port), xqc_dcid_str(&conn->dcid_set.current_dcid));
     }
 
     return conn->addr_str;
@@ -2161,13 +2154,17 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
      *  1) server is not willing to use the client's DCID as SCID;
      */
     if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
-        if (XQC_OK != xqc_cid_is_equal(&c->dcid, &pkt->pkt_scid)) {
-            xqc_log(c->log, XQC_LOG_INFO, "|dcid change|ori:%s|new:%s|", 
-                    xqc_dcid_str(&c->dcid), xqc_scid_str(&pkt->pkt_scid));
-            xqc_cid_copy(&c->dcid, &pkt->pkt_scid);
+        if (!xqc_cid_in_cid_set(&c->dcid_set.cid_set, &pkt->pkt_scid)) {
+            xqc_cid_set_insert_cid(&c->dcid_set.cid_set, &pkt->pkt_scid, XQC_CID_USED);
         }
 
-        if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid)) {
+        if (XQC_OK != xqc_cid_is_equal(&c->dcid_set.current_dcid, &pkt->pkt_scid)) {
+            xqc_log(c->log, XQC_LOG_INFO, "|dcid change|ori:%s|new:%s|", 
+                    xqc_dcid_str(&c->dcid_set.current_dcid), xqc_scid_str(&pkt->pkt_scid));
+            xqc_cid_copy(&c->dcid_set.current_dcid, &pkt->pkt_scid);
+        }
+
+        if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid_set.current_dcid)) {
             xqc_log(c->log, XQC_LOG_ERROR, "|insert conn hash error");
             return -XQC_EMALLOC;
         }
@@ -2212,9 +2209,9 @@ xqc_conn_server_validate_address(xqc_connection_t *c, xqc_packet_in_t *pi)
              * when server close its own CID, and server reached its anti-amplification limit,
              * client MAY send an Initial packet with PING/PADDING on PTO with server's CID
              */
-            if (c->scid.cid_len >= XQC_CONN_ADDR_VALIDATION_CID_ENTROPY
-                && xqc_cid_is_equal(&c->scid, &c->ocid) != XQC_OK
-                && xqc_cid_is_equal(&c->scid, &pi->pi_pkt.pkt_dcid) == XQC_OK)
+            if (c->scid_set.user_scid.cid_len >= XQC_CONN_ADDR_VALIDATION_CID_ENTROPY
+                && !xqc_cid_in_cid_set(&c->scid_set.cid_set, &c->original_dcid)
+                && xqc_cid_in_cid_set(&c->scid_set.cid_set, &pi->pi_pkt.pkt_dcid))
             {
                 xqc_conn_addr_validated(c);
             }
@@ -2274,13 +2271,13 @@ xqc_conn_on_hsk_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
     if (c->conn_type == XQC_CONN_TYPE_SERVER) {
         /*
          * once client handshake is received, client confirmed server's cid,
-         * server won't need ocid to find the connection any more
+         * server won't need original_dcid to find the connection any more
          */
-        if (XQC_OK != xqc_cid_is_equal(&c->scid, &c->ocid)
-            && xqc_find_conns_hash(c->engine->conns_hash, c, &c->ocid))
+        if (XQC_OK != xqc_cid_is_equal(&c->scid_set.user_scid, &c->original_dcid)
+            && xqc_find_conns_hash(c->engine->conns_hash, c, &c->original_dcid))
         {
-            xqc_remove_conns_hash(c->engine->conns_hash, c, &c->ocid);
-            xqc_log(c->log, XQC_LOG_DEBUG, "|remove odcid conn hash: %s", xqc_dcid_str(&c->ocid));
+            xqc_remove_conns_hash(c->engine->conns_hash, c, &c->original_dcid);
+            xqc_log(c->log, XQC_LOG_DEBUG, "|remove odcid conn hash: %s", xqc_dcid_str(&c->original_dcid));
         }
 
         /* server MUST discard Initial keys when it first successfully processes a Handshake packet */
@@ -2442,43 +2439,13 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
 }
 
 
+/* should have at lease one unused dcid & one unused scid */
 xqc_int_t
-xqc_conn_get_new_dcid(xqc_connection_t *conn,
-    xqc_cid_t *dcid)
+xqc_conn_check_unused_cids(xqc_connection_t *conn)
 {
-    if (conn->avail_dcid_count == 0) {
-        return -XQC_ECONN_NO_AVAIL_CID;
-    }
-
-    xqc_cid_copy(dcid, &conn->avail_dcid[conn->avail_dcid_count - 1]);
-    conn->avail_dcid_count--;
-
-    return XQC_OK;
-}
-
-
-xqc_int_t
-xqc_conn_get_new_scid(xqc_connection_t *conn,
-    xqc_cid_t *scid)
-{
-    if (conn->avail_scid_count == 0) {
-        return -XQC_ECONN_NO_AVAIL_CID;
-    }
-
-    xqc_cid_copy(scid, &conn->avail_scid[conn->avail_scid_count - 1]);
-    conn->avail_scid_count--;
-
-    return XQC_OK;
-}
-
-
-/* should have at lease one available dcid & one available scid */
-xqc_int_t
-xqc_conn_check_available_cids(xqc_connection_t *conn)
-{
-    if (conn->avail_dcid_count == 0 || conn->avail_scid_count == 0) {
+    if (conn->dcid_set.cid_set.unused_cnt == 0 || conn->scid_set.cid_set.unused_cnt == 0) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|don't have available unused cid|%ui|%ui|", 
-                        conn->avail_dcid_count, conn->avail_scid_count);
+                conn->dcid_set.cid_set.unused_cnt, conn->scid_set.cid_set.unused_cnt);
         return -XQC_EMP_NO_AVAIL_PATH_ID;
     }
     return XQC_OK;
@@ -2488,81 +2455,46 @@ xqc_conn_check_available_cids(xqc_connection_t *conn)
 void
 xqc_conn_destroy_cids(xqc_connection_t *conn)
 {
-    uint32_t i = 0;
+    xqc_cid_inner_t *cid = NULL;
+    xqc_list_head_t *pos, *next;
 
-    /* try to remove all possible conns_has */
     if (conn->engine->conns_hash) {
-        for (i = 0; i < conn->avail_scid_count; ++i) {
-            xqc_remove_conns_hash(conn->engine->conns_hash, conn, &(conn->avail_scid[i]));
+        if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &conn->original_dcid)) {
+            xqc_log(conn->log, XQC_LOG_INFO, "|remove abnormal odcid conn hash: %s", xqc_dcid_str(&conn->original_dcid));
+            xqc_remove_conns_hash(conn->engine->conns_hash, conn, &conn->original_dcid);
+        }
+
+        xqc_list_for_each_safe(pos, next, &conn->scid_set.cid_set.list_head) {
+            cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
+            if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &cid->cid)) {
+                xqc_remove_conns_hash(conn->engine->conns_hash, conn, &cid->cid);
+            }
         }
     }
+
+    if (conn->engine->conns_hash_dcid && (conn->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
+        xqc_list_for_each_safe(pos, next, &conn->dcid_set.cid_set.list_head) {
+            cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
+            if (xqc_find_conns_hash(conn->engine->conns_hash_dcid, conn, &cid->cid)) {
+                xqc_remove_conns_hash(conn->engine->conns_hash_dcid, conn, &cid->cid);
+            }
+        }
+    }
+
+    xqc_destroy_cid_set(&conn->scid_set.cid_set);
+    xqc_destroy_cid_set(&conn->dcid_set.cid_set);
 }
+
 
 void
 xqc_conn_try_add_new_conn_id(xqc_connection_t *conn)
 {
     xqc_cid_t new_conn_cid;
 
-    if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->avail_scid_count == 0) {
+    if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->scid_set.cid_set.unused_cnt == 0) {
 
         xqc_write_new_conn_id_frame_to_packet(conn);
     }
-}
-
-
-xqc_cid_t *
-xqc_conn_get_scid_by_seq(xqc_connection_t *conn, uint64_t seq_num)
-{
-    xqc_path_ctx_t *path = NULL;
-    xqc_list_head_t *pos, *next;
-
-    if (conn->scid.cid_seq_num == seq_num) {
-        return &conn->scid;
-    }
-
-    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
-        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
-
-        if (path->path_scid.cid_seq_num == seq_num) {
-            return &path->path_scid;
-        }
-    }
-
-    for (int i = 0; i < conn->avail_scid_count; i++) {
-        if (conn->avail_scid[i].cid_seq_num == seq_num) {
-            return &conn->avail_scid[i];
-        }
-    }
-
-    return NULL;
-}
-
-
-xqc_cid_t *
-xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num)
-{
-    xqc_path_ctx_t *path = NULL;
-    xqc_list_head_t *pos, *next;
-
-    if (conn->dcid.cid_seq_num == seq_num) {
-        return &conn->dcid;
-    }
-
-    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
-        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
-
-        if (path->path_dcid.cid_seq_num == seq_num) {
-            return &path->path_dcid;
-        }
-    }
-
-    for (int i = 0; i < conn->avail_dcid_count; i++) {
-        if (conn->avail_dcid[i].cid_seq_num == seq_num) {
-            return &conn->avail_dcid[i];
-        }
-    }
-
-    return NULL;
 }
 
 
@@ -2570,28 +2502,20 @@ xqc_conn_get_dcid_by_seq(xqc_connection_t *conn, uint64_t seq_num)
 xqc_int_t
 xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
 {
-    xqc_path_ctx_t *path = NULL;
-    xqc_list_head_t *pos, *next;
-
-    if (xqc_cid_is_equal(dcid, &conn->scid) == XQC_OK) {
-        return XQC_OK;
+    xqc_cid_inner_t* scid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, dcid);
+    if (scid == NULL) {
+        return -XQC_ECONN_CID_NOT_FOUND;
     }
 
-    xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
-        path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
-
-        if (xqc_cid_is_equal(dcid, &path->path_scid) == XQC_OK) {
-            return XQC_OK;
+    if (scid->state == XQC_CID_UNUSED) {
+        if (xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, scid)) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_switch_to_next_state error|scid:%s|",
+                    xqc_scid_str(&scid->cid));
+            return XQC_ERROR;
         }
     }
 
-    for (int i = 0; i < conn->avail_scid_count; i++) {
-        if (xqc_cid_is_equal(dcid, &conn->avail_scid[i]) == XQC_OK) {
-            return XQC_OK;
-        }
-    }
-
-    return -XQC_ECONN_CID_NOT_FOUND;
+    return XQC_OK;
 }
 
 
