@@ -1447,7 +1447,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 
 xqc_int_t
 xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen)
+    socklen_t peer_addrlen, void *user_data)
 {
     unsigned char buf[XQC_PACKET_OUT_SIZE];
     xqc_int_t size = xqc_gen_reset_packet(dcid, buf,
@@ -1458,7 +1458,7 @@ xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr
     }
 
     size = (xqc_int_t)engine->eng_callback.write_socket(
-        buf, (size_t)size, peer_addr, peer_addrlen, NULL);
+        buf, (size_t)size, peer_addr, peer_addrlen, user_data);
     if (size < 0) {
         return size;
     }
