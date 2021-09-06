@@ -1182,8 +1182,8 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
         && XQC_CONN_FLAG_DCID_OK & c->conn_flag)
     {
         /* check cid */
-        if (!xqc_cid_in_cid_set(&c->scid_set.cid_set, &(packet->pkt_dcid))
-            || !xqc_cid_in_cid_set(&c->dcid_set.cid_set, &(packet->pkt_scid)))
+        if (xqc_cid_in_cid_set(&c->scid_set.cid_set, &(packet->pkt_dcid)) == NULL
+            || xqc_cid_in_cid_set(&c->dcid_set.cid_set, &(packet->pkt_scid)) == NULL)
         {
             /* log & ignore packet */
             xqc_log(c->log, XQC_LOG_ERROR, "|invalid dcid or scid|");
