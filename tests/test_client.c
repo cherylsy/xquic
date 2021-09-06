@@ -35,7 +35,7 @@ int printf_null(const char *format, ...)
 #define XQC_PACKET_TMP_BUF_LEN 1500
 #define MAX_BUF_SIZE (100*1024*1024)
 
-#define XQC_MAX_TOKEN_LEN 32
+#define XQC_MAX_TOKEN_LEN 256
 
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 #define XQC_TEST_SHORT_HEADER_PACKET_B "\x80\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
