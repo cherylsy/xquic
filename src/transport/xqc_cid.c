@@ -147,6 +147,8 @@ xqc_destroy_cid_set(xqc_cid_set_t *cid_set)
         xqc_list_del(pos);
         xqc_free(cid);
     }
+
+    xqc_init_cid_set(cid_set);
 }
 
 xqc_int_t
