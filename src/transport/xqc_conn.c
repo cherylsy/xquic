@@ -669,7 +669,7 @@ xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint3
 }
 
 void
-xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t sent, xqc_usec_t now)
+xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t sent, size_t sent_bytes, xqc_usec_t now)
 {
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out;
@@ -689,7 +689,7 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
                 xqc_pacing_on_packet_sent(&conn->conn_send_ctl->ctl_pacing, packet_out->po_used_size);
             }
 
-            xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
+            xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now, sent_bytes);
             xqc_send_ctl_remove_send(&packet_out->po_list);
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 xqc_send_ctl_insert_unacked(packet_out,
@@ -762,6 +762,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
     uint32_t total_bytes_to_send = 0;
     uint32_t inflight = ctl->ctl_bytes_in_flight;
+    size_t sent_bytes = 0;
 
     /* process packets */
     xqc_usec_t now = xqc_monotonic_timestamp();
@@ -833,7 +834,11 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
         xqc_log(conn->log, XQC_LOG_ERROR, "|error send msg|sent:%ui||cnt:%ui|", ret, burst_cnt);
     }
 
-    xqc_on_packets_send_burst(conn, head, ret, now);
+    for (size_t i = 0; i < ret; i++) {
+        sent_bytes += iov_array[i].iov_len;
+    }
+
+    xqc_on_packets_send_burst(conn, head, ret, sent_bytes, now);
     return ret;
 }
 
@@ -1049,7 +1054,7 @@ xqc_send_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 
     /* deliver packet to send control */
     conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
-    xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
+    xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now, sent);
     return sent;
 }
 

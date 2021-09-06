@@ -827,7 +827,8 @@ xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl,
  * OnPacketSent
  */
 void
-xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_usec_t now)
+xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_usec_t now,
+    size_t sent)
 {
     xqc_pkt_num_space_t pns = packet_out->po_pkt.pkt_pns;
 
@@ -846,7 +847,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
         ctl->ctl_largest_sent[pns] = packet_out->po_pkt.pkt_num;
     }
 
-    ctl->ctl_bytes_send += packet_out->po_used_size;
+    ctl->ctl_bytes_send += sent;
 
     if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
 
