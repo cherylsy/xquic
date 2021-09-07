@@ -90,7 +90,7 @@ xqc_h3_stream_send_buffer(xqc_h3_stream_t *h3s)
                                                buf->data_len - buf->consumed_len, buf->fin_flag);
                 if (sent < 0) {
                     /* don't print XQC_EAGAIN and XQC_ESTREAM_RESET */
-                    if (sent != -XQC_EAGAIN && sent == -XQC_ESTREAM_RESET) {
+                    if (sent != -XQC_EAGAIN && sent != -XQC_ESTREAM_RESET) {
                         xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_stream_send error|ret:%z|", sent);
                     }
 
