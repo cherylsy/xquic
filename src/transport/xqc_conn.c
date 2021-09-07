@@ -688,7 +688,6 @@ xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t
 
             xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
             xqc_send_ctl_remove_send(&packet_out->po_list);
-            packet_out->po_flag &= ~XQC_POF_ENCRYPTED; /* pkt num no longer save */
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
                 xqc_send_ctl_insert_unacked(packet_out,
                                             &conn->conn_send_ctl->ctl_unacked_packets[packet_out->po_pkt.pkt_pns],
@@ -769,10 +768,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
         iov_array[burst_cnt].iov_base = enc_pkt_array[burst_cnt];
         iov_array[burst_cnt].iov_len = XQC_PACKET_OUT_SIZE_EXT;
         if (xqc_has_packet_number(&packet_out->po_pkt)) {
-            /* duplicated probe packets shall be retransmitted */
-            if (send_type != XQC_SEND_TYPE_PTO_PROBE
-                && xqc_check_duplicate_acked_pkt(conn, packet_out, send_type, now))
-            {
+            if (xqc_check_duplicate_acked_pkt(conn, packet_out, send_type, now)) {
                 continue;
             }
 
@@ -972,9 +968,7 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     }
 
     /* generate packet number and update packet length */
-    if ((packet_out->po_flag & XQC_POF_ENCRYPTED) == 0) {
-        packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
-    }
+    packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
     xqc_write_packet_number(packet_out->po_ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
     xqc_long_packet_update_length(packet_out);
 
@@ -987,7 +981,6 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     }
 
     packet_out->po_sent_time = current_time;
-    packet_out->po_flag |= XQC_POF_ENCRYPTED;
     return 0;
 }
 

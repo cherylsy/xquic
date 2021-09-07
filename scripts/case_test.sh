@@ -1042,11 +1042,11 @@ fi
 
 
 killall test_server 2> /dev/null
-./test_server -l d -e -x 10 > /dev/null &
+./test_server -l e -e -x 10 > /dev/null &
 sleep 1
 clear_log
 echo -e "massive requests with massive header ...\c"
-./test_client -l d -q 50 -n 100 -x 32 -E >> clog
+./test_client -l e -q 50 -n 100 -x 32 -E >> clog
 result=`grep ">>>>>>>> pass:1" clog`
 errlog=`grep_err_log`
 if [ -z "$errlog" ] && [ "$result" != "" ]; then
