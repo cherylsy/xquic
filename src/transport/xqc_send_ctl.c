@@ -1888,29 +1888,41 @@ xqc_send_ctl_retire_cid_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, vo
     xqc_cid_inner_t *inner_cid;
     xqc_list_head_t *pos, *next;
 
+    xqc_int_t ret;
+    xqc_usec_t start_time = now;
+
     xqc_list_for_each_safe(pos, next, &conn->scid_set.cid_set.list_head) {
         inner_cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
 
-        if (inner_cid->state == XQC_CID_RETIRED
-            && (inner_cid->retired_ts + 2 * ctl->ctl_srtt < now))
-        {
-            if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid)) {
-                xqc_remove_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid);
-            }
+        if (inner_cid->state == XQC_CID_RETIRED) {
 
-            /* switch state to REMOVED & delete from cid_set */
-            if (xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, inner_cid, XQC_CID_REMOVED) == XQC_OK) {
+            if (inner_cid->retired_ts + 2 * ctl->ctl_srtt < now) {
+                /* switch state to REMOVED & delete from cid_set */
+                if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid)) {
+                    xqc_remove_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid);
+                }
+
+                ret = xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, inner_cid, XQC_CID_REMOVED);
+                if (ret != XQC_OK) {
+                    xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_switch_to_next_state error|");
+                    return;
+                }
+
                 xqc_list_del(pos);
                 xqc_free(inner_cid);
-                xqc_log(conn->log, XQC_LOG_DEBUG, "|remove retired cid|seq_num:%ui|", inner_cid->cid.cid_seq_num);
+
             } else {
-                xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_switch_to_next_state error|");
+                /* record the earliest time that has not yet expired */
+                if (inner_cid->retired_ts < start_time) {
+                    start_time = inner_cid->retired_ts;
+                }
+
             }
         }
     }
 
-    if(conn->scid_set.cid_set.retired_cnt > 0){
-        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, 2 * ctl->ctl_srtt + now);
+    if (conn->scid_set.cid_set.retired_cnt > 0){
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, 2 * ctl->ctl_srtt + start_time);
     }
 }
 
