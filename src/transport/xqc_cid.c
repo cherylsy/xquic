@@ -221,13 +221,18 @@ xqc_int_t
 xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_cid_state_t next_state)
 {
     if (xqc_cid_in_cid_set(cid_set, &cid->cid) == NULL) {
-        return XQC_ERROR;
+        return -XQC_ECONN_CID_NOT_FOUND;
     }
 
     xqc_cid_state_t current_state = cid->state;
-    if (current_state >= next_state) {
-        return XQC_ERROR;
+
+    if (current_state == next_state) {
+        return XQC_OK;
+    } else if (current_state > next_state) {
+        return -XQC_ECID_STATE;
     }
+
+    /* current_state < next_state */
 
     if (current_state == XQC_CID_UNUSED) {
         cid_set->unused_cnt--;

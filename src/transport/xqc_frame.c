@@ -595,7 +595,11 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
         xqc_log(conn->log, XQC_LOG_DEBUG, "|seq_num:%ui smaller than largest_retire_prior_to:%ui|",
                 new_conn_cid.cid_seq_num, conn->dcid_set.largest_retire_prior_to);
 
-        xqc_write_retire_conn_id_frame_to_packet(conn, new_conn_cid.cid_seq_num);
+        ret = xqc_write_retire_conn_id_frame_to_packet(conn, new_conn_cid.cid_seq_num);
+        if (ret != XQC_OK) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_retire_conn_id_frame_to_packet error|");
+            return ret;
+        }
 
         return XQC_OK;
     }
@@ -608,7 +612,11 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
                 conn->dcid_set.largest_retire_prior_to, retire_prior_to);
 
         for (uint64_t i = conn->dcid_set.largest_retire_prior_to; i < retire_prior_to; i++) {
-            xqc_write_retire_conn_id_frame_to_packet(conn, i);
+            ret = xqc_write_retire_conn_id_frame_to_packet(conn, i);
+            if (ret != XQC_OK) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_retire_conn_id_frame_to_packet error|");
+                return ret;
+            }
         }
 
         conn->dcid_set.largest_retire_prior_to = retire_prior_to;
@@ -649,10 +657,13 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
     xqc_cid_t *cid = xqc_get_cid_by_seq(&conn->scid_set.cid_set, seq_num);
     if (cid == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|can't find scid with seq_number|%ui|", seq_num);
-        return XQC_ERROR;
+        return -XQC_ECONN_CID_NOT_FOUND;
     }
 
     xqc_cid_inner_t* inner_cid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, cid);
+    if (inner_cid == NULL) {
+        return -XQC_ECONN_CID_NOT_FOUND;
+    }
 
     if (XQC_OK == xqc_cid_is_equal(&inner_cid->cid, &packet_in->pi_pkt.pkt_dcid)) {
         /* The sequence number specified in a RETIRE_CONNECTION_ID frame MUST NOT refer to
@@ -1130,8 +1141,7 @@ xqc_process_path_status_frame(xqc_connection_t *conn,
         if (dcid == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR,
                         "|can't find dcid with seq_number|%ui|", path_id);
-            /* not format error here */
-            return XQC_OK;
+            return -XQC_ECONN_CID_NOT_FOUND;
         }
 
         xqc_cid_t *scid = &(packet_in->pi_pkt.pkt_dcid);

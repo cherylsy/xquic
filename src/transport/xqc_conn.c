@@ -2482,7 +2482,10 @@ xqc_conn_try_add_new_conn_id(xqc_connection_t *conn, uint64_t retire_prior_to)
 void
 xqc_conn_try_retire_conn_id(xqc_connection_t *conn, uint64_t seq_num)
 {
-    xqc_write_retire_conn_id_frame_to_packet(conn, seq_num);
+    xqc_int_t ret = xqc_write_retire_conn_id_frame_to_packet(conn, seq_num);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_retire_conn_id_frame_to_packet error|");
+    }
 }
 
 
@@ -2490,16 +2493,19 @@ xqc_conn_try_retire_conn_id(xqc_connection_t *conn, uint64_t seq_num)
 xqc_int_t
 xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
 {
+    xqc_int_t ret;
+
     xqc_cid_inner_t* scid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, dcid);
     if (scid == NULL) {
         return -XQC_ECONN_CID_NOT_FOUND;
     }
 
     if (scid->state == XQC_CID_UNUSED) {
-        if (xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, scid, XQC_CID_USED)) {
+        ret = xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, scid, XQC_CID_USED);
+        if (ret < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_switch_to_next_state error|scid:%s|",
                     xqc_scid_str(&scid->cid));
-            return XQC_ERROR;
+            return ret;
         }
     }
 
@@ -2529,7 +2535,7 @@ xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
         }
     }
 
-    return XQC_ERROR;
+    return -XQC_ECONN_NO_AVAIL_CID;
 }
 
 
