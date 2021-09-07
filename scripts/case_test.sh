@@ -1063,7 +1063,7 @@ sleep 1
 
 clear_log
 echo -e "version negotiation ...\c"
-./test_client -l d -E -x 31 >> clog
+./test_client -l d -E -x 33 >> clog
 result=`grep -e "|====>|.*VERSION_NEGOTIATION" clog`
 if [ -n "$result" ]; then
     echo ">>>>>>>> pass:1"

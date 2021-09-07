@@ -356,7 +356,7 @@ xqc_client_write_mmsg(const struct iovec *msg_iov, unsigned int vlen,
     struct mmsghdr mmsg[MAX_SEG];
     memset(&mmsg, 0, sizeof(mmsg));
     for (int i = 0; i < vlen; i++) {
-        mmsg[i].msg_hdr.msg_iov = &msg_iov[i];
+        mmsg[i].msg_hdr.msg_iov = (struct iovec *)&msg_iov[i];
         mmsg[i].msg_hdr.msg_iovlen = 1;
     }
     do {
