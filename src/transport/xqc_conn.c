@@ -385,7 +385,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
 
     xqc_cid_copy(&conn->original_dcid, scid);
 
-    if (!xqc_cid_in_cid_set(&conn->scid_set.cid_set, &conn->original_dcid)) {
+    if (xqc_cid_in_cid_set(&conn->scid_set.cid_set, &conn->original_dcid) == NULL) {
         /*
          * if server choose it's own cid, then if server Initial is lost,
          * and if client Initial retransmit, server might use odcid to
@@ -2154,7 +2154,7 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
      *  1) server is not willing to use the client's DCID as SCID;
      */
     if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
-        if (!xqc_cid_in_cid_set(&c->dcid_set.cid_set, &pkt->pkt_scid)) {
+        if (xqc_cid_in_cid_set(&c->dcid_set.cid_set, &pkt->pkt_scid) == NULL) {
             xqc_cid_set_insert_cid(&c->dcid_set.cid_set, &pkt->pkt_scid, XQC_CID_USED);
         }
 
@@ -2210,8 +2210,8 @@ xqc_conn_server_validate_address(xqc_connection_t *c, xqc_packet_in_t *pi)
              * client MAY send an Initial packet with PING/PADDING on PTO with server's CID
              */
             if (c->scid_set.user_scid.cid_len >= XQC_CONN_ADDR_VALIDATION_CID_ENTROPY
-                && !xqc_cid_in_cid_set(&c->scid_set.cid_set, &c->original_dcid)
-                && xqc_cid_in_cid_set(&c->scid_set.cid_set, &pi->pi_pkt.pkt_dcid))
+                && xqc_cid_in_cid_set(&c->scid_set.cid_set, &c->original_dcid) == NULL
+                && xqc_cid_in_cid_set(&c->scid_set.cid_set, &pi->pi_pkt.pkt_dcid) != NULL)
             {
                 xqc_conn_addr_validated(c);
             }

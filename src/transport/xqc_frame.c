@@ -569,7 +569,7 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     xqc_log(conn->log, XQC_LOG_DEBUG, "|new_conn_id|%s|", xqc_scid_str(&new_conn_cid));
 
     /* store dcid & add unused_dcid_count */
-    if (xqc_cid_in_cid_set(&conn->dcid_set.cid_set, &new_conn_cid)) {
+    if (xqc_cid_in_cid_set(&conn->dcid_set.cid_set, &new_conn_cid) != NULL) {
         return XQC_OK;
     }
 
