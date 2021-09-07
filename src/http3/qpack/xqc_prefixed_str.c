@@ -28,10 +28,13 @@ xqc_prefixed_str_pctx_create(size_t capacity)
 {
     xqc_prefixed_str_t *pctx = xqc_malloc(sizeof(xqc_prefixed_str_t));
     memset(pctx, 0, sizeof(xqc_prefixed_str_t));
+
     pctx->value = xqc_var_buf_create(capacity);
     if (pctx->value == NULL) {
+        xqc_free(pctx);
         return NULL;
     }
+
     xqc_prefixed_str_init(pctx, 0);
     return pctx;
 }

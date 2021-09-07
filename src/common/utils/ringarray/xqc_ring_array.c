@@ -167,7 +167,7 @@ xqc_rarray_resize(xqc_rarray_t *ra, uint64_t cap)
 
     uint64_t array_cap = xqc_pow2_upper(cap);
     uint8_t *buf = xqc_malloc(array_cap * ra->esize);
-    if (ra->buf == NULL) {
+    if (buf == NULL) {
         return -XQC_EMALLOC;
     }
 

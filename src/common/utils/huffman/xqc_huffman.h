@@ -5,7 +5,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
-#include "src/common/xqc_common_inc.h"
+#include "include/xquic/xquic_typedef.h"
+#include "src/common/xqc_common.h"
 
 
 /**

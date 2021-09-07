@@ -44,6 +44,7 @@ xqc_ring_mem_create(size_t sz)
         msize = xqc_pow2_upper(sz);
         rmem->buf = (uint8_t *)xqc_malloc(msize);
         if (rmem->buf == NULL) {
+            xqc_free(rmem);
             return NULL;
         }
     }

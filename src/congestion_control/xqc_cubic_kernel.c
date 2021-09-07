@@ -560,7 +560,7 @@ static uint64_t
 xqc_cubic_get_cwnd (void *cong_ctl)
 {
     xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t*)(cong_ctl);
-    return ca->cwnd * XQC_CUBIC_MSS;
+    return (uint64_t)ca->cwnd * XQC_CUBIC_MSS;
 }
 
 

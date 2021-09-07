@@ -637,7 +637,13 @@ xqc_send_ctl_drop_packets_with_type(xqc_send_ctl_t *ctl, xqc_pkt_type_t type)
     xqc_list_head_t *pos, *next;
     xqc_packet_out_t *packet_out;
 
-    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[xqc_packet_type_to_pns(type)]) {
+    xqc_pkt_num_space_t pns = xqc_packet_type_to_pns(type);
+    if (pns == XQC_PNS_N) {
+        xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|illegal packet type|type:%d|", type);
+        return;
+    }
+
+    xqc_list_for_each_safe(pos, next, &ctl->ctl_unacked_packets[pns]) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         xqc_send_ctl_remove_unacked(packet_out, ctl);
         xqc_send_ctl_insert_free(pos, &ctl->ctl_free_packets, ctl);
@@ -1402,75 +1408,6 @@ xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *lar
     }
 
     return XQC_FALSE;
-}
-
-/**
- * IsWindowLost
- */
-int
-xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t congestion_period)
-{
-    /*This function is currently not reliably implemented.*/
-    return 0;
-
-    xqc_list_head_t *pos, *next;
-    xqc_packet_out_t *packet_out, *smallest_lost_in_period = NULL;
-    unsigned lost_pkts_in_between = 0;
-    /*we only check this PNS.*/
-    uint32_t used_pns = largest_lost->po_pkt.pkt_pns;
-
-    /* we should keep the ctl_lost_packets ordered by pkt_num to avoid this loop */
-    xqc_list_for_each_safe(pos, next, &ctl->ctl_lost_packets) {
-        packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-        if (packet_out->po_pkt.pkt_pns != used_pns) {
-            continue;
-        }
-        if (smallest_lost_in_period == NULL) {
-            smallest_lost_in_period = packet_out;
-
-        } else if (packet_out->po_pkt.pkt_num < smallest_lost_in_period->po_pkt.pkt_num) {
-            smallest_lost_in_period = packet_out;
-        }
-    }
-
-    /* If no packet is in the lost queue, the conn must not be in persistent 
-       congestion. */
-    /* This could happen because the newly lost packet belonging to a RESET_SENT
-       STREAM will not be put into the lost queue. Therefore, the queue could be 
-       empty. */
-    if (smallest_lost_in_period == NULL) {
-        return 0;
-    }
-
-    xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|interval: %ui, period: %ui, l_pn: %ui, s_pn: %ui|",
-            largest_lost->po_sent_time - smallest_lost_in_period->po_sent_time, congestion_period,
-            largest_lost->po_pkt.pkt_num, smallest_lost_in_period->po_pkt.pkt_num);
-
-    /* first of all, the sending interval between the smallest and the largest must be >= congestion_period */
-    if (largest_lost->po_sent_time - smallest_lost_in_period->po_sent_time >= congestion_period) {
-        /* check if all pkts between the smallest and the largest are lost */
-        xqc_list_for_each_safe(pos, next, &ctl->ctl_lost_packets) {
-            packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_pkt.pkt_pns != used_pns) {
-                continue;
-            }
-            if (packet_out->po_pkt.pkt_num >= smallest_lost_in_period->po_pkt.pkt_num 
-                && packet_out->po_pkt.pkt_num < largest_lost->po_pkt.pkt_num) 
-            {   
-                lost_pkts_in_between++;
-            }
-            xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,"|lost_pkt_num: %ui|", packet_out->po_pkt.pkt_num);
-        }
-        xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|InPresistentCongestion|largest.pn %ui|smallest.pn %ui"
-            "|largest sent time %ui|smallest sent time %ui|lost pkts in between %ud|",
-            largest_lost->po_pkt.pkt_num, smallest_lost_in_period->po_pkt.pkt_num,
-            largest_lost->po_sent_time, smallest_lost_in_period->po_sent_time,
-            lost_pkts_in_between);
-        /* i.e. 1, 2, 3 are lost. lost_pkts_in_between = 2 */
-        if (lost_pkts_in_between == (largest_lost->po_pkt.pkt_num - smallest_lost_in_period->po_pkt.pkt_num))
-            return 1;
-    }
-    return 0;
 }
 
 /**

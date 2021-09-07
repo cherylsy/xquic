@@ -298,9 +298,6 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_usec_
 xqc_bool_t
 xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t now);
 
-int
-xqc_send_ctl_is_window_lost(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t congestion_period);
-
 void
 xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_usec_t sent_time);
 

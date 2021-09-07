@@ -1296,20 +1296,25 @@ xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in)
  *               Figure 39: NEW_CONNECTION_ID Frame Format
  * */
 ssize_t
-xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
+xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid, char *key, size_t keylen)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     const unsigned char *begin = dst_buf;
 
     *dst_buf++ = 0x18;
 
-    unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
+    unsigned char stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN] = {0};
 
     unsigned sequence_number_bits = xqc_vint_get_2bit(new_cid->cid_seq_num);
     uint64_t retire_prior_to = 0;
     unsigned retire_prior_to_bits = xqc_vint_get_2bit(retire_prior_to);
     uint64_t cid_len = new_cid->cid_len;
     uint8_t cid_len_bits = xqc_vint_get_2bit(cid_len);
+
+    /* make sure cid_len won't exceed XQC_MAX_CID_LEN */
+    if (cid_len > XQC_MAX_CID_LEN) {
+        return -XQC_EPARAM;
+    }
 
     xqc_vint_write(dst_buf, new_cid->cid_seq_num, 
                    sequence_number_bits, xqc_vint_len(sequence_number_bits));
@@ -1324,6 +1329,7 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid)
     xqc_memcpy(dst_buf, new_cid->cid_buf, new_cid->cid_len);
     dst_buf += new_cid->cid_len;
 
+    xqc_gen_reset_token(new_cid, stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN, key, keylen);
     xqc_memcpy(dst_buf, stateless_reset_token, XQC_STATELESS_RESET_TOKENLEN);
     dst_buf += XQC_STATELESS_RESET_TOKENLEN;
 
