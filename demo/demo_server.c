@@ -240,10 +240,10 @@ int server_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
     xqc_conn_set_user_data(conn, user_conn);
-    printf("server_conn_create_notify, user_conn: %p, conn: %p\n", user_conn, conn);
+    printf("server_conn_create_notify, user_conn: %p, conn: %p, conn_user_data: %p\n", user_conn, conn, conn_user_data);
 
     /* set ctx */
-    user_conn->ctx = (server_ctx_t*)conn_user_data; // TODO: 这里是否还返回ctx？
+    user_conn->ctx = &svr_ctx;
 
     /* set addr info */
     socklen_t peer_addrlen;
@@ -257,6 +257,12 @@ int server_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void
 int server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *conn_user_data)
 {
     DEBUG;
+
+    if (conn_user_data == &svr_ctx) {
+        return 0;
+    }
+
+    printf("server_conn_close_notify, conn: %p, conn_user_data: %p\n", conn, conn_user_data);
 
     user_conn_t *user_conn = (user_conn_t*)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(user_conn->ctx->engine, cid);
@@ -515,9 +521,9 @@ server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void 
     server_ctx_t *ctx = (server_ctx_t*)user_data;
 
     user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
-    user_conn->ctx = ctx;
+    user_conn->ctx = &svr_ctx;
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
-    printf("server_h3_conn_create_notify, user_conn: %p, h3_conn: %p\n", user_conn, h3_conn);
+    printf("server_h3_conn_create_notify, user_conn: %p, h3_conn: %p, ctx: %p\n", user_conn, h3_conn, ctx);
 
     socklen_t peer_addrlen;
     struct sockaddr* peer_addr = xqc_h3_conn_get_peer_addr(h3_conn, &peer_addrlen);
