@@ -309,7 +309,7 @@ typedef struct user_conn_s {
     task_t             *task;
 } user_conn_t;
 
-
+void continue_send_reqs(user_conn_t *user_conn);
 /**
  * [return] 1: all req suc, task finished, 0: still got req underway
  */
@@ -326,6 +326,11 @@ void on_stream_fin(user_stream_t *user_stream)
     }
     printf("task[%d], fin_cnt: %d, fin_flag: %d\n", task_idx, 
         ctx->schedule.schedule_info[task_idx].req_fin_cnt, ctx->schedule.schedule_info[task_idx].fin_flag);
+
+    /* TODO: fix MAX_STREAMS */
+    if (ctx->schedule.schedule_info[task_idx].req_create_cnt < ctx->tasks[task_idx].user_conn->task->req_cnt) {
+        continue_send_reqs(ctx->tasks[task_idx].user_conn);
+    }
 }
 
 /* directly finish a task */
