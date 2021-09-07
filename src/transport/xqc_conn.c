@@ -769,8 +769,6 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
         iov_array[burst_cnt].iov_len = XQC_PACKET_OUT_SIZE_EXT;
         if (xqc_has_packet_number(&packet_out->po_pkt)) {
             if (xqc_check_duplicate_acked_pkt(conn, packet_out, send_type, now)) {
-                xqc_send_ctl_remove_send(&packet_out->po_list);
-                xqc_send_ctl_insert_free(pos, &conn->conn_send_ctl->ctl_free_packets, conn->conn_send_ctl);
                 continue;
             }
 
