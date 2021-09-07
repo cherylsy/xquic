@@ -416,7 +416,6 @@ xqc_h3_stream_write_notify(xqc_stream_t *stream, void *user_data)
     } else if (ret < 0) {
         xqc_log(h3s->log, XQC_LOG_ERROR, "|send buf error|%z|stream_id:%ui|", ret,
                 h3s->stream->stream_id);
-        XQC_H3_CONN_ERR(h3s->h3c, H3_INTERNAL_ERROR, ret);
         return ret;
     }
 
