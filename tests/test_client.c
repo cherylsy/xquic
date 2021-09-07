@@ -291,6 +291,12 @@ xqc_client_write_socket(
     send_buf_size = size;
     memcpy(send_buf, buf, send_buf_size);
 
+    /* trigger version negotiation */
+    if (g_test_case == 31) {
+        /* makes version 0xff000001 */
+        send_buf[1] = 0xff;
+    }
+
     //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
