@@ -568,6 +568,9 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     xqc_cid_t new_conn_cid;
     uint64_t retire_prior_to;
 
+    xqc_cid_inner_t *inner_cid;
+    xqc_list_head_t *pos, *next;
+
     ret = xqc_parse_new_conn_id_frame(packet_in, &new_conn_cid, &retire_prior_to);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR,
@@ -608,18 +611,24 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
         /* Upon receipt of an increased Retire Prior To field, the peer MUST stop using the
          * corresponding connection IDs and retire them with RETIRE_CONNECTION_ID frames before
          * adding the newly provided connection ID to the set of active connection IDs. */
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|retire_prior_to|%ui|increase to|%ui|",
-                conn->dcid_set.largest_retire_prior_to, retire_prior_to);
 
-        for (uint64_t i = conn->dcid_set.largest_retire_prior_to; i < retire_prior_to; i++) {
-            ret = xqc_write_retire_conn_id_frame_to_packet(conn, i);
-            if (ret != XQC_OK) {
-                xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_retire_conn_id_frame_to_packet error|");
-                return ret;
+        xqc_list_for_each_safe(pos, next, &conn->dcid_set.cid_set.list_head) {
+            inner_cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
+            uint64_t seq_num = inner_cid->cid.cid_seq_num;
+            if ((inner_cid->state == XQC_CID_UNUSED || inner_cid->state == XQC_CID_USED)
+                 && (seq_num >= conn->dcid_set.largest_retire_prior_to && seq_num < retire_prior_to))
+            {
+                ret = xqc_write_retire_conn_id_frame_to_packet(conn, seq_num);
+                if (ret != XQC_OK) {
+                    xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_retire_conn_id_frame_to_packet error|");
+                    return ret;
+                }
             }
         }
 
         conn->dcid_set.largest_retire_prior_to = retire_prior_to;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|retire_prior_to|%ui|increase to|%ui|",
+                conn->dcid_set.largest_retire_prior_to, retire_prior_to);
     }
 
     /* store dcid & add unused_dcid_count */
