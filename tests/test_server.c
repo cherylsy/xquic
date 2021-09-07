@@ -1006,7 +1006,7 @@ ssize_t xqc_server_write_mmsg(const struct iovec *msg_iov, unsigned int vlen,
     struct mmsghdr mmsg[MAX_SEG];
     memset(&mmsg, 0, sizeof(mmsg));
     for (int i = 0; i < vlen; i++) {
-        mmsg[i].msg_hdr.msg_iov = &msg_iov[i];
+        mmsg[i].msg_hdr.msg_iov = (struct iovec *)&msg_iov[i];
         mmsg[i].msg_hdr.msg_iovlen = 1;
     }
     do {
@@ -1217,6 +1217,7 @@ int main(int argc, char *argv[]) {
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_batch) {
         callback.write_mmsg = xqc_server_write_mmsg;
+        printf("---------\n");
     }
 #endif
 

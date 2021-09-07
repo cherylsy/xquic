@@ -244,6 +244,10 @@ else()
     )
 endif()
 
+if (XQC_SUPPORT_SENDMMSG_BUILD)
+    add_definitions(-DXQC_SUPPORT_SENDMMSG)
+endif()
+
 # Strip binary for release builds
 if (CMAKE_BUILD_TYPE STREQUAL MinSizeRel)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD

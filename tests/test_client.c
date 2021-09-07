@@ -291,6 +291,13 @@ xqc_client_write_socket(
     send_buf_size = size;
     memcpy(send_buf, buf, send_buf_size);
 
+    /* trigger version negotiation */
+    if (g_test_case == 33) {
+        /* makes version 0xff000001 */
+        send_buf[1] = 0xff;
+        g_test_case == -1;
+    }
+
     //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
@@ -349,7 +356,7 @@ xqc_client_write_mmsg(const struct iovec *msg_iov, unsigned int vlen,
     struct mmsghdr mmsg[MAX_SEG];
     memset(&mmsg, 0, sizeof(mmsg));
     for (int i = 0; i < vlen; i++) {
-        mmsg[i].msg_hdr.msg_iov = &msg_iov[i];
+        mmsg[i].msg_hdr.msg_iov = (struct iovec *)&msg_iov[i];
         mmsg[i].msg_hdr.msg_iovlen = 1;
     }
     do {
