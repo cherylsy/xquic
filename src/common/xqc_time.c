@@ -35,7 +35,7 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 
 static uint64_t xqc_now()
 {
-    /*获取微秒单位时间*/
+    /* get microsecond unit time */
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;

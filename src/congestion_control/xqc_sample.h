@@ -9,28 +9,28 @@ typedef char bool;
 
 typedef struct xqc_sample_s
 {
-    /*采样时间点 */
+    /* sampling time */
     xqc_usec_t       now;
-    /*当前ack的packet在发送的时候传输完成的packet数目 */
+    /* the number of packets that have been transferred when the packet currently in ack is being sent */
     uint64_t         prior_delivered;
-    /*两次采样的时间间隔 */
+    /* time interval between samples */
     xqc_usec_t       interval;
-    /*两次采样之间传输完成(ack)的数据量 */
+    /* the amount of data transferred (ack) between two samples */
     uint32_t         delivered;
-    /*the amount of newly delivered data*/
+    /* the amount of newly delivered data*/
     uint32_t         acked;
-    /*发送但未收到ack的数据量 */
+    /* the amount of data sent but not received ack */
     uint32_t         bytes_inflight;
-    /*before processing this ack */
+    /* before processing this ack */
     uint32_t         prior_inflight;
-    /*采样所得的rtt */
+    /* sampled rtt */
     xqc_usec_t       rtt;
     uint32_t         is_app_limited;
-    /*是否出现丢包情况 */
+    /* whether packet loss */
     uint32_t         loss;
     uint64_t         total_acked;
     xqc_usec_t       srtt;
-    /* 用来判断是否需要调用generate_sample */
+    /* used to determine if generate_sample needs to be called */
     xqc_usec_t       prior_time;
     xqc_usec_t       ack_elapse;
     xqc_usec_t       send_elapse;
@@ -42,7 +42,7 @@ typedef struct xqc_sample_s
 
     bool             is_initialized;
  
-    /*For BBRv2*/ 
+    /* for BBRv2 */ 
     uint32_t         prior_lost;
     uint64_t         tx_in_flight;
     uint32_t         lost_pkts;

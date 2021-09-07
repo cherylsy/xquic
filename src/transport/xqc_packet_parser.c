@@ -313,7 +313,7 @@ void
 xqc_short_packet_update_dcid(xqc_packet_out_t *packet_out, xqc_connection_t *conn)
 {
     unsigned char *dst = packet_out->po_buf + 1;
-    //dcid len不能变
+    /* dcid len can't be changed */
     xqc_memcpy(dst, conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len);
 }
 
@@ -453,7 +453,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         return -XQC_EILLPKT;
     }
 
-    /* 服务端保存token，解crypto frame时校验token */
+    /* server save token and check token when decode crypto frame */
     if (c->conn_type == XQC_CONN_TYPE_SERVER) {
         memcpy(c->conn_token, pos, token_len);
         c->conn_token_len = token_len;
@@ -518,12 +518,6 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet parse|0-RTT|");
     packet_in->pi_pkt.pkt_type = XQC_PTYPE_0RTT;
     packet_in->pi_pkt.pkt_pns = XQC_PNS_APP_DATA;
-
-    //TODO: 0RTT丢包重传会触发错误
-    /*if ((++c->zero_rtt_count) > XQC_PACKET_0RTT_MAX_COUNT) {
-        xqc_log(c->log, XQC_LOG_ERROR, "|packet_parse_zero_rtt|too many 0-RTT packets|%ud|", c->zero_rtt_count);
-        return -XQC_EPROTO;
-    }*/
 
     /* Length(i) */
     size = xqc_vint_read(pos, packet_in->last, &length);
@@ -752,7 +746,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 
     xqc_packet_parse_packet_number(header_decrypt + pkt_num_offset, packet_number_len, &packet_in->pi_pkt.pkt_num);
 
-    /* 先解码出pkt_num，然后将pkt_num作为参数构建nonce */
+    /* decode pkt_num, then build nonce with pkt_num as an argument */
     packet_in->pi_pkt.pkt_num = xqc_decode_packet_num(conn->conn_send_ctl->ctl_largest_recvd[pns],
                                                       packet_in->pi_pkt.pkt_num, packet_number_len * 8);
 
@@ -871,7 +865,7 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
                        Retry Packet
  */
-//TODO: retry 协议更新
+//TODO: protocol update
 int
 xqc_gen_retry_packet(unsigned char *dst_buf,
                      const unsigned char *dcid, unsigned char dcid_len,
@@ -942,7 +936,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_memcpy(odcid.cid_buf, pos, odcid.cid_len);
     pos += odcid.cid_len;
 
-    //判断odcid
+    /* determine original_destination_connection_id */
     if (c->original_dcid.cid_len != odcid.cid_len
         || memcmp(c->original_dcid.cid_buf, odcid.cid_buf, odcid.cid_len) != 0) {
         xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_retry|original_dcid not match|");
@@ -953,15 +947,11 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_memcpy(c->conn_token, pos, packet_in->last - pos);
     c->conn_token_len = packet_in->last - pos;
 
-    /*printf("xqc_packet_parse_retry token:\n");
-    hex_print(c->conn_token,c->conn_token_len);*/
-
-    //存储token
+    /* store token */
     c->engine->eng_callback.save_token(c->conn_token, c->conn_token_len, xqc_conn_get_user_data(c));
 
-    /* 重新发起握手 */
+    /* re-initiate the handshake process */
     c->conn_state = XQC_CONN_STATE_CLIENT_INIT;
-    //xqc_destroy_stream(c->crypto_stream[XQC_ENC_LEV_INIT]);
     c->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(c, XQC_ENC_LEV_INIT, NULL);
 
     if (c->tlsref.callbacks.recv_retry(c, &c->dcid_set.current_dcid) < 0) {

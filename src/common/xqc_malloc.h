@@ -17,10 +17,7 @@ do { \
 } while(0)
 #endif
 
-/*
- * 收口动态内存分配和回收、以便日后可以做一些控制和统计
- * 暂时只做调用转交
- * */
+
 #ifdef PRINT_MALLOC
 #define xqc_malloc(size) ({\
     xqc_init_print();\
@@ -65,9 +62,7 @@ static inline void xqc_free(void* ptr)
     free(ptr);
 }
 
-/*
- * 内存配置器接口
- * */
+
 typedef void* (*xqc_malloc_wrap_t)(void* opaque, size_t size);
 typedef void (*xqc_free_wrap_t)(void* opaque, void* ptr);
 

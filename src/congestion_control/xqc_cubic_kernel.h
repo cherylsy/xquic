@@ -13,17 +13,16 @@ typedef struct
     uint32_t        last_cwnd;        /* the last snd_cwnd */
     xqc_usec_t      last_time;        /* time when updated last_cwnd */
     uint32_t        bic_origin_point; /* origin point of bic function */
-    uint32_t        bic_K;            /* time to origin point
-                                          from the beginning of the current epoch */
+    uint32_t        bic_K;            /* time to origin point from the beginning of the current epoch */
     xqc_usec_t      delay_min;        /* min delay (us) */
     xqc_usec_t      epoch_start;      /* beginning of an epoch */
     uint32_t        ack_cnt;          /* number of acks */
     uint32_t        tcp_cwnd;         /* estimated tcp cwnd */
 
-    uint32_t        cwnd_cnt;   /* count the number of acked pkts since the last window increase. */
-    uint32_t        init_cwnd;        /* 初始窗口大小,单位为MSS个数 */
-    uint32_t        cwnd;             /* 当前的窗口大小,单位为PKts */
-    uint32_t        ssthresh;         /* 慢启动阈值 in pkts*/
+    uint32_t        cwnd_cnt;         /* count the number of acked pkts since the last window increase. */
+    uint32_t        init_cwnd;        /* initial window size in MSS */
+    uint32_t        cwnd;             /* Current window size in pkts */
+    uint32_t        ssthresh;         /* slow start threshold in pkts*/
 
     uint64_t        prev_round_delivered;
     uint64_t        next_round_delivered; /* A sentiel to watch if the next round is started. */

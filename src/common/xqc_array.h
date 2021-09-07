@@ -5,21 +5,17 @@
 
 #include "src/common/xqc_malloc.h"
 
-/*
- * 动态数组、底层是连续内存
- * */
+/* dynamic arrays with contiguous memory at the bottom */
 typedef struct xqc_array_s
 {
-    void* elts;                 /*首元素指针*/
-    unsigned elt_size;          /*每个元素的大小*/
-    unsigned size;              /*元素数量*/
-    unsigned capacity;          /*元素容量*/
-    xqc_allocator_t allocator;  /*内存配置器*/
+    void* elts;                 /* pointer to first element */
+    unsigned elt_size;          /* size of each element */
+    unsigned size;              /* number of elements */
+    unsigned capacity;          /* capacity of elements */
+    xqc_allocator_t allocator;  /* memory allocator */
 } xqc_array_t;
 
-/*
- * 创建
- * */
+
 static inline xqc_array_t *xqc_array_create(xqc_allocator_t allocator, size_t elt_capacity, size_t elt_size)
 {
     xqc_array_t *a = allocator.malloc(allocator.opaque, sizeof(xqc_array_t));
@@ -39,21 +35,12 @@ static inline xqc_array_t *xqc_array_create(xqc_allocator_t allocator, size_t el
     return a;
 }
 
-/*
- * 销毁
- * */
 static inline void xqc_array_destroy(xqc_array_t *a)
 {
     a->allocator.free(a->allocator.opaque, a->elts);
-    /*a->elts = NULL;*/
-
     a->allocator.free(a->allocator.opaque, a);
-    /*a = NULL;*/
 }
 
-/*
- * 添加n个元素
- * */
 static inline void *xqc_array_push_n(xqc_array_t *a, size_t n)
 {
     if (a->size + n > a->capacity) {
@@ -78,9 +65,6 @@ static inline void *xqc_array_push_n(xqc_array_t *a, size_t n)
     return p;
 }
 
-/*
- * 添加1个元素
- * */
 static inline void *xqc_array_push(xqc_array_t *a)
 {
     return xqc_array_push_n(a, 1);

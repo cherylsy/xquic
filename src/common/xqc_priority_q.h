@@ -6,45 +6,34 @@
 
 #include "src/common/xqc_malloc.h"
 
-/*
- * 基于二叉堆实现的优先级队列
- * key代表优先权，默认是按从大到小出队，对应xqc_pq_default_cmp；如果要按从小到大出队，传递xqc_pq_revert_cmp
- * 可以通过传入xqc_pq_compare_ptr去改变规则
- * 支持自动扩容，元素大小至少sizeof(xqc_pq_key_t) 8字节
- * 接口：
- * 初始化：xqc_pq_init(), xqc_pq_init_default(capacity=xqc_pq_default_capacity)
- * 压入：xqc_pq_push()
- * 弹出：xqc_pq_pop()
- * 返回顶部元素：xqc_pq_top()
- * 判空：xqc_pq_empty()
- * */
+/* Priority Queue based on Binary Heap
+ *
+ * Interfaces:
+ * xqc_pq_init(), xqc_pq_init_default(capacity=xqc_pq_default_capacity)
+ * xqc_pq_push()
+ * xqc_pq_pop()
+ * xqc_pq_top()
+ * xqc_pq_empty()
+ */
 
 typedef uint64_t xqc_pq_key_t;
 
 typedef struct xqc_priority_queue_element_s
 {
-    xqc_pq_key_t key;       /*键*/
+    xqc_pq_key_t key;
     char data[0];
 } xqc_pq_element_t;
 
-/*
- * element比较函数
- * */
+/* element compare function */
 typedef int (*xqc_pq_compare_ptr)(xqc_pq_key_t a, xqc_pq_key_t b);
 
-/*
- * element默认比较函数 a的优先级小于b的优先级
- * 从大到小出队
- * */
+/* default element compare function, priority: a < b */
 static inline int xqc_pq_default_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
 {
     return (a < b) ? 1 : 0;
 }
 
-/*
- * element反向比较函数 b < a
- * 从小到大出队
- * */
+/* revert element compare function, priority: b < a */
 static inline int xqc_pq_revert_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
 {
     return (b < a) ? 1 : 0;
@@ -52,12 +41,12 @@ static inline int xqc_pq_revert_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
 
 typedef struct xqc_priority_queue_s
 {
-    char* elements;         /*元素列表*/
-    size_t element_size;    /*元素对象的内存大小*/
-    size_t count;           /*元素数量*/
-    size_t capacity;        /*容量*/
-    xqc_allocator_t a;      /*内存配置器*/
-    xqc_pq_compare_ptr cmp; /*比较器*/
+    char* elements;         /* elements */
+    size_t element_size;    /* memory size of element objects */
+    size_t count;           /* number of elements */
+    size_t capacity;        /* capacity */
+    xqc_allocator_t a;      /* memory allocator */
+    xqc_pq_compare_ptr cmp; /* compare function */
 } xqc_pq_t;
 
 #define xqc_pq_element(pq, index) ((xqc_pq_element_t*)&(pq)->elements[(index) * (pq)->element_size])
@@ -109,7 +98,6 @@ static inline void xqc_pq_element_swap(xqc_pq_t *pq, size_t i, size_t j)
 static inline xqc_pq_element_t* xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
 {
     if (pq->count == pq->capacity) {
-        /*扩容*/
         size_t capacity = pq->capacity * 2;
         size_t size = capacity * pq->element_size;
         void* buf = pq->a.malloc(pq->a.opaque, size);
@@ -127,14 +115,12 @@ static inline xqc_pq_element_t* xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
 
     size_t i = pq->count++;
     while (i != 0) {
-        int j = (i - 1) / 2; /*父节点*/
+        int j = (i - 1) / 2;
         if (!pq->cmp(xqc_pq_element(pq, j)->key, xqc_pq_element(pq, i)->key))
             break;
 
-        /*swap*/
         xqc_pq_element_swap(pq, i, j);
 
-        /*父节点变为待调整元素*/
         i = j;
     }
 

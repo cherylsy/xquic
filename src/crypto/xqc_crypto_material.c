@@ -73,7 +73,7 @@ void
 xqc_init_initial_crypto_ctx(xqc_connection_t * conn)
 {
     xqc_tls_context_t * ctx = &conn->tlsref.hs_crypto_ctx;
-    // 从之前的实现看，inittial加密等级会无视no crypto 。
+    /* inittial encryption level will ignore no crypto */
     (void) xqc_complete_crypto_ctx(ctx,0x03001301u,/** no crypto */ 0);
 }
 
@@ -97,7 +97,7 @@ err:
 xqc_int_t
 xqc_setup_crypto_ctx(xqc_connection_t * conn, 
     xqc_encrypt_level_t level, const uint8_t *secret, size_t secretlen,
-    uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+    uint8_t *key, size_t *keylen,
     uint8_t *iv, size_t *ivlen,
     uint8_t *hp, size_t *hplen)
 {
@@ -130,7 +130,7 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,
         return -XQC_TLS_CRYPTO_CTX_NEGOTIATED_ERROR;
     }
 
-    // 计算密钥套件所需的key nonce 和 hp
+    /* calculate the key nonce and hp */
     if (xqc_derive_packet_protection(ctx, secret, secretlen, key, keylen, iv, ivlen, hp, hplen, conn->log) != XQC_SSL_SUCCESS) {
         XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR);
         return -XQC_TLS_DERIVE_KEY_ERROR ;
@@ -663,7 +663,7 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
 xqc_int_t
 xqc_derive_packet_protection(
     const xqc_tls_context_t *ctx, const uint8_t *secret, size_t secretlen,
-    uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+    uint8_t *key, size_t *keylen,
     uint8_t *iv, size_t *ivlen,
     uint8_t *hp, size_t *hplen,
     xqc_log_t *log)

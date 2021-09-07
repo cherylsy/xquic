@@ -15,7 +15,7 @@
    in computing the QUIC maximum packet size to allow for unknown tunnel
    overheads or IP header options/extensions.
  */
-#define XQC_PACKET_OUT_SIZE XQC_QUIC_MSS    //不含XQC_EXTRA_SPACE XQC_ACK_SPACE
+#define XQC_PACKET_OUT_SIZE XQC_QUIC_MSS  /* without XQC_EXTRA_SPACE & XQC_ACK_SPACE */
 #define XQC_EXTRA_SPACE XQC_TLS_AEAD_OVERHEAD_MAX_LEN
 #define XQC_ACK_SPACE 16
 #define XQC_PACKET_OUT_SIZE_EXT (XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE)

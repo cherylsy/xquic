@@ -7,15 +7,15 @@
 
 
 void xqc_init_initial_crypto_ctx(xqc_connection_t * conn);
-/** 
- * 目前 application 和 handhsake 总是共用一套加密套件 
- * early_data 可能会出现 不一致的情况。
- * */
+/*
+ * application and handhsake always share a common encryption suite,
+ * early_data may be inconsistent.
+ */
 xqc_int_t xqc_init_crypto_ctx(xqc_connection_t * conn,const SSL_CIPHER * cipher);
 
-// Configure encryption algorithms at different stages within the connection
+/* Configure encryption algorithms at different stages within the connection */
 xqc_int_t  xqc_setup_crypto_ctx(xqc_connection_t * conn,xqc_encrypt_level_t level,const uint8_t *secret, size_t secretlen,
-        uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+        uint8_t *key, size_t *keylen,
         uint8_t *iv, size_t *ivlen,
         uint8_t *hp, size_t *hplen);
 
@@ -30,9 +30,12 @@ int xqc_derive_server_initial_secret(uint8_t *dest, size_t destlen,
         const uint8_t *secret, size_t secretlen);
 
 
-// 我们需要利用ctx->prf算法进行hkdf操作，这意味着算法得到的最大的key是 ctx->prf算法的最大输出。
-// 如 sha1 -> 20 ; sha128 -> 16 ; sha256 -> 32 ; sha384->64 ; poly1305 -> 
-// 调用者需要确保destlen >= output_len(ctx->prf) >= key_len(ctx->aead)
+/*
+ * we need to use ctx->prf algorithm for hkdf operation, which means that the
+ * maximum key obtained by the algorithm is the maximum output of ctx->prf algorithm.
+ * such as sha1 -> 20 ; sha128 -> 16 ; sha256 -> 32 ; sha384 -> 64 ; poly1305 ->
+ * caller needs to make sure that destlen >= output_len(ctx->prf) >= key_len(ctx->aead)
+ */
 
 
 ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
@@ -126,7 +129,7 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid );
 
 xqc_int_t xqc_derive_packet_protection(
     const xqc_tls_context_t *ctx, const uint8_t *secret, size_t secretlen,
-    uint8_t *key, size_t *keylen,  /** [*len] 是值结果参数 */
+    uint8_t *key, size_t *keylen,
     uint8_t *iv, size_t *ivlen,
     uint8_t *hp, size_t *hplen,
     xqc_log_t *log);

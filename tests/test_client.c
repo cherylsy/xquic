@@ -21,7 +21,6 @@ int printf_null(const char *format, ...)
     return 0;
 }
 
-//打开注释 不打印printf
 //#define printf printf_null
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
@@ -59,7 +58,7 @@ typedef struct user_stream_s {
     FILE               *recv_body_fp;
     int                 recv_fin;
     xqc_msec_t          start_time;
-    xqc_msec_t          first_frame_time; //首帧下载时间
+    xqc_msec_t          first_frame_time; //first frame download time
     xqc_msec_t          last_read_time;
     int                 abnormal_count;
 } user_stream_t;
@@ -158,7 +157,7 @@ static void xqc_client_timeout_callback(int fd, short what, void *arg);
 
 static inline uint64_t now()
 {
-    /*获取微秒单位时间*/
+    /* get microsecond unit time */
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
@@ -298,19 +297,21 @@ xqc_client_write_socket(
         g_test_case == -1;
     }
 
-    //printf("xqc_client_write_socket size=%zd, now=%llu, send_total=%d\n",size, now(), ++g_send_total);
     do {
         errno = 0;
 
         g_last_sock_op_time = now();
 
-        //res = write(fd, buf, size);
         if (TEST_DROP) { 
             return send_buf_size;
         }
-        if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
+        if (g_test_case == 5) { /* socket send fail */
+            g_test_case = -1;
+            errno = EAGAIN;
+            return XQC_SOCKET_EAGAIN;
+        }
 
-        // client Initial dcid corruption ...
+        /* client Initial dcid corruption */
         if (g_test_case == 22) {
             /* client initial dcid corruption, bytes [6, 13] is the DCID of xquic's Initial packet */
             g_test_case = -1;
@@ -318,7 +319,7 @@ xqc_client_write_socket(
             printf("test case 22, corrupt byte[6]\n");
         }
 
-        // client Initial scid corruption ...
+        /* client Initial scid corruption */
         if (g_test_case == 23) {
             /* bytes [15, 22] is the SCID of xquic's Initial packet */
             g_test_case = -1;
@@ -327,7 +328,6 @@ xqc_client_write_socket(
         }
 
         res = sendto(fd, send_buf, send_buf_size, 0, peer_addr, peer_addrlen);
-        //printf("xqc_client_write_socket %zd %s\n", res, strerror(errno));
         if (res < 0) {
             printf("xqc_client_write_socket err %zd %s\n", res, strerror(errno));
             if (errno == EAGAIN) {
@@ -335,9 +335,6 @@ xqc_client_write_socket(
             }
         }
     } while ((res < 0) && (errno == EINTR));
-    /*socklen_t tmp = sizeof(struct sockaddr_in);
-    getsockname(fd, (struct sockaddr *)&user_conn->local_addr, &tmp);*/
-
 
     return res;
 }
@@ -362,7 +359,13 @@ xqc_client_write_mmsg(const struct iovec *msg_iov, unsigned int vlen,
     do {
         errno = 0;
         if (TEST_DROP) return vlen;
-        if (g_test_case == 5/*socket写失败*/) {g_test_case = -1; errno = EAGAIN; return XQC_SOCKET_EAGAIN;}
+
+        if (g_test_case == 5) { /* socket send fail */
+            g_test_case = -1;
+            errno = EAGAIN;
+            return XQC_SOCKET_EAGAIN;
+        }
+
         res = sendmmsg(fd, mmsg, vlen, 0);
         if (res < 0) {
             printf("sendmmsg err %zd %s\n", res, strerror(errno));
@@ -540,11 +543,11 @@ xqc_client_user_conn_create(const char *server_addr, int server_port,
 {
     user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
 
-    /* 是否使用http3 */
+    /* use HTTP3? */
     user_conn->h3 = transport ? 0 : 1;
 
     user_conn->ev_timeout = event_new(eb, -1, 0, xqc_client_timeout_callback, user_conn);
-    /* 设置连接超时 */
+    /* set connection timeout */
     struct timeval tv;
     tv.tv_sec = g_conn_timeout;
     tv.tv_usec = 0;
@@ -773,7 +776,7 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
             return -1;
         }
 
-        /* 指定大小 > 指定文件 > 默认大小 */
+        /* specified size > specified file > default size */
         if (g_send_body_size_defined) {
             user_stream->send_body_len = g_send_body_size;
         } else if (g_read_body) {
@@ -867,11 +870,11 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
         }
         if(save) fflush(user_stream->recv_body_fp);
 
-        /* 保存接收到的body到内存 */
+        /* write received body to memory */
         if (g_echo_check && user_stream->recv_body_len + read <= user_stream->send_body_len) {
             memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
         }
-        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+
         read_sum += read;
         user_stream->recv_body_len += read;
 
@@ -879,11 +882,13 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
 
     printf("xqc_stream_recv read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
 
-    if (g_test_case == 14/*测试秒开率*/ && user_stream->first_frame_time == 0 && user_stream->recv_body_len >= 98*1024) {
+    /* test first frame rendering time */
+    if (g_test_case == 14 && user_stream->first_frame_time == 0 && user_stream->recv_body_len >= 98*1024) {
         user_stream->first_frame_time = now();
     }
 
-    if (g_test_case == 14/*测试卡顿率*/) {
+    /* test abnormal rate */
+    if (g_test_case == 14) {
         xqc_msec_t tmp = now();
         if (tmp - user_stream->last_read_time > 150*1000 && user_stream->last_read_time != 0 ) {
             user_stream->abnormal_count++;
@@ -933,13 +938,16 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
         }
         printf(">>>>>>>> pass:%d\n", pass);
     }
-    if (g_test_case == 14/*测试秒开率*/ ) {
+
+    /* test first frame rendering time */
+    if (g_test_case == 14) {
         printf("first_frame_time: %"PRIu64", start_time: %"PRIu64"\n", user_stream->first_frame_time, user_stream->start_time);
-        xqc_msec_t t = user_stream->first_frame_time - user_stream->start_time + 200000/*服务端处理耗时*/;
+        xqc_msec_t t = user_stream->first_frame_time - user_stream->start_time + 200000 /* server-side time consumption */;
         printf("\033[33m>>>>>>>> first_frame pass:%d time:%"PRIu64"\033[0m\n", t <= 1000000 ? 1 : 0, t);
     }
 
-    if (g_test_case == 14/*测试卡顿率*/ ) {
+    /* test abnormal rate */
+    if (g_test_case == 14) {
         printf("\033[33m>>>>>>>> abnormal pass:%d count:%d\033[0m\n", user_stream->abnormal_count == 0 ? 1 : 0, user_stream->abnormal_count);
     }
     free(user_stream->send_body);
@@ -969,7 +977,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             return -1;
         }
 
-        /* 指定大小 > 指定文件 > 默认大小 */
+        /* specified size > specified file > default size */
         if (g_send_body_size_defined) {
             user_stream->send_body_len = g_send_body_size;
         } else if (g_read_body) {
@@ -1147,15 +1155,15 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     //DEBUG;
     ssize_t ret = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
-    if (g_test_case == 1/*Reset stream*/) {
+    if (g_test_case == 1) { /* reset stream */
         xqc_h3_request_close(h3_request);
         return 0;
     }
-    if (g_test_case == 2/*主动关闭连接*/) {
+    if (g_test_case == 2) { /* user close connection */
         xqc_h3_conn_close(ctx.engine, &user_stream->user_conn->cid);
         return 0;
     }
-    if (g_test_case == 3/*流可写通知失败；出错关闭连接*/) {
+    if (g_test_case == 3) { /* close connection with error */
         return -1;
     }
     ret = xqc_client_request_send(h3_request, user_stream);
@@ -1168,7 +1176,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    if (g_test_case == 21 /*Reset stream*/) {
+    if (g_test_case == 21) { /* reset stream */
         xqc_h3_request_close(h3_request);
         return 0;
     }
@@ -1193,7 +1201,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
         return 0;
     }
 
-    if (g_test_case == 12/*流读通知失败*/) { return -1;}
+    if (g_test_case == 12) { return -1;} /* stream read notify fail */
     if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
@@ -1208,11 +1216,12 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
         user_stream->header_recvd = 1;
 
         if (fin) {
-            /* 只有header，请求接收完成，处理业务逻辑 */
+            /* only header, receive request completed */
             user_stream->recv_fin = 1;
             return 0;
         }
-        //继续收body
+        
+        /* continue to receive body */
     }
 
     if (!(flag & XQC_REQ_NOTIFY_READ_BODY)) {
@@ -1257,11 +1266,11 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
         }
         if(save) fflush(user_stream->recv_body_fp);
 
-        /* 保存接收到的body到内存 */
+        /* write received body to memory */
         if (g_echo_check && user_stream->recv_body_len + read <= user_stream->send_body_len) {
             memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
         }
-        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+
         read_sum += read;
         user_stream->recv_body_len += read;
 
@@ -1437,16 +1446,33 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         uint64_t recv_time = now();
         g_last_sock_op_time = recv_time;
 
-        //printf("xqc_client_read_handler recv_size=%zd, recv_time=%llu\n", recv_size, recv_time);
-        /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(user_conn->peer_addr.sin_addr), ntohs(user_conn->peer_addr.sin_port));
-        printf("local_ip: %s, local_port: %d\n", inet_ntoa(user_conn->local_addr.sin_addr), ntohs(user_conn->local_addr.sin_port));*/
 
         if (TEST_DROP) continue;
-        if (g_test_case == 6/*socket读失败*/) {g_test_case = -1; break;}
-        if (g_test_case == 8/*接收到不存在连接的包*/) {g_test_case = -1; recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1; memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_A, recv_size);}
+
+        if (g_test_case == 6) { /* socket recv fail */
+            g_test_case = -1;
+            break;
+        }
+
+        if (g_test_case == 8) { /* packet with wrong cid */
+            g_test_case = -1;
+            recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1;
+            memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_A, recv_size);
+        }
+
         static char copy[XQC_PACKET_TMP_BUF_LEN];
-        if (g_test_case == 9/*接收到重复的包*/) {memcpy(copy, packet_buf, recv_size); again:;}
-        if (g_test_case == 10/*不合法的packet*/) {g_test_case = -1; recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_B)-1; memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_B, recv_size);}
+
+        if (g_test_case == 9) { /* duplicate packet */
+            memcpy(copy, packet_buf, recv_size);
+            again:;
+        }
+
+        if (g_test_case == 10) { /* illegal packet */
+            g_test_case = -1;
+            recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_B)-1;
+            memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_B,
+            recv_size);
+        }
 
         /* amplification limit */
         if (g_test_case == 25) {
@@ -1466,7 +1492,12 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
             return;
         }
 
-        if (g_test_case == 9/*接收到重复的包*/) {g_test_case = -1; memcpy(packet_buf, copy, recv_size); goto again;}
+        if (g_test_case == 9) { /* duplicate packet */
+            g_test_case = -1;
+            memcpy(packet_buf, copy, recv_size);
+            goto again;
+        }
+
     } while (recv_size > 0);
 
     if ((now() - last_recv_ts) > 200000) {
@@ -1731,23 +1762,23 @@ int main(int argc, char *argv[]) {
     while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:q:")) != -1){
         switch(ch)
         {
-            case 'a':
+            case 'a': /* Server addr. */
                 printf("option addr :%s\n", optarg);
                 snprintf(server_addr, sizeof(server_addr), optarg);
                 break;
-            case 'p':
+            case 'p': /* Server port. */
                 printf("option port :%s\n", optarg);
                 server_port = atoi(optarg);
                 break;
-            case 'P': //请求并发数
+            case 'P': /* Number of Parallel requests per single connection. Default 1. */
                 printf("option req_paral :%s\n", optarg);
                 req_paral = atoi(optarg);
                 break;
-            case 'n': //请求总数
+            case 'n': /* Total number of requests to send. Defaults 1. */
                 printf("option req_max :%s\n", optarg);
                 g_req_max = atoi(optarg);
                 break;
-            case 'c': //拥塞算法 r:reno b:bbr c:cubic B:bbr2
+            case 'c': /* Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2 bbr+ bbr2+ */
                 c_cong_ctl = optarg[0];
                 if (strncmp("bbr2", optarg, 4) == 0)
                     c_cong_ctl = 'B';
@@ -1756,23 +1787,23 @@ int main(int argc, char *argv[]) {
                     c_cong_plus = 1;
                 printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
                 break;
-            case 'C': //pacing on
+            case 'C': /* Pacing on */
                 printf("option pacing :%s\n", "on");
                 pacing_on = 1;
                 break;
-            case 't': //n秒后关闭连接
+            case 't': /* Connection timeout. Default 3 seconds. */
                 printf("option g_conn_timeout :%s\n", optarg);
                 g_conn_timeout = atoi(optarg);
                 break;
-            case 'T': //仅使用传输层，不使用HTTP3
+            case 'T': /* Transport layer. No HTTP3. */
                 printf("option transport :%s\n", "on");
                 transport = 1;
                 break;
-            case '1': //强制走1RTT
+            case '1': /* Force 1RTT. */
                 printf("option 1RTT :%s\n", "on");
                 use_1rtt = 1;
                 break;
-            case 's': //指定发送body字节数
+            case 's': /* Body size to send. */
                 printf("option send_body_size :%s\n", optarg);
                 g_send_body_size = atoi(optarg);
                 g_send_body_size_defined = 1;
@@ -1781,57 +1812,57 @@ int main(int argc, char *argv[]) {
                     exit(0);
                 }
                 break;
-            case 'w': //保存接收body到文件
+            case 'w': /* Write received body to file. */
                 printf("option save body :%s\n", optarg);
                 snprintf(g_write_file, sizeof(g_write_file), optarg);
                 g_save_body = 1;
                 break;
-            case 'r': //读取文件当body，优先级 s > r
+            case 'r': /* Read sending body from file. priority s > r */
                 printf("option read body :%s\n", optarg);
                 snprintf(g_read_file, sizeof(g_read_file), optarg);
                 g_read_body = 1;
                 break;
-            case 'l': //log level. e:error d:debug.
+            case 'l': /* Log level. e:error d:debug. */
                 printf("option log level :%s\n", optarg);
                 c_log_level = optarg[0];
                 break;
-            case 'E': //校验服务端echo数据
+            case 'E': /* Echo check on. Compare sent data with received data. */
                 printf("option echo check :%s\n", "on");
                 g_echo_check = 1;
                 break;
-            case 'd': //丢包率 ‰
+            case 'd': /* Drop rate ‰. */
                 printf("option drop rate :%s\n", optarg);
                 g_drop_rate = atoi(optarg);
                 srand((unsigned)time(NULL));
                 break;
-            case 'u': //请求url
+            case 'u': /* Url. default https://test.xquic.com/path/resource */
                 printf("option url :%s\n", optarg);
                 snprintf(g_url, sizeof(g_url), optarg);
                 g_spec_url = 1;
                 sscanf(g_url,"%[^://]://%[^/]%s", g_scheme, g_host, g_url_path);
                 break;
-            case 'H': //请求header
+            case 'H': /* Header. eg. key:value */
                 printf("option header :%s\n", optarg);
                 snprintf(g_headers[g_header_cnt], sizeof(g_headers[g_header_cnt]), "%s", optarg);
                 g_header_cnt++;
                 break;
-            case 'h': /* host & sni */
+            case 'h': /* Host & sni. eg. test.xquic.com */
                 printf("option host & sni :%s\n", optarg);
                 snprintf(g_host, sizeof(g_host), optarg);
                 break;
-            case 'G': //Get请求
+            case 'G': /* GET on. Default is POST */
                 printf("option get :%s\n", "on");
                 g_is_get = 1;
                 break;
-            case 'x': //test case id
+            case 'x': /* Test case ID */
                 printf("option test case id: %s\n", optarg);
                 g_test_case = atoi(optarg);
                 break;
-            case '6': //IPv6
+            case '6': /* IPv6 */
                 printf("option IPv6 :%s\n", "on");
                 g_ipv6 = 1;
                 break;
-            case 'N':
+            case 'N': /* No encryption */
                 printf("option No crypt: %s\n", "yes");
                 g_no_crypt = 1;
                 break;
@@ -1846,12 +1877,12 @@ int main(int argc, char *argv[]) {
                 snprintf(g_multi_interface[g_multi_interface_cnt], 
                          XQC_DEMO_INTERFACE_MAX_LEN, optarg);
                 break;
-            case 'V':
+            case 'V': /* Force cert verification. 0: don't allow self-signed cert. 1: allow self-signed cert. */
                 printf("option enable cert verify: %s\n", "yes");
                 g_verify_cert = 1;
                 g_verify_cert_allow_self_sign = atoi(optarg);
                 break;
-            case 'q':
+            case 'q': /* name-value pair num of request header, default and larger than 6. */
                 printf("option name-value pair num: %s\n", optarg);
                 g_header_num = atoi(optarg);
                 break;
@@ -1872,7 +1903,7 @@ int main(int argc, char *argv[]) {
 
     xqc_engine_ssl_config_t  engine_ssl_config;
     memset(&engine_ssl_config, 0 ,sizeof(engine_ssl_config));
-    /* private_key_file cert_file 客户端不用填 */
+    /* client does not need to fill in private_key_file & cert_file */
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
     engine_ssl_config.groups = XQC_TLS_GROUPS;
 
@@ -1881,7 +1912,7 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-        /* HTTP3不用设置这个回调 */
+        /* HTTP3 does not need to set this callback */
         .conn_callbacks = {
                 .conn_create_notify = xqc_client_conn_create_notify,
                 .conn_close_notify = xqc_client_conn_close_notify,
@@ -1890,28 +1921,28 @@ int main(int argc, char *argv[]) {
                 .conn_update_cid_notify = xqc_client_conn_update_cid_notify,
         },
         .h3_conn_callbacks = {
-                .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
-                .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* 连接关闭时回调,用户可以回收资源 */
-                .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* 握手完成时回调 */
+                .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* callback after connection creation, user can create their own connection contexts */
+                .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* callback on closure, user can recycle resources */
+                .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* callback when handshake done */
                 .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
                 .h3_conn_update_cid_notify = xqc_client_h3_conn_update_cid_notify,
         },
-        /* 仅使用传输层时实现 */
+        /* implemented when using only the transport layer */
         .stream_callbacks = {
-                .stream_write_notify = xqc_client_stream_write_notify, /* 可写时回调，用户可以继续调用写接口 */
-                .stream_read_notify = xqc_client_stream_read_notify, /* 可读时回调，用户可以继续调用读接口 */
-                .stream_close_notify = xqc_client_stream_close_notify, /* 关闭时回调，用户可以回收资源 */
+                .stream_write_notify = xqc_client_stream_write_notify, /* callback when writable, user can call the write interface */
+                .stream_read_notify = xqc_client_stream_read_notify, /* callback when readable, user can call the read interface */
+                .stream_close_notify = xqc_client_stream_close_notify, /* callback on closure, user can recycle resources */
         },
-        /* 使用应用层时实现 */
+        /* implemented when using the application layer */
         .h3_request_callbacks = {
-                .h3_request_write_notify = xqc_client_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
-                .h3_request_read_notify = xqc_client_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
-                .h3_request_close_notify = xqc_client_request_close_notify, /* 关闭时回调，用户可以回收资源 */
+                .h3_request_write_notify = xqc_client_request_write_notify, /* callback when writable, user can call the write interface */
+                .h3_request_read_notify = xqc_client_request_read_notify, /* callback when readable, user can call the read interface */
+                .h3_request_close_notify = xqc_client_request_close_notify, /* callback on closure, user can recycle resources */
         },
-        .write_socket = xqc_client_write_socket, /* 用户实现socket写接口 */
+        .write_socket = xqc_client_write_socket, /* user implementation of socket write interface */
         .ready_to_create_path_notify = xqc_client_ready_to_create_path,  /* init path when notified */
-        .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
-        .save_token = xqc_client_save_token, /* 保存token到本地，connect时带上 */
+        .set_event_timer = xqc_client_set_event_timer, /* call xqc_engine_main_logic when the timer expires */
+        .save_token = xqc_client_save_token, /* save token */
         .log_callbacks = {
                 .xqc_log_write_err = xqc_client_write_log,
         },
@@ -2065,7 +2096,7 @@ int main(int argc, char *argv[]) {
 
     const xqc_cid_t *cid;
     if (user_conn->h3) {
-        if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
+        if (g_test_case == 7) {user_conn->token_len = -1;} /* create connection fail */
         cid = xqc_h3_connect(ctx.engine, &conn_settings, user_conn->token, user_conn->token_len,
                              g_host, g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
                              user_conn->peer_addrlen, user_conn);
@@ -2079,7 +2110,8 @@ int main(int argc, char *argv[]) {
         xqc_engine_destroy(ctx.engine);
         return 0;
     }
-    /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
+
+    /* copy cid to its own memory space to prevent crashes caused by internal cid being freed */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
 
@@ -2088,7 +2120,11 @@ int main(int argc, char *argv[]) {
         user_stream_t *user_stream = calloc(1, sizeof(user_stream_t));
         user_stream->user_conn = user_conn;
         if (user_conn->h3) {
-            if (g_test_case == 11/*创建流失败*/) {xqc_cid_t tmp; xqc_h3_request_create(ctx.engine, &tmp, user_stream); continue;}
+            if (g_test_case == 11) { /* create stream fail */
+                xqc_cid_t tmp;
+                xqc_h3_request_create(ctx.engine, &tmp, user_stream);
+                continue;
+            }
             user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
             if (user_stream->h3_request == NULL) {
                 printf("xqc_h3_request_create error\n");

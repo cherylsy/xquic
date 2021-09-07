@@ -194,10 +194,10 @@ xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     if (/*sampler->delivered < 0 ||*/ sampler->interval <= 0) {
         return;
     }
-    /**
-     * 这里是用来检测是否到达下一个BBR周期
-     * 条件语句表示：周期开始的时候，发送完毕的packet数量小于等于当前ack的包在发送时
-     * 已经发送完毕的packet最大数量
+
+    /* check whether the next BBR cycle is reached
+     * at the beginning of the cycle, the number of packets sent is less than or equal to
+     * the maximum number of packets that have been sent when the current ack packet is sent.
      */
     if (bbr->next_round_delivered <= sampler->prior_delivered) {
         bbr->next_round_delivered = sampler->total_acked;

@@ -60,29 +60,29 @@ typedef struct {
 } xqc_send_ctl_timer_t;
 
 
-#define XQC_DEFAULT_RECORD_INTERVAL (100000)   //100毫秒的记录间隔
-#define XQC_DEFAULT_RTT_CHANGE_THRESHOLD (50 * 1000) //50毫秒
-#define XQC_DEFAULT_BW_CHANGE_THRESHOLD (50) //带宽改变的百分比
+#define XQC_DEFAULT_RECORD_INTERVAL (100000)         /* 100ms record interval */
+#define XQC_DEFAULT_RTT_CHANGE_THRESHOLD (50 * 1000) /* 50ms */
+#define XQC_DEFAULT_BW_CHANGE_THRESHOLD (50)         /* percentage of bandwidth change */
 typedef struct {
-    xqc_usec_t  last_record_time; //上次周期性记录的时间
-    xqc_usec_t  last_rtt_time; //上次rtt发生大变化的时间
-    xqc_usec_t  last_lost_time; //上次记录发生丢包的时间
-    xqc_usec_t  last_bw_time; //上次记录bandwidth发生剧烈变化的时间
-    uint64_t    record_interval; //所有类型的记录在该间隔内都只记录一次
-    uint64_t    rtt_change_threshold; //rtt发生变化的阈值
-    uint64_t    bw_change_threshold;//bandwidth发生变化的阈值
-    uint64_t    last_lost_count;//上次记录的丢包数目
-    uint64_t    last_send_count;//上次记录的发包数目
+    xqc_usec_t  last_record_time;     /* last periodic record time */
+    xqc_usec_t  last_rtt_time;        /* last time the rtt was drastically changed */
+    xqc_usec_t  last_lost_time;       /* last time a packet loss was recorded */
+    xqc_usec_t  last_bw_time;         /* last time the bandwidth was drastically changed */
+    uint64_t    record_interval;      /* all types of records are recorded only once in the interval */
+    uint64_t    rtt_change_threshold; /* threshold of rtt change */
+    uint64_t    bw_change_threshold;  /* threshold of bandwidth change */
+    uint64_t    last_lost_count;      /* number of packets lost in the last record */
+    uint64_t    last_send_count;      /* number of packets sent in the last record */
 }xqc_send_ctl_info_t;
 
 typedef struct xqc_send_ctl_s {
-    xqc_list_head_t             ctl_send_packets; //xqc_packet_out_t to send
-    xqc_list_head_t             ctl_send_packets_high_pri; //xqc_packet_out_t to send with high priority
-    xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; //xqc_packet_out_t
+    xqc_list_head_t             ctl_send_packets;               /* xqc_packet_out_t to send */
+    xqc_list_head_t             ctl_send_packets_high_pri;      /* xqc_packet_out_t to send with high priority */
+    xqc_list_head_t             ctl_unacked_packets[XQC_PNS_N]; /* xqc_packet_out_t */
     xqc_list_head_t             ctl_pto_probe_packets;
-    xqc_list_head_t             ctl_lost_packets; //xqc_packet_out_t
-    xqc_list_head_t             ctl_free_packets; //xqc_packet_out_t
-    xqc_list_head_t             ctl_buff_1rtt_packets; //xqc_packet_out_t buff 1RTT before handshake complete
+    xqc_list_head_t             ctl_lost_packets;               /* xqc_packet_out_t */
+    xqc_list_head_t             ctl_free_packets;               /* xqc_packet_out_t */
+    xqc_list_head_t             ctl_buff_1rtt_packets;          /* xqc_packet_out_t buff 1RTT before handshake complete */
     unsigned                    ctl_packets_used;
     unsigned                    ctl_packets_free;
     unsigned                    ctl_packets_used_max;
@@ -90,20 +90,21 @@ typedef struct xqc_send_ctl_s {
 
     xqc_packet_number_t         ctl_packet_number[XQC_PNS_N];
 
-    /* 发送ACK且被ACK的packet_out中，Largest Acknowledged的最大值
-     * 确保了ACK已被对端收到，因此发送方可以不再生成小于该值的ACK*/
+    /* maximum value of Largest Acknowledged in the packet_out that sent ACK and was ACKed
+     * ensures that the ACK has been received by the peer,
+     * so that the sender can no longer generate ACKs smaller than that value */
     xqc_packet_number_t         ctl_largest_ack_both[XQC_PNS_N];
 
-    /* 已发送的最大packet number */
+    /* largest packet number of the packets sent */
     xqc_packet_number_t         ctl_largest_sent[XQC_PNS_N];
 
-    /* 已接收的最大packet number */
+    /* largest packet number of the packets received */
     xqc_packet_number_t         ctl_largest_recvd[XQC_PNS_N];
 
-    /* packet_out中被ACK的最大的packet number */
+    /* largest packet number of the acked packets in packet_out */
     xqc_packet_number_t         ctl_largest_acked[XQC_PNS_N];
 
-    /* packet_out的发送时间 */
+    /* sending time of packet_out */
     xqc_usec_t                  ctl_largest_acked_sent_time[XQC_PNS_N];
 
     xqc_usec_t                  ctl_loss_time[XQC_PNS_N];
@@ -145,13 +146,12 @@ typedef struct xqc_send_ctl_s {
     xqc_pacing_t                ctl_pacing;
 
     uint64_t                    ctl_prior_delivered; /* the amount of data delivered in the last call of on_ack_received*/
-    uint64_t                    ctl_delivered; /* 表示当前ack时刻已经标记为发送完毕的数据量 */
-    uint64_t                    ctl_app_limited; /* The index of the last transmitted packet marked as
-   application-limited, or 0 if the connection is not currently
-   application-limited. */
-    xqc_usec_t                  ctl_delivered_time; /* 当前packet P被ack的时间 */
-    xqc_usec_t                  ctl_first_sent_time; /* 当前采样周期中第一个packet的发送时间 */
-    /*how many packets have been lost so far?*/
+    uint64_t                    ctl_delivered;       /* the amount of data that has been marked as sent at the current ack moment */
+    uint64_t                    ctl_app_limited;     /* The index of the last transmitted packet marked as application-limited,
+                                                      * or 0 if the connection is not currently application-limited. */
+    xqc_usec_t                  ctl_delivered_time;  /* time when the current packet was acked */
+    xqc_usec_t                  ctl_first_sent_time; /*sSend time of the first packet in the current sampling period */
+    /* how many packets have been lost so far? */
     uint32_t                    ctl_lost_pkts_number; 
 
     xqc_packet_number_t         ctl_reordering_packet_threshold;
@@ -170,9 +170,6 @@ xqc_send_ctl_calc_pto(xqc_send_ctl_t *ctl)
         + ctl->ctl_conn->local_settings.max_ack_delay * 1000;
 }
 
-/*
- * 写缓存
- */
 static inline int
 xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
 {

@@ -321,7 +321,7 @@ xqc_stream_do_recv_flow_ctl(xqc_stream_t *stream)
 int
 xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type)
 {
-    if (stream_id == XQC_UNDEFINE_STREAM_ID) { //主动创建的；发送方
+    if (stream_id == XQC_UNDEFINE_STREAM_ID) { /* sending part */
         if (stream_type == XQC_CLI_BID || stream_type == XQC_SVR_BID) {
             if (conn->cur_stream_id_bidi_local >= conn->conn_flow_ctl.fc_max_streams_bidi_can_send) {
                 xqc_log(conn->log, XQC_LOG_ERROR, "|exceed max_streams_bidi_can_send:%ui|",
@@ -337,7 +337,7 @@ xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id,
                 return -XQC_EPROTO;
             }
         }
-    } else { //被动创建的；接收方
+    } else { /* receiving part */
         stream_type = xqc_get_stream_type(stream_id);
         if (stream_type == XQC_CLI_BID || stream_type == XQC_SVR_BID) {
             if (stream_id >= 4 * conn->conn_flow_ctl.fc_max_streams_bidi_can_recv + stream_type) {
@@ -442,7 +442,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
         goto error;
     }
 
-    /* 新发起的stream可写 */
+    /* newly initiated stream is writable */
     if (stream_id == XQC_UNDEFINE_STREAM_ID) {
         xqc_stream_ready_to_write(stream);
     }
@@ -1085,7 +1085,7 @@ xqc_stream_send (xqc_stream_t *stream,
     int ret;
     xqc_stream_ready_to_write(stream);
     size_t send_data_written = 0;
-    size_t offset = 0; //本次send_data中的已写offset
+    size_t offset = 0; /* the written offset in send_data */
     uint8_t fin_only = fin && !send_data_size;
     uint8_t fin_only_done = 0;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_SHORT_HEADER;
@@ -1161,19 +1161,14 @@ xqc_stream_send (xqc_stream_t *stream,
     xqc_stream_shutdown_write(stream);
 
 do_buff:
-    /* 握手完成后再发送，移到缓存包队列 */
-    /*if (buff_1rtt) {
-        xqc_conn_buff_1rtt_packets(conn);
-    }*/
-
-    /* 0RTT失败需要回退到1RTT，保存原始发送数据 */
+    /* 0RTT failure requires fallback to 1RTT, save the original send data */
     if (pkt_type == XQC_PTYPE_0RTT) {
-        /* fin还未写入packet */
+        /* fin not yet written to packet */
         if (offset != send_data_size && fin) {
             fin = 0;
         }
 
-        /* 如果没有写入任何数据或fin，则不需要缓存 */
+        /* if no data or fin is written, no buff required */
         if (offset > 0 || fin_only) {
             xqc_stream_buff_data(stream, send_data, offset, fin);
         }
@@ -1196,7 +1191,7 @@ do_buff:
         }
     }
 
-    /* 有应用层的由应用层调用主循环 */
+    /* application layer call the main logic */
     if (!(stream->stream_flag & XQC_STREAM_FLAG_HAS_H3)) {
         xqc_engine_main_logic_internal(conn->engine, conn);
     }

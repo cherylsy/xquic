@@ -295,9 +295,6 @@ xqc_demo_svr_stream_create_notify(xqc_stream_t *stream, void *user_data)
     xqc_demo_svr_user_stream_t *user_stream = calloc(1, sizeof(xqc_demo_svr_user_stream_t));
     user_stream->stream = stream;
 
-    // TODO: 不再使用，需要考虑user_data具体是什么，或者从xqc_demo_svr_ctx_t中遍历寻找
-    // user_stream->conn = (xqc_demo_svr_user_conn_t*)user_data;
-
     xqc_stream_set_user_data(stream, user_stream);
 
     user_stream->recv_buf = calloc(1, REQ_BUF_SIZE);
@@ -863,7 +860,6 @@ xqc_demo_svr_socket_read_handler(xqc_demo_svr_ctx_t *ctx, int fd)
         recv_size = recvfrom(fd, packet_buf, sizeof(packet_buf), 0,
                              (struct sockaddr *) &peer_addr, &peer_addrlen);
         if (recv_size < 0 && errno == EAGAIN) {
-            //printf("!!!!!!!!!errno EAGAIN\n");
             break;
         }
 

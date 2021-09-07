@@ -16,5 +16,5 @@ int xqc_hkdf_expand_label(uint8_t *dest, size_t destlen, const uint8_t *secret,
     p = xqc_cpymem(p, LABEL, xqc_lengthof(LABEL));
     p = xqc_cpymem(p, label, labellen);
     *p++ = 0;
-    return xqc_hkdf_expand(dest, destlen, secret, secretlen, info, p - info, md); // p-info 存疑,need finish
+    return xqc_hkdf_expand(dest, destlen, secret, secretlen, info, p - info, md);
 }

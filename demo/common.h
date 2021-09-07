@@ -84,7 +84,7 @@ xqc_demo_read_file_data(char * data, size_t data_len, char *filename)
 static inline uint64_t
 xqc_demo_now()
 {
-    /*获取微秒单位时间*/
+    /* get microsecond unit time */
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;

@@ -109,7 +109,7 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
 	    rand_gen->rand_buf.len = total_read;   
     }
 
-    xqc_memcpy(buf, rand_gen->rand_buf.data + rand_gen->rand_buf_offset, need_len);//TODO: 优化不用memcpy
+    xqc_memcpy(buf, rand_gen->rand_buf.data + rand_gen->rand_buf_offset, need_len);
 
     rand_gen->rand_buf_offset += need_len;
 #else

@@ -8,41 +8,31 @@
 #include "src/common/xqc_memory_pool.h"
 
 /*
- * 为cid做的hash table特化，接口参考:xqc_id_hash
- * */
+ * hash table for CID
+ * interfase reference: xqc_id_hash.h
+ */
 
-/*
- * 哈希表元素
- * */
 typedef struct xqc_cid_hash_element_s
 {
     uint8_t cid_len;
-    uint8_t cid_buf[XQC_MAX_CID_LEN]; /**/
-    void *value; /*关联的元素数据*/
+    uint8_t cid_buf[XQC_MAX_CID_LEN];
+    void *value; /* associated element data */
 } xqc_cid_hash_element_t;
 
-/*
- * hash冲突链节点
- * */
 typedef struct xqc_cid_hash_node_s
 {
-    struct xqc_cid_hash_node_s *next; /*冲突链*/
-    xqc_cid_hash_element_t element; /*元素*/
+    struct xqc_cid_hash_node_s *next;
+    xqc_cid_hash_element_t element;
 } xqc_cid_hash_node_t;
 
-/*
- * hash表
- * */
 typedef struct xqc_cid_hash_table_s
 {
-    xqc_cid_hash_node_t **list; /*桶列表*/
-    size_t count; /*桶的数目*/
-    xqc_allocator_t allocator; /*内存配置器*/
+    xqc_cid_hash_node_t **list; 
+    size_t count;
+    xqc_allocator_t allocator;
 } xqc_cid_hash_table_t;
 
-/*
- * 哈希表初始化
- * */
+
 static inline int 
 xqc_cid_hash_init(xqc_cid_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
@@ -56,9 +46,7 @@ xqc_cid_hash_init(xqc_cid_hash_table_t* hash_tab,  xqc_allocator_t allocator, si
     return XQC_OK;
 }
 
-/*
- * 哈希表释放
- * */
+
 static inline void 
 xqc_cid_hash_release(xqc_cid_hash_table_t* hash_tab)
 {
@@ -74,9 +62,7 @@ xqc_cid_hash_release(xqc_cid_hash_table_t* hash_tab)
     a->free(a->opaque, hash_tab->list);
 }
 
-/*
- * 求cid哈希值(内部实现)
- * */
+
 static inline uint64_t 
 xqc_cid_hash(const uint8_t *cid_buf, uint8_t cid_len)
 {
@@ -99,9 +85,7 @@ xqc_cid_hash(const uint8_t *cid_buf, uint8_t cid_len)
     return hash;
 }
 
-/*
- * 查找
- * */
+
 static inline void* 
 xqc_cid_hash_find(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t cid_len)
 {
@@ -121,11 +105,9 @@ xqc_cid_hash_find(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_
     return NULL;
 }
 
-/*
- * 添加元素
- * */
+
 static inline int 
-xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t cid_len, void *value/*关联数据*/)
+xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t cid_len, void *value)
 {
     if (cid_len > XQC_MAX_CID_LEN) {
         return XQC_ERROR;
@@ -134,16 +116,15 @@ xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t
     uint64_t hash = xqc_cid_hash(cid_buf, cid_len);
     uint64_t index = hash % hash_tab->count;
 
-    /*查找是不是存在相同cid*/
+    /* duplicate connection id */
     xqc_cid_hash_node_t* node = hash_tab->list[index];
     while (node) {
         if (cid_len == node->element.cid_len && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len)) {
-            return XQC_ERROR; /*重复*/
+            return XQC_ERROR;
         }
         node = node->next;
     }
 
-    /*添加*/
     xqc_allocator_t *a = &hash_tab->allocator;
     node = a->malloc(a->opaque, sizeof(xqc_cid_hash_node_t));
     if (node == NULL) {
@@ -152,7 +133,7 @@ xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t
 
     node->element.cid_len = cid_len;
     memcpy(node->element.cid_buf, cid_buf, cid_len);
-    memset(node->element.cid_buf + cid_len, 0, sizeof(node->element.cid_buf) - cid_len); /*此行可有可无*/
+    memset(node->element.cid_buf + cid_len, 0, sizeof(node->element.cid_buf) - cid_len);
     node->element.value = value;
     node->next = hash_tab->list[index];
     hash_tab->list[index] = node;
@@ -160,9 +141,7 @@ xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t
     return XQC_OK;
 }
 
-/*
- * 删除元素
- * */
+
 static inline int 
 xqc_cid_hash_delete(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t cid_len)
 {
@@ -176,7 +155,7 @@ xqc_cid_hash_delete(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint
     xqc_cid_hash_node_t* node = hash_tab->list[index];
     while (node) {
         if (cid_len == node->element.cid_len && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len)) {
-            *pp = node->next; /*从冲突链删除*/
+            *pp = node->next;
             return XQC_OK;
         }
 

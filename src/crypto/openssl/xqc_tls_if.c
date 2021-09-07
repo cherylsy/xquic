@@ -289,7 +289,7 @@ xqc_add_handshake_data(SSL *ssl, enum ssl_encryption_level_t level,
         pktns = &conn->tlsref.initial_pktns;
         break;
     case ssl_encryption_early_data:
-        // 不会有这个等级的数据
+        /* there will be no data with ssl_encryption_early_data */
         return XQC_SSL_FAIL;
     case ssl_encryption_handshake:
         pktns = &conn->tlsref.hs_pktns;

@@ -12,24 +12,22 @@ typedef struct {
     struct xqc_connection_s *conn;
 } xqc_wakeup_pq_elem_t;
 
-/*
- * element比较函数
- * */
+/* element compare function */
 typedef int (*xqc_wakeup_pq_compare_ptr)(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_time_t b);
 
 /*
- * element默认比较函数 a的优先级小于b的优先级
- * 从大到小出队
- * */
+ * default element compare function, priority: a < b
+ * higher priority first
+ */
 static inline int xqc_wakeup_pq_default_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_time_t b)
 {
     return (a < b) ? 1 : 0;
 }
 
 /*
- * element反向比较函数 b < a
- * 从小到大出队
- * */
+ * inverse element compare function, priority: a > b
+ * lower priority first
+ */
 static inline int xqc_wakeup_pq_revert_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_time_t b)
 {
     return (b < a) ? 1 : 0;
@@ -37,12 +35,12 @@ static inline int xqc_wakeup_pq_revert_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeup
 
 typedef struct xqc_wakeup_pq_s
 {
-    char* elements;         /*元素列表*/
-    size_t element_size;    /*元素对象的内存大小*/
-    size_t count;           /*元素数量*/
-    size_t capacity;        /*容量*/
-    xqc_allocator_t a;      /*内存配置器*/
-    xqc_wakeup_pq_compare_ptr cmp; /*比较器*/
+    char* elements;         /* elements */
+    size_t element_size;    /* memory size of element objects */
+    size_t count;           /* number of elements */
+    size_t capacity;        /* element capacity */
+    xqc_allocator_t a;      /* memory allocator */
+    xqc_wakeup_pq_compare_ptr cmp; /* compare function */
 } xqc_wakeup_pq_t;
 
 
@@ -102,7 +100,6 @@ static inline void xqc_wakeup_pq_element_swap(xqc_wakeup_pq_t *pq, size_t i, siz
 static inline xqc_wakeup_pq_elem_t* xqc_wakeup_pq_push(xqc_wakeup_pq_t *pq, xqc_pq_wakeup_time_t wakeup_time, struct xqc_connection_s *conn)
 {
     if (pq->count == pq->capacity) {
-        /*扩容*/
         size_t capacity = pq->capacity * 2;
         size_t size = capacity * pq->element_size;
         void* buf = pq->a.malloc(pq->a.opaque, size);
@@ -122,14 +119,12 @@ static inline xqc_wakeup_pq_elem_t* xqc_wakeup_pq_push(xqc_wakeup_pq_t *pq, xqc_
 
     size_t i = pq->count++;
     while (i != 0) {
-        int j = (i - 1) / 2; /*父节点*/
+        int j = (i - 1) / 2;
         if (!pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, i)->wakeup_time))
             break;
 
-        /*swap*/
         xqc_wakeup_pq_element_swap(pq, i, j);
 
-        /*父节点变为待调整元素*/
         i = j;
     }
 
@@ -188,7 +183,7 @@ static inline void xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connecti
     p->conn->wakeup_pq_index = pq_index;
 
     int i = pq_index, j = 2 * i + 1;
-    while (j <= pq->count - 1) { //调整子节点，保证最小堆性质
+    while (j <= pq->count - 1) {
         if (j < pq->count - 1 && pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, j+1)->wakeup_time)) {
             ++j;
         }
@@ -204,7 +199,7 @@ static inline void xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connecti
     }
 
     i = pq_index;
-    while(i != 0){  //调整父节点，保证最小堆性质
+    while(i != 0){
         j = (i - 1)/2;
         if (!pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, i)->wakeup_time)){
             break;

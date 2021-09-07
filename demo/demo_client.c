@@ -1082,7 +1082,7 @@ xqc_demo_cli_init_conn_ssl_config(xqc_conn_ssl_config_t *conn_ssl_config,
     memset(conn_ssl_config, 0, sizeof(xqc_conn_ssl_config_t));
 
     /* set alpn */
-    // TODO: alpn选择
+    // TODO: alpn select
     // conn_ssl_config->alpn = args->quic_cfg.alpn;
 
     /* set session ticket and transport parameter args */
@@ -1391,7 +1391,7 @@ xqc_demo_cli_parse_args(int argc, char *argv[], xqc_demo_cli_client_args_t *args
             break;
 
         /* request urls */
-        case 'U': // 请求URL，不再带入地址，从请求中进行解析
+        case 'U': // request URL, address is parsed from the request
             printf("option url only:%s\n", optarg);
             xqc_demo_cli_parse_urls(optarg, args);
             break;
@@ -1631,7 +1631,7 @@ void
 xqc_demo_cli_init_callback(xqc_engine_callback_t *cb, xqc_demo_cli_client_args_t* args)
 {
     static xqc_engine_callback_t callback = {
-        /* HTTP3不用设置这个回调 */
+        /* HTTP3 does not need to set this callback */
         .conn_callbacks = {
             .conn_create_notify = xqc_demo_cli_conn_create_notify,
             .conn_close_notify = xqc_demo_cli_conn_close_notify,
@@ -1646,22 +1646,22 @@ xqc_demo_cli_init_callback(xqc_engine_callback_t *cb, xqc_demo_cli_client_args_t
             .h3_conn_ping_acked = xqc_demo_cli_h3_conn_ping_acked_notify,
 //            .h3_conn_max_streams = client_h3_conn_max_streams,
         },
-        /* 仅使用传输层时实现 */
+        /* implemented when using only the transport layer */
         .stream_callbacks = {
             .stream_write_notify = xqc_demo_cli_stream_write_notify,
             .stream_read_notify = xqc_demo_cli_stream_read_notify,
             .stream_close_notify = xqc_demo_cli_stream_close_notify,
         },
-        /* 使用应用层时实现 */
+        /* implemented when using the application layer */
         .h3_request_callbacks = {
-            .h3_request_write_notify = xqc_demo_cli_h3_request_write_notify, /* 可写时回调，用户可以继续调用写接口 */
-            .h3_request_read_notify = xqc_demo_cli_h3_request_read_notify, /* 可读时回调，用户可以继续调用读接口 */
+            .h3_request_write_notify = xqc_demo_cli_h3_request_write_notify, /* callback when writable, user can call the write interface */
+            .h3_request_read_notify = xqc_demo_cli_h3_request_read_notify, /* callback when readable, user can call the read interface */
             .h3_request_create_notify = xqc_demo_cli_h3_request_create_notify,
-            .h3_request_close_notify = xqc_demo_cli_h3_request_close_notify, /* 关闭时回调，用户可以回收资源 */
+            .h3_request_close_notify = xqc_demo_cli_h3_request_close_notify, /* callback on closure, user can recycle resources */
         },
-        .write_socket = xqc_demo_cli_write_socket, /* 用户实现socket写接口 */
-        .set_event_timer = xqc_demo_cli_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
-        .save_token = xqc_demo_cli_save_token, /* 保存token到本地，connect时带上 */
+        .write_socket = xqc_demo_cli_write_socket, /* user implementation of socket write interface */
+        .set_event_timer = xqc_demo_cli_set_event_timer, /* call xqc_engine_main_logic when the timer expires */
+        .save_token = xqc_demo_cli_save_token, /* save token */
         .log_callbacks = {
             .xqc_log_write_err = xqc_demo_cli_write_log_file,
             .xqc_log_write_stat = xqc_demo_cli_write_log_file
@@ -1751,7 +1751,8 @@ xqc_demo_cli_init_xquic_connection(xqc_demo_cli_user_conn_t *user_conn,
         xqc_engine_destroy(user_conn->ctx->engine);
         return XQC_OK;
     }
-    /* cid要copy到自己的内存空间，防止内部cid被释放导致crash */
+
+    /* copy cid to its own memory space to prevent crashes caused by internal cid being freed */
     memcpy(&user_conn->cid, cid, sizeof(xqc_cid_t));
     return XQC_OK;
 }

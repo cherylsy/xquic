@@ -23,7 +23,7 @@ xqc_recv_record_print(xqc_connection_t *conn, xqc_recv_record_t *recv_record, ch
     xqc_list_head_t *pos, *next;
     xqc_pktno_range_node_t *pnode;
     buff[0] = '\0';
-    xqc_pktno_range_t range[3]; //最多记录3段
+    xqc_pktno_range_t range[3]; /* record up to 3 segments */
     memset(&range, 0, sizeof(range));
     int range_count = 0;
 

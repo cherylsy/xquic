@@ -500,7 +500,7 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 break;
 
             case XQC_H3_FRM_MAX_PUSH_ID:
-                // push相关暂不实现
+                /* PUSH related is not implemented yet */
                 h3c->max_stream_id_recvd = pctx->frame.frame_payload.max_push_id.push_id.vi;
                 break;
 
@@ -542,10 +542,10 @@ xqc_h3_stream_process_push(xqc_h3_stream_t *h3s, unsigned char *data, size_t dat
         if (pctx->state == XQC_H3_FRM_STATE_END) {
             switch (pctx->frame.type) {
             case XQC_H3_FRM_HEADERS:
-                // push相关暂不实现
+                /* PUSH related is not implemented yet */
                 break;
             case XQC_H3_FRM_DATA:
-                // push相关暂不实现
+                /* PUSH related is not implemented yet */
                 break;
             default:
                 xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_push error|error"
@@ -686,7 +686,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 break;
 
             case XQC_H3_FRM_PUSH_PROMISE:
-                // push相关暂不实现
+                /* PUSH related is not implemented yet */
                 break;
 
             default:

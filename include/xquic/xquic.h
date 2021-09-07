@@ -169,9 +169,9 @@ typedef struct xqc_log_callbacks_s {
 
 /* transport layer */
 typedef struct xqc_conn_callbacks_s {
-    /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+    /* callback after connection creation, user can create their own connection contexts */
     xqc_conn_notify_pt            conn_create_notify;         /* required for server, optional for client */
-    /* 连接关闭时回调,用户可以回收资源 */
+    /* callback on connection closure, user can recycle resources */
     xqc_conn_notify_pt            conn_close_notify;
     /* for handshake done */
     xqc_handshake_finished_pt     conn_handshake_finished;    /* optional */
@@ -183,9 +183,9 @@ typedef struct xqc_conn_callbacks_s {
 
 /* application layer */
 typedef struct xqc_h3_conn_callbacks_s {
-    /* 连接创建完成后回调,用户可以创建自己的连接上下文 */
+    /* callback after connection creation, user can create their own connection contexts */
     xqc_h3_conn_notify_pt            h3_conn_create_notify;       /* required for server, optional for client */
-    /* 连接关闭时回调,用户可以回收资源 */
+    /* callback on connection closure, user can recycle resources */
     xqc_h3_conn_notify_pt            h3_conn_close_notify;
     /* for handshake done */
     xqc_h3_handshake_finished_pt     h3_conn_handshake_finished;  /* optional */
@@ -197,20 +197,20 @@ typedef struct xqc_h3_conn_callbacks_s {
 
 /* transport layer */
 typedef struct xqc_stream_callbacks_s {
-    xqc_stream_notify_pt        stream_read_notify;     /* 可读时回调，用户可以继续调用读接口 */
-    xqc_stream_notify_pt        stream_write_notify;    /* 可写时回调，用户可以继续调用写接口 */
+    xqc_stream_notify_pt        stream_read_notify;     /* callback when readable, user can call the read interface */
+    xqc_stream_notify_pt        stream_write_notify;    /* callback when writable, user can call the write interface */
     xqc_stream_notify_pt        stream_create_notify;   /* required for server, optional for client，
-                                                         * 请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_stream_notify_pt        stream_close_notify;    /* 关闭时回调，用户可以回收资源 */
+                                                         * callback after request creation, user can create their own request contexts */
+    xqc_stream_notify_pt        stream_close_notify;    /* callback on closure, user can recycle resources */
 } xqc_stream_callbacks_t;
 
 /* application layer */
 typedef struct xqc_h3_request_callbacks_s {
-    xqc_h3_request_read_notify_pt   h3_request_read_notify;     /* 可读时回调，用户可以继续调用读接口，读headers或body */
-    xqc_h3_request_notify_pt        h3_request_write_notify;    /* 可写时回调，用户可以继续调用写接口,写headers或body */
+    xqc_h3_request_read_notify_pt   h3_request_read_notify;     /* callback when readable, user can call the read interface */
+    xqc_h3_request_notify_pt        h3_request_write_notify;    /* callback when writable, user can call the write interface */
     xqc_h3_request_notify_pt        h3_request_create_notify;   /* required for server, optional for client，
-                                                                 * 请求创建完成后回调，用户可以创建自己的请求上下文 */
-    xqc_h3_request_notify_pt        h3_request_close_notify;    /* 关闭时回调，用户可以回收资源 */
+                                                                 * callback after request creation, user can create their own request contexts */
+    xqc_h3_request_notify_pt        h3_request_close_notify;    /* callback on closure, user can recycle resources */
 } xqc_h3_request_callbacks_t;
 
 typedef struct xqc_cc_params_s {
@@ -222,19 +222,19 @@ typedef struct xqc_cc_params_s {
 } xqc_cc_params_t;
 
 typedef struct xqc_congestion_control_callback_s {
-    /* 初始化时回调，用于分配内存 */
+    /* Callback on initialization, for memory allocation */
     size_t (*xqc_cong_ctl_size) (void);
-    /* 连接初始化时回调，支持传入拥塞算法参数 */
+    /* Callback on connection initialization, support for passing in congestion algorithm parameters */
     void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params);
-    /* 核心回调，检测到丢包时回调，按照算法策略降低拥塞窗口 */
+    /* Callback when packet loss is detected, reduce congestion window according to algorithm */
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_usec_t lost_sent_time);
-    /* 核心回调，报文被ack时回调，按照算法策略增加拥塞窗口 */
+    /* Callback when packet acked, increase congestion window according to algorithm */
     void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now);
-    /* 发包时回调，用于判断包是否能发送 */
+    /* Callback when sending a packet, to determine if the packet can be sent */
     uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
-    /* 检测到一个RTT内所有包都丢失时回调，重置拥塞窗口 */
+    /* Callback when all packets are detected as lost within 1-RTT, reset the congestion window */
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
-    /* 判断是否在慢启动阶段 */
+    /* If the connection is in slow start state */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
     /* If the connection is in recovery state. */
@@ -275,10 +275,10 @@ typedef struct xqc_config_s {
     size_t          conns_hash_bucket_size;
     size_t          conns_active_pq_capacity;
     size_t          conns_wakeup_pq_capacity;
-    uint32_t        support_version_list[XQC_SUPPORT_VERSION_MAX];/* 支持的版本列表 */
-    uint32_t        support_version_count;                        /* 版本列表数量 */
+    uint32_t        support_version_list[XQC_SUPPORT_VERSION_MAX]; /* supported version list */
+    uint32_t        support_version_count;                         /* number of supported versions */
     uint8_t         cid_len;
-    uint8_t         cid_negotiate; /* just for server, default:0 */
+    uint8_t         cid_negotiate;                                 /* just for server, default:0 */
     char            reset_token_key[XQC_RESET_TOKEN_MAX_KEY_LEN];
     size_t          reset_token_keylen;
 } xqc_config_t;
@@ -294,13 +294,13 @@ typedef enum {
  */
 typedef struct xqc_engine_callback_s {
     /* for event loop */
-    xqc_set_event_timer_pt      set_event_timer;/* 设置定时器回调，定时器到期时用户需要调用xqc_engine_main_logic */
+    xqc_set_event_timer_pt      set_event_timer;/* call xqc_engine_main_logic when the timer expires */
 
     /* for socket write */
-    xqc_socket_write_pt         write_socket;   /* 用户实现socket写接口 */
+    xqc_socket_write_pt         write_socket;   /* user implementation of socket write interface */
 
     /* for send_mmsg write*/
-    xqc_send_mmsg_pt            write_mmsg;     /* 批量发送接口 */
+    xqc_send_mmsg_pt            write_mmsg;     /* sendmmsg interface */
 
     /* for server, callback when server accept a new connection */
     xqc_server_accept_pt        server_accept;
@@ -323,7 +323,7 @@ typedef struct xqc_engine_callback_s {
     /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
 
-    /* for client, 保存token到本地，connect时带上token, token包含客户端ip信息，用于验证客户端ip是否真实 */
+    /* for client, save token. connect with token to verify client ip is real. */
     xqc_save_token_pt           save_token;
 
     /* for client, save session data, Use the domain as the key to save */
@@ -449,8 +449,8 @@ typedef struct xqc_request_stats_s {
 
 typedef xqc_usec_t (*xqc_timestamp_pt)(void);
 
-extern xqc_timestamp_pt xqc_realtime_timestamp;  //获取现实世界的时间戳。
-extern xqc_timestamp_pt xqc_monotonic_timestamp; //获取单调递增的时间戳。
+extern xqc_timestamp_pt xqc_realtime_timestamp;  // get real-time timestamp
+extern xqc_timestamp_pt xqc_monotonic_timestamp; // get monotonically increasing timestamp
 
 /**
  * Modify engine config before engine created. Default config will be used otherwise.
