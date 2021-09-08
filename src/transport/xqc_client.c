@@ -97,21 +97,20 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
 }
 
 const xqc_cid_t *
-xqc_connect(xqc_engine_t *engine,
-    const xqc_conn_settings_t *conn_settings,
-    const unsigned char *token, unsigned token_len,
-    const char *server_host, int no_crypto_flag,
-    const xqc_conn_ssl_config_t *conn_ssl_config,
-    const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, void *user_data)
+xqc_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings, 
+    const unsigned char *token, unsigned token_len, const char *server_host, int no_crypto_flag,
+    const xqc_conn_ssl_config_t *conn_ssl_config, const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, const char *alpn, void *user_data)
 {
     xqc_connection_t *conn;
+    const char *app_proto = alpn ? alpn : XQC_ALPN_TRANSPORT;
+
     conn = xqc_client_connect(engine, conn_settings, token, token_len, server_host, no_crypto_flag, 
-                              conn_ssl_config, XQC_ALPN_TRANSPORT, peer_addr, peer_addrlen,
-                              user_data);
+                              conn_ssl_config, app_proto, peer_addr, peer_addrlen, user_data);
     if (conn) {
         return &conn->scid_set.user_scid;
     }
+
     return NULL;
 }
 
