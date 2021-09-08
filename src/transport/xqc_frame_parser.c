@@ -1338,7 +1338,7 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid, uint
 }
 
 /*
- * https://tools.ietf.org/html/draft-ietf-quic-transport-34#section-19.15
+ * https://datatracker.ietf.org/doc/html/rfc9000#section-19.15
  *
  * NEW_CONNECTION_ID Frame {
  *    Type (i) = 0x18,
@@ -1507,7 +1507,7 @@ xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
 }
 
 /*
- * https://tools.ietf.org/html/draft-ietf-quic-transport-34#section-19.16
+ * https://datatracker.ietf.org/doc/html/rfc9000#section-19.16
  *
  * RETIRE_CONNECTION_ID Frame {
  *    Type (i) = 0x19,
