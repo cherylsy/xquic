@@ -178,7 +178,7 @@ typedef struct xqc_conn_callbacks_s {
     /* ping is acked */
     xqc_conn_ping_ack_notify_pt   conn_ping_acked;            /* optional */
     /* user cid updated */
-    xqc_conn_update_cid_notify_pt conn_update_cid_notify;     /* optional */
+    xqc_conn_update_cid_notify_pt conn_update_cid_notify;     /* required for server and client */
 } xqc_conn_callbacks_t;
 
 /* application layer */
@@ -192,7 +192,7 @@ typedef struct xqc_h3_conn_callbacks_s {
     /* ping is acked */
     xqc_h3_conn_ping_ack_notify_pt   h3_conn_ping_acked;          /* optional */
     /* user cid updated */
-    xqc_h3_conn_update_cid_notify_pt h3_conn_update_cid_notify;     /* optional */
+    xqc_h3_conn_update_cid_notify_pt h3_conn_update_cid_notify;   /* required for server and client */
 } xqc_h3_conn_callbacks_t;
 
 /* transport layer */
