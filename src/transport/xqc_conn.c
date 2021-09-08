@@ -260,13 +260,17 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_init_scid_set(&xc->scid_set);
 
     xqc_cid_copy(&(xc->dcid_set.current_dcid), dcid);
-    xqc_cid_set_insert_cid(&xc->dcid_set.cid_set, dcid, XQC_CID_USED);
     xqc_hex_dump(xc->dcid_set.current_dcid_str, dcid->cid_buf, dcid->cid_len);
     xc->dcid_set.current_dcid_str[dcid->cid_len * 2] = '\0';
+    if (xqc_cid_set_insert_cid(&xc->dcid_set.cid_set, dcid, XQC_CID_USED, xc->local_settings.active_connection_id_limit)) {
+        goto fail;
+    }
 
     xqc_cid_copy(&(xc->scid_set.user_scid), scid);
-    xqc_cid_set_insert_cid(&xc->scid_set.cid_set, scid, XQC_CID_USED);
     xc->scid_set.largest_scid_seq_num = scid->cid_seq_num;
+    if (xqc_cid_set_insert_cid(&xc->scid_set.cid_set, scid, XQC_CID_USED, xc->remote_settings.active_connection_id_limit)) {
+        goto fail;
+    }
 
     xqc_cid_copy(&(xc->initial_scid), scid);
 
@@ -391,10 +395,14 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
          * and if client Initial retransmit, server might use odcid to
          * find the created conn
          */
-        xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &conn->original_dcid, XQC_CID_USED);
+        if (xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &conn->original_dcid, XQC_CID_USED, conn->remote_settings.active_connection_id_limit)) {
+            goto fail;
+        }
+
         if (xqc_insert_conns_hash(engine->conns_hash, conn, &conn->original_dcid)) {
             goto fail;
         }
+
         xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|", xqc_dcid_str(&conn->original_dcid), conn);
     }
 
@@ -2148,9 +2156,18 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
      *  might owing to:
      *  1) server is not willing to use the client's DCID as SCID;
      */
+
+    xqc_int_t ret;
+
     if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
+
         if (xqc_cid_in_cid_set(&c->dcid_set.cid_set, &pkt->pkt_scid) == NULL) {
-            xqc_cid_set_insert_cid(&c->dcid_set.cid_set, &pkt->pkt_scid, XQC_CID_USED);
+            ret = xqc_cid_set_insert_cid(&c->dcid_set.cid_set, &pkt->pkt_scid, XQC_CID_USED, c->local_settings.active_connection_id_limit);
+            if (ret != XQC_OK) {
+                xqc_log(c->log, XQC_LOG_ERROR, "|xqc_cid_set_insert_cid error|limit:%ui|unused:%ui|used:%ui|",
+                        c->local_settings.active_connection_id_limit, c->dcid_set.cid_set.unused_cnt, c->dcid_set.cid_set.used_cnt);
+                return ret;
+            }
         }
 
         if (XQC_OK != xqc_cid_is_equal(&c->dcid_set.current_dcid, &pkt->pkt_scid)) {
@@ -2469,23 +2486,30 @@ xqc_conn_destroy_cids(xqc_connection_t *conn)
 }
 
 
-void
+xqc_int_t
 xqc_conn_try_add_new_conn_id(xqc_connection_t *conn, uint64_t retire_prior_to)
 {
-    xqc_cid_t new_conn_cid;
-
     if (conn->conn_state == XQC_CONN_STATE_ESTABED && conn->scid_set.cid_set.unused_cnt == 0) {
-        xqc_write_new_conn_id_frame_to_packet(conn, retire_prior_to);
+        xqc_int_t ret = xqc_write_new_conn_id_frame_to_packet(conn, retire_prior_to);
+        if (ret != XQC_OK) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_conn_id_frame_to_packet error|");
+            return ret;
+        }
     }
+
+    return XQC_OK;
 }
 
-void
+xqc_int_t
 xqc_conn_try_retire_conn_id(xqc_connection_t *conn, uint64_t seq_num)
 {
     xqc_int_t ret = xqc_write_retire_conn_id_frame_to_packet(conn, seq_num);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_retire_conn_id_frame_to_packet error|");
+        return ret;
     }
+
+    return XQC_OK;
 }
 
 

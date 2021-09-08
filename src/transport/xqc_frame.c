@@ -636,7 +636,13 @@ xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
         return XQC_OK;
     }
 
-    xqc_cid_set_insert_cid(&conn->dcid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED);
+    ret = xqc_cid_set_insert_cid(&conn->dcid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED, conn->local_settings.active_connection_id_limit);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_set_insert_cid error|limit:%ui|unused:%ui|used:%ui|",
+                conn->local_settings.active_connection_id_limit, conn->dcid_set.cid_set.unused_cnt, conn->dcid_set.cid_set.used_cnt);
+        return ret;
+    }
+
 
     return XQC_OK;
 }

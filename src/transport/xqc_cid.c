@@ -117,6 +117,7 @@ xqc_init_cid_set(xqc_cid_set_t *cid_set)
 {
     xqc_init_list_head(&cid_set->list_head);
     cid_set->unused_cnt = 0;
+    cid_set->used_cnt = 0;
     cid_set->retired_cnt = 0;
 }
 
@@ -152,8 +153,12 @@ xqc_destroy_cid_set(xqc_cid_set_t *cid_set)
 }
 
 xqc_int_t
-xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t state)
+xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t state, uint64_t limit)
 {
+    if (cid_set->unused_cnt + cid_set->used_cnt > limit) {
+        return -XQC_EACTIVE_CID_LIMIT;
+    }
+
     xqc_cid_inner_t *inner_cid = xqc_malloc(sizeof(xqc_cid_inner_t));
     if (inner_cid == NULL) {
         return -XQC_EMALLOC;
@@ -168,6 +173,8 @@ xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t s
 
     if (state == XQC_CID_UNUSED) {
         cid_set->unused_cnt++;
+    } else if (state == XQC_CID_USED) {
+        cid_set->used_cnt++;
     } else if (state == XQC_CID_RETIRED) {
         cid_set->retired_cnt++;
     }
@@ -187,6 +194,8 @@ xqc_cid_set_delete_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid)
 
             if (inner_cid->state == XQC_CID_UNUSED) {
                 cid_set->unused_cnt--;
+            } else if (inner_cid->state == XQC_CID_USED) {
+                cid_set->used_cnt--;
             } else if (inner_cid->state == XQC_CID_RETIRED) {
                 cid_set->retired_cnt--;
             }
@@ -236,13 +245,17 @@ xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_c
 
     if (current_state == XQC_CID_UNUSED) {
         cid_set->unused_cnt--;
+    } else if (current_state == XQC_CID_USED) {
+        cid_set->used_cnt--;
     } else if (current_state == XQC_CID_RETIRED) {
         cid_set->retired_cnt--;
     }
 
     cid->state = next_state;
 
-    if (next_state == XQC_CID_RETIRED) {
+    if (next_state == XQC_CID_USED) {
+        cid_set->used_cnt++;
+    } else if (next_state == XQC_CID_RETIRED) {
         cid_set->retired_cnt++;
     }
 
