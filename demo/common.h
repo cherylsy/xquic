@@ -56,4 +56,40 @@ typedef enum h3_hdr_type {
     H3_HDR_CNT
 }H3_HDR_TYPE;
 
+
+int
+xqc_demo_read_file_data(char * data, size_t data_len, char *filename)
+{
+    FILE * fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        return -1;
+    }
+
+    fseek(fp, 0 , SEEK_END);
+    size_t total_len  = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if (total_len > data_len) {
+        return -1;
+    }
+
+    size_t read_len = fread(data, 1, total_len, fp);
+    if (read_len != total_len) {
+        return -1;
+    }
+
+    return read_len;
+}
+
+
+static inline uint64_t
+xqc_demo_now()
+{
+    /*获取微秒单位时间*/
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
+    return  ul;
+}
+
+
 #endif

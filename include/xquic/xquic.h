@@ -689,12 +689,16 @@ xqc_h3_conn_set_qpack_dtable_cap(xqc_h3_conn_t *h3c, size_t capacity);
 /**
  * Client connect without http3
  * @param engine return from xqc_engine_create
- * @param user_data For connection
+ * @param conn_settings settings of connection
  * @param token token receive from server, xqc_save_token_pt callback
  * @param token_len
  * @param server_host server domain
  * @param no_crypto_flag 1:without crypto
  * @param conn_ssl_config For handshake
+ * @param user_data For connection
+ * @param peer_addr address of peer
+ * @param peer_addrlen length of peer_addr
+ * @param alpn application level protocol, if be NULL, will use "transport" as default
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 XQC_EXPORT_PUBLIC_API
@@ -703,8 +707,8 @@ const xqc_cid_t *xqc_connect(xqc_engine_t *engine,
     const unsigned char *token, unsigned token_len,
     const char *server_host, int no_crypto_flag,
     const xqc_conn_ssl_config_t *conn_ssl_config,
-    const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, void *user_data);
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    const char *alpn, void *user_data);
 
 /**
  * Send CONNECTION_CLOSE to peer, conn_close_notify will callback when connection destroyed
