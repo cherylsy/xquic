@@ -602,7 +602,7 @@ xqc_demo_cli_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 int
 xqc_demo_cli_stream_send(xqc_stream_t *stream, void *user_data)
 {
-    ssize_t ret;
+    ssize_t ret = 0;
     xqc_demo_cli_user_stream_t *user_stream = (xqc_demo_cli_user_stream_t *) user_data;
 
     if (user_stream->start_time == 0) {
@@ -1121,6 +1121,7 @@ xqc_demo_cli_init_conneciton_settings(xqc_conn_settings_t* settings,
         break;
     }
 
+#if 0
     xqc_conn_settings_t cs = {
         .pacing_on  = args->net_cfg.pacing,
         .ping_on    = 0,
@@ -1134,6 +1135,15 @@ xqc_demo_cli_init_conneciton_settings(xqc_conn_settings_t* settings,
         .spurious_loss_detect_on = 1,
     };
     *settings = cs;
+#endif
+    memset(settings, 0, sizeof(xqc_conn_settings_t));
+    settings->pacing_on = args->net_cfg.pacing;
+    settings->cong_ctrl_callback = cong_ctrl;
+    settings->cc_params.customize_on = 1,
+    settings->cc_params.init_cwnd = 32,
+    settings->so_sndbuf = 1024*1024;
+    settings->proto_version = XQC_VERSION_V1;
+    settings->spurious_loss_detect_on = 1;
 }
 
 /* set client args to default values */

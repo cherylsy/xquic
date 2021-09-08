@@ -749,7 +749,7 @@ xqc_demo_svr_h3_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_no
     xqc_demo_svr_user_stream_t *user_stream = (xqc_demo_svr_user_stream_t *)strm_user_data;
 
     /* recv headers */
-    xqc_http_headers_t *headers;
+    xqc_http_headers_t *headers = NULL;
     if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
         if (headers == NULL) {
