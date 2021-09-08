@@ -556,9 +556,8 @@ xqc_demo_cli_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, vo
 {
     DEBUG;
 
-    printf("xqc_demo_cli_conn_create_notify, conn: %p, user_conn: %p\n", conn, user_data);
+    // printf("xqc_demo_cli_conn_create_notify, conn: %p, user_conn: %p\n", conn, user_data);
     xqc_demo_cli_user_conn_t *user_conn = (xqc_demo_cli_user_conn_t *)user_data;
-    printf("xqc_conn_is_ready_to_send_early_data:%d\n", xqc_conn_is_ready_to_send_early_data(conn));
     return 0;
 }
 
@@ -566,7 +565,7 @@ int
 xqc_demo_cli_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
-    printf("xqc_demo_cli_conn_close_notify, conn: %p, user_conn: %p\n", conn, user_data);
+    // printf("xqc_demo_cli_conn_close_notify, conn: %p, user_conn: %p\n", conn, user_data);
 
     xqc_demo_cli_user_conn_t *user_conn = (xqc_demo_cli_user_conn_t *) user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(user_conn->ctx->engine, cid);
@@ -706,7 +705,7 @@ int
 xqc_demo_cli_stream_close_notify(xqc_stream_t *stream, void *user_data)
 {
     DEBUG;
-    printf("xqc_demo_cli_stream_close_notify, stream: %p, user_conn: %p\n", stream, user_data);
+    // printf("xqc_demo_cli_stream_close_notify, stream: %p, user_conn: %p\n", stream, user_data);
 
     xqc_demo_cli_user_stream_t *user_stream = (xqc_demo_cli_user_stream_t*)user_data;
 

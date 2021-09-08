@@ -212,9 +212,10 @@ xqc_demo_svr_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, vo
     DEBUG;
     xqc_demo_svr_user_conn_t *user_conn = calloc(1, sizeof(xqc_demo_svr_user_conn_t));
     xqc_conn_set_user_data(conn, user_conn);
+/*
     printf("xqc_demo_svr_conn_create_notify, user_conn: %p, conn: %p, conn_user_data: %p\n",
         user_conn, conn, conn_user_data);
-
+*/
     /* set ctx */
     user_conn->ctx = &svr_ctx;
 
@@ -236,7 +237,7 @@ xqc_demo_svr_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, voi
         return 0;
     }
 
-    printf("xqc_demo_svr_conn_close_notify, conn: %p, conn_user_data: %p\n", conn, conn_user_data);
+    // printf("xqc_demo_svr_conn_close_notify, conn: %p, conn_user_data: %p\n", conn, conn_user_data);
 
     xqc_demo_svr_user_conn_t *user_conn = (xqc_demo_svr_user_conn_t*)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(user_conn->ctx->engine, cid);
@@ -254,7 +255,7 @@ void
 xqc_demo_svr_conn_handshake_finished(xqc_connection_t *conn, void *conn_user_data)
 {
     DEBUG;
-    printf("xqc_demo_svr_conn_handshake_finished, user_data: %p, conn: %p\n", conn_user_data, conn);
+    // printf("xqc_demo_svr_conn_handshake_finished, user_data: %p, conn: %p\n", conn_user_data, conn);
     xqc_demo_svr_user_conn_t *user_conn = (xqc_demo_svr_user_conn_t *)conn_user_data;
 }
 
@@ -508,9 +509,11 @@ xqc_demo_svr_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid,
     xqc_demo_svr_user_conn_t *user_conn = calloc(1, sizeof(xqc_demo_svr_user_conn_t));
     user_conn->ctx = &svr_ctx;
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
+
+/*
     printf("xqc_demo_svr_h3_conn_create_notify, user_conn: %p, h3_conn: %p, ctx: %p\n", user_conn,
         h3_conn, ctx);
-
+*/
     socklen_t peer_addrlen;
     struct sockaddr* peer_addr = xqc_h3_conn_get_peer_addr(h3_conn, &peer_addrlen);
     memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
@@ -544,7 +547,6 @@ xqc_demo_svr_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
     DEBUG;
     xqc_demo_svr_user_conn_t *user_conn = (xqc_demo_svr_user_conn_t *) user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(user_conn->ctx->engine, &user_conn->cid);
-    printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
 
@@ -552,9 +554,10 @@ int
 xqc_demo_svr_h3_request_create_notify(xqc_h3_request_t *h3_request, void *strm_user_data)
 {
     DEBUG;
+/*
     printf("xqc_demo_svr_h3_request_create_notify, h3_request: %p, strm_user_data: %p\n",
         h3_request, strm_user_data);
-
+*/
     xqc_demo_svr_user_stream_t *user_stream = calloc(1, sizeof(*user_stream));
     user_stream->h3_request = h3_request;
 
@@ -764,8 +767,6 @@ xqc_demo_svr_h3_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_no
             printf("%s = %s\n",(char*)headers->headers[i].name.iov_base,
                 (char*)headers->headers[i].value.iov_base);
         }
-
-        printf("fin: %d\n", fin);
 
         /* TODO: if recv headers once for all? */
         user_stream->header_recvd = 1;
