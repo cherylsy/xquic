@@ -1889,14 +1889,14 @@ xqc_send_ctl_retire_cid_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, vo
     xqc_list_head_t *pos, *next;
 
     xqc_int_t ret;
-    xqc_usec_t start_time = now;
+    xqc_usec_t next_time = XQC_MAX_UINT64_VALUE;
 
     xqc_list_for_each_safe(pos, next, &conn->scid_set.cid_set.list_head) {
         inner_cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
 
         if (inner_cid->state == XQC_CID_RETIRED) {
 
-            if (inner_cid->retired_ts + 2 * ctl->ctl_srtt < now) {
+            if (inner_cid->retired_ts < now) {
                 /* switch state to REMOVED & delete from cid_set */
                 if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid)) {
                     xqc_remove_conns_hash(conn->engine->conns_hash, conn, &inner_cid->cid);
@@ -1913,8 +1913,8 @@ xqc_send_ctl_retire_cid_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, vo
 
             } else {
                 /* record the earliest time that has not yet expired */
-                if (inner_cid->retired_ts < start_time) {
-                    start_time = inner_cid->retired_ts;
+                if (inner_cid->retired_ts < next_time) {
+                    next_time = inner_cid->retired_ts;
                 }
 
             }
@@ -1922,7 +1922,11 @@ xqc_send_ctl_retire_cid_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, vo
     }
 
     if (conn->scid_set.cid_set.retired_cnt > 0){
-        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, 2 * ctl->ctl_srtt + start_time);
+        if (next_time == XQC_MAX_UINT64_VALUE) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|next_time is not assigned a value|");
+            return;
+        }
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, next_time);
     }
 }
 

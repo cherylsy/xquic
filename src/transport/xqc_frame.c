@@ -683,17 +683,10 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return -XQC_EPROTO;
     }
 
-    ret = xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, inner_cid, XQC_CID_RETIRED);
+    ret = xqc_conn_set_cid_retired_ts(conn, inner_cid);
     if (ret != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|set cid retired error|");
+        xqc_log(conn->log, XQC_LOG_ERROR,"|xqc_conn_set_cid_retired_ts error|");
         return ret;
-    }
-
-    /* set timer to remove the retired cids */
-    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
-    xqc_usec_t now = xqc_monotonic_timestamp();
-    if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_RETIRE_CID)) {
-        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, 2 * ctl->ctl_srtt + now);
     }
 
     /* update SCID */

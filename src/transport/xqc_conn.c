@@ -2512,6 +2512,33 @@ xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
     return XQC_OK;
 }
 
+xqc_int_t
+xqc_conn_set_cid_retired_ts(xqc_connection_t *conn, xqc_cid_inner_t *inner_cid)
+{
+    xqc_int_t ret = XQC_OK;
+    
+    ret = xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, inner_cid, XQC_CID_RETIRED);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|set cid retired error|");
+        return ret;
+    }
+
+    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+
+    xqc_usec_t now = xqc_monotonic_timestamp();
+    xqc_usec_t srtt = ctl->ctl_srtt;
+
+    /* set retired timestamp */
+    inner_cid->retired_ts = now + 2 * srtt;
+
+    /* set timer to remove the retired cids */
+    if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_RETIRE_CID)) {
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, now + 2 * srtt);
+    }
+
+    return ret;
+}
+
 /* switch another used scid to replace user_scid */
 xqc_int_t
 xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)

@@ -243,7 +243,6 @@ xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_c
     cid->state = next_state;
 
     if (next_state == XQC_CID_RETIRED) {
-        cid->retired_ts = xqc_monotonic_timestamp();
         cid_set->retired_cnt++;
     }
 
