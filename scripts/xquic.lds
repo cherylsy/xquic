@@ -62,7 +62,6 @@ XQUIC_VERS_1.0 {
         xqc_engine_conns_hash_find;
         xqc_conn_create_path;
         xqc_dcid_str_by_scid;
-        xqc_hq_connect;
     local:
         *;
 };

@@ -46,9 +46,6 @@ extern const char* const xqc_crypto_initial_salt[];
 #define XQC_ALPN_H3         "h3"
 #define XQC_ALPN_H3_29      "h3-29"
 
-#define XQC_ALPN_HQ_INTEROP "hq-interop"
-#define XQC_ALPN_HQ_29      "hq-29"
-
 #define XQC_ALPN_TRANSPORT  "transport"
 
 #define XQC_ALPN_LIST       "\x2h3\x5h3-29\xahq-interop\x5hq-29\x9transport"

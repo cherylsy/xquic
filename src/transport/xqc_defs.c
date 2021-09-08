@@ -39,6 +39,10 @@ xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len)
         && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0);
 }
 
+
+#define XQC_ALPN_HQ_INTEROP "hq-interop"
+#define XQC_ALPN_HQ_29      "hq-29"
+
 xqc_bool_t
 xqc_alpn_type_is_hq(const unsigned char *alpn, uint8_t alpn_len)
 {
