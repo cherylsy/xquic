@@ -178,16 +178,9 @@ if(XQC_ENABLE_BBR2)
     )
 endif()
 
-set(
-    HQ_SOURCES
-
-    "src/hq/xqc_hq.c"
-)
-
 set (
     XQC_SOURCE 
 
-    ${HQ_SOURCES}
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${CRYPTO_SOURCE}
@@ -281,8 +274,29 @@ add_subdirectory(tests)
 add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
 
-add_executable(demo_server demo/demo_server.c)
-add_executable(demo_client demo/demo_client.c)
+
+set(
+    HQ_SOURCES
+
+    "demo/xqc_hq.c"
+)
+
+set(
+    DEMO_CLIENT_SOURCES
+
+    ${HQ_SOURCES}
+    "demo/demo_client.c"
+)
+
+set(
+    DEMO_SERVER_SOURCES
+
+    ${HQ_SOURCES}
+    "demo/demo_server.c"
+)
+
+add_executable(demo_server ${DEMO_SERVER_SOURCES})
+add_executable(demo_client ${DEMO_CLIENT_SOURCES})
 
 
 link_directories( /usr/local/lib )

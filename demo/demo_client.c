@@ -1657,8 +1657,8 @@ xqc_demo_cli_init_callback(xqc_engine_callback_t *cb, xqc_demo_cli_client_args_t
             .xqc_log_write_err = xqc_demo_cli_write_log_file,
             .xqc_log_write_stat = xqc_demo_cli_write_log_file
         },
-        .xqc_demo_cli_save_session_cb = xqc_demo_cli_save_session_cb,
-        .xqc_demo_cli_save_tp_cb = xqc_demo_cli_save_tp_cb,
+        .save_session_cb = xqc_demo_cli_save_session_cb,
+        .save_tp_cb = xqc_demo_cli_save_tp_cb,
         .keylog_cb = xqc_demo_cli_keylog_cb,
     };
 

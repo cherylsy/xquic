@@ -240,7 +240,7 @@ test_cid_connect(xqc_engine_t *engine)
     xqc_conn_ssl_config_t conn_ssl_config;
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
     const xqc_cid_t *cid = xqc_connect(engine, &conn_settings, NULL, 0, "", 0, &conn_ssl_config,
-                                       NULL, 0, NULL);
+                                       NULL, 0, NULL, NULL);
     return cid;
 }
 

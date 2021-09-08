@@ -2045,7 +2045,7 @@ int main(int argc, char *argv[]) {
     } else {
         cid = xqc_connect(ctx.engine, &conn_settings, user_conn->token, user_conn->token_len,
                           "127.0.0.1", g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
-                          user_conn->peer_addrlen, user_conn);
+                          user_conn->peer_addrlen, NULL, user_conn);
     }
     if (cid == NULL) {
         printf("xqc_connect error\n");
