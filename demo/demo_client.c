@@ -16,7 +16,7 @@
 #include <netdb.h>
 #include <string.h>
 #include "common.h"
-
+#include "xqc_hq.h"
 
 
 #define XQC_PACKET_TMP_BUF_LEN 1600
