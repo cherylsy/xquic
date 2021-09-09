@@ -1378,11 +1378,6 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
     static ssize_t last_rcv_sum = 0;
     static ssize_t rcv_sum = 0;
 
-
-    if (g_test_case == 24) {
-        exit(0);
-    }
-
     do {
         recv_size = recvfrom(user_conn->fd, 
                              packet_buf, sizeof(packet_buf), 0, 

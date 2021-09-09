@@ -2264,17 +2264,6 @@ xqc_int_t
 xqc_conn_on_hsk_processed(xqc_connection_t *c, xqc_packet_in_t *pi)
 {
     if (c->conn_type == XQC_CONN_TYPE_SERVER) {
-        /*
-         * once client handshake is received, client confirmed server's cid,
-         * server won't need original_dcid to find the connection any more
-         */
-        if (XQC_OK != xqc_cid_is_equal(&c->scid_set.user_scid, &c->original_dcid)
-            && xqc_find_conns_hash(c->engine->conns_hash, c, &c->original_dcid))
-        {
-            xqc_remove_conns_hash(c->engine->conns_hash, c, &c->original_dcid);
-            xqc_log(c->log, XQC_LOG_DEBUG, "|remove odcid conn hash: %s", xqc_dcid_str(&c->original_dcid));
-        }
-
         /* server MUST discard Initial keys when it first successfully processes a Handshake packet */
         xqc_send_ctl_drop_pkts_with_pn(c->conn_send_ctl, XQC_PNS_INIT);
     }
@@ -2455,7 +2444,6 @@ xqc_conn_destroy_cids(xqc_connection_t *conn)
 
     if (conn->engine->conns_hash) {
         if (xqc_find_conns_hash(conn->engine->conns_hash, conn, &conn->original_dcid)) {
-            xqc_log(conn->log, XQC_LOG_INFO, "|remove abnormal odcid conn hash: %s", xqc_dcid_str(&conn->original_dcid));
             xqc_remove_conns_hash(conn->engine->conns_hash, conn, &conn->original_dcid);
         }
 
