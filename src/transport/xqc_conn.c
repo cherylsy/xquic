@@ -762,7 +762,6 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
     uint32_t total_bytes_to_send = 0;
     uint32_t inflight = ctl->ctl_bytes_in_flight;
-    size_t sent_bytes = 0;
 
     /* process packets */
     xqc_usec_t now = xqc_monotonic_timestamp();
