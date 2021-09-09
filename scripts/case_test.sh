@@ -945,23 +945,6 @@ fi
 
 
 clear_log
-killall test_server
-echo -e "server odcid hash failure ...\c"
-./test_server -l d -e -x 6 > /dev/null &
-sleep 1
-./test_client -s 1024000 -l d -t 1 -x 24 > /dev/null
-sleep 11
-server_log_res=`grep "remove abnormal odcid conn hash" slog`
-if [ "$server_log_res" != "" ]; then
-    echo ">>>>>>>> pass:1"
-    case_print_result "server_odcid_hash_failure" "pass"
-else
-    echo ">>>>>>>> pass:0"
-    case_print_result "server_odcid_hash_failure" "fail"
-fi
-
-
-clear_log
 killall test_server 2> /dev/null
 echo -e "enable_multipath_negotiate ...\c"
 ./test_server -l d -e -x 7 > /dev/null &
