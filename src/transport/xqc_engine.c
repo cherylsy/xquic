@@ -901,7 +901,7 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
             }
             xqc_log(engine->log, XQC_LOG_INFO, "|fail to find connection, send reset|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
-            ret = xqc_conn_send_reset(engine, &scid, user_data, peer_addr, peer_addrlen);
+            ret = xqc_conn_send_reset(engine, &scid, peer_addr, peer_addrlen, user_data);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
             }

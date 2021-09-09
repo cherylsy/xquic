@@ -35,7 +35,7 @@ int printf_null(const char *format, ...)
 #define XQC_PACKET_TMP_BUF_LEN 1500
 #define MAX_BUF_SIZE (100*1024*1024)
 
-#define XQC_MAX_TOKEN_LEN 32
+#define XQC_MAX_TOKEN_LEN 256
 
 #define XQC_TEST_SHORT_HEADER_PACKET_A "\x40\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
 #define XQC_TEST_SHORT_HEADER_PACKET_B "\x80\xAB\x3f\x12\x0a\xcd\xef\x00\x89"
@@ -2039,11 +2039,13 @@ int main(int argc, char *argv[]) {
     const xqc_cid_t *cid;
     if (user_conn->h3) {
         if (g_test_case == 7/*创建连接失败*/) {user_conn->token_len = -1;}
-        cid = xqc_h3_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, g_host, g_no_crypt,
-                          &conn_ssl_config, user_conn->peer_addr, user_conn->peer_addrlen);
+        cid = xqc_h3_connect(ctx.engine, &conn_settings, user_conn->token, user_conn->token_len,
+                             g_host, g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
+                             user_conn->peer_addrlen, user_conn);
     } else {
-        cid = xqc_connect(ctx.engine, user_conn, &conn_settings, user_conn->token, user_conn->token_len, "127.0.0.1", g_no_crypt,
-                          &conn_ssl_config, user_conn->peer_addr, user_conn->peer_addrlen);
+        cid = xqc_connect(ctx.engine, &conn_settings, user_conn->token, user_conn->token_len,
+                          "127.0.0.1", g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
+                          user_conn->peer_addrlen, NULL, user_conn);
     }
     if (cid == NULL) {
         printf("xqc_connect error\n");

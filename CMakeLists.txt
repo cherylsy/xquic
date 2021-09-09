@@ -180,7 +180,7 @@ endif()
 
 set (
     XQC_SOURCE 
-    
+
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${CRYPTO_SOURCE}
@@ -275,21 +275,48 @@ add_executable(test_server tests/test_server.c)
 add_executable(test_client tests/test_client.c)
 
 
+set(
+    HQ_SOURCES
+
+    "demo/xqc_hq.c"
+)
+
+set(
+    DEMO_CLIENT_SOURCES
+
+    ${HQ_SOURCES}
+    "demo/demo_client.c"
+)
+
+set(
+    DEMO_SERVER_SOURCES
+
+    ${HQ_SOURCES}
+    "demo/demo_server.c"
+)
+
+add_executable(demo_server ${DEMO_SERVER_SOURCES})
+add_executable(demo_client ${DEMO_CLIENT_SOURCES})
+
+
 link_directories( /usr/local/lib )
 link_directories( ${BABASSL_PATH}/lib/)
 
 if(PLATFORM STREQUAL "mac32")
     target_link_libraries(test_server xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
     target_link_libraries(test_client xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
+    target_link_libraries(demo_server xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
+    target_link_libraries(demo_client xquic  -lm ${CMAKE_CURRENT_SOURCE_DIR}/../libevent32/lib/libevent.dylib)
 elseif(PLATFORM STREQUAL "mac")
     target_link_libraries(test_server xquic -lm -L/usr/local/lib -levent)
     target_link_libraries(test_client xquic -lm -L/usr/local/lib -levent)
-    target_link_libraries(test_qpack_client xquic -lm -L/usr/local/lib -levent)
-    target_link_libraries(test_qpack_server xquic -lm -L/usr/local/lib -levent)
-    target_link_libraries(test_qpack_fuzzing xquic -lm -L/usr/local/lib -levent)
+    target_link_libraries(demo_server xquic -lm -L/usr/local/lib -levent)
+    target_link_libraries(demo_client xquic -lm -L/usr/local/lib -levent)
 else()
     target_link_libraries(test_server xquic -levent -lm)
     target_link_libraries(test_client xquic -levent -lm)
+    target_link_libraries(demo_server xquic -levent -lm)
+    target_link_libraries(demo_client xquic -levent -lm)
 endif()
 
 

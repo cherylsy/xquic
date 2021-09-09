@@ -14,7 +14,7 @@
 
 
 #define XQC_STATELESS_RESET_TOKENLEN 16
-#define XQC_MAX_TOKEN_LEN 32
+#define XQC_MAX_TOKEN_LEN 256
 
 #define XQC_TOKEN_EXPIRE_DELTA (7 * 24 * 60 * 60)           /* expire in N seconds */
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */
@@ -363,8 +363,8 @@ xqc_int_t
 xqc_conn_immediate_close(xqc_connection_t *conn);
 
 xqc_int_t
-xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, void *user_data,
-                    const struct sockaddr *peer_addr, socklen_t peer_addrlen);
+xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, void *user_data);
 
 xqc_int_t
 xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
