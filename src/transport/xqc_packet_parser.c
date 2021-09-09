@@ -930,6 +930,10 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
     xqc_cid_t odcid;
     odcid.cid_len = (*pos & 0x0F) + 3;
+    if (odcid.cid_len > XQC_MAX_CID_LEN) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|exceed max cid length|cid_len:%d|", odcid.cid_len);
+        return -XQC_EILLPKT;
+    }
 
     pos += XQC_PACKET_LONG_HEADER_PREFIX_LENGTH
            + packet->pkt_dcid.cid_len + packet->pkt_scid.cid_len;
@@ -1161,7 +1165,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     scid->cid_len = (uint8_t)(*pos);
     pos += 1;
     if ((XQC_BUFF_LEFT_SIZE(pos, end) < scid->cid_len)
-        || (dcid->cid_len > XQC_MAX_CID_LEN))
+        || (scid->cid_len > XQC_MAX_CID_LEN))
     {
         xqc_log(c->log, XQC_LOG_ERROR, "|long hdr scid len err|size:%d|cid_len:%d|", 
                 XQC_BUFF_LEFT_SIZE(pos, end), scid->cid_len);
