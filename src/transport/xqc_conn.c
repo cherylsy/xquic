@@ -1118,10 +1118,6 @@ xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_pto_probe_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
-        if (xqc_send_ctl_indirectly_ack_po(conn->conn_send_ctl, packet_out)) {
-            continue;
-        }
-
         xqc_log(conn->log, XQC_LOG_DEBUG,
                 "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|",
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size,
