@@ -296,8 +296,8 @@ xqc_send_ctl_can_send(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 void
 xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 {
-    // some pkt ref to this packet
-    if (packet_out->po_origin_ref_cnt != 0 ) {
+    /* it is origin & some pkt ref to this packet */
+    if (packet_out->po_origin == NULL && packet_out->po_origin_ref_cnt != 0) {
         return ;
     }
 

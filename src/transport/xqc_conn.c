@@ -792,7 +792,8 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
             }
 
             /* check cc limit */
-            if (congest && !xqc_send_burst_check_cc(ctl, packet_out, inflight, total_bytes_to_send))
+            if (congest 
+                && !xqc_send_burst_check_cc(ctl, packet_out, inflight, total_bytes_to_send))
             {
                 break;
             }
@@ -903,7 +904,7 @@ xqc_conn_send_packets(xqc_connection_t *conn)
     xqc_list_for_each_safe(pos, next, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
         if (XQC_CAN_IN_FLIGHT(packet_out->po_frame_types)) {
-            /* packet with high priority first */
+            /* normal packets in send list will be blocked by cc */
             if (!xqc_send_ctl_can_send(conn, packet_out)) {
                 xqc_log(conn->log, XQC_LOG_DEBUG, "|blocked by congestion control|");
                 break;
@@ -1208,7 +1209,7 @@ void
 xqc_conn_transmit_pto_probe_packets_batch(xqc_connection_t *conn)
 {
     xqc_list_head_t *head;
-    int congest = 0; /* NO congestion control */
+    int congest = 0;    /* probe packets MUST NOT be blocked by the congestion controller */
 
     head = &conn->conn_send_ctl->ctl_pto_probe_packets;
     while (!(xqc_list_empty(head))) {
@@ -1309,6 +1310,10 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
     {
         xqc_list_for_each_safe(pos, next, &c->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
+
+            if (xqc_send_ctl_indirectly_ack_po(c->conn_send_ctl, packet_out)) {
+                continue;
+            }
 
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)
                 && XQC_NEED_REPAIR(packet_out->po_frame_types))
