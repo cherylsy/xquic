@@ -153,7 +153,11 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
 int
 xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn);
 
-xqc_int_t xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn);
+xqc_int_t
+xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t retire_prior_to);
+
+xqc_int_t
+xqc_write_retire_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t seq_num);
 
 xqc_int_t xqc_write_path_status_to_packet(xqc_connection_t *conn, 
     xqc_path_ctx_t *path);

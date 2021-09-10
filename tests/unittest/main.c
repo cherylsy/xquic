@@ -28,6 +28,7 @@
 #include "xqc_encoder_test.h"
 #include "xqc_qpack_test.h"
 #include "xqc_prefixed_str_test.h"
+#include "xqc_cid_test.h"
 
 
 static int xqc_init_suite(void) { return 0; }
@@ -81,6 +82,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_h3_rep", xqc_test_rep)
         || !CU_add_test(pSuite, "xqc_qpack_test", xqc_qpack_test)
         || !CU_add_test(pSuite, "xqc_test_prefixed_str", xqc_test_prefixed_str)
+        || !CU_add_test(pSuite, "xqc_cid_test", xqc_test_cid)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

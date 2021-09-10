@@ -637,7 +637,11 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
     }
     XQC_CHECK_IMMEDIATE_CLOSE();
 
-    xqc_conn_try_add_new_conn_id(conn);
+    ret = xqc_conn_try_add_new_conn_id(conn, 0);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_try_add_new_conn_id error|");
+    }
+
 
     /* for multi-path */
     if ((conn->conn_flag & XQC_CONN_FLAG_NEW_CID_RECEIVED)

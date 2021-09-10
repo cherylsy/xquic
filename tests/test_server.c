@@ -166,6 +166,21 @@ void xqc_server_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 
 }
 
+void
+xqc_server_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *user_data)
+{
+    DEBUG;
+
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+
+    memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
+
+    printf("====>RETIRE SCID:%s\n", xqc_scid_str(retire_cid));
+    printf("====>SCID:%s\n", xqc_scid_str(new_cid));
+    printf("====>DCID:%s\n", xqc_dcid_str_by_scid(ctx.engine, new_cid));
+
+}
+
 int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
 {
     ssize_t ret;
@@ -338,6 +353,21 @@ void xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     user_conn_t *user_conn = (user_conn_t *) user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
+}
+
+void
+xqc_server_h3_conn_update_cid_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *user_data)
+{
+    DEBUG;
+
+    user_conn_t *user_conn = (user_conn_t *) user_data;
+
+    memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
+
+    printf("====>RETIRE SCID:%s\n", xqc_scid_str(retire_cid));
+    printf("====>SCID:%s\n", xqc_scid_str(new_cid));
+    printf("====>DCID:%s\n", xqc_dcid_str_by_scid(ctx.engine, new_cid));
+
 }
 
 #define MAX_HEADER 100
@@ -1187,11 +1217,13 @@ int main(int argc, char *argv[]) {
             .conn_create_notify = xqc_server_conn_create_notify,
             .conn_close_notify = xqc_server_conn_close_notify,
             .conn_handshake_finished = xqc_server_conn_handshake_finished,
+            .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
         },
         .h3_conn_callbacks = {
             .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
             .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
             .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
+            .h3_conn_update_cid_notify = xqc_server_h3_conn_update_cid_notify,
         },
         .stream_callbacks = {
             .stream_write_notify = xqc_server_stream_write_notify,

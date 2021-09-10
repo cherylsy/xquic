@@ -28,8 +28,9 @@ typedef struct xqc_cid_inner_s
 typedef struct xqc_cid_set_s
 {
     xqc_list_head_t   list_head;
-    uint32_t          unused_cnt;
-    uint32_t          retired_cnt;
+    uint64_t          unused_cnt;
+    uint64_t          used_cnt;
+    uint64_t          retired_cnt;
 } xqc_cid_set_t;
 
 typedef struct xqc_scid_set_s
@@ -60,13 +61,14 @@ void xqc_init_scid_set(xqc_scid_set_t *scid_set);
 void xqc_init_dcid_set(xqc_dcid_set_t *dcid_set);
 void xqc_destroy_cid_set(xqc_cid_set_t *cid_set);
 
-xqc_int_t xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t state);
+xqc_int_t xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t state, uint64_t limit);
 xqc_int_t xqc_cid_set_delete_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid);
+
+xqc_cid_t* xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num);
 xqc_cid_inner_t* xqc_cid_in_cid_set(const xqc_cid_set_t *cid_set, const xqc_cid_t *cid);
 
-xqc_int_t xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid);
+xqc_int_t xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_cid_state_t state);
 xqc_int_t xqc_get_unused_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid);
-xqc_cid_t* xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num);
 
 #endif /* _XQC_CID_H_INCLUDED_ */
 
