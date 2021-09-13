@@ -395,10 +395,6 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
          * and if client Initial retransmit, server might use odcid to
          * find the created conn
          */
-        if (xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &conn->original_dcid, XQC_CID_USED, conn->remote_settings.active_connection_id_limit)) {
-            goto fail;
-        }
-
         if (xqc_insert_conns_hash(engine->conns_hash, conn, &conn->original_dcid)) {
             goto fail;
         }
