@@ -664,7 +664,7 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         /* Receipt of a RETIRE_CONNECTION_ID frame containing a sequence number
          * greater than any previously sent to the peer MUST be treated as a
          * connection error of type PROTOCOL_VIOLATION. */
-        xqc_log(conn->log, XQC_LOG_ERROR,"|no match seq_num|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|no match seq_num|");
         XQC_CONN_ERR(conn, TRA_PROTOCOL_VIOLATION);
         return -XQC_EPROTO;
     }
@@ -684,14 +684,14 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         /* The sequence number specified in a RETIRE_CONNECTION_ID frame MUST NOT refer to
          * the Destination Connection ID field of the packet in which the frame is contained.
          * The peer MAY treat this as a connection error of type PROTOCOL_VIOLATION. */
-        xqc_log(conn->log, XQC_LOG_ERROR,"|seq_num refer to pkt_dcid|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|seq_num refer to pkt_dcid|");
         XQC_CONN_ERR(conn, TRA_PROTOCOL_VIOLATION);
         return -XQC_EPROTO;
     }
 
     ret = xqc_conn_set_cid_retired_ts(conn, inner_cid);
     if (ret != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_ERROR,"|xqc_conn_set_cid_retired_ts error|");
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_set_cid_retired_ts error|");
         return ret;
     }
 
