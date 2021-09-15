@@ -197,6 +197,14 @@ xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *bu
         if (read < 0) {
             xqc_log(dec->log, XQC_LOG_ERROR, "|decode field line error|type:%d|state:%d|"
                     "processed:%z|", ctx->type, ctx->state, read);
+            if (ctx->state == XQC_REP_DECODE_STATE_NAME && ctx->name->huff_flag > 0) {
+                xqc_log(dec->log, XQC_LOG_ERROR, "|decode name error|pre_state:%d|end:%d|bit:%d|",
+                        ctx->name->huff_ctx.pre_state, ctx->name->huff_ctx.end, ctx->name->huff_ctx.bit);
+            }
+            if (ctx->state == XQC_REP_DECODE_STATE_VALUE && ctx->value->huff_flag > 0) {
+                xqc_log(dec->log, XQC_LOG_ERROR, "|decode value error|pre_state:%d|end:%d|bit:%d|",
+                        ctx->value->huff_ctx.pre_state, ctx->value->huff_ctx.end, ctx->value->huff_ctx.bit);
+            }
             return -XQC_QPACK_DECODER_ERROR;
         }
         processed += read;

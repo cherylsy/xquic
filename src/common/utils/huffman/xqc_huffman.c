@@ -115,8 +115,10 @@ void
 xqc_huffman_dec_ctx_init(xqc_huffman_dec_ctx *ctx)
 {
     ctx->state = 0;
+    ctx->pre_state = 0;
     ctx->end = 1;
     ctx->high_bits = XQC_TRUE;
+    ctx->bit = 0;
 }
 
 
@@ -135,6 +137,8 @@ xqc_huffman_dec_bits(xqc_huffman_dec_ctx *ctx, uint8_t bits, uint8_t *dst)
         ret = 1;
     }
 
+    ctx->bit = bits;
+    ctx->pre_state = ctx->state;
     ctx->state = code->state;
     ctx->end = (code->flags & XQC_HUFFMAN_END) ? XQC_TRUE : XQC_FALSE;
     return ret;
