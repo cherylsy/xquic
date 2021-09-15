@@ -40,6 +40,10 @@ typedef struct {
 
     /* whether processing high_bits now. when */
     xqc_bool_t high_bits;
+
+    /* use for debug */
+    uint8_t    pre_state;
+    uint8_t    bit;
 } xqc_huffman_dec_ctx;
 
 
