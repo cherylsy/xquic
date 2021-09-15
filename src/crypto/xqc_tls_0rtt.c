@@ -16,7 +16,7 @@ xqc_ssl_session_ticket_key_t g_session_ticket_key; // only one session ticket ke
 int xqc_get_session_file_path(char * session_path, const char * hostname, char * filename, int size)
 {
 
-    if(strlen(hostname) <= 0 ){
+    if(!*hostname) {
         return -1;
     }
     snprintf(filename, size, "%s/%s",session_path, hostname);
@@ -26,7 +26,7 @@ int xqc_get_session_file_path(char * session_path, const char * hostname, char *
 
 int xqc_get_tp_path( char * path, const char * hostname, char * filename, int size)
 {
-    if(strlen(path) <= 0){
+    if(!*path) {
         return -1;
     }
     snprintf(filename, size, "%s/tp_%s", path, hostname);
