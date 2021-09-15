@@ -548,18 +548,20 @@ xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data)
     conn->user_data = user_data;
 }
 
-struct sockaddr*
-xqc_conn_get_peer_addr(xqc_connection_t *conn, socklen_t *peer_addr_len)
+xqc_int_t
+xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t *peer_addr_len)
 {
     *peer_addr_len = conn->peer_addrlen;
-    return (struct sockaddr*)conn->peer_addr;
+    xqc_memcpy(addr, conn->peer_addr, conn->peer_addrlen);
+    return XQC_OK;
 }
 
-struct sockaddr *
-xqc_conn_get_local_addr(xqc_connection_t *conn, socklen_t *local_addr_len)
+xqc_int_t
+xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t *local_addr_len)
 {
     *local_addr_len = conn->local_addrlen;
-    return (struct sockaddr*)conn->local_addr;
+    xqc_memcpy(addr, conn->local_addr, conn->local_addrlen);
+    return XQC_OK;
 }
 
 /* used by upper level, shall never be invoked in xquic */
@@ -1907,12 +1909,13 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
 }
 
 
-int
+xqc_bool_t
 xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn)
 {
     if (conn->tlsref.resumption) {
         return XQC_TRUE;
     }
+
     return XQC_FALSE;
 }
 

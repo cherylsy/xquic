@@ -5,6 +5,7 @@
 #include "src/http3/xqc_h3_defs.h"
 #include "src/http3/xqc_h3_stream.h"
 #include "src/transport/xqc_conn.h"
+#include <xquic/xqc_h3.h>
 
 #define XQC_H3_SETTINGS_UNSET XQC_MAX_UINT64_VALUE
 

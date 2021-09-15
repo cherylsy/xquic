@@ -289,6 +289,20 @@ typedef enum {
     XQC_ENGINE_CLIENT
 } xqc_engine_type_t;
 
+
+/* connection and stream callbacks for basic quic level */
+typedef struct xqc_l4_conn_callbacks_s {
+    /* for server, callback when server accept a new connection */
+    xqc_server_accept_pt        server_accept;
+
+    /* for connection notify */
+    xqc_conn_callbacks_t        conn_callbacks;
+
+    /* for stream notify */
+    xqc_stream_callbacks_t      stream_callbacks;
+
+} xqc_l4_conn_callbacks_t;
+
 /**
  * User should implement following callbacks.
  */
@@ -302,6 +316,7 @@ typedef struct xqc_engine_callback_s {
     /* for send_mmsg write*/
     xqc_send_mmsg_pt            write_mmsg;     /* sendmmsg interface */
 
+#if 0
     /* for server, callback when server accept a new connection */
     xqc_server_accept_pt        server_accept;
 
@@ -319,6 +334,7 @@ typedef struct xqc_engine_callback_s {
 
     /* for request notify */
     xqc_h3_request_callbacks_t  h3_request_callbacks;
+#endif
 
     /* for write log file */
     xqc_log_callbacks_t         log_callbacks;
@@ -412,12 +428,6 @@ typedef struct xqc_conn_settings_s {
     int32_t                     spurious_loss_detect_on;
 } xqc_conn_settings_t;
 
-typedef struct xqc_h3_conn_settings_s {
-    uint64_t max_field_section_size;
-    uint64_t max_pushes;
-    uint64_t qpack_max_table_capacity;
-    uint64_t qpack_blocked_streams;
-} xqc_h3_conn_settings_t;
 
 typedef enum {
     XQC_0RTT_NONE,      /* without 0RTT */
@@ -488,208 +498,6 @@ XQC_EXPORT_PUBLIC_API
 void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
 
 
-/**
- * Client connect with http3
- * @param engine return from xqc_engine_create
- * @param user_data For connection
- * @param token token receive from server, xqc_save_token_pt callback
- * @param token_len
- * @param server_host server domain
- * @param no_crypto_flag 1:without crypto
- * @param conn_ssl_config For handshake
- * @return scid of the connection; user should copy cid to your own memory, in case of cid destroyed in xquic library
- */
-XQC_EXPORT_PUBLIC_API
-const xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine,
-                          const xqc_conn_settings_t *conn_settings,
-                          const unsigned char *token, unsigned token_len,
-                          const char *server_host, int no_crypto_flag,
-                          const xqc_conn_ssl_config_t *conn_ssl_config,
-                          const struct sockaddr *peer_addr,
-                          socklen_t peer_addrlen, void *user_data);
-
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
-
-/**
- * Return quic_connection on which h3_conn rely
- * @param h3_conn http3 connection
- */
-XQC_EXPORT_PUBLIC_API
-xqc_connection_t *  xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn);
-
-/**
- * Get errno when h3_conn_close_notify, HTTP_NO_ERROR(0x100) For no-error
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);
-
-/**
- * Server should set user_data when h3_conn_create_notify callbacks
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
-                               void *user_data);
-
-/**
- * User can set h3 settings when h3_conn_create_notify callbacks
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
-    const xqc_h3_conn_settings_t *h3_conn_settings);
-
-/**
- * Server should get peer addr when h3_conn_create_notify callbacks
- * @param peer_addr_len is a return value
- * @return peer addr
- */
-XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
-                                           socklen_t *peer_addr_len);
-
-/**
- * Server should get local addr when h3_conn_create_notify callbacks
- * @param local_addr_len is a return value
- * @return local addr
- */
-XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
-                                           socklen_t *local_addr_len);
-
-/**
- * Send PING to peer, if ack received, h3_conn_ping_acked will callback with user_data
- * @return 0 for success, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
-
-
-/**
- * @return 1 for can send 0rtt, 0 for cannot send 0rtt
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn);
-
-/**
- * @param user_data For request
- */
-XQC_EXPORT_PUBLIC_API
-xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
-                                        const xqc_cid_t *cid,
-                                        void *user_data);
-
-/**
- * User can get xqc_request_stats_t before request destroyed
- */
-XQC_EXPORT_PUBLIC_API
-xqc_request_stats_t xqc_h3_request_get_stats(xqc_h3_request_t *h3_request);
-
-/**
- * Server should set user_data when h3_request_create_notify callbacks
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
-                                  void *user_data);
-
-/**
- * Get connection's user_data by request
- */
-XQC_EXPORT_PUBLIC_API
-void* xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request);
-
-/**
- * Get stream ID by request
- */
-XQC_EXPORT_PUBLIC_API
-xqc_stream_id_t xqc_h3_stream_id(xqc_h3_request_t *h3_request);
-
-/**
- * Send RESET_STREAM to peer, h3_request_close_notify will callback when request destroyed
- * @retval 0 for success, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_request_close (xqc_h3_request_t *h3_request);
-
-/**
- * @param fin 1:without body
- * @return Bytes sent，<0 for error
- */
-XQC_EXPORT_PUBLIC_API
-ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
-                                    xqc_http_headers_t *headers,
-                                    uint8_t fin);
-
-/**
- * @param fin 1:Request finish
- * @return Bytes sent，-XQC_EAGAIN try next time, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
-                                 unsigned char *data,
-                                 size_t data_size,
-                                 uint8_t fin);
-
-/**
- * @param fin 1:without body
- * @return user should copy headers to your own memory，NULL for error
- */
-XQC_EXPORT_PUBLIC_API
-xqc_http_headers_t *
-xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request,
-                            uint8_t *fin);
-
-
-/**
- * @param fin 1:Request finished
- * @return Bytes read，-XQC_EAGAIN try next time, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-ssize_t
-xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
-                         unsigned char *recv_buf,
-                         size_t recv_buf_size,
-                         uint8_t *fin);
-
-
-/**
- * @deprecated use xqc_h3_engine_set_max_dtable_capacity instead
- * @param value 0:disable dynamic table
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_dec_max_dtable_capacity(xqc_engine_t *engine, size_t value);
-
-/**
- * @deprecated use xqc_h3_engine_set_max_dtable_capacity instead
- * @param value 0:disable dynamic table
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, size_t value);
-
-/**
- * @brief set max h3 max dynamic table capacity
- * @param engine 
- * @param value capacity of dynamic table, 0 for disable dynamic table 
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_max_dtable_capacity(xqc_engine_t *engine, size_t capacity);
-
-/**
- * @brief set max h3 field section size
- * @param engine
- * @param size size of field section size
- */
-XQC_EXPORT_PUBLIC_API
-void
-xqc_h3_engine_set_max_field_section_size(xqc_engine_t *engine, size_t size);
-
-/**
- * @brief set the dynamic table capacity of an existing h3 connection
- * @param h3c h3 connection handler
- * @param capacity capacity of dynamic table, 0 for disable dynamic table 
- * @return XQC_OK for success, others for failure
- */
-xqc_int_t
-xqc_h3_conn_set_qpack_dtable_cap(xqc_h3_conn_t *h3c, size_t capacity);
 
 
 /* ************************************************************
@@ -745,8 +553,8 @@ void xqc_conn_set_user_data(xqc_connection_t *conn,
  * @return peer addr
  */
 XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
-                                       socklen_t *peer_addr_len);
+xqc_int_t xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr,
+    socklen_t *peer_addr_len);
 
 /**
  * Server should get local addr when conn_create_notify callbacks
@@ -754,43 +562,40 @@ struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
  * @return local addr
  */
 XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
-                                        socklen_t *local_addr_len);
+xqc_int_t xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr,
+    socklen_t *local_addr_len);
 
 /**
  * Send PING to peer, if ack received, conn_ping_acked will callback with user_data
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
+xqc_int_t xqc_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
 
 /**
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_is_ready_to_send_early_data(xqc_connection_t * conn);
+xqc_bool_t xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn);
 
 /**
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
 XQC_EXPORT_PUBLIC_API
-xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
-                                 const xqc_cid_t *cid,
-                                 void *user_data);
+xqc_stream_t *xqc_stream_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data);
 
 /**
  * Server should set user_data when stream_create_notify callbacks
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_stream_set_user_data(xqc_stream_t *stream,
-                              void *user_data);
+void xqc_stream_set_user_data(xqc_stream_t *stream, void *user_data);
 
 /**
  * Get connection's user_data by stream
  */
 XQC_EXPORT_PUBLIC_API
-void* xqc_get_conn_user_data_by_stream(xqc_stream_t *stream);
+void *xqc_get_conn_user_data_by_stream(xqc_stream_t *stream);
 
 /**
  * Get stream ID

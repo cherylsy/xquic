@@ -511,10 +511,7 @@ xqc_demo_svr_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid,
     printf("xqc_demo_svr_h3_conn_create_notify, user_conn: %p, h3_conn: %p, ctx: %p\n", user_conn,
         h3_conn, ctx);
 */
-    socklen_t peer_addrlen;
-    struct sockaddr* peer_addr = xqc_h3_conn_get_peer_addr(h3_conn, &peer_addrlen);
-    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
-    user_conn->peer_addrlen = peer_addrlen;
+    xqc_h3_conn_get_peer_addr(h3_conn, &user_conn->peer_addr, &user_conn->peer_addrlen);
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
     return 0;

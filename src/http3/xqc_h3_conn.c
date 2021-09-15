@@ -70,7 +70,7 @@ xqc_h3_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
 }
 
 
-int
+xqc_int_t
 xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
 {
     return xqc_conn_close(engine, cid);
@@ -84,7 +84,7 @@ xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn)
 }
 
 
-int
+xqc_int_t
 xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
     int ret = xqc_conn_get_errno(h3_conn->conn);
@@ -119,10 +119,10 @@ xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
 }
 
 
-struct sockaddr*
-xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn, socklen_t *peer_addr_len)
+xqc_int_t
+xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t *peer_addr_len)
 {
-    return xqc_conn_get_peer_addr(h3_conn->conn, peer_addr_len);
+    return xqc_conn_get_peer_addr(h3c->conn, addr, peer_addr_len);
 }
 
 
@@ -133,14 +133,14 @@ xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn, socklen_t *local_addr_len)
 }
 
 
-int 
+xqc_int_t 
 xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data)
 {
     return xqc_conn_send_ping(engine, cid, ping_user_data);
 }
 
 
-int
+xqc_bool_t
 xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn)
 {
     return xqc_conn_is_ready_to_send_early_data(h3_conn->conn);
