@@ -24,50 +24,40 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
     xqc_engine_ssl_config_t *ssl_config = &engine->ssl_config;
     memset(ssl_config, 0, sizeof(xqc_engine_ssl_config_t));
 
-    if (src->private_key_file != NULL && strlen(src->private_key_file) > 0) {
-        int len = strlen(src->private_key_file);
-        ssl_config->private_key_file = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->private_key_file, (const char *)(src->private_key_file), len);
-        ssl_config->private_key_file[len] = '\0';
-
+    if (src->private_key_file && *src->private_key_file) {
+        int len = strlen(src->private_key_file) + 1;
+        ssl_config->private_key_file = (char *)xqc_malloc(len);
+        memcpy(ssl_config->private_key_file, src->private_key_file, len);
     } else {
         ssl_config->private_key_file = NULL;
     }
 
-    if (src->cert_file != NULL &&  strlen(src->cert_file) > 0 ) {
-        int len = strlen(src->cert_file);
-        ssl_config->cert_file = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->cert_file, ( char *)(src->cert_file), len);
-        ssl_config->cert_file[len] = '\0';
-
+    if (src->cert_file && *src->cert_file) {
+        int len = strlen(src->cert_file) + 1;
+        ssl_config->cert_file = (char *)xqc_malloc(len);
+        memcpy(ssl_config->cert_file, src->cert_file, len);
     } else {
         ssl_config->cert_file = NULL;
     }
 
-    if (src->ciphers != NULL && strlen(src->ciphers) > 0 ) {
-        int len = strlen(src->ciphers);
-        ssl_config->ciphers = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len);
-        ssl_config->ciphers[len] = '\0';
-
+    if (src->ciphers && *src->ciphers) {
+        int len = strlen(src->ciphers) + 1;
+        ssl_config->ciphers = (char *)xqc_malloc(len);
+        memcpy(ssl_config->ciphers, src->ciphers, len);
     } else {
-        int len = strlen(XQC_TLS_CIPHERS);
-        ssl_config->ciphers = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->ciphers, XQC_TLS_CIPHERS, len);
-        ssl_config->ciphers[len] = '\0';
+        int len = sizeof(XQC_TLS_CIPHERS);
+        ssl_config->ciphers = (char *)xqc_malloc(len);
+        memcpy(ssl_config->ciphers, XQC_TLS_CIPHERS, len);
     }
 
-    if (src->groups != NULL && strlen(src->groups) > 0 ) {
-        int len = strlen(src->groups);
-        ssl_config->groups = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->groups, (const char *)(src->groups), len);
-        ssl_config->groups[len] = '\0';
-
+    if (src->groups && *src->groups) {
+        int len = strlen(src->groups) + 1;
+        ssl_config->groups = (char *)xqc_malloc(len);
+        memcpy(ssl_config->groups, src->groups, len);
     } else {
-        int len = strlen(XQC_TLS_GROUPS);
-        ssl_config->groups = xqc_malloc(len + 1);
-        strncpy(ssl_config->groups, XQC_TLS_GROUPS, len);
-        ssl_config->groups[len] = '\0';
+        int len = sizeof(XQC_TLS_GROUPS);
+        ssl_config->groups = (char *)xqc_malloc(len);
+        memcpy(ssl_config->groups, XQC_TLS_GROUPS, len);
     }
 
     if (src->session_ticket_key_len > 0 ) {
@@ -90,16 +80,14 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
     }
 
     if (src->alpn_list == NULL) {
-        int len = strlen(XQC_ALPN_LIST);
-        ssl_config->alpn_list = xqc_malloc(len + 1);
-        strncpy(ssl_config->alpn_list, XQC_ALPN_LIST, len);
-        ssl_config->alpn_list[len] = '\0';
-        ssl_config->alpn_list_len = len;
-
+        int len = sizeof(XQC_ALPN_LIST);
+        ssl_config->alpn_list = xqc_malloc(len);
+        memcpy(ssl_config->alpn_list, XQC_ALPN_LIST, len);
+        ssl_config->alpn_list_len = len - 1;
     } else {
         ssl_config->alpn_list_len = src->alpn_list_len;
         ssl_config->alpn_list = (char *)xqc_malloc(src->alpn_list_len + 1);
-        memcpy(ssl_config->alpn_list, src->alpn_list, src->alpn_list_len + 1);
+        memcpy(ssl_config->alpn_list, src->alpn_list, src->alpn_list_len);
         ssl_config->alpn_list[ssl_config->alpn_list_len] = '\0';
     }
 
@@ -147,10 +135,11 @@ xqc_ssl_init_conn_config(xqc_connection_t *conn, const xqc_conn_ssl_config_t *sr
         conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
 
     } else {
-        if (xqc_alpn_type_is_h3(alpn, strlen(alpn))) {
+        size_t len = strlen(alpn);
+        if (xqc_alpn_type_is_h3(alpn, len)) {
             conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
 
-        } else if (xqc_alpn_type_is_hq(alpn, strlen(alpn))) {
+        } else if (xqc_alpn_type_is_hq(alpn, len)) {
             conn->tlsref.alpn_num = XQC_ALPN_HQ_NUM;
 
         } else {
@@ -880,7 +869,7 @@ xqc_int_t
 xqc_set_cipher_suites(xqc_engine_t * engine)
 {
     if (engine->ssl_ctx 
-        && engine->ssl_config.ciphers && strlen(engine->ssl_config.ciphers) > 0)
+        && engine->ssl_config.ciphers && *engine->ssl_config.ciphers)
     {
 #ifndef OPENSSL_IS_BORINGSSL
         if (XQC_SSL_SUCCESS != SSL_CTX_set_ciphersuites(engine->ssl_ctx, engine->ssl_config.ciphers)) {

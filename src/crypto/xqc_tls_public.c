@@ -10,7 +10,7 @@ void
 xqc_tls_print_secret(SSL *ssl, xqc_connection_t *conn, enum ssl_encryption_level_t level,
     const unsigned char *read_secret, const unsigned char *write_secret, size_t secretlen)
 {
-    if (strlen((const char*)conn->client_random_hex) == 0) {
+    if (!*(const char*)conn->client_random_hex) {
         unsigned char client_random[33] = {0};
         size_t out_len = 32;
         out_len = SSL_get_client_random(ssl, client_random, out_len);

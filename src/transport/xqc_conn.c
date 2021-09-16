@@ -145,7 +145,7 @@ xqc_conn_print_secret(xqc_connection_t *conn)
     secret_str[0] = '\n';
     n_write += 1;
     for (xqc_secret_type_t i = CLIENT_EARLY_TRAFFIC_SECRET; i < SECRET_TYPE_NUM; i++) {
-        if (strlen(conn->secret_hex[i]) > 0) {
+        if (*conn->secret_hex[i]) {
             n_write += snprintf(secret_str + n_write, sizeof(secret_str), "%s %s %s\n", 
                                 xqc_secret_type_2_str[i], conn->client_random_hex, conn->secret_hex[i]);
         }

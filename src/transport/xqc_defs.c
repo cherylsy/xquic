@@ -1,4 +1,5 @@
-#include "xqc_defs.h"
+#include "src/transport/xqc_defs.h"
+#include "src/common/xqc_str.h"
 #include <string.h>
 
 const uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
@@ -28,15 +29,15 @@ const char* const xqc_crypto_initial_salt[] = {
 xqc_bool_t
 xqc_alpn_type_is_h3(const unsigned char *alpn, uint8_t alpn_len)
 {
-    return ((alpn_len == strlen(XQC_ALPN_H3) && memcmp(alpn, XQC_ALPN_H3, alpn_len) == 0)
-        || (alpn_len == strlen(XQC_ALPN_H3_29) && memcmp(alpn, XQC_ALPN_H3_29, alpn_len) == 0));
+    return ((alpn_len == xqc_lengthof(XQC_ALPN_H3) && memcmp(alpn, XQC_ALPN_H3, xqc_lengthof(XQC_ALPN_H3)) == 0)
+        || (alpn_len == xqc_lengthof(XQC_ALPN_H3_29) && memcmp(alpn, XQC_ALPN_H3_29, xqc_lengthof(XQC_ALPN_H3_29)) == 0));
 }
 
 xqc_bool_t
 xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len)
 {
-    return (alpn_len == strlen(XQC_ALPN_TRANSPORT)
-        && memcmp(alpn, XQC_ALPN_TRANSPORT, alpn_len) == 0);
+    return (alpn_len == xqc_lengthof(XQC_ALPN_TRANSPORT)
+        && memcmp(alpn, XQC_ALPN_TRANSPORT, xqc_lengthof(XQC_ALPN_TRANSPORT)) == 0);
 }
 
 
@@ -46,8 +47,8 @@ xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len)
 xqc_bool_t
 xqc_alpn_type_is_hq(const unsigned char *alpn, uint8_t alpn_len)
 {
-    return ((alpn_len == strlen(XQC_ALPN_HQ_INTEROP) && memcmp(alpn, XQC_ALPN_HQ_INTEROP, alpn_len) == 0)
-            || (alpn_len == strlen(XQC_ALPN_HQ_29) && memcmp(alpn, XQC_ALPN_HQ_29, alpn_len) == 0));
+    return ((alpn_len == xqc_lengthof(XQC_ALPN_HQ_INTEROP) && memcmp(alpn, XQC_ALPN_HQ_INTEROP, xqc_lengthof(XQC_ALPN_HQ_INTEROP)) == 0)
+        || (alpn_len == xqc_lengthof(XQC_ALPN_HQ_29) && memcmp(alpn, XQC_ALPN_HQ_29, xqc_lengthof(XQC_ALPN_HQ_29)) == 0));
 }
 
 const char* const xqc_h3_alpn[] = {
