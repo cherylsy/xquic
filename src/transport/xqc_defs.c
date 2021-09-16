@@ -1,5 +1,5 @@
-#include "xqc_defs.h"
-#include "xqc_str.h"
+#include "src/transport/xqc_defs.h"
+#include "src/common/xqc_str.h"
 #include <string.h>
 
 const uint32_t xqc_proto_version_value[XQC_VERSION_MAX] = {
