@@ -1,6 +1,5 @@
 #include "src/crypto/xqc_hkdf.h"
-
-#define lengthof(x) (sizeof(x) - 1)
+#include "src/common/xqc_str.h"
 
 int xqc_hkdf_expand_label(uint8_t *dest, size_t destlen, const uint8_t *secret,
         size_t secretlen, const uint8_t *label, size_t labellen,
