@@ -40,6 +40,9 @@ typedef struct xqc_str_s
 
 #define xqc_memcmp(s1, s2, n)  memcmp((const char *) s1, (const char *) s2, n)
 
+#define xqc_lengthof(x) (sizeof(x) - 1)
+
+
 unsigned char *xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len);
 unsigned char* xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list args);
 unsigned char *

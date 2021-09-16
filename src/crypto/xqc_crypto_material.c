@@ -6,8 +6,8 @@
 #include "src/crypto/xqc_crypto.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_defs.h"
+#include "src/common/xqc_str.h"
 
-#define lengthof(x) (sizeof(x) - 1)
 
 /** private */
 
@@ -156,7 +156,7 @@ int xqc_derive_client_initial_secret(uint8_t *dest, size_t destlen,
     xqc_digist_t md ;
     xqc_digist_init_to_sha256(&md);
     return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL,
-            lengthof(LABEL), &md);
+            xqc_lengthof(LABEL), &md);
 }
 
 int xqc_derive_server_initial_secret(uint8_t *dest, size_t destlen,
@@ -166,7 +166,7 @@ int xqc_derive_server_initial_secret(uint8_t *dest, size_t destlen,
     xqc_digist_t md ;
     xqc_digist_init_to_sha256(&md);
     return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL,
-            lengthof(LABEL), &md);
+            xqc_lengthof(LABEL), &md);
 }
 
 ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
@@ -183,7 +183,7 @@ ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
     }
 
     rv = xqc_hkdf_expand_label(dest, ivlen, secret, secretlen, LABEL,
-            lengthof(LABEL), &ctx->prf);
+            xqc_lengthof(LABEL), &ctx->prf);
     if (rv != 0) {
         return -1;
     }
@@ -204,7 +204,7 @@ ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
     }
 
     rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL,
-            lengthof(LABEL), &ctx->prf);
+            xqc_lengthof(LABEL), &ctx->prf);
 
     if (rv != 0) {
         return -1;
@@ -227,7 +227,7 @@ ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
     }
 
     rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL,
-            lengthof(LABEL), &ctx->prf);
+            xqc_lengthof(LABEL), &ctx->prf);
     if (rv != 0) {
         return -1;
     }
@@ -483,7 +483,7 @@ int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
         return -1;
     }
 
-    rv = xqc_hkdf_expand_label(dest, secretlen, secret, secretlen, LABEL, lengthof(LABEL), &ctx->prf );
+    rv = xqc_hkdf_expand_label(dest, secretlen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &ctx->prf );
     if(rv < 0){
         return -1;
     }
