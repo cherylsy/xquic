@@ -126,7 +126,7 @@ xqc_decoder_save_hdr(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, xqc_http_header_t *
     case XQC_REP_TYPE_POST_BASE_INDEXED:
         ret = xqc_decoder_index(dec, ctx->table, ctx->index.value, name, value);
         if (ret != XQC_OK) {
-            xqc_log(dec->log, XQC_LOG_ERROR, "|decode indexed field line error|ret:%d|", ret);
+            xqc_log(dec->log, XQC_LOG_ERROR, "|decode indexed field line error|type:%d|base:%ui|ret:%d|", ctx->type, ctx->base.value, ret);
             return -XQC_QPACK_DECODER_ERROR;
         }
         /* restore never flag */
@@ -138,7 +138,7 @@ xqc_decoder_save_hdr(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, xqc_http_header_t *
     case XQC_REP_TYPE_POST_BASE_NAME_REFERENCE:
         ret = xqc_decoder_name_index(dec, ctx->table, ctx->index.value, name);
         if (ret != XQC_OK) {
-            xqc_log(dec->log, XQC_LOG_ERROR, "|decode name indexed field line error|ret:%d|", ret);
+            xqc_log(dec->log, XQC_LOG_ERROR, "|decode name indexed field line error|type:%d|base:%ui|ret:%d|", ctx->type, ctx->base.value, ret);
             return -XQC_QPACK_DECODER_ERROR;
         }
         /* restore never flag */

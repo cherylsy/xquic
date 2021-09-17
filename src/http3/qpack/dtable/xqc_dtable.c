@@ -446,7 +446,7 @@ xqc_dtable_get_nv(xqc_dtable_t *dt, uint64_t idx,
 {
     xqc_dtable_entry_t *entry = xqc_dtable_get_entry_by_abs_idx(dt, idx);
     if (NULL == entry) {
-        xqc_log(dt->log, XQC_LOG_ERROR, "|get entry error|idx:%ui|", idx);
+        xqc_log(dt->log, XQC_LOG_ERROR, "|get entry error|idx:%ui|first_idx:%ui|insert_count:%ui|", idx, dt->first_idx, dt->insert_cnt);
         return -XQC_QPACK_DYNAMIC_TABLE_VOID_ENTRY;
     }
 
