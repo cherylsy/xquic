@@ -394,13 +394,13 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         }
 
         if (engine_type == XQC_ENGINE_SERVER) {
-            engine->ssl_ctx = xqc_create_server_ssl_ctx(engine, ssl_config);
+            engine->ssl_ctx = xqc_create_server_ssl_ctx(engine, &engine->ssl_config);
             if (engine->ssl_ctx == NULL) {
                 goto fail;
             }
 
         } else {
-            engine->ssl_ctx = xqc_create_client_ssl_ctx(engine, ssl_config);
+            engine->ssl_ctx = xqc_create_client_ssl_ctx(engine, &engine->ssl_config);
             if (engine->ssl_ctx == NULL) {
                 goto fail;
             }
