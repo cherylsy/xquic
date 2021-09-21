@@ -417,6 +417,8 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     if (engine->eng_callback.server_accept) {
         if (engine->eng_callback.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
+            XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
+            xqc_conn_immediate_close(conn);
             goto fail;
         }
         conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
