@@ -831,6 +831,11 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
     memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
     user_conn->peer_addrlen = peer_addrlen;
 
+    if (g_test_case == 11) {
+        g_test_case = -1;
+        return -1;
+    }
+
     if (g_batch) {
         connect(ctx.fd, peer_addr, peer_addrlen);
     }
