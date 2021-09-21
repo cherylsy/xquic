@@ -565,6 +565,10 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 {
     if (h3s->h3r == NULL) {
         h3s->h3r = xqc_h3_request_create_inner(h3s->h3c, h3s, h3s->user_data);
+        if (!h3s->h3r) {
+            xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_request_create_inner error|");
+            return -XQC_H3_ECREATE_REQUEST;
+        }
     }
 
     if (data_len == 0) {
