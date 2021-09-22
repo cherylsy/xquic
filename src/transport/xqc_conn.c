@@ -414,6 +414,15 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
+    if (conn->engine->eng_callback.server_accept) {
+        if (conn->engine->eng_callback.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
+            xqc_log(conn->engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
+            XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
+            goto fail;
+        }
+        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
+    }
+
     return conn;
 
 fail:
@@ -435,16 +444,6 @@ xqc_conn_server_on_alpn(xqc_connection_t *conn)
 
     } else {
         conn->stream_callbacks = conn->engine->eng_callback.stream_callbacks;
-    }
-
-    if (conn->engine->eng_callback.server_accept) {
-        if (conn->engine->eng_callback.server_accept(conn->engine, conn, &conn->scid_set.user_scid, conn->user_data) < 0) {  // TODO: fix ALPN and user_data
-            xqc_log(conn->engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
-            XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
-            xqc_conn_immediate_close(conn);
-            return;
-        }
-        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
     /* do callback */

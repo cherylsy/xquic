@@ -101,13 +101,7 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
     h3_request->body_buf_count = 0;
 
     if (h3_request->request_if->h3_request_create_notify) {
-        int ret = h3_request->request_if->h3_request_create_notify(h3_request,
-                                                                   h3_request->user_data);
-        if (ret < 0) {
-            xqc_log(h3_conn->log, XQC_LOG_ERROR, "|request refused by app|");
-            xqc_free(h3_request);
-            return NULL;
-        }
+        h3_request->request_if->h3_request_create_notify(h3_request, h3_request->user_data);
     }
 
     return h3_request;

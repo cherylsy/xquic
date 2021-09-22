@@ -1065,31 +1065,13 @@ clear_log
 echo -e "server refuse connection ...\c"
 ./test_client -l d -E >> clog
 svr_result=`grep "server_accept callback return error" slog`
-cli_result=`grep "|xqc_process_conn_close_frame|with err:0x2|" clog`
-if [ -n "$svr_result" ] && [ -n "$cli_result" ] ; then
+if [ -n "$svr_result" ] ; then
     echo ">>>>>>>> pass:1"
     case_print_result "server_refuse_connection" "pass"
 else
     echo ">>>>>>>> pass:0"
     case_print_result "server_refuse_connection" "fail"
 fi
-
-killall test_server
-./test_server -l d -e -x 12 > /dev/null &
-sleep 1
-
-clear_log
-echo -e "server refuse request ...\c"
-./test_client -l d -E >> clog
-svr_result=`grep "request refused by app" slog`
-if [ -n "$svr_result" ] ; then
-    echo ">>>>>>>> pass:1"
-    case_print_result "server_refuse_request" "pass"
-else
-    echo ">>>>>>>> pass:0"
-    case_print_result "server_refuse_request" "fail"
-fi
-
 
 killall test_server
 
