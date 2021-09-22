@@ -502,6 +502,12 @@ int xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *user_da
     DEBUG;
     int ret = 0;
 
+    if (g_test_case == 12) {
+        g_test_case = -1;
+        return -1;
+    }
+    
+
     user_stream_t *user_stream = calloc(1, sizeof(*user_stream));
     user_stream->h3_request = h3_request;
     xqc_h3_request_set_user_data(h3_request, user_stream);
