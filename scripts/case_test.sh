@@ -1058,5 +1058,21 @@ fi
 
 
 killall test_server
+./test_server -l d -e -x 11 > /dev/null &
+sleep 1
+
+clear_log
+echo -e "server refuse connection ...\c"
+./test_client -l d -E >> clog
+svr_result=`grep "server_accept callback return error" slog`
+if [ -n "$svr_result" ] ; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "server_refuse_connection" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "server_refuse_connection" "fail"
+fi
+
+killall test_server
 
 cd -
