@@ -264,8 +264,9 @@ static inline ssize_t
 xqc_crypto_encrypt(const xqc_crypto_t * crypto,
     uint8_t *dest, size_t destlen,
     const uint8_t *plaintext, size_t plaintextlen,
-    const uint8_t *key, size_t keylen, const uint8_t *sample,
-    size_t samplelen, xqc_crypter_t *encrypter)
+    const uint8_t *key, size_t keylen,
+    const uint8_t *sample, size_t samplelen,
+    xqc_crypter_t *encrypter)
 {
     int owns = XQC_TRUE;
     ssize_t len , out ;
@@ -319,12 +320,13 @@ finish:
 }
 
 static inline ssize_t 
-xqc_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen, 
-            const uint8_t *plaintext, size_t plaintextlen, 
-            const uint8_t *key, size_t keylen, 
-            const uint8_t *nonce, size_t noncelen,
-            const uint8_t *ad, size_t adlen,
-            xqc_aead_crypter_t *aead_encrypter)
+xqc_aead_encrypt(const xqc_aead_t * aead,
+    uint8_t *dest, size_t destlen, 
+    const uint8_t *plaintext, size_t plaintextlen, 
+    const uint8_t *key, size_t keylen, 
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    xqc_aead_crypter_t *aead_encrypter)
 {
     int owns = XQC_TRUE;
     ssize_t outlen;
@@ -336,12 +338,12 @@ xqc_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
     }
 
     if (XQC_UNLIKELY(!builder)) {
-        return aead->encrypt.xqc_encrypt_func(
-                aead, dest, destlen,
-                plaintext, plaintextlen,
-                key, keylen,
-                nonce, noncelen,
-                ad, adlen);
+        return aead->encrypt.xqc_encrypt_func(aead,
+                                              dest, destlen,
+                                              plaintext, plaintextlen,
+                                              key, keylen,
+                                              nonce, noncelen,
+                                              ad, adlen);
     }
 
     aead_encrypter = builder->xqc_aead_crypter_new(aead, /** enc */ 1); 
@@ -351,8 +353,11 @@ xqc_aead_encrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
 
     (void) xqc_aead_crypter_call(builder, set_key, aead_encrypter, key, keylen);
 start:
-    outlen = builder->xqc_aead_crypter_seal(aead_encrypter, dest, destlen, nonce, noncelen, plaintext, plaintextlen,
-        ad, adlen);
+    outlen = builder->xqc_aead_crypter_seal(aead_encrypter,
+                                            dest, destlen,
+                                            nonce, noncelen,
+                                            plaintext, plaintextlen,
+                                            ad, adlen);
 
     if (owns) {
         builder->xqc_aead_crypter_free(aead_encrypter);
@@ -361,16 +366,17 @@ start:
 }
 
 static inline ssize_t 
-xqc_aead_decrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen, 
-            const uint8_t *ciphertext, size_t ciphertextlen,
-            const uint8_t *key, size_t keylen, 
-            const uint8_t *nonce, size_t noncelen,
-            const uint8_t *ad, size_t adlen,
-            xqc_aead_crypter_t *aead_decrypter)
+xqc_aead_decrypt(const xqc_aead_t * aead,
+    uint8_t *dest, size_t destlen, 
+    const uint8_t *ciphertext, size_t ciphertextlen,
+    const uint8_t *key, size_t keylen, 
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    xqc_aead_crypter_t *aead_decrypter)
 {
     int owns = XQC_TRUE;
     ssize_t outlen;
-    const xqc_aead_crypter_builder_t *builder = aead->aead_crypter_builder ;
+    const xqc_aead_crypter_builder_t *builder = aead->aead_crypter_builder;
 
     if (aead_decrypter) {
         owns = XQC_FALSE;
@@ -379,11 +385,11 @@ xqc_aead_decrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
     
     if (XQC_UNLIKELY(!builder)) {
         return aead->decrypt.xqc_decrypt_func(aead,
-                dest, destlen,
-                ciphertext, ciphertextlen,
-                key, keylen,
-                nonce, noncelen,
-                ad, adlen);
+                                              dest, destlen,
+                                              ciphertext, ciphertextlen,
+                                              key, keylen,
+                                              nonce, noncelen,
+                                              ad, adlen);
     }
     
     aead_decrypter = builder->xqc_aead_crypter_new(aead, /** enc */0); 
@@ -393,8 +399,11 @@ xqc_aead_decrypt(const xqc_aead_t * aead, uint8_t *dest, size_t destlen,
 
     (void) xqc_aead_crypter_call(builder, set_key, aead_decrypter, key, keylen);
 start:
-    outlen = builder->xqc_aead_crypter_open(aead_decrypter, dest, destlen, nonce, noncelen, ciphertext, ciphertextlen,
-        ad, adlen);
+    outlen = builder->xqc_aead_crypter_open(aead_decrypter,
+                                            dest, destlen,
+                                            nonce, noncelen,
+                                            ciphertext, ciphertextlen,
+                                            ad, adlen);
     
     if (owns) {
         builder->xqc_aead_crypter_free(aead_decrypter);

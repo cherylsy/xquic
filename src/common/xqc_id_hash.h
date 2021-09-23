@@ -71,7 +71,9 @@ typedef struct xqc_id_hash_table_s
 
 
 /* make n to 2 pow  */
-static inline int xqc_pow2(unsigned int n) {
+static inline int
+xqc_pow2(unsigned int n)
+{
     int clz , power = sizeof(n);
     if (__builtin_popcount(n) <= 1) {
         return n ;
@@ -82,7 +84,8 @@ static inline int xqc_pow2(unsigned int n) {
 }
 
 
-static inline int xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
+static inline int
+xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
     bucket_num = xqc_pow2(bucket_num);
@@ -97,7 +100,8 @@ static inline int xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator
 }
 
 
-static inline void xqc_id_hash_release(xqc_id_hash_table_t* hash_tab)
+static inline void
+xqc_id_hash_release(xqc_id_hash_table_t* hash_tab)
 {
     xqc_allocator_t* a = &hash_tab->allocator;
     for (size_t i = 0; i < hash_tab->count; ++i) {
@@ -115,7 +119,8 @@ static inline void xqc_id_hash_release(xqc_id_hash_table_t* hash_tab)
 }
 
 
-static inline void* xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t hash)
+static inline void *
+xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 {
     uint64_t index = hash & hash_tab->mask;
     xqc_id_hash_node_t* node = hash_tab->list[index];
@@ -132,7 +137,8 @@ static inline void* xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t has
 }
 
 
-static inline int xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_element_t e)
+static inline int
+xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_element_t e)
 {
     if (xqc_id_hash_find(hash_tab, e.hash)) {
         return XQC_ERROR;
@@ -153,7 +159,8 @@ static inline int xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_ele
 }
 
 
-static inline int xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t hash)
+static inline int
+xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 {
     uint64_t index = hash & hash_tab->mask;
     xqc_allocator_t *a = &hash_tab->allocator;

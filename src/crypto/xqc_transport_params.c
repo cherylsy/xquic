@@ -539,7 +539,7 @@ xqc_decode_max_udp_payload_size(xqc_transport_params_t *params, xqc_transport_pa
 
 static xqc_int_t
 xqc_decode_initial_max_data(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->initial_max_data, p, end);
 }
@@ -560,7 +560,7 @@ xqc_decode_initial_max_stream_data_bidi_remote(xqc_transport_params_t *params, x
 
 static xqc_int_t
 xqc_decode_initial_max_stream_data_uni(xqc_transport_params_t *params, xqc_transport_params_type_t exttype,
-                                       const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
+    const uint8_t *p, const uint8_t *end, uint64_t param_type, uint64_t param_len)
 {
     XQC_DECODE_VINT_VALUE(&params->initial_max_stream_data_uni, p, end);
 }
@@ -1069,15 +1069,14 @@ xqc_on_client_recv_peer_transport_params(xqc_connection_t * conn,
 {
     xqc_transport_params_t params;
 
-    xqc_int_t rv = xqc_trans_param_decode(conn,
-                &params, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, inbuf, inlen);
+    xqc_int_t rv = xqc_trans_param_decode(conn, &params,
+                                          XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, inbuf, inlen);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_trans_param_decode failed| ret code:%d |", rv);
         return rv;
     }
 
-    rv = xqc_conn_set_remote_transport_params(
-            conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &params);
+    rv = xqc_conn_set_remote_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &params);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_set_remote_transport_params failed | ret code:%d |", rv);
         return rv;
@@ -1102,15 +1101,13 @@ xqc_on_server_recv_peer_transport_params(xqc_connection_t * conn,
     xqc_int_t rv;
     xqc_transport_params_t params;
 
-    rv = xqc_trans_param_decode(conn, 
-            &params, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, inbuf, inlen);
+    rv = xqc_trans_param_decode(conn, &params, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, inbuf, inlen);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_trans_param_decode| ret code :%d |", rv);
         return rv;
     }
 
-    rv = xqc_conn_set_remote_transport_params(
-            conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &params);
+    rv = xqc_conn_set_remote_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &params);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_set_remote_transport_params| ret code :%d|", rv);
         return rv;

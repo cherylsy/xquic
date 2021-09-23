@@ -75,7 +75,8 @@ xqc_null_aead_crypter_free (xqc_aead_crypter_t *aead_crypter)
 }
 
 static ssize_t
-xqc_null_aead_crypter_operation (xqc_aead_crypter_t *aead_crypter, uint8_t *out, size_t max_out_len, 
+xqc_null_aead_crypter_operation (xqc_aead_crypter_t *aead_crypter,
+    uint8_t *out, size_t max_out_len, 
     const uint8_t *nonce, size_t nonce_len, 
     const uint8_t *in, size_t in_len,
     const uint8_t *ad, size_t ad_len)
@@ -91,6 +92,7 @@ xqc_null_aead_crypter_operation (xqc_aead_crypter_t *aead_crypter, uint8_t *out,
     
     if (aead_crypter->enc) {
         outlen  = in_len + taglen;
+
     }else {
         in_len  -= taglen;
         outlen  = in_len;
@@ -118,10 +120,12 @@ xqc_aead_crypter_builder_t xqc_null_aead_crypter = {
 
 
 static ssize_t 
-xqc_null_aead_encrypt(const xqc_aead_t * ctx, uint8_t *dest, size_t destlen, const uint8_t *plaintext,
-            size_t plaintextlen, const uint8_t *key,
-            size_t keylen, const uint8_t *nonce, size_t noncelen,
-            const uint8_t *ad, size_t adlen)
+xqc_null_aead_encrypt(const xqc_aead_t * ctx,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen)
 {
     if (XQC_LIKELY(dest != plaintext)) {
         memmove(dest, plaintext, plaintextlen);
@@ -130,10 +134,12 @@ xqc_null_aead_encrypt(const xqc_aead_t * ctx, uint8_t *dest, size_t destlen, con
 }
 
 static ssize_t
-xqc_null_aead_decrypt(const xqc_aead_t * ctx, uint8_t *dest, size_t destlen, const uint8_t *ciphertext,
-            size_t ciphertextlen, const uint8_t *key,
-            size_t keylen, const uint8_t *nonce, size_t noncelen,
-            const uint8_t *ad, size_t adlen)
+xqc_null_aead_decrypt(const xqc_aead_t * ctx,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *ciphertext, size_t ciphertextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen)
 {
     size_t length = ciphertextlen - xqc_aead_overhead(ctx, ciphertextlen);
     if (XQC_LIKELY(dest != ciphertext)) {
@@ -143,10 +149,11 @@ xqc_null_aead_decrypt(const xqc_aead_t * ctx, uint8_t *dest, size_t destlen, con
 }
 
 static ssize_t 
-xqc_null_cipher_encrypt(const xqc_crypto_t *ctx, uint8_t *dest, size_t destlen, 
-            const uint8_t *plaintext, size_t plaintextlen,
-            const uint8_t *key, size_t keylen, const uint8_t *sample,
-            size_t samplelen)
+xqc_null_cipher_encrypt(const xqc_crypto_t *ctx,
+    uint8_t *dest, size_t destlen, 
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *sample, size_t samplelen)
 {
     if (XQC_UNLIKELY(dest != plaintext)) {
         memmove(dest, plaintext, plaintextlen);

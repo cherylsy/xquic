@@ -48,7 +48,8 @@ typedef struct xqc_wakeup_pq_s
 #define xqc_wakeup_pq_element_copy(pq, dst, src) memmove(xqc_wakeup_pq_element((pq), (dst)), xqc_wakeup_pq_element((pq), (src)), (pq)->element_size)
 #define xqc_wakeup_pq_default_capacity 16
 
-static inline int xqc_wakeup_pq_init(xqc_wakeup_pq_t *pq, size_t capacity, xqc_allocator_t a, xqc_wakeup_pq_compare_ptr cmp)
+static inline int
+xqc_wakeup_pq_init(xqc_wakeup_pq_t *pq, size_t capacity, xqc_allocator_t a, xqc_wakeup_pq_compare_ptr cmp)
 {
     size_t element_size = sizeof(xqc_wakeup_pq_elem_t);
     if (capacity == 0) {
@@ -69,12 +70,14 @@ static inline int xqc_wakeup_pq_init(xqc_wakeup_pq_t *pq, size_t capacity, xqc_a
     return 0;
 }
 
-static inline int xqc_wakeup_pq_init_default(xqc_wakeup_pq_t *pq, xqc_allocator_t a, xqc_wakeup_pq_compare_ptr cmp)
+static inline int
+xqc_wakeup_pq_init_default(xqc_wakeup_pq_t *pq, xqc_allocator_t a, xqc_wakeup_pq_compare_ptr cmp)
 {
     return xqc_wakeup_pq_init(pq, xqc_wakeup_pq_default_capacity, a, cmp);
 }
 
-static inline void xqc_wakeup_pq_destroy(xqc_wakeup_pq_t *pq)
+static inline void
+xqc_wakeup_pq_destroy(xqc_wakeup_pq_t *pq)
 {
     pq->a.free(pq->a.opaque, pq->elements);
     pq->elements = NULL;
@@ -83,7 +86,8 @@ static inline void xqc_wakeup_pq_destroy(xqc_wakeup_pq_t *pq)
     pq->capacity = 0;
 }
 
-static inline void xqc_wakeup_pq_element_swap(xqc_wakeup_pq_t *pq, size_t i, size_t j)
+static inline void
+xqc_wakeup_pq_element_swap(xqc_wakeup_pq_t *pq, size_t i, size_t j)
 {
     char buf[pq->element_size];
     xqc_wakeup_pq_elem_t* p;
@@ -97,7 +101,8 @@ static inline void xqc_wakeup_pq_element_swap(xqc_wakeup_pq_t *pq, size_t i, siz
     memcpy(xqc_wakeup_pq_element(pq, i), buf, pq->element_size);
 }
 
-static inline xqc_wakeup_pq_elem_t* xqc_wakeup_pq_push(xqc_wakeup_pq_t *pq, xqc_pq_wakeup_time_t wakeup_time, struct xqc_connection_s *conn)
+static inline xqc_wakeup_pq_elem_t*
+xqc_wakeup_pq_push(xqc_wakeup_pq_t *pq, xqc_pq_wakeup_time_t wakeup_time, struct xqc_connection_s *conn)
 {
     if (pq->count == pq->capacity) {
         size_t capacity = pq->capacity * 2;
@@ -131,7 +136,8 @@ static inline xqc_wakeup_pq_elem_t* xqc_wakeup_pq_push(xqc_wakeup_pq_t *pq, xqc_
     return xqc_wakeup_pq_element(pq, i);
 }
 
-static inline xqc_wakeup_pq_elem_t* xqc_wakeup_pq_top(xqc_wakeup_pq_t *pq)
+static inline xqc_wakeup_pq_elem_t*
+xqc_wakeup_pq_top(xqc_wakeup_pq_t *pq)
 {
     if (pq->count == 0) {
         return NULL;
@@ -139,12 +145,14 @@ static inline xqc_wakeup_pq_elem_t* xqc_wakeup_pq_top(xqc_wakeup_pq_t *pq)
     return xqc_wakeup_pq_element(pq, 0);
 }
 
-static inline int xqc_wakeup_pq_empty(xqc_wakeup_pq_t *pq)
+static inline int
+xqc_wakeup_pq_empty(xqc_wakeup_pq_t *pq)
 {
     return pq->count == 0 ? 1 : 0;
 }
 
-static inline void xqc_wakeup_pq_pop(xqc_wakeup_pq_t *pq)
+static inline void
+xqc_wakeup_pq_pop(xqc_wakeup_pq_t *pq)
 {
     if (pq->count == 0 || --pq->count == 0) {
         return;
@@ -171,7 +179,8 @@ static inline void xqc_wakeup_pq_pop(xqc_wakeup_pq_t *pq)
     }
 }
 
-static inline void xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connection_s *conn)
+static inline void
+xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connection_s *conn)
 {
     unsigned pq_index = conn->wakeup_pq_index;
     if (pq_index >= pq->count || pq->count == 0 || --pq->count == 0) {

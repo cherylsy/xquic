@@ -15,8 +15,7 @@
 enum ssl_encryption_level_t 
 xqc_convert_xqc_to_ssl_level(xqc_encrypt_level_t level)
 {
-    switch(level)
-    {
+    switch(level) {
     case XQC_ENC_LEV_INIT:
         return ssl_encryption_initial;
     case XQC_ENC_LEV_0RTT:
@@ -32,8 +31,7 @@ xqc_convert_xqc_to_ssl_level(xqc_encrypt_level_t level)
 xqc_encrypt_level_t  
 xqc_convert_ssl_to_xqc_level(enum ssl_encryption_level_t level)
 {
-    switch(level)
-    {
+    switch(level) {
     case ssl_encryption_initial:
         return XQC_ENC_LEV_INIT;
     case ssl_encryption_early_data:
@@ -52,13 +50,16 @@ xqc_convert_ssl_to_xqc_level(enum ssl_encryption_level_t level)
  *@return XQC_FALSE means reject, XQC_TRUE means early accepted
  *
  */
-int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn) {
+int
+xqc_crypto_is_early_data_accepted(xqc_connection_t * conn)
+{
 #ifdef OPENSSL_IS_BORINGSSL
     if(xqc_tls_is_early_data_accepted(conn) == XQC_TLS_EARLY_DATA_ACCEPT) {
 #else
     if(SSL_get_early_data_status(conn->xc_ssl) == SSL_EARLY_DATA_ACCEPTED) {
 #endif
         return XQC_TRUE;
+
     } else {
         return XQC_FALSE;
     }
@@ -67,7 +68,8 @@ int xqc_crypto_is_early_data_accepted(xqc_connection_t * conn) {
 /*
  *@return  XQC_FALSE means not ready, XQC_TRUE means ready
  */
-int xqc_is_ready_to_send_early_data(xqc_connection_t * conn)
+int
+xqc_is_ready_to_send_early_data(xqc_connection_t * conn)
 {
 
     if(conn->tlsref.resumption == 0){
@@ -85,7 +87,9 @@ int xqc_is_ready_to_send_early_data(xqc_connection_t * conn)
     return XQC_TRUE;
 }
 
-int xqc_free_pktns_list_buffer(xqc_pktns_t * p_pktns){
+int
+xqc_free_pktns_list_buffer(xqc_pktns_t * p_pktns)
+{
 
     xqc_list_head_t *head = &p_pktns->msg_cb_buffer;
     xqc_list_head_t *pos, *next;
@@ -97,7 +101,9 @@ int xqc_free_pktns_list_buffer(xqc_pktns_t * p_pktns){
     return 0;
 }
 
-int xqc_tls_free_msg_cb_buffer(xqc_connection_t * conn){
+int
+xqc_tls_free_msg_cb_buffer(xqc_connection_t * conn)
+{
 
     xqc_free_pktns_list_buffer(&conn->tlsref.initial_pktns);
     xqc_free_pktns_list_buffer(&conn->tlsref.hs_pktns);
@@ -107,24 +113,24 @@ int xqc_tls_free_msg_cb_buffer(xqc_connection_t * conn){
 }
 
 
-int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data)
+int
+xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data)
 {
-    //clear
     xqc_tls_free_msg_cb_buffer(conn);
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "handshake completed callback\n");
     return 0;
 }
 
-int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid )
+int
+xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid )
 {
-    if( (conn->conn_type == XQC_CONN_TYPE_SERVER) || ( conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY)){
+    if ((conn->conn_type == XQC_CONN_TYPE_SERVER) || ( conn->tlsref.flags & XQC_CONN_FLAG_RECV_RETRY)) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|server recv retry or client recv retry two or more times|");
         return -1;
     }
     conn->tlsref.flags  |= XQC_CONN_FLAG_RECV_RETRY;
     int ret = 0;
-    //int ret = xqc_client_setup_initial_crypto_context(conn, dcid);
 
     xqc_pktns_t  * p_pktns = &conn->tlsref.initial_pktns;
     xqc_list_head_t *head = &p_pktns->msg_cb_buffer;
@@ -139,8 +145,9 @@ int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid )
 }
 
 
-static
-int xqc_judge_ckm_null(xqc_crypto_km_t * ckm)//if null return 0, both key and iv not null return 1, else return -1;
+/* if null return 0, both key and iv not null return 1, else return -1; */
+static int
+xqc_judge_ckm_null(xqc_crypto_km_t * ckm)
 {
     if((ckm->key.base == NULL && ckm->key.len == 0) && (ckm->iv.base == NULL && ckm->iv.len == 0)){
         return  0;
@@ -153,8 +160,9 @@ int xqc_judge_ckm_null(xqc_crypto_km_t * ckm)//if null return 0, both key and iv
     return -1;
 }
 
-void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
-        uint64_t pkt_num) {
+void
+xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen, uint64_t pkt_num)
+{
     size_t i;
 
     memcpy(dest, iv, ivlen);
@@ -166,8 +174,9 @@ void xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen,
 }
 
 
-//0 means not ready, 1 means ready
-int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
+/* 0 means not ready, 1 means ready */
+int
+xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
 {
     xqc_pktns_t * pktns = &conn->tlsref.pktns;
 
@@ -190,8 +199,9 @@ int xqc_tls_check_tx_key_ready(xqc_connection_t * conn)
 
 }
 
-//0 means not ready, 1 means ready
-int xqc_tls_check_rx_key_ready(xqc_connection_t * conn)
+/* 0 means not ready, 1 means ready */
+int
+xqc_tls_check_rx_key_ready(xqc_connection_t * conn)
 {
     xqc_pktns_t * pktns = &conn->tlsref.pktns;
 
@@ -216,8 +226,9 @@ int xqc_tls_check_rx_key_ready(xqc_connection_t * conn)
 
 
 
-//0 means not ready, 1 means ready
-int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn)
+/* 0 means not ready, 1 means ready */
+int
+xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn)
 {
     xqc_pktns_t * pktns = &conn->tlsref.hs_pktns;
 
@@ -239,8 +250,9 @@ int xqc_tls_check_hs_tx_key_ready(xqc_connection_t * conn)
     return 1;
 }
 
-//0 means not ready, 1 means ready
-int xqc_tls_check_hs_rx_key_ready(xqc_connection_t * conn)
+/* 0 means not ready, 1 means ready */
+int
+xqc_tls_check_hs_rx_key_ready(xqc_connection_t * conn)
 {
     xqc_pktns_t * pktns = &conn->tlsref.hs_pktns;
 
@@ -262,8 +274,9 @@ int xqc_tls_check_hs_rx_key_ready(xqc_connection_t * conn)
     return 1;
 }
 
-//0 means not ready, 1 means ready
-int xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn)
+/* 0 means not ready, 1 means ready */
+int
+xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn)
 {
     xqc_crypto_km_t *p_ckm = &(conn->tlsref.early_ckm);
     xqc_vec_t * p_hp = &(conn->tlsref.early_hp);
@@ -284,13 +297,17 @@ int xqc_tls_check_0rtt_key_ready(xqc_connection_t * conn)
 
 }
 
-int xqc_tls_free_ckm(xqc_crypto_km_t * p_ckm){
+int
+xqc_tls_free_ckm(xqc_crypto_km_t * p_ckm)
+{
     xqc_vec_free(&p_ckm->key);
     xqc_vec_free(&p_ckm->iv);
     return 0;
 }
 
-int xqc_tls_free_pktns(xqc_pktns_t * p_pktns){
+int
+xqc_tls_free_pktns(xqc_pktns_t * p_pktns)
+{
 
     if(p_pktns == NULL)return 0;
     xqc_crypto_km_t * p_ckm = & p_pktns->rx_ckm;
@@ -318,7 +335,8 @@ int xqc_tls_free_pktns(xqc_pktns_t * p_pktns){
 
 }
 
-int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config)
+int
+xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config)
 {
 
     if(ssl_config->private_key_file)xqc_free(ssl_config->private_key_file);
@@ -332,7 +350,9 @@ int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config)
 }
 
 
-int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
+int
+xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config)
+{
 
     if(ssl_config->session_ticket_data){
         xqc_free(ssl_config->session_ticket_data);
@@ -345,7 +365,8 @@ int xqc_tls_free_ssl_config(xqc_conn_ssl_config_t * ssl_config){
     return 0;
 }
 
-int xqc_tls_free_tlsref(xqc_connection_t * conn)
+int
+xqc_tls_free_tlsref(xqc_connection_t * conn)
 {
     xqc_tlsref_t * tlsref = &conn->tlsref;
     xqc_tls_context_t *tls_ctx;
@@ -360,7 +381,6 @@ int xqc_tls_free_tlsref(xqc_connection_t * conn)
         xqc_aead_crypter_free(tls_ctx->aead.aead_crypter_builder, tls_ctx->aead_decrypter);
     }
 
-    //
     xqc_tls_free_pktns(&tlsref->initial_pktns);
     xqc_tls_free_pktns(&tlsref->hs_pktns);
     xqc_tls_free_pktns(&tlsref->pktns);
@@ -386,17 +406,18 @@ int xqc_tls_free_tlsref(xqc_connection_t * conn)
 }
 
 
-ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data,
-                                  xqc_aead_crypter_t * crypter)
+ssize_t
+xqc_do_hs_encrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    void *user_data, xqc_aead_crypter_t * crypter)
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
-    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead, dest, destlen, plaintext, plaintextlen, key, keylen, 
-        nonce, noncelen, ad, adlen, crypter);
+    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead, dest, destlen, plaintext, plaintextlen,
+                                      key, keylen, nonce, noncelen, ad, adlen, crypter);
     if (nwrite < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_encrypt failed|ret code:%d |", nwrite);
         return -XQC_TLS_CALLBACK_FAILURE;
@@ -404,17 +425,18 @@ ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
     return nwrite;
 }
 
-ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data,
-                                  xqc_aead_crypter_t * crypter )
+ssize_t
+xqc_do_hs_decrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *ciphertext, size_t ciphertextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    void *user_data, xqc_aead_crypter_t * crypter)
 {
     xqc_tls_context_t *ctx = & conn->tlsref.hs_crypto_ctx;
     ssize_t nwrite = xqc_aead_decrypt(&ctx->aead,dest, destlen, ciphertext, ciphertextlen,
-        key, keylen, nonce, noncelen, ad, adlen, crypter);
+                                      key, keylen, nonce, noncelen, ad, adlen, crypter);
 
     if (nwrite < 0) {
         return -XQC_TLS_DECRYPT;
@@ -423,19 +445,20 @@ ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
 
 }
 
-ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data,
-                                  xqc_aead_crypter_t * crypter)
+ssize_t
+xqc_do_encrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    void *user_data, xqc_aead_crypter_t * crypter)
 {
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (uintptr_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];   
 
-    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest, destlen, plaintext, plaintextlen , key, keylen,
-        nonce, noncelen, ad, adlen, crypter);
+    ssize_t nwrite = xqc_aead_encrypt(&ctx->aead,dest, destlen, plaintext, plaintextlen,
+                                      key, keylen, nonce, noncelen, ad, adlen, crypter);
     if (nwrite < 0) {
         return -XQC_TLS_CALLBACK_FAILURE;
     }
@@ -444,12 +467,12 @@ ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
 
 
 ssize_t 
-xqc_do_decrypt(xqc_connection_t *conn, 
-    uint8_t *dest, size_t destlen, 
-    const uint8_t *ciphertext, size_t ciphertextlen, 
-    const uint8_t *key, size_t keylen, 
-    const uint8_t *nonce, size_t noncelen, 
-    const uint8_t *ad, size_t adlen, 
+xqc_do_decrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *ciphertext, size_t ciphertextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
     void *user_data, xqc_aead_crypter_t * crypter)
 {
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (uintptr_t) (user_data);
@@ -470,14 +493,16 @@ xqc_do_decrypt(xqc_connection_t *conn,
 
 
 ssize_t
-xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-   const uint8_t *key, size_t keylen, const uint8_t *sample,
-   size_t samplelen, void *user_data,
-   xqc_crypter_t * crypter)
+xqc_in_hp_mask_cb(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *sample, size_t samplelen,
+    void *user_data, xqc_crypter_t * crypter)
 {
     xqc_tls_context_t *ctx = &conn->tlsref.hs_crypto_ctx;
-    ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen, XQC_FAKE_HP_MASK,
-        sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen, crypter);
+    ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen,
+                                        XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK) - 1,
+                                        key, keylen, sample, samplelen, crypter);
     if (nwrite < 0) {
         return -XQC_TLS_CALLBACK_FAILURE;
     }
@@ -485,16 +510,18 @@ xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 }
 
 ssize_t
-xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-    const uint8_t *key, size_t keylen, const uint8_t *sample,
-    size_t samplelen, void *user_data,
-    xqc_crypter_t * crypter)
+xqc_hp_mask_cb(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *sample, size_t samplelen,
+    void *user_data, xqc_crypter_t * crypter)
 {
     xqc_encrypt_level_t encrypt_level = (xqc_encrypt_level_t) (uintptr_t) (user_data);
     xqc_tls_context_t *ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
 
-    ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen, XQC_FAKE_HP_MASK,
-        sizeof(XQC_FAKE_HP_MASK) - 1, key, keylen, sample, samplelen, crypter);
+    ssize_t nwrite = xqc_crypto_encrypt(&ctx->crypto, dest, destlen,
+                                        XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK) - 1,
+                                        key, keylen, sample, samplelen, crypter);
     if (nwrite < 0) {
         return -XQC_TLS_CALLBACK_FAILURE;
     }
@@ -504,8 +531,7 @@ xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
 
 int 
 xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
-    const SSL_CIPHER *cipher, const uint8_t *secret,
-    size_t secretlen)
+    const SSL_CIPHER *cipher, const uint8_t *secret, size_t secretlen)
 {
     xqc_tls_context_t *tls_ctx;
     enum xqc_encrypt_level xqc_level = xqc_convert_ssl_to_xqc_level(ssl_level);
@@ -568,8 +594,8 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
         }
     }
     
-    switch(ssl_level)
-    {
+    switch(ssl_level) {
+
     case ssl_encryption_early_data :
     {
         if (conn->conn_type == XQC_CONN_TYPE_SERVER) {
@@ -601,8 +627,7 @@ xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
   
 int 
 xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
-    const SSL_CIPHER *cipher, const uint8_t *secret,
-    size_t secretlen)
+    const SSL_CIPHER *cipher, const uint8_t *secret, size_t secretlen)
 {
     xqc_tls_context_t *tls_ctx;
     enum xqc_encrypt_level xqc_level = xqc_convert_ssl_to_xqc_level(ssl_level);
@@ -666,8 +691,8 @@ xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t ssl_level,
         }
     }
 
-    switch(ssl_level)
-    {
+    switch(ssl_level) {
+
     case ssl_encryption_early_data :
     {
         if (conn->conn_type == XQC_CONN_TYPE_CLIENT) {

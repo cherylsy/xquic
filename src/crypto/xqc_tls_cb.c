@@ -60,11 +60,11 @@ xqc_alpn_select_proto_cb(SSL *ssl,
 
 
 
-int xqc_do_update_key(xqc_connection_t *conn)
+int
+xqc_do_update_key(xqc_connection_t *conn)
 {
 
     char secret[64], key[64], iv[64];
-    //conn->tlsref.nkey_update++;g
     int keylen,ivlen, rv;
 
     xqc_tlsref_t *tlsref = &conn->tlsref;
@@ -137,7 +137,9 @@ int xqc_do_update_key(xqc_connection_t *conn)
 }
 
 
-int xqc_update_key(xqc_connection_t *conn, void *user_data){
+int
+xqc_update_key(xqc_connection_t *conn, void *user_data)
+{
     if(xqc_do_update_key(conn) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_do_update_key failed|");
         return -1;
@@ -151,14 +153,16 @@ int xqc_update_key(xqc_connection_t *conn, void *user_data){
  *  conn_commit_key_update rotates keys.  The current key moves to old
  *  key, and new key moves to the current key.
  */
-int xqc_conn_commit_key_update(xqc_connection_t *conn, uint64_t pkt_num)
+int
+xqc_conn_commit_key_update(xqc_connection_t *conn, uint64_t pkt_num)
 {
     xqc_pktns_t *pktns = &conn->tlsref.pktns;
 
     xqc_tlsref_t *tlsref = & conn->tlsref;
 
     if(tlsref->new_tx_ckm.key.base == NULL || tlsref->new_tx_ckm.key.len == 0
-            || tlsref->new_tx_ckm.iv.base == NULL || tlsref->new_tx_ckm.iv.len == 0){
+       || tlsref->new_tx_ckm.iv.base == NULL || tlsref->new_tx_ckm.iv.len == 0)
+    {
         xqc_log(conn->log, XQC_LOG_ERROR, "|new key is not ready|");
         return -1;
     }

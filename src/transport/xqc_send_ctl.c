@@ -247,21 +247,20 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
 
 
 /*
- * 拥塞检查
  * QUIC's congestion control is based on TCP NewReno [RFC6582].  NewReno
-   is a congestion window based congestion control.  QUIC specifies the
-   congestion window in bytes rather than packets due to finer control
-   and the ease of appropriate byte counting [RFC3465].
+ * is a congestion window based congestion control.  QUIC specifies the
+ * congestion window in bytes rather than packets due to finer control
+ * and the ease of appropriate byte counting [RFC3465].
+ *
+ * QUIC hosts MUST NOT send packets if they would increase
+ * bytes_in_flight (defined in Appendix B.2) beyond the available
+ * congestion window, unless the packet is a probe packet sent after a
+ * PTO timer expires, as described in Section 6.3.
 
-   QUIC hosts MUST NOT send packets if they would increase
-   bytes_in_flight (defined in Appendix B.2) beyond the available
-   congestion window, unless the packet is a probe packet sent after a
-   PTO timer expires, as described in Section 6.3.
-
-   Implementations MAY use other congestion control algorithms, such as
-   Cubic [RFC8312], and endpoints MAY use different algorithms from one
-   another.  The signals QUIC provides for congestion control are
-   generic and are designed to support different algorithms.
+ * Implementations MAY use other congestion control algorithms, such as
+ * Cubic [RFC8312], and endpoints MAY use different algorithms from one
+ * another.  The signals QUIC provides for congestion control are
+ * generic and are designed to support different algorithms.
  */
 int
 xqc_send_ctl_can_send(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
@@ -288,8 +287,8 @@ xqc_send_ctl_can_send(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     }
 
     xqc_conn_log(conn, XQC_LOG_DEBUG, "|can:%d|pkt_sz:%ud|inflight:%ud|cwnd:%ud|conn:%p|",
-            can, packet_out->po_used_size, conn->conn_send_ctl->ctl_bytes_in_flight,
-             congestion_window, conn);
+                 can, packet_out->po_used_size, conn->conn_send_ctl->ctl_bytes_in_flight,
+                 congestion_window, conn);
     return can;
 }
 
@@ -457,6 +456,7 @@ xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out
                 xqc_log(ctl->ctl_conn->log, XQC_LOG_ERROR, "|ctl_bytes_in_flight too small|");
                 ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] = 0;
                 ctl->ctl_bytes_in_flight = 0;
+
             } else {
                 ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] -= packet_out->po_used_size;
                 ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
@@ -704,6 +704,7 @@ xqc_send_ctl_stream_frame_can_drop(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet
             }
             if (packet_out->po_stream_frames[i].ps_stream_id == stream_id) {
                 drop = 1;
+
             } else {
                 drop = 0;
                 break;
@@ -796,8 +797,7 @@ xqc_send_ctl_update_cwnd_limited(xqc_send_ctl_t *ctl)
 }
 
 static void
-xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl, 
-    xqc_packet_out_t *packet_out, xqc_usec_t now)
+xqc_send_ctl_update_stream_stats_on_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_usec_t now)
 {
     xqc_stream_id_t stream_id;
     xqc_stream_t *stream;
@@ -1451,8 +1451,7 @@ xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet,
                        xqc_usec_t now)
 {
     if (ctl->ctl_cong_callback->xqc_cong_ctl_on_ack) {
-        ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet,
-                                                    now);
+        ctl->ctl_cong_callback->xqc_cong_ctl_on_ack(ctl->ctl_cong, acked_packet, now);
     }
     /*For CUBIC debug*/
 #if 0
@@ -1878,7 +1877,7 @@ xqc_send_ctl_ping_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ct
     }
 }
 
-// TODO: independent timer in cid.c
+/* TODO: independent timer in cid.c */
 void
 xqc_send_ctl_retire_cid_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
 {

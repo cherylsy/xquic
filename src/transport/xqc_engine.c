@@ -25,36 +25,36 @@
 extern const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb;
 
 xqc_config_t default_client_config = {
-    .cfg_log_level = XQC_LOG_WARN,
-    .cfg_log_timestamp = 1,
-    .conn_pool_size = 4096,
-    .streams_hash_bucket_size = 1024,
-    .conns_hash_bucket_size = 1024,
-    .conns_active_pq_capacity = 128,
-    .conns_wakeup_pq_capacity = 128,
-    .support_version_count = 1,
-    .support_version_list[0] = XQC_VERSION_V1_VALUE,
-    .cid_len = XQC_DEFAULT_CID_LEN,
-    .cid_negotiate = 0,
-    .reset_token_key = {0},
-    .reset_token_keylen = 0,
+    .cfg_log_level             = XQC_LOG_WARN,
+    .cfg_log_timestamp         = 1,
+    .conn_pool_size            = 4096,
+    .streams_hash_bucket_size  = 1024,
+    .conns_hash_bucket_size    = 1024,
+    .conns_active_pq_capacity  = 128,
+    .conns_wakeup_pq_capacity  = 128,
+    .support_version_count     = 1,
+    .support_version_list[0]   = XQC_VERSION_V1_VALUE,
+    .cid_len                   = XQC_DEFAULT_CID_LEN,
+    .cid_negotiate             = 0,
+    .reset_token_key           = {0},
+    .reset_token_keylen        = 0,
 };
 
 
 xqc_config_t default_server_config = {
-    .cfg_log_level = XQC_LOG_WARN,
-    .cfg_log_timestamp = 1,
-    .conn_pool_size = 4096,
-    .streams_hash_bucket_size = 1024,
-    .conns_hash_bucket_size = 1024*1024, /* too many connections will affect lookup performance */
-    .conns_active_pq_capacity = 1024,
-    .conns_wakeup_pq_capacity = 16*1024,
-    .support_version_count = 2,
-    .support_version_list = {XQC_VERSION_V1_VALUE, XQC_IDRAFT_VER_29_VALUE},
-    .cid_len = XQC_DEFAULT_CID_LEN,
-    .cid_negotiate = 0,
-    .reset_token_key = {0},
-    .reset_token_keylen = 0,
+    .cfg_log_level             = XQC_LOG_WARN,
+    .cfg_log_timestamp         = 1,
+    .conn_pool_size            = 4096,
+    .streams_hash_bucket_size  = 1024,
+    .conns_hash_bucket_size    = 1024*1024, /* too many connections will affect lookup performance */
+    .conns_active_pq_capacity  = 1024,
+    .conns_wakeup_pq_capacity  = 16*1024,
+    .support_version_count     = 2,
+    .support_version_list      = {XQC_VERSION_V1_VALUE, XQC_IDRAFT_VER_29_VALUE},
+    .cid_len                   = XQC_DEFAULT_CID_LEN,
+    .cid_negotiate             = 0,
+    .reset_token_key           = {0},
+    .reset_token_keylen        = 0,
 };
 
 
@@ -553,9 +553,8 @@ xqc_engine_destroy(xqc_engine_t *engine)
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
 void
-xqc_engine_init(xqc_engine_t *engine,
-                const xqc_engine_callback_t *engine_callback,
-                void *user_data)
+xqc_engine_init(xqc_engine_t *engine, const xqc_engine_callback_t *engine_callback,
+    void *user_data)
 {
     xqc_engine_set_callback(engine, engine_callback);
     engine->user_data = user_data;
@@ -563,8 +562,7 @@ xqc_engine_init(xqc_engine_t *engine,
 
 
 void
-xqc_engine_set_callback(xqc_engine_t *engine,
-                        const xqc_engine_callback_t *engine_callback)
+xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engine_callback)
 {
     engine->eng_callback = *engine_callback;
 }
@@ -762,7 +760,6 @@ xqc_engine_main_logic(xqc_engine_t *engine)
 
         if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
             conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
-            //xqc_conn_destroy(conn);
             if (!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)) {
                 xqc_conn_destroy(conn);
 
@@ -876,7 +873,6 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
         xqc_log(engine->log, XQC_LOG_INFO, "|fail to parse cid|ret:%d|", ret);
         return -XQC_EILLPKT;
     }
-    //xqc_log(engine->log, XQC_LOG_DEBUG, "|scid:%s|dcid:%s|", xqc_scid_str(&scid), xqc_dcid_str(&dcid));
 
     conn = xqc_engine_conns_hash_find(engine, &scid, 's');
 

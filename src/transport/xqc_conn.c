@@ -27,12 +27,12 @@
 
 
 xqc_conn_settings_t default_conn_settings = {
-    .pacing_on        = 0,
-    .ping_on          = 0,
-    .so_sndbuf        = 0,
-    .proto_version    = XQC_VERSION_V1,
-    .idle_time_out    = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
-    .enable_multipath = 0,
+    .pacing_on               = 0,
+    .ping_on                 = 0,
+    .so_sndbuf               = 0,
+    .proto_version           = XQC_VERSION_V1,
+    .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
+    .enable_multipath        = 0,
     .spurious_loss_detect_on = 0,
 };
 
@@ -730,8 +730,7 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     /* long header to short header, directly write old buffer */
     unsigned int ori_po_used_size = packet_out->po_used_size;
     unsigned char *ori_payload = packet_out->po_payload;
-    unsigned int ori_payload_len = 
-        ori_po_used_size - (packet_out->po_payload - packet_out->po_buf);
+    unsigned int ori_payload_len = ori_po_used_size - (packet_out->po_payload - packet_out->po_buf);
 
     /* convert pkt info */
     packet_out->po_pkt.pkt_pns = XQC_PNS_APP_DATA;
@@ -739,9 +738,8 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 
     /* copy header */
     packet_out->po_used_size = 0;
-    int ret = xqc_gen_short_packet_header(packet_out,
-                               conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len,
-                               XQC_PKTNO_BITS, 0);
+    int ret = xqc_gen_short_packet_header(packet_out, conn->dcid_set.current_dcid.cid_buf,
+                                          conn->dcid_set.current_dcid.cid_len, XQC_PKTNO_BITS, 0);
     packet_out->po_used_size = ret;
 
     /* copy frame directly */
@@ -998,8 +996,8 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 ssize_t
 xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
 {
-    ssize_t sent = conn->engine->eng_callback.write_socket(data, len,
-        (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    ssize_t sent = conn->engine->eng_callback.write_socket(data, len, (struct sockaddr*)conn->peer_addr,
+                                                           conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (sent != len) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "|write_socket error|conn:%p|size:%ud|sent:%z|", conn, len, sent);
@@ -1303,8 +1301,7 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
     xqc_int_t probe_num = XQC_CONN_PTO_PKT_CNT_MAX;
 
     /* if only one packet is in pns unacked list, this loop will try to send this packet again */
-    while (probe_num > 0)
-    {
+    while (probe_num > 0) {
         xqc_list_for_each_safe(pos, next, &c->conn_send_ctl->ctl_unacked_packets[pns]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
@@ -1467,8 +1464,8 @@ xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr
         return size;
     }
 
-    size = (xqc_int_t)engine->eng_callback.write_socket(
-        buf, (size_t)size, peer_addr, peer_addrlen, user_data);
+    size = (xqc_int_t)engine->eng_callback.write_socket(buf, (size_t)size,
+                                                        peer_addr, peer_addrlen, user_data);
     if (size < 0) {
         return size;
     }
@@ -1483,18 +1480,21 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
 {
     xqc_engine_t *engine = conn->engine;
     unsigned char buf[XQC_PACKET_OUT_SIZE];
-    xqc_int_t size = (xqc_int_t)xqc_gen_retry_packet(
-        buf, conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len,
-        conn->scid_set.user_scid.cid_buf, conn->scid_set.user_scid.cid_len,
-        conn->original_dcid.cid_buf, conn->original_dcid.cid_len,
-        token, token_len, XQC_VERSION_V1);
+    xqc_int_t size = (xqc_int_t)xqc_gen_retry_packet(buf,
+                                                     conn->dcid_set.current_dcid.cid_buf,
+                                                     conn->dcid_set.current_dcid.cid_len,
+                                                     conn->scid_set.user_scid.cid_buf,
+                                                     conn->scid_set.user_scid.cid_len,
+                                                     conn->original_dcid.cid_buf,
+                                                     conn->original_dcid.cid_len,
+                                                     token, token_len,
+                                                     XQC_VERSION_V1);
     if (size < 0) {
         return size;
     }
 
-    size = (xqc_int_t)engine->eng_callback.write_socket(
-        buf, (size_t)size, (struct sockaddr*)conn->peer_addr, conn->peer_addrlen,
-        xqc_conn_get_user_data(conn));
+    size = (xqc_int_t)engine->eng_callback.write_socket(buf, (size_t)size, (struct sockaddr*)conn->peer_addr,
+                                                        conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (size < 0) {
         return size;
     }
@@ -2164,10 +2164,13 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
     if (!(c->conn_flag & XQC_CONN_FLAG_DCID_OK)) {
 
         if (xqc_cid_in_cid_set(&c->dcid_set.cid_set, &pkt->pkt_scid) == NULL) {
-            ret = xqc_cid_set_insert_cid(&c->dcid_set.cid_set, &pkt->pkt_scid, XQC_CID_USED, c->local_settings.active_connection_id_limit);
+            ret = xqc_cid_set_insert_cid(&c->dcid_set.cid_set, &pkt->pkt_scid, XQC_CID_USED,
+                                         c->local_settings.active_connection_id_limit);
             if (ret != XQC_OK) {
-                xqc_log(c->log, XQC_LOG_ERROR, "|xqc_cid_set_insert_cid error|limit:%ui|unused:%ui|used:%ui|",
-                        c->local_settings.active_connection_id_limit, c->dcid_set.cid_set.unused_cnt, c->dcid_set.cid_set.used_cnt);
+                xqc_log(c->log, XQC_LOG_ERROR,
+                        "|xqc_cid_set_insert_cid error|limit:%ui|unused:%ui|used:%ui|",
+                        c->local_settings.active_connection_id_limit,
+                        c->dcid_set.cid_set.unused_cnt, c->dcid_set.cid_set.used_cnt);
                 return ret;
             }
         }

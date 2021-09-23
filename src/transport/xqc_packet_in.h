@@ -22,15 +22,14 @@ struct xqc_packet_in_s
 };
 
 
-//#define XQC_PACKET_IN_LEFT_SIZE(packet_in) (((packet_in)->pos < (packet_in)->last)?((packet_in)->last - (packet_in)->pos):0)
 #define XQC_BUFF_LEFT_SIZE(pos, last) ((last) > (pos) ? (last) - (pos) : 0)
 
 void xqc_packet_in_init(xqc_packet_in_t *packet_in,
-                   const unsigned char *packet_in_buf,
-                   size_t packet_in_size,
-                   unsigned char *decode_payload,
-                   size_t decode_payload_size,
-                   xqc_usec_t recv_time);
+    const unsigned char *packet_in_buf,
+    size_t packet_in_size,
+    unsigned char *decode_payload,
+    size_t decode_payload_size,
+    xqc_usec_t recv_time);
 
 void xqc_packet_in_destroy(xqc_packet_in_t *packet_in, xqc_connection_t *conn);
 

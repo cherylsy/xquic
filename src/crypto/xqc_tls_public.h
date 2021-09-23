@@ -233,10 +233,10 @@ static inline xqc_hs_buffer_t * xqc_create_hs_buffer(int buf_size){
 
 //just temporary, need rewrite with frame structure
 typedef struct {
-  xqc_list_head_t buffer_list;
-  uint8_t type;
-  uint16_t data_len;
-  char data[XQC_MAX_PACKET_LEN];
+    xqc_list_head_t buffer_list;
+    uint8_t type;
+    uint16_t data_len;
+    char data[XQC_MAX_PACKET_LEN];
 }xqc_data_buffer_t;
 
 //callback function
@@ -246,7 +246,7 @@ typedef int (*xqc_early_data_cb_t)(xqc_connection_t *conn, int flag); // 1 means
 
 struct xqc_tlsref
 {
-    xqc_connection_t        *conn;
+    xqc_connection_t       *conn;
     uint8_t                 initial;
     uint8_t                 resumption;
     xqc_alpn_num            alpn_num;
@@ -263,18 +263,18 @@ struct xqc_tlsref
     xqc_crypto_km_t         early_ckm;
     xqc_vec_t               early_hp;
 
-    xqc_crypto_km_t        new_tx_ckm;
-    xqc_crypto_km_t        new_rx_ckm;
-    xqc_crypto_km_t        old_rx_ckm;
+    xqc_crypto_km_t         new_tx_ckm;
+    xqc_crypto_km_t         new_rx_ckm;
+    xqc_crypto_km_t         old_rx_ckm;
 
-    xqc_vec_t              tx_secret;
-    xqc_vec_t              rx_secret;
+    xqc_vec_t               tx_secret;
+    xqc_vec_t               rx_secret;
 
-    xqc_hs_buffer_t        * hs_to_tls_buf;
+    xqc_hs_buffer_t        *hs_to_tls_buf;
 
-    xqc_conn_ssl_config_t  conn_ssl_config;
+    xqc_conn_ssl_config_t   conn_ssl_config;
 
-    xqc_tls_callbacks_t    callbacks;
+    xqc_tls_callbacks_t     callbacks;
 
     xqc_save_session_pt     save_session_cb;
     xqc_save_trans_param_pt save_tp_cb;
@@ -284,32 +284,40 @@ struct xqc_tlsref
     void *                  tp_user_data;
     void *                  session_user_data;
 
-    xqc_early_data_cb_t    early_data_cb;
+    xqc_early_data_cb_t     early_data_cb;
 
 };
 typedef struct xqc_tlsref xqc_tlsref_t;
 
-static inline uint16_t xqc_get_uint16(const uint8_t *p) {
+static inline uint16_t
+xqc_get_uint16(const uint8_t *p)
+{
     uint16_t n;
     memcpy(&n, p, 2);
     return ntohs(n);
 }
 
 
-static inline uint32_t xqc_get_uint24(const uint8_t *p) {
+static inline uint32_t
+xqc_get_uint24(const uint8_t *p)
+{
     uint32_t n = 0;
     memcpy(((uint8_t *)&n) + 1, p, 3);
     return ntohl(n);
 }
 
-static inline uint32_t xqc_get_uint32(const uint8_t *p) {
+static inline uint32_t
+xqc_get_uint32(const uint8_t *p)
+{
     uint32_t n;
     memcpy(&n, p, 4);
     return ntohl(n);
 }
 
 
-static inline void xqc_cid_init(xqc_cid_t *cid, const uint8_t *data, size_t datalen) {
+static inline void
+xqc_cid_init(xqc_cid_t *cid, const uint8_t *data, size_t datalen)
+{
 
     cid->cid_len = datalen;
     if (datalen) {
@@ -317,33 +325,35 @@ static inline void xqc_cid_init(xqc_cid_t *cid, const uint8_t *data, size_t data
     }
 }
 
-/*define in common/xqc_str.h
-static inline uint8_t * xqc_cpymem(uint8_t *dest, uint8_t * src, size_t n){
-    memcpy(desc, src, n);
-    return desc + n;
-}*/
 
-
-static inline int xqc_cid_eq(const xqc_cid_t *cid, const xqc_cid_t *other) {
+static inline int
+xqc_cid_eq(const xqc_cid_t *cid, const xqc_cid_t *other)
+{
     return cid->cid_len == other->cid_len &&
         0 == memcmp(cid->cid_buf, other->cid_buf, cid->cid_len);
 }
 
 
-static inline uint64_t xqc_nth_server_bidi_id(uint64_t n) {
+static inline uint64_t
+xqc_nth_server_bidi_id(uint64_t n)
+{
     if (n == 0) {
         return 0;
     }
     return ((n - 1) << 2) | 0x01;
 }
-static inline uint64_t xqc_nth_client_bidi_id(uint64_t n) {
+static inline uint64_t
+xqc_nth_client_bidi_id(uint64_t n)
+{
     if (n == 0) {
         return 0;
     }
     return (n - 1) << 2;
 }
 
-static inline uint64_t xqc_nth_server_uni_id(uint64_t n) {
+static inline uint64_t
+xqc_nth_server_uni_id(uint64_t n)
+{
     if (n == 0) {
         return 0;
     }
@@ -351,7 +361,9 @@ static inline uint64_t xqc_nth_server_uni_id(uint64_t n) {
     return ((n - 1) << 2) | 0x03;
 }
 
-static inline uint64_t xqc_nth_client_uni_id(uint64_t n) {
+static inline uint64_t
+xqc_nth_client_uni_id(uint64_t n)
+{
     if (n == 0) {
         return 0;
     }
@@ -361,7 +373,9 @@ static inline uint64_t xqc_nth_client_uni_id(uint64_t n) {
 
 
 
-static inline int xqc_check_numeric_host(const char *hostname, int family) {
+static inline int
+xqc_check_numeric_host(const char *hostname, int family)
+{
   int rv;
   uint8_t dst[32];
   rv = inet_pton(family, hostname, dst); // ip transfer success return 1, else return 0 or -1
@@ -369,12 +383,16 @@ static inline int xqc_check_numeric_host(const char *hostname, int family) {
 }
 
 // if host is number ,return 1, else return 0
-static inline int xqc_numeric_host(const char *hostname) {
+static inline int
+xqc_numeric_host(const char *hostname)
+{
   return xqc_check_numeric_host(hostname, AF_INET) || xqc_check_numeric_host(hostname, AF_INET6);
 }
 
 
-static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
+static inline uint64_t
+xqc_get_varint(size_t *plen, const uint8_t *p)
+{
     union {
         char b[8];
         uint16_t n16;
@@ -385,40 +403,41 @@ static inline uint64_t xqc_get_varint(size_t *plen, const uint8_t *p) {
     *plen = xqc_get_varint_len(p);
 
     switch (*plen) {
-        case 1:
-            return *p;
-        case 2:
-            memcpy(&n, p, 2);
-            n.b[0] &= 0x3f;
-            return ntohs(n.n16);
-        case 4:
-            memcpy(&n, p, 4);
-            n.b[0] &= 0x3f;
-            return ntohl(n.n32);
-        case 8:
-            memcpy(&n, p, 8);
-            n.b[0] &= 0x3f;
-            return bswap64(n.n64);
+    case 1:
+        return *p;
+    case 2:
+        memcpy(&n, p, 2);
+        n.b[0] &= 0x3f;
+        return ntohs(n.n16);
+    case 4:
+        memcpy(&n, p, 4);
+        n.b[0] &= 0x3f;
+        return ntohl(n.n32);
+    case 8:
+        memcpy(&n, p, 8);
+        n.b[0] &= 0x3f;
+        return bswap64(n.n64);
     }
 
     return 0; //impossible
 }
 
-static inline ssize_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,
-        const uint8_t *end) {
+static inline ssize_t
+xqc_decode_varint(uint64_t *pdest, const uint8_t *p, const uint8_t *end)
+{
     uint16_t len = xqc_get_uint16(p);
     size_t n;
 
     p += sizeof(uint16_t);
 
     switch (len) {
-        case 1:
-        case 2:
-        case 4:
-        case 8:
-            break;
-        default:
-            return -1;
+    case 1:
+    case 2:
+    case 4:
+    case 8:
+        break;
+    default:
+        return -1;
     }
 
     if ((size_t)(end - p) < len) {
@@ -436,18 +455,24 @@ static inline ssize_t xqc_decode_varint(uint64_t *pdest, const uint8_t *p,
 }
 
 
-static inline void xqc_vec_init(xqc_vec_t * vec){
+static inline void
+xqc_vec_init(xqc_vec_t * vec)
+{
     vec->base = NULL;
     vec->len = 0;
 }
 
-static inline void xqc_vec_free(xqc_vec_t *vec) {
+static inline void
+xqc_vec_free(xqc_vec_t *vec)
+{
     if(vec->base)xqc_free(vec->base);
     vec->base = NULL;
     vec->len = 0;
 }
 
-static inline int xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len){
+static inline int
+xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len)
+{
     vec->base = xqc_malloc(data_len);
     if(vec->base == NULL){
         return -1;
@@ -457,7 +482,9 @@ static inline int xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t d
     return 0;
 }
 
-static inline void xqc_vec_move(xqc_vec_t *dest_vec, xqc_vec_t * src_vec){
+static inline void
+xqc_vec_move(xqc_vec_t *dest_vec, xqc_vec_t * src_vec)
+{
     dest_vec->base = src_vec->base;
     src_vec->base = NULL;
     dest_vec->len = src_vec->len;

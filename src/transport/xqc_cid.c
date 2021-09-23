@@ -173,8 +173,10 @@ xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t s
 
     if (state == XQC_CID_UNUSED) {
         cid_set->unused_cnt++;
+
     } else if (state == XQC_CID_USED) {
         cid_set->used_cnt++;
+
     } else if (state == XQC_CID_RETIRED) {
         cid_set->retired_cnt++;
     }
@@ -194,8 +196,10 @@ xqc_cid_set_delete_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid)
 
             if (inner_cid->state == XQC_CID_UNUSED) {
                 cid_set->unused_cnt--;
+
             } else if (inner_cid->state == XQC_CID_USED) {
                 cid_set->used_cnt--;
+
             } else if (inner_cid->state == XQC_CID_RETIRED) {
                 cid_set->retired_cnt--;
             }
@@ -237,6 +241,7 @@ xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_c
 
     if (current_state == next_state) {
         return XQC_OK;
+
     } else if (current_state > next_state) {
         return -XQC_ECID_STATE;
     }
@@ -245,8 +250,10 @@ xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_c
 
     if (current_state == XQC_CID_UNUSED) {
         cid_set->unused_cnt--;
+
     } else if (current_state == XQC_CID_USED) {
         cid_set->used_cnt--;
+
     } else if (current_state == XQC_CID_RETIRED) {
         cid_set->retired_cnt--;
     }
@@ -255,6 +262,7 @@ xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_c
 
     if (next_state == XQC_CID_USED) {
         cid_set->used_cnt++;
+
     } else if (next_state == XQC_CID_RETIRED) {
         cid_set->retired_cnt++;
     }

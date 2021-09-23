@@ -37,7 +37,8 @@ typedef struct xqc_object_manager_s
 } xqc_object_manager_t;
 
 
-static inline xqc_object_manager_t *xqc_object_manager_create(size_t object_size, size_t capacity, xqc_allocator_t a)
+static inline xqc_object_manager_t *
+xqc_object_manager_create(size_t object_size, size_t capacity, xqc_allocator_t a)
 {
     size_t size = sizeof(xqc_object_manager_t) + (object_size * capacity);
     xqc_object_manager_t *manager = a.malloc(a.opaque, size);
@@ -63,13 +64,15 @@ static inline xqc_object_manager_t *xqc_object_manager_create(size_t object_size
     return manager;
 }
 
-static inline void xqc_object_manager_destroy(xqc_object_manager_t* manager)
+static inline void
+xqc_object_manager_destroy(xqc_object_manager_t* manager)
 {
     xqc_allocator_t *a = &manager->a;
     a->free(a->opaque, manager);
 }
 
-static inline xqc_object_t* xqc_object_manager_find(xqc_object_manager_t* manager, xqc_object_id_t id)
+static inline xqc_object_t *
+xqc_object_manager_find(xqc_object_manager_t* manager, xqc_object_id_t id)
 {
     if (id >= manager->capacity) {
         return NULL;
@@ -77,7 +80,8 @@ static inline xqc_object_t* xqc_object_manager_find(xqc_object_manager_t* manage
     return (xqc_object_t*) (manager->object_pool + id * manager->object_size);
 }
 
-static inline xqc_object_t* xqc_object_manager_alloc(xqc_object_manager_t* manager)
+static inline xqc_object_t *
+xqc_object_manager_alloc(xqc_object_manager_t* manager)
 {
     if (manager->used_count >= manager->capacity) {
         return NULL;
@@ -95,7 +99,8 @@ static inline xqc_object_t* xqc_object_manager_alloc(xqc_object_manager_t* manag
     return xqc_list_entry(node, xqc_object_t, list);
 }
 
-static inline int xqc_object_manager_free(xqc_object_manager_t* manager, xqc_object_id_t id)
+static inline int
+xqc_object_manager_free(xqc_object_manager_t* manager, xqc_object_id_t id)
 {
     xqc_object_t* o = xqc_object_manager_find(manager, id);
     if (o == NULL) {
@@ -111,7 +116,8 @@ static inline int xqc_object_manager_free(xqc_object_manager_t* manager, xqc_obj
     return 0;
 }
 
-static inline xqc_object_manager_t* xqc_object_manager_recapacity(xqc_object_manager_t* manager, size_t new_capacity)
+static inline xqc_object_manager_t *
+xqc_object_manager_recapacity(xqc_object_manager_t* manager, size_t new_capacity)
 {
     if (manager->used_count > new_capacity) {
         return NULL;
@@ -134,7 +140,8 @@ static inline xqc_object_manager_t* xqc_object_manager_recapacity(xqc_object_man
     return new_manager;
 }
 
-static inline void xqc_object_manager_foreach(xqc_object_manager_t* manager, void (*cb)(xqc_object_t*))
+static inline void
+xqc_object_manager_foreach(xqc_object_manager_t* manager, void (*cb)(xqc_object_t*))
 {
     xqc_list_head_t *pos;
     xqc_list_for_each(pos, &manager->used_list)
@@ -144,12 +151,14 @@ static inline void xqc_object_manager_foreach(xqc_object_manager_t* manager, voi
     }
 }
 
-static inline size_t xqc_object_manager_used_count(xqc_object_manager_t* manager)
+static inline size_t
+xqc_object_manager_used_count(xqc_object_manager_t* manager)
 {
     return manager->used_count;
 }
 
-static inline size_t xqc_object_manager_free_count(xqc_object_manager_t* manager)
+static inline size_t
+xqc_object_manager_free_count(xqc_object_manager_t* manager)
 {
     assert(manager->capacity >= manager->used_count);
     return manager->capacity - manager->used_count;

@@ -13,19 +13,19 @@
 
 typedef enum xqc_pkt_num_space
 {
-    XQC_PNS_INIT = 0,
-    XQC_PNS_HSK = 1,
-    XQC_PNS_APP_DATA = 2,
-    XQC_PNS_N = 3,
+    XQC_PNS_INIT      = 0,
+    XQC_PNS_HSK       = 1,
+    XQC_PNS_APP_DATA  = 2,
+    XQC_PNS_N         = 3,
 } xqc_pkt_num_space_t;
 
 typedef enum xqc_encrypt_level
 {
-    XQC_ENC_LEV_INIT = 0,
-    XQC_ENC_LEV_0RTT = 1,
-    XQC_ENC_LEV_HSK = 2,
-    XQC_ENC_LEV_1RTT = 3,
-    XQC_ENC_MAX_LEVEL = 4,
+    XQC_ENC_LEV_INIT   = 0,
+    XQC_ENC_LEV_0RTT   = 1,
+    XQC_ENC_LEV_HSK    = 2,
+    XQC_ENC_LEV_1RTT   = 3,
+    XQC_ENC_MAX_LEVEL  = 4,
 } xqc_encrypt_level_t;
 
 typedef enum xqc_pkt_type
@@ -69,26 +69,19 @@ struct xqc_packet_s {
 #define xqc_parse_uint16(p) ((p)[0] << 8 | (p)[1])
 #define xqc_parse_uint32(p) ((p)[0] << 24 | (p)[1] << 16 | (p)[2] << 8 | (p)[3])
 
-const char *
-xqc_pkt_type_2_str(xqc_pkt_type_t pkt_type);
+const char* xqc_pkt_type_2_str(xqc_pkt_type_t pkt_type);
 
-xqc_encrypt_level_t
-xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type);
+xqc_encrypt_level_t xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type);
 
-xqc_pkt_num_space_t
-xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type);
+xqc_pkt_num_space_t xqc_packet_type_to_pns(xqc_pkt_type_t pkt_type);
 
-xqc_pkt_type_t
-xqc_state_to_pkt_type(xqc_connection_t *conn);
+xqc_pkt_type_t xqc_state_to_pkt_type(xqc_connection_t *conn);
 
 /**
  * process a single QUIC packet from packet_in
  */
-xqc_int_t
-xqc_packet_process_single(xqc_connection_t *c,
-                          xqc_packet_in_t *packet_in);
+xqc_int_t xqc_packet_process_single(xqc_connection_t *c, xqc_packet_in_t *packet_in);
 
-uint8_t
-xqc_has_packet_number(xqc_packet_t *pkt);
+uint8_t xqc_has_packet_number(xqc_packet_t *pkt);
 
 #endif //_XQC_PACKET_H_INCLUDED_

@@ -6,11 +6,11 @@
 
 void
 xqc_packet_in_init(xqc_packet_in_t *packet_in,
-                   const unsigned char *packet_in_buf,
-                   size_t packet_in_size,
-                   unsigned char *decode_payload,
-                   size_t decode_payload_size,
-                   xqc_usec_t recv_time)
+    const unsigned char *packet_in_buf,
+    size_t packet_in_size,
+    unsigned char *decode_payload,
+    size_t decode_payload_size,
+    xqc_usec_t recv_time)
 {
     packet_in->buf = packet_in_buf;
     packet_in->buf_size = packet_in_size;

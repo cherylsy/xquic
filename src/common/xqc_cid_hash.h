@@ -71,12 +71,15 @@ xqc_cid_hash(const uint8_t *cid_buf, uint8_t cid_len)
         if (cid_len >= 8) {
             hash ^= *(const uint64_t*)cid_buf;
             cid_buf += 8; cid_len -= 8;
+
         } else if (cid_len >= 4) {
             hash ^= *(const uint32_t*)cid_buf;
             cid_buf += 4; cid_len -= 4;
+
         } else if (cid_len >= 2) {
             hash ^= *(const uint16_t*)cid_buf;
             cid_buf += 2; cid_len -= 2;
+
         } else {
             hash ^= *(const uint8_t*)cid_buf;
             cid_buf += 1; cid_len -= 1;

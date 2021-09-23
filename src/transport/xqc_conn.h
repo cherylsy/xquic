@@ -21,7 +21,8 @@
 
 #define XQC_MAX_AVAILABLE_CID_COUNT  16
 
-#define XQC_MAX_PACKET_PROCESS_BATCH 100 /* maximum accumulated number of xqc_engine_packet_process */
+/* maximum accumulated number of xqc_engine_packet_process */
+#define XQC_MAX_PACKET_PROCESS_BATCH 100
 
 #define XQC_MAX_RECV_WINDOW (16 * 1024 * 1024)
 
@@ -333,7 +334,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn);
 
 xqc_int_t
 xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
-                    char *enc_pkt, size_t * enc_pkt_len, xqc_usec_t current_time);
+    char *enc_pkt, size_t * enc_pkt_len, xqc_usec_t current_time);
 
 void
 xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
@@ -406,12 +407,10 @@ xqc_usec_t
 xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
 char *
-xqc_conn_local_addr_str(const struct sockaddr *local_addr,
-                        socklen_t local_addrlen);
+xqc_conn_local_addr_str(const struct sockaddr *local_addr, socklen_t local_addrlen);
 
 char *
-xqc_conn_peer_addr_str(const struct sockaddr *peer_addr,
-                       socklen_t peer_addrlen);
+xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen);
 
 char *
 xqc_conn_addr_str(xqc_connection_t *conn);
@@ -434,8 +433,8 @@ static inline xqc_int_t
 xqc_conn_has_undecrypt_packets(xqc_connection_t *conn)
 {
     return conn->undecrypt_count[XQC_ENC_LEV_1RTT]
-           || conn->undecrypt_count[XQC_ENC_LEV_0RTT]
-           || conn->undecrypt_count[XQC_ENC_LEV_HSK];
+        || conn->undecrypt_count[XQC_ENC_LEV_0RTT]
+        || conn->undecrypt_count[XQC_ENC_LEV_HSK];
 }
 
 static inline xqc_int_t
@@ -451,7 +450,7 @@ xqc_conn_should_ack(xqc_connection_t *conn)
 
 /* process an UDP datagram */
 xqc_int_t xqc_conn_process_packet(xqc_connection_t *c, const unsigned char *packet_in_buf,
-                        size_t packet_in_size, xqc_usec_t recv_time);
+    size_t packet_in_size, xqc_usec_t recv_time);
 
 xqc_int_t xqc_conn_check_handshake_complete(xqc_connection_t *conn);
 

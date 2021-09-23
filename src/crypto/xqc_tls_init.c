@@ -28,6 +28,7 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         int len = strlen(src->private_key_file) + 1;
         ssl_config->private_key_file = (char *)xqc_malloc(len);
         memcpy(ssl_config->private_key_file, src->private_key_file, len);
+
     } else {
         ssl_config->private_key_file = NULL;
     }
@@ -36,6 +37,7 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         int len = strlen(src->cert_file) + 1;
         ssl_config->cert_file = (char *)xqc_malloc(len);
         memcpy(ssl_config->cert_file, src->cert_file, len);
+
     } else {
         ssl_config->cert_file = NULL;
     }
@@ -44,6 +46,7 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         int len = strlen(src->ciphers) + 1;
         ssl_config->ciphers = (char *)xqc_malloc(len);
         memcpy(ssl_config->ciphers, src->ciphers, len);
+
     } else {
         int len = sizeof(XQC_TLS_CIPHERS);
         ssl_config->ciphers = (char *)xqc_malloc(len);
@@ -54,6 +57,7 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         int len = strlen(src->groups) + 1;
         ssl_config->groups = (char *)xqc_malloc(len);
         memcpy(ssl_config->groups, src->groups, len);
+
     } else {
         int len = sizeof(XQC_TLS_GROUPS);
         ssl_config->groups = (char *)xqc_malloc(len);
@@ -84,6 +88,7 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         ssl_config->alpn_list = xqc_malloc(len);
         memcpy(ssl_config->alpn_list, XQC_ALPN_LIST, len);
         ssl_config->alpn_list_len = len - 1;
+
     } else {
         ssl_config->alpn_list_len = src->alpn_list_len;
         ssl_config->alpn_list = (char *)xqc_malloc(src->alpn_list_len + 1);
@@ -225,8 +230,7 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
 
     const unsigned char *out;
     size_t outlen;
-    ret = xqc_serialize_client_transport_params(conn,
-            XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &out, &outlen);
+    ret = xqc_serialize_client_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_CLIENT_HELLO, &out, &outlen);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|serialize client transport params error|");
         return XQC_ERROR;
@@ -245,8 +249,8 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     {
         xqc_transport_params_t params;
         memset(&params, 0, sizeof(xqc_transport_params_t));
-        if (xqc_read_transport_params(config->transport_parameter_data,
-                    config->transport_parameter_data_len, &params) == XQC_OK)
+        if (XQC_OK == xqc_read_transport_params(config->transport_parameter_data,
+                                                config->transport_parameter_data_len, &params))
         {
             ret = xqc_conn_set_early_remote_transport_params(conn, &params);
             if (ret != XQC_OK) {
@@ -312,8 +316,7 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
 
     const unsigned char *out;
     size_t outlen;
-    int rv = xqc_serialize_server_transport_params(conn,
-            XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &out, &outlen);
+    int rv = xqc_serialize_server_transport_params(conn, XQC_TRANSPORT_PARAMS_TYPE_ENCRYPTED_EXTENSIONS, &out, &outlen);
     if (rv != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|serialize server transport params error|");
         return XQC_ERROR;
@@ -481,8 +484,7 @@ xqc_create_client_ssl_ctx(xqc_engine_t *engine, const xqc_engine_ssl_config_t *x
         return NULL;
     }
 
-    SSL_CTX_set_session_cache_mode(
-            ssl_ctx, SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
+    SSL_CTX_set_session_cache_mode(ssl_ctx, SSL_SESS_CACHE_CLIENT | SSL_SESS_CACHE_NO_INTERNAL_STORE);
     SSL_CTX_sess_set_new_cb(ssl_ctx, xqc_new_session_cb);
 
     xqc_ssl_ctx_set_timeout(ssl_ctx, xs_config);
@@ -738,8 +740,7 @@ xqc_create_client_ssl(xqc_engine_t *engine, xqc_connection_t *conn,
         return NULL;
     }
 
-    // If remote host is numeric address, just send "localhost" as SNI
-    // for now.
+    /* If remote host is numeric address, just send "localhost" as SNI for now */
     if (xqc_numeric_host(hostname)) {
         SSL_set_tlsext_host_name(ssl, "localhost");  //SNI need finish
 
@@ -769,7 +770,8 @@ xqc_create_client_ssl(xqc_engine_t *engine, xqc_connection_t *conn,
         conn->tlsref.cert_verify_flag = sc->cert_verify_flag;
 
         if (X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname, strlen(hostname)) != XQC_SSL_SUCCESS) {
-            xqc_log(conn->log,  XQC_LOG_DEBUG, "|centificate verify set hostname failed|");  /* hostname set failed need log */
+            /* hostname set failed need log */
+            xqc_log(conn->log,  XQC_LOG_DEBUG, "|centificate verify set hostname failed|");
         }
         SSL_set_verify(ssl, SSL_VERIFY_PEER, xqc_cert_verify_callback);
     }
@@ -792,31 +794,29 @@ xqc_client_setup_initial_crypto_context(xqc_connection_t *conn, xqc_cid_t *dcid)
 
     xqc_init_initial_crypto_ctx(conn);
 
-    rv = xqc_derive_client_initial_secret(secret, sizeof(secret),
-            initial_secret,
-            sizeof(initial_secret));
+    rv = xqc_derive_client_initial_secret(secret, sizeof(secret), initial_secret, sizeof(initial_secret));
     if (rv != 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive client initial secret failed|");
         return -XQC_TLS_NOKEY;
     }
 
     char key[16], iv[16], hp[16];
-    ssize_t keylen = xqc_derive_packet_protection_key(
-            key, sizeof(key), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
+    ssize_t keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, sizeof(secret),
+                                                      &conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive packet protection key failed|");
         return -XQC_TLS_NOKEY;
     }
 
-    ssize_t ivlen = xqc_derive_packet_protection_iv(
-            iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
+    ssize_t ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, sizeof(secret),
+                                                    &conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive packet protection iv failed|");
         return -XQC_TLS_NOKEY;
     }
 
-    ssize_t hplen = xqc_derive_header_protection_key(
-                hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
+    ssize_t hplen = xqc_derive_header_protection_key(hp, sizeof(hp), secret, sizeof(secret),
+                                                     &conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive packet header protection key failed|");
         return -XQC_TLS_NOKEY;
@@ -827,30 +827,28 @@ xqc_client_setup_initial_crypto_context(xqc_connection_t *conn, xqc_cid_t *dcid)
         return -XQC_TLS_FATAL;
     }
 
-    rv = xqc_derive_server_initial_secret(secret, sizeof(secret),
-            initial_secret,
-            sizeof(initial_secret));
+    rv = xqc_derive_server_initial_secret(secret, sizeof(secret), initial_secret, sizeof(initial_secret));
     if (rv != 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive server initial secret failed|");
         return -XQC_TLS_NOKEY;
     }
 
-    keylen = xqc_derive_packet_protection_key(
-            key, sizeof(key), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
+    keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, sizeof(secret),
+                                              &conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive packet protection key failed|");
         return -XQC_TLS_NOKEY;
     }
 
-    ivlen = xqc_derive_packet_protection_iv(
-            iv, sizeof(iv), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
+    ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, sizeof(secret),
+                                            &conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive packet protection iv failed|");
         return -XQC_TLS_NOKEY;
     }
 
-    hplen = xqc_derive_header_protection_key(
-            hp, sizeof(hp), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
+    hplen = xqc_derive_header_protection_key(hp, sizeof(hp), secret, sizeof(secret),
+                                             &conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive packet header protection key failed|");
         return -XQC_TLS_NOKEY;
@@ -868,9 +866,7 @@ xqc_client_setup_initial_crypto_context(xqc_connection_t *conn, xqc_cid_t *dcid)
 xqc_int_t
 xqc_set_cipher_suites(xqc_engine_t * engine)
 {
-    if (engine->ssl_ctx 
-        && engine->ssl_config.ciphers && *engine->ssl_config.ciphers)
-    {
+    if (engine->ssl_ctx && engine->ssl_config.ciphers && *engine->ssl_config.ciphers) {
 #ifndef OPENSSL_IS_BORINGSSL
         if (XQC_SSL_SUCCESS != SSL_CTX_set_ciphersuites(engine->ssl_ctx, engine->ssl_config.ciphers)) {
             xqc_log(engine->log, XQC_LOG_ERROR, 
@@ -879,12 +875,10 @@ xqc_set_cipher_suites(xqc_engine_t * engine)
             return -XQC_TLS_SET_CIPHER_SUITES_ERROR;
         }
 #endif
-    /* boringssl have a built-in preference order 
-       and do not support setting TLS 1.3 cipher */
+    /* boringssl have a built-in preference order and do not support setting TLS 1.3 cipher */
     }
 
-    xqc_log(engine->log, XQC_LOG_DEBUG,
-            "|set cipheer suites suc|ciphers:%s|", engine->ssl_config.ciphers);
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|set cipheer suites suc|ciphers:%s|", engine->ssl_config.ciphers);
 
     return XQC_OK;
 }

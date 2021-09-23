@@ -14,7 +14,7 @@ xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len)
     return dst;
 }
 
-unsigned char*
+unsigned char *
 xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list args)
 {
     unsigned char *p, zero;

@@ -195,41 +195,49 @@ int xqc_handshake_completed_cb(xqc_connection_t *conn, void *user_data);
 
 int xqc_tls_recv_retry_cb(xqc_connection_t * conn,xqc_cid_t *dcid);
 
-ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
+ssize_t xqc_do_hs_encrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    void *user_data, xqc_aead_crypter_t * crypter);
 
-ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
+ssize_t xqc_do_hs_decrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *ciphertext, size_t ciphertextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    void *user_data, xqc_aead_crypter_t * crypter);
 
-ssize_t xqc_do_encrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *plaintext,
-                                  size_t plaintextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
+ssize_t xqc_do_encrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    void *user_data, xqc_aead_crypter_t * crypter);
 
-ssize_t xqc_do_decrypt(xqc_connection_t *conn, uint8_t *dest,
-                                  size_t destlen, const uint8_t *ciphertext,
-                                  size_t ciphertextlen, const uint8_t *key,
-                                  size_t keylen, const uint8_t *nonce,
-                                  size_t noncelen, const uint8_t *ad,
-                                  size_t adlen, void *user_data, xqc_aead_crypter_t * crypter);
+ssize_t xqc_do_decrypt(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *ciphertext, size_t ciphertextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen,
+    void *user_data, xqc_aead_crypter_t * crypter);
 
-ssize_t xqc_in_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data, xqc_crypter_t * crypter);
+ssize_t xqc_in_hp_mask_cb(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *sample, size_t samplelen,
+    void *user_data, xqc_crypter_t * crypter);
 
-ssize_t xqc_hp_mask_cb(xqc_connection_t *conn, uint8_t *dest, size_t destlen,
-        const uint8_t *key, size_t keylen, const uint8_t *sample,
-        size_t samplelen, void *user_data, xqc_crypter_t * crypter);
+ssize_t xqc_hp_mask_cb(xqc_connection_t *conn,
+    uint8_t *dest, size_t destlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *sample, size_t samplelen,
+    void *user_data, xqc_crypter_t * crypter);
 
 /* Return 0 means forced 1RTT mode, return -1 means early data reject, return 1 means early data accept */
 int xqc_tls_is_early_data_accepted(xqc_connection_t * conn);
@@ -252,13 +260,11 @@ int xqc_tls_free_engine_config(xqc_engine_ssl_config_t *ssl_config);
 
 // configure  quic related write secret , Call from TLS Stack
 int xqc_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
-    const SSL_CIPHER *cipher, const uint8_t *secret,
-    size_t secretlen);
+    const SSL_CIPHER *cipher, const uint8_t *secret, size_t secretlen);
 
 // configure  quic related write secret , Call from TLS Stack
 int xqc_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
-    const SSL_CIPHER *cipher, const uint8_t *secret,
-    size_t secretlen);
+    const SSL_CIPHER *cipher, const uint8_t *secret, size_t secretlen);
 
 // convert xqc encrypt level to ssl encrypt level 
 enum ssl_encryption_level_t  xqc_convert_xqc_to_ssl_level(xqc_encrypt_level_t level);

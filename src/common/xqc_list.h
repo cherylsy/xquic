@@ -38,13 +38,15 @@ typedef struct xqc_list_head_s
 
 #define xqc_list_entry(ptr, type, member) container_of(ptr, type, member)
 
-static inline void xqc_init_list_head(xqc_list_head_t *list)
+static inline void
+xqc_init_list_head(xqc_list_head_t *list)
 {
     list->prev = list;
     list->next = list;
 }
 
-static inline void __xqc_list_add(xqc_list_head_t *node, xqc_list_head_t *prev, xqc_list_head_t *next)
+static inline void
+__xqc_list_add(xqc_list_head_t *node, xqc_list_head_t *prev, xqc_list_head_t *next)
 {
 #if (XQC_DEBUG)
     assert(next->prev == prev && prev->next == next && node != prev && node != next);
@@ -56,23 +58,27 @@ static inline void __xqc_list_add(xqc_list_head_t *node, xqc_list_head_t *prev, 
     prev->next = node;
 }
 
-static inline void xqc_list_add(xqc_list_head_t *node, xqc_list_head_t *head)
+static inline void
+xqc_list_add(xqc_list_head_t *node, xqc_list_head_t *head)
 {
     __xqc_list_add(node, head, head->next);
 }
 
-static inline void xqc_list_add_tail(xqc_list_head_t *node, xqc_list_head_t *head)
+static inline void
+xqc_list_add_tail(xqc_list_head_t *node, xqc_list_head_t *head)
 {
     __xqc_list_add(node, head->prev, head);
 }
 
-static inline void __xqc_list_del(xqc_list_head_t * prev, xqc_list_head_t * next)
+static inline void
+__xqc_list_del(xqc_list_head_t * prev, xqc_list_head_t * next)
 {
     next->prev = prev;
     prev->next = next;
 }
 
-static inline void __xqc_list_del_entry(xqc_list_head_t *entry)
+static inline void
+__xqc_list_del_entry(xqc_list_head_t *entry)
 {
 #if (XQC_DEBUG)
     xqc_list_head_t *prev, *next;
@@ -90,20 +96,23 @@ static inline void __xqc_list_del_entry(xqc_list_head_t *entry)
     __xqc_list_del(entry->prev, entry->next);
 }
 
-static inline void xqc_list_del(xqc_list_head_t *entry)
+static inline void
+xqc_list_del(xqc_list_head_t *entry)
 {
     __xqc_list_del_entry(entry);
     entry->next = XQC_LIST_POISON1;
     entry->prev = XQC_LIST_POISON2;
 }
 
-static inline void xqc_list_del_init(xqc_list_head_t *entry)
+static inline void
+xqc_list_del_init(xqc_list_head_t *entry)
 {
     __xqc_list_del_entry(entry);
     xqc_init_list_head(entry);
 }
 
-static inline void xqc_list_replace(xqc_list_head_t *old, xqc_list_head_t *node)
+static inline void
+xqc_list_replace(xqc_list_head_t *old, xqc_list_head_t *node)
 {
     node->next = old->next;
     node->next->prev = node;
@@ -111,7 +120,8 @@ static inline void xqc_list_replace(xqc_list_head_t *old, xqc_list_head_t *node)
     node->prev->next = node;
 }
 
-static inline int xqc_list_empty(const xqc_list_head_t *head)
+static inline int
+xqc_list_empty(const xqc_list_head_t *head)
 {
     return head->next == head;
 }

@@ -34,18 +34,21 @@ typedef struct xqc_rbtree_s
 } xqc_rbtree_t;
 
 
-static inline void xqc_rbtree_init(xqc_rbtree_t* rbtree)
+static inline void
+xqc_rbtree_init(xqc_rbtree_t* rbtree)
 {
     rbtree->root = NULL;
     rbtree->count = 0;
 }
 
-static inline size_t xqc_rbtree_count(xqc_rbtree_t* rbtree)
+static inline size_t
+xqc_rbtree_count(xqc_rbtree_t* rbtree)
 {
     return rbtree->count;
 }
 
-static inline xqc_rbtree_node_t* xqc_rbtree_find(xqc_rbtree_t* rbtree, xqc_rbtree_key_t key)
+static inline xqc_rbtree_node_t *
+xqc_rbtree_find(xqc_rbtree_t* rbtree, xqc_rbtree_key_t key)
 {
     xqc_rbtree_node_t *node = rbtree->root;
     while (node) {
@@ -60,7 +63,8 @@ static inline xqc_rbtree_node_t* xqc_rbtree_find(xqc_rbtree_t* rbtree, xqc_rbtre
     return NULL;
 }
 
-static inline void xqc_rbtree_rotate_left(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* x)
+static inline void
+xqc_rbtree_rotate_left(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* x)
 {
     xqc_rbtree_node_t* y = x->right;
     x->right = y->left;
@@ -81,7 +85,8 @@ static inline void xqc_rbtree_rotate_left(xqc_rbtree_t* rbtree, xqc_rbtree_node_
     x->parent = y;
 }
 
-static inline void xqc_rbtree_rotate_right(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* y)
+static inline void
+xqc_rbtree_rotate_right(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* y)
 {
     xqc_rbtree_node_t* x = y->left;
     y->left = x->right;
@@ -102,7 +107,8 @@ static inline void xqc_rbtree_rotate_right(xqc_rbtree_t* rbtree, xqc_rbtree_node
     y->parent = x;
 }
 
-static inline void xqc_rbtree_insert_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* x)
+static inline void
+xqc_rbtree_insert_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* x)
 {
     while (x != rbtree->root && x->parent->color == xqc_rbtree_red) {
         if (x->parent == x->parent->parent->left) { /* parent is the left subtree of grand */
@@ -155,7 +161,8 @@ static inline void xqc_rbtree_insert_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node
     rbtree->root->color = xqc_rbtree_black;
 }
 
-static inline int xqc_rbtree_insert(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* node)
+static inline int
+xqc_rbtree_insert(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* node)
 {
     xqc_rbtree_node_t* p = NULL;
     xqc_rbtree_node_t* x = rbtree->root;
@@ -190,7 +197,8 @@ static inline int xqc_rbtree_insert(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* nod
     return 0;
 }
 
-static inline void xqc_rbtree_delete_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node_t *x)
+static inline void
+xqc_rbtree_delete_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node_t *x)
 {
     while (rbtree->root != x && x->color == xqc_rbtree_black) {
         if (x == x->parent->left) {
@@ -250,7 +258,8 @@ static inline void xqc_rbtree_delete_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node
     x->color = xqc_rbtree_black;
 }
 
-static inline xqc_rbtree_node_t* xqc_rbtree_successor(xqc_rbtree_node_t *x)
+static inline xqc_rbtree_node_t *
+xqc_rbtree_successor(xqc_rbtree_node_t *x)
 {
     if (x->right) {
         xqc_rbtree_node_t* p = x->right;
@@ -270,7 +279,8 @@ static inline xqc_rbtree_node_t* xqc_rbtree_successor(xqc_rbtree_node_t *x)
     return p;
 }
 
-static inline xqc_rbtree_node_t* xqc_rbtree_delete_node(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* z)
+static inline xqc_rbtree_node_t *
+xqc_rbtree_delete_node(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* z)
 {
     xqc_rbtree_node_t *x = NULL, *y = NULL;
     if (z->left == NULL || z->right == NULL) {
@@ -312,7 +322,8 @@ static inline xqc_rbtree_node_t* xqc_rbtree_delete_node(xqc_rbtree_t* rbtree, xq
     return y;
 }
 
-static inline xqc_rbtree_node_t* xqc_rbtree_delete(xqc_rbtree_t* rbtree, xqc_rbtree_key_t key)
+static inline xqc_rbtree_node_t *
+xqc_rbtree_delete(xqc_rbtree_t* rbtree, xqc_rbtree_key_t key)
 {
     xqc_rbtree_node_t* z = xqc_rbtree_find(rbtree, key);
     if (z == NULL) {
@@ -334,7 +345,8 @@ static inline void xqc_rbtree_infix_order(xqc_rbtree_node_t* node, void (*callba
     }
 }
 
-static inline void xqc_rbtree_foreach(xqc_rbtree_t* rbtree, void (*callback)(xqc_rbtree_node_t*))
+static inline void
+xqc_rbtree_foreach(xqc_rbtree_t* rbtree, void (*callback)(xqc_rbtree_node_t*))
 {
     xqc_rbtree_node_t* root = rbtree->root;
     if (root) {
