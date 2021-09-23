@@ -5,39 +5,28 @@
 
 #include "src/common/xqc_str.h"
 
-/*
- * 哈希表元素
- * */
 typedef struct xqc_str_hash_element_s
 {
-    uint64_t hash; /*hash，用于对桶数取模*/
-    xqc_str_t str; /*字符串，仅仅比较hash还不够，还需要比较字符串*/
-    void *value; /*关联的元素数据*/
+    uint64_t hash;
+    xqc_str_t str;
+    void *value;
 } xqc_str_hash_element_t;
 
-/*
- * hash冲突链节点
- * */
 typedef struct xqc_str_hash_node_s
 {
-    struct xqc_str_hash_node_s *next; /*冲突链*/
-    xqc_str_hash_element_t element; /*节点元素*/
+    struct xqc_str_hash_node_s *next;
+    xqc_str_hash_element_t element;
 } xqc_str_hash_node_t;
 
-/*
- * hash表
- * */
 typedef struct xqc_str_hash_table_s
 {
-    xqc_str_hash_node_t **list; /*桶列表*/
-    size_t count; /*桶的数目*/
+    xqc_str_hash_node_t **list;
+    size_t count;
 
-    xqc_allocator_t allocator; /*内存配置器*/
+    xqc_allocator_t allocator; /* memory allocator */
 } xqc_str_hash_table_t;
 
-/*
- * 哈希表初始化
- * */
+
 static inline int xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
@@ -50,9 +39,6 @@ static inline int xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocat
     return XQC_OK;
 }
 
-/*
- * 哈希表释放
- * */
 static inline void xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
 {
     xqc_allocator_t* a = &hash_tab->allocator;
@@ -67,9 +53,6 @@ static inline void xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
     a->free(a->opaque, hash_tab->list);
 }
 
-/*
- * 查找
- * */
 static inline void* xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 {
     uint64_t index = hash % hash_tab->count;
@@ -83,9 +66,6 @@ static inline void* xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t h
     return NULL;
 }
 
-/*
- * 添加元素
- * */
 static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_element_t e)
 {
     uint64_t index = e.hash % hash_tab->count;
@@ -110,9 +90,6 @@ static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_
     return XQC_OK;
 }
 
-/*
- * 删除元素
- * */
 static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 {
     uint64_t index = hash % hash_tab->count;
@@ -121,7 +98,7 @@ static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t h
     xqc_str_hash_node_t* node = hash_tab->list[index];
     while (node) {
         if (node->element.hash == hash && xqc_str_equal(str, node->element.str)) {
-            *pp = node->next; /*从冲突链删除*/
+            *pp = node->next;
             a->free(a->opaque, node->element.str.data);
             a->free(a->opaque, node);
             return XQC_OK;

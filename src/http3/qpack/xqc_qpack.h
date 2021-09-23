@@ -109,7 +109,7 @@ xqc_qpack_process_decoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len
  * @return the context handler of request stream
  */
 xqc_rep_ctx_t *
-xqc_qpack_create_req_ctx(uint64_t stream_id); // stream_id放在这里，void*改成具体类型
+xqc_qpack_create_req_ctx(uint64_t stream_id);
 
 /**
  * reset context, called when an HEADERS frame was totally decoded

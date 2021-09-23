@@ -8,8 +8,8 @@
 #include "src/transport/xqc_packet.h"
 
 #define XQC_UNDEFINE_STREAM_ID XQC_MAX_UINT64_VALUE
-#define XQC_MAX_DATA_NOT_READ 1024000 //TODO:
-#define XQC_MAX_GAP_NOT_RECVD 1024000 //TODO:
+#define XQC_MAX_DATA_NOT_READ 1024000
+#define XQC_MAX_GAP_NOT_RECVD 1024000
 
 typedef enum {
     XQC_CLI_BID = 0,

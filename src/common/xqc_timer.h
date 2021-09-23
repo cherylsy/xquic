@@ -5,33 +5,26 @@
 #include "src/common/xqc_time.h"
 #include "src/common/xqc_list.h"
 
-/*
- * 基于时间轮的定时器实现
- * 精度设计为1毫秒，当然这取决于调用滴答函数的精度
- * 初始化：xqc_timer_manager_init()
- * 滴答：xqc_timer_manager_tick()
- * 添加定时器：xqc_timer_manager_add()，定时器响铃之后如果需要重设定时可以在callback函数中在加上去（支持repeat模式）
- * */
+/* Timing-Wheel based timer with an accuracy of 1 millisecond
+ * 
+ * Interfaces:
+ * xqc_timer_manager_init()
+ * xqc_timer_manager_tick()
+ * xqc_timer_manager_add()
+ */
 
-/*
- * 定时器回调函数
- * */
+/* timer callback function */
 typedef void (*xqc_timer_function)(unsigned long);
 
-/*
- * 定时器结构
- * */
 typedef struct xqc_timer_s
 {
-    xqc_list_head_t list;           /*链表串联*/
-    unsigned long expires;          /*过期时间*/
-    unsigned long data;             /*传递给callback的数据*/
-    xqc_timer_function function;    /*callback*/
+    xqc_list_head_t list;
+    unsigned long expires;          /* expiry time */
+    unsigned long data;             /* data passed to the callback function */
+    xqc_timer_function function;    /* callback function */
 } xqc_timer_t;
 
-/*
- * 初始化定时器
- * */
+
 static inline void xqc_timer_init(xqc_timer_t *timer)
 {
     timer->list.prev = NULL;
@@ -50,32 +43,28 @@ static inline void xqc_timer_init(xqc_timer_t *timer)
 #define XQC_VEC1_MASK ((XQC_VEC1_SIZE) - 1)
 #define XQC_VEC2_MASK ((XQC_VEC2_SIZE) - 1)
 
-/*
- * 定时器管理器、全局唯一
- * */
+/* timer manager, globally unique */
 typedef struct xqc_timer_manager_s
 {
-    uint64_t timestamp;                     /*上一次tick时间戳*/
+    uint64_t timestamp;                     /* last tick timestamp */
 
-    unsigned int index1;                    /*vec1索引*/
-    xqc_list_head_t vec1[XQC_VEC1_SIZE];    /*紧迫定时器链表数组*/
+    unsigned int index1;                    /* index of vec1 */
+    xqc_list_head_t vec1[XQC_VEC1_SIZE];    /* urgency timer */
 
-    unsigned int index2;                    /*vec2索引*/
-    xqc_list_head_t vec2[XQC_VEC2_SIZE];    /*松散定时器链表数组*/
+    unsigned int index2;                    /* index of vec2 */
+    xqc_list_head_t vec2[XQC_VEC2_SIZE];    /* loose timer */
 } xqc_timer_manager_t;
 
 static inline uint64_t xqc_gettimeofday()
 {
-    /*获取毫秒单位时间*/
+    /* get microsecond unit time */
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t ul = tv.tv_sec * 1000 + tv.tv_usec / 1000;
     return  ul;
 }
 
-/*
- * 定时器管理器初始化
- * */
+
 static inline void xqc_timer_manager_init(xqc_timer_manager_t* manager)
 {
     manager->timestamp = xqc_gettimeofday();
@@ -113,9 +102,7 @@ static inline int xqc_timer_manager_internal_add(xqc_timer_manager_t* manager, x
     return 0;
 }
 
-/*
- * 添加定时器 timeout毫秒后响铃
- * */
+
 static inline int xqc_timer_manager_add(xqc_timer_manager_t* manager, xqc_timer_t *timer, unsigned long timeout)
 {
     if (timer->function == NULL) {
@@ -155,9 +142,7 @@ static inline void xqc_timer_manager_cascade(xqc_timer_manager_t* manager)
     manager->index2 = (manager->index2 + 1) & XQC_VEC2_MASK;
 }
 
-/*
- * 定时管理器滴答 驱动
- * */
+
 static inline void xqc_timer_manager_tick(xqc_timer_manager_t* manager)
 {
     unsigned long now = xqc_gettimeofday();

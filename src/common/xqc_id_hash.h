@@ -7,7 +7,7 @@
 #include "src/common/xqc_common.h"
 #include "src/common/xqc_memory_pool.h"
 
-/* 使用示例
+/* Usage examples
     xqc_id_hash_table_t hash_tab;
     xqc_id_hash_init(&hash_tab, xqc_default_allocator, 100);
 
@@ -47,39 +47,30 @@
     xqc_id_hash_release(&hash_tab);
  * */
 
-/*
- * 哈希表元素
- * */
+
 typedef struct xqc_id_hash_element_s
 {
-    uint64_t hash; /*hash，用于对桶数取模*/
-    void *value; /*关联的元素数据*/
+    uint64_t hash;
+    void *value;
 } xqc_id_hash_element_t;
 
-/*
- * hash冲突链节点
- * */
+
 typedef struct xqc_id_hash_node_s
 {
-    struct xqc_id_hash_node_s *next; /*冲突链*/
-    xqc_id_hash_element_t element; /*元素*/
+    struct xqc_id_hash_node_s *next;
+    xqc_id_hash_element_t element;
 } xqc_id_hash_node_t;
 
-/*
- * hash表
- * */
 typedef struct xqc_id_hash_table_s
 {
-    xqc_id_hash_node_t **list; /*桶列表*/
-    size_t count; /*桶的数目*/
+    xqc_id_hash_node_t **list;
+    size_t count;
     size_t mask;
-    xqc_allocator_t allocator; /*内存配置器*/
+    xqc_allocator_t allocator;
 } xqc_id_hash_table_t;
 
 
-/**
- *  make n to 2 pow 
- * */
+/* make n to 2 pow  */
 static inline int xqc_pow2(unsigned int n) {
     int clz , power = sizeof(n);
     if (__builtin_popcount(n) <= 1) {
@@ -90,9 +81,7 @@ static inline int xqc_pow2(unsigned int n) {
     return pow(2 , power);
 }
 
-/*
- * 哈希表初始化
- * */
+
 static inline int xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
@@ -107,9 +96,7 @@ static inline int xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator
     return XQC_OK;
 }
 
-/*
- * 哈希表释放
- * */
+
 static inline void xqc_id_hash_release(xqc_id_hash_table_t* hash_tab)
 {
     xqc_allocator_t* a = &hash_tab->allocator;
@@ -127,9 +114,7 @@ static inline void xqc_id_hash_release(xqc_id_hash_table_t* hash_tab)
     a->free(a->opaque, hash_tab->list);
 }
 
-/*
- * 查找
- * */
+
 static inline void* xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 {
     uint64_t index = hash & hash_tab->mask;
@@ -146,9 +131,7 @@ static inline void* xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t has
     return NULL;
 }
 
-/*
- * 添加元素
- * */
+
 static inline int xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_element_t e)
 {
     if (xqc_id_hash_find(hash_tab, e.hash)) {
@@ -169,9 +152,7 @@ static inline int xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_ele
     return XQC_OK;
 }
 
-/*
- * 删除元素
- * */
+
 static inline int xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 {
     uint64_t index = hash & hash_tab->mask;
@@ -180,7 +161,7 @@ static inline int xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t has
     xqc_id_hash_node_t* node = hash_tab->list[index];
     while (node) {
         if (node->element.hash == hash) {
-            *pp = node->next; /*从冲突链删除*/
+            *pp = node->next;
             a->free(a->opaque, node);
             return XQC_OK;
         }

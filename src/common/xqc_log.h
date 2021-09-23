@@ -17,12 +17,6 @@
 #include "src/common/xqc_str.h"
 #include "src/common/xqc_time.h"
 
-/*
- * 目前只是标准输出
- * 先定义接口，后面再实现
- * 先xqc_log_init()构建xqc_log_t句柄
- * 再用xqc_log_debug/xqc_log_error等接口记录日志
- * */
 
 typedef struct xqc_log_s
 {

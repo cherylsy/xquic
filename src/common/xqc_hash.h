@@ -10,15 +10,6 @@
 
 } xqc_hash_t;*/
 
-/*
- * 本文件定义哈希算法，暂只提供基本的字符串hash和md5哈希，解决基本需求
- * hash算法速度最快的是xxHash，直接吊打MumurHash，crc32，和md5
- * xxHash待我吃透了从https://github.com/JCash/xxHash-1搬过来
- * MurmurHash是非加密hash算法，仅次于xxHash，速度还是挺快的
- * crc32在有硬件加速支持情况下比较快，基本上属于被淘汰掉的
- * 不是特别注重性能的情况下，md5就不错
- * 下面是对比表
- * */
 
 /*
     Comparison (single thread, Windows Seven 32 bits, using SMHasher on a Core 2 Duo @3GHz)

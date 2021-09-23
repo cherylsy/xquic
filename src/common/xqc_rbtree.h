@@ -3,32 +3,20 @@
 
 #include <stdint.h>
 
-/*
- * 实现原理参考《算法导论》，将伪代码翻译成C
- * 接口形式参考nginx rbtree，但不完全一致，这样做主要是为了节省理解成本
- * 需要关注的接口：
+/* Interfaces:
  * xqc_rbtree_init(), xqc_rbtree_count(), 
- * xqc_rbtree_insert(),  xqc_rbtree_delete(), xqc_rbtree_delete_node(), xqc_rbtree_find()
- * xqc_rbtree_foreach()基于递归和回调的方式实现遍历并不高效，请知悉，如果care性能，直接写遍历也不复杂
- * */
+ * xqc_rbtree_insert(), xqc_rbtree_delete(), xqc_rbtree_delete_node(), xqc_rbtree_find()
+ * xqc_rbtree_foreach()
+ */
 
-/*
- * 红黑枚举
- * */
 typedef enum xqc_rbtree_color_e
 {
     xqc_rbtree_red,
     xqc_rbtree_black,
 } xqc_rbtree_color_t;
 
-/*
- * 键
- * */
 typedef uint64_t xqc_rbtree_key_t;
 
-/*
- * 红黑树结点
- * */
 typedef struct xqc_rbtree_node_s
 {
     struct xqc_rbtree_node_s *parent;
@@ -39,35 +27,24 @@ typedef struct xqc_rbtree_node_s
     char data[0];
 } xqc_rbtree_node_t;
 
-/*
- * 红黑树
- * */
 typedef struct xqc_rbtree_s
 {
     xqc_rbtree_node_t *root;
     size_t count;
 } xqc_rbtree_t;
 
-/*
- * 初始化
- * */
+
 static inline void xqc_rbtree_init(xqc_rbtree_t* rbtree)
 {
     rbtree->root = NULL;
     rbtree->count = 0;
 }
 
-/*
- * 求节点数
- * */
 static inline size_t xqc_rbtree_count(xqc_rbtree_t* rbtree)
 {
     return rbtree->count;
 }
 
-/*
- * 查找
- * */
 static inline xqc_rbtree_node_t* xqc_rbtree_find(xqc_rbtree_t* rbtree, xqc_rbtree_key_t key)
 {
     xqc_rbtree_node_t *node = rbtree->root;
@@ -83,9 +60,6 @@ static inline xqc_rbtree_node_t* xqc_rbtree_find(xqc_rbtree_t* rbtree, xqc_rbtre
     return NULL;
 }
 
-/*
- * 左旋(内部实现)
- * */
 static inline void xqc_rbtree_rotate_left(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* x)
 {
     xqc_rbtree_node_t* y = x->right;
@@ -107,9 +81,6 @@ static inline void xqc_rbtree_rotate_left(xqc_rbtree_t* rbtree, xqc_rbtree_node_
     x->parent = y;
 }
 
-/*
- * 右旋(内部实现)
- * */
 static inline void xqc_rbtree_rotate_right(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* y)
 {
     xqc_rbtree_node_t* x = y->left;
@@ -131,52 +102,49 @@ static inline void xqc_rbtree_rotate_right(xqc_rbtree_t* rbtree, xqc_rbtree_node
     y->parent = x;
 }
 
-/*
- * 内部实现:插入修正
- * */
 static inline void xqc_rbtree_insert_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* x)
 {
     while (x != rbtree->root && x->parent->color == xqc_rbtree_red) {
-        if (x->parent == x->parent->parent->left) { /*父节点为祖父节点的左子树*/
-            /*叔父节点*/
+        if (x->parent == x->parent->parent->left) { /* parent is the left subtree of grand */
+            /* uncle */
             xqc_rbtree_node_t* y = x->parent->parent->right; 
 
-            if (y && y->color == xqc_rbtree_red) { /*叔父节点为红*/
-                /*case 1*/
+            if (y && y->color == xqc_rbtree_red) { /* uncle: red */
+                /* case 1 */
                 x->parent->color = xqc_rbtree_black;
                 y->color = xqc_rbtree_black;
                 x->parent->parent->color = xqc_rbtree_red;
                 x = x->parent->parent;
-            } else { /*叔父节点为黑*/
+            } else { /* uncle: black */
                 if (x == x->parent->right) {
-                    /*case 2*/
+                    /* case 2 */
                     x = x->parent;
                     xqc_rbtree_rotate_left(rbtree, x);
                 }
 
-                /*case 3*/
+                /* case 3 */
                 x->parent->color = xqc_rbtree_black;
                 x->parent->parent->color = xqc_rbtree_red;
                 xqc_rbtree_rotate_right(rbtree, x->parent->parent);
             }
         } else {
-            /*叔父节点*/
+            /* uncle */
             xqc_rbtree_node_t* y = x->parent->parent->left; 
 
-            if (y && y->color == xqc_rbtree_red) { /*叔父节点为红*/
-                /*case 4*/
+            if (y && y->color == xqc_rbtree_red) { /* uncle: red */
+                /* case 4 */
                 x->parent->color = xqc_rbtree_black;
                 y->color = xqc_rbtree_black;
                 x->parent->parent->color = xqc_rbtree_red;
                 x = x->parent->parent;
-            } else { /*叔父节点为黑*/
+            } else { /* uncle: black */
                 if (x == x->parent->left) {
-                    /*case 5*/
+                    /* case 5 */
                     x = x->parent;
                     xqc_rbtree_rotate_right(rbtree, x);
                 } 
 
-                /*case 6*/
+                /* case 6 */
                 x->parent->color = xqc_rbtree_black;
                 x->parent->parent->color = xqc_rbtree_red;
                 xqc_rbtree_rotate_left(rbtree, x->parent->parent);
@@ -187,9 +155,6 @@ static inline void xqc_rbtree_insert_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node
     rbtree->root->color = xqc_rbtree_black;
 }
 
-/*
- * 插入
- * */
 static inline int xqc_rbtree_insert(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* node)
 {
     xqc_rbtree_node_t* p = NULL;
@@ -201,7 +166,7 @@ static inline int xqc_rbtree_insert(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* nod
         } else if (x->key < node->key) {
             x = x->right;
         } else {
-            return -1; /*key 重复*/
+            return -1; /* duplicate key */
         }
     }
 
@@ -225,27 +190,24 @@ static inline int xqc_rbtree_insert(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* nod
     return 0;
 }
 
-/*
- * 删除修正(内部实现)
- * */
 static inline void xqc_rbtree_delete_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node_t *x)
 {
     while (rbtree->root != x && x->color == xqc_rbtree_black) {
         if (x == x->parent->left) {
             xqc_rbtree_node_t* w = x->parent->right;
             if (w->color == xqc_rbtree_red) {
-                /*case 1*/
+                /* case 1 */
                 w->color = xqc_rbtree_black;
                 xqc_rbtree_rotate_left(rbtree, x->parent);
                 w = x->parent->right;
             }
 
             if (w->left->color == xqc_rbtree_black && w->right->color == xqc_rbtree_black) {
-                /*case 2*/
+                /* case 2 */
                 w->color = xqc_rbtree_red;
                 x = x->parent;
             } else if (w->right->color == xqc_rbtree_black) {
-                /*case 3*/
+                /* case 3 */
                 w->left->color = xqc_rbtree_black;
                 w->color = xqc_rbtree_red;
                 xqc_rbtree_rotate_right(rbtree, w);
@@ -259,18 +221,18 @@ static inline void xqc_rbtree_delete_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node
         } else {
             xqc_rbtree_node_t* w = x->parent->left;
             if (w->color == xqc_rbtree_red) {
-                /*case 1*/
+                /* case 1 */
                 w->color = xqc_rbtree_black;
                 xqc_rbtree_rotate_right(rbtree, x->parent);
                 w = x->parent->left;
             }
 
             if (w->right->color == xqc_rbtree_black && w->left->color == xqc_rbtree_black) {
-                /*case 2*/
+                /* case 2 */
                 w->color = xqc_rbtree_red;
                 x = x->parent;
             } else if (w->left->color == xqc_rbtree_black) {
-                /*case 3*/
+                /* case 3 */
                 w->right->color = xqc_rbtree_black;
                 w->color = xqc_rbtree_red;
                 xqc_rbtree_rotate_left(rbtree, w);
@@ -288,9 +250,6 @@ static inline void xqc_rbtree_delete_fixup(xqc_rbtree_t* rbtree, xqc_rbtree_node
     x->color = xqc_rbtree_black;
 }
 
-/*
- * 后继节点(内部实现)
- * */
 static inline xqc_rbtree_node_t* xqc_rbtree_successor(xqc_rbtree_node_t *x)
 {
     if (x->right) {
@@ -311,9 +270,6 @@ static inline xqc_rbtree_node_t* xqc_rbtree_successor(xqc_rbtree_node_t *x)
     return p;
 }
 
-/*
- * 删除(按结点删除)
- * */
 static inline xqc_rbtree_node_t* xqc_rbtree_delete_node(xqc_rbtree_t* rbtree, xqc_rbtree_node_t* z)
 {
     xqc_rbtree_node_t *x = NULL, *y = NULL;
@@ -356,9 +312,6 @@ static inline xqc_rbtree_node_t* xqc_rbtree_delete_node(xqc_rbtree_t* rbtree, xq
     return y;
 }
 
-/*
- * 删除(按键)
- * */
 static inline xqc_rbtree_node_t* xqc_rbtree_delete(xqc_rbtree_t* rbtree, xqc_rbtree_key_t key)
 {
     xqc_rbtree_node_t* z = xqc_rbtree_find(rbtree, key);
@@ -368,9 +321,6 @@ static inline xqc_rbtree_node_t* xqc_rbtree_delete(xqc_rbtree_t* rbtree, xqc_rbt
     return xqc_rbtree_delete_node(rbtree, z);
 }
 
-/*
- * 中序遍历(内部实现)
- * */
 static inline void xqc_rbtree_infix_order(xqc_rbtree_node_t* node, void (*callback)(xqc_rbtree_node_t*))
 {
     if (node->left) {
@@ -384,9 +334,6 @@ static inline void xqc_rbtree_infix_order(xqc_rbtree_node_t* node, void (*callba
     }
 }
 
-/*
- * foreach(中序)
- * */
 static inline void xqc_rbtree_foreach(xqc_rbtree_t* rbtree, void (*callback)(xqc_rbtree_node_t*))
 {
     xqc_rbtree_node_t* root = rbtree->root;

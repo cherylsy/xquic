@@ -6,23 +6,14 @@
 
 #include "src/common/xqc_malloc.h"
 
-/*
- * 接口列表，使用方只需要关注这几个接口
- *
+/* Interfaces:
  * xqc_memory_pool_t *xqc_create_pool(size_t size)
- *
  * void xqc_destroy_pool(xqc_memory_pool_t* pool)
- *
  * void* xqc_palloc(xqc_memory_pool_t *pool, size_t size)
- *
  * void* xqc_pnalloc(xqc_memory_pool_t *pool, size_t size)
- *
  * void* xqc_pcalloc(xqc_memory_pool_t *pool, size_t size)
- * */
+ */
 
-/*
- * 内部实现结构体
- * */
 typedef struct xqc_memory_block_s
 {
     char* last;
@@ -38,9 +29,6 @@ typedef struct xqc_memory_large_s
     char data[0];
 } xqc_memory_large_t;
 
-/*
- * 内存池结构体
- * */
 typedef struct xqc_memory_pool_s
 {
     xqc_memory_block_t block;
@@ -51,9 +39,7 @@ typedef struct xqc_memory_pool_s
 
 #define XQC_MAX_MALLOC_FROM_POOL (4096)
 
-/*
- * 创建池，size是block大小
- * */
+
 static inline xqc_memory_pool_t *xqc_create_pool(size_t size)
 {
     if (size <= sizeof(xqc_memory_pool_t)) {
@@ -81,9 +67,6 @@ static inline xqc_memory_pool_t *xqc_create_pool(size_t size)
     return pool;
 }
 
-/*
- * 销毁池
- * */
 static inline void xqc_destroy_pool(xqc_memory_pool_t* pool)
 {
     xqc_memory_block_t* block = pool->block.next;
@@ -103,9 +86,6 @@ static inline void xqc_destroy_pool(xqc_memory_pool_t* pool)
     xqc_free(pool);
 }
 
-/*
- * 内部实现函数,分配大块
- * */
 static inline void* xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
 {
     xqc_memory_large_t* p = xqc_malloc(size + sizeof(xqc_memory_large_t));
@@ -123,9 +103,6 @@ static inline void* xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
 #define XQC_ALIGNMENT (16)
 #define xqc_align_ptr(p, a) ((char *) (((uintptr_t)(p) + ((uintptr_t)a - 1)) & ~((uintptr_t)a - 1)))
 
-/*
- * 内部实现函数,分配block
- * */
 static inline void* xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
 {
     size_t psize = pool->block.end - (char*)pool;
@@ -158,9 +135,7 @@ static inline void* xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
     return m;
 }
 
-/*
- * 从池分配内存接口,会对齐,对齐的内存块访问速度可能更快
- * */
+/* aligned memory block access may be faster */
 static inline void* xqc_palloc(xqc_memory_pool_t *pool, size_t size)
 {
     if (size < pool->max) {
@@ -182,9 +157,7 @@ static inline void* xqc_palloc(xqc_memory_pool_t *pool, size_t size)
     return xqc_palloc_large(pool, size);
 }
 
-/*
- * 从池分配内存接口,不作对齐处理
- * */
+/* allocate memory interface from pool, no alignment */
 static inline void* xqc_pnalloc(xqc_memory_pool_t *pool, size_t size)
 {
     if (size < pool->max) {
@@ -206,9 +179,7 @@ static inline void* xqc_pnalloc(xqc_memory_pool_t *pool, size_t size)
     return xqc_palloc_large(pool, size);
 }
 
-/*
- * 从池分配内存接口,会对齐+会清零
- * */
+/* aligned and zeroed out */
 static inline void* xqc_pcalloc(xqc_memory_pool_t *pool, size_t size)
 {
     void* p = xqc_palloc(pool, size);

@@ -197,11 +197,11 @@ xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
     xqc_send_ctl_info_t *ctl_info = &conn_send_ctl->ctl_info;
 
     xqc_usec_t now = xqc_monotonic_timestamp();
-    if (ctl_info->record_interval < 10000) { /* 最低10ms间隔，避免日志泛滥 */
+    if (ctl_info->record_interval < 10000) { /* minimum 10ms interval to avoid log flooding */
         return;
     }
 
-    if (ctl_info->last_record_time + ctl_info->record_interval > now) { /* 未到记录时间 */
+    if (ctl_info->last_record_time + ctl_info->record_interval > now) { /* not yet time to record */
         return;
     }
     ctl_info->last_record_time = now;
@@ -861,7 +861,7 @@ xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, x
              * when sending a packet containing frames other than ACK or PADDING (an
              * ACK-eliciting packet
              */
-            /* udp无法识别是否真正发送到对端，避免重传一直刷新idle时间 */
+            /* udp does not recognize if a packet is actually sent to the peer */
             /* TODO: xqc_send_ctl_timer_set(ctl, XQC_TIMER_IDLE, now + ctl->ctl_conn->local_settings.idle_timeout * 1000); */
         }
         xqc_send_ctl_update_stream_stats_on_sent(ctl, packet_out, now);

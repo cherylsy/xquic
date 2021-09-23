@@ -67,7 +67,6 @@ xqc_packet_out_get(xqc_send_ctl_t *ctl)
     xqc_packet_out_t *packet_out;
     xqc_list_head_t *pos, *next;
 
-    /*优先复用已申请*/
     xqc_list_for_each_safe(pos, next, &ctl->ctl_free_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
 
@@ -432,7 +431,7 @@ xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code)
     xqc_packet_out_t *packet_out;
     xqc_pkt_type_t pkt_type = XQC_PTYPE_INIT;
 
-    /* 对端可能未收到握手包 */
+    /* peer may not have received the handshake packet */
     if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED && conn->conn_flag & XQC_CONN_FLAG_HSK_ACKED) {
         pkt_type = XQC_PTYPE_SHORT_HEADER;
     }

@@ -237,7 +237,7 @@ struct xqc_connection_s{
     uint32_t                zero_rtt_count;
     uint32_t                retry_count;
     uint32_t                conn_close_count;
-    uint32_t                packet_need_process_count; /* xqc_engine_packet_process积累个数 */
+    uint32_t                packet_need_process_count; /* xqc_engine_packet_process number */
 
     xqc_conn_state_t        conn_state;
     xqc_memory_pool_t      *conn_pool;

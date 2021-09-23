@@ -16,8 +16,6 @@ int printf_null(const char *format, ...)
     return 0;
 }
 
-//打开注释不打印printf
-//#define printf printf_null
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
 
@@ -98,7 +96,7 @@ char test_long_value[XQC_TEST_LONG_HEADER_LEN] = {'\0'};
 
 static inline uint64_t now()
 {
-    /*获取微秒单位时间*/
+    /* get microsecond unit time */
     struct timeval tv;
     gettimeofday(&tv, NULL);
     uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
@@ -108,7 +106,6 @@ static inline uint64_t now()
 void xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
-    //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
 
     struct timeval tv;
     tv.tv_sec = wake_after / 1000000;
@@ -189,7 +186,7 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
     if (user_stream->send_body == NULL) {
         user_stream->send_body_max = MAX_BUF_SIZE;
 
-        /* echo > 指定大小 > 指定文件 > 默认大小 */
+        /* priority: echo > specified size > specified file > default size */
         if (g_echo) {
             user_stream->send_body = malloc(user_stream->recv_body_len);
             memcpy(user_stream->send_body, user_stream->recv_body, user_stream->recv_body_len);
@@ -295,14 +292,14 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
         }
         read_sum += read;
 
-        /* 保存接收到的body到文件 */
+        /* write received body to file */
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
             return -1;
         }
         if (save) fflush(user_stream->recv_body_fp);
 
-        /* 保存接收到的body到内存 */
+        /* write received body to memory */
         if (g_echo) {
             memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
         }
@@ -459,7 +456,7 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (user_stream->send_body == NULL) {
         user_stream->send_body_max = MAX_BUF_SIZE;
 
-        /* echo > 指定大小 > 指定文件 > 默认大小 */
+        /* priority: echo > specified size > specified file > default size */
         if (g_echo) {
             user_stream->send_body = malloc(user_stream->recv_body_len);
             memcpy(user_stream->send_body, user_stream->recv_body, user_stream->recv_body_len);
@@ -550,12 +547,12 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
         user_stream->header_recvd++;
 
         if (fin) {
-            /* 只有header，请求接收完成，处理业务逻辑 */
+            /* only header. request received, start processing business logic. */
             xqc_server_request_send(h3_request, user_stream);
             return 0;
         }
 
-        //继续收body
+        /* continue to receive body */
     }
 
     if (!(flag & XQC_REQ_NOTIFY_READ_BODY)) {
@@ -592,30 +589,26 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             printf("xqc_h3_request_recv_body error %zd\n", read);
             return 0;
         }
-        //printf("xqc_h3_request_recv_body %lld, fin:%d\n", read, fin);
+
         read_sum += read;
 
-        /* 保存接收到的body到文件 */
+        /* write received body to file */
         if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
             return -1;
         }
         if (save) fflush(user_stream->recv_body_fp);
 
-        /* 保存接收到的body到内存 */
+        /* write received body to memory */
         if (g_echo) {
             memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
         }
         user_stream->recv_body_len += read;
-        /*xqc_h3_request_close(h3_request);
-        return 0;*/
 
     } while (read > 0 && !fin);
 
     printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
 
-    // 打开注释，服务端收到包后测试发送reset
-    // h3_request->h3_stream->h3_conn->conn->conn_flag |= XQC_CONN_FLAG_TIME_OUT;
 
     if (fin) {
         xqc_server_request_send(h3_request, user_stream);
@@ -630,13 +623,11 @@ xqc_server_write_socket(const unsigned char *buf, size_t size,
     const struct sockaddr *peer_addr,
     socklen_t peer_addrlen, void *user_data)
 {
-    //DEBUG;
-    user_conn_t *user_conn = (user_conn_t*)user_data; //user_data可能为空，当发送reset时
+    user_conn_t *user_conn = (user_conn_t*)user_data; //user_data may be empty when "reset" is sent
     ssize_t res;
     static ssize_t last_snd_sum = 0;
     static ssize_t snd_sum = 0;
     int fd = ctx.fd;
-    //printf("xqc_server_send size=%zd now=%llu\n",size, now());
 
     /* COPY to run corruption test cases */
     unsigned char send_buf[XQC_PACKET_TMP_BUF_LEN];
@@ -709,7 +700,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
     struct sockaddr_in6 peer_addr;
     socklen_t peer_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
 #ifdef __linux__
-    int batch = 0; /* 不一定是同一条连接上的包 */
+    int batch = 0; /* packets are not necessarily on the same connection */
     if (batch) {
 #define VLEN 100
 #define BUFSIZE XQC_PACKET_TMP_BUF_LEN
@@ -765,7 +756,6 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &peer_addr,
                              &peer_addrlen);
         if (recv_size < 0 && errno == EAGAIN) {
-            //printf("!!!!!!!!!errno EAGAIN\n");
             break;
         }
         if (recv_size < 0) {
@@ -1113,15 +1103,15 @@ int main(int argc, char *argv[]) {
     while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6bS:")) != -1){
         switch(ch)
         {
-            case 'p':
+            case 'p': /* Server port. */
                 printf("option port :%s\n", optarg);
                 server_port = atoi(optarg);
                 break;
-            case 'e': //返回接收到的body
+            case 'e': /* Echo. Send received body. */
                 printf("option echo :%s\n", "on");
                 g_echo = 1;
                 break;
-            case 'c': //拥塞算法 r:reno b:bbr c:cubic
+            case 'c': /* Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2 bbr+ bbr2+ */
                 c_cong_ctl = optarg[0];
                 if (strncmp("bbr2", optarg, 4) == 0)
                     c_cong_ctl = 'B';
@@ -1130,11 +1120,11 @@ int main(int argc, char *argv[]) {
                     c_cong_plus = 1;
                 printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
                 break;
-            case 'C': //pacing on
+            case 'C': /* Pacing on. */
                 printf("option pacing :%s\n", "on");
                 pacing_on = 1;
                 break;
-            case 's': //指定发送body字节数
+            case 's': /* Body size to send. */
                 printf("option send_body_size :%s\n", optarg);
                 g_send_body_size = atoi(optarg);
                 g_send_body_size_defined = 1;
@@ -1143,36 +1133,35 @@ int main(int argc, char *argv[]) {
                     exit(0);
                 }
                 break;
-            case 'w': //保存接收body到文件
+            case 'w': /* Write received body to file. */
                 printf("option save body :%s\n", optarg);
                 snprintf(g_write_file, sizeof(g_write_file), optarg);
                 g_save_body = 1;
                 break;
-            case 'r': //读取文件当body，优先级 e > s > r
+            case 'r': /* Read sending body from file. priority e > s > r */
                 printf("option read body :%s\n", optarg);
                 snprintf(g_read_file, sizeof(g_read_file), optarg);
                 g_read_body = 1;
                 break;
-            case 'l': //log level. e:error d:debug.
+            case 'l': /* Log level. e:error d:debug. */
                 printf("option log level :%s\n", optarg);
                 c_log_level = optarg[0];
                 break;
-            case 'u': //请求url
+            case 'u': /* Url. default https://test.xquic.com/path/resource */
                 printf("option url :%s\n", optarg);
                 snprintf(g_url, sizeof(g_url), optarg);
                 g_spec_url = 1;
                 sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
-                //printf("%s-%s-%s\n",g_scheme, g_host, g_path);
                 break;
-            case 'x': //test case id
+            case 'x': /* Test case ID */
                 printf("option test case id: %s\n", optarg);
                 g_test_case = atoi(optarg);
                 break;
-            case '6': //IPv6
+            case '6': /* IPv6 */
                 printf("option IPv6 :%s\n", "on");
                 g_ipv6 = 1;
                 break;
-            case 'b':
+            case 'b': /* batch */
                 printf("option send batch: on\n");
                 g_batch = 1;
                 break;

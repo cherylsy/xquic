@@ -9,20 +9,17 @@
 #define XQC_LIST_POISON1  ((void *) 0x1)
 #define XQC_LIST_POISON2  ((void *) 0x2)
 
-/*
- * 参考linux内核链表的实现
- * 任何需要用链表串起来的结构，内嵌xqc_list_head_t即可用链表串起来，非常方便
- * 具体用法参考xqc_test.c文件的test_list()
- * 以__开头的函数是内部实现。
- * 需要关注的接口：
- * 初始化：xqc_list_head_init(), xqc_init_list_head()
- * 增：xqc_list_add(), xqc_list_add_tail()
- * 删：xqc_list_del(), xqc_list_del_init()
- * 替换：xqc_list_replace()
- * 判空：xqc_list_empty()
- * 遍历：xqc_list_for_each(), xqc_list_for_each_safe()
- * 取出元素：xqc_list_entry()
- * */
+/* the structure can be chained with a linked list by embedding xqc_list_head_t
+ *
+ * Interfaces:
+ * xqc_list_head_init(), xqc_init_list_head()
+ * xqc_list_add(), xqc_list_add_tail()
+ * xqc_list_del(), xqc_list_del_init()
+ * xqc_list_replace()
+ * xqc_list_empty()
+ * xqc_list_for_each(), xqc_list_for_each_safe()
+ * xqc_list_entry()
+ */
 
 typedef struct xqc_list_head_s
 {

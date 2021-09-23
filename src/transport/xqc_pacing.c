@@ -43,7 +43,7 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing)
         srtt = XQC_kInitialRtt * 1000;
     }
 
-    /* 每秒可发字节数 */
+    /* bytes can be sent per second */
     pacing_rate = cwnd * 1000000 / srtt;
 
     if (ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start &&

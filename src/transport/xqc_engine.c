@@ -46,7 +46,7 @@ xqc_config_t default_server_config = {
     .cfg_log_timestamp = 1,
     .conn_pool_size = 4096,
     .streams_hash_bucket_size = 1024,
-    .conns_hash_bucket_size = 1024*1024, //不能扩展，连接多了查找性能
+    .conns_hash_bucket_size = 1024*1024, /* too many connections will affect lookup performance */
     .conns_active_pq_capacity = 1024,
     .conns_wakeup_pq_capacity = 16*1024,
     .support_version_count = 2,
@@ -837,8 +837,10 @@ xqc_engine_main_logic(xqc_engine_t *engine)
             }
         }
 
-        /* xqc_engine_process_conn有可能会插入conns_active_pq，XQC_CONN_FLAG_TICKING防止重复插入，
-         * 必须放在xqc_engine_process_conn后 */
+        /*
+         * xqc_engine_process_conn may insert conns_active_pq, XQC_CONN_FLAG_TICKING prevents
+         * duplicate insertions and must be placed after xqc_engine_process_conn.
+         */
         conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
     }
 

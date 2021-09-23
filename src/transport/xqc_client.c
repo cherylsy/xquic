@@ -63,7 +63,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
             "|xqc_connect|");
 
     if (xc->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
-        /* 接管传输层回调 */
+        /* takeover transport layer callbacks */
         xc->stream_callbacks = h3_stream_callbacks;
         xc->conn_callbacks = h3_conn_callbacks;
 
@@ -80,7 +80,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
         xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    /* 必须放到最后，xqc_conn_destroy必须在插入到conns_active_pq之前调用 */
+    /* xqc_conn_destroy must be called before the connection is inserted into conns_active_pq */
     if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)){
         if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
             return NULL;
@@ -89,7 +89,9 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     }
 
     xqc_engine_main_logic_internal(engine, xc);
-    if(xqc_engine_conns_hash_find(engine, &scid, 's') == NULL){ //用于当连接在main logic中destroy时，需要返回错误让上层感知
+
+    /* when the connection is destroyed in the main logic, we should return error to upper level */
+    if(xqc_engine_conns_hash_find(engine, &scid, 's') == NULL){
         return NULL;
     }
 

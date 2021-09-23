@@ -6,30 +6,25 @@
 #include "src/common/xqc_memory_pool.h"
 #include "src/common/xqc_common.h"
 
-/*
- * 先进先出队列
- * 其中的元素可以是任意类型，包括int、char、void*以及自定义结构体
- * 需要关注的接口
+/* FIFO Queue
+ * The elements in it can be of any type, including int, char, void*, and custom structs.
+ * 
+ * Interfaces:
  * xqc_fifo_init, xqc_fifo_release
  * xqc_fifo_length, xqc_fifo_full, xqc_fifo_empty
  * xqc_fifo_push, xqc_fifo_top, xqc_fifo_pop
- * xqc_fifo_push_typeX, xqc_fifo_top_typeX 封装各种类型，方便使用
- * */
+ * xqc_fifo_push_typeX, xqc_fifo_top_typeX
+ */
 
-/*
- * FIFO队列结构体
- * */
 typedef struct {
-    char* buf;                  /*缓冲区*/
-    unsigned int in, out;       /*进和出的cursor*/
-    unsigned int element_size;  /*元素大小*/
-    unsigned int capacity;      /*元素容量*/
-    xqc_allocator_t allocator;  /*内存配置器*/
+    char* buf;                  /* buffer */
+    unsigned int in, out;       /* in & out cursor*/
+    unsigned int element_size;  /* element size */
+    unsigned int capacity;      /* element capacity */
+    xqc_allocator_t allocator;  /* memory allocator */
 } xqc_fifo_t; 
 
-/*
- * 2次方向上圆整(内部实现)
- * */
+
 static inline size_t
 xqc_fifo_roundup(size_t i)
 {
@@ -38,9 +33,7 @@ xqc_fifo_roundup(size_t i)
     return n;
 }
 
-/*
- * 初始化
- * */
+
 static inline int
 xqc_fifo_init(xqc_fifo_t* fifo, xqc_allocator_t allocator, size_t element_size, size_t capacity)
 {
@@ -62,9 +55,6 @@ xqc_fifo_init(xqc_fifo_t* fifo, xqc_allocator_t allocator, size_t element_size, 
     return XQC_OK;
 }
 
-/*
- * 释放
- * */
 static inline void
 xqc_fifo_release(xqc_fifo_t* fifo)
 {
@@ -73,36 +63,24 @@ xqc_fifo_release(xqc_fifo_t* fifo)
     fifo->buf = NULL;
 }
 
-/*
- * 求FIFO元素数量
- * */
 static inline size_t
 xqc_fifo_length(const xqc_fifo_t* fifo)
 {
     return fifo->in - fifo->out;
 }
 
-/*
- * 判满
- * */
 static inline int
 xqc_fifo_full(const xqc_fifo_t* fifo)
 {
     return xqc_fifo_length(fifo) >= fifo->capacity ? XQC_TRUE : XQC_FALSE;
 }
 
-/*
- * 判空
- * */
 static inline int
 xqc_fifo_empty(const xqc_fifo_t* fifo)
 {
     return xqc_fifo_length(fifo) == 0 ? XQC_TRUE : XQC_FALSE;
 }
 
-/*
- * push通用实现
- * */
 static inline int
 xqc_fifo_push(xqc_fifo_t* fifo, void* buf, size_t size)
 {
@@ -120,9 +98,6 @@ xqc_fifo_push(xqc_fifo_t* fifo, void* buf, size_t size)
     return XQC_OK;
 }
 
-/*
- * pop 返回OK或者ERROR
- * */
 static inline int
 xqc_fifo_pop(xqc_fifo_t* fifo)
 {
@@ -137,9 +112,6 @@ xqc_fifo_pop(xqc_fifo_t* fifo)
     return XQC_OK;
 }
 
-/*
- * FIFO首元素
- * */
 static inline void*
 xqc_fifo_top(xqc_fifo_t* fifo)
 {
@@ -151,9 +123,6 @@ xqc_fifo_top(xqc_fifo_t* fifo)
     return fifo->buf + index;
 }
 
-/*
- * 根据类型封装的xqc_fifo_top_xx接口列表
- * */
 static inline void*
 xqc_fifo_top_ptr(xqc_fifo_t* fifo)
 {
@@ -245,9 +214,6 @@ xqc_fifo_top_uint64(xqc_fifo_t* fifo)
     return *(uint64_t*)xqc_fifo_top(fifo);
 }
 
-/*
- * 根据类型封装的xqc_fifo_push_xx接口列表
- * */
 static inline int
 xqc_fifo_push_ptr(xqc_fifo_t* fifo, void* ptr)
 {

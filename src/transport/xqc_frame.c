@@ -329,22 +329,6 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         goto free;
     }
 
-    /*if (stream->stream_data_in.merged_offset_end - stream->stream_data_in.next_read_offset > XQC_MAX_DATA_NOT_READ &&
-            stream->stream_data_in.merged_offset_end > stream->stream_data_in.next_read_offset) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|too many data not read|stream_id:%ui|", stream_id);
-        ret = -XQC_ELIMIT;
-        goto free;
-    }*/
-
-#if 0 //避免出现当gap 超过XQC_MAX_GAP_NOT_RECVD 报错，在传输1G数据30%丢包并且网速较快的情况下很容易出现该报错
-    if (stream_frame->data_offset - stream->stream_data_in.merged_offset_end > XQC_MAX_GAP_NOT_RECVD &&
-            stream_frame->data_offset > stream->stream_data_in.merged_offset_end) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|frame maybe lost|stream_id:%ui, stream_frame->data_offset:%ui, stream->stream_data_in.merged_offset_end:%ui|", stream_id,  stream_frame->data_offset, stream->stream_data_in.merged_offset_end);
-        ret = -XQC_ELIMIT;
-        goto free;
-    }
-#endif
-
     if (stream_frame->data_offset + stream_frame->data_length <= stream->stream_data_in.merged_offset_end) {
         if (!(stream_frame->fin && stream_frame->data_length == 0 && stream->stream_data_in.stream_length == 0)) {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|already recvd|data_offset:%ui|data_length:%ud|merged_offset_end:%ui|",
@@ -398,7 +382,6 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_RECVD;
         }
         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_stream_ready_to_read all recvd|");
-        //printf("==================time_cost:%lld================\n", xqc_monotonic_timestamp() - conn->conn_create_time);
         xqc_stream_ready_to_read(stream);
     }
     else if (stream->stream_data_in.next_read_offset < stream->stream_data_in.merged_offset_end) {
@@ -447,7 +430,7 @@ xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
     xqc_int_t ret;
 
-    /* token校验失败也要回ack */
+    /* ack even if the token check fail */
     packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
 
     /* check token, only validate token with Initial/CRYPTO packet, but not with Initial/ACK */

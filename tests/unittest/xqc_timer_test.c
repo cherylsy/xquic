@@ -32,7 +32,7 @@ void xqc_test_timer()
         xqc_timer_manager_tick(&manager);
 
         unsigned long time2 = xqc_gettimeofday() / 1000;
-        if (time2 - time1 >= 2) { /*假定程序运行2秒后退出*/
+        if (time2 - time1 >= 2) { /* run 2 seconds and exit */
             break;
         }
     }

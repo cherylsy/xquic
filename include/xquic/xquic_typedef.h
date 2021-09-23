@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include "xqc_errno.h"
 
-//TODO: 安卓平台下-o2可能有问题
+//TODO: there may be problems using -o2 under Android platform
 #if defined(__GNUC__) && !defined(ANDROID)
 #   define XQC_UNLIKELY(cond) __builtin_expect(!!(cond), 0)
 #   define XQC_LIKELY(cond) __builtin_expect(!!(cond), 1)
@@ -45,8 +45,8 @@ typedef struct xqc_memory_pool_s xqc_memory_pool_t;
 typedef struct xqc_bbr_info_interface_s xqc_bbr_info_interface_t;
 typedef struct xqc_path_ctx_s xqc_path_ctx_t;
 
-typedef uint64_t xqc_msec_t; //存储毫秒值。
-typedef uint64_t xqc_usec_t; //存储微秒值。
+typedef uint64_t xqc_msec_t; // store millisecond values
+typedef uint64_t xqc_usec_t; // store microsecond values
 
 typedef uint64_t xqc_packet_number_t;
 typedef uint64_t xqc_stream_id_t;

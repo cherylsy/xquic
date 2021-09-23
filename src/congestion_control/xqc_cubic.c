@@ -8,7 +8,7 @@
 
 #define XQC_CUBIC_FAST_CONVERGENCE  1
 #define XQC_CUBIC_MSS               1460
-#define XQC_CUBIC_BETA              718     // 718/1024=0.7 浮点运算性能差，避免浮点运算
+#define XQC_CUBIC_BETA              718     // 718/1024=0.7
 #define XQC_CUBIC_BETA_SCALE        1024
 #define XQC_CUBIC_C                 410     // 410/1024=0.4
 #define XQC_CUBE_SCALE              40u     // 2^40=1024 * 1024^3
@@ -26,16 +26,16 @@ const static uint64_t xqc_cube_factor =
  * Compute congestion window to use.
  * W_cubic(t) = C*(t-K)^3 + W_max (Eq. 1)
  * K = cubic_root(W_max*(1-beta_cubic)/C) (Eq. 2)
- * t为当前时间距上一次窗口减小的时间差
- * K代表该函数从W增长到Wmax的时间周期
- * C为窗口增长系数
- * beta为窗口降低系数
+ * t: the time difference between the current time and the last window reduction
+ * K: the time period for the function to grow from W to Wmax
+ * C: window growth factor
+ * beta: window reduction factor
  */
 static void
 xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
-    uint64_t t; //单位ms
+    uint64_t t;    // unit: ms
     uint64_t offs; // offs = |t - K|
     // delta = C*(t-K)^3
     uint64_t delta, bic_target;
@@ -44,9 +44,9 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
     if (cubic->epoch_start == 0) {
         cubic->epoch_start = now;
 
-        /* 取max(last_max_cwnd , cwnd)作为当前Wmax饱和点 */
+        /* take max(last_max_cwnd , cwnd) as current Wmax origin point */
         if (cubic->cwnd >= cubic->last_max_cwnd) {
-            // 已经越过饱和点，使用当前窗口作为新的饱和点
+            /* exceed origin point, use cwnd as the new point */
             cubic->bic_K = 0;
             cubic->bic_origin_point = cubic->cwnd;
         } else {
@@ -60,17 +60,20 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
         }
     }
 
-    // t = elapsed_time * 1024 / 1000000 微秒转换为毫秒，乘1024为了后面能用位操作
+    /*
+     * t = elapsed_time * 1024 / 1000000, convert microseconds to milliseconds,
+     * multiply by 1024 in order to be able to use bit operations later.
+     */
     t = (now + cubic->min_rtt - cubic->epoch_start) << XQC_CUBIC_TIME_SCALE / XQC_MICROS_PER_SECOND;
 
-    // 求|t - K|
+    /* calculate |t - K| */
     if (t < cubic->bic_K) {
         offs = cubic->bic_K - t;
     } else {
         offs = t - cubic->bic_K;
     }
 
-    // 410/1024 * off/1024 * off/1024 * off/1024 * MSS
+    /* 410/1024 * off/1024 * off/1024 * off/1024 * MSS */
     delta = (XQC_CUBIC_C * offs * offs * offs * XQC_CUBIC_MSS) >> XQC_CUBE_SCALE;
 
     if (t < cubic->bic_K) {
@@ -79,10 +82,10 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
         bic_target = cubic->bic_origin_point + delta;
     }
 
-    // CUBIC最大增长速率为1.5x per RTT. 即每2个ack增加1个窗口
+    /* the maximum growth rate of CUBIC is 1.5x per RTT, i.e. 1 window every 2 ack. */
     bic_target = xqc_min(bic_target, cubic->cwnd + acked_bytes / 2);
 
-    // 取TCP reno的cwnd 和 cubic的cwnd 的最大值
+    /* take the maximum of the cwnd of TCP reno and the cwnd of cubic */
     bic_target = xqc_max(cubic->tcp_cwnd, bic_target);
 
     if (bic_target == 0) {
@@ -92,18 +95,12 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
     cubic->cwnd = bic_target;
 }
 
-/*
- * 返回拥塞算法结构体大小
- */
 size_t
 xqc_cubic_size ()
 {
     return sizeof(xqc_cubic_t);
 }
 
-/*
- * 拥塞算法初始化
- */
 static void
 xqc_cubic_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
 {
@@ -122,9 +119,7 @@ xqc_cubic_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_para
     }
 }
 
-/*
- * Decrease CWND when lost detected
- */
+
 static void
 xqc_cubic_on_lost (void *cong_ctl, xqc_usec_t lost_sent_time)
 {
@@ -134,7 +129,7 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_usec_t lost_sent_time)
 
     // should we make room for others
     if (XQC_CUBIC_FAST_CONVERGENCE && cubic->cwnd < cubic->last_max_cwnd){
-        // (1.0f + XQC_CUBIC_BETA) / 2.0f 转换为位运算
+        // (1.0f + XQC_CUBIC_BETA) / 2.0f convert to bitwise operations
         cubic->last_max_cwnd = cubic->cwnd * (XQC_CUBIC_BETA_SCALE + XQC_CUBIC_BETA) / (2 * XQC_CUBIC_BETA_SCALE);
     } else {
         cubic->last_max_cwnd = cubic->cwnd;
@@ -147,9 +142,7 @@ xqc_cubic_on_lost (void *cong_ctl, xqc_usec_t lost_sent_time)
     cubic->ssthresh = xqc_max(cubic->cwnd, XQC_CUBIC_MIN_WIN);
 }
 
-/*
- * Increase CWND when packet acked
- */
+
 static void
 xqc_cubic_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
 {
@@ -174,9 +167,6 @@ xqc_cubic_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
     }
 }
 
-/*
- * 返回拥塞窗口
- */
 uint64_t
 xqc_cubic_get_cwnd (void *cong_ctl)
 {
@@ -184,9 +174,6 @@ xqc_cubic_get_cwnd (void *cong_ctl)
     return cubic->cwnd;
 }
 
-/*
- * 检测到一个RTT内所有包都丢失时回调，重置拥塞窗口
- */
 void
 xqc_cubic_reset_cwnd (void *cong_ctl)
 {
@@ -197,9 +184,6 @@ xqc_cubic_reset_cwnd (void *cong_ctl)
     cubic->last_max_cwnd = XQC_CUBIC_MIN_WIN;
 }
 
-/*
- * 是否处于慢启动阶段
- */
 int32_t
 xqc_cubic_in_slow_start (void *cong_ctl)
 {

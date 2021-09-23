@@ -239,7 +239,6 @@ int test_pq(int argc, char* argv[])
 
     xqc_pq_destroy(&pq);
 
-    //-------------
     typedef struct xqc_pq_item_s
     {
         xqc_pq_key_t key;
@@ -247,9 +246,7 @@ int test_pq(int argc, char* argv[])
     } xqc_pq_item_t;
 
     xqc_pq_t pq2;
-    /* 从大到小出队 */
-    //if (xqc_pq_init(&pq2, sizeof(xqc_pq_item_t), 4, xqc_default_allocator, xqc_pq_default_cmp)) {
-    /* 从小到大出队 */
+
     if (xqc_pq_init(&pq2, sizeof(xqc_pq_item_t), 4, xqc_default_allocator, xqc_pq_revert_cmp)) {
         printf("xqc_pq_init failed\n");
         return -1;
@@ -397,21 +394,16 @@ int test_list(int argc, char* argv[])
     xqc_list_head_t *pos, *next;
     int i;
 
-    // 初始化双链表的表头
     xqc_init_list_head(&person_head.list);
 
-    // 添加节点
     for (i=0; i<5; i++)
     {
         pperson = (person_t*)malloc(sizeof(person_t));
         pperson->age = (i+1)*10;
         sprintf(pperson->name, "%d", i+1);
-        // 将节点链接到链表的末尾
-        // 如果想把节点链接到链表的表头后面，则使用 list_add
         xqc_list_add_tail(&(pperson->list), &(person_head.list));
     }
 
-    // 正向遍历链表
     printf("==== 1st iterator d-link ====\n");
     xqc_list_for_each(pos, &person_head.list)
     {
@@ -419,7 +411,6 @@ int test_list(int argc, char* argv[])
         printf("name:%s, age:%d\n", pperson->name, pperson->age);
     }
 
-    // 反向遍历链表
     printf("==== 2st iterator d-link ====\n");
     xqc_list_for_each_reverse(pos, &person_head.list)
     {
@@ -427,7 +418,6 @@ int test_list(int argc, char* argv[])
         printf("name:%s, age:%d\n", pperson->name, pperson->age);
     }
 
-    // 删除节点age为20的节点
     printf("==== delete node(age:20) ====\n");
     xqc_list_for_each_safe(pos, next, &person_head.list)
     {
