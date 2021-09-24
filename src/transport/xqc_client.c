@@ -81,7 +81,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     }
 
     /* xqc_conn_destroy must be called before the connection is inserted into conns_active_pq */
-    if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)){
+    if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
             return NULL;
         }
@@ -91,7 +91,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     xqc_engine_main_logic_internal(engine, xc);
 
     /* when the connection is destroyed in the main logic, we should return error to upper level */
-    if(xqc_engine_conns_hash_find(engine, &scid, 's') == NULL){
+    if (xqc_engine_conns_hash_find(engine, &scid, 's') == NULL) {
         return NULL;
     }
 
@@ -128,8 +128,8 @@ xqc_client_create_connection(xqc_engine_t *engine,
     void *user_data)
 {
     xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid,
-                                                 callbacks, settings, user_data,
-                                                 XQC_CONN_TYPE_CLIENT);
+                                           callbacks, settings, user_data,
+                                           XQC_CONN_TYPE_CLIENT);
 
     if (xc == NULL) {
         return NULL;

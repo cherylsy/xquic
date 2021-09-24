@@ -28,13 +28,15 @@ typedef struct xqc_priority_queue_element_s
 typedef int (*xqc_pq_compare_ptr)(xqc_pq_key_t a, xqc_pq_key_t b);
 
 /* default element compare function, priority: a < b */
-static inline int xqc_pq_default_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
+static inline int
+xqc_pq_default_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
 {
     return (a < b) ? 1 : 0;
 }
 
 /* revert element compare function, priority: b < a */
-static inline int xqc_pq_revert_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
+static inline int
+xqc_pq_revert_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
 {
     return (b < a) ? 1 : 0;
 }
@@ -53,7 +55,8 @@ typedef struct xqc_priority_queue_s
 #define xqc_pq_element_copy(pq, dst, src) memcpy(xqc_pq_element((pq), (dst)), xqc_pq_element((pq), (src)), (pq)->element_size)
 #define xqc_pq_default_capacity 16
 
-static inline int xqc_pq_init(xqc_pq_t *pq, size_t element_size, size_t capacity, xqc_allocator_t a, xqc_pq_compare_ptr cmp)
+static inline int
+xqc_pq_init(xqc_pq_t *pq, size_t element_size, size_t capacity, xqc_allocator_t a, xqc_pq_compare_ptr cmp)
 {
     if (element_size < sizeof(xqc_pq_element_t) || capacity == 0) {
         return -1;
@@ -73,12 +76,14 @@ static inline int xqc_pq_init(xqc_pq_t *pq, size_t element_size, size_t capacity
    return 0;
 }
 
-static inline int xqc_pq_init_default(xqc_pq_t *pq, size_t element_size, xqc_allocator_t a, xqc_pq_compare_ptr cmp)
+static inline int
+xqc_pq_init_default(xqc_pq_t *pq, size_t element_size, xqc_allocator_t a, xqc_pq_compare_ptr cmp)
 {
     return xqc_pq_init(pq, element_size, xqc_pq_default_capacity, a, cmp);
 }
 
-static inline void xqc_pq_destroy(xqc_pq_t *pq)
+static inline void
+xqc_pq_destroy(xqc_pq_t *pq)
 {
     pq->a.free(pq->a.opaque, pq->elements);
     pq->elements = NULL;
@@ -87,7 +92,8 @@ static inline void xqc_pq_destroy(xqc_pq_t *pq)
     pq->capacity = 0;
 }
 
-static inline void xqc_pq_element_swap(xqc_pq_t *pq, size_t i, size_t j)
+static inline void
+xqc_pq_element_swap(xqc_pq_t *pq, size_t i, size_t j)
 {
     char buf[pq->element_size];
     memcpy(buf, xqc_pq_element(pq, j), pq->element_size);
@@ -95,7 +101,8 @@ static inline void xqc_pq_element_swap(xqc_pq_t *pq, size_t i, size_t j)
     memcpy(xqc_pq_element(pq, i), buf, pq->element_size);
 }
 
-static inline xqc_pq_element_t* xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
+static inline xqc_pq_element_t *
+xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
 {
     if (pq->count == pq->capacity) {
         size_t capacity = pq->capacity * 2;
@@ -127,7 +134,8 @@ static inline xqc_pq_element_t* xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
     return xqc_pq_element(pq, i);
 }
 
-static inline xqc_pq_element_t* xqc_pq_top(xqc_pq_t *pq)
+static inline xqc_pq_element_t *
+xqc_pq_top(xqc_pq_t *pq)
 {
     if (pq->count == 0) {
         return NULL;
@@ -135,12 +143,14 @@ static inline xqc_pq_element_t* xqc_pq_top(xqc_pq_t *pq)
     return xqc_pq_element(pq, 0);
 }
 
-static inline int xqc_pq_empty(xqc_pq_t *pq)
+static inline int
+xqc_pq_empty(xqc_pq_t *pq)
 {
     return pq->count == 0 ? 1 : 0;
 }
 
-static inline void xqc_pq_pop(xqc_pq_t *pq)
+static inline void
+xqc_pq_pop(xqc_pq_t *pq)
 {
     if (pq->count == 0 || --pq->count == 0) {
         return;

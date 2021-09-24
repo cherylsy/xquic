@@ -40,18 +40,21 @@ static inline void* xqc_malloc(size_t size)
     (p);\
     })
 #else
-static inline void* xqc_calloc(size_t count, size_t size)
+static inline void *
+xqc_calloc(size_t count, size_t size)
 {
     return calloc(count, size);
 }
 #endif
 
-static inline void* xqc_realloc(void* ptr, size_t size)
+static inline void *
+xqc_realloc(void* ptr, size_t size)
 {
     return realloc(ptr, size);
 }
 
-static inline void xqc_free(void* ptr)
+static inline void
+xqc_free(void* ptr)
 {
 #ifdef PRINT_MALLOC
     xqc_init_print();\
@@ -73,13 +76,15 @@ typedef struct xqc_allocator_s
     void* opaque;
 } xqc_allocator_t;
 
-static inline void* xqc_malloc_wrap_default(void* opaque, size_t size)
+static inline void *
+xqc_malloc_wrap_default(void* opaque, size_t size)
 {
     (void)opaque;
     return xqc_malloc(size);
 }
 
-static inline void xqc_free_wrap_default(void* opaque, void* ptr)
+static inline void
+xqc_free_wrap_default(void* opaque, void* ptr)
 {
     (void)opaque;
     return xqc_free(ptr);

@@ -99,7 +99,7 @@ xqc_packet_out_get_and_insert_send(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_ty
     packet_out->po_pkt.pkt_type = pkt_type;
     packet_out->po_pkt.pkt_pns = xqc_packet_type_to_pns(pkt_type);
 
-    //generate packet number when send
+    /* generate packet number when send */
     packet_out->po_pkt.pkt_num = 0;
 
     xqc_send_ctl_insert_send(&packet_out->po_list, &ctl->ctl_send_packets, ctl);
@@ -139,6 +139,7 @@ xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         ret = xqc_gen_short_packet_header(packet_out,
                                           conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len,
                                           XQC_PKTNO_BITS, packet_out->po_pkt.pkt_num);
+
     } else if (pkt_type != XQC_PTYPE_SHORT_HEADER && packet_out->po_used_size == 0) {
         ret = xqc_gen_long_packet_header(packet_out,
                                          conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len,
@@ -146,6 +147,7 @@ xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
                                          conn->conn_token, conn->conn_token_len,
                                          conn->version, XQC_PKTNO_BITS);
     }
+
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|gen header error|%d|", ret);
         return ret;
@@ -182,6 +184,7 @@ xqc_write_packet_header_ex(xqc_connection_t *conn,
                                          conn->conn_token, conn->conn_token_len,
                                          conn->version, XQC_PKTNO_BITS);
     }
+
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|gen header error|");
         return ret;
@@ -300,8 +303,8 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     xqc_packet_number_t largest_ack;
     xqc_usec_t now = xqc_monotonic_timestamp();
 
-    ret = xqc_gen_ack_frame(conn, packet_out,
-                      now, conn->local_settings.ack_delay_exponent, &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
+    ret = xqc_gen_ack_frame(conn, packet_out, now, conn->local_settings.ack_delay_exponent,
+                            &conn->recv_record[packet_out->po_pkt.pkt_pns], &has_gap, &largest_ack);
     if (ret < 0) {
         goto error;
     }
@@ -313,6 +316,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     conn->ack_eliciting_pkt[pns] = 0;
     if (has_gap) {
         conn->conn_flag |= XQC_CONN_FLAG_ACK_HAS_GAP;
+
     } else {
         conn->conn_flag &= ~XQC_CONN_FLAG_ACK_HAS_GAP;
     }
@@ -341,8 +345,10 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
 
             if (pns == XQC_PNS_HSK) {
                 pkt_type = XQC_PTYPE_HSK;
+
             } else if (pns == XQC_PNS_INIT) {
                 pkt_type = XQC_PTYPE_INIT;
+
             } else {
                 pkt_type = XQC_PTYPE_SHORT_HEADER;
             }
@@ -354,8 +360,10 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                     if (ret == -XQC_ENOBUF) {
                         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_ack_to_one_packet try new packet|");
                         goto write_new;
+
                     } else if (ret == XQC_OK){
                         goto done;
+
                     } else {
                         return ret;
                     }
@@ -557,8 +565,6 @@ xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit)
 
     packet_out->po_used_size += ret;
 
-//xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
-
     return XQC_OK;
 
 error:
@@ -584,8 +590,6 @@ xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t 
     }
 
     packet_out->po_used_size += ret;
-
-//xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
 
     return XQC_OK;
 
@@ -753,9 +757,9 @@ error:
 }
 
 int
-xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 xqc_pkt_type_t pkt_type, uint8_t fin,
-                                 const unsigned char *payload, size_t payload_size, size_t *send_data_written)
+xqc_write_stream_frame_to_packet(xqc_connection_t *conn,
+    xqc_stream_t *stream, xqc_pkt_type_t pkt_type, uint8_t fin,
+    const unsigned char *payload, size_t payload_size, size_t *send_data_written)
 {
     xqc_packet_out_t *packet_out;
     int n_written;
@@ -840,7 +844,9 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t retire_pr
 
     /* only reserve bits for server side */
     ++conn->scid_set.largest_scid_seq_num;
-    if (xqc_generate_cid(conn->engine, &conn->scid_set.user_scid, &new_conn_cid, conn->scid_set.largest_scid_seq_num) != XQC_OK) {
+    if (XQC_OK != xqc_generate_cid(conn->engine, &conn->scid_set.user_scid, &new_conn_cid,
+                                   conn->scid_set.largest_scid_seq_num))
+    {
         xqc_log(conn->log, XQC_LOG_WARN, "|generate cid error|");
         return -XQC_EGENERATE_CID;
     }
@@ -869,14 +875,18 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t retire_pr
     }
     
     /* insert to scid_set & add scid_unused_cnt */
-    ret = xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED, conn->remote_settings.active_connection_id_limit);
+    ret = xqc_cid_set_insert_cid(&conn->scid_set.cid_set, &new_conn_cid, XQC_CID_UNUSED,
+                                 conn->remote_settings.active_connection_id_limit);
     if (ret != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_cid_set_insert_cid error|limit:%ui|unused:%ui|used:%ui|",
-                conn->remote_settings.active_connection_id_limit, conn->scid_set.cid_set.unused_cnt, conn->scid_set.cid_set.used_cnt);
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_cid_set_insert_cid error|limit:%ui|unused:%ui|used:%ui|",
+                conn->remote_settings.active_connection_id_limit,
+                conn->scid_set.cid_set.unused_cnt, conn->scid_set.cid_set.used_cnt);
         return ret;
     }
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_new_scid:%s|seq_num:%ui|", xqc_scid_str(&new_conn_cid), new_conn_cid.cid_seq_num);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|gen_new_scid:%s|seq_num:%ui|",
+            xqc_scid_str(&new_conn_cid), new_conn_cid.cid_seq_num);
 
     xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
     return XQC_OK;
@@ -901,8 +911,7 @@ xqc_write_retire_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t seq_nu
         }
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|get_new_dcid:%s|seq_num:%ui|",
-                                      xqc_dcid_str(&conn->dcid_set.current_dcid),
-                                      conn->dcid_set.current_dcid.cid_seq_num);
+            xqc_dcid_str(&conn->dcid_set.current_dcid), conn->dcid_set.current_dcid.cid_seq_num);
 
     xqc_packet_out_t *packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {

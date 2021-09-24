@@ -16,7 +16,8 @@ typedef struct xqc_array_s
 } xqc_array_t;
 
 
-static inline xqc_array_t *xqc_array_create(xqc_allocator_t allocator, size_t elt_capacity, size_t elt_size)
+static inline xqc_array_t *
+xqc_array_create(xqc_allocator_t allocator, size_t elt_capacity, size_t elt_size)
 {
     xqc_array_t *a = allocator.malloc(allocator.opaque, sizeof(xqc_array_t));
     if (a == NULL) {
@@ -35,13 +36,15 @@ static inline xqc_array_t *xqc_array_create(xqc_allocator_t allocator, size_t el
     return a;
 }
 
-static inline void xqc_array_destroy(xqc_array_t *a)
+static inline void
+xqc_array_destroy(xqc_array_t *a)
 {
     a->allocator.free(a->allocator.opaque, a->elts);
     a->allocator.free(a->allocator.opaque, a);
 }
 
-static inline void *xqc_array_push_n(xqc_array_t *a, size_t n)
+static inline void *
+xqc_array_push_n(xqc_array_t *a, size_t n)
 {
     if (a->size + n > a->capacity) {
 
@@ -65,7 +68,8 @@ static inline void *xqc_array_push_n(xqc_array_t *a, size_t n)
     return p;
 }
 
-static inline void *xqc_array_push(xqc_array_t *a)
+static inline void *
+xqc_array_push(xqc_array_t *a)
 {
     return xqc_array_push_n(a, 1);
 }

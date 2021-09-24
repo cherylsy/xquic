@@ -97,7 +97,8 @@ typedef struct {
  * used to free buffers created by xqc_serialize_xxx_transport_parames functions
  */
 static inline 
-void xqc_transport_parames_serialization_free(void *buf) {
+void xqc_transport_parames_serialization_free(void *buf)
+{
     if (buf) {
         xqc_free(buf);
     }

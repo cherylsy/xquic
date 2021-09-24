@@ -10,38 +10,37 @@
 
 #define XQC_BBR2_MAX_DATAGRAM_SIZE XQC_QUIC_MSS
 #define XQC_BBR2_MIN_WINDOW (4 * XQC_BBR2_MAX_DATAGRAM_SIZE)
-/* The RECOMMENDED value is the minimum of 10 *
-kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)). */
+/* The RECOMMENDED value is the minimum of 10 * kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)). */
 #define XQC_BBR2_INITIAL_WINDOW (32 * XQC_BBR2_MAX_DATAGRAM_SIZE)
-/*Pacing gain cycle rounds */
+/* Pacing gain cycle rounds */
 #define XQC_BBR2_INF_RTT 0x7fffffff
 #define XQC_BBR2_UNSIGNED_INF ~0U
 #define XQC_BBR2_CYCLE_LENGTH 8
 
-/*Window of min rtt filter, in sec */
+/* Window of min rtt filter, in sec */
 static const uint32_t xqc_bbr2_minrtt_win_size_us = 2500000;
 static const uint32_t xqc_bbr2_probe_minrtt_win_size_us = 2500000;
-/* Minimum time spent in bbr2_PROBE_RTT, in usec*/
+/* Minimum time spent in bbr2_PROBE_RTT, in usec */
 static const uint32_t xqc_bbr2_probertt_time_us = 200000;
-/*Initial rtt before any samples are received, in usec  */
+/* Initial rtt before any samples are received, in usec */
 static const uint64_t xqc_bbr2_initial_rtt_us = 100;
-/*The gain of pacing rate for STRAT_UP, 2/(ln2) */
+/* The gain of pacing rate for STRAT_UP, 2/(ln2) */
 static const float xqc_bbr2_high_gain = 2.885;
-/*Gain in bbr2_DRAIN */
+/* Gain in bbr2_DRAIN */
 static const float xqc_bbr2_drain_gain = 0.75;
-/* Gain for cwnd in probe_bw, like slow start*/
+/* Gain for cwnd in probe_bw, like slow start */
 static const float xqc_bbr2_cwnd_gain = 2.0;
-/*Cycle of gains in PROBE_BW for pacing rate */
+/* Cycle of gains in PROBE_BW for pacing rate */
 #if XQC_BBR2_PLUS_ENABLED
 static const float xqc_bbr2_pacing_gain[] = {1.25, 0.75, 1, 1, 1.10, 1, 1, 1};
 #else
 static const float xqc_bbr2_pacing_gain[] = {1.25, 0.75, 1, 1, 1, 1, 1, 1};
 #endif
-/*Minimum packets that need to ensure ack if there is delayed ack */
+/* Minimum packets that need to ensure ack if there is delayed ack */
 static const uint32_t xqc_bbr2_min_cwnd = 4 * XQC_BBR2_MAX_DATAGRAM_SIZE;
-/*If bandwidth has increased by 1.25, there may be more bandwidth avaliable */
+/* If bandwidth has increased by 1.25, there may be more bandwidth avaliable */
 static const float xqc_bbr2_fullbw_thresh = 1.25;
-/*After 3 rounds bandwidth less than (1.25x), estimate the pipe is full */
+/* After 3 rounds bandwidth less than (1.25x), estimate the pipe is full */
 static const uint32_t xqc_bbr2_fullbw_cnt = 3;
 static const float xqc_bbr2_probe_rtt_gain = 0.75;
 static const uint32_t xqc_bbr2_extra_ack_gain = 1;
@@ -67,8 +66,8 @@ static const float xqc_bbr2_bw_probe_up_gain = 1.25;
 static const float xqc_bbr2_inflight_headroom = 0.15;
 static const float xqc_bbr2_pacing_rate_margin_percent = 0.01;
 
-/*For BBRv2 +*/
-/*5RTT*/
+/* For BBRv2 + */
+/* 5RTT */
 #if XQC_BBR2_PLUS_ENABLED
 static const int xqc_bbr2_windowed_max_rtt_win_size = 5;
 static const float xqc_bbr2_rtt_compensation_startup_thresh = 2;

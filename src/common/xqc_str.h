@@ -43,10 +43,10 @@ typedef struct xqc_str_s
 #define xqc_lengthof(x) (sizeof(x) - 1)
 
 
-unsigned char *xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len);
+unsigned char* xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len);
 unsigned char* xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list args);
-unsigned char *
-xqc_sprintf_num(unsigned char *buf, unsigned char *last, uint64_t ui64, unsigned char zero, uintptr_t hexadecimal, uintptr_t width);
+unsigned char* xqc_sprintf_num(unsigned char *buf, unsigned char *last,
+    uint64_t ui64, unsigned char zero, uintptr_t hexadecimal, uintptr_t width);
 
 static inline void
 xqc_str_tolower(unsigned char *dst, unsigned char *src, size_t n)
@@ -59,7 +59,7 @@ xqc_str_tolower(unsigned char *dst, unsigned char *src, size_t n)
     }
 }
 
-static inline unsigned char* 
+static inline unsigned char * 
 xqc_sprintf(unsigned char* buf, unsigned char* last, const char* fmt, ...)
 {
     unsigned char *p;

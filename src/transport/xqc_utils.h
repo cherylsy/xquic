@@ -8,7 +8,7 @@ typedef struct xqc_conns_pq_elem_s
 {
     xqc_pq_key_t        time_ms;
     xqc_connection_t    *conn;
-}xqc_conns_pq_elem_t;
+} xqc_conns_pq_elem_t;
 
 int xqc_conns_pq_push (xqc_pq_t *pq, xqc_connection_t *conn, uint64_t time_ms);
 

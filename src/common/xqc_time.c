@@ -3,7 +3,8 @@
 #ifdef WIN32
 #define DELTA_EPOCH_IN_TICKS  116444736000000000ULL
 
-int gettimeofday(struct timeval *tv, struct timezone *tz)
+int
+gettimeofday(struct timeval *tv, struct timezone *tz)
 {
     FILETIME ft;
     uint64_t tmpres;
@@ -33,7 +34,8 @@ int gettimeofday(struct timeval *tv, struct timezone *tz)
 }
 #endif
 
-static uint64_t xqc_now()
+static uint64_t
+xqc_now()
 {
     /* get microsecond unit time */
     struct timeval tv;

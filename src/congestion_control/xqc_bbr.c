@@ -11,13 +11,10 @@
 #define XQC_BBR_MAX_DATAGRAMSIZE XQC_QUIC_MSS
 #define XQC_BBR_MIN_WINDOW (4 * XQC_BBR_MAX_DATAGRAMSIZE)
 #define XQC_BBR_MAX_WINDOW (100 * XQC_BBR_MAX_DATAGRAMSIZE)
-/*The RECOMMENDED value is the minimum of 10 *
-kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
-/*same init window as cubic*/
-/* 32 is too aggressive. we have observed heavy bufferbloat events from online
-   deployment.
-*/
-/*1440 * 10 / 1200 = 12*/
+/* The RECOMMENDED value is the minimum of 10 * kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)) */
+/* same init window as cubic */
+/* 32 is too aggressive. we have observed heavy bufferbloat events from online deployment */
+/* 1440 * 10 / 1200 = 12 */
 #define XQC_BBR_INITIAL_WINDOW (32 * XQC_BBR_MAX_DATAGRAMSIZE) 
 /*Pacing gain cycle rounds */
 #define XQC_BBR_CYCLE_LENGTH 8
@@ -223,7 +220,7 @@ xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 
     if (!sampler->is_app_limited || bandwidth >= xqc_bbr_max_bw(bbr)) {
         xqc_win_filter_max(&bbr->bandwidth, xqc_bbr_bw_win_size, 
-            bbr->round_cnt, bandwidth);
+                           bbr->round_cnt, bandwidth);
         xqc_log(sampler->send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
                 "|BBRv1: BW filter updated (%ud) in round %ud|",
                 bandwidth, bbr->round_cnt);
@@ -495,8 +492,7 @@ xqc_bbr_probe_rtt_cwnd(xqc_bbr_t *bbr)
     if (xqc_bbr_probe_rtt_gain == 0) {
         return xqc_bbr_min_cwnd;
     }
-    return xqc_max(xqc_bbr_min_cwnd, 
-        xqc_bbr_target_cwnd(bbr, xqc_bbr_probe_rtt_gain));
+    return xqc_max(xqc_bbr_min_cwnd, xqc_bbr_target_cwnd(bbr, xqc_bbr_probe_rtt_gain));
 }
 
 static void 
@@ -522,12 +518,14 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         if (bbr->probe_rtt_min_us_stamp != bbr->min_rtt_stamp
             || min_rtt_expired)
         {
-            /*We should remove additional cwnd if background buffer-fillers 
-              have gone away or we have increased our target_cwnd by increasing
-              min_rtt.*/
+            /*
+             * We should remove additional cwnd if background buffer-fillers 
+             * have gone away or we have increased our target_cwnd by increasing
+             * min_rtt.
+             */
             bbr->snd_cwnd_cnt_bytes = 0;
             bbr->beyond_target_cwnd = 0;
-            /*If we have increased min_rtt, we should reset our accelerating factor.*/
+            /* If we have increased min_rtt, we should reset our accelerating factor. */
             if (min_rtt_expired) {
                 bbr->ai_scale = 1;
                 bbr->ai_scale_accumulated_bytes = 0;
@@ -821,8 +819,7 @@ static void xqc_bbr_update_recovery_mode(void *cong_ctl, xqc_sample_t *sampler)
     else if (sampler->po_sent_time > bbr->recovery_start_time 
              && bbr->recovery_mode == BBR_IN_RECOVERY)
     {
-        /* exit recovery mode once any packet sent during 
-        the recovery epoch is acked. */
+        /* exit recovery mode once any packet sent during the recovery epoch is acked. */
         bbr->recovery_mode = BBR_NOT_IN_RECOVERY;
         bbr->just_exit_recovery_mode = TRUE;
         bbr->recovery_start_time = 0;
@@ -848,7 +845,7 @@ xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
         }
     }
 #endif
-    /*Update model and state*/
+    /* Update model and state */
     xqc_bbr_update_bandwidth(bbr, sampler);
     xqc_update_ack_aggregation(bbr, sampler);
     xqc_bbr_update_cycle_phase(bbr, sampler);
@@ -860,7 +857,7 @@ xqc_bbr_on_ack(void *cong_ctl, xqc_sample_t *sampler)
     if (xqc_bbr2_slow_down_startup_on_lost) {
         xqc_bbr_set_or_restore_pacing_gain_in_startup(bbr);
     }
-    /*Update control parameter */
+    /* Update control parameter */
     xqc_bbr_set_pacing_rate(bbr, sampler);
     xqc_bbr_set_cwnd(bbr, sampler);
 }
@@ -905,7 +902,7 @@ xqc_bbr_restart_from_idle(void *cong_ctl, uint64_t conn_delivered)
     }
 }
 
-/*These functions are mainly for debug*/
+/* These functions are mainly for debug */
 static uint8_t 
 xqc_bbr_info_mode(void *cong)
 {

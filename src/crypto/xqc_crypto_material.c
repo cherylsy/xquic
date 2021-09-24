@@ -32,35 +32,34 @@ xqc_crypto_km_new(xqc_crypto_km_t *p_ckm,
 int
 xqc_negotiated_aead_and_prf(xqc_tls_context_t *ctx, uint32_t cipher_id)
 {
-    switch(cipher_id)
-    {
-        case 0x03001301u: // TLS_AES_128_GCM_SHA256
-            xqc_aead_init_aes_gcm(&ctx->aead, 128);
-            xqc_crypto_init_aes_ctr(&ctx->crypto, 128);
-            xqc_digist_init_to_sha256(&ctx->prf);
-            return 0;
-        case 0x03001302u: // TLS_AES_256_GCM_SHA384
-            xqc_aead_init_aes_gcm(&ctx->aead, 256);
-            xqc_crypto_init_aes_ctr(&ctx->crypto, 256);
-            xqc_digist_init_to_sha384(&ctx->prf);
-            return 0;
-        case 0x03001303u: // TLS_CHACHA20_POLY1305_SHA256
-            xqc_aead_init_chacha20_poly1305(&ctx->aead);
-            xqc_crypto_init_chacha20(&ctx->crypto);
-            xqc_digist_init_to_sha256(&ctx->prf);
-            return 0;
-        case NID_undef:
-            xqc_aead_init_null(&ctx->aead, XQC_FAKE_AEAD_OVERHEAD);
-            xqc_crypto_init_null(&ctx->crypto);
-            xqc_digist_init_to_sha256(&ctx->prf);
-            return 0;
-        default: //TLS_AES_128_CCM_SHA256、TLS_AES_128_CCM_8_SHA256 not support
-            return -1;
+    switch(cipher_id) {
+
+    case 0x03001301u: /* TLS_AES_128_GCM_SHA256 */
+        xqc_aead_init_aes_gcm(&ctx->aead, 128);
+        xqc_crypto_init_aes_ctr(&ctx->crypto, 128);
+        xqc_digist_init_to_sha256(&ctx->prf);
+        return 0;
+    case 0x03001302u: /* TLS_AES_256_GCM_SHA384 */
+        xqc_aead_init_aes_gcm(&ctx->aead, 256);
+        xqc_crypto_init_aes_ctr(&ctx->crypto, 256);
+        xqc_digist_init_to_sha384(&ctx->prf);
+        return 0;
+    case 0x03001303u: /* TLS_CHACHA20_POLY1305_SHA256 */
+        xqc_aead_init_chacha20_poly1305(&ctx->aead);
+        xqc_crypto_init_chacha20(&ctx->crypto);
+        xqc_digist_init_to_sha256(&ctx->prf);
+        return 0;
+    case NID_undef:
+        xqc_aead_init_null(&ctx->aead, XQC_FAKE_AEAD_OVERHEAD);
+        xqc_crypto_init_null(&ctx->crypto);
+        xqc_digist_init_to_sha256(&ctx->prf);
+        return 0;
+    default: /* TLS_AES_128_CCM_SHA256、TLS_AES_128_CCM_8_SHA256 not support */
+        return -1;
     }
 }
 
-static inline
-xqc_int_t 
+static inline xqc_int_t 
 xqc_complete_crypto_ctx(xqc_tls_context_t * ctx,uint32_t cipher_id,xqc_int_t no_crypto)
 {
     cipher_id = (no_crypto) ? NID_undef : cipher_id ;
@@ -109,14 +108,14 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,
 
     xqc_tls_context_t *ctx = & conn->tlsref.crypto_ctx_store[level];    
     
-    switch (level)
-    {
+    switch (level) {
+
     case XQC_ENC_LEV_INIT:
         cipher_id = 0x03001301u ;
         break;
     case XQC_ENC_LEV_0RTT:
     case XQC_ENC_LEV_1RTT:
-        // only data use no crypto 
+        /* only data use no crypto */
         cipher_id = conn->local_settings.no_crypto ? NID_undef : SSL_CIPHER_get_id(SSL_get_current_cipher(conn->xc_ssl));
         break;
     case XQC_ENC_LEV_HSK:
@@ -139,39 +138,38 @@ xqc_setup_crypto_ctx(xqc_connection_t * conn,
     return XQC_OK ;
 }
 
-int xqc_derive_initial_secret(uint8_t *dest, size_t destlen,
-        const  xqc_cid_t *cid, const uint8_t *salt,
-        size_t saltlen)
+int
+xqc_derive_initial_secret(uint8_t *dest, size_t destlen,
+    const xqc_cid_t *cid, const uint8_t *salt, size_t saltlen)
 {
     xqc_digist_t md ;
     xqc_digist_init_to_sha256(&md);
-    return xqc_hkdf_extract(dest, destlen, cid->cid_buf, cid->cid_len, salt,
-            saltlen, &md);
+    return xqc_hkdf_extract(dest, destlen, cid->cid_buf, cid->cid_len, salt, saltlen, &md);
 }
 
-int xqc_derive_client_initial_secret(uint8_t *dest, size_t destlen,
-        const uint8_t *secret, size_t secretlen) 
+int
+xqc_derive_client_initial_secret(uint8_t *dest, size_t destlen,
+    const uint8_t *secret, size_t secretlen) 
 {
     static   uint8_t LABEL[] = "client in";
     xqc_digist_t md ;
     xqc_digist_init_to_sha256(&md);
-    return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL,
-            xqc_lengthof(LABEL), &md);
+    return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &md);
 }
 
-int xqc_derive_server_initial_secret(uint8_t *dest, size_t destlen,
-        const uint8_t *secret, size_t secretlen) 
+int
+xqc_derive_server_initial_secret(uint8_t *dest, size_t destlen,
+    const uint8_t *secret, size_t secretlen) 
 {
     static   uint8_t LABEL[] = "server in";
     xqc_digist_t md ;
     xqc_digist_init_to_sha256(&md);
-    return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL,
-            xqc_lengthof(LABEL), &md);
+    return xqc_hkdf_expand_label(dest, destlen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &md);
 }
 
-ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
-        const uint8_t *secret, size_t secretlen,
-        const xqc_tls_context_t *ctx) 
+ssize_t
+xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
+    const uint8_t *secret, size_t secretlen, const xqc_tls_context_t *ctx) 
 {
     int rv;
     static   uint8_t LABEL[] = "quic iv";
@@ -182,8 +180,7 @@ ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
         return -1;
     }
 
-    rv = xqc_hkdf_expand_label(dest, ivlen, secret, secretlen, LABEL,
-            xqc_lengthof(LABEL), &ctx->prf);
+    rv = xqc_hkdf_expand_label(dest, ivlen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &ctx->prf);
     if (rv != 0) {
         return -1;
     }
@@ -191,9 +188,9 @@ ssize_t xqc_derive_packet_protection_iv(uint8_t *dest, size_t destlen,
     return ivlen;
 }
 
-ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
-        const uint8_t *secret, size_t secretlen,
-        const xqc_tls_context_t *ctx) 
+ssize_t
+xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
+    const uint8_t *secret, size_t secretlen, const xqc_tls_context_t *ctx) 
 {
     int rv;
     static   uint8_t LABEL[] = "quic hp";
@@ -203,8 +200,7 @@ ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
         return -1;
     }
 
-    rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL,
-            xqc_lengthof(LABEL), &ctx->prf);
+    rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &ctx->prf);
 
     if (rv != 0) {
         return -1;
@@ -214,9 +210,9 @@ ssize_t xqc_derive_header_protection_key(uint8_t *dest, size_t destlen,
 }
 
 
-ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
-        const uint8_t *secret, size_t secretlen,
-        const xqc_tls_context_t *ctx) 
+ssize_t
+xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
+    const uint8_t *secret, size_t secretlen, const xqc_tls_context_t *ctx) 
 {
     int rv;
     static   uint8_t LABEL[] = "quic key";
@@ -226,8 +222,7 @@ ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
         return -1;
     }
 
-    rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL,
-            xqc_lengthof(LABEL), &ctx->prf);
+    rv = xqc_hkdf_expand_label(dest, keylen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &ctx->prf);
     if (rv != 0) {
         return -1;
     }
@@ -236,10 +231,11 @@ ssize_t xqc_derive_packet_protection_key(uint8_t *dest, size_t destlen,
 }
 
 
-int xqc_conn_install_initial_tx_keys(xqc_connection_t *conn,  uint8_t *key,
-                                        size_t keylen,  uint8_t *iv,
-                                        size_t ivlen,  uint8_t *pn,
-                                        size_t pnlen)
+int
+xqc_conn_install_initial_tx_keys(xqc_connection_t *conn,
+    uint8_t *key, size_t keylen,
+    uint8_t *iv, size_t ivlen,
+    uint8_t *pn, size_t pnlen)
 {
     xqc_pktns_t * pktns = & conn->tlsref.initial_pktns;
     int rv;
@@ -272,10 +268,11 @@ int xqc_conn_install_initial_tx_keys(xqc_connection_t *conn,  uint8_t *key,
 }
 
 
-int xqc_conn_install_initial_rx_keys(xqc_connection_t *conn,  uint8_t *key,
-                                        size_t keylen, uint8_t *iv,
-                                        size_t ivlen, uint8_t *pn,
-                                        size_t pnlen)
+int
+xqc_conn_install_initial_rx_keys(xqc_connection_t *conn,
+    uint8_t *key, size_t keylen,
+    uint8_t *iv, size_t ivlen,
+    uint8_t *pn, size_t pnlen)
 {
     xqc_pktns_t * pktns = & conn->tlsref.initial_pktns;
     int rv;
@@ -309,10 +306,11 @@ int xqc_conn_install_initial_rx_keys(xqc_connection_t *conn,  uint8_t *key,
 
 
 
-int xqc_conn_install_early_keys(xqc_connection_t *conn, const uint8_t *key,
-                                   size_t keylen, const uint8_t *iv,
-                                   size_t ivlen, const uint8_t *pn,
-                                   size_t pnlen) 
+int
+xqc_conn_install_early_keys(xqc_connection_t *conn,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *iv, size_t ivlen,
+    const uint8_t *pn, size_t pnlen) 
 {
 
     if(conn->tlsref.early_hp.base != NULL && conn->tlsref.early_hp.len > 0){
@@ -342,10 +340,11 @@ int xqc_conn_install_early_keys(xqc_connection_t *conn, const uint8_t *key,
 
 
 
-int xqc_conn_install_handshake_tx_keys(xqc_connection_t *conn, const uint8_t *key,
-        size_t keylen, const uint8_t *iv,
-        size_t ivlen, const uint8_t *pn,
-        size_t pnlen) 
+int
+xqc_conn_install_handshake_tx_keys(xqc_connection_t *conn,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *iv, size_t ivlen,
+    const uint8_t *pn, size_t pnlen) 
 {
     xqc_pktns_t *pktns = &conn->tlsref.hs_pktns;
     int rv;
@@ -373,10 +372,11 @@ int xqc_conn_install_handshake_tx_keys(xqc_connection_t *conn, const uint8_t *ke
     return 0;
 }
 
-int xqc_conn_install_handshake_rx_keys(xqc_connection_t *conn, const uint8_t *key,
-        size_t keylen, const uint8_t *iv,
-        size_t ivlen, const uint8_t *pn,
-        size_t pnlen) 
+int
+xqc_conn_install_handshake_rx_keys(xqc_connection_t *conn,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *iv, size_t ivlen,
+    const uint8_t *pn, size_t pnlen) 
 {
     xqc_pktns_t *pktns = &conn->tlsref.hs_pktns;
     int rv;
@@ -407,9 +407,11 @@ int xqc_conn_install_handshake_rx_keys(xqc_connection_t *conn, const uint8_t *ke
 }
 
 
-int xqc_conn_install_tx_keys(xqc_connection_t *conn, const uint8_t *key,
-                                size_t keylen, const uint8_t *iv, size_t ivlen,
-                                const uint8_t *pn, size_t pnlen) 
+int
+xqc_conn_install_tx_keys(xqc_connection_t *conn,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *iv, size_t ivlen,
+    const uint8_t *pn, size_t pnlen) 
 {
     xqc_pktns_t *pktns = &conn->tlsref.pktns;
     int rv;
@@ -436,9 +438,11 @@ int xqc_conn_install_tx_keys(xqc_connection_t *conn, const uint8_t *key,
     return 0;
 }
 
-int xqc_conn_install_rx_keys(xqc_connection_t *conn, const uint8_t *key,
-        size_t keylen, const uint8_t *iv, size_t ivlen,
-        const uint8_t *pn, size_t pnlen) 
+int
+xqc_conn_install_rx_keys(xqc_connection_t *conn,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *iv, size_t ivlen,
+    const uint8_t *pn, size_t pnlen) 
 {
 
     xqc_pktns_t *pktns = &conn->tlsref.pktns;
@@ -473,8 +477,9 @@ int xqc_conn_install_rx_keys(xqc_connection_t *conn, const uint8_t *key,
 }
 
 
-int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
-        ssize_t secretlen, const xqc_tls_context_t *ctx)
+int
+xqc_update_traffic_secret(uint8_t *dest, size_t destlen,
+    uint8_t *secret, ssize_t secretlen, const xqc_tls_context_t *ctx)
 {
 
     uint8_t LABEL[] = "traffic upd";
@@ -483,7 +488,7 @@ int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
         return -1;
     }
 
-    rv = xqc_hkdf_expand_label(dest, secretlen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &ctx->prf );
+    rv = xqc_hkdf_expand_label(dest, secretlen, secret, secretlen, LABEL, xqc_lengthof(LABEL), &ctx->prf);
     if(rv < 0){
         return -1;
     }
@@ -493,8 +498,9 @@ int xqc_update_traffic_secret(uint8_t *dest, size_t destlen, uint8_t *secret,
 
 
 
-int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
-                                size_t keylen, const uint8_t *iv, size_t ivlen) 
+int
+xqc_conn_update_tx_key(xqc_connection_t *conn,
+    const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen) 
 {
     int rv;
     xqc_tlsref_t * tlsref = &conn->tlsref;
@@ -525,8 +531,9 @@ int xqc_conn_update_tx_key(xqc_connection_t *conn, const uint8_t *key,
     return 0;
 }
 
-int xqc_conn_update_rx_key(xqc_connection_t *conn, const uint8_t *key,
-                                size_t keylen, const uint8_t *iv, size_t ivlen) 
+int
+xqc_conn_update_rx_key(xqc_connection_t *conn,
+    const uint8_t *key, size_t keylen, const uint8_t *iv, size_t ivlen) 
 {
 
     int rv;
@@ -556,13 +563,12 @@ int xqc_conn_update_rx_key(xqc_connection_t *conn, const uint8_t *key,
     }
 
     return 0;
-
-    //need finish
 }
 
 
 
-int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
+int
+xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
 {
     int rv;
 
@@ -572,10 +578,9 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
         return -XQC_TLS_PROTO;
     }
 
-    rv = xqc_derive_initial_secret(
-            initial_secret, sizeof(initial_secret), dcid,
-            (const uint8_t *)(xqc_crypto_initial_salt[conn->version]),
-            strlen(xqc_crypto_initial_salt[conn->version]));
+    rv = xqc_derive_initial_secret(initial_secret, sizeof(initial_secret), dcid,
+                                   (const uint8_t *)(xqc_crypto_initial_salt[conn->version]),
+                                   strlen(xqc_crypto_initial_salt[conn->version]));
     if (rv != 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive_initial_secret() failed|");
         return -1;
@@ -584,8 +589,7 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
     xqc_init_initial_crypto_ctx(conn);
 
     rv = xqc_derive_server_initial_secret(secret, sizeof(secret),
-            initial_secret,
-            sizeof(initial_secret));
+                                          initial_secret, sizeof(initial_secret));
     if (rv != 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|derive_server_initial_secret() failed|");
         return -1;
@@ -593,26 +597,25 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
 
     char key[16], iv[16], hp[16];
 
-    ssize_t keylen = xqc_derive_packet_protection_key(
-            key, sizeof(key), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
+    ssize_t keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, sizeof(secret),
+                                                      &conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
         return -1;
     }
 
-    ssize_t ivlen = xqc_derive_packet_protection_iv(
-            iv, sizeof(iv), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
+    ssize_t ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, sizeof(secret),
+                                                    &conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv failed|");
         return -1;
     }
 
-    ssize_t hplen = xqc_derive_header_protection_key(
-            hp, sizeof(hp), secret, sizeof(secret), & conn->tlsref.hs_crypto_ctx);
+    ssize_t hplen = xqc_derive_header_protection_key(hp, sizeof(hp), secret, sizeof(secret),
+                                                     &conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key failed|");
         return -1;
     }
-    //need log
 
     if(xqc_conn_install_initial_tx_keys(conn, key, keylen, iv, ivlen, hp, hplen) < 0){
         xqc_log(conn->log, XQC_LOG_ERROR, "|install initial key error|");
@@ -620,29 +623,28 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
     }
 
     rv = xqc_derive_client_initial_secret(secret, sizeof(secret),
-            initial_secret,
-            sizeof(initial_secret));
+                                          initial_secret, sizeof(initial_secret));
     if (rv != 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_client_initial_secret error|");
         return -1;
     }
 
-    keylen = xqc_derive_packet_protection_key(
-            key, sizeof(key), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
+    keylen = xqc_derive_packet_protection_key(key, sizeof(key), secret, sizeof(secret),
+                                              &conn->tlsref.hs_crypto_ctx);
     if (keylen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_key error|");
         return -1;
     }
 
-    ivlen = xqc_derive_packet_protection_iv(
-            iv, sizeof(iv), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
+    ivlen = xqc_derive_packet_protection_iv(iv, sizeof(iv), secret, sizeof(secret),
+                                            &conn->tlsref.hs_crypto_ctx);
     if (ivlen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_packet_protection_iv error|");
         return -1;
     }
 
-    hplen = xqc_derive_header_protection_key(
-            hp, sizeof(hp), secret, sizeof(secret), &conn->tlsref.hs_crypto_ctx);
+    hplen = xqc_derive_header_protection_key(hp, sizeof(hp), secret, sizeof(secret),
+                                             &conn->tlsref.hs_crypto_ctx);
     if (hplen < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_derive_header_protection_key error|");
         return -1;
@@ -661,8 +663,8 @@ int xqc_recv_client_hello_derive_key( xqc_connection_t *conn, xqc_cid_t *dcid )
  * notice: return one on success, return 0 on fail
  */
 xqc_int_t
-xqc_derive_packet_protection(
-    const xqc_tls_context_t *ctx, const uint8_t *secret, size_t secretlen,
+xqc_derive_packet_protection(const xqc_tls_context_t *ctx,
+    const uint8_t *secret, size_t secretlen,
     uint8_t *key, size_t *keylen,
     uint8_t *iv, size_t *ivlen,
     uint8_t *hp, size_t *hplen,
@@ -686,8 +688,7 @@ xqc_derive_packet_protection(
     }
     *ivlen = ivl;
 
-    ssize_t hpl = xqc_derive_header_protection_key(hp, *hplen, secret, 
-        secretlen, ctx);
+    ssize_t hpl = xqc_derive_header_protection_key(hp, *hplen, secret, secretlen, ctx);
     if (hpl < 0) {
         xqc_log(log, XQC_LOG_ERROR, 
                 "|xqc_derive_header_protection_key failed| ret code:%d|", hplen);

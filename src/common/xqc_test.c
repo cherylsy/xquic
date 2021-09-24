@@ -26,7 +26,8 @@ int test_object_manager(int argc, char* argv[]);
 int test_rbtree(int argc, char* argv[]);
 int test_fifo(int argc, char* argv[]);
 
-int main(int argc, char* argv[])
+int
+main(int argc, char* argv[])
 {
 #if 0
     test_memory_pool(argc, argv);
@@ -74,7 +75,8 @@ int main(int argc, char* argv[])
     return 0;
 }
 
-int test_memory_pool(int argc, char* argv[])
+int
+test_memory_pool(int argc, char* argv[])
 {
     xqc_memory_pool_t *pool = xqc_create_pool(1000);
     void *p1 = xqc_palloc(pool, 10);
@@ -85,7 +87,8 @@ int test_memory_pool(int argc, char* argv[])
     return 0;
 }
 
-int test_fifo(int argc, char* argv[])
+int
+test_fifo(int argc, char* argv[])
 {
     xqc_fifo_t fifo;
     xqc_fifo_init(&fifo, xqc_default_allocator, sizeof(int), 4);
@@ -112,7 +115,8 @@ int test_fifo(int argc, char* argv[])
     return 0;
 }
 
-int test_hash_table(int argc, char* argv[])
+int
+test_hash_table(int argc, char* argv[])
 {
 #if 1
     xqc_cid_hash_table_t hash_tab;
@@ -143,6 +147,7 @@ int test_hash_table(int argc, char* argv[])
     } else {
         printf("not found\n");
     }
+
 #else
     xqc_id_hash_table_t hash_tab;
     xqc_id_hash_init(&hash_tab, xqc_default_allocator, 100);
@@ -185,7 +190,8 @@ int test_hash_table(int argc, char* argv[])
     return 0;
 }
 
-int test_log(int argc, char* argv[])
+int
+test_log(int argc, char* argv[])
 {
     xqc_log_t *log = xqc_log_init(XQC_LOG_DEBUG, 1, ".", "log");
     xqc_log_implement(log, XQC_LOG_DEBUG, "hello, %s", "world");
@@ -195,7 +201,8 @@ int test_log(int argc, char* argv[])
     return 0;
 }
 
-int test_array(int argc, char* argv[])
+int
+test_array(int argc, char* argv[])
 {
     xqc_array_t *a = xqc_array_create(xqc_default_allocator, 4, sizeof(int));
     int* p = xqc_array_push_n(a, 4);
@@ -217,7 +224,8 @@ int test_array(int argc, char* argv[])
     return 0;
 }
 
-int test_pq(int argc, char* argv[])
+int
+test_pq(int argc, char* argv[])
 {
     xqc_pq_t pq;
     if (xqc_pq_init(&pq, sizeof(unsigned long), 4, xqc_default_allocator, xqc_pq_default_cmp)) {
@@ -283,7 +291,8 @@ typedef struct person_s
     xqc_list_head_t list;
 } person_t;
 
-int test_queue(int argc, char* argv[])
+int
+test_queue(int argc, char* argv[])
 {
     xqc_queue_t q;
     xqc_queue_init(&q);
@@ -316,7 +325,8 @@ int test_queue(int argc, char* argv[])
     return 0;
 }
 
-int test_hash(int argc, char* argv[])
+int
+test_hash(int argc, char* argv[])
 {
     xqc_md5_t ctx;
     xqc_md5_init(&ctx);
@@ -343,13 +353,15 @@ typedef struct xqc_item_s
     int data;
 } xqc_item_t;
 
-static inline void test_object_manager_cb(xqc_object_t *o)
+static inline void
+test_object_manager_cb(xqc_object_t *o)
 {
     xqc_item_t* item = (xqc_item_t*)o;
     printf("id:%u, data:%d\n", item->object_id, item->data);
 }
 
-int test_object_manager(int argc, char* argv[])
+int
+test_object_manager(int argc, char* argv[])
 {
     xqc_object_manager_t *manager = xqc_object_manager_create(sizeof(xqc_item_t), 4, xqc_default_allocator);
     if (manager == NULL) {
@@ -387,7 +399,8 @@ int test_object_manager(int argc, char* argv[])
     return 0;
 }
 
-int test_list(int argc, char* argv[])
+int
+test_list(int argc, char* argv[])
 {
     person_t *pperson;
     person_t person_head;
@@ -432,12 +445,14 @@ int test_list(int argc, char* argv[])
     return 0;
 }
 
-static inline void rbtree_cb(xqc_rbtree_node_t* node)
+static inline void
+rbtree_cb(xqc_rbtree_node_t* node)
 {
     printf("key=%lu\n", (unsigned long)node->key);
 }
 
-int test_rbtree(int argc, char* argv[])
+int
+test_rbtree(int argc, char* argv[])
 {
     xqc_rbtree_t rbtree;
     xqc_rbtree_init(&rbtree);

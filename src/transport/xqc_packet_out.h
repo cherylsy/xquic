@@ -77,90 +77,60 @@ typedef struct xqc_packet_out_s {
     uint64_t                po_path_id;
 } xqc_packet_out_t;
 
-xqc_packet_out_t *
-xqc_packet_out_create();
+xqc_packet_out_t* xqc_packet_out_create();
 
-void
-xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src);
+void xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src);
 
-xqc_packet_out_t *
-xqc_packet_out_get(xqc_send_ctl_t *ctl);
+xqc_packet_out_t* xqc_packet_out_get(xqc_send_ctl_t *ctl);
 
-xqc_packet_out_t *
-xqc_packet_out_get_and_insert_send(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
+xqc_packet_out_t* xqc_packet_out_get_and_insert_send(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
 
-void
-xqc_packet_out_destroy(xqc_packet_out_t *packet_out);
+void xqc_packet_out_destroy(xqc_packet_out_t *packet_out);
 
-void
-xqc_maybe_recycle_packet_out(xqc_packet_out_t *packet_out, xqc_connection_t *conn);
+void xqc_maybe_recycle_packet_out(xqc_packet_out_t *packet_out, xqc_connection_t *conn);
 
-xqc_packet_out_t*
-xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type);
+xqc_packet_out_t* xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type);
 
-xqc_packet_out_t*
-xqc_write_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type, unsigned need);
+xqc_packet_out_t* xqc_write_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type, unsigned need);
 
-int
-xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+int xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
-int
-xqc_write_ack_to_packets(xqc_connection_t *conn);
+int xqc_write_ack_to_packets(xqc_connection_t *conn);
 
-int
-xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
+int xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, xqc_pkt_num_space_t pns);
 
-int
-xqc_write_ping_to_packet(xqc_connection_t *conn, void *po_user_data, xqc_bool_t notify);
+int xqc_write_ping_to_packet(xqc_connection_t *conn, void *po_user_data, xqc_bool_t notify);
 
-int
-xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code);
+int xqc_write_conn_close_to_packet(xqc_connection_t *conn, uint64_t err_code);
 
-int
-xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 uint64_t err_code, uint64_t final_size);
+int xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream, uint64_t err_code, uint64_t final_size);
 
-int
-xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 uint64_t err_code);
+int xqc_write_stop_sending_to_packet(xqc_connection_t *conn, xqc_stream_t *stream, uint64_t err_code);
 
-int
-xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit);
+int xqc_write_data_blocked_to_packet(xqc_connection_t *conn, uint64_t data_limit);
 
-int
-xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t stream_data_limit);
+int xqc_write_stream_data_blocked_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t stream_data_limit);
 
-int
-xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limit, int bidirectional);
+int xqc_write_streams_blocked_to_packet(xqc_connection_t *conn, uint64_t stream_limit, int bidirectional);
 
-int
-xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data);
+int xqc_write_max_data_to_packet(xqc_connection_t *conn, uint64_t max_data);
 
-int
-xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t max_stream_data);
+int xqc_write_max_stream_data_to_packet(xqc_connection_t *conn, xqc_stream_id_t stream_id, uint64_t max_stream_data);
 
-int
-xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int bidirectional);
+int xqc_write_max_streams_to_packet(xqc_connection_t *conn, uint64_t max_stream, int bidirectional);
 
-int
-xqc_write_new_token_to_packet(xqc_connection_t *conn);
+int xqc_write_new_token_to_packet(xqc_connection_t *conn);
 
-int
-xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
-                                 xqc_pkt_type_t pkt_type, uint8_t fin,
-                                 const unsigned char *payload, size_t payload_size, size_t *send_data_written);
+int xqc_write_stream_frame_to_packet(xqc_connection_t *conn, xqc_stream_t *stream, xqc_pkt_type_t pkt_type,
+    uint8_t fin, const unsigned char *payload, size_t payload_size, size_t *send_data_written);
 
-int
-xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn);
+int xqc_write_handshake_done_frame_to_packet(xqc_connection_t *conn);
 
-xqc_int_t
-xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t retire_prior_to);
+xqc_int_t xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t retire_prior_to);
 
-xqc_int_t
-xqc_write_retire_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t seq_num);
+xqc_int_t xqc_write_retire_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t seq_num);
 
-xqc_int_t xqc_write_path_status_to_packet(xqc_connection_t *conn, 
-    xqc_path_ctx_t *path);
+xqc_int_t xqc_write_path_status_to_packet(xqc_connection_t *conn, xqc_path_ctx_t *path);
 
 
 #endif //_XQC_PACKET_OUT_H_INCLUDED_

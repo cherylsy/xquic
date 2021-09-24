@@ -58,7 +58,8 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing)
 }
 
 static uint32_t 
-xqc_pacing_max_burst_size(xqc_pacing_t *pacing) {
+xqc_pacing_max_burst_size(xqc_pacing_t *pacing)
+{
     xqc_usec_t t_diff = (XQC_PACING_DELAY_US + XQC_CLOCK_GRANULARITY_US);
     uint64_t max_burst_bytes = t_diff * xqc_pacing_rate_calc(pacing) 
                                 / 1000000;
@@ -66,11 +67,13 @@ xqc_pacing_max_burst_size(xqc_pacing_t *pacing) {
 }
 
 static uint32_t 
-xqc_pacing_calc_budget(xqc_pacing_t *pacing, xqc_usec_t now) {
+xqc_pacing_calc_budget(xqc_pacing_t *pacing, xqc_usec_t now)
+{
     uint32_t budget = pacing->bytes_budget;
     uint32_t max_burst_bytes = xqc_pacing_max_burst_size(pacing);
     if (pacing->last_sent_time == 0) {
         budget = max_burst_bytes;
+
     } else {
         budget += (now - pacing->last_sent_time) * xqc_pacing_rate_calc(pacing)
                     / 1000000;
@@ -78,7 +81,8 @@ xqc_pacing_calc_budget(xqc_pacing_t *pacing, xqc_usec_t now) {
     return xqc_min(budget, max_burst_bytes);
 }
 
-void xqc_pacing_on_timeout(xqc_pacing_t *pacing) {
+void xqc_pacing_on_timeout(xqc_pacing_t *pacing)
+{
     xqc_usec_t now = xqc_monotonic_timestamp();
     uint32_t budget = xqc_pacing_calc_budget(pacing, now);
     pacing->bytes_budget = xqc_max(budget, pacing->bytes_budget + pacing->pending_budget);
@@ -93,6 +97,7 @@ xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, uint32_t bytes)
     uint32_t budget = xqc_pacing_calc_budget(pacing, now);
     if (bytes > budget) {
         budget = 0;
+
     } else {
         budget -= bytes;
     }

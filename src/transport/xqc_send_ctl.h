@@ -12,10 +12,12 @@
 #define XQC_kPersistentCongestionThreshold 3
 
 #define XQC_CONSECUTIVE_PTO_THRESH 2
-/*Timer granularity.  This is a system-dependent value.
-However, implementations SHOULD use a value no smaller than 1ms.*/
+/*
+ * Timer granularity.  This is a system-dependent value.
+ * However, implementations SHOULD use a value no smaller than 1ms.
+ */
 #define XQC_kGranularity 2
-//#define XQC_kInitialRtt 500
+
 #define XQC_kInitialRtt 250
 
 //2^n
@@ -25,12 +27,12 @@ However, implementations SHOULD use a value no smaller than 1ms.*/
 
 /*
  * A connection will time out if no packets are sent or received for a
-   period longer than the time specified in the max_idle_timeout transport
-   parameter (see Section 10).  However, state in middleboxes might time
-   out earlier than that.  Though REQ-5 in [RFC4787] recommends a 2
-   minute timeout interval, experience shows that sending packets every
-   15 to 30 seconds is necessary to prevent the majority of middleboxes
-   from losing state for UDP flows.
+ * period longer than the time specified in the max_idle_timeout transport
+ * parameter (see Section 10).  However, state in middleboxes might time
+ * out earlier than that.  Though REQ-5 in [RFC4787] recommends a 2
+ * minute timeout interval, experience shows that sending packets every
+ * 15 to 30 seconds is necessary to prevent the majority of middleboxes
+ * from losing state for UDP flows.
  */
 #define XQC_PING_TIMEOUT 15000
 
@@ -54,7 +56,7 @@ typedef void (*xqc_send_ctl_timer_callback)(xqc_send_ctl_timer_type type, xqc_us
 typedef struct {
     uint8_t                     ctl_timer_is_set;
     xqc_usec_t                  ctl_expire_time;
-    void                        *ctl_ctx;
+    void                       *ctl_ctx;
     xqc_send_ctl_timer_callback ctl_timer_callback;
     int                         ctl_pacing_time_isexpire;
 } xqc_send_ctl_timer_t;
@@ -179,155 +181,106 @@ xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
     return XQC_FALSE;
 }
 
-int
-xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *po);
+int xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *po);
 
-xqc_send_ctl_t *
-xqc_send_ctl_create (xqc_connection_t *conn);
+xqc_send_ctl_t* xqc_send_ctl_create (xqc_connection_t *conn);
 
-void
-xqc_send_ctl_destroy(xqc_send_ctl_t *ctl);
+void xqc_send_ctl_destroy(xqc_send_ctl_t *ctl);
 
-xqc_packet_out_t *
-xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type);
+xqc_packet_out_t* xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type);
 
-void
-xqc_send_ctl_destroy_packets_list(xqc_list_head_t *head);
+void xqc_send_ctl_destroy_packets_list(xqc_list_head_t *head);
 
-void
-xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
+void xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
 
-int
-xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+int xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
-void
-xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+void xqc_send_ctl_increase_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
 
-void
-xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+void xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
 
-void
-xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+void xqc_send_ctl_decrease_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
 
-void
-xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
+void xqc_send_ctl_increase_unacked_stream_ref(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out);
 
-void
-xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_insert_unacked(xqc_packet_out_t *packet_out, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_insert_unacked(xqc_packet_out_t *packet_out, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_remove_send(xqc_list_head_t *pos);
+void xqc_send_ctl_remove_send(xqc_list_head_t *pos);
 
-void
-xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_insert_send(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_remove_probe(xqc_list_head_t *pos);
+void xqc_send_ctl_remove_probe(xqc_list_head_t *pos);
 
-void
-xqc_send_ctl_insert_probe(xqc_list_head_t *pos, xqc_list_head_t *head);
+void xqc_send_ctl_insert_probe(xqc_list_head_t *pos, xqc_list_head_t *head);
 
-void
-xqc_send_ctl_remove_lost(xqc_list_head_t *pos);
+void xqc_send_ctl_remove_lost(xqc_list_head_t *pos);
 
-void
-xqc_send_ctl_insert_lost(xqc_list_head_t *pos, xqc_list_head_t *head);
+void xqc_send_ctl_insert_lost(xqc_list_head_t *pos, xqc_list_head_t *head);
 
-void
-xqc_send_ctl_remove_free(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_remove_free(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_insert_free(xqc_list_head_t *pos, xqc_list_head_t *head, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_remove_buff(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_remove_buff(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_insert_buff(xqc_list_head_t *pos, xqc_list_head_t *head);
+void xqc_send_ctl_insert_buff(xqc_list_head_t *pos, xqc_list_head_t *head);
 
-void
-xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head);
+void xqc_send_ctl_move_to_head(xqc_list_head_t *pos, xqc_list_head_t *head);
 
-void
-xqc_send_ctl_move_to_high_pri(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_move_to_high_pri(xqc_list_head_t *pos, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl);
+void xqc_send_ctl_drop_packets(xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl);
+void xqc_send_ctl_drop_0rtt_packets(xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_drop_pkts_with_pn(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pn);
+void xqc_send_ctl_drop_pkts_with_pn(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pn);
 
-void
-xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stream_id);
+void xqc_send_ctl_drop_stream_frame_packets(xqc_send_ctl_t *ctl, xqc_stream_id_t stream_id);
 
-void
-xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_usec_t now);
+void xqc_send_ctl_on_packet_sent(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, xqc_usec_t now);
 
-int
-xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_usec_t ack_recv_time);
+int xqc_send_ctl_on_ack_received (xqc_send_ctl_t *ctl, xqc_ack_info_t *const ack_info, xqc_usec_t ack_recv_time);
 
-void
-xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_usec_t recv_time);
+void xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_usec_t recv_time);
 
-void
-xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_usec_t *latest_rtt, xqc_usec_t ack_delay);
+void xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_usec_t *latest_rtt, xqc_usec_t ack_delay);
 
-void
-xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_usec_t ack_recv_time,
+void xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_usec_t ack_recv_time,
     xqc_packet_number_t largest_ack,
     xqc_packet_number_t spurious_loss_pktnum,
     xqc_usec_t spurious_loss_sent_time);
 
-void
-xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_usec_t now);
+void xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_usec_t now);
 
-xqc_bool_t
-xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t now);
+xqc_bool_t xqc_send_ctl_in_persistent_congestion(xqc_send_ctl_t *ctl, xqc_packet_out_t *largest_lost, xqc_usec_t now);
 
-void
-xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_usec_t sent_time);
+void xqc_send_ctl_congestion_event(xqc_send_ctl_t *ctl, xqc_usec_t sent_time);
 
-int
-xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_usec_t sent_time);
+int xqc_send_ctl_in_recovery(xqc_send_ctl_t *ctl, xqc_usec_t sent_time);
 
-int
-xqc_send_ctl_is_app_limited(xqc_send_ctl_t *ctl);
+int xqc_send_ctl_is_app_limited(xqc_send_ctl_t *ctl);
 
-int
-xqc_send_ctl_is_cwnd_limited(xqc_send_ctl_t *ctl);
+int xqc_send_ctl_is_cwnd_limited(xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_usec_t now);
+void xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_usec_t now);
 
-void
-xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_usec_t now, int do_cc);
+void xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet, xqc_usec_t now, int do_cc);
 
-void
-xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
+void xqc_send_ctl_maybe_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl);
 
-void
-xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl);
+void xqc_send_ctl_set_loss_detection_timer(xqc_send_ctl_t *ctl);
 
-xqc_usec_t
-xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret);
+xqc_usec_t xqc_send_ctl_get_earliest_loss_time(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t *pns_ret);
 
-xqc_usec_t
-xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
+xqc_usec_t xqc_send_ctl_get_srtt(xqc_send_ctl_t *ctl);
 
-float
-xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
+float xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
 
 /**
  * check amplification limit state
@@ -336,21 +289,17 @@ xqc_send_ctl_get_retrans_rate(xqc_send_ctl_t *ctl);
  * check if this byte count will trigger amplification limit
  * @return XQC_FALSE: not at amplification limit, XQC_TRUE: at amplification limit
  */
-xqc_bool_t
-xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, size_t byte_cnt);
+xqc_bool_t xqc_send_ctl_check_anti_amplification(xqc_connection_t *conn, size_t byte_cnt);
 
-xqc_bool_t
-xqc_send_ctl_ack_received_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns);
+xqc_bool_t xqc_send_ctl_ack_received_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns);
 
 
 /*
  * *****************TIMER*****************
  */
-const char *
-xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type);
+const char* xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type);
 
-void
-xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
+void xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
 
 static inline int
 xqc_send_ctl_timer_is_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
@@ -390,8 +339,8 @@ xqc_send_pacing_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc
 }
 
 static inline void
-xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_usec_t new_expire) {
-
+xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_usec_t new_expire)
+{
     if (new_expire - ctl->ctl_timer[type].ctl_expire_time < 1000)
         return;
 
@@ -402,6 +351,7 @@ xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, 
         ctl->ctl_timer[type].ctl_expire_time = new_expire;
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|new_expire:%ui|now:%ui|",
                 xqc_timer_type_2_str(type), new_expire, xqc_monotonic_timestamp());
+
     } else {
         xqc_send_pacing_timer_set(ctl, type, new_expire);
     }
@@ -409,7 +359,8 @@ xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, 
 }
 
 static inline int
-xqc_send_pacing_timer_isset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type) {
+xqc_send_pacing_timer_isset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
+{
     return ctl->ctl_timer[type].ctl_timer_is_set;
 }
 
@@ -433,7 +384,7 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_usec_t now)
             }
             timer->ctl_timer_callback(type, now, timer->ctl_ctx);
 
-            //unset timer if it is not updated in ctl_timer_callback
+            /* unset timer if it is not updated in ctl_timer_callback */
             if (timer->ctl_expire_time <= now) {
                 xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
                         "|unset|type:%s|expire_time:%ui|now:%ui|",

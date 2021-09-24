@@ -27,7 +27,8 @@ typedef struct xqc_str_hash_table_s
 } xqc_str_hash_table_t;
 
 
-static inline int xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
+static inline int
+xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
     hash_tab->list = allocator.malloc(allocator.opaque, sizeof(xqc_str_hash_node_t*) * bucket_num);
@@ -39,7 +40,8 @@ static inline int xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocat
     return XQC_OK;
 }
 
-static inline void xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
+static inline void
+xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
 {
     xqc_allocator_t* a = &hash_tab->allocator;
     for (size_t i = 0; i < hash_tab->count; ++i) {
@@ -53,7 +55,8 @@ static inline void xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
     a->free(a->opaque, hash_tab->list);
 }
 
-static inline void* xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
+static inline void *
+xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 {
     uint64_t index = hash % hash_tab->count;
     xqc_str_hash_node_t* node = hash_tab->list[index];
@@ -66,7 +69,8 @@ static inline void* xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t h
     return NULL;
 }
 
-static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_element_t e)
+static inline int
+xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_element_t e)
 {
     uint64_t index = e.hash % hash_tab->count;
     xqc_allocator_t* a = &hash_tab->allocator;
@@ -90,7 +94,8 @@ static inline int xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_
     return XQC_OK;
 }
 
-static inline int xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
+static inline int
+xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 {
     uint64_t index = hash % hash_tab->count;
     xqc_allocator_t* a = &hash_tab->allocator;

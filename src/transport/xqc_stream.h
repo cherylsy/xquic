@@ -8,8 +8,8 @@
 #include "src/transport/xqc_packet.h"
 
 #define XQC_UNDEFINE_STREAM_ID XQC_MAX_UINT64_VALUE
-#define XQC_MAX_DATA_NOT_READ 1024000
-#define XQC_MAX_GAP_NOT_RECVD 1024000
+#define XQC_MAX_DATA_NOT_READ 1024000 //TODO:
+#define XQC_MAX_GAP_NOT_RECVD 1024000 //TODO:
 
 typedef enum {
     XQC_CLI_BID = 0,
@@ -154,92 +154,60 @@ xqc_stream_is_uni(xqc_stream_id_t stream_id)
     return stream_id & 0x02;
 }
 
-xqc_stream_t *
-xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type,
-                             void *user_data);
-void
-xqc_destroy_stream(xqc_stream_t *stream);
+xqc_stream_t* xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id,
+    xqc_stream_type_t stream_type, void *user_data);
 
-void
-xqc_process_write_streams (xqc_connection_t *conn);
+void xqc_destroy_stream(xqc_stream_t *stream);
 
-void
-xqc_process_read_streams (xqc_connection_t *conn);
+void xqc_process_write_streams (xqc_connection_t *conn);
 
-void
-xqc_process_crypto_write_streams (xqc_connection_t *conn);
+void xqc_process_read_streams (xqc_connection_t *conn);
 
-void
-xqc_process_crypto_read_streams (xqc_connection_t *conn);
+void xqc_process_crypto_write_streams (xqc_connection_t *conn);
 
-void
-xqc_stream_ready_to_write (xqc_stream_t *stream);
+void xqc_process_crypto_read_streams (xqc_connection_t *conn);
 
-void
-xqc_stream_shutdown_write (xqc_stream_t *stream);
+void xqc_stream_ready_to_write (xqc_stream_t *stream);
 
-void
-xqc_stream_ready_to_read (xqc_stream_t *stream);
+void xqc_stream_shutdown_write (xqc_stream_t *stream);
 
-void
-xqc_stream_shutdown_read (xqc_stream_t *stream);
+void xqc_stream_ready_to_read (xqc_stream_t *stream);
 
-void
-xqc_stream_maybe_need_close (xqc_stream_t *stream);
+void xqc_stream_shutdown_read (xqc_stream_t *stream);
 
-xqc_stream_t *
-xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash);
+void xqc_stream_maybe_need_close (xqc_stream_t *stream);
 
-void
-xqc_stream_set_flow_ctl (xqc_stream_t *stream);
+xqc_stream_t* xqc_find_stream_by_id (xqc_stream_id_t stream_id, xqc_id_hash_table_t *streams_hash);
 
-int
-xqc_stream_do_send_flow_ctl(xqc_stream_t *stream);
+void xqc_stream_set_flow_ctl (xqc_stream_t *stream);
 
-int
-xqc_stream_do_recv_flow_ctl(xqc_stream_t *stream);
+int xqc_stream_do_send_flow_ctl(xqc_stream_t *stream);
 
-int
-xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type);
+int xqc_stream_do_recv_flow_ctl(xqc_stream_t *stream);
 
-uint64_t
-xqc_stream_get_init_max_stream_data(xqc_stream_t *stream);
+int xqc_stream_do_create_flow_ctl(xqc_connection_t *conn, xqc_stream_id_t stream_id, xqc_stream_type_t stream_type);
 
-xqc_stream_t *
-xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
-                          void *user_data);
+uint64_t xqc_stream_get_init_max_stream_data(xqc_stream_t *stream);
 
-xqc_stream_t *
-xqc_create_crypto_stream (xqc_connection_t *conn,
-                          xqc_encrypt_level_t encrypt_level,
-                          void *user_data);
+xqc_stream_t* xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id, void *user_data);
 
-int
-xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data);
+xqc_stream_t* xqc_create_crypto_stream (xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level, void *user_data);
 
-int
-xqc_read_crypto_stream(xqc_stream_t * stream);
+int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data);
 
-ssize_t
-xqc_stream_buff_data(xqc_stream_t *stream,
-                      unsigned char *send_data,
-                      size_t send_data_size,
-                      uint8_t fin);
+int xqc_read_crypto_stream(xqc_stream_t * stream);
 
-int
-xqc_stream_write_buffed_data_to_packets(xqc_stream_t *stream);
+ssize_t xqc_stream_buff_data(xqc_stream_t *stream, unsigned char *send_data, size_t send_data_size, uint8_t fin);
 
-void
-xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame);
+int xqc_stream_write_buffed_data_to_packets(xqc_stream_t *stream);
 
-void
-xqc_destroy_write_buff(xqc_stream_write_buff_t *write_buff);
+void xqc_destroy_stream_frame(xqc_stream_frame_t *stream_frame);
 
-void
-xqc_destroy_frame_list(xqc_list_head_t *head);
+void xqc_destroy_write_buff(xqc_stream_write_buff_t *write_buff);
 
-void
-xqc_destroy_write_buff_list(xqc_list_head_t *head);
+void xqc_destroy_frame_list(xqc_list_head_t *head);
+
+void xqc_destroy_write_buff_list(xqc_list_head_t *head);
 
 void xqc_stream_refcnt_add(xqc_stream_t *stream);
 void xqc_stream_refcnt_del(xqc_stream_t *stream);

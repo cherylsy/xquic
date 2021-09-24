@@ -40,7 +40,8 @@ typedef struct xqc_memory_pool_s
 #define XQC_MAX_MALLOC_FROM_POOL (4096)
 
 
-static inline xqc_memory_pool_t *xqc_create_pool(size_t size)
+static inline xqc_memory_pool_t *
+xqc_create_pool(size_t size)
 {
     if (size <= sizeof(xqc_memory_pool_t)) {
         return NULL;
@@ -67,7 +68,8 @@ static inline xqc_memory_pool_t *xqc_create_pool(size_t size)
     return pool;
 }
 
-static inline void xqc_destroy_pool(xqc_memory_pool_t* pool)
+static inline void
+xqc_destroy_pool(xqc_memory_pool_t* pool)
 {
     xqc_memory_block_t* block = pool->block.next;
     while (block) {
@@ -86,7 +88,8 @@ static inline void xqc_destroy_pool(xqc_memory_pool_t* pool)
     xqc_free(pool);
 }
 
-static inline void* xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
+static inline void *
+xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
 {
     xqc_memory_large_t* p = xqc_malloc(size + sizeof(xqc_memory_large_t));
     if (p == NULL) {
@@ -103,7 +106,8 @@ static inline void* xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
 #define XQC_ALIGNMENT (16)
 #define xqc_align_ptr(p, a) ((char *) (((uintptr_t)(p) + ((uintptr_t)a - 1)) & ~((uintptr_t)a - 1)))
 
-static inline void* xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
+static inline void *
+xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
 {
     size_t psize = pool->block.end - (char*)pool;
 
@@ -136,7 +140,8 @@ static inline void* xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
 }
 
 /* aligned memory block access may be faster */
-static inline void* xqc_palloc(xqc_memory_pool_t *pool, size_t size)
+static inline void *
+xqc_palloc(xqc_memory_pool_t *pool, size_t size)
 {
     if (size < pool->max) {
         xqc_memory_block_t * block = pool->current;
@@ -158,7 +163,8 @@ static inline void* xqc_palloc(xqc_memory_pool_t *pool, size_t size)
 }
 
 /* allocate memory interface from pool, no alignment */
-static inline void* xqc_pnalloc(xqc_memory_pool_t *pool, size_t size)
+static inline void *
+xqc_pnalloc(xqc_memory_pool_t *pool, size_t size)
 {
     if (size < pool->max) {
         xqc_memory_block_t * block = pool->current;
@@ -180,7 +186,8 @@ static inline void* xqc_pnalloc(xqc_memory_pool_t *pool, size_t size)
 }
 
 /* aligned and zeroed out */
-static inline void* xqc_pcalloc(xqc_memory_pool_t *pool, size_t size)
+static inline void *
+xqc_pcalloc(xqc_memory_pool_t *pool, size_t size)
 {
     void* p = xqc_palloc(pool, size);
     if (p) {

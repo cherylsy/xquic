@@ -62,7 +62,7 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
         if (rand_gen->rand_fd == -1){
 
             rand_gen->rand_fd = open("/dev/urandom", O_RDONLY|O_NONBLOCK);
-            if(rand_gen->rand_fd == -1){
+            if (rand_gen->rand_fd == -1) {
                 xqc_log(rand_gen->log, XQC_LOG_WARN, "|random|can not open /dev/urandom|\n");
                 return XQC_ERROR;
             }
@@ -73,8 +73,8 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
         while (total_read < rand_gen->rand_buf_size) {
 	
             bytes_read = read(rand_gen->rand_fd, 
-				           rand_gen->rand_buf.data + total_read, 
-				           rand_gen->rand_buf_size - total_read);
+				              rand_gen->rand_buf.data + total_read, 
+				              rand_gen->rand_buf_size - total_read);
 			
             if(bytes_read == -1){
 				
@@ -85,24 +85,23 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
                     break;
                 }
             }
-			
+
             if (bytes_read <= 0){
 
-                xqc_log(rand_gen->log, XQC_LOG_WARN,
-                                       "|random|fail to read bytes from /dev/urandom|");
-				
+                xqc_log(rand_gen->log, XQC_LOG_WARN, "|random|fail to read bytes from /dev/urandom|");
+
                 close(rand_gen->rand_fd);
                 rand_gen->rand_fd = -1;
                 break;
             }
-			
+
             total_read += bytes_read;
         }
-	 
+ 
         if(total_read < need_len){
             xqc_log(rand_gen->log, XQC_LOG_WARN,
-                                    "|random|can not generate rand buf|%zu|%zu|", total_read, need_len);
-	        return XQC_ERROR;			
+                    "|random|can not generate rand buf|%zu|%zu|", total_read, need_len);
+            return XQC_ERROR;			
         }
 		
 	    rand_gen->rand_buf_offset = 0;

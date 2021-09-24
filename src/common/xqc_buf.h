@@ -10,7 +10,7 @@ typedef struct {
     u_char      *start;
     u_char      *end;
 
-}xqc_buf_t;
+} xqc_buf_t;
 
 #endif /* _XQC_BUF_H_INCLUDED_ */
 
