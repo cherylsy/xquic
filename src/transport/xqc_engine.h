@@ -8,10 +8,28 @@
 #include <xquic/xquic.h>
 #include "src/crypto/xqc_tls_if.h"
 
+#define XQC_RESET_CNT_ARRAY_LEN 16384
+
 
 typedef enum {
     XQC_ENG_FLAG_RUNNING    = 1 << 0,
 } xqc_engine_flag_t;
+
+
+typedef struct xqc_alpn_registration_s {
+    xqc_list_head_t         head;
+
+    /* content of application level protocol */
+    char                   *alpn;
+
+    /* length of alpn string */
+    size_t                  alpn_len;
+
+    /* quic level callback functions for current alpn */
+    xqc_quic_callbacks_t    quic_cbs;
+
+} xqc_alpn_registration_t;
+
 
 typedef struct xqc_engine_s {
     /* for engine itself */
@@ -25,15 +43,14 @@ typedef struct xqc_engine_s {
     xqc_str_hash_table_t   *conns_hash_dcid;        /* For reset packet */
     xqc_pq_t               *conns_active_pq;        /* In process */
     xqc_wakeup_pq_t        *conns_wait_wakeup_pq;   /* Need wakeup after next tick time */
-#define XQC_RESET_CNT_ARRAY_LEN 16384
     uint8_t                 reset_sent_cnt[XQC_RESET_CNT_ARRAY_LEN]; /* remote addr hash */
     xqc_usec_t              reset_sent_cnt_cleared;
 
     /* for tls */
-    SSL_CTX                *ssl_ctx;                /* for ssl */
-    BIO_METHOD             *ssl_meth;               /* for ssl bio method */ 
-    xqc_engine_ssl_config_t       ssl_config;       /* ssl config, such as cipher suit, cert file path etc. */
-    xqc_ssl_session_ticket_key_t  session_ticket_key;
+    SSL_CTX                        *ssl_ctx;        /* for ssl */
+    BIO_METHOD                     *ssl_meth;       /* for ssl bio method */ 
+    xqc_engine_ssl_config_t         ssl_config;     /* ssl config, such as cipher suit, cert file path etc. */
+    xqc_ssl_session_ticket_key_t    session_ticket_key;
 
     /* common */
     xqc_log_t              *log;
@@ -41,9 +58,15 @@ typedef struct xqc_engine_s {
 
     /* for user */
     void                   *user_data;
-}xqc_engine_t;
 
-xqc_usec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
+    /* list of xqc_alpn_registration_t */
+    xqc_list_head_t         alpn_list;
+
+} xqc_engine_t;
+
+
+
+xqc_usec_t xqc_engine_wakeup_after(xqc_engine_t *engine);
 
 void xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engine_callback);
 
@@ -57,15 +80,18 @@ void xqc_engine_config_destroy(xqc_config_t *config);
 
 
 /**
- * @return >0 : user should call xqc_engine_main_logic after N ms
+ * @return > 0 : user should call xqc_engine_main_logic after N ms
  */
-xqc_usec_t xqc_engine_wakeup_after (xqc_engine_t *engine);
+xqc_usec_t xqc_engine_wakeup_after(xqc_engine_t *engine);
 
-xqc_connection_t * xqc_engine_conns_hash_find(xqc_engine_t *engine, const xqc_cid_t *cid, char type);
+xqc_connection_t *xqc_engine_conns_hash_find(xqc_engine_t *engine, const xqc_cid_t *cid, char type);
 
-void xqc_engine_process_conn (xqc_connection_t *conn, xqc_usec_t now);
+void xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now);
 
 void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * conn);
 
-#endif
+xqc_int_t xqc_engine_get_quic_callbacks_by_alpn(xqc_engine_t *engine, const char *alpn,
+    size_t alpn_len, xqc_quic_callbacks_t *cbs);
 
+
+#endif

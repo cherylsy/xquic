@@ -1,6 +1,7 @@
 #ifndef _XQC_H3_FRAME_H_
 #define _XQC_H3_FRAME_H_
 
+#include <xquic/xqc_http3.h>
 #include "src/http3/frame/xqc_h3_frame_defs.h"
 
 typedef union xqc_h3_frame_payload_s {

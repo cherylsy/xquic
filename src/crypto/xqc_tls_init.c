@@ -136,21 +136,6 @@ xqc_ssl_init_conn_config(xqc_connection_t *conn, const xqc_conn_ssl_config_t *sr
         xqc_log(conn->log, XQC_LOG_WARN, "|no transport parameter data|");
     }
 
-    if (alpn == NULL) {
-        conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
-
-    } else {
-        size_t len = strlen(alpn);
-        if (xqc_alpn_type_is_h3(alpn, len)) {
-            conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
-
-        } else if (xqc_alpn_type_is_hq(alpn, len)) {
-            conn->tlsref.alpn_num = XQC_ALPN_HQ_NUM;
-
-        } else {
-            conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
-        }
-    }
 
     return XQC_OK;
 }
@@ -279,7 +264,6 @@ xqc_server_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_e
 
     tlsref->conn = conn;
     tlsref->initial = 1;
-    tlsref->alpn_num = XQC_ALPN_DEFAULT_NUM;
     conn->xc_ssl = xqc_create_ssl(engine, conn, XQC_SERVER);
     if (conn->xc_ssl == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|create ssl error|");

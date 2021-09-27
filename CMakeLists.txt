@@ -77,6 +77,8 @@ set(
     "src/http3/qpack/stable/xqc_stable.c"
     "src/http3/qpack/dtable/xqc_dtable.c"
     "src/http3/xqc_h3_header.c"
+    "src/http3/xqc_h3_engine.c"
+    "src/http3/xqc_h3_defs.c"
 )
 
 

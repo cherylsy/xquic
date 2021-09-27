@@ -5,7 +5,7 @@
 #include "src/http3/xqc_h3_defs.h"
 #include "src/http3/xqc_h3_stream.h"
 #include "src/transport/xqc_conn.h"
-#include <xquic/xqc_h3.h>
+#include <xquic/xqc_http3.h>
 
 #define XQC_H3_SETTINGS_UNSET XQC_MAX_UINT64_VALUE
 
@@ -90,22 +90,16 @@ typedef struct xqc_h3_conn_s {
 extern const xqc_conn_callbacks_t h3_conn_callbacks;
 
 
-static inline void *
-xqc_conn_get_user_data(xqc_connection_t *conn)
-{
-    if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
-        return ((xqc_h3_conn_t*)conn->user_data)->user_data;
-
-    } else {
-        return conn->user_data;
-    }
-}
-
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
 
 void
 xqc_h3_conn_destroy(xqc_h3_conn_t *h3c);
+
+int
+xqc_h3_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_cid_t *cid,
+    void *user_data);
+
 
 /**
  * validate the uni stream creation event

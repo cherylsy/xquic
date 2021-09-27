@@ -38,6 +38,7 @@ typedef struct xqc_aead_crypter_st  xqc_aead_crypter_t;
 #define XQC_CRYPTO_CTX void *
 #endif 
 
+#define XQC_TLS_AEAD_OVERHEAD_MAX_LEN   16
 
 typedef XQC_AEAD_CTX    xqc_aead_ctx_t ;
 typedef XQC_CRYPTO_CTX  xqc_crypto_ctx_t ;

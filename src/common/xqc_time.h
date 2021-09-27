@@ -14,5 +14,17 @@
 int gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 
+typedef xqc_usec_t (*xqc_timestamp_pt)(void);
+
+/**
+ * @brief get realtime timestamp
+ */
+extern xqc_timestamp_pt xqc_realtime_timestamp;
+
+/**
+ * @brief get monotonic increasing timestamp
+ */
+extern xqc_timestamp_pt xqc_monotonic_timestamp;
+
 #endif /* _XQC_TIME_H_INCLUDED_ */
 

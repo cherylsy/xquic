@@ -426,7 +426,7 @@ xqc_create_stream_with_conn (xqc_connection_t *conn, xqc_stream_id_t stream_id, 
     stream->stream_encrypt_level = XQC_ENC_LEV_1RTT;
 
     stream->stream_conn = conn;
-    stream->stream_if = &conn->stream_callbacks;
+    stream->stream_if = &conn->quic_cbs.stream_cbs;
     stream->user_data = user_data;
     stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
     stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;

@@ -18,7 +18,6 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
 {
     xqc_cid_t dcid;
     xqc_cid_t scid;
-    xqc_conn_callbacks_t *callbacks = &engine->eng_callback.conn_callbacks;
 
     if (NULL == conn_ssl_config) {
         xqc_log(engine->log, XQC_LOG_ERROR,
@@ -40,9 +39,9 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
         return NULL;
     }
 
-    xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid,
-                                                        callbacks, conn_settings, server_host,
-                                                        no_crypto_flag, conn_ssl_config, alpn, user_data);
+    xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid, conn_settings,
+                                                        server_host, no_crypto_flag, 
+                                                        conn_ssl_config, alpn, user_data);
     if (xc == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR,
                 "|create connection error|");
@@ -59,29 +58,22 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
         memcpy(xc->peer_addr, peer_addr, peer_addrlen);
     }
 
-    xqc_log(engine->log, XQC_LOG_DEBUG,
-            "|xqc_connect|");
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|xqc_connect|");
 
-    if (xc->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
-        /* takeover transport layer callbacks */
-        xc->stream_callbacks = h3_stream_callbacks;
-        xc->conn_callbacks = h3_conn_callbacks;
+    xqc_conn_client_on_alpn(xc, alpn, strlen(alpn));
 
-    } else {
-        xc->stream_callbacks = engine->eng_callback.stream_callbacks;
-    }
-
-    /* conn_create should callback after tls_initial */
-    if (xc->conn_callbacks.conn_create_notify) {
-        if (xc->conn_callbacks.conn_create_notify(xc, &xc->scid_set.user_scid, user_data)) {
+    /* conn_create callback */
+    if (xc->quic_cbs.conn_cbs.conn_create_notify) {
+        if (xc->quic_cbs.conn_cbs.conn_create_notify(xc, &xc->scid_set.user_scid, user_data)) {
             xqc_conn_destroy(xc);
             return NULL;
         }
+
         xc->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    /* xqc_conn_destroy must be called before the connection is inserted into conns_active_pq */
-    if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)) {
+    /* 必须放到最后，xqc_conn_destroy必须在插入到conns_active_pq之前调用 */
+    if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)){
         if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
             return NULL;
         }
@@ -89,9 +81,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     }
 
     xqc_engine_main_logic_internal(engine, xc);
-
-    /* when the connection is destroyed in the main logic, we should return error to upper level */
-    if (xqc_engine_conns_hash_find(engine, &scid, 's') == NULL) {
+    if(xqc_engine_conns_hash_find(engine, &scid, 's') == NULL){ //用于当连接在main logic中destroy时，需要返回错误让上层感知
         return NULL;
     }
 
@@ -119,7 +109,6 @@ xqc_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
 xqc_connection_t *
 xqc_client_create_connection(xqc_engine_t *engine,
     xqc_cid_t dcid, xqc_cid_t scid,
-    const xqc_conn_callbacks_t *callbacks,
     const xqc_conn_settings_t *settings,
     const char * server_host,
     int no_crypto_flag,
@@ -127,10 +116,8 @@ xqc_client_create_connection(xqc_engine_t *engine,
     const char *alpn,
     void *user_data)
 {
-    xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid,
-                                           callbacks, settings, user_data,
+    xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid, settings, user_data, 
                                            XQC_CONN_TYPE_CLIENT);
-
     if (xc == NULL) {
         return NULL;
     }
@@ -151,6 +138,4 @@ xqc_client_create_connection(xqc_engine_t *engine,
     xqc_conn_destroy(xc);
     return NULL;
 }
-
-
 

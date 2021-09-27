@@ -249,7 +249,6 @@ struct xqc_tlsref
     xqc_connection_t       *conn;
     uint8_t                 initial;
     uint8_t                 resumption;
-    xqc_alpn_num            alpn_num;
     uint64_t                flags; //record handshake completed or recv retry packet
    
 #define hs_crypto_ctx crypto_ctx_store[XQC_ENC_LEV_INIT] 

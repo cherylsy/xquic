@@ -9,6 +9,99 @@ extern "C" {
 #endif
 
 
+/**
+ * @brief read flag of xqc_h3_request_read_notify_pt
+ */
+typedef enum {
+    XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
+    XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
+} xqc_request_notify_flag_t;
+
+
+/**
+ * @brief definition for http3 connection state callback function. including create and close
+ */
+typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, 
+    void *h3c_user_data);
+
+typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *h3c_user_data);
+
+typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid,
+    void *ping_user_data, void *h3c_user_data);
+
+typedef void (*xqc_h3_conn_update_cid_notify_pt)(xqc_h3_conn_t *h3_conn, const 
+    xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *h3c_user_data);
+
+/**
+ * @brief http3 connection callbacks with the same pattern of QUIC connection
+ */
+typedef xqc_save_token_pt       xqc_h3_conn_save_token_pt;
+typedef xqc_save_session_pt     xqc_h3_conn_save_session_pt;
+typedef xqc_save_trans_param_pt xqc_h3_conn_save_trans_param_pt;
+typedef xqc_cert_verify_pt      xqc_h3_conn_cert_verify_pt;
+typedef xqc_socket_write_pt     xqc_h3_conn_write_socket_pt;
+typedef xqc_send_mmsg_pt        xqc_h3_conn_send_mmsg_pt;
+
+typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *h3s_user_data);
+
+typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, 
+    xqc_request_notify_flag_t flag, void *h3s_user_data);
+
+
+/**
+ * @brief encode flags of http headeres
+ */
+typedef enum xqc_http3_nv_flag_s {
+    /**
+     * no flag is set. encode header with default strategy.
+     */
+    XQC_HTTP_HEADER_FLAG_NONE               = 0x00,
+
+    /**
+     * header's name and value shall be encoded as literal, and shall never be indexed.
+     */
+    XQC_HTTP_HEADER_FLAG_NEVER_INDEX        = 0x01,
+
+    /**
+     * header's value is variant and shall never be put into dynamic table and be indexed. this
+     * will reduce useless data in dynamic table and might increase the hit rate.
+     * 
+     * some headers might be frequent but with different values, it is a waste to put these value
+     * into dynamic table. application layer can use this flag to tell QPACK not to put value into
+     * dynamic table.
+     */
+    XQC_HTTP_HEADER_FLAG_NEVER_INDEX_VALUE  = 0x02
+
+} xqc_http3_nv_flag_t;
+
+
+typedef struct xqc_http_header_s {
+    /* name of http header */
+    struct iovec        name;
+
+    /* value of http header */
+    struct iovec        value;
+
+    /* flags of xqc_http3_nv_flag_t with OR operator */
+    uint8_t             flags;
+} xqc_http_header_t;
+
+
+typedef struct xqc_http_headers_s {
+    /* array of http headers */
+    xqc_http_header_t      *headers;
+
+    /* count of headers */
+    size_t                  count;
+
+    /* capacity of headers */
+    size_t                  capacity;
+
+    /* total byte count of headers */
+    size_t                  total_len;
+} xqc_http_headers_t;
+
+
 /* connection settings for http3 */
 typedef struct xqc_h3_conn_settings_s {
     /* MAX_FIELD_SECTION_SIZE of http3 */
@@ -22,8 +115,80 @@ typedef struct xqc_h3_conn_settings_s {
 
     /* MAX_BLOCKED_STREAMS */
     uint64_t qpack_blocked_streams;
+
 } xqc_h3_conn_settings_t;
 
+
+
+/**
+ * @brief http3 connection callbacks for application layer
+ */
+typedef struct xqc_h3_conn_callbacks_s {
+    /* http3 connection creation callback, REQUIRED for server, OPTIONAL for client */
+    xqc_h3_conn_notify_pt               h3_conn_create_notify;
+
+    /* http3 connection close callback */
+    xqc_h3_conn_notify_pt               h3_conn_close_notify;
+
+    /* handshake finished callback. which will be triggeered when HANDSHAKE_DONE is received */
+    xqc_h3_handshake_finished_pt        h3_conn_handshake_finished;
+
+    /* ping callback. which will be triggered when ping is acked */
+    xqc_h3_conn_ping_ack_notify_pt      h3_conn_ping_acked;            /* optional */
+
+    /* user cid updated callback, required for server and client */
+    xqc_h3_conn_update_cid_notify_pt    h3_conn_update_cid_notify;
+
+    /* save QUIC connection token callback, REQUIRED for client */
+    xqc_h3_conn_save_token_pt           h3_conn_save_token;
+
+    /* save session ticket callback, REQUIRED for client */
+    xqc_h3_conn_save_session_pt         h3_conn_save_session;
+
+    /* save transport parameter callback, REQUIRED for client */
+    xqc_h3_conn_save_trans_param_pt     h3_conn_save_tp;
+
+    /* verify certificate callback, REQUIRED for client */
+    xqc_h3_conn_cert_verify_pt          h3_conn_verify_cert;
+
+    /* write socket callback, ALTERNATIVE with h3_conn_send_mmsg */
+    xqc_h3_conn_write_socket_pt         h3_conn_write_socket;
+
+    /* write socket with sendmmsg callback, ALTERNATIVE with h3_conn_write_socket */
+    xqc_h3_conn_send_mmsg_pt            h3_conn_send_mmsg;
+
+} xqc_h3_conn_callbacks_t;
+
+
+/** 
+ * @brief http3 request callbacks for application layer
+ */
+typedef struct xqc_h3_request_callbacks_s {
+    /* request read notify callback. which will be triggered after received http headers or body */
+    xqc_h3_request_read_notify_pt   h3_request_read_notify;
+
+    /* request write notify callback. when triggered, users can continue to send headers or body */
+    xqc_h3_request_notify_pt        h3_request_write_notify;
+
+    /* request creation notify. it will be triggered after a request was created, and is required
+       for server, optional for client */
+    xqc_h3_request_notify_pt        h3_request_create_notify;
+
+    /* request close notify. which will be triggered after a request was closed */
+    xqc_h3_request_notify_pt        h3_request_close_notify;
+
+} xqc_h3_request_callbacks_t;
+
+
+typedef struct xqc_h3_callbacks_s {
+
+    /* http3 connection callbacks */
+    xqc_h3_conn_callbacks_t     h3c_cbs;
+
+    /* http3 request callbacks */
+    xqc_h3_request_callbacks_t  h3r_cbs;
+
+} xqc_h3_callbacks_t;
 
 
 /**
@@ -33,8 +198,11 @@ typedef struct xqc_h3_conn_settings_s {
  * @return xqc_int_t XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_h3_init(xqc_engine_t *engine);
+xqc_int_t xqc_h3_ctx_init(xqc_engine_t *engine, xqc_h3_callbacks_t *h3_cbs);
 
+
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_h3_ctx_destroy(xqc_engine_t *engine);
 
 
 /**

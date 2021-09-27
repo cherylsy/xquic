@@ -20,6 +20,11 @@
 /* connection active cid limit */
 #define XQC_CONN_ACTIVE_CID_LIMIT       8
 
+/**
+ * used to indicate the max message count of iovec in sendmmsg
+ */
+#define XQC_MAX_SEND_MSG_ONCE           32
+
 
 #define XQC_VERSION_V1_VALUE        0x00000001
 #define XQC_IDRAFT_VER_29_VALUE     0xFF00001D
@@ -40,16 +45,12 @@ extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
  */
 extern const char* const xqc_crypto_initial_salt[];
 
-/**
- * ALPN definitions
- */
-#define XQC_ALPN_H3         "h3"
-#define XQC_ALPN_H3_29      "h3-29"
 
 #define XQC_ALPN_TRANSPORT  "transport"
 
 #define XQC_ALPN_LIST       "\x2h3\x5h3-29\xahq-interop\x5hq-29\x9transport"
 
+#if 0
 xqc_bool_t
 xqc_alpn_type_is_h3(const unsigned char *alpn, uint8_t alpn_len);
 
@@ -59,7 +60,6 @@ xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len);
 xqc_bool_t
 xqc_alpn_type_is_hq(const unsigned char *alpn, uint8_t alpn_len);
 
-extern const char* const xqc_h3_alpn[];
-
+#endif
 
 #endif

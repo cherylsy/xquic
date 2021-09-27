@@ -1,4 +1,5 @@
 #include "src/http3/xqc_h3_conn.h"
+#include "src/http3/xqc_h3_engine.h"
 
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_stream.h"
@@ -18,6 +19,59 @@ xqc_h3_conn_settings_t default_peer_h3_conn_settings = {
     .max_field_section_size     = XQC_H3_SETTINGS_UNSET,
     .qpack_blocked_streams      = XQC_H3_SETTINGS_UNSET,
     .qpack_max_table_capacity   = XQC_H3_SETTINGS_UNSET,
+};
+
+xqc_int_t
+xqc_h3_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data);
+
+xqc_int_t
+xqc_h3_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data);
+
+void
+xqc_h3_conn_handshake_finished(xqc_connection_t *conn, void *user_data);
+
+void
+xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data,
+    void *user_data);
+
+void
+xqc_h3_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid,
+    const xqc_cid_t *new_cid, void *user_data);
+
+void
+xqc_h3_conn_save_token(const unsigned char *token, uint32_t token_len, void *conn_user_data);
+
+void
+xqc_h3_conn_save_session(const char *session, size_t session_len, void *conn_user_data);
+
+void
+xqc_h3_conn_save_tp(const char *tp, size_t tp_len, void *conn_user_data);
+
+int
+xqc_h3_conn_cert_verify(const unsigned char *certs[], const size_t cert_len[], size_t certs_len,
+    void *conn_user_data);
+
+ssize_t
+xqc_h3_conn_write_socket(const unsigned char *buf, size_t size, const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, void *conn_user_data);
+
+ssize_t
+xqc_h3_conn_send_mmsg(const struct iovec *msg_iov, unsigned int vlen,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
+
+/* QUIC level connection and streams callback */
+const xqc_conn_callbacks_t h3_conn_callbacks = {
+    .conn_create_notify         = xqc_h3_conn_create_notify,
+    .conn_close_notify          = xqc_h3_conn_close_notify,
+    .conn_handshake_finished    = xqc_h3_conn_handshake_finished,
+    .conn_ping_acked            = xqc_h3_conn_ping_acked_notify,
+    .conn_update_cid_notify     = xqc_h3_conn_update_cid_notify,
+    .save_token                 = xqc_h3_conn_save_token,
+    .save_session_cb            = xqc_h3_conn_save_session,
+    .save_tp_cb                 = xqc_h3_conn_save_tp,
+    .cert_verify_cb             = xqc_h3_conn_cert_verify,
+    .write_socket               = xqc_h3_conn_write_socket,
+    .write_mmsg                 = xqc_h3_conn_send_mmsg,
 };
 
 
@@ -126,10 +180,10 @@ xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t *
 }
 
 
-struct sockaddr *
-xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn, socklen_t *local_addr_len)
+xqc_int_t
+xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t *local_addr_len)
 {
-    return xqc_conn_get_local_addr(h3_conn->conn, local_addr_len);
+    return xqc_conn_get_local_addr(h3c->conn, addr, local_addr_len);
 }
 
 
@@ -217,6 +271,24 @@ const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb = {
     .write_ins_cb = xqc_h3_conn_send_ins
 };
 
+
+xqc_int_t
+xqc_h3_conn_init_callbacks(xqc_h3_conn_t *h3c)
+{
+    xqc_h3_callbacks_t h3_cbs = {0};
+    xqc_int_t ret = xqc_h3_ctx_get_app_callbacks(&h3_cbs);
+    if (XQC_OK != ret) {
+        xqc_log(h3c->log, XQC_LOG_ERROR, "|can't get app callbacks, not initialized?");
+        return ret;
+    }
+
+    h3c->h3_conn_callbacks = h3_cbs.h3c_cbs;
+    h3c->h3_server_accept = h3_cbs.h3_server_accept;
+
+    return XQC_OK;
+}
+
+
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 {
@@ -232,7 +304,7 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 
     h3c->control_stream_out = NULL;
 
-    h3c->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
+    xqc_h3_conn_init_callbacks(h3c);
 
     h3c->local_h3_conn_settings = default_local_h3_conn_settings;
     h3c->peer_h3_conn_settings = default_peer_h3_conn_settings;
@@ -486,13 +558,6 @@ xqc_h3_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_ci
     }
 }
 
-const xqc_conn_callbacks_t h3_conn_callbacks = {
-    .conn_create_notify         = xqc_h3_conn_create_notify,
-    .conn_close_notify          = xqc_h3_conn_close_notify,
-    .conn_handshake_finished    = xqc_h3_conn_handshake_finished,
-    .conn_ping_acked            = xqc_h3_conn_ping_acked_notify,
-    .conn_update_cid_notify     = xqc_h3_conn_update_cid_notify,
-};
 
 xqc_bool_t
 xqc_h3_conn_is_goaway_recved(xqc_h3_conn_t *h3c, uint64_t stream_id)
@@ -610,5 +675,64 @@ xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c)
         }
     }
     return XQC_OK;
+}
+
+void
+xqc_h3_conn_save_token(const unsigned char *token, uint32_t token_len, void *conn_user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)conn_user_data;
+    return h3c->h3_conn_callbacks.h3_conn_save_token(token, token_len, h3c->user_data);
+}
+
+void
+xqc_h3_conn_save_session(const char *session, size_t session_len, void *conn_user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)conn_user_data;
+    return h3c->h3_conn_callbacks.h3_conn_save_session(session, session_len, h3c->user_data);
+}
+
+void
+xqc_h3_conn_save_tp(const char *tp, size_t tp_len, void *conn_user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)conn_user_data;
+    return h3c->h3_conn_callbacks.h3_conn_save_tp(tp, tp_len, h3c->user_data);
+}
+
+int
+xqc_h3_conn_cert_verify(const unsigned char *certs[], const size_t cert_len[], size_t certs_len,
+    void *conn_user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)conn_user_data;
+    return h3c->h3_conn_callbacks.h3_conn_save_tp(certs, cert_len, certs_len, h3c->user_data);
+}
+
+ssize_t
+xqc_h3_conn_write_socket(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)conn_user_data;
+    if (h3c) {
+        return h3c->h3_conn_callbacks.h3_conn_write_socket(buf, size, peer_addr, peer_addrlen, 
+                                                           h3c->user_data);
+
+    } else {
+        return h3c->h3_conn_callbacks.h3_conn_write_socket(buf, size, peer_addr, peer_addrlen, 
+                                                           conn_user_data);
+    }
+}
+
+ssize_t
+xqc_h3_conn_send_mmsg(const struct iovec *msg_iov, unsigned int vlen,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)conn_user_data;
+    if (h3c) {
+        return h3c->h3_conn_callbacks.h3_conn_send_mmsg(msg_iov, vlen, peer_addr, peer_addrlen, 
+                                                        h3c->user_data);
+
+    } else {
+        return h3c->h3_conn_callbacks.h3_conn_send_mmsg(msg_iov, vlen, peer_addr, peer_addrlen, 
+                                                        conn_user_data);
+    }
 }
 

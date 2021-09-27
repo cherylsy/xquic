@@ -228,7 +228,7 @@ xqc_conn_init_flow_ctl(xqc_connection_t *conn)
 
 xqc_connection_t *
 xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
-    const xqc_conn_callbacks_t *callbacks, const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type)
+    const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type)
 {
     xqc_connection_t *xc = NULL;
     xqc_memory_pool_t *pool = xqc_create_pool(engine->config->conn_pool_size);
@@ -276,7 +276,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
 
     xc->engine = engine;
     xc->log = engine->log;
-    xc->conn_callbacks = *callbacks;
+    // xc->conn_callbacks = *callbacks;
     xc->user_data = user_data;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
@@ -354,9 +354,9 @@ fail:
 
 
 xqc_connection_t *
-xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, socklen_t local_addrlen,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_cid_t *dcid, xqc_cid_t *scid,
-    xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data)
+xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
+    socklen_t local_addrlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_settings_t *settings, void *user_data)
 {
     xqc_connection_t *conn;
     xqc_cid_t new_scid;
@@ -379,9 +379,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
         }
     }
 
-    conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
-                           settings, user_data, XQC_CONN_TYPE_SERVER);
-
+    conn = xqc_conn_create(engine, dcid, &new_scid, settings, user_data, XQC_CONN_TYPE_SERVER);
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
         return NULL;
@@ -399,7 +397,8 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
             goto fail;
         }
 
-        xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|", xqc_dcid_str(&conn->original_dcid), conn);
+        xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|",
+                xqc_dcid_str(&conn->original_dcid), conn);
     }
 
     xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
@@ -414,15 +413,6 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
-    if (engine->eng_callback.server_accept) {
-        if (engine->eng_callback.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
-            xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
-            XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
-            goto fail;
-        }
-        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
-    }
-
     return conn;
 
 fail:
@@ -430,31 +420,46 @@ fail:
     return NULL;
 }
 
-void
-xqc_conn_server_on_alpn(xqc_connection_t *conn)
+
+xqc_int_t
+xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|alpn_num:%d|", conn->tlsref.alpn_num);
-    if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
-        /* take over transport layer callback */
-        conn->stream_callbacks = h3_stream_callbacks;
-        conn->conn_callbacks = h3_conn_callbacks;
-
-    } else if (conn->tlsref.alpn_num == XQC_ALPN_HQ_NUM) {
-        conn->stream_callbacks = conn->engine->eng_callback.hq_stream_callbacks;
-
-    } else {
-        conn->stream_callbacks = conn->engine->eng_callback.stream_callbacks;
+    /* set quic callbacks to quic connection */
+    xqc_int_t ret =
+        xqc_engine_get_quic_callbacks_by_alpn(conn->engine, alpn, alpn_len, &conn->quic_cbs);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
+        return ret;
     }
 
-    /* do callback */
-    if (conn->conn_callbacks.conn_create_notify) {
-        if (conn->conn_callbacks.conn_create_notify(conn, &conn->scid_set.user_scid, conn->user_data)) {
-            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
-            return;
+    return XQC_OK;
+}
+
+
+xqc_int_t
+xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len)
+{
+    /* set quic callbacks to quic connection */
+    xqc_int_t ret =
+        xqc_engine_get_quic_callbacks_by_alpn(conn->engine, alpn, alpn_len, &conn->quic_cbs);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
+        return ret;
+    }
+
+    /* alpn connection accept */
+    if (conn->quic_cbs.server_accept) {
+        if (conn->quic_cbs.server_accept(conn->engine, conn, &conn->scid_set.user_scid,
+                                               conn->user_data) < 0)
+        {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|connection refused by application level|");
         }
         conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+    return XQC_OK;
 }
+
 
 void
 xqc_conn_destroy(xqc_connection_t *xc)
@@ -497,8 +502,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_destroy_stream(stream);
     }
 
-    if (xc->conn_callbacks.conn_close_notify && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
-        xc->conn_callbacks.conn_close_notify(xc, &xc->scid_set.user_scid, xc->user_data);
+    if (xc->quic_cbs.conn_cbs.conn_close_notify
+        && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST))
+    {
+        xc->quic_cbs.conn_cbs.conn_close_notify(xc, &xc->scid_set.user_scid, xc->user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
@@ -539,7 +546,6 @@ xqc_conn_destroy(xqc_connection_t *xc)
     if (xc->conn_pool) {
         xqc_destroy_pool(xc->conn_pool);
     }
-
 }
 
 void
@@ -2445,8 +2451,8 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|conn:%p|", conn);
         xqc_conn_handshake_complete(conn);
 
-        if (conn->conn_callbacks.conn_handshake_finished) {
-            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
+        if (conn->quic_cbs.conn_cbs.conn_handshake_finished) {
+            conn->quic_cbs.conn_cbs.conn_handshake_finished(conn, conn->user_data);
         }
     }
 
@@ -2592,9 +2598,9 @@ xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
         if (scid->state == XQC_CID_USED
             && xqc_cid_is_equal(&scid_set->user_scid, &scid->cid) != XQC_OK)
         {
-            if (conn->conn_callbacks.conn_update_cid_notify) {
-                conn->conn_callbacks.conn_update_cid_notify(conn, &scid_set->user_scid,
-                                                            &scid->cid, conn->user_data);
+            if (conn->quic_cbs.conn_cbs.conn_update_cid_notify) {
+                conn->quic_cbs.conn_cbs.conn_update_cid_notify(conn, &scid_set->user_scid,
+                                                               &scid->cid, conn->user_data);
             }
 
             xqc_cid_copy(&scid_set->user_scid, &scid->cid);
@@ -2624,5 +2630,3 @@ xqc_conn_has_hsk_keys(xqc_connection_t *c)
 {
     return xqc_tls_check_hs_tx_key_ready(c) && xqc_tls_check_hs_rx_key_ready(c);
 }
-
-

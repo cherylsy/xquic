@@ -58,6 +58,10 @@ xqc_config_t default_server_config = {
 };
 
 
+void
+xqc_engine_free_alpn_list(xqc_engine_t *engine);
+
+
 xqc_int_t
 xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
 {
@@ -420,6 +424,9 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         xqc_set_keylog(engine);
     }
 
+    /* init alpn list */
+    xqc_init_list_head(&engine->alpn_list);
+
     return engine;
 
 fail:
@@ -456,6 +463,8 @@ xqc_engine_destroy(xqc_engine_t *engine)
     if (engine->log) {
         xqc_log(engine->log, XQC_LOG_DEBUG, "|begin|");
     }
+
+    xqc_engine_free_alpn_list(engine);
 
     /* free destroy first, then destroy others */
     if (engine->conns_active_pq) {
@@ -647,7 +656,7 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
     {
         if (conn->engine->eng_callback.ready_to_create_path_notify) {
             conn->engine->eng_callback.ready_to_create_path_notify(&conn->scid_set.user_scid, 
-                                                                   xqc_conn_get_user_data(conn));
+                                                                   conn->user_data);
         }
         conn->conn_flag &= ~XQC_CONN_FLAG_NEW_CID_RECEIVED;
     }
@@ -886,7 +895,6 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
     {
         conn = xqc_conn_server_create(engine, local_addr, local_addrlen,
                                       peer_addr, peer_addrlen, &dcid, &scid,
-                                      &(engine->eng_callback.conn_callbacks),
                                       &default_conn_settings, user_data);
         if (conn == NULL) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
@@ -984,3 +992,129 @@ xqc_engine_config_get_cid_len(xqc_engine_t *engine)
     return engine->config->cid_len;
 }
 
+
+xqc_int_t
+xqc_engine_add_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
+    xqc_quic_callbacks_t *quic_cbs)
+{
+    xqc_alpn_registration_t *registration = xqc_malloc(sizeof(xqc_alpn_registration_t));
+    if (NULL == registration) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|create alpn registration error!");
+        return -XQC_EMALLOC;
+    }
+
+    registration->alpn = xqc_malloc(alpn_len + 1);
+    if (NULL == registration->alpn) {
+        xqc_log(engine->log, XQC_LOG_ERROR, "|create alpn buffer error!");
+        xqc_free(registration);
+        return -XQC_EMALLOC;
+    }
+
+    xqc_init_list_head(&registration->head);
+    xqc_memcpy(registration->alpn, alpn, alpn_len);
+    registration->alpn_len = alpn_len;
+    registration->quic_cbs = *quic_cbs;
+
+    xqc_list_add_tail(&engine->alpn_list, &registration->head);
+
+    return XQC_OK;
+}
+
+
+xqc_int_t
+xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
+    xqc_quic_callbacks_t *quic_cbs)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_alpn_registration_t *alpn_reg;
+
+    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+        alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
+        if (alpn_len == alpn_reg->alpn_len
+            && xqc_memcmp(alpn, alpn_reg->alpn, alpn_len) == 0)
+        {
+            /* if found registration, update */
+            alpn_reg->quic_cbs = *quic_cbs;
+            return XQC_OK;
+        }
+    }
+
+    /* not registered, add into alpn_list */
+    return xqc_engine_add_alpn(engine, alpn, alpn_len, quic_cbs);
+}
+
+
+xqc_int_t
+xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_alpn_registration_t *alpn_reg;
+
+    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+        alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
+        if (alpn_len == alpn_reg->alpn_len
+            && xqc_memcmp(alpn, alpn_reg->alpn, alpn_len) == 0)
+        {
+            /* remove registration */
+            if (alpn_reg) {
+                if (alpn_reg->alpn) {
+                    xqc_free(alpn_reg->alpn);
+                }
+
+                xqc_free(alpn_reg);
+            }
+
+            xqc_list_del(&alpn_reg->head);
+            return XQC_OK;
+        }
+    }
+
+    return -XQC_EALPN_NOT_REGISTERED;
+}
+
+
+
+xqc_int_t
+xqc_engine_get_quic_callbacks_by_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
+    xqc_quic_callbacks_t *cbs)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_alpn_registration_t *alpn_reg;
+
+    if (NULL == alpn || 0 == alpn_len) {
+        return -XQC_EPARAM;
+    }
+
+    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+        alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
+        if (alpn_len == alpn_reg->alpn_len
+            && xqc_memcmp(alpn, alpn_reg->alpn, alpn_len) == 0)
+        {
+            /* if found registration, update */
+            *cbs = alpn_reg->quic_cbs;
+            return XQC_OK;
+        }
+    }
+
+    return -XQC_EALPN_NOT_SUPPORTED;
+}
+
+void
+xqc_engine_free_alpn_list(xqc_engine_t *engine)
+{
+    /* free alpn registrations */
+    xqc_list_head_t *pos, *next;
+    xqc_alpn_registration_t *alpn_reg;
+    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+        alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
+        if (alpn_reg) {
+            if (alpn_reg->alpn) {
+                xqc_free(alpn_reg->alpn);
+            }
+
+            xqc_free(alpn_reg);
+        }
+
+        xqc_list_del(&alpn_reg->head);
+    }
+}

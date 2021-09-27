@@ -1,6 +1,7 @@
 #ifndef XQUIC_XQC_H3_HEADER_H
 #define XQUIC_XQC_H3_HEADER_H
 
+#include <xquic/xqc_http3.h>
 #include "src/common/xqc_common_inc.h"
 #include "src/http3/xqc_h3_defs.h"
 
@@ -67,7 +68,9 @@ xqc_h3_headers_initial(xqc_http_headers_t *headers);
 
 
 
-
+/**
+ * from ngtcp2
+ */
 typedef enum {
     XQC_HDR__AUTHORITY = 0,
     XQC_HDR__PATH,

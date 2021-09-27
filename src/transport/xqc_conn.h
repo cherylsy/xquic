@@ -195,6 +195,7 @@ typedef struct {
     xqc_usec_t              fc_last_window_update_time;
 } xqc_conn_flow_ctl_t;
 
+
 #ifdef XQC_PRINT_SECRET
 #define XQC_SECRET_HEX_MAX 129
 typedef enum xqc_secret_type_s {
@@ -207,9 +208,11 @@ typedef enum xqc_secret_type_s {
 } xqc_secret_type_t;
 #endif
 
-struct xqc_connection_s{
-    xqc_conn_callbacks_t    conn_callbacks;
-    xqc_stream_callbacks_t  stream_callbacks;
+
+struct xqc_connection_s {
+
+    xqc_quic_callbacks_t    quic_cbs;   /* callback for quic connection and streams */
+
     xqc_conn_settings_t     conn_settings;
     xqc_engine_t           *engine;
 
@@ -309,19 +312,22 @@ void
 xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
 xqc_connection_t *
-xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid, const xqc_conn_callbacks_t *callbacks,
+xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type);
 
 xqc_connection_t *
-xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, socklen_t local_addrlen,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_cid_t *dcid, xqc_cid_t *scid,
-    xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data);
+xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
+    socklen_t local_addrlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_settings_t *settings, void *user_data);
 
 void
 xqc_conn_destroy(xqc_connection_t *xc);
 
-void
-xqc_conn_server_on_alpn(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
+
+xqc_int_t
+xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
 
 ssize_t
 xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
