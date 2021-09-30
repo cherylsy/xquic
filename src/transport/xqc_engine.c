@@ -577,6 +577,29 @@ xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engin
 }
 
 
+xqc_int_t
+xqc_engine_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
+    socklen_t peer_addrlen, void *user_data)
+{
+    unsigned char buf[XQC_PACKET_OUT_SIZE];
+    xqc_int_t size = xqc_gen_reset_packet(dcid, buf,
+                                          engine->config->reset_token_key,
+                                          engine->config->reset_token_keylen);
+    if (size < 0) {
+        return size;
+    }
+
+    size = (xqc_int_t)engine->eng_callback.write_socket(
+        buf, (size_t)size, peer_addr, peer_addrlen, user_data);
+    if (size < 0) {
+        return size;
+    }
+
+    xqc_log(engine->log, XQC_LOG_INFO, "|<==|xqc_engine_send_reset ok|size:%d|", size);
+    return XQC_OK;
+}
+
+
 #define XQC_CHECK_UNDECRYPT_PACKETS() do {                      \
     if (XQC_UNLIKELY(xqc_conn_has_undecrypt_packets(conn))) {   \
         xqc_conn_process_undecrypt_packets(conn);               \
@@ -649,14 +672,13 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_try_add_new_conn_id error|");
     }
 
-
     /* for multi-path */
     if ((conn->conn_flag & XQC_CONN_FLAG_NEW_CID_RECEIVED)
         && xqc_conn_check_unused_cids(conn) == XQC_OK)
     {
-        if (conn->engine->eng_callback.ready_to_create_path_notify) {
-            conn->engine->eng_callback.ready_to_create_path_notify(&conn->scid_set.user_scid, 
-                                                                   conn->user_data);
+        if (conn->quic_cbs.conn_cbs.ready_to_create_path_notify) {
+            conn->quic_cbs.conn_cbs.ready_to_create_path_notify(&conn->scid_set.user_scid, 
+                                                                conn->user_data);
         }
         conn->conn_flag &= ~XQC_CONN_FLAG_NEW_CID_RECEIVED;
     }
@@ -784,7 +806,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
         } else {
             conn->last_ticked_time = now;
 
-            if (engine->eng_callback.write_mmsg) {
+            if (conn->quic_cbs.conn_cbs.write_mmsg) {
                 xqc_conn_transmit_pto_probe_packets_batch(conn);
                 xqc_conn_retransmit_lost_packets_batch(conn);
                 xqc_conn_send_packets_batch(conn);
@@ -911,7 +933,7 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
             }
             xqc_log(engine->log, XQC_LOG_INFO, "|fail to find connection, send reset|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
-            ret = xqc_conn_send_reset(engine, &scid, peer_addr, peer_addrlen, user_data);
+            ret = xqc_engine_send_reset(engine, &scid, peer_addr, peer_addrlen, user_data);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
             }

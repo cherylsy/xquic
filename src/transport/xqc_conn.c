@@ -448,9 +448,9 @@ xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_
     }
 
     /* alpn connection accept */
-    if (conn->quic_cbs.server_accept) {
-        if (conn->quic_cbs.server_accept(conn->engine, conn, &conn->scid_set.user_scid,
-                                               conn->user_data) < 0)
+    if (conn->engine->eng_callback.server_accept) {
+        if (conn->engine->eng_callback.server_accept(conn->engine, conn, &conn->scid_set.user_scid,
+                                                     conn->user_data) < 0)
         {
             xqc_log(conn->log, XQC_LOG_ERROR, "|connection refused by application level|");
         }
@@ -611,8 +611,8 @@ typedef enum {
 ssize_t
 xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 {
-    ssize_t ret = conn->engine->eng_callback.write_mmsg(iov, cnt,
-                                                        (struct sockaddr *)conn->peer_addr, conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    ssize_t ret = conn->quic_cbs.conn_cbs.write_mmsg(iov, cnt, (struct sockaddr *)conn->peer_addr,
+                                                     conn->peer_addrlen, conn->user_data);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|error send mmsg|");
         if (ret == XQC_SOCKET_ERROR) {
@@ -1004,8 +1004,8 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 ssize_t
 xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
 {
-    ssize_t sent = conn->engine->eng_callback.write_socket(data, len, (struct sockaddr*)conn->peer_addr,
-                                                           conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    ssize_t sent = conn->quic_cbs.conn_cbs.write_socket(data, len,
+        (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, conn->user_data);
     if (sent != len) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "|write_socket error|conn:%p|size:%ud|sent:%z|", conn, len, sent);
@@ -1469,29 +1469,6 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 
 
 xqc_int_t
-xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, void *user_data)
-{
-    unsigned char buf[XQC_PACKET_OUT_SIZE];
-    xqc_int_t size = xqc_gen_reset_packet(dcid, buf,
-                                          engine->config->reset_token_key,
-                                          engine->config->reset_token_keylen);
-    if (size < 0) {
-        return size;
-    }
-
-    size = (xqc_int_t)engine->eng_callback.write_socket(buf, (size_t)size,
-                                                        peer_addr, peer_addrlen, user_data);
-    if (size < 0) {
-        return size;
-    }
-
-    xqc_log(engine->log, XQC_LOG_INFO, "|<==|xqc_conn_send_reset ok|size:%d|", size);
-    return XQC_OK;
-}
-
-
-xqc_int_t
 xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len)
 {
     xqc_engine_t *engine = conn->engine;
@@ -1509,8 +1486,8 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         return size;
     }
 
-    size = (xqc_int_t)engine->eng_callback.write_socket(buf, (size_t)size, (struct sockaddr*)conn->peer_addr,
-                                                        conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    size = (xqc_int_t)conn->quic_cbs.conn_cbs.write_socket(
+        buf, (size_t)size, (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, conn->user_data);
     if (size < 0) {
         return size;
     }

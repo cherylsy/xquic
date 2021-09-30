@@ -201,9 +201,9 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     callbacks->hp_mask = xqc_hp_mask_cb;
     callbacks->recv_retry = xqc_tls_recv_retry_cb;
 
-    tlsref->save_session_cb = engine->eng_callback.save_session_cb;
-    tlsref->save_tp_cb = engine->eng_callback.save_tp_cb;
-    tlsref->cert_verify_cb = engine->eng_callback.cert_verify_cb;
+    tlsref->save_session_cb = conn->quic_cbs.conn_cbs.save_session_cb;
+    tlsref->save_tp_cb = conn->quic_cbs.conn_cbs.save_tp_cb;
+    tlsref->cert_verify_cb = conn->quic_cbs.conn_cbs.cert_verify_cb;
 
     xqc_trans_settings_t *settings = &conn->local_settings;
     if (no_crypto_flag == 1) {
@@ -419,7 +419,7 @@ xqc_cert_verify_callback(int preverify_ok, X509_STORE_CTX *ctx)
 
     if (conn->tlsref.cert_verify_cb != NULL) {
         if (conn->tlsref.cert_verify_cb((const unsigned char **)certs_array, certs_len, 
-                                        certs_array_len, xqc_conn_get_user_data(conn)) < 0) 
+                                        certs_array_len, conn->user_data) < 0) 
         {
             preverify_ok = XQC_SSL_FAIL;
 

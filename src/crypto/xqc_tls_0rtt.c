@@ -190,9 +190,8 @@ xqc_new_session_cb(SSL *ssl, SSL_SESSION *session)
         if (data_len == 0 || p_data == NULL) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|save new session  error|");
             ret = -1;
-
-        } else {
-            conn->tlsref.save_session_cb(p_data, data_len, xqc_conn_get_user_data(conn));
+        }else{
+            conn->tlsref.save_session_cb(p_data, data_len, conn->user_data);
         }
         BIO_free(m_f); //free
         return ret;

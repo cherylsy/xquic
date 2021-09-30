@@ -57,12 +57,12 @@ xqc_h3_ctx_destroy(xqc_engine_t *engine)
 
 
 xqc_int_t
-xqc_h3_ctx_get_app_callbacks(xqc_h3_callbacks_t *h3_cbs)
+xqc_h3_ctx_get_app_callbacks(xqc_h3_callbacks_t **h3_cbs)
 {
     if (NULL == h3_engine) {
         return -XQC_EFATAL;
     }
 
-    *h3_cbs = h3_engine->h3_cbs;
+    *h3_cbs = &h3_engine->h3_cbs;
     return XQC_OK;
 }

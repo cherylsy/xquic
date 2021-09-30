@@ -3,7 +3,7 @@
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_engine.h"
 #include "src/http3/xqc_h3_conn.h"
-#include "src/http3/xqc_h3_engine.h"
+#include "src/http3/xqc_h3_ctx.h"
 
 xqc_h3_request_t*
 xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)
@@ -84,14 +84,14 @@ xqc_h3_request_header_initial(xqc_h3_request_header_t * h3_header)
 xqc_int_t
 xqc_h3_request_init_callbacks(xqc_h3_request_t *h3r)
 {
-    xqc_h3_callbacks_t h3_cbs = {0};
+    xqc_h3_callbacks_t *h3_cbs = NULL;
     xqc_int_t ret = xqc_h3_ctx_get_app_callbacks(&h3_cbs);
-    if (XQC_OK != ret) {
+    if (XQC_OK != ret || h3_cbs == NULL) {
         xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|can't get app callbacks, not initialized ?");
         return ret;
     }
 
-    h3r->request_if = &h3_cbs.h3r_cbs;
+    h3r->request_if = &h3_cbs->h3r_cbs;
 
     return XQC_OK;
 }

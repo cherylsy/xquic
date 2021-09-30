@@ -954,7 +954,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     hex_print(c->conn_token,c->conn_token_len);*/
 
     //存储token
-    c->engine->eng_callback.save_token(c->conn_token, c->conn_token_len, c->user_data);
+    c->quic_cbs.conn_cbs.save_token(c->conn_token, c->conn_token_len, c->user_data);
 
     /* re-initiate the handshake process */
     c->conn_state = XQC_CONN_STATE_CLIENT_INIT;

@@ -919,7 +919,7 @@ xqc_write_transport_params(xqc_connection_t * conn,
     }
 
     if (conn->tlsref.save_tp_cb != NULL) {
-        conn->tlsref.save_tp_cb(tp_buf, tp_data_len, xqc_conn_get_user_data(conn));
+        conn->tlsref.save_tp_cb(tp_buf, tp_data_len, conn->user_data);
     }
 
     return XQC_OK;

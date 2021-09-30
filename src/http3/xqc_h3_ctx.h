@@ -5,7 +5,7 @@
 
 
 xqc_int_t
-xqc_h3_ctx_get_app_callbacks(xqc_h3_callbacks_t *h3_cbs);
+xqc_h3_ctx_get_app_callbacks(xqc_h3_callbacks_t **h3_cbs);
 
 
 #endif

@@ -1,5 +1,5 @@
 #include "src/http3/xqc_h3_conn.h"
-#include "src/http3/xqc_h3_engine.h"
+#include "src/http3/xqc_h3_ctx.h"
 
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_stream.h"
@@ -275,15 +275,14 @@ const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb = {
 xqc_int_t
 xqc_h3_conn_init_callbacks(xqc_h3_conn_t *h3c)
 {
-    xqc_h3_callbacks_t h3_cbs = {0};
+    xqc_h3_callbacks_t *h3_cbs = NULL;
     xqc_int_t ret = xqc_h3_ctx_get_app_callbacks(&h3_cbs);
-    if (XQC_OK != ret) {
+    if (XQC_OK != ret || h3_cbs == NULL) {
         xqc_log(h3c->log, XQC_LOG_ERROR, "|can't get app callbacks, not initialized?");
         return ret;
     }
 
-    h3c->h3_conn_callbacks = h3_cbs.h3c_cbs;
-    h3c->h3_server_accept = h3_cbs.h3_server_accept;
+    h3c->h3_conn_callbacks = h3_cbs->h3c_cbs;
 
     return XQC_OK;
 }
@@ -703,7 +702,7 @@ xqc_h3_conn_cert_verify(const unsigned char *certs[], const size_t cert_len[], s
     void *conn_user_data)
 {
     xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)conn_user_data;
-    return h3c->h3_conn_callbacks.h3_conn_save_tp(certs, cert_len, certs_len, h3c->user_data);
+    return h3c->h3_conn_callbacks.h3_conn_verify_cert(certs, cert_len, certs_len, h3c->user_data);
 }
 
 ssize_t
