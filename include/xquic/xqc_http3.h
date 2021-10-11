@@ -295,7 +295,8 @@ XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_h3_conn_get_errno(xqc_h3_conn_t *h3c);
 
 /**
- * @brief set user_data for http3 connection, 
+ * @brief set user_data for http3 connection, user_data could be the application level context of 
+ * http3 connection
  * 
  * @param h3c handler of http3 connection
  * @param user_data should set user_data when h3_conn_create_notify callbacks, which will be

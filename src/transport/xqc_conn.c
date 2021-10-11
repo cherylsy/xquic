@@ -1598,7 +1598,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid)
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|", conn);
 
-    if (engine->eng_callback.write_mmsg) {
+    if (conn->quic_cbs.conn_cbs.write_mmsg) {
         xqc_conn_send_packets_batch(conn);
 
     } else {

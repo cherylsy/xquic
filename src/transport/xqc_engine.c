@@ -589,7 +589,7 @@ xqc_engine_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockad
         return size;
     }
 
-    size = (xqc_int_t)engine->eng_callback.write_socket(
+    size = (xqc_int_t)engine->eng_callback.stateless_reset(
         buf, (size_t)size, peer_addr, peer_addrlen, user_data);
     if (size < 0) {
         return size;

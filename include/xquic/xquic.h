@@ -569,15 +569,8 @@ typedef struct xqc_engine_callback_s {
     /* accept new connection callback. REQUIRED only for server */
     xqc_server_accept_pt        server_accept;
 
-    /**
-     * write socket  callback, ALTERNATIVE with write_mmsg
-     */
-    xqc_socket_write_pt         write_socket;
-
-    /** 
-     * write socket with send_mmsg callback, ALTERNATIVE with write_socket
-     */
-    xqc_send_mmsg_pt            write_mmsg;
+    /* stateless reset callback */
+    xqc_socket_write_pt         stateless_reset;
 
 } xqc_engine_callback_t;
 
