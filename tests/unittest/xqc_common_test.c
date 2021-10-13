@@ -1,6 +1,7 @@
 #include <CUnit/CUnit.h>
 
 #include <xquic/xquic.h>
+#include <xquic/xqc_http3.h>
 #include "xqc_common_test.h"
 #include "src/common/xqc_object_manager.h"
 #include "src/common/xqc_rbtree.h"
@@ -221,13 +222,42 @@ test_create_engine()
 {
     def_engine_ssl_config;
     xqc_engine_callback_t callback = {
-            .log_callbacks = xqc_null_log_cb,
+        .log_callbacks = xqc_null_log_cb,
+        .set_event_timer = null_set_event_timer,
+        .conn_quic_cbs = {
             .write_socket = null_socket_write,
-            .set_event_timer = null_set_event_timer,
+        }
     };
 
     xqc_conn_settings_t conn_settings;
-    return xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config, &callback, NULL);
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config, &callback, NULL);
+
+    xqc_h3_callbacks_t h3_cbs = {
+        .h3c_cbs = {
+            .h3_conn_create_notify = NULL,
+            .h3_conn_close_notify = NULL,
+            .h3_conn_handshake_finished = NULL,
+        },
+        .h3r_cbs = {
+            .h3_request_create_notify = NULL,
+            .h3_request_close_notify = NULL,
+            .h3_request_read_notify = NULL,
+            .h3_request_write_notify = NULL,
+        }
+    };
+
+    /* init http3 context */
+    int ret = xqc_h3_ctx_init(engine, &h3_cbs);
+    if (ret != XQC_OK) {
+        xqc_engine_destroy(engine);
+        return NULL;
+    }
+
+    /* transport ALPN */
+    xqc_alpn_callbacks_t transport_cbs = {{NULL}, {NULL}};
+    xqc_engine_register_alpn(engine, "transport", 9, &transport_cbs);
+
+    return engine;
 }
 
 const xqc_cid_t* 
@@ -240,7 +270,7 @@ test_cid_connect(xqc_engine_t *engine)
     xqc_conn_ssl_config_t conn_ssl_config;
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
     const xqc_cid_t *cid = xqc_connect(engine, &conn_settings, NULL, 0, "", 0, &conn_ssl_config,
-                                       NULL, 0, NULL, NULL);
+                                       NULL, 0, "transport", NULL);
     return cid;
 }
 

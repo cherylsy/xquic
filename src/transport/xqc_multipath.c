@@ -129,10 +129,10 @@ xqc_path_init(xqc_path_ctx_t *path,
 
     /* create path notify */
     if (path->path_id != XQC_MP_INITIAL_PATH_ID
-        && conn->quic_cbs.conn_cbs.path_created_notify)
+        && conn->quic_cbs.path_created_notify)
     {
-        conn->quic_cbs.conn_cbs.path_created_notify(&conn->scid_set.user_scid, path->path_id, 
-                                                    conn->user_data);
+        conn->quic_cbs.path_created_notify(&conn->scid_set.user_scid, path->path_id, 
+                                           conn->user_data);
     }
 
     /* TODO: 4-tuple init */

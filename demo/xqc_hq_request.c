@@ -2,35 +2,12 @@
 #include "xqc_hq_request.h"
 #include "xqc_hq_ctx.h"
 #include "xqc_hq_conn.h"
+#include "xqc_hq_defs.h"
 
 #include "src/common/xqc_common_inc.h"
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_conn.h"
-
-
-int
-xqc_hq_stream_create_notify(xqc_stream_t *stream, void *strm_user_data);
-
-int
-xqc_hq_stream_write_notify(xqc_stream_t *stream, void *strm_user_data);
-
-int
-xqc_hq_stream_read_notify(xqc_stream_t *stream, void *strm_user_data);
-
-int
-xqc_hq_stream_close_notify(xqc_stream_t *stream, void *strm_user_data);
-
-
-/**
- * transport callback
- */
-const xqc_stream_callbacks_t hq_stream_callbacks = {
-    .stream_create_notify   = xqc_hq_stream_create_notify,
-    .stream_write_notify    = xqc_hq_stream_write_notify,
-    .stream_read_notify     = xqc_hq_stream_read_notify,
-    .stream_close_notify    = xqc_hq_stream_close_notify,
-};
 
 
 #define XQC_HQ_REQUEST_BASE_LEN             7
@@ -56,11 +33,6 @@ typedef struct xqc_hq_request_s {
      * xqc_hq_request_t has not been created yet.
      */
     xqc_stream_t               *stream;
-
-    /**
-     * for print log
-     */
-    xqc_log_t                  *log;
 
     /**
      * send buffer
@@ -97,26 +69,25 @@ xqc_hq_request_create(xqc_engine_t *engine, xqc_hq_conn_t *hqc, void *user_data)
     /* malloc hqr */
     hqr = xqc_calloc(1, sizeof(xqc_hq_request_t));
     if (NULL == hqr) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|malloc error|");
+        PRINT_LOG("malloc error|");
         return NULL;
     }
 
     /* init app-level callbaks */
     if (xqc_hq_ctx_get_request_callbacks(&hqr->hqr_cbs) != XQC_OK) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|get app-level request callbacks error");
+        PRINT_LOG("get app-level request callbacks error\n");
         goto fail;
     }
 
     /* create stream, make hqr the user_data of xqc_stream_t */
     stream = xqc_stream_create(engine, xqc_hq_conn_get_cid(hqc), hqr);
     if (NULL == stream) {
-        xqc_log(engine->log, XQC_LOG_ERROR, "|create transport-level stream error");
+        PRINT_LOG("create transport-level stream error");
         goto fail;
     }
 
     hqr->stream = stream;
     hqr->user_data = user_data; /* make app-level user_data the user_data xqc_hq_request_t */
-    hqr->log = engine->log;
 
     return hqr;
 
@@ -140,7 +111,7 @@ xqc_hq_request_create_passive(xqc_stream_t *stream)
 
     /* init app-level callbaks */
     if (xqc_hq_ctx_get_request_callbacks(&hqr->hqr_cbs) != XQC_OK) {
-        xqc_log(stream->stream_conn->log, XQC_LOG_ERROR, "|get app-level request callbacks error");
+        PRINT_LOG("get app-level request callbacks error");
         xqc_hq_request_destroy(hqr);
         return NULL;
     }
@@ -150,7 +121,6 @@ xqc_hq_request_create_passive(xqc_stream_t *stream)
 
     hqr->stream = stream;
     hqr->user_data = NULL;  /* app-level user_data is temporary NULL */
-    hqr->log = stream->stream_conn->log;
 
     return hqr;
 }
@@ -189,8 +159,7 @@ xqc_hq_request_close(xqc_hq_request_t *hqr)
 {
     xqc_int_t ret = xqc_stream_close(hqr->stream);
     if (ret != XQC_OK) {
-        xqc_log(hqr->log, XQC_LOG_ERROR, "|quic stream close fail|ret:%d|stream_id:%ui|", ret,
-                hqr->stream->stream_id);
+        PRINT_LOG("|quic stream close fail|ret:%d|stream_id:%"PRIu64"|", ret, hqr->stream->stream_id);
         return ret;
     }
 
@@ -210,7 +179,7 @@ xqc_hq_request_send_data(xqc_hq_request_t *hqr, const uint8_t *data, size_t len,
                 return 0;
 
             } else {
-                xqc_log(hqr->log, XQC_LOG_ERROR, "|send req error|ret:%i", ret);
+                PRINT_LOG("|send req error|ret:%"PRId64"", ret);
                 return ret;
             }
         }
@@ -228,16 +197,14 @@ xqc_hq_request_send_req(xqc_hq_request_t *hqr, const char *resource)
     ssize_t ret = 0;
 
     if (hqr->send_buf) {
-        xqc_log(hqr->log, XQC_LOG_ERROR, "|request exists on stream|stream_id:%ui|",
-                hqr->stream->stream_id);
+        PRINT_LOG("|request exists on stream|stream_id:%"PRIu64"|", hqr->stream->stream_id);
         return -XQC_EFATAL;
     }
 
     size_t max_req_buf_len = strlen(resource) + XQC_HQ_REQUEST_BASE_LEN;
     hqr->send_buf = xqc_malloc(max_req_buf_len);
     if (NULL == hqr->send_buf) {
-        xqc_log(hqr->log, XQC_LOG_ERROR, "|request exists on stream|stream_id:%ui|",
-                hqr->stream->stream_id);
+        PRINT_LOG("|request exists on stream|stream_id:%"PRIu64"|", hqr->stream->stream_id);
         return -XQC_EMALLOC;
     }
 
@@ -266,7 +233,7 @@ xqc_hq_parse_req(xqc_hq_request_t *hqr, char *res, size_t sz)
     char method[16] = {0};
     int ret = sscanf(hqr->req_recv_buf, "%s %s", method, res);
     if (ret <= 0) {
-        xqc_log(hqr->log, XQC_LOG_ERROR, "|parse hq request failed: %s", hqr->req_recv_buf);
+        PRINT_LOG("|parse hq request failed: %s", hqr->req_recv_buf);
         return -XQC_EPROTO;
     }
 
@@ -294,13 +261,13 @@ xqc_hq_request_recv_req(xqc_hq_request_t *hqr, char *res_buf, size_t buf_sz, uin
             break;
 
         } else if (read < 0) {
-            xqc_log(hqr->log, XQC_LOG_ERROR, "|xqc_stream_recv error %z|", read);
+            PRINT_LOG("|xqc_stream_recv error %"PRId64"|", read);
             return 0;
         }
 
         hqr->recv_cnt += read;
         if (hqr->recv_cnt == hqr->recv_buf_len && hqr->fin) {
-            xqc_log(hqr->log, XQC_LOG_ERROR, "|impossible resource len!|");
+            PRINT_LOG("|impossible resource len!|");
             return -XQC_EFATAL;
         }
 
@@ -342,6 +309,11 @@ xqc_hq_request_recv_rsp(xqc_hq_request_t *hqr, char *res_buf, size_t buf_sz, uin
     return xqc_stream_recv(hqr->stream, res_buf, buf_sz, fin);
 }
 
+void
+xqc_hq_request_set_user_data(xqc_hq_request_t *hqr, void *user_data)
+{
+    hqr->user_data = user_data;
+}
 
 
 int
@@ -401,3 +373,13 @@ xqc_hq_stream_close_notify(xqc_stream_t *stream, void *user_data)
     xqc_hq_request_destroy(hqr);
     return XQC_OK;
 }
+
+/**
+ * transport callback
+ */
+const xqc_stream_alpn_callbacks_t hq_stream_callbacks = {
+    .stream_create_notify   = xqc_hq_stream_create_notify,
+    .stream_write_notify    = xqc_hq_stream_write_notify,
+    .stream_read_notify     = xqc_hq_stream_read_notify,
+    .stream_close_notify    = xqc_hq_stream_close_notify,
+};

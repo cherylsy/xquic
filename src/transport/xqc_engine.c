@@ -342,6 +342,9 @@ xqc_engine_create(xqc_engine_type_t engine_type,
 
     engine->eng_type = engine_type;
 
+    /* init alpn list */
+    xqc_init_list_head(&engine->alpn_list);
+
     engine->config = xqc_engine_config_create(engine_type);
     if (engine->config == NULL) {
         goto fail;
@@ -423,9 +426,6 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     if (engine_callback->keylog_cb) {
         xqc_set_keylog(engine);
     }
-
-    /* init alpn list */
-    xqc_init_list_head(&engine->alpn_list);
 
     return engine;
 
@@ -676,9 +676,9 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
     if ((conn->conn_flag & XQC_CONN_FLAG_NEW_CID_RECEIVED)
         && xqc_conn_check_unused_cids(conn) == XQC_OK)
     {
-        if (conn->quic_cbs.conn_cbs.ready_to_create_path_notify) {
-            conn->quic_cbs.conn_cbs.ready_to_create_path_notify(&conn->scid_set.user_scid, 
-                                                                conn->user_data);
+        if (conn->quic_cbs.ready_to_create_path_notify) {
+            conn->quic_cbs.ready_to_create_path_notify(&conn->scid_set.user_scid, 
+                                                       conn->user_data);
         }
         conn->conn_flag &= ~XQC_CONN_FLAG_NEW_CID_RECEIVED;
     }
@@ -806,7 +806,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
         } else {
             conn->last_ticked_time = now;
 
-            if (conn->quic_cbs.conn_cbs.write_mmsg) {
+            if (xqc_conn_sendmmsg_on(conn)) {
                 xqc_conn_transmit_pto_probe_packets_batch(conn);
                 xqc_conn_retransmit_lost_packets_batch(conn);
                 xqc_conn_send_packets_batch(conn);
@@ -1017,7 +1017,7 @@ xqc_engine_config_get_cid_len(xqc_engine_t *engine)
 
 xqc_int_t
 xqc_engine_add_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
-    xqc_quic_callbacks_t *quic_cbs)
+    xqc_alpn_callbacks_t *quic_cbs)
 {
     xqc_alpn_registration_t *registration = xqc_malloc(sizeof(xqc_alpn_registration_t));
     if (NULL == registration) {
@@ -1034,10 +1034,11 @@ xqc_engine_add_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
 
     xqc_init_list_head(&registration->head);
     xqc_memcpy(registration->alpn, alpn, alpn_len);
+    registration->alpn[alpn_len] = '\0';
     registration->alpn_len = alpn_len;
     registration->quic_cbs = *quic_cbs;
 
-    xqc_list_add_tail(&engine->alpn_list, &registration->head);
+    xqc_list_add_tail(&registration->head, &engine->alpn_list);
 
     return XQC_OK;
 }
@@ -1045,7 +1046,7 @@ xqc_engine_add_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
 
 xqc_int_t
 xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
-    xqc_quic_callbacks_t *quic_cbs)
+    xqc_alpn_callbacks_t *quic_cbs)
 {
     xqc_list_head_t *pos, *next;
     xqc_alpn_registration_t *alpn_reg;
@@ -1097,8 +1098,8 @@ xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_l
 
 
 xqc_int_t
-xqc_engine_get_quic_callbacks_by_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
-    xqc_quic_callbacks_t *cbs)
+xqc_engine_get_alpn_callbacks(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
+    xqc_alpn_callbacks_t *cbs)
 {
     xqc_list_head_t *pos, *next;
     xqc_alpn_registration_t *alpn_reg;
@@ -1129,6 +1130,8 @@ xqc_engine_free_alpn_list(xqc_engine_t *engine)
     xqc_alpn_registration_t *alpn_reg;
     xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
         alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
+
+        xqc_list_del(&alpn_reg->head);
         if (alpn_reg) {
             if (alpn_reg->alpn) {
                 xqc_free(alpn_reg->alpn);
@@ -1136,7 +1139,5 @@ xqc_engine_free_alpn_list(xqc_engine_t *engine)
 
             xqc_free(alpn_reg);
         }
-
-        xqc_list_del(&alpn_reg->head);
     }
 }

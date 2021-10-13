@@ -20,7 +20,7 @@ typedef struct xqc_connection_s xqc_connection_t;
 typedef struct xqc_conn_settings_s xqc_conn_settings_t;
 typedef struct xqc_engine_s xqc_engine_t;
 typedef struct xqc_log_callbacks_s xqc_log_callbacks_t;
-typedef struct xqc_conn_callbacks_s xqc_conn_callbacks_t;
+typedef struct xqc_conn_quic_callbacks_s xqc_conn_quic_callbacks_t;
 typedef struct xqc_h3_conn_callbacks_s xqc_h3_conn_callbacks_t;
 typedef struct xqc_random_generator_s xqc_random_generator_t;
 typedef struct xqc_client_connection_s xqc_client_connection_t;

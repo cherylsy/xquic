@@ -28,7 +28,7 @@ xqc_h3_ctx_init(xqc_engine_t *engine, xqc_h3_callbacks_t *h3_cbs)
     h3_ctx->h3_cbs = *h3_cbs;
 
     /* init quic level callbacks */
-    xqc_quic_callbacks_t quic_cbs = {
+    xqc_alpn_callbacks_t quic_cbs = {
         .conn_cbs       = h3_conn_callbacks,
         .stream_cbs     = h3_stream_callbacks
     };

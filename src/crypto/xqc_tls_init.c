@@ -201,9 +201,9 @@ xqc_client_tls_initial(xqc_engine_t *engine, xqc_connection_t *conn,
     callbacks->hp_mask = xqc_hp_mask_cb;
     callbacks->recv_retry = xqc_tls_recv_retry_cb;
 
-    tlsref->save_session_cb = conn->quic_cbs.conn_cbs.save_session_cb;
-    tlsref->save_tp_cb = conn->quic_cbs.conn_cbs.save_tp_cb;
-    tlsref->cert_verify_cb = conn->quic_cbs.conn_cbs.cert_verify_cb;
+    tlsref->save_session_cb = conn->quic_cbs.save_session_cb;
+    tlsref->save_tp_cb = conn->quic_cbs.save_tp_cb;
+    tlsref->cert_verify_cb = conn->quic_cbs.cert_verify_cb;
 
     xqc_trans_settings_t *settings = &conn->local_settings;
     if (no_crypto_flag == 1) {

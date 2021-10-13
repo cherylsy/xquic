@@ -97,7 +97,7 @@ struct xqc_stream_s {
     xqc_stream_id_t         stream_id;
     xqc_stream_type_t       stream_type;
     void                    *user_data;
-    xqc_stream_callbacks_t  *stream_if;
+    xqc_stream_alpn_callbacks_t *stream_if;
 
     xqc_stream_flow_ctl_t   stream_flow_ctl;
     xqc_stream_write_buff_list_t

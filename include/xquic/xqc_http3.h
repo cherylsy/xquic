@@ -136,6 +136,7 @@ typedef struct xqc_h3_conn_callbacks_s {
     /* ping callback. which will be triggered when ping is acked */
     xqc_h3_conn_ping_ack_notify_pt      h3_conn_ping_acked;            /* optional */
 
+#if 0
     /* user cid updated callback, required for server and client */
     xqc_h3_conn_update_cid_notify_pt    h3_conn_update_cid_notify;
 
@@ -156,6 +157,7 @@ typedef struct xqc_h3_conn_callbacks_s {
 
     /* write socket with sendmmsg callback, ALTERNATIVE with h3_conn_write_socket */
     xqc_h3_conn_send_mmsg_pt            h3_conn_send_mmsg;
+#endif
 
 } xqc_h3_conn_callbacks_t;
 
@@ -164,18 +166,18 @@ typedef struct xqc_h3_conn_callbacks_s {
  * @brief http3 request callbacks for application layer
  */
 typedef struct xqc_h3_request_callbacks_s {
-    /* request read notify callback. which will be triggered after received http headers or body */
-    xqc_h3_request_read_notify_pt   h3_request_read_notify;
-
-    /* request write notify callback. when triggered, users can continue to send headers or body */
-    xqc_h3_request_notify_pt        h3_request_write_notify;
-
     /* request creation notify. it will be triggered after a request was created, and is required
        for server, optional for client */
     xqc_h3_request_notify_pt        h3_request_create_notify;
 
     /* request close notify. which will be triggered after a request was closed */
     xqc_h3_request_notify_pt        h3_request_close_notify;
+
+    /* request read notify callback. which will be triggered after received http headers or body */
+    xqc_h3_request_read_notify_pt   h3_request_read_notify;
+
+    /* request write notify callback. when triggered, users can continue to send headers or body */
+    xqc_h3_request_notify_pt        h3_request_write_notify;
 
 } xqc_h3_request_callbacks_t;
 

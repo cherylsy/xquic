@@ -60,11 +60,9 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|xqc_connect|");
 
-    xqc_conn_client_on_alpn(xc, alpn, strlen(alpn));
-
     /* conn_create callback */
-    if (xc->quic_cbs.conn_cbs.conn_create_notify) {
-        if (xc->quic_cbs.conn_cbs.conn_create_notify(xc, &xc->scid_set.user_scid, user_data)) {
+    if (xc->alpn_cbs.conn_cbs.conn_create_notify) {
+        if (xc->alpn_cbs.conn_cbs.conn_create_notify(xc, &xc->scid_set.user_scid, user_data)) {
             xqc_conn_destroy(xc);
             return NULL;
         }
@@ -95,10 +93,13 @@ xqc_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
     socklen_t peer_addrlen, const char *alpn, void *user_data)
 {
     xqc_connection_t *conn;
-    const char *app_proto = alpn ? alpn : XQC_ALPN_TRANSPORT;
+
+    if (NULL == alpn) {
+        return NULL;
+    }
 
     conn = xqc_client_connect(engine, conn_settings, token, token_len, server_host, no_crypto_flag, 
-                              conn_ssl_config, app_proto, peer_addr, peer_addrlen, user_data);
+                              conn_ssl_config, alpn, peer_addr, peer_addrlen, user_data);
     if (conn) {
         return &conn->scid_set.user_scid;
     }
@@ -132,9 +133,14 @@ xqc_client_create_connection(xqc_engine_t *engine,
     if (!xc->crypto_stream[XQC_ENC_LEV_INIT]) {
         goto fail;
     }
+
+    if (xqc_conn_client_on_alpn(xc, alpn, strlen(alpn)) != XQC_OK) {
+        goto fail;
+    }
+
     return xc;
 
-    fail:
+fail:
     xqc_conn_destroy(xc);
     return NULL;
 }

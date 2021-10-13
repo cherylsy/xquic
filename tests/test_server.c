@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
+#include <xquic/xqc_http3.h>
 
 int printf_null(const char *format, ...)
 {
@@ -24,6 +25,8 @@ int printf_null(const char *format, ...)
 
 #define XQC_PACKET_TMP_BUF_LEN 1500
 #define MAX_BUF_SIZE (100*1024*1024)
+
+#define XQC_ALPN_TRANSPORT "transport"
 
 
 typedef struct xqc_quic_lb_ctx_s {
@@ -319,10 +322,11 @@ int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *ci
     DEBUG;
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)user_data;
 
-    user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
+    user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
 
-    xqc_h3_conn_get_peer_addr(h3_conn, &user_conn->peer_addr, &user_conn->peer_addrlen);
+    xqc_h3_conn_get_peer_addr(h3_conn, (struct sockaddr *)&user_conn->peer_addr,
+                              &user_conn->peer_addrlen);
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
     return 0;
@@ -813,10 +817,8 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
     xqc_conn_set_user_data(conn, user_conn);
 
-    socklen_t peer_addrlen;
-    struct sockaddr* peer_addr = xqc_conn_get_peer_addr(conn, &peer_addrlen);
-    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
-    user_conn->peer_addrlen = peer_addrlen;
+    xqc_conn_get_peer_addr(conn, (struct sockaddr *)&user_conn->peer_addr,
+                           &user_conn->peer_addrlen);
 
     if (g_test_case == 11) {
         g_test_case = -1;
@@ -824,7 +826,7 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
     }
 
     if (g_batch) {
-        connect(ctx.fd, peer_addr, peer_addrlen);
+        connect(ctx.fd, &user_conn->peer_addr, user_conn->peer_addrlen);
     }
 
     return 0;
@@ -1204,45 +1206,21 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-        .conn_callbacks = {
-            .conn_create_notify = xqc_server_conn_create_notify,
-            .conn_close_notify = xqc_server_conn_close_notify,
-            .conn_handshake_finished = xqc_server_conn_handshake_finished,
-            .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
-        },
-        .h3_conn_callbacks = {
-            .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
-            .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
-            .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
-            .h3_conn_update_cid_notify = xqc_server_h3_conn_update_cid_notify,
-        },
-        .stream_callbacks = {
-            .stream_write_notify = xqc_server_stream_write_notify,
-            .stream_read_notify = xqc_server_stream_read_notify,
-            .stream_create_notify = xqc_server_stream_create_notify,
-            .stream_close_notify = xqc_server_stream_close_notify,
-        },
-        .h3_request_callbacks = {
-            .h3_request_write_notify = xqc_server_request_write_notify,
-            .h3_request_read_notify = xqc_server_request_read_notify,
-            .h3_request_create_notify = xqc_server_request_create_notify,
-            .h3_request_close_notify = xqc_server_request_close_notify,
-        },
-        .write_socket = xqc_server_write_socket,
         .server_accept = xqc_server_accept,
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
             .xqc_log_write_err = xqc_server_write_log,
         },
         .keylog_cb = xqc_keylog_cb,
-    };
 
+        .conn_quic_cbs = {
+            .write_socket = xqc_server_write_socket,
 #if defined(XQC_SUPPORT_SENDMMSG)
-    if (g_batch) {
-        callback.write_mmsg = xqc_server_write_mmsg;
-        printf("---------\n");
-    }
+            .write_mmsg = xqc_server_write_mmsg,
 #endif
+            .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
+        }
+    };
 
     xqc_cong_ctrl_callback_t cong_ctrl;
     uint32_t cong_flags = 0;
@@ -1287,7 +1265,15 @@ int main(int argc, char *argv[]) {
         .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
         .enable_multipath = 0,
         .spurious_loss_detect_on = 0,
+        .sendmmsg_on = 0
     };
+
+
+#if defined(XQC_SUPPORT_SENDMMSG)
+    if (g_batch) {
+        conn_settings.sendmmsg_on = 1;
+    }
+#endif
 
     if (g_test_case == 6) {
         conn_settings.idle_time_out = 10000;
@@ -1317,26 +1303,74 @@ int main(int argc, char *argv[]) {
         config.cid_len = XQC_MAX_CID_LEN;
     }
 
-    /* test NULL stream callback */
-    if (g_test_case == 2) {
-        memset(&callback.stream_callbacks, 0, sizeof(callback.stream_callbacks));
-    }
     ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config, &callback, &ctx);
-
     if(ctx.engine == NULL){
         printf("error create engine\n");
         return -1;
     }
 
+    /* register http3 callbacks */
+    xqc_h3_callbacks_t h3_cbs = {
+        .h3c_cbs = {
+            .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
+            .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
+            .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
+        },
+        .h3r_cbs = {
+            .h3_request_write_notify = xqc_server_request_write_notify,
+            .h3_request_read_notify = xqc_server_request_read_notify,
+            .h3_request_create_notify = xqc_server_request_create_notify,
+            .h3_request_close_notify = xqc_server_request_close_notify,
+        }
+    };
+
+    /* register transport callbacks */
+    xqc_alpn_callbacks_t quic_cbs = {
+        .conn_cbs = {
+            .conn_create_notify = xqc_server_conn_create_notify,
+            .conn_close_notify = xqc_server_conn_close_notify,
+            .conn_handshake_finished = xqc_server_conn_handshake_finished,
+        },
+        .stream_cbs = {
+            .stream_write_notify = xqc_server_stream_write_notify,
+            .stream_read_notify = xqc_server_stream_read_notify,
+            .stream_create_notify = xqc_server_stream_create_notify,
+            .stream_close_notify = xqc_server_stream_close_notify,
+        }
+    };
+
+
+    /* test NULL stream callback */
+    if (g_test_case == 2) {
+        memset(&quic_cbs.stream_cbs, 0, sizeof(quic_cbs.stream_cbs));
+    }
+
+#if defined(XQC_SUPPORT_SENDMMSG)
+    if (g_batch) {
+        h3_cbs.h3c_cbs.h3_conn_write_mmsg = xqc_server_write_mmsg;
+        quic_cbs.conn_cbs.write_mmsg = xqc_server_write_mmsg;
+
+    }
+#endif
+
+    /* init http3 context */
+    xqc_int_t ret = xqc_h3_ctx_init(ctx.engine, &h3_cbs);
+    if (ret != XQC_OK) {
+        printf("init h3 context error, ret: %d\n", ret);
+        return ret;
+    }
+
+    xqc_engine_register_alpn(ctx.engine, XQC_ALPN_TRANSPORT, 9, &quic_cbs);
+
     if (g_test_case == 10) {
         xqc_h3_engine_set_max_field_section_size(ctx.engine, 10000000);
     }
+
     /* for lb cid generate */
     memcpy(ctx.quic_lb_ctx.sid_buf, g_sid, g_sid_len);
     ctx.quic_lb_ctx.sid_len = g_sid_len;
     ctx.quic_lb_ctx.conf_id = 0;
     ctx.quic_lb_ctx.cid_len = XQC_MAX_CID_LEN;
-
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, server_port);
     if (ctx.fd < 0) {
@@ -1350,6 +1384,7 @@ int main(int argc, char *argv[]) {
     last_snd_ts = 0;
     event_base_dispatch(eb);
 
+    xqc_h3_ctx_destroy(ctx.engine);
     xqc_engine_destroy(ctx.engine);
     xqc_server_close_keylog_file(&ctx);
     xqc_server_close_log_file(&ctx);

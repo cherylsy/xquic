@@ -274,13 +274,16 @@ endif()
 add_subdirectory(tests)
 
 add_executable(test_server tests/test_server.c)
-add_executable(test_client tests/test_client.c)
+#add_executable(test_client tests/test_client.c)
 
 
 set(
     HQ_SOURCES
 
+    "demo/xqc_hq_ctx.c"
     "demo/xqc_hq.c"
+    "demo/xqc_hq_conn.c"
+    "demo/xqc_hq_request.c"
 )
 
 set(
@@ -316,7 +319,7 @@ elseif(PLATFORM STREQUAL "mac")
     target_link_libraries(demo_client xquic -lm -L/usr/local/lib -levent)
 else()
     target_link_libraries(test_server xquic -levent -lm)
-    target_link_libraries(test_client xquic -levent -lm)
+    #target_link_libraries(test_client xquic -levent -lm)
     target_link_libraries(demo_server xquic -levent -lm)
     target_link_libraries(demo_client xquic -levent -lm)
 endif()

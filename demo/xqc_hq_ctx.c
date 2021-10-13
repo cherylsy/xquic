@@ -31,7 +31,7 @@ xqc_hq_ctx_init(xqc_engine_t *engine, xqc_hq_callbacks_t *hq_cbs)
 
     hq_ctx->hq_cbs = *hq_cbs;
 
-    xqc_quic_callbacks_t quic_cbs = {
+    xqc_alpn_callbacks_t quic_cbs = {
         .conn_cbs   = hq_conn_callbacks,
         .stream_cbs = hq_stream_callbacks
     };

@@ -62,6 +62,11 @@ XQUIC_VERS_1.0 {
         xqc_engine_conns_hash_find;
         xqc_conn_create_path;
         xqc_dcid_str_by_scid;
+        xqc_h3_ctx_init;
+        xqc_h3_ctx_destroy;
+        xqc_engine_register_alpn;
+        xqc_engine_unregister_alpn;
+        xqc_conn_set_alpn_user_data;
     local:
         *;
 };

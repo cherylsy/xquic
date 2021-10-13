@@ -339,10 +339,15 @@ typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id, const struct iovec *msg
 typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
 
 
-/** 
- * @brief QUIC connection callback functions
+/**
+ * @brief callback functions which are more related to attributes of QUIC [Transport] but not ALPN.
+ * In another word, these callback functions are events of QUIC Transport layer, and need to 
+ * interact with application-layer, which have nothing to do with ALPN layer.
+ * 
+ * These callback functions shall directly call back to application level, with user_data from
+ * struct xqc_connection_t. unless ALPN level take over them.
  */
-typedef struct xqc_conn_callbacks_s {
+typedef struct xqc_conn_quic_callbacks_s {
 
     /**
      * write socket  callback, ALTERNATIVE with write_mmsg
@@ -353,34 +358,6 @@ typedef struct xqc_conn_callbacks_s {
      * write socket with send_mmsg callback, ALTERNATIVE with write_socket
      */
     xqc_send_mmsg_pt                write_mmsg;
-
-    /**
-     * connection create notify callback. REQUIRED for server, OPTIONAL for client.
-     * 
-     * this function will be invoked after connection is created, user can create application level
-     * context in this callback function 
-     * 
-     * return 0 for success, -1 for failure, e.g. malloc error, on which xquic will close connection
-     */
-    xqc_conn_notify_pt              conn_create_notify;
-
-    /**
-     * connection close notify. REQUIRED for both client and server
-     * 
-     * this function will be invoked after QUIC connection is closed. user can free application
-     * level context created in conn_create_notify callback function
-     */
-    xqc_conn_notify_pt              conn_close_notify;
-
-    /**
-     * handkeshake complete callback. OPTIONAL for client and server
-     */
-    xqc_handshake_finished_pt       conn_handshake_finished;
-
-    /**
-     * active PING acked callback. OPTIONAL for both client and server
-     */
-    xqc_conn_ping_ack_notify_pt     conn_ping_acked;
 
     /**
      * QUIC connection cid update callback, REQUIRED for both server and client
@@ -422,11 +399,47 @@ typedef struct xqc_conn_callbacks_s {
      */
     xqc_path_removed_notify_pt      path_reomved_notify;
 
-} xqc_conn_callbacks_t;
+} xqc_conn_quic_callbacks_t;
 
 
-/* QUIC layer stream callback functions */
-typedef struct xqc_stream_callbacks_s {
+/** 
+ * @brief QUIC connection callback functions for ALPN layer
+ */
+typedef struct xqc_conn_alpn_callbacks_s {
+
+    /**
+     * connection create notify callback. REQUIRED for server, OPTIONAL for client.
+     * 
+     * this function will be invoked after connection is created, user can create application level
+     * context in this callback function 
+     * 
+     * return 0 for success, -1 for failure, e.g. malloc error, on which xquic will close connection
+     */
+    xqc_conn_notify_pt              conn_create_notify;
+
+    /**
+     * connection close notify. REQUIRED for both client and server
+     * 
+     * this function will be invoked after QUIC connection is closed. user can free application
+     * level context created in conn_create_notify callback function
+     */
+    xqc_conn_notify_pt              conn_close_notify;
+
+    /**
+     * handkeshake complete callback. OPTIONAL for client and server
+     */
+    xqc_handshake_finished_pt       conn_handshake_finished;
+
+    /**
+     * active PING acked callback. OPTIONAL for both client and server
+     */
+    xqc_conn_ping_ack_notify_pt     conn_ping_acked;
+
+} xqc_conn_alpn_callbacks_t;
+
+
+/* QUIC layer stream callback functions for ALPN layer */
+typedef struct xqc_stream_alpn_callbacks_s {
     /**
      * stream read callback function. REQUIRED for both client and server
      * 
@@ -459,21 +472,22 @@ typedef struct xqc_stream_callbacks_s {
      * Applications can free the context which was created in stream_create_notify here.
      */
     xqc_stream_notify_pt        stream_close_notify;
-} xqc_stream_callbacks_t;
+
+} xqc_stream_alpn_callbacks_t;
 
 
 /**
- * @brief connection and stream callbacks for QUIC level
+ * @brief connection and stream callbacks for QUIC level, ALPN level shall implement this
  */
-typedef struct xqc_quic_callbacks_s {
+typedef struct xqc_alpn_callbacks_s {
 
     /* QUIC connection callback functions */
-    xqc_conn_callbacks_t        conn_cbs;
+    xqc_conn_alpn_callbacks_t       conn_cbs;
 
     /* QUIC stream callback functions */
-    xqc_stream_callbacks_t      stream_cbs;
+    xqc_stream_alpn_callbacks_t     stream_cbs;
 
-} xqc_quic_callbacks_t;
+} xqc_alpn_callbacks_t;
 
 
 typedef struct xqc_cc_params_s {
@@ -570,7 +584,10 @@ typedef struct xqc_engine_callback_s {
     xqc_server_accept_pt        server_accept;
 
     /* stateless reset callback */
-    xqc_socket_write_pt         stateless_reset;
+    xqc_socket_write_pt         stateless_reset;    // TODO: rename type
+
+    /* callback functions for quic attributions */
+    xqc_conn_quic_callbacks_t   conn_quic_cbs;
 
 } xqc_engine_callback_t;
 
@@ -585,6 +602,7 @@ typedef struct xqc_engine_ssl_config_s {
     char       *session_ticket_key_data;    /* For server */
     size_t      session_ticket_key_len;     /* For server */
 
+    // TODO: delete, server创建的时候，遍历engine的alpn_list，然后组装出自己的字符串
     char       *alpn_list;                  /* For server */
     int         alpn_list_len;              /* For server */
 } xqc_engine_ssl_config_t;
@@ -640,6 +658,7 @@ typedef struct xqc_conn_settings_s {
     uint32_t                    idle_time_out;      /* idle timeout interval */
     uint64_t                    enable_multipath;   /* default: 0 */
     int32_t                     spurious_loss_detect_on;
+    int                         sendmmsg_on;
 } xqc_conn_settings_t;
 
 
@@ -693,6 +712,7 @@ void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
  * @param engine_config config for basic framework, quic, network, etc.
  * @param ssl_config basic ssl config
  * @param engine_callback environment callback functions, including timer, socket, log, etc.
+ * @param conn_callback default connection callback functions
  */
 XQC_EXPORT_PUBLIC_API
 xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
@@ -701,8 +721,13 @@ xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
     const xqc_engine_callback_t *engine_callback,
     void *user_data);
 
+
+/**
+ * @brief destroy engine. this is called after all connections are destroyed
+ */
 XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);
+
 
 /**
  * Set engine log level, call after engine is created
@@ -725,7 +750,7 @@ void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
-    xqc_quic_callbacks_t *quic_cbs);
+    xqc_alpn_callbacks_t *quic_cbs);
 
 
 /**
@@ -785,8 +810,10 @@ int xqc_conn_get_errno(xqc_connection_t *conn);
  * Server should set user_data when conn_create_notify callbacks
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_conn_set_user_data(xqc_connection_t *conn,
-                           void *user_data);
+void xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data);
+
+XQC_EXPORT_PUBLIC_API
+void xqc_conn_set_alpn_user_data(xqc_connection_t *conn, void *alpn_user_data);
 
 /**
  * Server should get peer addr when conn_create_notify callbacks

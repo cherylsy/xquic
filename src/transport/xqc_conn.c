@@ -34,6 +34,7 @@ xqc_conn_settings_t default_conn_settings = {
     .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath        = 0,
     .spurious_loss_detect_on = 0,
+    .sendmmsg_on      = 0,
 };
 
 void
@@ -45,6 +46,7 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     default_conn_settings.ping_on = settings->ping_on;
     default_conn_settings.so_sndbuf = settings->so_sndbuf;
     default_conn_settings.spurious_loss_detect_on = settings->spurious_loss_detect_on;
+    default_conn_settings.sendmmsg_on = settings->sendmmsg_on;
     if (settings->idle_time_out > 0) {
         default_conn_settings.idle_time_out = settings->idle_time_out;
     }
@@ -276,7 +278,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
 
     xc->engine = engine;
     xc->log = engine->log;
-    // xc->conn_callbacks = *callbacks;
+    xc->quic_cbs = engine->eng_callback.conn_quic_cbs;
     xc->user_data = user_data;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
@@ -413,6 +415,16 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
+    /* alpn connection accept */
+    if (conn->engine->eng_callback.server_accept) {
+        if (conn->engine->eng_callback.server_accept(conn->engine, conn, &conn->scid_set.user_scid,
+                                                     conn->user_data) < 0)
+        {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|connection refused by application level|");
+        }
+        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;  // TODO: 上层并不知道是什么ALPN，这样就认为UPPER_CONN_EXIST，是否合理？
+    }
+
     return conn;
 
 fail:
@@ -426,7 +438,7 @@ xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_
 {
     /* set quic callbacks to quic connection */
     xqc_int_t ret =
-        xqc_engine_get_quic_callbacks_by_alpn(conn->engine, alpn, alpn_len, &conn->quic_cbs);
+        xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->alpn_cbs);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
         return ret;
@@ -441,18 +453,19 @@ xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_
 {
     /* set quic callbacks to quic connection */
     xqc_int_t ret =
-        xqc_engine_get_quic_callbacks_by_alpn(conn->engine, alpn, alpn_len, &conn->quic_cbs);
+        xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->alpn_cbs);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
         return ret;
     }
 
-    /* alpn connection accept */
-    if (conn->engine->eng_callback.server_accept) {
-        if (conn->engine->eng_callback.server_accept(conn->engine, conn, &conn->scid_set.user_scid,
-                                                     conn->user_data) < 0)
+    /* do callback */
+    if (conn->alpn_cbs.conn_cbs.conn_create_notify) {
+        if (conn->alpn_cbs.conn_cbs.conn_create_notify(conn, &conn->scid_set.user_scid,
+            conn->alpn_user_data))
         {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|connection refused by application level|");
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return -TRA_INTERNAL_ERROR;
         }
         conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
@@ -502,10 +515,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_destroy_stream(stream);
     }
 
-    if (xc->quic_cbs.conn_cbs.conn_close_notify
+    if (xc->alpn_cbs.conn_cbs.conn_close_notify
         && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST))
     {
-        xc->quic_cbs.conn_cbs.conn_close_notify(xc, &xc->scid_set.user_scid, xc->user_data);
+        xc->alpn_cbs.conn_cbs.conn_close_notify(xc, &xc->scid_set.user_scid, xc->alpn_user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
@@ -552,6 +565,12 @@ void
 xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data)
 {
     conn->user_data = user_data;
+}
+
+void
+xqc_conn_set_alpn_user_data(xqc_connection_t *conn, void *user_data)
+{
+    conn->alpn_user_data = user_data;
 }
 
 xqc_int_t
@@ -611,8 +630,8 @@ typedef enum {
 ssize_t
 xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 {
-    ssize_t ret = conn->quic_cbs.conn_cbs.write_mmsg(iov, cnt, (struct sockaddr *)conn->peer_addr,
-                                                     conn->peer_addrlen, conn->user_data);
+    ssize_t ret = conn->quic_cbs.write_mmsg(iov, cnt, (struct sockaddr *)conn->peer_addr,
+                                            conn->peer_addrlen, conn->user_data);
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|error send mmsg|");
         if (ret == XQC_SOCKET_ERROR) {
@@ -1004,7 +1023,7 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 ssize_t
 xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
 {
-    ssize_t sent = conn->quic_cbs.conn_cbs.write_socket(data, len,
+    ssize_t sent = conn->quic_cbs.write_socket(data, len,
         (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, conn->user_data);
     if (sent != len) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
@@ -1486,7 +1505,7 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         return size;
     }
 
-    size = (xqc_int_t)conn->quic_cbs.conn_cbs.write_socket(
+    size = (xqc_int_t)conn->quic_cbs.write_socket(
         buf, (size_t)size, (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, conn->user_data);
     if (size < 0) {
         return size;
@@ -1598,7 +1617,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid)
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|", conn);
 
-    if (conn->quic_cbs.conn_cbs.write_mmsg) {
+    if (xqc_conn_sendmmsg_on(conn)) {
         xqc_conn_send_packets_batch(conn);
 
     } else {
@@ -2428,8 +2447,8 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|conn:%p|", conn);
         xqc_conn_handshake_complete(conn);
 
-        if (conn->quic_cbs.conn_cbs.conn_handshake_finished) {
-            conn->quic_cbs.conn_cbs.conn_handshake_finished(conn, conn->user_data);
+        if (conn->alpn_cbs.conn_cbs.conn_handshake_finished) {
+            conn->alpn_cbs.conn_cbs.conn_handshake_finished(conn, conn->alpn_user_data);
         }
     }
 
@@ -2575,9 +2594,9 @@ xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
         if (scid->state == XQC_CID_USED
             && xqc_cid_is_equal(&scid_set->user_scid, &scid->cid) != XQC_OK)
         {
-            if (conn->quic_cbs.conn_cbs.conn_update_cid_notify) {
-                conn->quic_cbs.conn_cbs.conn_update_cid_notify(conn, &scid_set->user_scid,
-                                                               &scid->cid, conn->user_data);
+            if (conn->quic_cbs.conn_update_cid_notify) {
+                conn->quic_cbs.conn_update_cid_notify(conn, &scid_set->user_scid,
+                                                      &scid->cid, conn->user_data);
             }
 
             xqc_cid_copy(&scid_set->user_scid, &scid->cid);

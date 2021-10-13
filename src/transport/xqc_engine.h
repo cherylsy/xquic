@@ -26,7 +26,7 @@ typedef struct xqc_alpn_registration_s {
     size_t                  alpn_len;
 
     /* quic level callback functions for current alpn */
-    xqc_quic_callbacks_t    quic_cbs;
+    xqc_alpn_callbacks_t    quic_cbs;
 
 } xqc_alpn_registration_t;
 
@@ -90,8 +90,8 @@ void xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now);
 
 void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * conn);
 
-xqc_int_t xqc_engine_get_quic_callbacks_by_alpn(xqc_engine_t *engine, const char *alpn,
-    size_t alpn_len, xqc_quic_callbacks_t *cbs);
+xqc_int_t xqc_engine_get_alpn_callbacks(xqc_engine_t *engine, const char *alpn,
+    size_t alpn_len, xqc_alpn_callbacks_t *cbs);
 
 
 #endif

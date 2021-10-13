@@ -3,6 +3,6 @@
 
 #include "xqc_hq.h"
 
-extern const xqc_stream_callbacks_t hq_stream_callbacks;
+extern const xqc_stream_alpn_callbacks_t hq_stream_callbacks;
 
 #endif

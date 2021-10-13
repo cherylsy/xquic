@@ -10,6 +10,8 @@
 typedef struct xqc_hq_conn_s {
     xqc_hq_conn_callbacks_t    *hqc_cbs;
 
+    xqc_connection_t           *conn;
+
     xqc_log_t                  *log;
 
     void                       *user_data;
@@ -19,7 +21,7 @@ typedef struct xqc_hq_conn_s {
 
 
 xqc_hq_conn_t *
-xqc_hq_conn_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)
+xqc_hq_conn_create(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     xqc_hq_conn_t *hqc = xqc_calloc(1, sizeof(xqc_hq_conn_t));
     if (NULL == hqc) {
@@ -27,13 +29,15 @@ xqc_hq_conn_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)
     }
 
     if (xqc_hq_ctx_get_conn_callbacks(&hqc->hqc_cbs) != XQC_OK) {
+        PRINT_LOG("|create hq conn failed");
         xqc_free(hqc);
         return NULL;
     }
 
     hqc->user_data = user_data;
-    hqc->log = engine->log;
+    hqc->log = conn->log;
     hqc->cid = *cid;
+    hqc->conn = conn;
 
     return hqc;
 }
@@ -43,7 +47,7 @@ void
 xqc_hq_conn_destroy(xqc_hq_conn_t *hqc)
 {
     if (hqc) {
-        xqc_free(hqc);        
+        xqc_free(hqc);
     }
 }
 
@@ -51,21 +55,13 @@ xqc_hq_conn_destroy(xqc_hq_conn_t *hqc)
 xqc_hq_conn_t *
 xqc_hq_conn_create_passive(xqc_connection_t *conn, const xqc_cid_t *cid)
 {
-    xqc_hq_conn_t *hqc = xqc_calloc(1, sizeof(xqc_hq_conn_t));
+    xqc_hq_conn_t *hqc = xqc_hq_conn_create(conn, cid, NULL);
     if (NULL == hqc) {
+        PRINT_LOG("|create hq conn failed");
         return NULL;
     }
 
-    if (xqc_hq_ctx_get_conn_callbacks(&hqc->hqc_cbs) != XQC_OK) {
-        xqc_hq_conn_destroy(hqc);
-        return NULL;
-    }
-
-    xqc_conn_set_user_data(conn, hqc);
-
-    hqc->log = conn->log;
-    hqc->cid = *cid;
-
+    xqc_conn_set_alpn_user_data(conn, hqc);
     return hqc;
 }
 
@@ -84,7 +80,8 @@ xqc_hq_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
         return NULL;
     }
 
-    xqc_hq_conn_t *hqc = xqc_hq_conn_create(engine, cid, user_data);
+    xqc_hq_conn_t *hqc = xqc_hq_conn_create(xqc_engine_conns_hash_find(engine, cid, 's'),
+                                            cid, user_data);
     if (NULL == hqc) {
         xqc_conn_close(engine, cid);
         return NULL;
@@ -114,14 +111,24 @@ xqc_hq_conn_get_cid(xqc_hq_conn_t *hqc)
     return &hqc->cid;
 }
 
+xqc_int_t
+xqc_hq_conn_get_peer_addr(xqc_hq_conn_t *hqc, struct sockaddr *addr, 
+    socklen_t *peer_addr_len)
+{
+    return xqc_conn_get_peer_addr(hqc->conn, addr, peer_addr_len);
+}
 
 xqc_int_t
 xqc_hq_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *conn_user_data)
 {
-    xqc_hq_conn_t *hqc = (xqc_hq_conn_t *)conn_user_data;
+    xqc_hq_conn_t *hqc = xqc_hq_conn_create(conn, cid, conn_user_data);
     if (NULL == hqc) {
-        hqc = xqc_hq_conn_create_passive(conn, cid);
+        PRINT_LOG("|create hq conn failed");
+        return -XQC_EMALLOC;
     }
+
+    /* set hqc as conn's alpn layer user_data */
+    xqc_conn_set_alpn_user_data(conn, hqc);
 
     if (hqc->hqc_cbs->conn_create_notify) {
         /* NOTICE: if hqc is created passively, hqc->user_data is NULL */
@@ -149,11 +156,14 @@ xqc_hq_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *con
     return XQC_OK;
 }
 
+
 void
 xqc_hq_conn_handshake_finished(xqc_connection_t *conn, void *conn_user_data)
 {
     return;
 }
+
+#if 0
 
 void
 xqc_hq_conn_save_token(const unsigned char *token, uint32_t token_len, void *conn_user_data)
@@ -194,14 +204,11 @@ xqc_hq_conn_write_socket(const unsigned char *buf, size_t size, const struct soc
     return XQC_OK;
 }
 
+#endif
 
 /* QUIC level connection and streams callback */
-const xqc_conn_callbacks_t hq_conn_callbacks = {
+const xqc_conn_alpn_callbacks_t hq_conn_callbacks = {
     .conn_create_notify         = xqc_hq_conn_create_notify,
     .conn_close_notify          = xqc_hq_conn_close_notify,
     .conn_handshake_finished    = xqc_hq_conn_handshake_finished,
-    .save_token                 = xqc_hq_conn_save_token,
-    .save_session_cb            = xqc_hq_conn_save_session,
-    .save_tp_cb                 = xqc_hq_conn_save_tp,
-    .write_socket               = xqc_hq_conn_write_socket,
 };
