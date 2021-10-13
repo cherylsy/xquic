@@ -15,12 +15,16 @@
 #include <net/if.h>
 #include <xquic/xquic.h>
 #include <xquic/xquic_typedef.h>
+#include <xquic/xqc_http3.h>
 
 int printf_null(const char *format, ...)
 {
     return 0;
 }
 
+#define XQC_ALPN_TRANSPORT "transport"
+
+//打开注释 不打印printf
 //#define printf printf_null
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
@@ -1912,44 +1916,20 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-        /* HTTP3 does not need to set this callback */
-        .conn_callbacks = {
-                .conn_create_notify = xqc_client_conn_create_notify,
-                .conn_close_notify = xqc_client_conn_close_notify,
-                .conn_handshake_finished = xqc_client_conn_handshake_finished,
-                .conn_ping_acked = xqc_client_conn_ping_acked_notify,
-                .conn_update_cid_notify = xqc_client_conn_update_cid_notify,
-        },
-        .h3_conn_callbacks = {
-                .h3_conn_create_notify = xqc_client_h3_conn_create_notify, /* callback after connection creation, user can create their own connection contexts */
-                .h3_conn_close_notify = xqc_client_h3_conn_close_notify, /* callback on closure, user can recycle resources */
-                .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished, /* callback when handshake done */
-                .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
-                .h3_conn_update_cid_notify = xqc_client_h3_conn_update_cid_notify,
-        },
-        /* implemented when using only the transport layer */
-        .stream_callbacks = {
-                .stream_write_notify = xqc_client_stream_write_notify, /* callback when writable, user can call the write interface */
-                .stream_read_notify = xqc_client_stream_read_notify, /* callback when readable, user can call the read interface */
-                .stream_close_notify = xqc_client_stream_close_notify, /* callback on closure, user can recycle resources */
-        },
-        /* implemented when using the application layer */
-        .h3_request_callbacks = {
-                .h3_request_write_notify = xqc_client_request_write_notify, /* callback when writable, user can call the write interface */
-                .h3_request_read_notify = xqc_client_request_read_notify, /* callback when readable, user can call the read interface */
-                .h3_request_close_notify = xqc_client_request_close_notify, /* callback on closure, user can recycle resources */
-        },
-        .write_socket = xqc_client_write_socket, /* user implementation of socket write interface */
-        .ready_to_create_path_notify = xqc_client_ready_to_create_path,  /* init path when notified */
-        .set_event_timer = xqc_client_set_event_timer, /* call xqc_engine_main_logic when the timer expires */
-        .save_token = xqc_client_save_token, /* save token */
+        /* HTTP3不用设置这个回调 */
+        .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
         .log_callbacks = {
                 .xqc_log_write_err = xqc_client_write_log,
         },
-        .save_session_cb = save_session_cb,
-        .save_tp_cb = save_tp_cb,
         .keylog_cb = xqc_keylog_cb,
-        .cert_verify_cb = xqc_client_cert_verify,
+
+        .conn_quic_cbs = {
+            .write_socket = xqc_client_write_socket,
+            .save_token = xqc_client_save_token,
+            .save_session_cb = save_session_cb,
+            .save_tp_cb = save_tp_cb,
+            .cert_verify_cb = xqc_client_cert_verify,
+        }
     };
 
     xqc_cong_ctrl_callback_t cong_ctrl;
@@ -1998,6 +1978,7 @@ int main(int argc, char *argv[]) {
             //.so_sndbuf  =   1024*1024,
             .proto_version = XQC_VERSION_V1,
             .spurious_loss_detect_on = 0,
+            .sendmmsg_on = 0,
     };
 
     xqc_config_t config;
@@ -2015,12 +1996,15 @@ int main(int argc, char *argv[]) {
     if (g_test_case == 17) {
         conn_settings.proto_version = XQC_IDRAFT_VER_29;
     }
+
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_test_case == 20) { /* test sendmmsg */
         printf("test sendmmsg!\n");
         callback.write_mmsg = xqc_client_write_mmsg;
+        xqc_h3_conn_set_settings.sendmmsg_on = 1;
     }
 #endif
+
     if (g_test_case == 24) {
         conn_settings.idle_time_out = 10000;
     }
@@ -2039,6 +2023,44 @@ int main(int argc, char *argv[]) {
         printf("xqc_engine_create error\n");
         return -1;
     }
+
+    xqc_h3_callbacks_t h3_cbs = {
+        .h3c_cbs = {
+            .h3_conn_create_notify = xqc_client_h3_conn_create_notify,
+            .h3_conn_close_notify = xqc_client_h3_conn_close_notify,
+            .h3_conn_handshake_finished = xqc_client_h3_conn_handshake_finished,
+            .h3_conn_ping_acked = xqc_client_h3_conn_ping_acked_notify,
+        },
+        .h3r_cbs = {
+            .h3_request_close_notify = xqc_client_request_close_notify,
+            .h3_request_read_notify = xqc_client_request_read_notify,
+            .h3_request_write_notify = xqc_client_request_write_notify,
+        }
+    };
+
+    /* init http3 context */
+    int ret = xqc_h3_ctx_init(ctx.engine, &h3_cbs);
+    if (ret != XQC_OK) {
+        printf("init h3 context error, ret: %d\n", ret);
+        return ret;
+    }
+
+    /* register transport callbacks */
+    xqc_alpn_callbacks_t quic_cbs = {
+        .conn_cbs = {
+            .conn_create_notify = xqc_client_conn_create_notify,
+            .conn_close_notify = xqc_client_conn_close_notify,
+            .conn_handshake_finished = xqc_client_conn_handshake_finished,
+            .conn_ping_acked = xqc_client_conn_ping_acked_notify,
+        },
+        .stream_cbs = {
+            .stream_write_notify = xqc_client_stream_write_notify,
+            .stream_read_notify = xqc_client_stream_read_notify,
+            .stream_close_notify = xqc_client_stream_close_notify,
+        }
+    };
+
+    xqc_engine_register_alpn(ctx.engine, XQC_ALPN_TRANSPORT, 9, &quic_cbs);
 
     user_conn_t *user_conn = xqc_client_user_conn_create(server_addr, server_port, transport);
     if (user_conn == NULL) {
@@ -2103,7 +2125,7 @@ int main(int argc, char *argv[]) {
     } else {
         cid = xqc_connect(ctx.engine, &conn_settings, user_conn->token, user_conn->token_len,
                           "127.0.0.1", g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
-                          user_conn->peer_addrlen, NULL, user_conn);
+                          user_conn->peer_addrlen, XQC_ALPN_TRANSPORT, user_conn);
     }
     if (cid == NULL) {
         printf("xqc_connect error\n");
