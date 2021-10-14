@@ -317,10 +317,13 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
+int
+xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *conn_user_data)
+{
 
     DEBUG;
-    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)user_data;
+    /* user_conn_t *user_conn = (xqc_server_ctx_t*)conn_user_data; */
+
 
     user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
@@ -332,10 +335,12 @@ int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *ci
     return 0;
 }
 
-int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
+int
+xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *conn_user_data)
+{
 
     DEBUG;
-    user_conn_t *user_conn = (user_conn_t*)user_data;
+    user_conn_t *user_conn = (user_conn_t*)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
     printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
            stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
@@ -345,20 +350,22 @@ int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid
     return 0;
 }
 
-void xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
+void
+xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *conn_user_data)
 {
     DEBUG;
-    user_conn_t *user_conn = (user_conn_t *) user_data;
+    user_conn_t *user_conn = (user_conn_t *)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
 void
-xqc_server_h3_conn_update_cid_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *user_data)
+xqc_server_h3_conn_update_cid_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *retire_cid,
+    const xqc_cid_t *new_cid, void *conn_user_data)
 {
     DEBUG;
 
-    user_conn_t *user_conn = (user_conn_t *) user_data;
+    user_conn_t *user_conn = (user_conn_t *)conn_user_data;
 
     memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
 
@@ -370,7 +377,8 @@ xqc_server_h3_conn_update_cid_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *re
 
 #define MAX_HEADER 100
 
-int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
+int
+xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
 {
     ssize_t ret = 0;
     int header_cnt = 6;
@@ -483,7 +491,8 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (user_stream->send_offset < user_stream->send_body_len) {
-        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
+        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset,
+                                       user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
             return 0;
@@ -495,7 +504,8 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     return 0;
 }
 
-int xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *user_data)
+int
+xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *strm_user_data)
 {
     DEBUG;
     int ret = 0;

@@ -121,6 +121,7 @@ xqc_hq_conn_get_peer_addr(xqc_hq_conn_t *hqc, struct sockaddr *addr,
 xqc_int_t
 xqc_hq_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *conn_user_data)
 {
+    /* here conn_user_data is the app-layer user_data */
     xqc_hq_conn_t *hqc = xqc_hq_conn_create(conn, cid, conn_user_data);
     if (NULL == hqc) {
         PRINT_LOG("|create hq conn failed");
