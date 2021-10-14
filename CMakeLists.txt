@@ -281,7 +281,6 @@ set(
     HQ_SOURCES
 
     "demo/xqc_hq_ctx.c"
-    "demo/xqc_hq.c"
     "demo/xqc_hq_conn.c"
     "demo/xqc_hq_request.c"
 )
