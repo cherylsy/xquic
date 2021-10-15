@@ -130,10 +130,6 @@ void
 xqc_hq_request_destroy(xqc_hq_request_t *hqr)
 {
     if (hqr) {
-        if (hqr->hqr_cbs->req_close_notify) {
-            hqr->hqr_cbs->req_close_notify(hqr, hqr->user_data);
-        }
-
         if (hqr->send_buf) {
             xqc_free(hqr->send_buf);
             hqr->send_buf = NULL;
@@ -322,7 +318,7 @@ xqc_hq_stream_create_notify(xqc_stream_t *stream, void *strm_user_data)
     xqc_hq_request_t *hqr = (xqc_hq_request_t *)strm_user_data;
     /* the stream of server is passive created, and it's strm_user_data is NULL */
     if (hqr == NULL) {
-        xqc_hq_request_t *hqr = xqc_hq_request_create_passive(stream);
+        hqr = xqc_hq_request_create_passive(stream);
         if (NULL == hqr) {
             return -XQC_EMALLOC;
         }

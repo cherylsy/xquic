@@ -639,23 +639,16 @@ xqc_demo_cli_hq_req_send(xqc_hq_request_t *hqr, xqc_demo_cli_user_stream_t *user
         user_stream->start_time = xqc_demo_now();
     }
 
-    int fin = 1;
-    if (user_stream->send_offset < user_stream->send_len) {
-        ret = xqc_hq_request_send_req(hqr, user_stream->send_buf + user_stream->send_offset);
-        if (ret < 0) {
-            switch (-ret)
-            {
-            case XQC_EAGAIN:
-                return 0;
-            
-            default:
-                printf("send stream failed, ret: %Zd\n", ret);
-                return -1;
-            }
-
-        } else {
-            user_stream->send_offset += ret;
-            user_stream->send_body_len += ret;
+    ret = xqc_hq_request_send_req(hqr, user_stream->send_buf);
+    if (ret < 0) {
+        switch (-ret)
+        {
+        case XQC_EAGAIN:
+            return 0;
+        
+        default:
+            printf("send stream failed, ret: %Zd\n", ret);
+            return -1;
         }
     }
 
