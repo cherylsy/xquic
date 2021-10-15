@@ -206,7 +206,12 @@ xqc_hq_request_send_req(xqc_hq_request_t *hqr, const char *resource)
 
     /* format HQ request */
     hqr->send_buf_len = snprintf(hqr->send_buf, max_req_buf_len, "GET %s\r\n", resource);
-    return xqc_hq_request_send_data(hqr, hqr->send_buf, hqr->send_buf_len, 1);
+    ret = xqc_hq_request_send_data(hqr, hqr->send_buf, hqr->send_buf_len, 1);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return strlen(resource);
 }
 
 
