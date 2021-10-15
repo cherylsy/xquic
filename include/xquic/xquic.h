@@ -239,6 +239,16 @@ typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cer
 typedef ssize_t (*xqc_socket_write_pt)(const unsigned char *buf, size_t size,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
 
+
+/**
+ * @brief engine can't find connection related to input udp packet, and return a STATELESS_RESET
+ * packet, implementations shall send this buffer back to peer.
+ * 
+ * 
+ */
+typedef ssize_t (*xqc_stateless_reset_pt)(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, int fd, void *conn_user_data);
+
 /**
  * @brief sendmmsg callback function. the implementation of this shall send data with sendmmsg
  * 
@@ -584,7 +594,7 @@ typedef struct xqc_engine_callback_s {
     xqc_server_accept_pt        server_accept;
 
     /* stateless reset callback */
-    xqc_socket_write_pt         stateless_reset;    // TODO: rename type
+    xqc_stateless_reset_pt      stateless_reset;
 
     /* callback functions for quic attributions */
     xqc_conn_quic_callbacks_t   conn_quic_cbs;
@@ -876,7 +886,7 @@ xqc_stream_id_t xqc_stream_id(xqc_stream_t *stream);
  * @retval 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_stream_close (xqc_stream_t *stream);
+int xqc_stream_close(xqc_stream_t *stream);
 
 /**
  * Recv data in stream.
@@ -894,10 +904,10 @@ ssize_t xqc_stream_recv(xqc_stream_t *stream,
  * @return bytes sent, -XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-ssize_t xqc_stream_send (xqc_stream_t *stream,
-                         unsigned char *send_data,
-                         size_t send_data_size,
-                         uint8_t fin);
+ssize_t xqc_stream_send(xqc_stream_t *stream,
+                        unsigned char *send_data,
+                        size_t send_data_size,
+                        uint8_t fin);
 
 /* ************************************************************
  * QUIC layer APIs end
@@ -910,34 +920,35 @@ ssize_t xqc_stream_send (xqc_stream_t *stream,
  * @param user_data   connection user_data, server is NULL
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_engine_packet_process (xqc_engine_t *engine,
-                               const unsigned char *packet_in_buf,
-                               size_t packet_in_size,
-                               const struct sockaddr *local_addr,
-                               socklen_t local_addrlen,
-                               const struct sockaddr *peer_addr,
-                               socklen_t peer_addrlen,
-                               xqc_usec_t recv_time,
-                               void *user_data);
+int xqc_engine_packet_process(xqc_engine_t *engine,
+                              const unsigned char *packet_in_buf,
+                              size_t packet_in_size,
+                              const struct sockaddr *local_addr,
+                              socklen_t local_addrlen,
+                              const struct sockaddr *peer_addr,
+                              socklen_t peer_addrlen,
+                              int fd,
+                              xqc_usec_t recv_time,
+                              void *user_data);
 
 /**
  * user should call after a number of packet processed in xqc_engine_packet_process
  * call after recv a batch packets, may destory connection when error
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_engine_finish_recv (xqc_engine_t *engine);
+void xqc_engine_finish_recv(xqc_engine_t *engine);
 
 /**
  * call after recv a batch packets, do not destory connection
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_engine_recv_batch (xqc_engine_t *engine, xqc_connection_t *conn);
+void xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn);
 
 /**
  * Process all connections, user should call when timer expire
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_engine_main_logic (xqc_engine_t *engine);
+void xqc_engine_main_logic(xqc_engine_t *engine);
 
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);

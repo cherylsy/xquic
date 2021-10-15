@@ -343,6 +343,13 @@ xqc_client_write_socket(
     return res;
 }
 
+ssize_t
+xqc_client_send_stateless_reset(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, int fd, void *user)
+{
+    return xqc_client_write_socket(buf, size, peer_addr, peer_addrlen, user);
+}
+
 
 #if defined(XQC_SUPPORT_SENDMMSG)
 ssize_t 
@@ -1406,7 +1413,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
                 if (xqc_engine_packet_process(ctx.engine, iovecs[i].iov_base, msgs[i].msg_len,
                                               user_conn->local_addr, user_conn->local_addrlen,
                                               user_conn->peer_addr, user_conn->peer_addrlen,
-                                              (xqc_msec_t) recv_time, user_conn) != 0) 
+                                              user_conn->fd, (xqc_msec_t)recv_time, user_conn) != 0) 
                 {
                     printf("xqc_server_read_handler: packet process err\n");
                     return;
@@ -1492,7 +1499,8 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (xqc_engine_packet_process(ctx.engine, packet_buf, recv_size,
                                       user_conn->local_addr, user_conn->local_addrlen,
                                       user_conn->peer_addr, user_conn->peer_addrlen,
-                                      (xqc_msec_t) recv_time, user_conn) != 0) {
+                                      user_conn->fd, (xqc_msec_t)recv_time, user_conn) != 0)
+        {
             printf("xqc_client_read_handler: packet process err\n");
             return;
         }

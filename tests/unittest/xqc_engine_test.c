@@ -42,10 +42,11 @@ void xqc_test_engine_packet_process()
 
     xqc_msec_t recv_time = xqc_monotonic_timestamp();
 
-    xqc_int_t rc = xqc_engine_packet_process(engine, 
-                         XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1,
+    xqc_int_t rc = xqc_engine_packet_process(engine, XQC_TEST_LONG_HEADER_PACKET_B,
+                                             sizeof(XQC_TEST_LONG_HEADER_PACKET_B) - 1,
                                              (struct sockaddr *)(&local_addr), local_addrlen,
-                                             (struct sockaddr *)(&peer_addr), peer_addrlen, recv_time, NULL);
+                                             (struct sockaddr *)(&peer_addr), peer_addrlen, 0,
+                                             recv_time, NULL);
     //CU_ASSERT(rc == XQC_OK);
 
     /* get connection */
@@ -53,7 +54,8 @@ void xqc_test_engine_packet_process()
     xqc_cid_init_zero(&dcid);
     xqc_cid_init_zero(&scid);
 
-    rc = xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len, XQC_TEST_LONG_HEADER_PACKET_B, sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1);
+    rc = xqc_packet_parse_cid(&scid, &dcid, engine->config->cid_len, XQC_TEST_LONG_HEADER_PACKET_B,
+                              sizeof(XQC_TEST_LONG_HEADER_PACKET_B) - 1);
     CU_ASSERT(rc == XQC_OK);
 
     xqc_connection_t *conn = xqc_engine_conns_hash_find(engine, &scid, 's');
@@ -63,10 +65,10 @@ void xqc_test_engine_packet_process()
     conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_COMPLETED;
 
     recv_time = xqc_monotonic_timestamp();
-    rc = xqc_engine_packet_process(engine, 
-                         XQC_TEST_SHORT_HEADER_PACKET_A, sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1,
+    rc = xqc_engine_packet_process(engine, XQC_TEST_SHORT_HEADER_PACKET_A,
+                                   sizeof(XQC_TEST_SHORT_HEADER_PACKET_A) - 1,
                                    (struct sockaddr *)&local_addr, local_addrlen,
-                                   (struct sockaddr *)&peer_addr, peer_addrlen, recv_time, NULL);
+                                   (struct sockaddr *)&peer_addr, peer_addrlen, 0, recv_time, NULL);
     //CU_ASSERT(rc == XQC_OK);
 
     xqc_engine_destroy(engine);

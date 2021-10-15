@@ -941,7 +941,7 @@ xqc_demo_svr_socket_read_handler(xqc_demo_svr_ctx_t *ctx, int fd)
         int ret = xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *)(&ctx->local_addr), ctx->local_addrlen,
                                       (struct sockaddr *)(&peer_addr), peer_addrlen,
-                                      (xqc_usec_t)recv_time, ctx);
+                                      fd, (xqc_usec_t)recv_time, ctx);
         if (ret != 0) {
             printf("server_read_handler: packet process err, ret: %d\n", ret);
             return;

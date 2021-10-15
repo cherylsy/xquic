@@ -696,6 +696,13 @@ xqc_server_write_socket(const unsigned char *buf, size_t size,
 }
 
 
+ssize_t
+xqc_server_send_stateless_reset(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, int fd, void *user)
+{
+    return xqc_server_write_socket(buf, size, peer_addr, peer_addrlen, user);
+}
+
 void
 xqc_server_socket_write_handler(xqc_server_ctx_t *ctx)
 {
@@ -748,8 +755,9 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 
                 if (xqc_engine_packet_process(ctx->engine, iovecs[i].iov_base, msgs[i].msg_len,
                                               (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
-                                              (struct sockaddr *) (&pa[i]), peer_addrlen, (xqc_msec_t) recv_time,
-                                              NULL) != 0) {
+                                              (struct sockaddr *) (&pa[i]), peer_addrlen,
+                                              ctx->fd, (xqc_msec_t) recv_time, NULL) != 0)
+                {
                     printf("xqc_server_read_handler: packet process err\n");
                     return;
                 }
@@ -792,8 +800,9 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));*/
         if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
-                                      (struct sockaddr *) (&peer_addr), peer_addrlen, (xqc_msec_t) recv_time,
-                                      NULL) != 0) {
+                                      (struct sockaddr *) (&peer_addr), peer_addrlen,
+                                      ctx->fd, (xqc_msec_t) recv_time, NULL) != 0)
+        {
             printf("xqc_server_read_handler: packet process err\n");
             return;
         }
