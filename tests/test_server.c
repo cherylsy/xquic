@@ -1210,9 +1210,6 @@ int main(int argc, char *argv[]) {
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
     engine_ssl_config.groups = XQC_TLS_GROUPS;
 
-    engine_ssl_config.alpn_list = NULL;
-    engine_ssl_config.alpn_list_len = 0;
-
     char g_session_ticket_key[2048];
     int ticket_key_len  = read_file_data(g_session_ticket_key, sizeof(g_session_ticket_key), g_session_ticket_file);
 
