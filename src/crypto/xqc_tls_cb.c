@@ -10,23 +10,25 @@
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_transport_params.h"
 #include "src/common/xqc_log.h"
+#include "src/transport/xqc_engine.h"
 
 
 /**
- * select aplication layer proto
+ * select aplication layer proto, which will be triggered when processing ClientHello
+ * only set for Server
  */
 int 
-xqc_alpn_select_proto_cb(SSL *ssl, 
-    const unsigned char **out, unsigned char *outlen, 
-    const unsigned char *in, unsigned int inlen, 
-    void *arg)
+xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned char *outlen, 
+    const unsigned char *in, unsigned int inlen, void *arg)
 {
-    xqc_connection_t * conn = (xqc_connection_t *) SSL_get_app_data(ssl) ;
-    xqc_engine_ssl_config_t *xs_config = (xqc_engine_ssl_config_t *)arg;
-    uint8_t *alpn_list = xs_config->alpn_list;
-    size_t alpn_list_len = xs_config->alpn_list_len;
+    xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl) ;
+    xqc_engine_t *engine = (xqc_engine_t *)arg;
+    uint8_t *alpn_list = engine->alpn_list;
+    size_t alpn_list_len = engine->alpn_list_len;
 
-    if (SSL_select_next_proto((unsigned char **)out, outlen, alpn_list, alpn_list_len, in, inlen) != OPENSSL_NPN_NEGOTIATED) {
+    if (SSL_select_next_proto((unsigned char **)out, outlen, alpn_list, alpn_list_len, in, inlen)
+        != OPENSSL_NPN_NEGOTIATED)
+    {
         xqc_log(conn->log, XQC_LOG_ERROR, "|select proto error|");
         return SSL_TLSEXT_ERR_NOACK;
     }

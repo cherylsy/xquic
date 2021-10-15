@@ -408,7 +408,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
     conn->local_addrlen = local_addrlen;
     conn->peer_addrlen = peer_addrlen;
 
-    if (xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0) {
+    if (xqc_server_tls_initial(engine, conn, &engine->ssl_config) < 0) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to tls_initial|");
         goto fail;
     }

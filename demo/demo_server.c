@@ -1237,8 +1237,6 @@ xqc_demo_svr_init_ssl_config(xqc_engine_ssl_config_t *cfg, xqc_demo_svr_args_t *
     cfg->cert_file = args->env_cfg.cert_pem_path;
     cfg->ciphers = args->quic_cfg.cipher_suit;
     cfg->groups = args->quic_cfg.groups;
-    cfg->alpn_list = NULL;
-    cfg->alpn_list_len = 0;
 
     if (args->quic_cfg.stk_len <= 0) {
         cfg->session_ticket_key_data = NULL;

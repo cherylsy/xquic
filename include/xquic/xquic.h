@@ -612,9 +612,6 @@ typedef struct xqc_engine_ssl_config_s {
     char       *session_ticket_key_data;    /* For server */
     size_t      session_ticket_key_len;     /* For server */
 
-    // TODO: delete, server创建的时候，遍历engine的alpn_list，然后组装出自己的字符串
-    char       *alpn_list;                  /* For server */
-    int         alpn_list_len;              /* For server */
 } xqc_engine_ssl_config_t;
 
 

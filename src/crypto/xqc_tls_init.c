@@ -16,6 +16,7 @@
 
 #define XQC_SESSION_DEFAULT_TIMEOUT (7 * 24 * 60 * 60)
 
+
 xqc_int_t
 xqc_ssl_init_engine_config(xqc_engine_t *engine, 
     const xqc_engine_ssl_config_t *src,
@@ -33,19 +34,21 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         ssl_config->private_key_file = NULL;
     }
 
-    if (src->cert_file && *src->cert_file) {
-        int len = strlen(src->cert_file) + 1;
-        ssl_config->cert_file = (char *)xqc_malloc(len);
-        memcpy(ssl_config->cert_file, src->cert_file, len);
+    if (src->cert_file != NULL && strlen(src->cert_file) > 0) {
+        int len = strlen(src->cert_file);
+        ssl_config->cert_file = (char *)xqc_malloc(len + 1);
+        strncpy(ssl_config->cert_file, ( char *)(src->cert_file), len);
+        ssl_config->cert_file[len] = '\0';
 
     } else {
         ssl_config->cert_file = NULL;
     }
 
-    if (src->ciphers && *src->ciphers) {
-        int len = strlen(src->ciphers) + 1;
-        ssl_config->ciphers = (char *)xqc_malloc(len);
-        memcpy(ssl_config->ciphers, src->ciphers, len);
+    if (src->ciphers != NULL && strlen(src->ciphers) > 0) {
+        int len = strlen(src->ciphers);
+        ssl_config->ciphers = (char *)xqc_malloc(len + 1);
+        strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len);
+        ssl_config->ciphers[len] = '\0';
 
     } else {
         int len = sizeof(XQC_TLS_CIPHERS);
@@ -53,10 +56,11 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         memcpy(ssl_config->ciphers, XQC_TLS_CIPHERS, len);
     }
 
-    if (src->groups && *src->groups) {
-        int len = strlen(src->groups) + 1;
-        ssl_config->groups = (char *)xqc_malloc(len);
-        memcpy(ssl_config->groups, src->groups, len);
+    if (src->groups != NULL && strlen(src->groups) > 0) {
+        int len = strlen(src->groups);
+        ssl_config->groups = (char *)xqc_malloc(len + 1);
+        strncpy(ssl_config->groups, (const char *)(src->groups), len);
+        ssl_config->groups[len] = '\0';
 
     } else {
         int len = sizeof(XQC_TLS_GROUPS);
@@ -64,9 +68,9 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         memcpy(ssl_config->groups, XQC_TLS_GROUPS, len);
     }
 
-    if (src->session_ticket_key_len > 0 ) {
+    if (src->session_ticket_key_len > 0) {
         ssl_config->session_ticket_key_len = src->session_ticket_key_len;
-        ssl_config->session_ticket_key_data  = (char *)xqc_malloc(src->session_ticket_key_len );
+        ssl_config->session_ticket_key_data = (char *)xqc_malloc(src->session_ticket_key_len);
         memcpy(ssl_config->session_ticket_key_data, src->session_ticket_key_data, src->session_ticket_key_len);
         if (xqc_init_session_ticket_keys(session_ticket_key, ssl_config->session_ticket_key_data,
                                          ssl_config->session_ticket_key_len) < 0)
@@ -81,19 +85,6 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         if (engine->eng_type == XQC_ENGINE_SERVER) {
             xqc_log(engine->log, XQC_LOG_WARN, "|no session ticket key data|");
         }
-    }
-
-    if (src->alpn_list == NULL) {
-        int len = sizeof(XQC_ALPN_LIST);
-        ssl_config->alpn_list = xqc_malloc(len);
-        memcpy(ssl_config->alpn_list, XQC_ALPN_LIST, len);
-        ssl_config->alpn_list_len = len - 1;
-
-    } else {
-        ssl_config->alpn_list_len = src->alpn_list_len;
-        ssl_config->alpn_list = (char *)xqc_malloc(src->alpn_list_len + 1);
-        memcpy(ssl_config->alpn_list, src->alpn_list, src->alpn_list_len);
-        ssl_config->alpn_list[ssl_config->alpn_list_len] = '\0';
     }
 
     return XQC_OK;
@@ -135,7 +126,6 @@ xqc_ssl_init_conn_config(xqc_connection_t *conn, const xqc_conn_ssl_config_t *sr
         ssl_config->transport_parameter_data = NULL;
         xqc_log(conn->log, XQC_LOG_WARN, "|no transport parameter data|");
     }
-
 
     return XQC_OK;
 }
@@ -505,7 +495,7 @@ xqc_create_server_ssl_ctx(xqc_engine_t *engine, const xqc_engine_ssl_config_t *x
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_RELEASE_BUFFERS);
     SSL_CTX_set_default_verify_paths(ssl_ctx);
 
-    SSL_CTX_set_alpn_select_cb(ssl_ctx, xqc_alpn_select_proto_cb, (void *)&(engine->ssl_config));
+    SSL_CTX_set_alpn_select_cb(ssl_ctx, xqc_alpn_select_proto_cb, (void *)engine);
 
     if (SSL_CTX_use_PrivateKey_file(ssl_ctx, xs_config->private_key_file,
                 SSL_FILETYPE_PEM) != XQC_SSL_SUCCESS) {

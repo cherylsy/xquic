@@ -22,6 +22,8 @@
 #include "src/http3/xqc_h3_conn.h"
 
 
+#define XQC_DEFAULT_ALPN_LIST_BUF_SIZE  256
+
 extern const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb;
 
 xqc_config_t default_client_config = {
@@ -343,7 +345,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     engine->eng_type = engine_type;
 
     /* init alpn list */
-    xqc_init_list_head(&engine->alpn_list);
+    xqc_init_list_head(&engine->alpn_reg_list);
 
     engine->config = xqc_engine_config_create(engine_type);
     if (engine->config == NULL) {
@@ -417,6 +419,13 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
+    engine->alpn_list = xqc_malloc(XQC_DEFAULT_ALPN_LIST_BUF_SIZE);
+    if (engine->alpn_list == NULL) {
+        goto fail;
+    }
+    engine->alpn_list_sz = XQC_DEFAULT_ALPN_LIST_BUF_SIZE;
+    engine->alpn_list_len = 0;
+
     /* set ssl ctx cipher suites */
     if (xqc_set_cipher_suites(engine) != XQC_OK) {
         goto fail;
@@ -465,6 +474,11 @@ xqc_engine_destroy(xqc_engine_t *engine)
     }
 
     xqc_engine_free_alpn_list(engine);
+
+    if (engine->alpn_list) {
+        xqc_free(engine->alpn_list);
+        engine->alpn_list = NULL;
+    }
 
     /* free destroy first, then destroy others */
     if (engine->conns_active_pq) {
@@ -1041,7 +1055,30 @@ xqc_engine_add_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
     registration->alpn_len = alpn_len;
     registration->quic_cbs = *quic_cbs;
 
-    xqc_list_add_tail(&registration->head, &engine->alpn_list);
+    xqc_list_add_tail(&registration->head, &engine->alpn_reg_list);
+
+    if (alpn_len > engine->alpn_list_sz - engine->alpn_list_len) {
+        /* realloc buffer */
+        size_t new_alpn_list_sz = 2 * (engine->alpn_list_sz + alpn_len);
+        char *alpn_list_new = xqc_malloc(new_alpn_list_sz);
+        engine->alpn_list_sz = new_alpn_list_sz;
+
+        /* copy alpn_list */
+        xqc_memcpy(alpn_list_new, engine->alpn_list, engine->alpn_list_len);
+        alpn_list_new[engine->alpn_list_len] = '\0';
+
+        /* replace */
+        xqc_free(engine->alpn_list);
+        engine->alpn_list = alpn_list_new;
+    }
+
+    /* sprintf new alpn to the end of alpn_list buffere */
+    snprintf(engine->alpn_list + engine->alpn_list_len,
+             engine->alpn_list_sz - engine->alpn_list_len, "%c%s", (uint8_t)alpn_len, alpn);
+    engine->alpn_list_len = strlen(engine->alpn_list);
+
+    xqc_log(engine->log, XQC_LOG_INFO, "|alpn registered|alpn:%s|alpn_list:%s", alpn,
+            engine->alpn_list);
 
     return XQC_OK;
 }
@@ -1054,7 +1091,11 @@ xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len
     xqc_list_head_t *pos, *next;
     xqc_alpn_registration_t *alpn_reg;
 
-    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+    if (NULL == alpn || 0 == alpn_len) {
+        return -XQC_EPARAM;
+    }
+
+    xqc_list_for_each_safe(pos, next, &engine->alpn_reg_list) {
         alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
         if (alpn_len == alpn_reg->alpn_len
             && xqc_memcmp(alpn, alpn_reg->alpn, alpn_len) == 0)
@@ -1065,10 +1106,33 @@ xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len
         }
     }
 
-    /* not registered, add into alpn_list */
+    /* not registered, add into alpn_reg_list */
     return xqc_engine_add_alpn(engine, alpn, alpn_len, quic_cbs);
 }
 
+void
+xqc_engine_rebuild_alpn_list_buf(xqc_engine_t *engine)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_alpn_registration_t *alpn_reg;
+
+    xqc_log(engine->log, XQC_LOG_INFO, "|rebuild alpn list|alpn_ori:%s", engine->alpn_list);
+
+    /* reset length */
+    engine->alpn_list_len = 0;
+
+    xqc_list_for_each_safe(pos, next, &engine->alpn_reg_list) {
+        alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
+        if (alpn_reg) {
+            snprintf(engine->alpn_list + engine->alpn_list_len,
+                     engine->alpn_list_sz - engine->alpn_list_len, "%c%s",
+                     (uint8_t)alpn_reg->alpn_len, alpn_reg->alpn);
+            engine->alpn_list_len = strlen(engine->alpn_list);
+        }
+    }
+
+    xqc_log(engine->log, XQC_LOG_INFO, "|rebuild alpn list|alpn_new:%s", engine->alpn_list);
+}
 
 xqc_int_t
 xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len)
@@ -1076,7 +1140,7 @@ xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_l
     xqc_list_head_t *pos, *next;
     xqc_alpn_registration_t *alpn_reg;
 
-    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+    xqc_list_for_each_safe(pos, next, &engine->alpn_reg_list) {
         alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
         if (alpn_len == alpn_reg->alpn_len
             && xqc_memcmp(alpn, alpn_reg->alpn, alpn_len) == 0)
@@ -1091,6 +1155,7 @@ xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_l
             }
 
             xqc_list_del(&alpn_reg->head);
+            xqc_engine_rebuild_alpn_list_buf(engine);
             return XQC_OK;
         }
     }
@@ -1111,7 +1176,7 @@ xqc_engine_get_alpn_callbacks(xqc_engine_t *engine, const char *alpn, size_t alp
         return -XQC_EPARAM;
     }
 
-    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+    xqc_list_for_each_safe(pos, next, &engine->alpn_reg_list) {
         alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
         if (alpn_len == alpn_reg->alpn_len
             && xqc_memcmp(alpn, alpn_reg->alpn, alpn_len) == 0)
@@ -1131,7 +1196,7 @@ xqc_engine_free_alpn_list(xqc_engine_t *engine)
     /* free alpn registrations */
     xqc_list_head_t *pos, *next;
     xqc_alpn_registration_t *alpn_reg;
-    xqc_list_for_each_safe(pos, next, &engine->alpn_list) {
+    xqc_list_for_each_safe(pos, next, &engine->alpn_reg_list) {
         alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
 
         xqc_list_del(&alpn_reg->head);

@@ -45,21 +45,4 @@ extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
  */
 extern const char* const xqc_crypto_initial_salt[];
 
-
-#define XQC_ALPN_TRANSPORT  "transport"
-
-#define XQC_ALPN_LIST       "\x2h3\x5h3-29\xahq-interop\x5hq-29\x9transport"
-
-#if 0
-xqc_bool_t
-xqc_alpn_type_is_h3(const unsigned char *alpn, uint8_t alpn_len);
-
-xqc_bool_t
-xqc_alpn_type_is_transport(const unsigned char *alpn, uint8_t alpn_len);
-
-xqc_bool_t
-xqc_alpn_type_is_hq(const unsigned char *alpn, uint8_t alpn_len);
-
-#endif
-
 #endif

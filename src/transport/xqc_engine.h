@@ -60,7 +60,12 @@ typedef struct xqc_engine_s {
     void                   *user_data;
 
     /* list of xqc_alpn_registration_t */
-    xqc_list_head_t         alpn_list;
+    xqc_list_head_t         alpn_reg_list;
+
+    /* the buffer of alpn, for server alpn selection */
+    char                   *alpn_list;
+    size_t                  alpn_list_sz;
+    size_t                  alpn_list_len;
 
 } xqc_engine_t;
 
