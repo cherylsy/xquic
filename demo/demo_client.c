@@ -722,7 +722,7 @@ xqc_demo_cli_hq_req_read_notify(xqc_hq_request_t *hqr, void *req_user_data)
         fclose(user_stream->recv_body_fp);
         user_stream->recv_body_fp = NULL;
 
-        xqc_demo_cli_on_stream_fin(user_stream);
+        // xqc_demo_cli_on_stream_fin(user_stream);
     }
     return 0;
 }
@@ -737,7 +737,7 @@ xqc_demo_cli_hq_req_close_notify(xqc_hq_request_t *hqr, void *req_user_data)
     xqc_demo_cli_user_stream_t *user_stream = (xqc_demo_cli_user_stream_t *)req_user_data;
 
     /* task schedule */
-    // xqc_demo_cli_on_stream_fin(user_stream);
+    xqc_demo_cli_on_stream_fin(user_stream);
 
     free(user_stream->send_buf);
     free(user_stream);
@@ -978,9 +978,15 @@ xqc_demo_cli_idle_callback(int fd, short what, void *arg)
         event_add(user_conn->ev_timeout, &tv);
 
     } else {
-        rc = xqc_conn_close(user_conn->ctx->engine, &user_conn->cid);
+        if (user_conn->ctx->args->quic_cfg.alpn_type == ALPN_H3) {
+            rc = xqc_h3_conn_close(user_conn->ctx->engine, &user_conn->cid);
+
+        } else {
+            rc = xqc_hq_conn_close(user_conn->ctx->engine, user_conn->hqc_handle);
+        }
+        
         if (rc) {
-            printf("xqc_conn_close error\n");
+            printf("close conn error\n");
             return;
         }
 
@@ -1037,10 +1043,6 @@ xqc_demo_cli_init_conn_ssl_config(xqc_conn_ssl_config_t *conn_ssl_config,
     xqc_demo_cli_client_args_t *args)
 {
     memset(conn_ssl_config, 0, sizeof(xqc_conn_ssl_config_t));
-
-    /* set alpn */
-    // TODO: alpn select
-    // conn_ssl_config->alpn = args->quic_cfg.alpn;
 
     /* set session ticket and transport parameter args */
     if (args->quic_cfg.st_len < 0 || args->quic_cfg.tp_len < 0) {
@@ -1900,7 +1902,12 @@ xqc_demo_cli_close_task(xqc_demo_cli_ctx_t *ctx, xqc_demo_cli_task_t *task)
     xqc_demo_cli_user_conn_t *user_conn = task->user_conn;
 
     /* close xquic conn */
-    xqc_conn_close(ctx->engine, &user_conn->cid);
+    if (ctx->args->quic_cfg.alpn_type == ALPN_H3) {
+        xqc_h3_conn_close(ctx->engine, &user_conn->cid);
+
+    } else {
+        xqc_hq_conn_close(ctx->engine, user_conn->hqc_handle);
+    }
 
     /* remove task event handle */
     event_del(user_conn->ev_socket);
