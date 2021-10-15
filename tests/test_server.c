@@ -1234,9 +1234,6 @@ int main(int argc, char *argv[]) {
 
         .conn_quic_cbs = {
             .write_socket = xqc_server_write_socket,
-#if defined(XQC_SUPPORT_SENDMMSG)
-            .write_mmsg = xqc_server_write_mmsg,
-#endif
             .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
         }
     };
@@ -1287,9 +1284,9 @@ int main(int argc, char *argv[]) {
         .sendmmsg_on = 0
     };
 
-
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_batch) {
+        callback.conn_quic_cbs.write_mmsg = xqc_server_write_mmsg,
         conn_settings.sendmmsg_on = 1;
     }
 #endif
@@ -1363,14 +1360,6 @@ int main(int argc, char *argv[]) {
     if (g_test_case == 2) {
         memset(&quic_cbs.stream_cbs, 0, sizeof(quic_cbs.stream_cbs));
     }
-
-#if defined(XQC_SUPPORT_SENDMMSG)
-    if (g_batch) {
-        h3_cbs.h3c_cbs.h3_conn_write_mmsg = xqc_server_write_mmsg;
-        quic_cbs.conn_cbs.write_mmsg = xqc_server_write_mmsg;
-
-    }
-#endif
 
     /* init http3 context */
     xqc_int_t ret = xqc_h3_ctx_init(ctx.engine, &h3_cbs);
