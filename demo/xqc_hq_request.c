@@ -208,6 +208,7 @@ xqc_hq_request_send_req(xqc_hq_request_t *hqr, const char *resource)
     hqr->send_buf_len = snprintf(hqr->send_buf, max_req_buf_len, "GET %s\r\n", resource);
     ret = xqc_hq_request_send_data(hqr, hqr->send_buf, hqr->send_buf_len, 1);
     if (ret < 0) {
+        PRINT_LOG("|send request error|ret: %"PRIu64"|", ret);
         return ret;
     }
 
@@ -342,6 +343,14 @@ int
 xqc_hq_stream_write_notify(xqc_stream_t *stream, void *user_data)
 {
     xqc_hq_request_t *hqr = (xqc_hq_request_t *)user_data;
+
+    ssize_t ret = xqc_hq_request_send_data(hqr, hqr->send_buf + hqr->sent_cnt,
+        hqr->send_buf_len - hqr->sent_cnt, 1);
+    if (ret < 0) {
+        return (int)ret;
+    }
+    
+
     if (hqr->hqr_cbs->req_write_notify) {
         return hqr->hqr_cbs->req_write_notify(hqr, hqr->user_data);
     }

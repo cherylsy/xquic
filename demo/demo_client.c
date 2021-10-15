@@ -650,6 +650,10 @@ xqc_demo_cli_hq_req_send(xqc_hq_request_t *hqr, xqc_demo_cli_user_stream_t *user
             printf("send stream failed, ret: %Zd\n", ret);
             return -1;
         }
+
+    } else {
+        user_stream->send_offset += ret;
+        user_stream->send_body_len += ret;
     }
 
     return ret;
