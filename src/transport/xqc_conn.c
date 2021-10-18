@@ -1022,8 +1022,8 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 ssize_t
 xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
 {
-    ssize_t sent = conn->engine->eng_callback.write_socket(data, len, (struct sockaddr*)conn->peer_addr,
-                                                           conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    ssize_t sent = conn->quic_cbs.write_socket(data, len,
+        (struct sockaddr *)conn->peer_addr, conn->peer_addrlen, conn->user_data);
     if (sent != len) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "|write_socket error|conn:%p|size:%ud|sent:%z|", conn, len, sent);
