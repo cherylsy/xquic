@@ -34,7 +34,7 @@ xqc_conn_settings_t default_conn_settings = {
     .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath        = 0,
     .spurious_loss_detect_on = 0,
-    .sendmmsg_on      = 0,
+    .sendmmsg_on             = 0,
 };
 
 void
@@ -415,12 +415,11 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
-    /* alpn connection accept */
-    if (conn->engine->eng_callback.server_accept) {
-        if (conn->engine->eng_callback.server_accept(conn->engine, conn, &conn->scid_set.user_scid,
-                                                     conn->user_data) < 0)
-        {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|connection refused by application level|");
+    if (engine->eng_callback.server_accept) {
+        if (engine->eng_callback.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
+            xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
+            XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
+            goto fail;
         }
         conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;  // TODO: 上层并不知道是什么ALPN，这样就认为UPPER_CONN_EXIST，是否合理？
     }
@@ -1023,8 +1022,8 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 ssize_t
 xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
 {
-    ssize_t sent = conn->quic_cbs.write_socket(data, len,
-        (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, conn->user_data);
+    ssize_t sent = conn->engine->eng_callback.write_socket(data, len, (struct sockaddr*)conn->peer_addr,
+                                                           conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (sent != len) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "|write_socket error|conn:%p|size:%ud|sent:%z|", conn, len, sent);

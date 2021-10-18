@@ -1007,7 +1007,7 @@ xqc_int_t
 xqc_h3_stream_process_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, xqc_bool_t *fin)
 {
     ssize_t read;
-    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)stream->stream_conn->alpn_user_data;
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)stream->stream_conn->alpn_user_data;
     unsigned char buff[XQC_DATA_BUF_SIZE_4K];
     size_t buff_size = XQC_DATA_BUF_SIZE_4K;
     xqc_int_t ret;
@@ -1105,7 +1105,7 @@ int
 xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
 {
     xqc_h3_stream_t *h3s;
-    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)stream->stream_conn->alpn_user_data;
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t *)stream->stream_conn->alpn_user_data;
     xqc_int_t ret;
 
     /* server h3_stream might not be created yet */

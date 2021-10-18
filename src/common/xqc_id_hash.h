@@ -7,6 +7,7 @@
 #include "src/common/xqc_common.h"
 #include "src/common/xqc_memory_pool.h"
 
+// TODO: 移到tests目录下，作为单元测试
 /* Usage examples
     xqc_id_hash_table_t hash_tab;
     xqc_id_hash_init(&hash_tab, xqc_default_allocator, 100);
@@ -50,23 +51,23 @@
 
 typedef struct xqc_id_hash_element_s
 {
-    uint64_t hash;
-    void *value;
+    uint64_t                    hash;
+    void                       *value;
 } xqc_id_hash_element_t;
 
 
 typedef struct xqc_id_hash_node_s
 {
-    struct xqc_id_hash_node_s *next;
-    xqc_id_hash_element_t element;
+    struct xqc_id_hash_node_s  *next;
+    xqc_id_hash_element_t       element;
 } xqc_id_hash_node_t;
 
 typedef struct xqc_id_hash_table_s
 {
-    xqc_id_hash_node_t **list;
-    size_t count;
-    size_t mask;
-    xqc_allocator_t allocator;
+    xqc_id_hash_node_t        **list;
+    size_t                      count;
+    size_t                      mask;
+    xqc_allocator_t             allocator;
 } xqc_id_hash_table_t;
 
 

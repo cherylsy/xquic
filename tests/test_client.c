@@ -24,7 +24,6 @@ int printf_null(const char *format, ...)
 
 #define XQC_ALPN_TRANSPORT "transport"
 
-//打开注释 不打印printf
 //#define printf printf_null
 
 #define DEBUG printf("%s:%d (%s)\n",__FILE__, __LINE__ ,__FUNCTION__);
@@ -1925,8 +1924,7 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-        /* HTTP3不用设置这个回调 */
-        .set_event_timer = xqc_client_set_event_timer, /* 设置定时器，定时器到期时调用xqc_engine_main_logic */
+        .set_event_timer = xqc_client_set_event_timer, /* call xqc_engine_main_logic when the timer expires */
         .log_callbacks = {
                 .xqc_log_write_err = xqc_client_write_log,
         },

@@ -6,7 +6,8 @@
 #include "src/common/xqc_memory_pool.h"
 #include "src/common/xqc_common.h"
 
-/* FIFO Queue
+/*
+ * FIFO Queue
  * The elements in it can be of any type, including int, char, void*, and custom structs.
  * 
  * Interfaces:
@@ -17,11 +18,12 @@
  */
 
 typedef struct {
-    char* buf;                  /* buffer */
-    unsigned int in, out;       /* in & out cursor*/
-    unsigned int element_size;  /* element size */
-    unsigned int capacity;      /* element capacity */
-    xqc_allocator_t allocator;  /* memory allocator */
+    char            *buf;           /* buffer */
+    unsigned int    in;             /* cursor for input */
+    unsigned int    out;            /* cursor for output */
+    unsigned int    element_size;   /* element size */
+    unsigned int    capacity;       /* element capacity */
+    xqc_allocator_t allocator;      /* memory allocator */
 } xqc_fifo_t; 
 
 

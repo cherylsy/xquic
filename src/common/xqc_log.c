@@ -5,7 +5,7 @@ FILE *g_malloc_info_fp;
 #endif
 
 
-const char*
+const char *
 xqc_log_level_str(xqc_log_level_t level)
 {
     if (level == XQC_LOG_STATS) {

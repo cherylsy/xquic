@@ -512,17 +512,21 @@ typedef struct xqc_congestion_control_callback_s {
     /* Callback on initialization, for memory allocation */
     size_t (*xqc_cong_ctl_size) (void);
 
-    /* 连接初始化时回调，支持传入拥塞算法参数 */
+    /* Callback on connection initialization, support for passing in congestion algorithm parameters */
     void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params);
 
-    /* 核心回调，检测到丢包时回调，按照算法策略降低拥塞窗口 */
+    /* Callback when packet loss is detected, reduce congestion window according to algorithm */
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_usec_t lost_sent_time);
+
     /* Callback when packet acked, increase congestion window according to algorithm */
     void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now);
+
     /* Callback when sending a packet, to determine if the packet can be sent */
     uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+
     /* Callback when all packets are detected as lost within 1-RTT, reset the congestion window */
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
+
     /* If the connection is in slow start state */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
@@ -534,8 +538,11 @@ typedef struct xqc_congestion_control_callback_s {
 
     /* For BBR */
     void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+
     void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
+
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
+
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
 
     xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;

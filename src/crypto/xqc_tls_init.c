@@ -34,21 +34,19 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         ssl_config->private_key_file = NULL;
     }
 
-    if (src->cert_file != NULL && strlen(src->cert_file) > 0) {
-        int len = strlen(src->cert_file);
-        ssl_config->cert_file = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->cert_file, ( char *)(src->cert_file), len);
-        ssl_config->cert_file[len] = '\0';
+    if (src->cert_file && *src->cert_file) {
+        int len = strlen(src->cert_file) + 1;
+        ssl_config->cert_file = (char *)xqc_malloc(len);
+        memcpy(ssl_config->cert_file, src->cert_file, len);
 
     } else {
         ssl_config->cert_file = NULL;
     }
 
-    if (src->ciphers != NULL && strlen(src->ciphers) > 0) {
-        int len = strlen(src->ciphers);
-        ssl_config->ciphers = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->ciphers, (const char *)(src->ciphers), len);
-        ssl_config->ciphers[len] = '\0';
+    if (src->ciphers && *src->ciphers) {
+        int len = strlen(src->ciphers) + 1;
+        ssl_config->ciphers = (char *)xqc_malloc(len);
+        memcpy(ssl_config->ciphers, src->ciphers, len);
 
     } else {
         int len = sizeof(XQC_TLS_CIPHERS);
@@ -56,11 +54,10 @@ xqc_ssl_init_engine_config(xqc_engine_t *engine,
         memcpy(ssl_config->ciphers, XQC_TLS_CIPHERS, len);
     }
 
-    if (src->groups != NULL && strlen(src->groups) > 0) {
-        int len = strlen(src->groups);
-        ssl_config->groups = (char *)xqc_malloc(len + 1);
-        strncpy(ssl_config->groups, (const char *)(src->groups), len);
-        ssl_config->groups[len] = '\0';
+    if (src->groups && *src->groups) {
+        int len = strlen(src->groups) + 1;
+        ssl_config->groups = (char *)xqc_malloc(len);
+        memcpy(ssl_config->groups, src->groups, len);
 
     } else {
         int len = sizeof(XQC_TLS_GROUPS);

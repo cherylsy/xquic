@@ -7,18 +7,6 @@
 #include "src/common/xqc_common.h"
 
 
-/*
-    Comparison (single thread, Windows Seven 32 bits, using SMHasher on a Core 2 Duo @3GHz)
-    Name            Speed       Q.Score   Author
-    xxHash          5.4 GB/s     10
-    MumurHash 3a    2.7 GB/s     10       Austin Appleby
-    CRC32           0.43 GB/s     9
-    MD5             0.33 GB/s    10       Ronald L. Rivest
-    Q.Score is a measure of quality of the hash function.
-    It depends on successfully passing SMHasher test set.
-    10 is a perfect score.
- * */
-
 
 static inline uint64_t 
 xqc_hash_string(const u_char* data, size_t len)

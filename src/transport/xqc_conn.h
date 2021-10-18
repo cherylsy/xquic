@@ -242,7 +242,7 @@ struct xqc_connection_s {
     uint32_t                    zero_rtt_count;
     uint32_t                    retry_count;
     uint32_t                    conn_close_count;
-    uint32_t                    packet_need_process_count; /* xqc_engine_packet_process积累个数 */
+    uint32_t                    packet_need_process_count; /* xqc_engine_packet_process number */
 
     xqc_conn_state_t            conn_state;
     xqc_memory_pool_t          *conn_pool;
@@ -268,7 +268,7 @@ struct xqc_connection_s {
     void                       *user_data;      /* user_data for application layer */
 
 
-    xqc_alpn_callbacks_t        alpn_cbs;   /* callback for quic connection and streams */
+    xqc_alpn_callbacks_t        alpn_cbs;       /* callback for quic connection and streams */
     void                       *alpn_user_data; /* user_data for alpn layer */
 
     xqc_list_head_t             undecrypt_packet_in[XQC_ENC_MAX_LEVEL];  /* xqc_packet_in_t */
