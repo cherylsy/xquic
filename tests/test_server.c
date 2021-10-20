@@ -756,7 +756,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
                 if (xqc_engine_packet_process(ctx->engine, iovecs[i].iov_base, msgs[i].msg_len,
                                               (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
                                               (struct sockaddr *) (&pa[i]), peer_addrlen,
-                                              ctx->fd, (xqc_msec_t) recv_time, NULL) != 0)
+                                              (xqc_msec_t) recv_time, NULL) != 0)
                 {
                     printf("xqc_server_read_handler: packet process err\n");
                     return;
@@ -801,7 +801,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
                                       (struct sockaddr *) (&peer_addr), peer_addrlen,
-                                      ctx->fd, (xqc_msec_t) recv_time, NULL) != 0)
+                                      (xqc_msec_t) recv_time, NULL) != 0)
         {
             printf("xqc_server_read_handler: packet process err\n");
             return;
