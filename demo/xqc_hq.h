@@ -13,18 +13,6 @@ typedef struct xqc_hq_request_s xqc_hq_request_t;
 
 typedef int (*xqc_hq_conn_notify_pt)(xqc_hq_conn_t *conn, void *conn_user_data);
 
-#if 0
-typedef void (*xqc_hq_save_token_pt)(const unsigned char *token, uint32_t token_len,
-    void *conn_user_data);
-
-typedef void (*xqc_hq_save_session_pt)(const char *session, size_t session_len,
-    void *conn_user_data);
-
-typedef void (*xqc_hq_save_tp_pt)(const char *tp, size_t tp_len, void *conn_user_data);
-
-typedef ssize_t (*xqc_hq_socket_write_pt)(const unsigned char *buf, size_t size,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
-#endif
 
 /**
  * @brief callback funcitons for application level using hq
@@ -40,28 +28,6 @@ typedef struct xqc_hq_conn_callbacks_s {
      * connection close notify. REQUIRED for both client and server
      */
     xqc_hq_conn_notify_pt               conn_close_notify;
-
-#if 0
-    /**
-     * write socket callback
-     */
-    xqc_hq_socket_write_pt              write_socket;
-
-    /**
-     * QUIC token callback. REQUIRED for client
-     */
-    xqc_hq_save_token_pt                save_token;
-
-    /**
-     * tls session ticket callback. REQUIRED for client
-     */
-    xqc_hq_save_session_pt              save_session_cb;
-
-    /**
-     * QUIC transport parameter callback. REQUIRED for client
-     */
-    xqc_hq_save_tp_pt                   save_tp_cb;
-#endif
 
 } xqc_hq_conn_callbacks_t;
 

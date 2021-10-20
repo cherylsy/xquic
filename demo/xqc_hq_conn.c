@@ -164,48 +164,6 @@ xqc_hq_conn_handshake_finished(xqc_connection_t *conn, void *conn_user_data)
     return;
 }
 
-#if 0
-
-void
-xqc_hq_conn_save_token(const unsigned char *token, uint32_t token_len, void *conn_user_data)
-{
-    xqc_hq_conn_t *hqc = (xqc_hq_conn_t *)conn_user_data;
-    if (hqc->hqc_cbs->save_token) {
-        hqc->hqc_cbs->save_token(token, token_len, hqc->user_data);
-    }
-}
-
-void
-xqc_hq_conn_save_session(const char *session, size_t session_len, void *conn_user_data)
-{
-    xqc_hq_conn_t *hqc = (xqc_hq_conn_t *)conn_user_data;
-    if (hqc->hqc_cbs->save_session_cb) {
-        hqc->hqc_cbs->save_session_cb(session, session_len, hqc->user_data);
-    }
-}
-
-void
-xqc_hq_conn_save_tp(const char *tp, size_t tp_len, void *conn_user_data)
-{
-    xqc_hq_conn_t *hqc = (xqc_hq_conn_t *)conn_user_data;
-    if (hqc->hqc_cbs->save_tp_cb) {
-        hqc->hqc_cbs->save_tp_cb(tp, tp_len, hqc->user_data);
-    }
-}
-
-ssize_t
-xqc_hq_conn_write_socket(const unsigned char *buf, size_t size, const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, void *conn_user_data)
-{
-    xqc_hq_conn_t *hqc = (xqc_hq_conn_t *)conn_user_data;
-    if (hqc->hqc_cbs->write_socket) {
-        return hqc->hqc_cbs->write_socket(buf, size, peer_addr, peer_addrlen, hqc->user_data);
-    }
-
-    return XQC_OK;
-}
-
-#endif
 
 /* QUIC level connection and streams callback */
 const xqc_conn_alpn_callbacks_t hq_conn_callbacks = {
