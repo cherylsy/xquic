@@ -1413,6 +1413,14 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         return XQC_OK;
     }
 
+    if(!(conn->conn_flag & XQC_CONN_FLAG_SVR_INIT_RECVD)
+       && conn->conn_type == XQC_CONN_TYPE_SERVER)
+    {
+        conn->conn_state = XQC_CONN_STATE_CLOSED;
+        xqc_conn_log(conn, XQC_LOG_ERROR, "|server cannot send CONNECTION_CLOSE before initial pkt received|");
+        return XQC_OK;
+    }
+
     int ret;
     xqc_send_ctl_t *ctl;
     xqc_usec_t now;
