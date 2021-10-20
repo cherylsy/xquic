@@ -249,14 +249,16 @@ const xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine, const xqc_conn_settings_t 
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
 
+
 /**
- * @brief get QUIC connection handleer TODO: 检查是否有用到？
+ * @brief get QUIC connection handleer
  * 
  * @param h3c http3 connection handler
  * @return quic_connection on which h3_conn rely
  */
 XQC_EXPORT_PUBLIC_API
 xqc_connection_t *xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3c);
+
 
 /**
  * @brief get http3 protocol error number
@@ -266,6 +268,7 @@ xqc_connection_t *xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3c);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_h3_conn_get_errno(xqc_h3_conn_t *h3c);
+
 
 /**
  * @brief set user_data for http3 connection, user_data could be the application level context of 
@@ -278,12 +281,14 @@ xqc_int_t xqc_h3_conn_get_errno(xqc_h3_conn_t *h3c);
 XQC_EXPORT_PUBLIC_API
 void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3c, void *user_data);
 
+
 /**
  * User can set h3 settings when h3_conn_create_notify callbacks
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_h3_conn_set_settings(xqc_h3_conn_t *h3c,
     const xqc_h3_conn_settings_t *h3_conn_settings);
+
 
 /**
  * @brief get peer address information, server should call this when h3_conn_create_notify triggers
@@ -297,6 +302,7 @@ XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr,
     socklen_t *peer_addr_len);
 
+
 /**
  * @brief get local address information, server should call this when h3_conn_create_notify triggers
  * 
@@ -309,6 +315,7 @@ XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, 
     socklen_t *local_addr_len);
 
+
 /**
  * @brief Send PING to peer, if ack received, h3_conn_ping_acked will callback with user_data
  * 
@@ -320,6 +327,7 @@ xqc_int_t xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr,
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
 
+
 /**
  * @brief check if h3 connection is ready to send 0rtt data
  * @param h3c h3 connection handler
@@ -327,6 +335,7 @@ xqc_int_t xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void
  */
 XQC_EXPORT_PUBLIC_API
 xqc_bool_t xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3c);
+
 
 /**
  * @brief set the dynamic table capacity of an existing h3 connection
@@ -368,24 +377,6 @@ xqc_request_stats_t xqc_h3_request_get_stats(xqc_h3_request_t *h3_request);
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request, void *user_data);
-
-/**
- * @brief get connection's user_data by request
- * 
- * @param h3_request handler of http3 request
- * @return user_data set by user
- */
-XQC_EXPORT_PUBLIC_API
-void *xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request);
-
-/**
- * @brief Get QUIC stream ID by request
- * 
- * @param h3_request handler of http3 request
- * @return QUIC stream id
- */
-XQC_EXPORT_PUBLIC_API
-xqc_stream_id_t xqc_h3_stream_id(xqc_h3_request_t *h3_request);
 
 /**
  * @brief close request, send QUIC RESET_STREAM frame to peer. h3_request_close_notify will 
@@ -443,6 +434,24 @@ XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf, 
     size_t recv_buf_size, uint8_t *fin);
 
+
+/**
+ * @brief get connection's user_data by request
+ * 
+ * @param h3_request handler of http3 request
+ * @return user_data set by user
+ */
+XQC_EXPORT_PUBLIC_API
+void *xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request);
+
+/**
+ * @brief Get QUIC stream ID by request
+ * 
+ * @param h3_request handler of http3 request
+ * @return QUIC stream id
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_stream_id_t xqc_h3_stream_id(xqc_h3_request_t *h3_request);
 
 #ifdef __cplusplus
 }

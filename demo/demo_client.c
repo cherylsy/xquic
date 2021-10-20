@@ -202,7 +202,7 @@ typedef struct xqc_demo_cli_requests_s {
     /* requests */
     char                    urls[MAX_REQUEST_CNT * MAX_REQUEST_LEN];
     int                     request_cnt;    /* requests cnt in urls */
-    xqc_demo_cli_request_t  reqs[MAX_REQUEST_CNT];  // TODO: use pointer
+    xqc_demo_cli_request_t  reqs[MAX_REQUEST_CNT];
 } xqc_demo_cli_requests_t;
 
 
