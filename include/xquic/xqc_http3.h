@@ -35,12 +35,6 @@ typedef void (*xqc_h3_conn_update_cid_notify_pt)(xqc_h3_conn_t *h3_conn, const
 /**
  * @brief http3 connection callbacks with the same pattern of QUIC connection
  */
-typedef xqc_save_token_pt       xqc_h3_conn_save_token_pt;
-typedef xqc_save_session_pt     xqc_h3_conn_save_session_pt;
-typedef xqc_save_trans_param_pt xqc_h3_conn_save_trans_param_pt;
-typedef xqc_cert_verify_pt      xqc_h3_conn_cert_verify_pt;
-typedef xqc_socket_write_pt     xqc_h3_conn_write_socket_pt;
-typedef xqc_send_mmsg_pt        xqc_h3_conn_send_mmsg_pt;
 
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *h3s_user_data);
 
@@ -135,29 +129,6 @@ typedef struct xqc_h3_conn_callbacks_s {
 
     /* ping callback. which will be triggered when ping is acked */
     xqc_h3_conn_ping_ack_notify_pt      h3_conn_ping_acked;            /* optional */
-
-#if 0
-    /* user cid updated callback, required for server and client */
-    xqc_h3_conn_update_cid_notify_pt    h3_conn_update_cid_notify;
-
-    /* save QUIC connection token callback, REQUIRED for client */
-    xqc_h3_conn_save_token_pt           h3_conn_save_token;
-
-    /* save session ticket callback, REQUIRED for client */
-    xqc_h3_conn_save_session_pt         h3_conn_save_session;
-
-    /* save transport parameter callback, REQUIRED for client */
-    xqc_h3_conn_save_trans_param_pt     h3_conn_save_tp;
-
-    /* verify certificate callback, REQUIRED for client */
-    xqc_h3_conn_cert_verify_pt          h3_conn_verify_cert;
-
-    /* write socket callback, ALTERNATIVE with h3_conn_send_mmsg */
-    xqc_h3_conn_write_socket_pt         h3_conn_write_socket;
-
-    /* write socket with sendmmsg callback, ALTERNATIVE with h3_conn_write_socket */
-    xqc_h3_conn_send_mmsg_pt            h3_conn_send_mmsg;
-#endif
 
 } xqc_h3_conn_callbacks_t;
 

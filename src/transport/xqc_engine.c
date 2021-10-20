@@ -1164,7 +1164,6 @@ xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_l
 }
 
 
-
 xqc_int_t
 xqc_engine_get_alpn_callbacks(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
     xqc_alpn_callbacks_t *cbs)
