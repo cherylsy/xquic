@@ -593,7 +593,7 @@ xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engin
 
 xqc_int_t
 xqc_engine_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, int fd, void *user_data)
+    socklen_t peer_addrlen, void *user_data)
 {
     unsigned char buf[XQC_PACKET_OUT_SIZE];
     xqc_int_t size = xqc_gen_reset_packet(dcid, buf,
@@ -605,7 +605,7 @@ xqc_engine_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockad
 
     if (engine->eng_callback.stateless_reset) {
         size = (xqc_int_t)engine->eng_callback.stateless_reset(buf, (size_t)size, peer_addr,
-                                                               peer_addrlen, fd, user_data);
+                                                               peer_addrlen, user_data);
         if (size < 0) {
             return size;
         }
@@ -905,7 +905,7 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
     const unsigned char *packet_in_buf, size_t packet_in_size,
     const struct sockaddr *local_addr, socklen_t local_addrlen,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen,
-    int fd, xqc_usec_t recv_time, void *user_data)
+    xqc_usec_t recv_time, void *user_data)
 {
     int ret = 0;
     xqc_connection_t *conn = NULL;
@@ -950,7 +950,7 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
             }
             xqc_log(engine->log, XQC_LOG_INFO, "|fail to find connection, send reset|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
-            ret = xqc_engine_send_reset(engine, &scid, peer_addr, peer_addrlen, fd, user_data);
+            ret = xqc_engine_send_reset(engine, &scid, peer_addr, peer_addrlen, user_data);
             if (ret) {
                 xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send reset|");
             }

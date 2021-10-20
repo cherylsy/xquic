@@ -924,8 +924,8 @@ xqc_demo_cli_socket_read_handler(xqc_demo_cli_user_conn_t *user_conn)
         user_conn->last_sock_op_time = recv_time;
         if (xqc_engine_packet_process(user_conn->ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *)(&user_conn->local_addr),
-                                      user_conn->local_addrlen, (struct sockaddr *)(&addr), addr_len,
-                                      user_conn->fd, (xqc_msec_t)recv_time, user_conn) != 0)
+                                      user_conn->local_addrlen, (struct sockaddr *)(&addr),
+                                      addr_len, (xqc_msec_t)recv_time, user_conn) != 0)
         {
             return;
         }

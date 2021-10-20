@@ -113,6 +113,17 @@ typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn
     const xqc_cid_t *cid, void *engine_user_data);
 
 /**
+ * @brief engine can't find connection related to input udp packet, and return a STATELESS_RESET
+ * packet, implementations shall send this buffer back to peer. this callback function is almost the
+ * same with xqc_socket_write_pt, but with different user_data definition.
+ * 
+ * @param user_data user_data related to connection, originated from the user_data parameter of
+ * xqc_engine_packet_process
+ */
+typedef ssize_t (*xqc_stateless_reset_pt)(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user_data);
+
+/**
  * @brief log callback functions
  */
 typedef struct xqc_log_callbacks_s {
@@ -132,8 +143,8 @@ typedef struct xqc_log_callbacks_s {
      * mainly when connection close, stream close, tls key derived.
      */
     void (*xqc_log_write_stat)(const void *buf, size_t size, void *engine_user_data);
-} xqc_log_callbacks_t;
 
+} xqc_log_callbacks_t;
 
 
 /**
@@ -169,7 +180,7 @@ typedef void (*xqc_save_string_pt)(const char *data, size_t data_len, void *conn
 typedef xqc_save_string_pt xqc_save_session_pt;
 
 /**
- * @brief transport parameters save callback
+ * @brief transport parameters callback
  *
  * transport parameters are use when initiating 0-RTT connections to avoid violating the server's 
  * restraintion, it shall be remembered with the same storage requirements and strategy as token.
@@ -221,6 +232,7 @@ typedef void (*xqc_conn_update_cid_notify_pt)(xqc_connection_t *conn, const xqc_
 typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cert_len[],
     size_t certs_len, void *conn_user_data);
 
+
 /**
  * @brief writing data callback function
  * 
@@ -233,21 +245,9 @@ typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cer
  * XQC_SOCKET_ERROR for error, xquic will destroy the connection
  * XQC_SOCKET_EAGAIN for EAGAIN, application could continue sending data with xqc_conn_continue_send
  * function when socket write event is ready
- * Warning: server's user_data is what passed in xqc_engine_packet_process when send a stateless
- * reset packet, as xquic can't find a connection
  */
 typedef ssize_t (*xqc_socket_write_pt)(const unsigned char *buf, size_t size,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
-
-
-/**
- * @brief engine can't find connection related to input udp packet, and return a STATELESS_RESET
- * packet, implementations shall send this buffer back to peer.
- * 
- * 
- */
-typedef ssize_t (*xqc_stateless_reset_pt)(const unsigned char *buf, size_t size,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, int fd, void *conn_user_data);
 
 /**
  * @brief sendmmsg callback function. the implementation of this shall send data with sendmmsg
@@ -352,10 +352,10 @@ typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
 /**
  * @brief callback functions which are more related to attributes of QUIC [Transport] but not ALPN.
  * In another word, these callback functions are events of QUIC Transport layer, and need to 
- * interact with application-layer, which have nothing to do with ALPN layer.
+ * interact with application-layer, which have less thing to do with ALPN layer.
  * 
  * These callback functions shall directly call back to application level, with user_data from
- * struct xqc_connection_t. unless ALPN level take over them.
+ * struct xqc_connection_t. unless Application-Level-Protocol take over them.
  */
 typedef struct xqc_conn_quic_callbacks_s {
 
@@ -412,6 +412,7 @@ typedef struct xqc_conn_quic_callbacks_s {
 } xqc_conn_quic_callbacks_t;
 
 
+// 命名：alpn不太合理，rename
 /** 
  * @brief QUIC connection callback functions for ALPN layer
  */
@@ -448,6 +449,7 @@ typedef struct xqc_conn_alpn_callbacks_s {
 } xqc_conn_alpn_callbacks_t;
 
 
+// TODO: rename
 /* QUIC layer stream callback functions for ALPN layer */
 typedef struct xqc_stream_alpn_callbacks_s {
     /**
@@ -486,6 +488,7 @@ typedef struct xqc_stream_alpn_callbacks_s {
 } xqc_stream_alpn_callbacks_t;
 
 
+// TODO: conn/stream没有复用user_data，可以进行拆分
 /**
  * @brief connection and stream callbacks for QUIC level, ALPN level shall implement this
  */
@@ -672,7 +675,7 @@ typedef struct xqc_conn_settings_s {
     uint32_t                    idle_time_out;      /* idle timeout interval */
     uint64_t                    enable_multipath;   /* default: 0 */
     int32_t                     spurious_loss_detect_on;
-    int                         sendmmsg_on;
+    int                         sendmmsg_on;        // TODO: 放到engine，并增加前置检查
 } xqc_conn_settings_t;
 
 
@@ -820,6 +823,7 @@ int xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
 XQC_EXPORT_PUBLIC_API
 int xqc_conn_get_errno(xqc_connection_t *conn);
 
+// TODO: rename
 /**
  * Server should set user_data when conn_create_notify callbacks
  */
@@ -829,6 +833,8 @@ void xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data);
 XQC_EXPORT_PUBLIC_API
 void xqc_conn_set_alpn_user_data(xqc_connection_t *conn, void *alpn_user_data);
 
+
+// TODO: 这个接口原先直接返回了sockaddr *，现在改成了出参形式，声明外部分配内存
 /**
  * Server should get peer addr when conn_create_notify callbacks
  * @param peer_addr_len is a return value
@@ -931,7 +937,6 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
                               socklen_t local_addrlen,
                               const struct sockaddr *peer_addr,
                               socklen_t peer_addrlen,
-                              int fd,
                               xqc_usec_t recv_time,
                               void *user_data);
 

@@ -264,10 +264,12 @@ struct xqc_connection_s {
     xqc_conn_flag_t             conn_flag;
     xqc_conn_type_t             conn_type;
 
+    // TODO: rename, connection callback L4 callback
+    // L4 user_data
     xqc_conn_quic_callbacks_t   quic_cbs;
     void                       *user_data;      /* user_data for application layer */
 
-
+    // TODO: rename L7 callback/ L7 user_data
     xqc_alpn_callbacks_t        alpn_cbs;       /* callback for quic connection and streams */
     void                       *alpn_user_data; /* user_data for alpn layer */
 
