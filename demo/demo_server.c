@@ -888,7 +888,6 @@ xqc_demo_svr_write_socket(const unsigned char *buf, size_t size, const struct so
 
     xqc_demo_svr_user_conn_t *user_conn = (xqc_demo_svr_user_conn_t *)conn_user_data;
 
-    // TODO: fd?
     int fd = svr_ctx.current_fd;
 
     do {
