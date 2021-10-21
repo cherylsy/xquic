@@ -419,7 +419,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
             XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
             goto fail;
         }
-        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;  // TODO: 上层并不知道是什么ALPN，这样就认为UPPER_CONN_EXIST，是否合理？
+        conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
     return conn;
