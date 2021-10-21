@@ -34,7 +34,6 @@ xqc_conn_settings_t default_conn_settings = {
     .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath        = 0,
     .spurious_loss_detect_on = 0,
-    .sendmmsg_on             = 0,
 };
 
 void
@@ -46,7 +45,6 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     default_conn_settings.ping_on = settings->ping_on;
     default_conn_settings.so_sndbuf = settings->so_sndbuf;
     default_conn_settings.spurious_loss_detect_on = settings->spurious_loss_detect_on;
-    default_conn_settings.sendmmsg_on = settings->sendmmsg_on;
     if (settings->idle_time_out > 0) {
         default_conn_settings.idle_time_out = settings->idle_time_out;
     }
@@ -1616,7 +1614,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid)
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|", conn);
 
-    if (xqc_conn_sendmmsg_on(conn)) {
+    if (xqc_engine_is_sendmmsg_on(conn->engine)) {
         xqc_conn_send_packets_batch(conn);
 
     } else {

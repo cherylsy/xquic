@@ -479,10 +479,4 @@ xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
 xqc_bool_t
 xqc_conn_has_hsk_keys(xqc_connection_t *c);
 
-static inline xqc_bool_t
-xqc_conn_sendmmsg_on(xqc_connection_t *c)
-{
-    return c->conn_settings.sendmmsg_on && c->quic_cbs.write_mmsg;
-}
-
 #endif /* _XQC_CONN_H_INCLUDED_ */

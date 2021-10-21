@@ -44,6 +44,8 @@ int printf_null(const char *format, ...)
 
 #define MAX_HEADER 100
 
+#define XQC_MAX_LOG_LEN 2048
+
 typedef struct user_conn_s user_conn_t;
 
 typedef struct user_stream_s {
@@ -1985,7 +1987,6 @@ int main(int argc, char *argv[]) {
             //.so_sndbuf  =   1024*1024,
             .proto_version = XQC_VERSION_V1,
             .spurious_loss_detect_on = 0,
-            .sendmmsg_on = 0,
     };
 
     xqc_config_t config;
@@ -2008,7 +2009,7 @@ int main(int argc, char *argv[]) {
     if (g_test_case == 20) { /* test sendmmsg */
         printf("test sendmmsg!\n");
         callback.conn_quic_cbs.write_mmsg = xqc_client_write_mmsg;
-        conn_settings.sendmmsg_on = 1;
+        config.sendmmsg_on = 1;
     }
 #endif
 

@@ -98,5 +98,7 @@ void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * con
 xqc_int_t xqc_engine_get_alpn_callbacks(xqc_engine_t *engine, const char *alpn,
     size_t alpn_len, xqc_alpn_callbacks_t *cbs);
 
+xqc_bool_t
+xqc_engine_is_sendmmsg_on(xqc_engine_t *engine);
 
 #endif

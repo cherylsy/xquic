@@ -40,6 +40,7 @@ xqc_config_t default_client_config = {
     .cid_negotiate             = 0,
     .reset_token_key           = {0},
     .reset_token_keylen        = 0,
+    .sendmmsg_on               = 0,
 };
 
 
@@ -57,6 +58,7 @@ xqc_config_t default_server_config = {
     .cid_negotiate             = 0,
     .reset_token_key           = {0},
     .reset_token_keylen        = 0,
+    .sendmmsg_on               = 0,
 };
 
 
@@ -324,6 +326,21 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
 }
 
 /**
+ * @brief check the legitimacy of engine config
+ */
+xqc_bool_t
+xqc_engine_check_config(xqc_engine_type_t engine_type, const xqc_config_t *engine_config,
+    const xqc_engine_ssl_config_t *ssl_config, const xqc_engine_callback_t *engine_callback)
+{
+    /* mismatch of sendmmsg_on enable and write_mmsg callback function */
+    if (engine_config->sendmmsg_on && engine_callback->conn_quic_cbs.write_mmsg == NULL) {
+        return XQC_FALSE;
+    }
+
+    return XQC_TRUE;
+}
+
+/**
  * Create new xquic engine.
  * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
  */
@@ -335,6 +352,13 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     void *user_data)
 {
     xqc_engine_t *engine = NULL;
+
+    /* check input parameter */
+    if (xqc_engine_check_config(engine_type, engine_config, ssl_config, engine_callback)
+        == XQC_FALSE)
+    {
+        return NULL;
+    }
 
     engine = xqc_malloc(sizeof(xqc_engine_t));
     if (engine == NULL) {
@@ -822,7 +846,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
         } else {
             conn->last_ticked_time = now;
 
-            if (xqc_conn_sendmmsg_on(conn)) {
+            if (xqc_engine_is_sendmmsg_on(engine)) {
                 xqc_conn_transmit_pto_probe_packets_batch(conn);
                 xqc_conn_retransmit_lost_packets_batch(conn);
                 xqc_conn_send_packets_batch(conn);
@@ -1207,4 +1231,10 @@ xqc_engine_free_alpn_list(xqc_engine_t *engine)
             xqc_free(alpn_reg);
         }
     }
+}
+
+xqc_bool_t
+xqc_engine_is_sendmmsg_on(xqc_engine_t *engine)
+{
+    return engine->config->sendmmsg_on && engine->eng_callback.conn_quic_cbs.write_mmsg;
 }

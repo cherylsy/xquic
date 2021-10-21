@@ -5,6 +5,8 @@ FILE *g_malloc_info_fp;
 #endif
 
 
+#define XQC_MAX_LOG_LEN 2048
+
 const char *
 xqc_log_level_str(xqc_log_level_t level)
 {

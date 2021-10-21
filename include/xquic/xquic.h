@@ -55,16 +55,6 @@ typedef enum xqc_proto_version_s {
 #define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
 
 
-#define XQC_MAX_LOG_LEN 2048    // TODO: 似乎不应该放这里，移入到xquic内部
-
-
-/**
- * @brief return value of write_socket callback function
- */
-#define XQC_SOCKET_ERROR                -1
-#define XQC_SOCKET_EAGAIN               -2
-
-
 #define XQC_RESET_TOKEN_MAX_KEY_LEN     256
 
 
@@ -232,6 +222,12 @@ typedef void (*xqc_conn_update_cid_notify_pt)(xqc_connection_t *conn, const xqc_
 typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cert_len[],
     size_t certs_len, void *conn_user_data);
 
+
+/**
+ * @brief return value of xqc_socket_write_pt and xqc_send_mmsg_pt callback function
+ */
+#define XQC_SOCKET_ERROR                -1
+#define XQC_SOCKET_EAGAIN               -2
 
 /**
  * @brief writing data callback function
@@ -567,21 +563,58 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb;
  * QUIC config parameters
  */
 typedef struct xqc_config_s {
+    /* log level */
     xqc_log_level_t cfg_log_level;
+
+    /* print timestamp in log or not, non-zero for print, 0 for not */
     xqc_flag_t      cfg_log_timestamp;
+
+    /* connection memory pool size, which will be used for congestion control */
     size_t          conn_pool_size;
+
+    /* bucket size of stream hash table in xqc_connection_t */
     size_t          streams_hash_bucket_size;
+
+    /* bucket size of connection hash table in engine */
     size_t          conns_hash_bucket_size;
+
+    /* capacity of connection priority queue in engine */
     size_t          conns_active_pq_capacity;
+
+    /* capacity of wakeup connection priority queue in engine */
     size_t          conns_wakeup_pq_capacity;
-    uint32_t        support_version_list[XQC_SUPPORT_VERSION_MAX]; /* supported version list */
-    uint32_t        support_version_count;                         /* number of supported versions */
+
+    /* supported quic version list, actually draft-29 and quic-v1 is supported */
+    uint32_t        support_version_list[XQC_SUPPORT_VERSION_MAX];
+
+    /* supported quic version count */
+    uint32_t        support_version_count;
+
+    /* default connection id length */
     uint8_t         cid_len;
-    uint8_t         cid_negotiate;                                 /* just for server, default:0 */
+
+    /**
+     * only for server, whether server will negotiate cid with client. non-zero for negotiate and 0
+     * for not. when enable, server will not reuse client's original DCID, and generate its own cid.
+     * 
+     * NOTICE: if length of client's original DCID is not equal to cid_len, server will always
+     * generate its own cid, despite of the enable of cid negotiation.
+     */
+    uint8_t         cid_negotiate;
+
+    /* used to generate stateless reset token */
     char            reset_token_key[XQC_RESET_TOKEN_MAX_KEY_LEN];
     size_t          reset_token_keylen;
-} xqc_config_t;
 
+    /**
+     * sendmmsg switch. non-zero for enable, 0 for disable.
+     * if enabled, xquic will try to use write_mmsg callback function instead of write_socket. 
+     * 
+     * NOTICE: if sendmmsg is enabled, xquic will check write_mmsg callback function when creating
+     * engine. if write_mmsg is NULL and sendmmsg_on is non-zero, xqc_engine_create will fail
+     */
+    int             sendmmsg_on;
+} xqc_config_t;
 
 
 /**
@@ -675,7 +708,6 @@ typedef struct xqc_conn_settings_s {
     uint32_t                    idle_time_out;      /* idle timeout interval */
     uint64_t                    enable_multipath;   /* default: 0 */
     int32_t                     spurious_loss_detect_on;
-    int                         sendmmsg_on;        // TODO: 放到engine，并增加前置检查
 } xqc_conn_settings_t;
 
 
@@ -708,19 +740,10 @@ typedef struct xqc_request_stats_s {
 } xqc_request_stats_t;
 
 
-/**
- * Modify engine config before engine created. Default config will be used otherwise.
- * Item value 0 means use default value.
- * @return 0 for success, <0 for error. default value is used if config item is illegal
- */
-XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config);
 
-/**
- * For server, it can be called anytime. settings will take effect on new connections
- */
-void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
-
+/*************************************************************
+ *  engine layer APIs
+ *************************************************************/
 
 /**
  * @brief Create new xquic engine.
@@ -744,15 +767,6 @@ xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);
-
-
-/**
- * Set engine log level, call after engine is created
- * 
- * @param log_level engine will print logs which level >= log_level
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
 
 
 /**
@@ -783,8 +797,74 @@ XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len);
 
 
+/**
+ * Pass received UDP packet payload into xquic engine.
+ * @param recv_time   UDP packet recieved time in microsecond
+ * @param user_data   connection user_data, server is NULL
+ */
+XQC_EXPORT_PUBLIC_API
+int xqc_engine_packet_process(xqc_engine_t *engine,
+    const unsigned char *packet_in_buf, size_t packet_in_size,
+    const struct sockaddr *local_addr, socklen_t local_addrlen,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    xqc_usec_t recv_time, void *user_data);
+
+
+/**
+ * @brief Process all connections, application implements MUST call this function in timer callback
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_main_logic(xqc_engine_t *engine);
+
+
+/**
+ * @brief get default config of xquic
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+
+
+/**
+ * Modify engine config before engine created. Default config will be used otherwise.
+ * Item value 0 means use default value.
+ * @return 0 for success, <0 for error. default value is used if config item is illegal
+ */
+xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config);
+
+
+/**
+ * @brief Set server's connection settings. it can be called anytime. settings will take effect on
+ * new created connections
+ */
+void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
+
+
+/**
+ * @brief Set the log level of xquic
+ * 
+ * @param log_level engine will print logs which level >= log_level
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
+
+
+/**
+ * user should call after a number of packet processed in xqc_engine_packet_process
+ * call after recv a batch packets, may destory connection when error
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_finish_recv(xqc_engine_t *engine);
+
+
+/**
+ * call after recv a batch packets, do not destory connection
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn);
+
+
 /*************************************************************
- *  QUIC layer APIs, if you don't need application layer
+ *  QUIC layer APIs
  *************************************************************/
 /**
  * Client connect without http3
@@ -834,7 +914,6 @@ XQC_EXPORT_PUBLIC_API
 void xqc_conn_set_alpn_user_data(xqc_connection_t *conn, void *alpn_user_data);
 
 
-// TODO: 这个接口原先直接返回了sockaddr *，现在改成了出参形式，声明外部分配内存
 /**
  * Server should get peer addr when conn_create_notify callbacks
  * @param peer_addr_len is a return value
@@ -918,49 +997,6 @@ ssize_t xqc_stream_send(xqc_stream_t *stream,
                         unsigned char *send_data,
                         size_t send_data_size,
                         uint8_t fin);
-
-/* ************************************************************
- * QUIC layer APIs end
- *************************************************************/
-
-
-/**
- * Pass received UDP packet payload into xquic engine.
- * @param recv_time   UDP packet recieved time in microsecond
- * @param user_data   connection user_data, server is NULL
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_engine_packet_process(xqc_engine_t *engine,
-                              const unsigned char *packet_in_buf,
-                              size_t packet_in_size,
-                              const struct sockaddr *local_addr,
-                              socklen_t local_addrlen,
-                              const struct sockaddr *peer_addr,
-                              socklen_t peer_addrlen,
-                              xqc_usec_t recv_time,
-                              void *user_data);
-
-/**
- * user should call after a number of packet processed in xqc_engine_packet_process
- * call after recv a batch packets, may destory connection when error
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_finish_recv(xqc_engine_t *engine);
-
-/**
- * call after recv a batch packets, do not destory connection
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn);
-
-/**
- * Process all connections, user should call when timer expire
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_main_logic(xqc_engine_t *engine);
-
-XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
 
 
 /**

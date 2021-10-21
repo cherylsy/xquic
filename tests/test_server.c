@@ -28,6 +28,7 @@ int printf_null(const char *format, ...)
 
 #define XQC_ALPN_TRANSPORT "transport"
 
+#define XQC_MAX_LOG_LEN 2048
 
 typedef struct xqc_quic_lb_ctx_s {
     uint8_t    sid_len;
@@ -1278,15 +1279,7 @@ int main(int argc, char *argv[]) {
         .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
         .enable_multipath = 0,
         .spurious_loss_detect_on = 0,
-        .sendmmsg_on = 0
     };
-
-#if defined(XQC_SUPPORT_SENDMMSG)
-    if (g_batch) {
-        callback.conn_quic_cbs.write_mmsg = xqc_server_write_mmsg,
-        conn_settings.sendmmsg_on = 1;
-    }
-#endif
 
     if (g_test_case == 6) {
         conn_settings.idle_time_out = 10000;
@@ -1307,6 +1300,13 @@ int main(int argc, char *argv[]) {
 
     eb = event_base_new();
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
+
+#if defined(XQC_SUPPORT_SENDMMSG)
+    if (g_batch) {
+        callback.conn_quic_cbs.write_mmsg = xqc_server_write_mmsg,
+        config.sendmmsg_on = 1;
+    }
+#endif
 
     /* test server cid negotiate */
     if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6 || g_sid_len != 0) {
