@@ -98,7 +98,7 @@ xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
                           void *user_data)
 {
     h3_conn->user_data = user_data;
-    xqc_conn_set_user_data(h3_conn->conn, user_data);
+    xqc_conn_set_transport_user_data(h3_conn->conn, user_data);
 }
 
 
@@ -147,7 +147,6 @@ xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn)
 {
     return xqc_conn_is_ready_to_send_early_data(h3_conn->conn);
 }
-
 
 
 /**
@@ -278,7 +277,7 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     }
 
     /* set ALPN user_data */
-    xqc_conn_set_alpn_user_data(conn, h3c);
+    xqc_conn_set_alp_user_data(conn, h3c);
 
     return h3c;
 
@@ -692,8 +691,8 @@ xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void
 }
 
 
-/* QUIC level connection and streams callback */
-const xqc_conn_alpn_callbacks_t h3_conn_callbacks = {
+/* HTTP/3 layer connection and streams callback over Transport-Layer */
+const xqc_conn_alp_callbacks_t h3_conn_callbacks = {
     .conn_create_notify         = xqc_h3_conn_create_notify,
     .conn_close_notify          = xqc_h3_conn_close_notify,
     .conn_handshake_finished    = xqc_h3_conn_handshake_finished,

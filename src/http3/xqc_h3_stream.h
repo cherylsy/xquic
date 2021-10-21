@@ -112,7 +112,7 @@ typedef struct xqc_h3_blocked_stream_s {
 
 
 /* transport layer callback hook */
-extern const xqc_stream_alpn_callbacks_t h3_stream_callbacks;
+extern const xqc_stream_callbacks_t h3_stream_callbacks;
 
 xqc_h3_blocked_stream_t *
 xqc_h3_blocked_stream_create(xqc_h3_stream_t *h3s, uint64_t ricnt);

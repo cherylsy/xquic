@@ -5,8 +5,6 @@
 #include <stdint.h>
 #include <xquic/xqc_errno.h>
 
-#define XQC_TRUE 1
-#define XQC_FALSE 0
 
 #ifndef XQC_LITTLE_ENDIAN
 # define XQC_LITTLE_ENDIAN 1

@@ -87,7 +87,7 @@ typedef struct xqc_h3_conn_s {
 
 
 
-extern const xqc_conn_alpn_callbacks_t  h3_conn_callbacks;
+extern const xqc_conn_alp_callbacks_t  h3_conn_callbacks;
 
 
 xqc_h3_conn_t *

@@ -426,7 +426,7 @@ xqc_create_stream_with_conn(xqc_connection_t *conn, xqc_stream_id_t stream_id, x
     stream->stream_encrypt_level = XQC_ENC_LEV_1RTT;
 
     stream->stream_conn = conn;
-    stream->stream_if = &conn->alpn_cbs.stream_cbs;
+    stream->stream_if = &conn->app_proto_cbs.stream_cbs;
     stream->user_data = user_data;
     stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
     stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
@@ -936,7 +936,7 @@ int xqc_crypto_stream_on_write (xqc_stream_t *stream, void *user_data)
     return 0;
 }
 
-xqc_stream_alpn_callbacks_t crypto_stream_callback = {
+xqc_stream_callbacks_t crypto_stream_callback = {
     .stream_read_notify = xqc_crypto_stream_on_read,
     .stream_write_notify = xqc_crypto_stream_on_write,
 };

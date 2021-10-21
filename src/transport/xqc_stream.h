@@ -69,7 +69,7 @@ typedef struct xqc_stream_frame_s {
 typedef struct xqc_stream_data_in_s {
     /* A list of STREAM frame, order by offset */
     xqc_list_head_t         frames_tailq;       /* xqc_stream_frame_t */
-    uint64_t                merged_offset_end;  /* [0,end) 收齐 */
+    uint64_t                merged_offset_end;  /* [0,end) */
     uint64_t                next_read_offset;   /* next offset in stream */
     uint64_t                stream_length;
 } xqc_stream_data_in_t;
@@ -91,11 +91,11 @@ typedef struct xqc_stream_write_buff_list_s {
 } xqc_stream_write_buff_list_t;
 
 struct xqc_stream_s {
-    xqc_connection_t        *stream_conn;
+    xqc_connection_t       *stream_conn;
     xqc_stream_id_t         stream_id;
     xqc_stream_type_t       stream_type;
-    void                    *user_data;
-    xqc_stream_alpn_callbacks_t *stream_if;
+    void                   *user_data;
+    xqc_stream_callbacks_t *stream_if;
 
     xqc_stream_flow_ctl_t   stream_flow_ctl;
     xqc_stream_write_buff_list_t

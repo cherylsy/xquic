@@ -835,7 +835,7 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
 {
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
-    xqc_conn_set_user_data(conn, user_conn);
+    xqc_conn_set_transport_user_data(conn, user_conn);
 
     xqc_conn_get_peer_addr(conn, (struct sockaddr *)&user_conn->peer_addr,
                            &user_conn->peer_addrlen);
@@ -1230,7 +1230,7 @@ int main(int argc, char *argv[]) {
         },
         .keylog_cb = xqc_keylog_cb,
 
-        .conn_quic_cbs = {
+        .conn_transport_cbs = {
             .write_socket = xqc_server_write_socket,
             .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
         }
@@ -1303,7 +1303,7 @@ int main(int argc, char *argv[]) {
 
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_batch) {
-        callback.conn_quic_cbs.write_mmsg = xqc_server_write_mmsg,
+        callback.conn_transport_cbs.write_mmsg = xqc_server_write_mmsg,
         config.sendmmsg_on = 1;
     }
 #endif
@@ -1338,7 +1338,7 @@ int main(int argc, char *argv[]) {
     };
 
     /* register transport callbacks */
-    xqc_alpn_callbacks_t quic_cbs = {
+    xqc_app_proto_callbacks_t ap_cbs = {
         .conn_cbs = {
             .conn_create_notify = xqc_server_conn_create_notify,
             .conn_close_notify = xqc_server_conn_close_notify,
@@ -1355,7 +1355,7 @@ int main(int argc, char *argv[]) {
 
     /* test NULL stream callback */
     if (g_test_case == 2) {
-        memset(&quic_cbs.stream_cbs, 0, sizeof(quic_cbs.stream_cbs));
+        memset(&ap_cbs.stream_cbs, 0, sizeof(ap_cbs.stream_cbs));
     }
 
     /* init http3 context */
@@ -1365,7 +1365,7 @@ int main(int argc, char *argv[]) {
         return ret;
     }
 
-    xqc_engine_register_alpn(ctx.engine, XQC_ALPN_TRANSPORT, 9, &quic_cbs);
+    xqc_engine_register_alpn(ctx.engine, XQC_ALPN_TRANSPORT, 9, &ap_cbs);
 
     if (g_test_case == 10) {
         xqc_h3_engine_set_max_field_section_size(ctx.engine, 10000000);

@@ -61,7 +61,7 @@ xqc_hq_conn_create_passive(xqc_connection_t *conn, const xqc_cid_t *cid)
         return NULL;
     }
 
-    xqc_conn_set_alpn_user_data(conn, hqc);
+    xqc_conn_set_alp_user_data(conn, hqc);
     return hqc;
 }
 
@@ -128,8 +128,8 @@ xqc_hq_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *co
         return -XQC_EMALLOC;
     }
 
-    /* set hqc as conn's alpn layer user_data */
-    xqc_conn_set_alpn_user_data(conn, hqc);
+    /* set hqc as conn's application-layer-protocol user_data */
+    xqc_conn_set_alp_user_data(conn, hqc);
 
     if (hqc->hqc_cbs->conn_create_notify) {
         /* NOTICE: if hqc is created passively, hqc->user_data is NULL */
@@ -165,8 +165,8 @@ xqc_hq_conn_handshake_finished(xqc_connection_t *conn, void *conn_user_data)
 }
 
 
-/* QUIC level connection and streams callback */
-const xqc_conn_alpn_callbacks_t hq_conn_callbacks = {
+/* connection callback over quic Transport layere */
+const xqc_conn_alp_callbacks_t hq_conn_callbacks = {
     .conn_create_notify         = xqc_hq_conn_create_notify,
     .conn_close_notify          = xqc_hq_conn_close_notify,
     .conn_handshake_finished    = xqc_hq_conn_handshake_finished,

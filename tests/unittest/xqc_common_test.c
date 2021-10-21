@@ -222,7 +222,7 @@ test_create_engine()
     xqc_engine_callback_t callback = {
         .log_callbacks = xqc_null_log_cb,
         .set_event_timer = null_set_event_timer,
-        .conn_quic_cbs = {
+        .conn_transport_cbs = {
             .write_socket = null_socket_write,
         }
     };
@@ -252,7 +252,7 @@ test_create_engine()
     }
 
     /* transport ALPN */
-    xqc_alpn_callbacks_t transport_cbs = {{NULL}, {NULL}};
+    xqc_app_proto_callbacks_t transport_cbs = {{NULL}, {NULL}};
     xqc_engine_register_alpn(engine, "transport", 9, &transport_cbs);
 
     return engine;

@@ -20,7 +20,7 @@ typedef struct xqc_connection_s xqc_connection_t;
 typedef struct xqc_conn_settings_s xqc_conn_settings_t;
 typedef struct xqc_engine_s xqc_engine_t;
 typedef struct xqc_log_callbacks_s xqc_log_callbacks_t;
-typedef struct xqc_conn_quic_callbacks_s xqc_conn_quic_callbacks_t;
+typedef struct xqc_conn_transport_callbacks_s xqc_conn_transport_callbacks_t;
 typedef struct xqc_h3_conn_callbacks_s xqc_h3_conn_callbacks_t;
 typedef struct xqc_random_generator_s xqc_random_generator_t;
 typedef struct xqc_client_connection_s xqc_client_connection_t;
@@ -55,6 +55,9 @@ typedef int32_t         xqc_int_t;
 typedef uint32_t        xqc_uint_t;
 typedef intptr_t        xqc_flag_t;
 typedef uint8_t         xqc_bool_t;
+
+#define XQC_TRUE 1
+#define XQC_FALSE 0
 
 #define XQC_MAX_CID_LEN 20
 #define XQC_MIN_CID_LEN 4

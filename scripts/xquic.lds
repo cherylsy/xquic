@@ -29,7 +29,7 @@ XQUIC_VERS_1.0 {
         xqc_connect;
         xqc_conn_close;
         xqc_conn_get_errno;
-        xqc_conn_set_user_data;
+        xqc_conn_set_transport_user_data;
         xqc_conn_get_peer_addr;
         xqc_conn_get_local_addr;
         xqc_stream_create;
@@ -66,7 +66,7 @@ XQUIC_VERS_1.0 {
         xqc_h3_ctx_destroy;
         xqc_engine_register_alpn;
         xqc_engine_unregister_alpn;
-        xqc_conn_set_alpn_user_data;
+        xqc_conn_set_alp_user_data;
     local:
         *;
 };

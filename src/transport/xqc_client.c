@@ -61,8 +61,8 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     xqc_log(engine->log, XQC_LOG_DEBUG, "|xqc_connect|");
 
     /* conn_create callback */
-    if (xc->alpn_cbs.conn_cbs.conn_create_notify) {
-        if (xc->alpn_cbs.conn_cbs.conn_create_notify(xc, &xc->scid_set.user_scid, user_data)) {
+    if (xc->app_proto_cbs.conn_cbs.conn_create_notify) {
+        if (xc->app_proto_cbs.conn_cbs.conn_create_notify(xc, &xc->scid_set.user_scid, user_data)) {
             xqc_conn_destroy(xc);
             return NULL;
         }

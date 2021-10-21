@@ -387,7 +387,7 @@ xqc_hq_stream_close_notify(xqc_stream_t *stream, void *user_data)
 /**
  * transport callback
  */
-const xqc_stream_alpn_callbacks_t hq_stream_callbacks = {
+const xqc_stream_callbacks_t hq_stream_callbacks = {
     .stream_create_notify   = xqc_hq_stream_create_notify,
     .stream_write_notify    = xqc_hq_stream_write_notify,
     .stream_read_notify     = xqc_hq_stream_read_notify,

@@ -1209,7 +1209,7 @@ xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_demo_svr_args_t* args)
         },
         .keylog_cb = xqc_demo_svr_keylog_cb,
 
-        .conn_quic_cbs = {
+        .conn_transport_cbs = {
             .write_socket = xqc_demo_svr_write_socket,
         }
     };

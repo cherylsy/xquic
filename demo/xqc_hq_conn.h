@@ -3,7 +3,7 @@
 
 #include "xqc_hq.h"
 
-extern const xqc_conn_alpn_callbacks_t hq_conn_callbacks;
+extern const xqc_conn_alp_callbacks_t hq_conn_callbacks;
 
 const xqc_cid_t *
 xqc_hq_conn_get_cid(xqc_hq_conn_t *hqc);

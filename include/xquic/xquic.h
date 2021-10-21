@@ -93,7 +93,7 @@ typedef void (*xqc_keylog_pt)(const char *line, void *engine_user_data);
  * @brief connection accept callback.
  * 
  * this function is invoked when incoming a new QUIC connection. return 0 means accept this new
- * connection. return negative values if application level will not accept the new connection
+ * connection. return negative values if application layer will not accept the new connection
  * due to busy or some reaseon else
  * 
  * @param user_data the parameter of xqc_engine_packet_process
@@ -323,7 +323,7 @@ typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id, const unsigned char 
  * @param peer_addr peer address
  * @param peer_addrlen peer address length
  * @param conn_user_data user_data of connection, which was the parameter of xqc_connect set by
- * client, or the parameter of xqc_conn_set_user_data set by server
+ * client, or the parameter of xqc_conn_set_transport_user_data set by server
  * @return bytes of data which is successfully sent to socket:
  * XQC_SOCKET_ERROR for error, xquic will destroy the connection
  * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket is ready to write
@@ -350,13 +350,25 @@ typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
  * In another word, these callback functions are events of QUIC Transport layer, and need to 
  * interact with application-layer, which have less thing to do with ALPN layer.
  * 
- * These callback functions shall directly call back to application level, with user_data from
- * struct xqc_connection_t. unless Application-Level-Protocol take over them.
+ * These callback functions shall directly call back to application layer, with user_data from
+ * struct xqc_connection_t. unless Application-Layer-Protocol take over them.
+ * 
+ * Generally, xquic design connection callbacks as below:
+ * connection trasnport callbacks: quic events will interact with Application Layer
+ * connection ALP callbacks: quic events will interact with Application-Layer-Protocol
+ * ALP callbacks: Application-Protocol events will interact with Application Layer
+ * +---------------------------------------------------------------------------+
+ * |                            Application Layer                              |
+ * |                                        +---------- ALP callbacks ---------+
+ * |                                        |    Application-Layer-Protocol    |
+ * +---- connection transport callbacks ----+---- connection ALP callbacks ----+
+ * |                               Transport                                   |
+ * +---------------------------------------------------------------------------+
  */
-typedef struct xqc_conn_quic_callbacks_s {
+typedef struct xqc_conn_transport_callbacks_s {
 
     /**
-     * write socket  callback, ALTERNATIVE with write_mmsg
+     * write socket callback, ALTERNATIVE with write_mmsg
      */
     xqc_socket_write_pt             write_socket;
 
@@ -405,19 +417,18 @@ typedef struct xqc_conn_quic_callbacks_s {
      */
     xqc_path_removed_notify_pt      path_reomved_notify;
 
-} xqc_conn_quic_callbacks_t;
+} xqc_conn_transport_callbacks_t;
 
 
-// 命名：alpn不太合理，rename
 /** 
- * @brief QUIC connection callback functions for ALPN layer
+ * @brief QUIC connection callback functions for Application-layer-Protocol.
  */
-typedef struct xqc_conn_alpn_callbacks_s {
+typedef struct xqc_conn_alp_callbacks_s {
 
     /**
      * connection create notify callback. REQUIRED for server, OPTIONAL for client.
      * 
-     * this function will be invoked after connection is created, user can create application level
+     * this function will be invoked after connection is created, user can create application layer
      * context in this callback function 
      * 
      * return 0 for success, -1 for failure, e.g. malloc error, on which xquic will close connection
@@ -442,16 +453,15 @@ typedef struct xqc_conn_alpn_callbacks_s {
      */
     xqc_conn_ping_ack_notify_pt     conn_ping_acked;
 
-} xqc_conn_alpn_callbacks_t;
+} xqc_conn_alp_callbacks_t;
 
 
-// TODO: rename
-/* QUIC layer stream callback functions for ALPN layer */
-typedef struct xqc_stream_alpn_callbacks_s {
+/* QUIC layer stream callback functions */
+typedef struct xqc_stream_callbacks_s {
     /**
      * stream read callback function. REQUIRED for both client and server
      * 
-     * this will be triggered when QUIC stream data is ready for read. application level could read
+     * this will be triggered when QUIC stream data is ready for read. application layer could read
      * data when xqc_stream_recv interface.
      */
     xqc_stream_notify_pt        stream_read_notify;
@@ -481,22 +491,22 @@ typedef struct xqc_stream_alpn_callbacks_s {
      */
     xqc_stream_notify_pt        stream_close_notify;
 
-} xqc_stream_alpn_callbacks_t;
+} xqc_stream_callbacks_t;
 
 
-// TODO: conn/stream没有复用user_data，可以进行拆分
 /**
- * @brief connection and stream callbacks for QUIC level, ALPN level shall implement this
+ * @brief connection and stream callbacks for QUIC level, Application-Layer-Protocol shall implement
+ * these callback functions and register ALP with xqc_engine_register_alpn
  */
-typedef struct xqc_alpn_callbacks_s {
+typedef struct xqc_app_proto_callbacks_s {
 
-    /* QUIC connection callback functions */
-    xqc_conn_alpn_callbacks_t       conn_cbs;
+    /* QUIC connection callback functions for Application-Layer-Protocol */
+    xqc_conn_alp_callbacks_t  conn_cbs;
 
     /* QUIC stream callback functions */
-    xqc_stream_alpn_callbacks_t     stream_cbs;
+    xqc_stream_callbacks_t          stream_cbs;
 
-} xqc_alpn_callbacks_t;
+} xqc_app_proto_callbacks_t;
 
 
 typedef struct xqc_cc_params_s {
@@ -622,25 +632,25 @@ typedef struct xqc_config_s {
  */
 typedef struct xqc_engine_callback_s {
     /* timer callback for event loop */
-    xqc_set_event_timer_pt      set_event_timer;
+    xqc_set_event_timer_pt          set_event_timer;
 
     /* write log file callback, REQUIRED */
-    xqc_log_callbacks_t         log_callbacks;
+    xqc_log_callbacks_t             log_callbacks;
 
     /* custom cid generator, OPTIONAL for server */
-    xqc_cid_generate_pt         cid_generate_cb;
+    xqc_cid_generate_pt             cid_generate_cb;
 
     /* tls secret callback, OPTIONAL */
-    xqc_keylog_pt               keylog_cb;
+    xqc_keylog_pt                   keylog_cb;
 
     /* accept new connection callback. REQUIRED only for server */
-    xqc_server_accept_pt        server_accept;
+    xqc_server_accept_pt            server_accept;
 
     /* stateless reset callback */
-    xqc_stateless_reset_pt      stateless_reset;
+    xqc_stateless_reset_pt          stateless_reset;
 
-    /* callback functions for quic attributions */
-    xqc_conn_quic_callbacks_t   conn_quic_cbs;
+    /* callback functions for connection transport events */
+    xqc_conn_transport_callbacks_t  conn_transport_cbs;
 
 } xqc_engine_callback_t;
 
@@ -770,27 +780,27 @@ void xqc_engine_destroy(xqc_engine_t *engine);
 
 
 /**
- * @brief register alpn and its quic callbacks. user can implement his own application protocol by 
- * registering apln, and taking quic connection and streams as application connection and request
+ * @brief register alpn and connection and stream callbacks. user can implement his own application
+ * protocol by registering apln, and taking quic connection and streams as application connection
+ * and request
  * 
  * @param engine engine handler
- * @param alpn application level protocol, like h3, hq-interop, or self-defined
- * @param alpn_len 
- * @param quic_cbs callback functions for quic level connection and streams 
+ * @param alpn Application-Layer-Protocol, for example, h3, hq-interop, or self-defined
+ * @param alpn_len length of Application-Layer-Protocol string
+ * @param ap_cbs connection and stream event callback functions for application-layer-protocol
  * @return XQC_EXPORT_PUBLIC_API 
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
-    xqc_alpn_callbacks_t *quic_cbs);
+    xqc_app_proto_callbacks_t *ap_cbs);
 
 
 /**
  * @brief unregister an alpn and its quic connection callbacks
  * 
  * @param engine engine handler
- * @param alpn application level protocol, like h3, hq-interop, or self-defined
+ * @param alpn Application-Layer-Protocol, for example, h3, hq-interop, or self-defined
  * @param alpn_len 
- * @param quic_cbs callback functions for quic level connection and streams 
  * @return XQC_EXPORT_PUBLIC_API 
  */
 XQC_EXPORT_PUBLIC_API
@@ -878,7 +888,7 @@ void xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn);
  * @param user_data For connection
  * @param peer_addr address of peer
  * @param peer_addrlen length of peer_addr
- * @param alpn application level protocol, if be NULL, will use "transport" as default
+ * @param alpn Application-Layer-Protocol, MUST NOT be NULL
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 XQC_EXPORT_PUBLIC_API
@@ -903,21 +913,25 @@ int xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
 XQC_EXPORT_PUBLIC_API
 int xqc_conn_get_errno(xqc_connection_t *conn);
 
-// TODO: rename
+
 /**
  * Server should set user_data when conn_create_notify callbacks
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data);
+void xqc_conn_set_transport_user_data(xqc_connection_t *conn, void *user_data);
 
+/**
+ * @brief set application-layer-protocol user_data to xqc_connection_t. which will be used in 
+ * xqc_conn_alp_callbacks_t
+ */
 XQC_EXPORT_PUBLIC_API
-void xqc_conn_set_alpn_user_data(xqc_connection_t *conn, void *alpn_user_data);
+void xqc_conn_set_alp_user_data(xqc_connection_t *conn, void *app_proto_user_data);
 
 
 /**
  * Server should get peer addr when conn_create_notify callbacks
  * @param peer_addr_len is a return value
- * @return peer addr
+ * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr,
@@ -926,7 +940,7 @@ xqc_int_t xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr,
 /**
  * Server should get local addr when conn_create_notify callbacks
  * @param local_addr_len is a return value
- * @return local addr
+ * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr,

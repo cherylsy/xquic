@@ -15,7 +15,7 @@ typedef int (*xqc_hq_conn_notify_pt)(xqc_hq_conn_t *conn, void *conn_user_data);
 
 
 /**
- * @brief callback funcitons for application level using hq
+ * @brief application-layer-protocol callback funcitons for hq
  */
 typedef struct xqc_hq_conn_callbacks_s {
 

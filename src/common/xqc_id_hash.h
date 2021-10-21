@@ -7,47 +7,6 @@
 #include "src/common/xqc_common.h"
 #include "src/common/xqc_memory_pool.h"
 
-// TODO: 移到tests目录下，作为单元测试
-/* Usage examples
-    xqc_id_hash_table_t hash_tab;
-    xqc_id_hash_init(&hash_tab, xqc_default_allocator, 100);
-
-    xqc_id_hash_element_t e1 = {1, "hello"};
-    xqc_id_hash_add(&hash_tab, e1);
-
-    xqc_id_hash_element_t e2 = {3, "world"};
-    xqc_id_hash_add(&hash_tab, e2);
-
-    xqc_id_hash_element_t e3 = {5, "!"};
-    xqc_id_hash_add(&hash_tab, e3);
-
-    char* p1 = xqc_id_hash_find(&hash_tab, 3);
-    if (p1) {
-        printf("found hash 3: %s\n", p1);
-    } else {
-        printf("not found hash 3\n");
-    }
-
-    void* p2 = xqc_id_hash_find(&hash_tab, 4);
-    if (p2) {
-        printf("found hash 4: %s\n", p2);
-    } else {
-        printf("not found hash 4\n");
-    }
-
-    int ret = xqc_id_hash_delete(&hash_tab, 3);
-    printf("delete 3 return %d\n", ret);
-
-    p1 = xqc_id_hash_find(&hash_tab, 3);
-    if (p1) {
-        printf("found hash 3: %s\n", p1);
-    } else {
-        printf("not found hash 3\n");
-    }
-
-    xqc_id_hash_release(&hash_tab);
- * */
-
 
 typedef struct xqc_id_hash_element_s
 {

@@ -271,7 +271,7 @@ xqc_int_t xqc_h3_conn_get_errno(xqc_h3_conn_t *h3c);
 
 
 /**
- * @brief set user_data for http3 connection, user_data could be the application level context of 
+ * @brief set user_data for http3 connection, user_data could be the application layer context of 
  * http3 connection
  * 
  * @param h3c handler of http3 connection

@@ -617,7 +617,7 @@ int xqc_client_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, 
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
-    xqc_conn_set_alpn_user_data(conn, user_conn);
+    xqc_conn_set_alp_user_data(conn, user_conn);
 
     printf("xqc_conn_is_ready_to_send_early_data:%d\n", xqc_conn_is_ready_to_send_early_data(conn));
     return 0;
@@ -1932,7 +1932,7 @@ int main(int argc, char *argv[]) {
         },
         .keylog_cb = xqc_keylog_cb,
 
-        .conn_quic_cbs = {
+        .conn_transport_cbs = {
             .write_socket = xqc_client_write_socket,
             .save_token = xqc_client_save_token,
             .save_session_cb = save_session_cb,
@@ -2008,7 +2008,7 @@ int main(int argc, char *argv[]) {
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_test_case == 20) { /* test sendmmsg */
         printf("test sendmmsg!\n");
-        callback.conn_quic_cbs.write_mmsg = xqc_client_write_mmsg;
+        callback.conn_transport_cbs.write_mmsg = xqc_client_write_mmsg;
         config.sendmmsg_on = 1;
     }
 #endif
@@ -2054,7 +2054,7 @@ int main(int argc, char *argv[]) {
     }
 
     /* register transport callbacks */
-    xqc_alpn_callbacks_t quic_cbs = {
+    xqc_app_proto_callbacks_t ap_cbs = {
         .conn_cbs = {
             .conn_create_notify = xqc_client_conn_create_notify,
             .conn_close_notify = xqc_client_conn_close_notify,
@@ -2068,7 +2068,7 @@ int main(int argc, char *argv[]) {
         }
     };
 
-    xqc_engine_register_alpn(ctx.engine, XQC_ALPN_TRANSPORT, 9, &quic_cbs);
+    xqc_engine_register_alpn(ctx.engine, XQC_ALPN_TRANSPORT, 9, &ap_cbs);
 
     user_conn_t *user_conn = xqc_client_user_conn_create(server_addr, server_port, transport);
     if (user_conn == NULL) {

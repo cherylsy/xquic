@@ -17,34 +17,34 @@ typedef enum {
 
 
 typedef struct xqc_alpn_registration_s {
-    xqc_list_head_t         head;
+    xqc_list_head_t             head;
 
-    /* content of application level protocol */
-    char                   *alpn;
+    /* content of application layer protocol */
+    char                       *alpn;
 
     /* length of alpn string */
-    size_t                  alpn_len;
+    size_t                      alpn_len;
 
-    /* quic level callback functions for current alpn */
-    xqc_alpn_callbacks_t    quic_cbs;
+    /* Application-Layer-Protocol callback functions */
+    xqc_app_proto_callbacks_t   ap_cbs;
 
 } xqc_alpn_registration_t;
 
 
 typedef struct xqc_engine_s {
     /* for engine itself */
-    xqc_engine_type_t       eng_type;
-    xqc_engine_callback_t   eng_callback;
-    xqc_engine_flag_t       eng_flag;
+    xqc_engine_type_t               eng_type;
+    xqc_engine_callback_t           eng_callback;
+    xqc_engine_flag_t               eng_flag;
 
     /* for connections */
-    xqc_config_t           *config;
-    xqc_str_hash_table_t   *conns_hash;             /* scid */
-    xqc_str_hash_table_t   *conns_hash_dcid;        /* For reset packet */
-    xqc_pq_t               *conns_active_pq;        /* In process */
-    xqc_wakeup_pq_t        *conns_wait_wakeup_pq;   /* Need wakeup after next tick time */
-    uint8_t                 reset_sent_cnt[XQC_RESET_CNT_ARRAY_LEN]; /* remote addr hash */
-    xqc_usec_t              reset_sent_cnt_cleared;
+    xqc_config_t                   *config;
+    xqc_str_hash_table_t           *conns_hash;             /* scid */
+    xqc_str_hash_table_t           *conns_hash_dcid;        /* For reset packet */
+    xqc_pq_t                       *conns_active_pq;        /* In process */
+    xqc_wakeup_pq_t                *conns_wait_wakeup_pq;   /* Need wakeup after next tick time */
+    uint8_t                         reset_sent_cnt[XQC_RESET_CNT_ARRAY_LEN]; /* remote addr hash */
+    xqc_usec_t                      reset_sent_cnt_cleared;
 
     /* for tls */
     SSL_CTX                        *ssl_ctx;        /* for ssl */
@@ -53,19 +53,19 @@ typedef struct xqc_engine_s {
     xqc_ssl_session_ticket_key_t    session_ticket_key;
 
     /* common */
-    xqc_log_t              *log;
-    xqc_random_generator_t *rand_generator;
+    xqc_log_t                      *log;
+    xqc_random_generator_t         *rand_generator;
 
     /* for user */
-    void                   *user_data;
+    void                           *user_data;
 
     /* list of xqc_alpn_registration_t */
-    xqc_list_head_t         alpn_reg_list;
+    xqc_list_head_t                 alpn_reg_list;
 
     /* the buffer of alpn, for server alpn selection */
-    char                   *alpn_list;
-    size_t                  alpn_list_sz;
-    size_t                  alpn_list_len;
+    char                           *alpn_list;
+    size_t                          alpn_list_sz;
+    size_t                          alpn_list_len;
 
 } xqc_engine_t;
 
@@ -96,7 +96,7 @@ void xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now);
 void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * conn);
 
 xqc_int_t xqc_engine_get_alpn_callbacks(xqc_engine_t *engine, const char *alpn,
-    size_t alpn_len, xqc_alpn_callbacks_t *cbs);
+    size_t alpn_len, xqc_app_proto_callbacks_t *cbs);
 
 xqc_bool_t
 xqc_engine_is_sendmmsg_on(xqc_engine_t *engine);
