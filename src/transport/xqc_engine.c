@@ -114,7 +114,7 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
     dst->cid_negotiate = src->cid_negotiate;
     dst->cfg_log_level = src->cfg_log_level;
     dst->cfg_log_timestamp = src->cfg_log_timestamp;
-
+    dst->sendmmsg_on = src->sendmmsg_on;
 
     return XQC_OK;
 }
