@@ -20,11 +20,6 @@
 /* connection active cid limit */
 #define XQC_CONN_ACTIVE_CID_LIMIT       8
 
-/**
- * used to indicate the max message count of iovec in sendmmsg
- */
-#define XQC_MAX_SEND_MSG_ONCE           32
-
 
 #define XQC_VERSION_V1_VALUE        0x00000001
 #define XQC_IDRAFT_VER_29_VALUE     0xFF00001D

@@ -59,6 +59,12 @@ typedef enum xqc_proto_version_s {
 
 
 /**
+ * the max message count of iovec in sendmmsg
+ */
+#define XQC_MAX_SEND_MSG_ONCE           32
+
+
+/**
  * @brief event timer callback function. MUST for both client and server
  * xquic don't have implementation of timer, but will tell the interval of timer by this function.
  * applications shall implement the timer, and invoke xqc_engine_main_logic after timer expires.
