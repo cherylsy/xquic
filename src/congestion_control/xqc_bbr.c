@@ -893,11 +893,14 @@ xqc_bbr_restart_from_idle(void *cong_ctl, uint64_t conn_delivered)
     bbr->idle_restart = 1;
     bbr->extra_ack_stamp = now;
     bbr->epoch_ack = 0;
+    xqc_sample_t sampler = {.now = now, .total_acked = conn_delivered};
+
     if (bbr->mode == BBR_PROBE_BW) {
         _xqc_bbr_set_pacing_rate_helper(bbr, 1.0);
-
+        if (bbr->pacing_rate == 0) {
+            xqc_bbr_init_pacing_rate(bbr, &sampler);
+        }
     } else if (bbr->mode == BBR_PROBE_RTT) {
-        xqc_sample_t sampler = {.now = now, .total_acked = conn_delivered};
         xqc_bbr_check_probe_rtt_done(bbr, &sampler);
     }
 }
