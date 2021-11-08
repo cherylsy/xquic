@@ -96,30 +96,6 @@ typedef ssize_t (*xqc_cid_generate_pt)(const xqc_cid_t *ori_cid, uint8_t *cid_bu
 typedef void (*xqc_keylog_pt)(const char *line, void *engine_user_data);
 
 /**
- * @brief connection accept callback.
- * 
- * this function is invoked when incoming a new QUIC connection. return 0 means accept this new
- * connection. return negative values if application layer will not accept the new connection
- * due to busy or some reaseon else
- * 
- * @param user_data the parameter of xqc_engine_packet_process
- * @return negative for refuse conneciton. 0 for accept
- */
-typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn,
-    const xqc_cid_t *cid, void *engine_user_data);
-
-/**
- * @brief engine can't find connection related to input udp packet, and return a STATELESS_RESET
- * packet, implementations shall send this buffer back to peer. this callback function is almost the
- * same with xqc_socket_write_pt, but with different user_data definition.
- * 
- * @param user_data user_data related to connection, originated from the user_data parameter of
- * xqc_engine_packet_process
- */
-typedef ssize_t (*xqc_stateless_reset_pt)(const unsigned char *buf, size_t size,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user_data);
-
-/**
  * @brief log callback functions
  */
 typedef struct xqc_log_callbacks_s {
@@ -142,6 +118,30 @@ typedef struct xqc_log_callbacks_s {
 
 } xqc_log_callbacks_t;
 
+
+/**
+ * @brief connection accept callback.
+ * 
+ * this function is invoked when incoming a new QUIC connection. return 0 means accept this new
+ * connection. return negative values if application layer will not accept the new connection
+ * due to busy or some reaseon else
+ * 
+ * @param user_data the user_data parameter of xqc_engine_packet_process
+ * @return negative for refuse conneciton. 0 for accept
+ */
+typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn,
+    const xqc_cid_t *cid, void *user_data);
+
+/**
+ * @brief engine can't find connection related to input udp packet, and return a STATELESS_RESET
+ * packet, implementations shall send this buffer back to peer. this callback function is almost the
+ * same with xqc_socket_write_pt, but with different user_data definition.
+ * 
+ * @param user_data user_data related to connection, originated from the user_data parameter of
+ * xqc_engine_packet_process
+ */
+typedef ssize_t (*xqc_stateless_reset_pt)(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user_data);
 
 /**
  * @brief general callback function definition for connection create and close
@@ -360,20 +360,27 @@ typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
  * struct xqc_connection_t. unless Application-Layer-Protocol take over them.
  * 
  * Generally, xquic design connection callbacks as below:
- * connection trasnport callbacks: quic events will interact with Application Layer
- * connection ALP callbacks: quic events will interact with Application-Layer-Protocol
- * ALP callbacks: Application-Protocol events will interact with Application Layer
+ * trasnport callbacks: quic events will interact with Application and Application Protocol.
+ * 
+ * Application Protocol callbacks: Application-Protocol events will interact with Application Layer
  * +---------------------------------------------------------------------------+
- * |                            User  Layer                              |
- * |                                        +--- Application-Layer callbacks ---+
- * |                                        |    Application-Layer-Protocol    |
- * +---------- transport callbacks ---------+---- transport callbacks ----+
- * |                               Transport Implementation                                  |
+ * |                                Application                                |
+ * |                                    +--- Application Protocol callbacks ---+
+ * |                                    |         Application Protocol         |
+ * +-------- transport callbacks -------+--------- transport callbacks --------+
+ * |                                 Transport                                 |
  * +---------------------------------------------------------------------------+
  */
-
-// TODO: rename
 typedef struct xqc_conn_transport_callbacks_s {
+    /**
+     * accept new connection callback. REQUIRED only for server
+     * NOTICE: this is the headmost callback trigger by xquic, the user_data of server_accept is
+     * what was passed into xqc_engine_packet_process
+     */
+    xqc_server_accept_pt            server_accept;
+
+    /* stateless reset callback */
+    xqc_stateless_reset_pt          stateless_reset;
 
     /**
      * write socket callback, ALTERNATIVE with write_mmsg
@@ -650,13 +657,6 @@ typedef struct xqc_engine_callback_s {
 
     /* tls secret callback, OPTIONAL */
     xqc_keylog_pt                   keylog_cb;
-
-    // TODO: 挪到conn transport 回调
-    /* accept new connection callback. REQUIRED only for server */
-    xqc_server_accept_pt            server_accept;
-
-    /* stateless reset callback */
-    xqc_stateless_reset_pt          stateless_reset;
 
     /* callback functions for connection transport events */
     xqc_conn_transport_callbacks_t  conn_transport_cbs;

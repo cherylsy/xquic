@@ -627,9 +627,9 @@ xqc_engine_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockad
         return size;
     }
 
-    if (engine->eng_callback.stateless_reset) {
-        size = (xqc_int_t)engine->eng_callback.stateless_reset(buf, (size_t)size, peer_addr,
-                                                               peer_addrlen, user_data);
+    xqc_stateless_reset_pt stateless_cb = engine->eng_callback.conn_transport_cbs.stateless_reset;
+    if (stateless_cb) {
+        size = (xqc_int_t)stateless_cb(buf, (size_t)size, peer_addr, peer_addrlen, user_data);
         if (size < 0) {
             return size;
         }

@@ -413,8 +413,8 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
-    if (engine->eng_callback.server_accept) {
-        if (engine->eng_callback.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
+    if (conn->transport_cbs.server_accept) {
+        if (conn->transport_cbs.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
             XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
             goto fail;
