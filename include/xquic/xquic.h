@@ -359,10 +359,18 @@ typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
  * These callback functions shall directly call back to application layer, with user_data from
  * struct xqc_connection_t. unless Application-Layer-Protocol take over them.
  * 
- * Generally, xquic design connection callbacks as below:
- * trasnport callbacks: quic events will interact with Application and Application Protocol.
+ * Generally, xquic defines callbacks as below:
+ * 1. Callbacks between Trasnport and Application:
+ * QUIC events that are common between different Application Protocols, 
+ * and is much more convenient to interact with Application and Application Protocol. 
  * 
- * Application Protocol callbacks: Application-Protocol events will interact with Application Layer
+ * 2. Callbacks between Application Protocol and Applicaiton:
+ * Application-Protocol events will interact with Application Layer. these callback functions are
+ * defined by Application Protocol Layers.
+ * 
+ * 3. Callbacks between Transport and Application Protocol:
+ * QUIC events that might be more essential to Application-Layer-Protocols, especially stream data
+ * 
  * +---------------------------------------------------------------------------+
  * |                                Application                                |
  * |                                    +--- Application Protocol callbacks ---+
