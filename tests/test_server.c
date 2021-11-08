@@ -1223,7 +1223,6 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-        .server_accept = xqc_server_accept,
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
             .xqc_log_write_err = xqc_server_write_log,
@@ -1231,6 +1230,7 @@ int main(int argc, char *argv[]) {
         .keylog_cb = xqc_keylog_cb,
 
         .conn_transport_cbs = {
+            .server_accept = xqc_server_accept,
             .write_socket = xqc_server_write_socket,
             .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
         }

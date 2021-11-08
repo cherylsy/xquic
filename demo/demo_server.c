@@ -1201,7 +1201,6 @@ void
 xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_demo_svr_args_t* args)
 {
     static xqc_engine_callback_t callback = {
-        .server_accept = xqc_demo_svr_accept,
         .set_event_timer = xqc_demo_svr_set_event_timer,
         .log_callbacks = {
             .xqc_log_write_err = xqc_demo_svr_write_log_file,
@@ -1210,6 +1209,7 @@ xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_demo_svr_args_t* args)
         .keylog_cb = xqc_demo_svr_keylog_cb,
 
         .conn_transport_cbs = {
+            .server_accept = xqc_demo_svr_accept,
             .write_socket = xqc_demo_svr_write_socket,
         }
     };
