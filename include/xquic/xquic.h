@@ -364,13 +364,15 @@ typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
  * connection ALP callbacks: quic events will interact with Application-Layer-Protocol
  * ALP callbacks: Application-Protocol events will interact with Application Layer
  * +---------------------------------------------------------------------------+
- * |                            Application Layer                              |
- * |                                        +---------- ALP callbacks ---------+
+ * |                            User  Layer                              |
+ * |                                        +--- Application-Layer callbacks ---+
  * |                                        |    Application-Layer-Protocol    |
- * +---- connection transport callbacks ----+---- connection ALP callbacks ----+
- * |                               Transport                                   |
+ * +---------- transport callbacks ---------+---- transport callbacks ----+
+ * |                               Transport Implementation                                  |
  * +---------------------------------------------------------------------------+
  */
+
+// TODO: rename
 typedef struct xqc_conn_transport_callbacks_s {
 
     /**
@@ -429,7 +431,7 @@ typedef struct xqc_conn_transport_callbacks_s {
 /** 
  * @brief QUIC connection callback functions for Application-layer-Protocol.
  */
-typedef struct xqc_conn_alp_callbacks_s {
+typedef struct xqc_conn_callbacks_s {
 
     /**
      * connection create notify callback. REQUIRED for server, OPTIONAL for client.
@@ -459,7 +461,7 @@ typedef struct xqc_conn_alp_callbacks_s {
      */
     xqc_conn_ping_ack_notify_pt     conn_ping_acked;
 
-} xqc_conn_alp_callbacks_t;
+} xqc_conn_callbacks_t;
 
 
 /* QUIC layer stream callback functions */
@@ -507,7 +509,7 @@ typedef struct xqc_stream_callbacks_s {
 typedef struct xqc_app_proto_callbacks_s {
 
     /* QUIC connection callback functions for Application-Layer-Protocol */
-    xqc_conn_alp_callbacks_t  conn_cbs;
+    xqc_conn_callbacks_t  conn_cbs;
 
     /* QUIC stream callback functions */
     xqc_stream_callbacks_t          stream_cbs;
@@ -649,6 +651,7 @@ typedef struct xqc_engine_callback_s {
     /* tls secret callback, OPTIONAL */
     xqc_keylog_pt                   keylog_cb;
 
+    // TODO: 挪到conn transport 回调
     /* accept new connection callback. REQUIRED only for server */
     xqc_server_accept_pt            server_accept;
 
@@ -928,7 +931,7 @@ void xqc_conn_set_transport_user_data(xqc_connection_t *conn, void *user_data);
 
 /**
  * @brief set application-layer-protocol user_data to xqc_connection_t. which will be used in 
- * xqc_conn_alp_callbacks_t
+ * xqc_conn_callbacks_t
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_conn_set_alp_user_data(xqc_connection_t *conn, void *app_proto_user_data);

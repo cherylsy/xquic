@@ -613,7 +613,7 @@ xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void
 
 
 /* HTTP/3 layer connection and streams callback over Transport-Layer */
-const xqc_conn_alp_callbacks_t h3_conn_callbacks = {
+const xqc_conn_callbacks_t h3_conn_callbacks = {
     .conn_create_notify         = xqc_h3_conn_create_notify,
     .conn_close_notify          = xqc_h3_conn_close_notify,
     .conn_handshake_finished    = xqc_h3_conn_handshake_finished,

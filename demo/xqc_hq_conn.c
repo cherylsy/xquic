@@ -166,7 +166,7 @@ xqc_hq_conn_handshake_finished(xqc_connection_t *conn, void *conn_user_data)
 
 
 /* connection callback over quic Transport layere */
-const xqc_conn_alp_callbacks_t hq_conn_callbacks = {
+const xqc_conn_callbacks_t hq_conn_callbacks = {
     .conn_create_notify         = xqc_hq_conn_create_notify,
     .conn_close_notify          = xqc_hq_conn_close_notify,
     .conn_handshake_finished    = xqc_hq_conn_handshake_finished,
