@@ -2008,7 +2008,7 @@ int main(int argc, char *argv[]) {
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_test_case == 20) { /* test sendmmsg */
         printf("test sendmmsg!\n");
-        callback.conn_transport_cbs.write_mmsg = xqc_client_write_mmsg;
+        tcbs.write_mmsg = xqc_client_write_mmsg;
         config.sendmmsg_on = 1;
     }
 #endif

@@ -1304,7 +1304,7 @@ int main(int argc, char *argv[]) {
 
 #if defined(XQC_SUPPORT_SENDMMSG)
     if (g_batch) {
-        callback.conn_transport_cbs.write_mmsg = xqc_server_write_mmsg,
+        tcbs.write_mmsg = xqc_server_write_mmsg,
         config.sendmmsg_on = 1;
     }
 #endif
@@ -1317,7 +1317,8 @@ int main(int argc, char *argv[]) {
         config.cid_len = XQC_MAX_CID_LEN;
     }
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config, &callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config,
+                                   &callback, &tcbs, &ctx);
     if(ctx.engine == NULL){
         printf("error create engine\n");
         return -1;

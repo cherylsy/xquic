@@ -223,7 +223,7 @@ test_create_engine()
         .log_callbacks = xqc_null_log_cb,
         .set_event_timer = null_set_event_timer,
     };
-    xqc_transport_callbacks_s tcbs = {
+    xqc_transport_callbacks_t tcbs = {
         .write_socket = null_socket_write,
     };
 

@@ -1208,11 +1208,6 @@ xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_transport_callbacks_t 
             .xqc_log_write_stat = xqc_demo_svr_write_log_file
         },
         .keylog_cb = xqc_demo_svr_keylog_cb,
-
-        .conn_transport_cbs = {
-            .server_accept = xqc_demo_svr_accept,
-            .write_socket = xqc_demo_svr_write_socket,
-        }
     };
 
 
