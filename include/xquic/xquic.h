@@ -666,9 +666,6 @@ typedef struct xqc_engine_callback_s {
     /* tls secret callback, OPTIONAL */
     xqc_keylog_pt                   keylog_cb;
 
-    /* callback functions for connection transport events */
-    xqc_transport_callbacks_t       ransport_cbs;
-
 } xqc_engine_callback_t;
 
 
@@ -779,6 +776,7 @@ typedef struct xqc_request_stats_s {
  * @param engine_config config for basic framework, quic, network, etc.
  * @param ssl_config basic ssl config
  * @param engine_callback environment callback functions, including timer, socket, log, etc.
+ * @param transport_cbs transport callback functions
  * @param conn_callback default connection callback functions
  */
 XQC_EXPORT_PUBLIC_API
@@ -786,6 +784,7 @@ xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
     const xqc_config_t *engine_config,
     const xqc_engine_ssl_config_t *ssl_config,
     const xqc_engine_callback_t *engine_callback,
+    const xqc_transport_callbacks_t *transport_cbs,
     void *user_data);
 
 

@@ -1590,7 +1590,8 @@ client_h3_conn_max_streams(xqc_h3_conn_t *conn, void *user_data, uint64_t max_st
 
 
 void
-xqc_demo_cli_init_callback(xqc_engine_callback_t *cb, xqc_demo_cli_client_args_t* args)
+xqc_demo_cli_init_callback(xqc_engine_callback_t *cb, xqc_transport_callbacks_t *transport_cbs,
+    xqc_demo_cli_client_args_t* args)
 {
     static xqc_engine_callback_t callback = {
         .log_callbacks = {
@@ -1599,16 +1600,17 @@ xqc_demo_cli_init_callback(xqc_engine_callback_t *cb, xqc_demo_cli_client_args_t
         },
         .keylog_cb = xqc_demo_cli_keylog_cb,
         .set_event_timer = xqc_demo_cli_set_event_timer,
+    };
 
-        .conn_transport_cbs = {
-            .write_socket = xqc_demo_cli_write_socket,
-            .save_token = xqc_demo_cli_save_token, /* save token */
-            .save_session_cb = xqc_demo_cli_save_session_cb,
-            .save_tp_cb = xqc_demo_cli_save_tp_cb,
-        }
+    static xqc_transport_callbacks_t tcb = {
+        .write_socket = xqc_demo_cli_write_socket,
+        .save_token = xqc_demo_cli_save_token, /* save token */
+        .save_session_cb = xqc_demo_cli_save_session_cb,
+        .save_tp_cb = xqc_demo_cli_save_tp_cb,
     };
 
     *cb = callback;
+    *transport_cbs = tcb;
 }
 
 
@@ -1666,11 +1668,12 @@ xqc_demo_cli_init_xquic_engine(xqc_demo_cli_ctx_t *ctx, xqc_demo_cli_client_args
 {
     /* init engine ssl config */
     xqc_engine_ssl_config_t engine_ssl_config;
+    xqc_transport_callbacks_t transport_cbs;
     xqc_demo_cli_init_engine_ssl_config(&engine_ssl_config, args);
 
     /* init engine callbacks */
     xqc_engine_callback_t callback;
-    xqc_demo_cli_init_callback(&callback, args);
+    xqc_demo_cli_init_callback(&callback, &transport_cbs, args);
 
     xqc_config_t config;
     if (xqc_engine_get_default_config(&config, XQC_ENGINE_CLIENT) < 0) {
@@ -1697,7 +1700,7 @@ xqc_demo_cli_init_xquic_engine(xqc_demo_cli_ctx_t *ctx, xqc_demo_cli_client_args
     }
 
     ctx->engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, 
-                                     &engine_ssl_config, &callback, ctx);
+                                     &engine_ssl_config, &callback, &transport_cbs, ctx);
     if (ctx->engine == NULL) {
         printf("xqc_engine_create error\n");
         return XQC_ERROR;

@@ -1198,7 +1198,8 @@ xqc_demo_svr_parse_args(int argc, char *argv[], xqc_demo_svr_args_t *args)
 }
 
 void
-xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_demo_svr_args_t* args)
+xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_transport_callbacks_t *transport_cbs,
+    xqc_demo_svr_args_t* args)
 {
     static xqc_engine_callback_t callback = {
         .set_event_timer = xqc_demo_svr_set_event_timer,
@@ -1214,7 +1215,14 @@ xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_demo_svr_args_t* args)
         }
     };
 
+
+    static xqc_transport_callbacks_t tcb = {
+        .server_accept = xqc_demo_svr_accept,
+        .write_socket = xqc_demo_svr_write_socket,
+    };
+
     *cb = callback;
+    *transport_cbs = tcb;
 }
 
 /* init server ctx */
@@ -1341,7 +1349,8 @@ xqc_demo_svr_init_xquic_engine(xqc_demo_svr_ctx_t *ctx, xqc_demo_svr_args_t *arg
 
     /* init engine callbacks */
     xqc_engine_callback_t callback;
-    xqc_demo_svr_init_callback(&callback, args);
+    xqc_transport_callbacks_t transport_cbs;
+    xqc_demo_svr_init_callback(&callback, &transport_cbs, args);
 
     /* init server connection settings */
     xqc_demo_svr_init_conn_settings(args);
@@ -1372,7 +1381,8 @@ xqc_demo_svr_init_xquic_engine(xqc_demo_svr_ctx_t *ctx, xqc_demo_svr_args_t *arg
     }
 
     /* create server engine */
-    ctx->engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &cfg, &callback, ctx);
+    ctx->engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &cfg,
+                                    &callback, &transport_cbs, ctx);
     if (ctx->engine == NULL) {
         printf("xqc_engine_create error\n");
         return -1;

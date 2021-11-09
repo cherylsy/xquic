@@ -1229,11 +1229,12 @@ int main(int argc, char *argv[]) {
         },
         .keylog_cb = xqc_keylog_cb,
 
-        .conn_transport_cbs = {
-            .server_accept = xqc_server_accept,
-            .write_socket = xqc_server_write_socket,
-            .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
-        }
+    };
+
+    xqc_transport_callbacks_t tcbs = {
+        .server_accept = xqc_server_accept,
+        .write_socket = xqc_server_write_socket,
+        .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
     };
 
     xqc_cong_ctrl_callback_t cong_ctrl;

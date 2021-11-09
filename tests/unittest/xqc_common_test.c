@@ -222,13 +222,14 @@ test_create_engine()
     xqc_engine_callback_t callback = {
         .log_callbacks = xqc_null_log_cb,
         .set_event_timer = null_set_event_timer,
-        .conn_transport_cbs = {
-            .write_socket = null_socket_write,
-        }
+    };
+    xqc_transport_callbacks_s tcbs = {
+        .write_socket = null_socket_write,
     };
 
     xqc_conn_settings_t conn_settings;
-    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config, &callback, NULL);
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config,
+                                             &callback, &tcbs, NULL);
 
     xqc_h3_callbacks_t h3_cbs = {
         .h3c_cbs = {

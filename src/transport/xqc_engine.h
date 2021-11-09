@@ -59,6 +59,9 @@ typedef struct xqc_engine_s {
     /* for user */
     void                           *user_data;
 
+    /* callback functions for connection transport events */
+    xqc_transport_callbacks_t       transport_cbs;
+
     /* list of xqc_alpn_registration_t */
     xqc_list_head_t                 alpn_reg_list;
 
@@ -73,7 +76,6 @@ typedef struct xqc_engine_s {
 
 xqc_usec_t xqc_engine_wakeup_after(xqc_engine_t *engine);
 
-void xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engine_callback);
 
 /**
  * Create engine config.

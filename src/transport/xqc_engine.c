@@ -325,15 +325,25 @@ xqc_engine_schedule_reset(xqc_engine_t *engine,
     return XQC_ERROR;
 }
 
+
+void
+xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engine_callback,
+    const xqc_transport_callbacks_t *transport_cbs)
+{
+    engine->eng_callback = *engine_callback;
+    engine->transport_cbs = *transport_cbs;
+}
+
+
 /**
  * @brief check the legitimacy of engine config
  */
 xqc_bool_t
 xqc_engine_check_config(xqc_engine_type_t engine_type, const xqc_config_t *engine_config,
-    const xqc_engine_ssl_config_t *ssl_config, const xqc_engine_callback_t *engine_callback)
+    const xqc_engine_ssl_config_t *ssl_config, const xqc_transport_callbacks_t *transport_cbs)
 {
     /* mismatch of sendmmsg_on enable and write_mmsg callback function */
-    if (engine_config->sendmmsg_on && engine_callback->conn_transport_cbs.write_mmsg == NULL) {
+    if (engine_config->sendmmsg_on && transport_cbs->write_mmsg == NULL) {
         return XQC_FALSE;
     }
 
@@ -349,12 +359,13 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     const xqc_config_t *engine_config,
     const xqc_engine_ssl_config_t *ssl_config,
     const xqc_engine_callback_t *engine_callback, 
+    const xqc_transport_callbacks_t *transport_cbs,
     void *user_data)
 {
     xqc_engine_t *engine = NULL;
 
     /* check input parameter */
-    if (xqc_engine_check_config(engine_type, engine_config, ssl_config, engine_callback)
+    if (xqc_engine_check_config(engine_type, engine_config, ssl_config, transport_cbs)
         == XQC_FALSE)
     {
         return NULL;
@@ -382,7 +393,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
-    xqc_engine_set_callback(engine, engine_callback);
+    xqc_engine_set_callback(engine, engine_callback, transport_cbs);
     engine->user_data = user_data;
 
     engine->log = xqc_log_init(engine->config->cfg_log_level, 
@@ -594,25 +605,6 @@ xqc_engine_destroy(xqc_engine_t *engine)
     xqc_free(engine);
 }
 
-
-/**
- * Init engine config.
- * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
- */
-void
-xqc_engine_init(xqc_engine_t *engine, const xqc_engine_callback_t *engine_callback,
-    void *user_data)
-{
-    xqc_engine_set_callback(engine, engine_callback);
-    engine->user_data = user_data;
-}
-
-
-void
-xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engine_callback)
-{
-    engine->eng_callback = *engine_callback;
-}
 
 
 xqc_int_t

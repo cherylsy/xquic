@@ -1931,14 +1931,14 @@ int main(int argc, char *argv[]) {
                 .xqc_log_write_err = xqc_client_write_log,
         },
         .keylog_cb = xqc_keylog_cb,
+    };
 
-        .conn_transport_cbs = {
-            .write_socket = xqc_client_write_socket,
-            .save_token = xqc_client_save_token,
-            .save_session_cb = save_session_cb,
-            .save_tp_cb = save_tp_cb,
-            .cert_verify_cb = xqc_client_cert_verify,
-        }
+    xqc_transport_callbacks_t tcbs = {
+        .write_socket = xqc_client_write_socket,
+        .save_token = xqc_client_save_token,
+        .save_session_cb = save_session_cb,
+        .save_tp_cb = save_tp_cb,
+        .cert_verify_cb = xqc_client_cert_verify,
     };
 
     xqc_cong_ctrl_callback_t cong_ctrl;
@@ -2026,7 +2026,8 @@ int main(int argc, char *argv[]) {
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
 
-    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, &engine_ssl_config, &callback, &ctx);
+    ctx.engine = xqc_engine_create(XQC_ENGINE_CLIENT, &config, &engine_ssl_config,
+                                   &callback, &tcbs, &ctx);
     if (ctx.engine == NULL) {
         printf("xqc_engine_create error\n");
         return -1;
