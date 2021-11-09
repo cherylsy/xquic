@@ -619,7 +619,7 @@ xqc_engine_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockad
         return size;
     }
 
-    xqc_stateless_reset_pt stateless_cb = engine->eng_callback.conn_transport_cbs.stateless_reset;
+    xqc_stateless_reset_pt stateless_cb = engine->transport_cbs.stateless_reset;
     if (stateless_cb) {
         size = (xqc_int_t)stateless_cb(buf, (size_t)size, peer_addr, peer_addrlen, user_data);
         if (size < 0) {
@@ -1228,5 +1228,5 @@ xqc_engine_free_alpn_list(xqc_engine_t *engine)
 xqc_bool_t
 xqc_engine_is_sendmmsg_on(xqc_engine_t *engine)
 {
-    return engine->config->sendmmsg_on && engine->eng_callback.conn_transport_cbs.write_mmsg;
+    return engine->config->sendmmsg_on && engine->transport_cbs.write_mmsg;
 }

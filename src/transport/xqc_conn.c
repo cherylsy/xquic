@@ -276,7 +276,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
 
     xc->engine = engine;
     xc->log = engine->log;
-    xc->transport_cbs = engine->eng_callback.conn_transport_cbs;
+    xc->transport_cbs = engine->transport_cbs;
     xc->user_data = user_data;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
