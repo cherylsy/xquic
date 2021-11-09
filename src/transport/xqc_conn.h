@@ -265,7 +265,7 @@ struct xqc_connection_s {
     xqc_conn_type_t                 conn_type;
 
     /* callback function and user_data to application layer */
-    xqc_conn_transport_callbacks_t  transport_cbs;
+    xqc_transport_callbacks_t       transport_cbs;
     void                           *user_data;      /* user_data for application layer */
 
     /* callback function and user_data to application-layer-protocol layer */

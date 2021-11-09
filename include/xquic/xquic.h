@@ -371,15 +371,15 @@ typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
  * 3. Callbacks between Transport and Application Protocol:
  * QUIC events that might be more essential to Application-Layer-Protocols, especially stream data
  * 
- * +---------------------------------------------------------------------------+
- * |                                Application                                |
- * |                                    +--- Application Protocol callbacks ---+
- * |                                    |         Application Protocol         |
- * +-------- transport callbacks -------+--------- transport callbacks --------+
- * |                                 Transport                                 |
- * +---------------------------------------------------------------------------+
+ * +------------------------------------------------------------------------------+
+ * |                             Application                                      |
+ * |                                 +-- Application Protocol defined callbacks --+
+ * |                                 |             Application Protocol           |
+ * +-------- transport callbacks ----+--------- app protocol callbacks -----------+
+ * |                              Transport                                       |
+ * +------------------------------------------------------------------------------+
  */
-typedef struct xqc_conn_transport_callbacks_s {
+typedef struct xqc_transport_callbacks_s {
     /**
      * accept new connection callback. REQUIRED only for server
      * NOTICE: this is the headmost callback trigger by xquic, the user_data of server_accept is
@@ -440,7 +440,7 @@ typedef struct xqc_conn_transport_callbacks_s {
      */
     xqc_path_removed_notify_pt      path_reomved_notify;
 
-} xqc_conn_transport_callbacks_t;
+} xqc_transport_callbacks_t;
 
 
 /** 
@@ -524,10 +524,10 @@ typedef struct xqc_stream_callbacks_s {
 typedef struct xqc_app_proto_callbacks_s {
 
     /* QUIC connection callback functions for Application-Layer-Protocol */
-    xqc_conn_callbacks_t  conn_cbs;
+    xqc_conn_callbacks_t        conn_cbs;
 
     /* QUIC stream callback functions */
-    xqc_stream_callbacks_t          stream_cbs;
+    xqc_stream_callbacks_t      stream_cbs;
 
 } xqc_app_proto_callbacks_t;
 
@@ -667,7 +667,7 @@ typedef struct xqc_engine_callback_s {
     xqc_keylog_pt                   keylog_cb;
 
     /* callback functions for connection transport events */
-    xqc_conn_transport_callbacks_t  conn_transport_cbs;
+    xqc_transport_callbacks_t       ransport_cbs;
 
 } xqc_engine_callback_t;
 
