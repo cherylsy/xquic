@@ -1045,13 +1045,13 @@ xqc_int_t xqc_cid_is_equal(const xqc_cid_t *dst, const xqc_cid_t *src);
  * @return user should copy return buffer to your own memory if you will access in the future
  */
 XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_scid_str(const xqc_cid_t *scid);
+unsigned char *xqc_scid_str(const xqc_cid_t *scid);
 
 XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_dcid_str(const xqc_cid_t *dcid);
+unsigned char *xqc_dcid_str(const xqc_cid_t *dcid);
 
 XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid);
+unsigned char *xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid);
 
 XQC_EXPORT_PUBLIC_API
 uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
