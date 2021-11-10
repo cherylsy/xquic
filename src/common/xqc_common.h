@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <xquic/xqc_errno.h>
+#include <xquic/xquic_typedef.h>
 
 
 #ifndef XQC_LITTLE_ENDIAN

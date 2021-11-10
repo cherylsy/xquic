@@ -29,6 +29,7 @@
 #include "xqc_qpack_test.h"
 #include "xqc_prefixed_str_test.h"
 #include "xqc_cid_test.h"
+#include "xqc_id_hash_test.h"
 
 
 static int xqc_init_suite(void) { return 0; }
@@ -83,6 +84,7 @@ int main()
         || !CU_add_test(pSuite, "xqc_qpack_test", xqc_qpack_test)
         || !CU_add_test(pSuite, "xqc_test_prefixed_str", xqc_test_prefixed_str)
         || !CU_add_test(pSuite, "xqc_cid_test", xqc_test_cid)
+        || !CU_add_test(pSuite, "xqc_test_id_hash", xqc_test_id_hash)
         /* ADD TESTS HERE */) 
     {
         CU_cleanup_registry();

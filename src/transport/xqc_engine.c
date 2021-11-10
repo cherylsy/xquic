@@ -343,7 +343,7 @@ xqc_engine_check_config(xqc_engine_type_t engine_type, const xqc_config_t *engin
     const xqc_engine_ssl_config_t *ssl_config, const xqc_transport_callbacks_t *transport_cbs)
 {
     /* mismatch of sendmmsg_on enable and write_mmsg callback function */
-    if (engine_config->sendmmsg_on && transport_cbs->write_mmsg == NULL) {
+    if (engine_config && engine_config->sendmmsg_on && transport_cbs->write_mmsg == NULL) {
         return XQC_FALSE;
     }
 

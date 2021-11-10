@@ -39,6 +39,7 @@ if(HAVE_CUNIT)
     ${UNIT_TEST_DIR}/xqc_qpack_test.c
     ${UNIT_TEST_DIR}/xqc_prefixed_str_test.c
     ${UNIT_TEST_DIR}/xqc_cid_test.c
+    ${UNIT_TEST_DIR}/xqc_id_hash_test.c
   )
 
 

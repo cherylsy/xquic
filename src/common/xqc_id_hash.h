@@ -44,7 +44,7 @@ xqc_pow2(unsigned int n)
 }
 
 
-static inline int
+static inline xqc_int_t
 xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
@@ -55,7 +55,7 @@ xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator_t allocator, size
     }
     memset(hash_tab->list, 0, sizeof(xqc_id_hash_node_t*) * bucket_num);
     hash_tab->count = bucket_num;
-    hash_tab->mask  = bucket_num - 1 ;
+    hash_tab->mask  = bucket_num - 1;
     return XQC_OK;
 }
 
@@ -97,7 +97,7 @@ xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 }
 
 
-static inline int
+static inline xqc_int_t
 xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_element_t e)
 {
     if (xqc_id_hash_find(hash_tab, e.hash)) {
@@ -119,7 +119,7 @@ xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_element_t e)
 }
 
 
-static inline int
+static inline xqc_int_t
 xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 {
     uint64_t index = hash & hash_tab->mask;
