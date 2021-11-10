@@ -49,17 +49,13 @@ xqc_log_release(xqc_log_t* log)
     log = NULL;
 }
 
-const char *
-xqc_log_level_str(xqc_log_level_t level);
+const char *xqc_log_level_str(xqc_log_level_t level);
 
-void
-xqc_log_time(char* buf);
+void xqc_log_time(char* buf);
 
-void
-xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...);
+void xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *fmt, ...);
 
-void
-xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level);
+void xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level);
 
 
 #ifndef XQC_DISABLE_LOG
