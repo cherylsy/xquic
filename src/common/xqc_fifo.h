@@ -18,7 +18,7 @@
  */
 
 typedef struct {
-    char            *buf;           /* buffer */
+    char           *buf;            /* buffer */
     unsigned int    in;             /* cursor for input */
     unsigned int    out;            /* cursor for output */
     unsigned int    element_size;   /* element size */
