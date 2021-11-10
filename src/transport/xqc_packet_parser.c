@@ -950,7 +950,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_memcpy(c->conn_token, pos, packet_in->last - pos);
     c->conn_token_len = packet_in->last - pos;
 
-    //存储token
+    /* store token */
     c->transport_cbs.save_token(c->conn_token, c->conn_token_len, xqc_conn_get_user_data(c));
 
     /* re-initiate the handshake process */
