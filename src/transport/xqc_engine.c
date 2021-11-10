@@ -710,7 +710,7 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
     {
         if (conn->transport_cbs.ready_to_create_path_notify) {
             conn->transport_cbs.ready_to_create_path_notify(&conn->scid_set.user_scid, 
-                                                       conn->user_data);
+                                                            xqc_conn_get_user_data(conn));
         }
         conn->conn_flag &= ~XQC_CONN_FLAG_NEW_CID_RECEIVED;
     }

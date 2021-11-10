@@ -132,7 +132,7 @@ xqc_path_init(xqc_path_ctx_t *path,
         && conn->transport_cbs.path_created_notify)
     {
         conn->transport_cbs.path_created_notify(&conn->scid_set.user_scid, path->path_id, 
-                                           conn->user_data);
+                                                xqc_conn_get_user_data(conn));
     }
 
     /* TODO: 4-tuple init */

@@ -628,7 +628,7 @@ ssize_t
 xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 {
     ssize_t ret = conn->transport_cbs.write_mmsg(iov, cnt, (struct sockaddr *)conn->peer_addr,
-                                            conn->peer_addrlen, conn->user_data);
+                                                 conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|error send mmsg|");
         if (ret == XQC_SOCKET_ERROR) {
@@ -1503,7 +1503,8 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
     }
 
     size = (xqc_int_t)conn->transport_cbs.write_socket(
-        buf, (size_t)size, (struct sockaddr*)conn->peer_addr, conn->peer_addrlen, conn->user_data);
+        buf, (size_t)size, (struct sockaddr*)conn->peer_addr, conn->peer_addrlen,
+        xqc_conn_get_user_data(conn));
     if (size < 0) {
         return size;
     }
@@ -2592,8 +2593,8 @@ xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
             && xqc_cid_is_equal(&scid_set->user_scid, &scid->cid) != XQC_OK)
         {
             if (conn->transport_cbs.conn_update_cid_notify) {
-                conn->transport_cbs.conn_update_cid_notify(conn, &scid_set->user_scid,
-                                                      &scid->cid, conn->user_data);
+                conn->transport_cbs.conn_update_cid_notify(conn, &scid_set->user_scid, &scid->cid,
+                                                           xqc_conn_get_user_data(conn));
             }
 
             xqc_cid_copy(&scid_set->user_scid, &scid->cid);
@@ -2622,4 +2623,11 @@ xqc_bool_t
 xqc_conn_has_hsk_keys(xqc_connection_t *c)
 {
     return xqc_tls_check_hs_tx_key_ready(c) && xqc_tls_check_hs_rx_key_ready(c);
+}
+
+
+void *
+xqc_conn_get_user_data(xqc_connection_t *c)
+{
+    return c->user_data;
 }
