@@ -22,7 +22,7 @@ typedef struct xqc_var_buf_s {
     uint8_t         fin_flag;
 
     /* limit of memory malloc, if set to 0, regarded as infinite */
-    size_t          limit;
+    uint64_t        limit;
 } xqc_var_buf_t;
 
 typedef struct xqc_list_buf_s {
