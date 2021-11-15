@@ -21,7 +21,7 @@ xqc_var_buf_create(size_t capacity)
     p->data_len = 0;
     p->consumed_len = 0;
     p->fin_flag = 0;
-    p->limit = XQC_MAX_UINT64_VALUE;
+    p->limit = SIZE_MAX;
 
     return p;
 }
@@ -70,7 +70,7 @@ xqc_var_buf_realloc(xqc_var_buf_t *buf, size_t cap)
 {
     /* limit of buf shall never be 0 */
     if (buf->limit == 0) {
-        buf->limit = XQC_MAX_UINT64_VALUE;
+        buf->limit = SIZE_MAX;
     }
 
     if (cap > buf->limit) {
