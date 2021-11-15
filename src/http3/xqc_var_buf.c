@@ -1,3 +1,5 @@
+
+#include <stdint.h>
 #include "src/http3/xqc_var_buf.h"
 
 xqc_int_t
