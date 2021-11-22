@@ -10,8 +10,8 @@ typedef struct xqc_hq_conn_s    xqc_hq_conn_t;
 typedef struct xqc_hq_request_s xqc_hq_request_t;
 
 
-
-typedef int (*xqc_hq_conn_notify_pt)(xqc_hq_conn_t *conn, void *conn_user_data);
+typedef int (*xqc_hq_conn_notify_pt)(xqc_hq_conn_t *conn, const xqc_cid_t *cid,
+    void *conn_user_data);
 
 
 /**
@@ -101,7 +101,7 @@ xqc_hq_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
     socklen_t peer_addrlen, void *user_data);
 
 xqc_int_t
-xqc_hq_conn_close(xqc_engine_t *engine, xqc_hq_conn_t *hqc);
+xqc_hq_conn_close(xqc_engine_t *engine, xqc_hq_conn_t *hqc, const xqc_cid_t *cid);
 
 void
 xqc_hq_conn_set_user_data(xqc_hq_conn_t *hqc, void *user_data);
@@ -116,7 +116,8 @@ xqc_hq_conn_get_peer_addr(xqc_hq_conn_t *hqc, struct sockaddr *addr,
  */
 
 xqc_hq_request_t *
-xqc_hq_request_create(xqc_engine_t *engine, xqc_hq_conn_t *hqc, void *user_data);
+xqc_hq_request_create(xqc_engine_t *engine, xqc_hq_conn_t *hqc, const xqc_cid_t *cid,
+    void *user_data);
 
 void
 xqc_hq_request_destroy(xqc_hq_request_t * hqr);

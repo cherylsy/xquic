@@ -61,7 +61,8 @@ typedef struct xqc_hq_request_s {
 
 /* active create request, used by client */
 xqc_hq_request_t *
-xqc_hq_request_create(xqc_engine_t *engine, xqc_hq_conn_t *hqc, void *user_data)
+xqc_hq_request_create(xqc_engine_t *engine, xqc_hq_conn_t *hqc, const xqc_cid_t *cid,
+    void *user_data)
 {
     xqc_hq_request_t *hqr = NULL;
     xqc_stream_t *stream = NULL;
@@ -80,7 +81,7 @@ xqc_hq_request_create(xqc_engine_t *engine, xqc_hq_conn_t *hqc, void *user_data)
     }
 
     /* create stream, make hqr the user_data of xqc_stream_t */
-    stream = xqc_stream_create(engine, xqc_hq_conn_get_cid(hqc), hqr);
+    stream = xqc_stream_create(engine, cid, hqr);
     if (NULL == stream) {
         PRINT_LOG("create transport-level stream error");
         goto fail;
@@ -257,7 +258,7 @@ xqc_hq_request_recv_req(xqc_hq_request_t *hqr, char *res_buf, size_t buf_sz, uin
     *fin = 0;
     ssize_t read = 0;
     do {
-        read = xqc_stream_recv(hqr->stream, hqr->req_recv_buf, 
+        read = xqc_stream_recv(hqr->stream, hqr->req_recv_buf + hqr->recv_cnt, 
                                hqr->recv_buf_len - hqr->recv_cnt, &hqr->fin);
         if (read == -XQC_EAGAIN) {
             break;
@@ -275,21 +276,23 @@ xqc_hq_request_recv_req(xqc_hq_request_t *hqr, char *res_buf, size_t buf_sz, uin
 
     } while (read > 0 && !hqr->fin);
 
-    /* all request bytes are received */
-    if (hqr->fin) {
+    /* return until all request bytes are received */
+    if (!hqr->fin) {
+        return XQC_OK;
+    }
+
+    if (NULL == hqr->resource_buf) {
+        hqr->resource_buf = xqc_malloc(XQC_HQ_REQUEST_RESOURCE_MAX_LEN);
         if (NULL == hqr->resource_buf) {
-            hqr->resource_buf = xqc_malloc(XQC_HQ_REQUEST_RESOURCE_MAX_LEN);
-            if (NULL == hqr->resource_buf) {
-                return -XQC_EMALLOC;
-            }
-
-            hqr->resource_buf_sz = XQC_HQ_REQUEST_RESOURCE_MAX_LEN;
+            return -XQC_EMALLOC;
         }
 
-        read = xqc_hq_parse_req(hqr, hqr->resource_buf, XQC_HQ_REQUEST_RESOURCE_MAX_LEN);
-        if (read <= 0) {
-            return -XQC_EPROTO;
-        }
+        hqr->resource_buf_sz = XQC_HQ_REQUEST_RESOURCE_MAX_LEN;
+    }
+
+    read = xqc_hq_parse_req(hqr, hqr->resource_buf, XQC_HQ_REQUEST_RESOURCE_MAX_LEN);
+    if (read <= 0) {
+        return -XQC_EPROTO;
     }
 
     if (buf_sz < hqr->resource_read_offset) {

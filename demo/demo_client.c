@@ -594,23 +594,33 @@ xqc_demo_cli_write_mmsg(void *conn_user_data, struct iovec *msg_iov, unsigned in
 }
 
 
+void
+xqc_demo_cli_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid,
+    const xqc_cid_t *new_cid, void *user_data)
+{
+    xqc_demo_cli_user_conn_t *user_conn = (xqc_demo_cli_user_conn_t *)user_data;
+    memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
+}
+
+
 /******************************************************************************
  *                       start of hq callback functions                       *
  ******************************************************************************/
 
 int
-xqc_demo_cli_hq_conn_create_notify(xqc_hq_conn_t *hqc, void *user_data)
+xqc_demo_cli_hq_conn_create_notify(xqc_hq_conn_t *hqc, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
     // printf("xqc_demo_cli_hq_conn_create_notify, conn: %p, user_conn: %p\n", conn, user_data);
     xqc_demo_cli_user_conn_t *user_conn = (xqc_demo_cli_user_conn_t *)user_data;
     user_conn->hqc_handle = hqc;
+    memcpy(&user_conn->cid, cid, sizeof(xqc_cid_t));
     return 0;
 }
 
 int
-xqc_demo_cli_hq_conn_close_notify(xqc_hq_conn_t *hqc, void *user_data)
+xqc_demo_cli_hq_conn_close_notify(xqc_hq_conn_t *hqc, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
     // printf("xqc_demo_cli_hq_conn_close_notify, conn: %p, user_conn: %p\n", conn, user_data);
@@ -982,9 +992,9 @@ xqc_demo_cli_idle_callback(int fd, short what, void *arg)
             rc = xqc_h3_conn_close(user_conn->ctx->engine, &user_conn->cid);
 
         } else {
-            rc = xqc_hq_conn_close(user_conn->ctx->engine, user_conn->hqc_handle);
+            rc = xqc_hq_conn_close(user_conn->ctx->engine, user_conn->hqc_handle, &user_conn->cid);
         }
-        
+
         if (rc) {
             printf("close conn error\n");
             return;
@@ -1377,7 +1387,7 @@ xqc_demo_cli_send_hq_req(xqc_demo_cli_user_conn_t *user_conn,
 {
     /* create request */
     user_stream->hq_request = xqc_hq_request_create(user_conn->ctx->engine, user_conn->hqc_handle,
-                                                    user_stream);
+                                                    &user_conn->cid, user_stream);
     if (user_stream->hq_request == NULL) {
         // printf("user_conn: %p, create stream failed, will try later\n", user_stream);
         return -1;
@@ -1607,6 +1617,7 @@ xqc_demo_cli_init_callback(xqc_engine_callback_t *cb, xqc_transport_callbacks_t 
         .save_token = xqc_demo_cli_save_token, /* save token */
         .save_session_cb = xqc_demo_cli_save_session_cb,
         .save_tp_cb = xqc_demo_cli_save_tp_cb,
+        .conn_update_cid_notify = xqc_demo_cli_conn_update_cid_notify,
     };
 
     *cb = callback;
@@ -1909,7 +1920,7 @@ xqc_demo_cli_close_task(xqc_demo_cli_ctx_t *ctx, xqc_demo_cli_task_t *task)
         xqc_h3_conn_close(ctx->engine, &user_conn->cid);
 
     } else {
-        xqc_hq_conn_close(ctx->engine, user_conn->hqc_handle);
+        xqc_hq_conn_close(ctx->engine, user_conn->hqc_handle, &user_conn->cid);
     }
 
     /* remove task event handle */

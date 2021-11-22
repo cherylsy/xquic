@@ -318,6 +318,14 @@ xqc_demo_svr_tls_key_cb(char *key, void *conn_user_data)
 }
 
 
+void
+xqc_demo_svr_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid,
+    const xqc_cid_t *new_cid, void *user_data)
+{
+    xqc_demo_svr_user_conn_t *user_conn = (xqc_demo_svr_user_conn_t *)user_data;
+    memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
+}
+
 /******************************************************************************
  *                              common functions                              *
  ******************************************************************************/
@@ -343,17 +351,15 @@ xqc_demo_svr_close_user_stream_resource(xqc_demo_svr_user_stream_t * user_stream
  ******************************************************************************/
 
 int
-xqc_demo_svr_hq_conn_create_notify(xqc_hq_conn_t *hqc, void *conn_user_data)
+xqc_demo_svr_hq_conn_create_notify(xqc_hq_conn_t *hqc, const xqc_cid_t *cid, void *conn_user_data)
 {
     DEBUG;
     xqc_demo_svr_user_conn_t *user_conn = calloc(1, sizeof(xqc_demo_svr_user_conn_t));
     xqc_hq_conn_set_user_data(hqc, user_conn);
-/*
-    printf("xqc_demo_svr_hq_conn_create_notify, user_conn: %p, conn: %p, conn_user_data: %p\n",
-        user_conn, conn, conn_user_data);
-*/
+
     /* set ctx */
     user_conn->ctx = &svr_ctx;
+    memcpy(&user_conn->cid, cid, sizeof(*cid));
 
     /* set addr info */
     xqc_hq_conn_get_peer_addr(hqc, (struct sockaddr *)&user_conn->peer_addr,
@@ -363,7 +369,7 @@ xqc_demo_svr_hq_conn_create_notify(xqc_hq_conn_t *hqc, void *conn_user_data)
 }
 
 int
-xqc_demo_svr_hq_conn_close_notify(xqc_hq_conn_t *conn, void *conn_user_data)
+xqc_demo_svr_hq_conn_close_notify(xqc_hq_conn_t *conn, const xqc_cid_t *cid, void *conn_user_data)
 {
     DEBUG;
 
@@ -1214,6 +1220,7 @@ xqc_demo_svr_init_callback(xqc_engine_callback_t *cb, xqc_transport_callbacks_t 
     static xqc_transport_callbacks_t tcb = {
         .server_accept = xqc_demo_svr_accept,
         .write_socket = xqc_demo_svr_write_socket,
+        .conn_update_cid_notify = xqc_demo_svr_conn_update_cid_notify,
     };
 
     *cb = callback;

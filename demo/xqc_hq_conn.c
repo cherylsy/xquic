@@ -16,7 +16,6 @@ typedef struct xqc_hq_conn_s {
 
     void                       *user_data;
 
-    xqc_cid_t                   cid;
 } xqc_hq_conn_s;
 
 
@@ -36,7 +35,6 @@ xqc_hq_conn_create(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data
 
     hqc->user_data = user_data;
     hqc->log = conn->log;
-    hqc->cid = *cid;
     hqc->conn = conn;
 
     return hqc;
@@ -92,9 +90,9 @@ xqc_hq_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
 
 
 xqc_int_t
-xqc_hq_conn_close(xqc_engine_t *engine, xqc_hq_conn_t *hqc)
+xqc_hq_conn_close(xqc_engine_t *engine, xqc_hq_conn_t *hqc, const xqc_cid_t *cid)
 {
-    return xqc_conn_close(engine, &hqc->cid);
+    return xqc_conn_close(engine, cid);
 }
 
 
@@ -104,12 +102,6 @@ xqc_hq_conn_set_user_data(xqc_hq_conn_t *hqc, void *user_data)
     hqc->user_data = user_data;
 }
 
-
-const xqc_cid_t *
-xqc_hq_conn_get_cid(xqc_hq_conn_t *hqc)
-{
-    return &hqc->cid;
-}
 
 xqc_int_t
 xqc_hq_conn_get_peer_addr(xqc_hq_conn_t *hqc, struct sockaddr *addr, 
@@ -133,7 +125,7 @@ xqc_hq_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *co
 
     if (hqc->hqc_cbs->conn_create_notify) {
         /* NOTICE: if hqc is created passively, hqc->user_data is NULL */
-        return hqc->hqc_cbs->conn_create_notify(hqc, hqc->user_data);
+        return hqc->hqc_cbs->conn_create_notify(hqc, cid, hqc->user_data);
     }
 
     return XQC_OK;
@@ -146,7 +138,7 @@ xqc_hq_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *con
 
     xqc_hq_conn_t *hqc = (xqc_hq_conn_t *)conn_user_data;
     if (hqc->hqc_cbs->conn_close_notify) {
-        ret = hqc->hqc_cbs->conn_close_notify(hqc, hqc->user_data);
+        ret = hqc->hqc_cbs->conn_close_notify(hqc, cid, hqc->user_data);
         if (ret != XQC_OK) {
             return ret;
         }
