@@ -1090,6 +1090,16 @@ xqc_process_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         xqc_gen_padding_frame(packet_out);
     }
 
+    /*
+     * 0RTT packets might be lost or retransmitted during handshake, once client get 1RTT keys,
+     * it should retransmit the data with 1RTT packets instead.
+     */
+    if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
+        && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
+    {
+        xqc_convert_pkt_0rtt_2_1rtt(conn, packet_out);
+    }
+
     /* generate packet number */
     packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns];
     xqc_write_packet_number(packet_out->po_ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
@@ -1192,16 +1202,6 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                     break;
                 }
             }
-        }
-
-        /*
-         * 0RTT packets might be lost during handshake, once client get 1RTT keys,
-         * it should retransmit the lost data with 1RTT packets instead.
-         */
-        if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
-            && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
-        {
-            xqc_convert_pkt_0rtt_2_1rtt(conn, packet_out);
         }
 
         ret = xqc_conn_send_one_packet(conn, packet_out);
