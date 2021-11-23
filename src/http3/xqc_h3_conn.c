@@ -122,16 +122,18 @@ xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
 
 
 xqc_int_t
-xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t *peer_addr_len)
+xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *peer_addr_len)
 {
-    return xqc_conn_get_peer_addr(h3c->conn, addr, peer_addr_len);
+    return xqc_conn_get_peer_addr(h3c->conn, addr, addr_cap, peer_addr_len);
 }
 
 
 xqc_int_t
-xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t *local_addr_len)
+xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *local_addr_len)
 {
-    return xqc_conn_get_local_addr(h3c->conn, addr, local_addr_len);
+    return xqc_conn_get_local_addr(h3c->conn, addr, addr_cap, local_addr_len);
 }
 
 

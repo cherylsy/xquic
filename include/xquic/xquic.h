@@ -952,7 +952,7 @@ void xqc_conn_set_alp_user_data(xqc_connection_t *conn, void *app_proto_user_dat
  * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr,
+xqc_int_t xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
     socklen_t *peer_addr_len);
 
 /**
@@ -961,7 +961,7 @@ xqc_int_t xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr,
  * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr,
+xqc_int_t xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
     socklen_t *local_addr_len);
 
 /**

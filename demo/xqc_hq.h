@@ -107,7 +107,7 @@ void
 xqc_hq_conn_set_user_data(xqc_hq_conn_t *hqc, void *user_data);
 
 xqc_int_t
-xqc_hq_conn_get_peer_addr(xqc_hq_conn_t *hqc, struct sockaddr *addr,
+xqc_hq_conn_get_peer_addr(xqc_hq_conn_t *hqc, struct sockaddr *addr, socklen_t addr_cap,
     socklen_t *peer_addr_len);
 
 

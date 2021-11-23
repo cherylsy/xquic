@@ -295,11 +295,12 @@ void xqc_h3_conn_set_settings(xqc_h3_conn_t *h3c,
  * 
  * @param h3c handler of http3 connection
  * @param addr [out] output address of peer
+ * @param addr_cap capacity of addr
  * @param peer_addr_len [out] output length of addr
  * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr,
+xqc_int_t xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t addr_cap,
     socklen_t *peer_addr_len);
 
 
@@ -308,11 +309,12 @@ xqc_int_t xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr,
  * 
  * @param h3c handler of http3 connection
  * @param addr [out] output address of peer
+ * @param addr_cap capacity of addr
  * @param peer_addr_len [out] output length of addr
  * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, 
+xqc_int_t xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr,  socklen_t addr_cap,
     socklen_t *local_addr_len);
 
 

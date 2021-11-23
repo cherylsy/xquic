@@ -571,16 +571,26 @@ xqc_conn_set_alp_user_data(xqc_connection_t *conn, void *user_data)
 }
 
 xqc_int_t
-xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t *peer_addr_len)
+xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *peer_addr_len)
 {
+    if (conn->peer_addrlen > addr_cap) {
+        return -XQC_ENOBUF;
+    }
+
     *peer_addr_len = conn->peer_addrlen;
     xqc_memcpy(addr, conn->peer_addr, conn->peer_addrlen);
     return XQC_OK;
 }
 
 xqc_int_t
-xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t *local_addr_len)
+xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *local_addr_len)
 {
+    if (conn->local_addrlen > addr_cap) {
+        return -XQC_ENOBUF;
+    }
+
     *local_addr_len = conn->local_addrlen;
     xqc_memcpy(addr, conn->local_addr, conn->local_addrlen);
     return XQC_OK;
@@ -2629,5 +2639,9 @@ xqc_conn_has_hsk_keys(xqc_connection_t *c)
 void *
 xqc_conn_get_user_data(xqc_connection_t *c)
 {
+    if (NULL == c) {
+        return NULL;
+    }
+
     return c->user_data;
 }

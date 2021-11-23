@@ -330,7 +330,7 @@ xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, v
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
 
     xqc_h3_conn_get_peer_addr(h3_conn, (struct sockaddr *)&user_conn->peer_addr,
-                              &user_conn->peer_addrlen);
+                              sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
     return 0;
@@ -838,7 +838,7 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
     xqc_conn_set_transport_user_data(conn, user_conn);
 
     xqc_conn_get_peer_addr(conn, (struct sockaddr *)&user_conn->peer_addr,
-                           &user_conn->peer_addrlen);
+                           sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
 
     if (g_test_case == 11) {
         g_test_case = -1;

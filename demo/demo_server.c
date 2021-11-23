@@ -362,8 +362,8 @@ xqc_demo_svr_hq_conn_create_notify(xqc_hq_conn_t *hqc, const xqc_cid_t *cid, voi
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
     /* set addr info */
-    xqc_hq_conn_get_peer_addr(hqc, (struct sockaddr *)&user_conn->peer_addr,
-                              &user_conn->peer_addrlen);
+    xqc_hq_conn_get_peer_addr(hqc, (struct sockaddr *)&user_conn->peer_addr, 
+                              sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
 
     return 0;
 }
@@ -583,7 +583,7 @@ xqc_demo_svr_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid,
         h3_conn, ctx);
 */
     xqc_h3_conn_get_peer_addr(h3_conn, (struct sockaddr *)&user_conn->peer_addr,
-                              &user_conn->peer_addrlen);
+                              sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
     return 0;
