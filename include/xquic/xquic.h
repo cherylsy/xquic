@@ -855,6 +855,7 @@ xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t 
  * Item value 0 means use default value.
  * @return 0 for success, <0 for error. default value is used if config item is illegal
  */
+XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine_config);
 
 
@@ -862,6 +863,7 @@ xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine
  * @brief Set server's connection settings. it can be called anytime. settings will take effect on
  * new created connections
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
 
 
