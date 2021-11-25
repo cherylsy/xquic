@@ -1,6 +1,20 @@
 #ifndef _XQC_H3_DEFS_H_
 #define _XQC_H3_DEFS_H_
 
+/**
+ * ALPN definitions
+ */
+#define XQC_ALPN_H3         "h3"
+#define XQC_ALPN_H3_LEN     2
+#define XQC_ALPN_H3_29      "h3-29"
+#define XQC_ALPN_H3_29_LEN  5
+
+extern const char* const xqc_h3_alpn[];
+
+
+/**
+ * @brief definitions for http3 environment
+ */
 #define XQC_H3_MAX_FIELD_SECTION_SIZE   (32 * 1024)
 
 #define XQC_VAR_BUF_INIT_SIZE (256)

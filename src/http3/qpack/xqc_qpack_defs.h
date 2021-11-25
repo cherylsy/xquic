@@ -1,6 +1,7 @@
 #ifndef _XQC_QPACK_DEFS_H_
 #define _XQC_QPACK_DEFS_H_
 
+#include <xquic/xqc_http3.h>
 #include "src/http3/xqc_var_buf.h"
 #include "src/http3/xqc_h3_defs.h"
 

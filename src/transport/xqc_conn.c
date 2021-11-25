@@ -228,7 +228,7 @@ xqc_conn_init_flow_ctl(xqc_connection_t *conn)
 
 xqc_connection_t *
 xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
-    const xqc_conn_callbacks_t *callbacks, const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type)
+    const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type)
 {
     xqc_connection_t *xc = NULL;
     xqc_memory_pool_t *pool = xqc_create_pool(engine->config->conn_pool_size);
@@ -276,7 +276,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
 
     xc->engine = engine;
     xc->log = engine->log;
-    xc->conn_callbacks = *callbacks;
+    xc->transport_cbs = engine->transport_cbs;
     xc->user_data = user_data;
     xc->discard_vn_flag = 0;
     xc->conn_type = type;
@@ -354,9 +354,9 @@ fail:
 
 
 xqc_connection_t *
-xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, socklen_t local_addrlen,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_cid_t *dcid, xqc_cid_t *scid,
-    xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data)
+xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
+    socklen_t local_addrlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_settings_t *settings, void *user_data)
 {
     xqc_connection_t *conn;
     xqc_cid_t new_scid;
@@ -379,9 +379,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
         }
     }
 
-    conn = xqc_conn_create(engine, dcid, &new_scid, callbacks,
-                           settings, user_data, XQC_CONN_TYPE_SERVER);
-
+    conn = xqc_conn_create(engine, dcid, &new_scid, settings, user_data, XQC_CONN_TYPE_SERVER);
     if (conn == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to create connection|");
         return NULL;
@@ -399,7 +397,8 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
             goto fail;
         }
 
-        xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|", xqc_dcid_str(&conn->original_dcid), conn);
+        xqc_log(conn->log, XQC_LOG_INFO, "|hash odcid conn|odcid:%s|conn:%p|",
+                xqc_dcid_str(&conn->original_dcid), conn);
     }
 
     xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
@@ -407,15 +406,15 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, 
     conn->local_addrlen = local_addrlen;
     conn->peer_addrlen = peer_addrlen;
 
-    if (xqc_server_tls_initial(engine, conn, & engine->ssl_config) < 0) {
+    if (xqc_server_tls_initial(engine, conn, &engine->ssl_config) < 0) {
         xqc_log(engine->log, XQC_LOG_ERROR, "|fail to tls_initial|");
         goto fail;
     }
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|server accept new conn|");
 
-    if (engine->eng_callback.server_accept) {
-        if (engine->eng_callback.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
+    if (conn->transport_cbs.server_accept) {
+        if (conn->transport_cbs.server_accept(engine, conn, &conn->scid_set.user_scid, user_data) < 0) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|server_accept callback return error|");
             XQC_CONN_ERR(conn, TRA_CONNECTION_REFUSED_ERROR);
             goto fail;
@@ -430,31 +429,47 @@ fail:
     return NULL;
 }
 
-void
-xqc_conn_server_on_alpn(xqc_connection_t *conn)
+
+xqc_int_t
+xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len)
 {
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|alpn_num:%d|", conn->tlsref.alpn_num);
-    if (conn->tlsref.alpn_num == XQC_ALPN_HTTP3_NUM) {
-        /* take over transport layer callback */
-        conn->stream_callbacks = h3_stream_callbacks;
-        conn->conn_callbacks = h3_conn_callbacks;
+    /* set quic callbacks to quic connection */
+    xqc_int_t ret =
+        xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->app_proto_cbs);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
+        return ret;
+    }
 
-    } else if (conn->tlsref.alpn_num == XQC_ALPN_HQ_NUM) {
-        conn->stream_callbacks = conn->engine->eng_callback.hq_stream_callbacks;
+    return XQC_OK;
+}
 
-    } else {
-        conn->stream_callbacks = conn->engine->eng_callback.stream_callbacks;
+
+xqc_int_t
+xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len)
+{
+    /* set quic callbacks to quic connection */
+    xqc_int_t ret =
+        xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->app_proto_cbs);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
+        return ret;
     }
 
     /* do callback */
-    if (conn->conn_callbacks.conn_create_notify) {
-        if (conn->conn_callbacks.conn_create_notify(conn, &conn->scid_set.user_scid, conn->user_data)) {
+    if (conn->app_proto_cbs.conn_cbs.conn_create_notify) {
+        if (conn->app_proto_cbs.conn_cbs.conn_create_notify(conn, &conn->scid_set.user_scid,
+            conn->app_proto_user_data))
+        {
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
-            return;
+            return -TRA_INTERNAL_ERROR;
         }
         conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+    return XQC_OK;
 }
+
 
 void
 xqc_conn_destroy(xqc_connection_t *xc)
@@ -497,8 +512,10 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_destroy_stream(stream);
     }
 
-    if (xc->conn_callbacks.conn_close_notify && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) {
-        xc->conn_callbacks.conn_close_notify(xc, &xc->scid_set.user_scid, xc->user_data);
+    if (xc->app_proto_cbs.conn_cbs.conn_close_notify
+        && (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST))
+    {
+        xc->app_proto_cbs.conn_cbs.conn_close_notify(xc, &xc->scid_set.user_scid, xc->app_proto_user_data);
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
@@ -539,27 +556,44 @@ xqc_conn_destroy(xqc_connection_t *xc)
     if (xc->conn_pool) {
         xqc_destroy_pool(xc->conn_pool);
     }
-
 }
 
 void
-xqc_conn_set_user_data(xqc_connection_t *conn, void *user_data)
+xqc_conn_set_transport_user_data(xqc_connection_t *conn, void *user_data)
 {
     conn->user_data = user_data;
 }
 
-struct sockaddr*
-xqc_conn_get_peer_addr(xqc_connection_t *conn, socklen_t *peer_addr_len)
+void
+xqc_conn_set_alp_user_data(xqc_connection_t *conn, void *user_data)
 {
-    *peer_addr_len = conn->peer_addrlen;
-    return (struct sockaddr*)conn->peer_addr;
+    conn->app_proto_user_data = user_data;
 }
 
-struct sockaddr *
-xqc_conn_get_local_addr(xqc_connection_t *conn, socklen_t *local_addr_len)
+xqc_int_t
+xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *peer_addr_len)
 {
+    if (conn->peer_addrlen > addr_cap) {
+        return -XQC_ENOBUF;
+    }
+
+    *peer_addr_len = conn->peer_addrlen;
+    xqc_memcpy(addr, conn->peer_addr, conn->peer_addrlen);
+    return XQC_OK;
+}
+
+xqc_int_t
+xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *local_addr_len)
+{
+    if (conn->local_addrlen > addr_cap) {
+        return -XQC_ENOBUF;
+    }
+
     *local_addr_len = conn->local_addrlen;
-    return (struct sockaddr*)conn->local_addr;
+    xqc_memcpy(addr, conn->local_addr, conn->local_addrlen);
+    return XQC_OK;
 }
 
 /* used by upper level, shall never be invoked in xquic */
@@ -603,8 +637,8 @@ typedef enum {
 ssize_t
 xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
 {
-    ssize_t ret = conn->engine->eng_callback.write_mmsg(iov, cnt,
-                                                        (struct sockaddr *)conn->peer_addr, conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    ssize_t ret = conn->transport_cbs.write_mmsg(iov, cnt, (struct sockaddr *)conn->peer_addr,
+                                                 conn->peer_addrlen, xqc_conn_get_user_data(conn));
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|error send mmsg|");
         if (ret == XQC_SOCKET_ERROR) {
@@ -996,8 +1030,8 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 ssize_t
 xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
 {
-    ssize_t sent = conn->engine->eng_callback.write_socket(data, len, (struct sockaddr*)conn->peer_addr,
-                                                           conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    ssize_t sent = conn->transport_cbs.write_socket(data, len,
+        (struct sockaddr *)conn->peer_addr, conn->peer_addrlen, conn->user_data);
     if (sent != len) {
         xqc_log(conn->log, XQC_LOG_ERROR, 
                 "|write_socket error|conn:%p|size:%ud|sent:%z|", conn, len, sent);
@@ -1064,6 +1098,16 @@ xqc_process_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
     /* pad packet if needed */
     if (xqc_need_padding(conn, packet_out)) {
         xqc_gen_padding_frame(packet_out);
+    }
+
+    /*
+     * 0RTT packets might be lost or retransmitted during handshake, once client get 1RTT keys,
+     * it should retransmit the data with 1RTT packets instead.
+     */
+    if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
+        && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
+    {
+        xqc_convert_pkt_0rtt_2_1rtt(conn, packet_out);
     }
 
     /* generate packet number */
@@ -1168,16 +1212,6 @@ xqc_conn_retransmit_lost_packets(xqc_connection_t *conn)
                     break;
                 }
             }
-        }
-
-        /*
-         * 0RTT packets might be lost during handshake, once client get 1RTT keys,
-         * it should retransmit the lost data with 1RTT packets instead.
-         */
-        if (XQC_UNLIKELY(packet_out->po_pkt.pkt_type == XQC_PTYPE_0RTT
-            && conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT))
-        {
-            xqc_convert_pkt_0rtt_2_1rtt(conn, packet_out);
         }
 
         ret = xqc_conn_send_one_packet(conn, packet_out);
@@ -1461,29 +1495,6 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
 
 
 xqc_int_t
-xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, void *user_data)
-{
-    unsigned char buf[XQC_PACKET_OUT_SIZE];
-    xqc_int_t size = xqc_gen_reset_packet(dcid, buf,
-                                          engine->config->reset_token_key,
-                                          engine->config->reset_token_keylen);
-    if (size < 0) {
-        return size;
-    }
-
-    size = (xqc_int_t)engine->eng_callback.write_socket(buf, (size_t)size,
-                                                        peer_addr, peer_addrlen, user_data);
-    if (size < 0) {
-        return size;
-    }
-
-    xqc_log(engine->log, XQC_LOG_INFO, "|<==|xqc_conn_send_reset ok|size:%d|", size);
-    return XQC_OK;
-}
-
-
-xqc_int_t
 xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len)
 {
     xqc_engine_t *engine = conn->engine;
@@ -1501,8 +1512,9 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
         return size;
     }
 
-    size = (xqc_int_t)engine->eng_callback.write_socket(buf, (size_t)size, (struct sockaddr*)conn->peer_addr,
-                                                        conn->peer_addrlen, xqc_conn_get_user_data(conn));
+    size = (xqc_int_t)conn->transport_cbs.write_socket(
+        buf, (size_t)size, (struct sockaddr*)conn->peer_addr, conn->peer_addrlen,
+        xqc_conn_get_user_data(conn));
     if (size < 0) {
         return size;
     }
@@ -1613,7 +1625,7 @@ xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid)
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|", conn);
 
-    if (engine->eng_callback.write_mmsg) {
+    if (xqc_engine_is_sendmmsg_on(conn->engine)) {
         xqc_conn_send_packets_batch(conn);
 
     } else {
@@ -1907,12 +1919,13 @@ xqc_conn_handshake_complete(xqc_connection_t *conn)
 }
 
 
-int
+xqc_bool_t
 xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn)
 {
     if (conn->tlsref.resumption) {
         return XQC_TRUE;
     }
+
     return XQC_FALSE;
 }
 
@@ -2442,8 +2455,8 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|conn:%p|", conn);
         xqc_conn_handshake_complete(conn);
 
-        if (conn->conn_callbacks.conn_handshake_finished) {
-            conn->conn_callbacks.conn_handshake_finished(conn, conn->user_data);
+        if (conn->app_proto_cbs.conn_cbs.conn_handshake_finished) {
+            conn->app_proto_cbs.conn_cbs.conn_handshake_finished(conn, conn->app_proto_user_data);
         }
     }
 
@@ -2589,9 +2602,9 @@ xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
         if (scid->state == XQC_CID_USED
             && xqc_cid_is_equal(&scid_set->user_scid, &scid->cid) != XQC_OK)
         {
-            if (conn->conn_callbacks.conn_update_cid_notify) {
-                conn->conn_callbacks.conn_update_cid_notify(conn, &scid_set->user_scid,
-                                                            &scid->cid, conn->user_data);
+            if (conn->transport_cbs.conn_update_cid_notify) {
+                conn->transport_cbs.conn_update_cid_notify(conn, &scid_set->user_scid, &scid->cid,
+                                                           xqc_conn_get_user_data(conn));
             }
 
             xqc_cid_copy(&scid_set->user_scid, &scid->cid);
@@ -2623,3 +2636,12 @@ xqc_conn_has_hsk_keys(xqc_connection_t *c)
 }
 
 
+void *
+xqc_conn_get_user_data(xqc_connection_t *c)
+{
+    if (NULL == c) {
+        return NULL;
+    }
+
+    return c->user_data;
+}

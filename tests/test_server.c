@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
+#include <xquic/xqc_http3.h>
 
 int printf_null(const char *format, ...)
 {
@@ -25,6 +26,9 @@ int printf_null(const char *format, ...)
 #define XQC_PACKET_TMP_BUF_LEN 1500
 #define MAX_BUF_SIZE (100*1024*1024)
 
+#define XQC_ALPN_TRANSPORT "transport"
+
+#define XQC_MAX_LOG_LEN 2048
 
 typedef struct xqc_quic_lb_ctx_s {
     uint8_t    sid_len;
@@ -314,27 +318,30 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
     return 0;
 }
 
-int xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
+int
+xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *conn_user_data)
+{
 
     DEBUG;
-    xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)user_data;
+    /* user_conn_t *user_conn = (xqc_server_ctx_t*)conn_user_data; */
 
-    user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
+
+    user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
 
-    socklen_t peer_addrlen;
-    struct sockaddr* peer_addr = xqc_h3_conn_get_peer_addr(h3_conn, &peer_addrlen);
-    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
-    user_conn->peer_addrlen = peer_addrlen;
+    xqc_h3_conn_get_peer_addr(h3_conn, (struct sockaddr *)&user_conn->peer_addr,
+                              sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
     return 0;
 }
 
-int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *user_data) {
+int
+xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *conn_user_data)
+{
 
     DEBUG;
-    user_conn_t *user_conn = (user_conn_t*)user_data;
+    user_conn_t *user_conn = (user_conn_t*)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
     printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
            stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
@@ -344,20 +351,22 @@ int xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid
     return 0;
 }
 
-void xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
+void
+xqc_server_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *conn_user_data)
 {
     DEBUG;
-    user_conn_t *user_conn = (user_conn_t *) user_data;
+    user_conn_t *user_conn = (user_conn_t *)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
 }
 
 void
-xqc_server_h3_conn_update_cid_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *user_data)
+xqc_server_h3_conn_update_cid_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *retire_cid,
+    const xqc_cid_t *new_cid, void *conn_user_data)
 {
     DEBUG;
 
-    user_conn_t *user_conn = (user_conn_t *) user_data;
+    user_conn_t *user_conn = (user_conn_t *)conn_user_data;
 
     memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
 
@@ -369,7 +378,8 @@ xqc_server_h3_conn_update_cid_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *re
 
 #define MAX_HEADER 100
 
-int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
+int
+xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
 {
     ssize_t ret = 0;
     int header_cnt = 6;
@@ -482,7 +492,8 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     if (user_stream->send_offset < user_stream->send_body_len) {
-        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, 1);
+        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset,
+                                       user_stream->send_body_len - user_stream->send_offset, 1);
         if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
             return 0;
@@ -494,7 +505,8 @@ int xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     return 0;
 }
 
-int xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *user_data)
+int
+xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *strm_user_data)
 {
     DEBUG;
     int ret = 0;
@@ -685,6 +697,13 @@ xqc_server_write_socket(const unsigned char *buf, size_t size,
 }
 
 
+ssize_t
+xqc_server_send_stateless_reset(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, int fd, void *user)
+{
+    return xqc_server_write_socket(buf, size, peer_addr, peer_addrlen, user);
+}
+
 void
 xqc_server_socket_write_handler(xqc_server_ctx_t *ctx)
 {
@@ -737,8 +756,9 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 
                 if (xqc_engine_packet_process(ctx->engine, iovecs[i].iov_base, msgs[i].msg_len,
                                               (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
-                                              (struct sockaddr *) (&pa[i]), peer_addrlen, (xqc_msec_t) recv_time,
-                                              NULL) != 0) {
+                                              (struct sockaddr *) (&pa[i]), peer_addrlen,
+                                              (xqc_msec_t) recv_time, NULL) != 0)
+                {
                     printf("xqc_server_read_handler: packet process err\n");
                     return;
                 }
@@ -781,8 +801,9 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));*/
         if (xqc_engine_packet_process(ctx->engine, packet_buf, recv_size,
                                       (struct sockaddr *) (&ctx->local_addr), ctx->local_addrlen,
-                                      (struct sockaddr *) (&peer_addr), peer_addrlen, (xqc_msec_t) recv_time,
-                                      NULL) != 0) {
+                                      (struct sockaddr *) (&peer_addr), peer_addrlen,
+                                      (xqc_msec_t) recv_time, NULL) != 0)
+        {
             printf("xqc_server_read_handler: packet process err\n");
             return;
         }
@@ -814,12 +835,10 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
 {
     DEBUG;
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
-    xqc_conn_set_user_data(conn, user_conn);
+    xqc_conn_set_transport_user_data(conn, user_conn);
 
-    socklen_t peer_addrlen;
-    struct sockaddr* peer_addr = xqc_conn_get_peer_addr(conn, &peer_addrlen);
-    memcpy(&user_conn->peer_addr, peer_addr, peer_addrlen);
-    user_conn->peer_addrlen = peer_addrlen;
+    xqc_conn_get_peer_addr(conn, (struct sockaddr *)&user_conn->peer_addr,
+                           sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
 
     if (g_test_case == 11) {
         g_test_case = -1;
@@ -827,7 +846,7 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
     }
 
     if (g_batch) {
-        connect(ctx.fd, peer_addr, peer_addrlen);
+        connect(ctx.fd, &user_conn->peer_addr, user_conn->peer_addrlen);
     }
 
     return 0;
@@ -1192,9 +1211,6 @@ int main(int argc, char *argv[]) {
     engine_ssl_config.ciphers = XQC_TLS_CIPHERS;
     engine_ssl_config.groups = XQC_TLS_GROUPS;
 
-    engine_ssl_config.alpn_list = NULL;
-    engine_ssl_config.alpn_list_len = 0;
-
     char g_session_ticket_key[2048];
     int ticket_key_len  = read_file_data(g_session_ticket_key, sizeof(g_session_ticket_key), g_session_ticket_file);
 
@@ -1207,45 +1223,19 @@ int main(int argc, char *argv[]) {
     }
 
     xqc_engine_callback_t callback = {
-        .conn_callbacks = {
-            .conn_create_notify = xqc_server_conn_create_notify,
-            .conn_close_notify = xqc_server_conn_close_notify,
-            .conn_handshake_finished = xqc_server_conn_handshake_finished,
-            .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
-        },
-        .h3_conn_callbacks = {
-            .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
-            .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
-            .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
-            .h3_conn_update_cid_notify = xqc_server_h3_conn_update_cid_notify,
-        },
-        .stream_callbacks = {
-            .stream_write_notify = xqc_server_stream_write_notify,
-            .stream_read_notify = xqc_server_stream_read_notify,
-            .stream_create_notify = xqc_server_stream_create_notify,
-            .stream_close_notify = xqc_server_stream_close_notify,
-        },
-        .h3_request_callbacks = {
-            .h3_request_write_notify = xqc_server_request_write_notify,
-            .h3_request_read_notify = xqc_server_request_read_notify,
-            .h3_request_create_notify = xqc_server_request_create_notify,
-            .h3_request_close_notify = xqc_server_request_close_notify,
-        },
-        .write_socket = xqc_server_write_socket,
-        .server_accept = xqc_server_accept,
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
             .xqc_log_write_err = xqc_server_write_log,
         },
         .keylog_cb = xqc_keylog_cb,
+
     };
 
-#if defined(XQC_SUPPORT_SENDMMSG)
-    if (g_batch) {
-        callback.write_mmsg = xqc_server_write_mmsg;
-        printf("---------\n");
-    }
-#endif
+    xqc_transport_callbacks_t tcbs = {
+        .server_accept = xqc_server_accept,
+        .write_socket = xqc_server_write_socket,
+        .conn_update_cid_notify = xqc_server_conn_update_cid_notify,
+    };
 
     xqc_cong_ctrl_callback_t cong_ctrl;
     uint32_t cong_flags = 0;
@@ -1312,6 +1302,13 @@ int main(int argc, char *argv[]) {
     eb = event_base_new();
     ctx.ev_engine = event_new(eb, -1, 0, xqc_server_engine_callback, &ctx);
 
+#if defined(XQC_SUPPORT_SENDMMSG)
+    if (g_batch) {
+        tcbs.write_mmsg = xqc_server_write_mmsg,
+        config.sendmmsg_on = 1;
+    }
+#endif
+
     /* test server cid negotiate */
     if (g_test_case == 1 || g_test_case == 5 || g_test_case == 6 || g_sid_len != 0) {
 
@@ -1320,26 +1317,67 @@ int main(int argc, char *argv[]) {
         config.cid_len = XQC_MAX_CID_LEN;
     }
 
-    /* test NULL stream callback */
-    if (g_test_case == 2) {
-        memset(&callback.stream_callbacks, 0, sizeof(callback.stream_callbacks));
-    }
-    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config, &callback, &ctx);
-
+    ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config,
+                                   &callback, &tcbs, &ctx);
     if(ctx.engine == NULL){
         printf("error create engine\n");
         return -1;
     }
 
+    /* register http3 callbacks */
+    xqc_h3_callbacks_t h3_cbs = {
+        .h3c_cbs = {
+            .h3_conn_create_notify = xqc_server_h3_conn_create_notify,
+            .h3_conn_close_notify = xqc_server_h3_conn_close_notify,
+            .h3_conn_handshake_finished = xqc_server_h3_conn_handshake_finished,
+        },
+        .h3r_cbs = {
+            .h3_request_write_notify = xqc_server_request_write_notify,
+            .h3_request_read_notify = xqc_server_request_read_notify,
+            .h3_request_create_notify = xqc_server_request_create_notify,
+            .h3_request_close_notify = xqc_server_request_close_notify,
+        }
+    };
+
+    /* register transport callbacks */
+    xqc_app_proto_callbacks_t ap_cbs = {
+        .conn_cbs = {
+            .conn_create_notify = xqc_server_conn_create_notify,
+            .conn_close_notify = xqc_server_conn_close_notify,
+            .conn_handshake_finished = xqc_server_conn_handshake_finished,
+        },
+        .stream_cbs = {
+            .stream_write_notify = xqc_server_stream_write_notify,
+            .stream_read_notify = xqc_server_stream_read_notify,
+            .stream_create_notify = xqc_server_stream_create_notify,
+            .stream_close_notify = xqc_server_stream_close_notify,
+        }
+    };
+
+
+    /* test NULL stream callback */
+    if (g_test_case == 2) {
+        memset(&ap_cbs.stream_cbs, 0, sizeof(ap_cbs.stream_cbs));
+    }
+
+    /* init http3 context */
+    xqc_int_t ret = xqc_h3_ctx_init(ctx.engine, &h3_cbs);
+    if (ret != XQC_OK) {
+        printf("init h3 context error, ret: %d\n", ret);
+        return ret;
+    }
+
+    xqc_engine_register_alpn(ctx.engine, XQC_ALPN_TRANSPORT, 9, &ap_cbs);
+
     if (g_test_case == 10) {
         xqc_h3_engine_set_max_field_section_size(ctx.engine, 10000000);
     }
+
     /* for lb cid generate */
     memcpy(ctx.quic_lb_ctx.sid_buf, g_sid, g_sid_len);
     ctx.quic_lb_ctx.sid_len = g_sid_len;
     ctx.quic_lb_ctx.conf_id = 0;
     ctx.quic_lb_ctx.cid_len = XQC_MAX_CID_LEN;
-
 
     ctx.fd = xqc_server_create_socket(TEST_ADDR, server_port);
     if (ctx.fd < 0) {
@@ -1353,6 +1391,7 @@ int main(int argc, char *argv[]) {
     last_snd_ts = 0;
     event_base_dispatch(eb);
 
+    xqc_h3_ctx_destroy(ctx.engine);
     xqc_engine_destroy(ctx.engine);
     xqc_server_close_keylog_file(&ctx);
     xqc_server_close_log_file(&ctx);

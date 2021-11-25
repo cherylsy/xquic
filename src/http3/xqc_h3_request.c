@@ -3,6 +3,7 @@
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_engine.h"
 #include "src/http3/xqc_h3_conn.h"
+#include "src/http3/xqc_h3_ctx.h"
 
 xqc_h3_request_t*
 xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)
@@ -18,7 +19,7 @@ xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_dat
         return NULL;
     }
 
-    h3_conn = (xqc_h3_conn_t*)stream->stream_conn->user_data;
+    h3_conn = (xqc_h3_conn_t*)stream->stream_conn->app_proto_user_data;
 
     h3_stream = xqc_h3_stream_create(h3_conn, stream, XQC_H3_STREAM_TYPE_REQUEST, user_data);
     if (!h3_stream) {
@@ -79,6 +80,23 @@ xqc_h3_request_header_initial(xqc_h3_request_header_t * h3_header)
     xqc_h3_headers_initial(&h3_header->headers);
 }
 
+
+xqc_int_t
+xqc_h3_request_init_callbacks(xqc_h3_request_t *h3r)
+{
+    xqc_h3_callbacks_t *h3_cbs = NULL;
+    xqc_int_t ret = xqc_h3_ctx_get_app_callbacks(&h3_cbs);
+    if (XQC_OK != ret || h3_cbs == NULL) {
+        xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|can't get app callbacks, not initialized ?");
+        return ret;
+    }
+
+    h3r->request_if = &h3_cbs->h3r_cbs;
+
+    return XQC_OK;
+}
+
+
 xqc_h3_request_t *
 xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data)
 {
@@ -91,7 +109,6 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
 
     h3_request->h3_stream = h3_stream;
     h3_request->user_data = user_data;
-    h3_request->request_if = &h3_conn->conn->engine->eng_callback.h3_request_callbacks;
     h3_request->fin_flag = 0;
     xqc_h3_request_header_initial(&h3_request->h3_header);
 
@@ -99,6 +116,8 @@ xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, 
 
     xqc_init_list_head(&h3_request->body_buf);
     h3_request->body_buf_count = 0;
+
+    xqc_h3_request_init_callbacks(h3_request);
 
     if (h3_request->request_if->h3_request_create_notify) {
         h3_request->request_if->h3_request_create_notify(h3_request, h3_request->user_data);

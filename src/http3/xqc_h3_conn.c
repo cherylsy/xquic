@@ -1,4 +1,5 @@
 #include "src/http3/xqc_h3_conn.h"
+#include "src/http3/xqc_h3_ctx.h"
 
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_stream.h"
@@ -70,7 +71,7 @@ xqc_h3_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
 }
 
 
-int
+xqc_int_t
 xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
 {
     return xqc_conn_close(engine, cid);
@@ -84,7 +85,7 @@ xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn)
 }
 
 
-int
+xqc_int_t
 xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
     int ret = xqc_conn_get_errno(h3_conn->conn);
@@ -97,6 +98,7 @@ xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
                           void *user_data)
 {
     h3_conn->user_data = user_data;
+    xqc_conn_set_transport_user_data(h3_conn->conn, user_data);
 }
 
 
@@ -119,33 +121,34 @@ xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
 }
 
 
-struct sockaddr*
-xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn, socklen_t *peer_addr_len)
+xqc_int_t
+xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *peer_addr_len)
 {
-    return xqc_conn_get_peer_addr(h3_conn->conn, peer_addr_len);
+    return xqc_conn_get_peer_addr(h3c->conn, addr, addr_cap, peer_addr_len);
 }
 
 
-struct sockaddr *
-xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn, socklen_t *local_addr_len)
+xqc_int_t
+xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3c, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *local_addr_len)
 {
-    return xqc_conn_get_local_addr(h3_conn->conn, local_addr_len);
+    return xqc_conn_get_local_addr(h3c->conn, addr, addr_cap, local_addr_len);
 }
 
 
-int 
+xqc_int_t 
 xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data)
 {
     return xqc_conn_send_ping(engine, cid, ping_user_data);
 }
 
 
-int
+xqc_bool_t
 xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn)
 {
     return xqc_conn_is_ready_to_send_early_data(h3_conn->conn);
 }
-
 
 
 /**
@@ -217,6 +220,23 @@ const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb = {
     .write_ins_cb = xqc_h3_conn_send_ins
 };
 
+
+xqc_int_t
+xqc_h3_conn_init_callbacks(xqc_h3_conn_t *h3c)
+{
+    xqc_h3_callbacks_t *h3_cbs = NULL;
+    xqc_int_t ret = xqc_h3_ctx_get_app_callbacks(&h3_cbs);
+    if (XQC_OK != ret || h3_cbs == NULL) {
+        xqc_log(h3c->log, XQC_LOG_ERROR, "|can't get app callbacks, not initialized?");
+        return ret;
+    }
+
+    h3c->h3_conn_callbacks = h3_cbs->h3c_cbs;
+
+    return XQC_OK;
+}
+
+
 xqc_h3_conn_t *
 xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 {
@@ -232,7 +252,8 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
 
     h3c->control_stream_out = NULL;
 
-    h3c->h3_conn_callbacks = conn->engine->eng_callback.h3_conn_callbacks;
+    /* set callback functions from application layer to http3 layer */
+    xqc_h3_conn_init_callbacks(h3c);
 
     h3c->local_h3_conn_settings = default_local_h3_conn_settings;
     h3c->peer_h3_conn_settings = default_peer_h3_conn_settings;
@@ -257,8 +278,8 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
         h3c->flags |= XQC_H3_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
-    /* replace with h3_conn */
-    xqc_conn_set_user_data(conn, h3c);
+    /* set ALPN user_data */
+    xqc_conn_set_alp_user_data(conn, h3c);
 
     return h3c;
 
@@ -393,106 +414,6 @@ error:
     return NULL;
 }
 
-xqc_int_t
-xqc_h3_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
-{
-    xqc_int_t ret;
-    xqc_h3_conn_t *h3c;
-    h3c = xqc_h3_conn_create(conn, user_data);
-    if (!h3c) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_create error|");
-        return -XQC_H3_ECREATE_CONN;
-    }
-
-    /* control local stream */
-    h3c->control_stream_out = xqc_h3_conn_create_uni_stream(h3c, XQC_H3_STREAM_TYPE_CONTROL);
-    if (NULL == h3c->control_stream_out) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|create control stream error|");
-        return XQC_ERROR;
-    }
-
-    /* qpack encoder stream */
-    h3c->qenc_stream = xqc_h3_conn_create_uni_stream(h3c, XQC_H3_STREAM_TYPE_QPACK_ENCODER);
-    if (NULL == h3c->qenc_stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|create qpack encoder stream error|");
-        return XQC_ERROR;
-    }
-
-    /* qpack decoder stream */
-    h3c->qdec_stream = xqc_h3_conn_create_uni_stream(h3c, XQC_H3_STREAM_TYPE_QPACK_DECODER);
-    if (NULL == h3c->qdec_stream) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|create qpack decoder stream error|");
-        return XQC_ERROR;
-    }
-
-    /* send SETTINGS */
-    ret = xqc_h3_conn_send_settings(h3c);
-    if (ret) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_send_settings error|");
-        return ret;
-    }
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|create h3 conn success|");
-    return XQC_OK;
-}
-
-
-xqc_int_t
-xqc_h3_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
-{
-    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
-    xqc_h3_conn_destroy(h3c);
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|destroy h3 conn success|");
-    return XQC_OK;
-}
-
-
-void
-xqc_h3_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
-{
-    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
-    if (h3c->h3_conn_callbacks.h3_conn_handshake_finished) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED notify|");
-
-        h3c->h3_conn_callbacks.h3_conn_handshake_finished(h3c, h3c->user_data);
-    }
-}
-
-void
-xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data,
-    void *user_data)
-{
-    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
-
-    if (h3c->h3_conn_callbacks.h3_conn_ping_acked) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|Ping acked notify|");
-
-        h3c->h3_conn_callbacks.h3_conn_ping_acked(h3c, &h3c->conn->scid_set.user_scid,
-                                                  ping_user_data, h3c->user_data);
-    }
-}
-
-void
-xqc_h3_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid,
-    void *user_data)
-{
-    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
-
-    if (h3c->h3_conn_callbacks.h3_conn_update_cid_notify) {
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|UPDATE_CID notify|");
-
-        h3c->h3_conn_callbacks.h3_conn_update_cid_notify(h3c, retire_cid,
-                                                         new_cid, h3c->user_data);
-    }
-}
-
-const xqc_conn_callbacks_t h3_conn_callbacks = {
-    .conn_create_notify         = xqc_h3_conn_create_notify,
-    .conn_close_notify          = xqc_h3_conn_close_notify,
-    .conn_handshake_finished    = xqc_h3_conn_handshake_finished,
-    .conn_ping_acked            = xqc_h3_conn_ping_acked_notify,
-    .conn_update_cid_notify     = xqc_h3_conn_update_cid_notify,
-};
 
 xqc_bool_t
 xqc_h3_conn_is_goaway_recved(xqc_h3_conn_t *h3c, uint64_t stream_id)
@@ -612,3 +533,91 @@ xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c)
     return XQC_OK;
 }
 
+
+xqc_int_t
+xqc_h3_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
+{
+    xqc_int_t ret;
+    xqc_h3_conn_t *h3c;
+    h3c = xqc_h3_conn_create(conn, user_data);
+    if (!h3c) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_create error|");
+        return -XQC_H3_ECREATE_CONN;
+    }
+
+    /* control local stream */
+    h3c->control_stream_out = xqc_h3_conn_create_uni_stream(h3c, XQC_H3_STREAM_TYPE_CONTROL);
+    if (NULL == h3c->control_stream_out) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create control stream error|");
+        return XQC_ERROR;
+    }
+
+    /* qpack encoder stream */
+    h3c->qenc_stream = xqc_h3_conn_create_uni_stream(h3c, XQC_H3_STREAM_TYPE_QPACK_ENCODER);
+    if (NULL == h3c->qenc_stream) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create qpack encoder stream error|");
+        return XQC_ERROR;
+    }
+
+    /* qpack decoder stream */
+    h3c->qdec_stream = xqc_h3_conn_create_uni_stream(h3c, XQC_H3_STREAM_TYPE_QPACK_DECODER);
+    if (NULL == h3c->qdec_stream) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create qpack decoder stream error|");
+        return XQC_ERROR;
+    }
+
+    /* send SETTINGS */
+    ret = xqc_h3_conn_send_settings(h3c);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_h3_conn_send_settings error|");
+        return ret;
+    }
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|create h3 conn success|");
+    return XQC_OK;
+}
+
+
+xqc_int_t
+xqc_h3_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
+    xqc_h3_conn_destroy(h3c);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|destroy h3 conn success|");
+    return XQC_OK;
+}
+
+
+void
+xqc_h3_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
+    if (h3c->h3_conn_callbacks.h3_conn_handshake_finished) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED notify|");
+
+        h3c->h3_conn_callbacks.h3_conn_handshake_finished(h3c, h3c->user_data);
+    }
+}
+
+void
+xqc_h3_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data,
+    void *user_data)
+{
+    xqc_h3_conn_t *h3c = (xqc_h3_conn_t*)user_data;
+
+    if (h3c->h3_conn_callbacks.h3_conn_ping_acked) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|Ping acked notify|");
+
+        h3c->h3_conn_callbacks.h3_conn_ping_acked(h3c, &h3c->conn->scid_set.user_scid,
+                                                  ping_user_data, h3c->user_data);
+    }
+}
+
+
+/* HTTP/3 layer connection and streams callback over Transport-Layer */
+const xqc_conn_callbacks_t h3_conn_callbacks = {
+    .conn_create_notify         = xqc_h3_conn_create_notify,
+    .conn_close_notify          = xqc_h3_conn_close_notify,
+    .conn_handshake_finished    = xqc_h3_conn_handshake_finished,
+    .conn_ping_acked            = xqc_h3_conn_ping_acked_notify,
+};

@@ -10,50 +10,38 @@
 #include "src/crypto/xqc_crypto_material.h"
 #include "src/crypto/xqc_transport_params.h"
 #include "src/common/xqc_log.h"
+#include "src/transport/xqc_engine.h"
 
 
 /**
- * select aplication layer proto
+ * select aplication layer proto, which will be triggered when processing ClientHello
+ * only set for Server
  */
 int 
-xqc_alpn_select_proto_cb(SSL *ssl, 
-    const unsigned char **out, unsigned char *outlen, 
-    const unsigned char *in, unsigned int inlen, 
-    void *arg)
+xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned char *outlen, 
+    const unsigned char *in, unsigned int inlen, void *arg)
 {
-    xqc_connection_t * conn = (xqc_connection_t *) SSL_get_app_data(ssl) ;
-    xqc_engine_ssl_config_t *xs_config = (xqc_engine_ssl_config_t *)arg;
-    uint8_t *alpn_list = xs_config->alpn_list;
-    size_t alpn_list_len = xs_config->alpn_list_len;
+    xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl) ;
+    xqc_engine_t *engine = (xqc_engine_t *)arg;
+    uint8_t *alpn_list = engine->alpn_list;
+    size_t alpn_list_len = engine->alpn_list_len;
 
-    if (SSL_select_next_proto((unsigned char **)out, outlen, alpn_list, alpn_list_len, in, inlen) != OPENSSL_NPN_NEGOTIATED) {
+    if (SSL_select_next_proto((unsigned char **)out, outlen, alpn_list, alpn_list_len, in, inlen)
+        != OPENSSL_NPN_NEGOTIATED)
+    {
         xqc_log(conn->log, XQC_LOG_ERROR, "|select proto error|");
         return SSL_TLSEXT_ERR_NOACK;
     }
 
-    uint8_t * alpn = (uint8_t *)(*out);
-    uint8_t alpn_len = *outlen;
+    const unsigned char *alpn = (uint8_t *)(*out);
+    size_t alpn_len = *outlen;
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn|%*s|", alpn_len, alpn);
 
-    /* parse alpn */
-    if (xqc_alpn_type_is_h3(alpn, alpn_len)) {
-        conn->tlsref.alpn_num = XQC_ALPN_HTTP3_NUM;
-
-    } else if (xqc_alpn_type_is_transport(alpn, alpn_len)) {
-        conn->tlsref.alpn_num = XQC_ALPN_TRANSPORT_NUM;
-
-    } else if (xqc_alpn_type_is_hq(alpn, alpn_len)) {
-        conn->tlsref.alpn_num = XQC_ALPN_HQ_NUM;
-
-    } else {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|alpn not supported|alpn:%s|", alpn);
+    xqc_int_t ret = xqc_conn_server_on_alpn(conn, alpn, alpn_len);
+    if (XQC_OK != ret) {
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
-
-    xqc_conn_server_on_alpn(conn);
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn number:%d|", conn->tlsref.alpn_num);
 
     return SSL_TLSEXT_ERR_OK;
 }

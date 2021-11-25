@@ -77,6 +77,8 @@ set(
     "src/http3/qpack/stable/xqc_stable.c"
     "src/http3/qpack/dtable/xqc_dtable.c"
     "src/http3/xqc_h3_header.c"
+    "src/http3/xqc_h3_ctx.c"
+    "src/http3/xqc_h3_defs.c"
 )
 
 
@@ -278,7 +280,9 @@ add_executable(test_client tests/test_client.c)
 set(
     HQ_SOURCES
 
-    "demo/xqc_hq.c"
+    "demo/xqc_hq_ctx.c"
+    "demo/xqc_hq_conn.c"
+    "demo/xqc_hq_request.c"
 )
 
 set(

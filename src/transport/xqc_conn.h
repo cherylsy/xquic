@@ -195,6 +195,7 @@ typedef struct {
     xqc_usec_t              fc_last_window_update_time;
 } xqc_conn_flow_ctl_t;
 
+
 #ifdef XQC_PRINT_SECRET
 #define XQC_SECRET_HEX_MAX 129
 typedef enum xqc_secret_type_s {
@@ -207,95 +208,104 @@ typedef enum xqc_secret_type_s {
 } xqc_secret_type_t;
 #endif
 
-struct xqc_connection_s{
-    xqc_conn_callbacks_t    conn_callbacks;
-    xqc_stream_callbacks_t  stream_callbacks;
-    xqc_conn_settings_t     conn_settings;
-    xqc_engine_t           *engine;
 
-    xqc_proto_version_t     version;
+struct xqc_connection_s {
+
+    xqc_conn_settings_t             conn_settings;
+    xqc_engine_t                   *engine;
+
+    xqc_proto_version_t             version;
     /* set when client receives a non-VN package from server or receives a VN package and processes it */
-    uint32_t                discard_vn_flag;
+    uint32_t                        discard_vn_flag;
 
-    xqc_cid_t               original_dcid; /* original destination connection id, RFC 9000, Section 7.3. */
-    xqc_cid_t               initial_scid;  /* initial source connection id, RFC 9000, Section 7.3 */
+    /* original destination connection id, RFC 9000, Section 7.3. */
+    xqc_cid_t                       original_dcid;
+    /* initial source connection id, RFC 9000, Section 7.3 */
+    xqc_cid_t                       initial_scid;
 
-    xqc_dcid_set_t          dcid_set;
-    xqc_scid_set_t          scid_set;
+    xqc_dcid_set_t                  dcid_set;
+    xqc_scid_set_t                  scid_set;
 
-    unsigned char           peer_addr[sizeof(struct sockaddr_in6)],
-                            local_addr[sizeof(struct sockaddr_in6)];
-    socklen_t               peer_addrlen,
-                            local_addrlen;
+    unsigned char                   peer_addr[sizeof(struct sockaddr_in6)];
+    socklen_t                       peer_addrlen;
 
-    char                    addr_str[2*(XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
-    size_t                  addr_str_len;
+    unsigned char                   local_addr[sizeof(struct sockaddr_in6)];
+    socklen_t                       local_addrlen;
 
-    unsigned char           conn_token[XQC_MAX_TOKEN_LEN];
-    unsigned char           enc_pkt[XQC_PACKET_OUT_SIZE_EXT];
-    size_t                  enc_pkt_len;
-    uint32_t                conn_token_len;
-    uint32_t                zero_rtt_count;
-    uint32_t                retry_count;
-    uint32_t                conn_close_count;
-    uint32_t                packet_need_process_count; /* xqc_engine_packet_process number */
+    char                            addr_str[2 * (XQC_MAX_CID_LEN + INET6_ADDRSTRLEN) + 10];
+    size_t                          addr_str_len;
 
-    xqc_conn_state_t        conn_state;
-    xqc_memory_pool_t      *conn_pool;
+    unsigned char                   conn_token[XQC_MAX_TOKEN_LEN];
+    unsigned char                   enc_pkt[XQC_PACKET_OUT_SIZE_EXT];
+    size_t                          enc_pkt_len;
+    uint32_t                        conn_token_len;
+    uint32_t                        zero_rtt_count;
+    uint32_t                        retry_count;
+    uint32_t                        conn_close_count;
+    uint32_t                        packet_need_process_count; /* xqc_engine_packet_process number */
 
-    xqc_id_hash_table_t    *streams_hash;
-    xqc_id_hash_table_t    *passive_streams_hash;
-    xqc_list_head_t         conn_write_streams,
-                            conn_read_streams, /* xqc_stream_t */
-                            conn_closing_streams,
-                            conn_all_streams;
-    xqc_stream_t           *crypto_stream[XQC_ENC_MAX_LEVEL];
-    uint64_t                cur_stream_id_bidi_local;
-    uint64_t                cur_stream_id_uni_local;
-    int64_t                 max_stream_id_bidi_remote;
-    int64_t                 max_stream_id_uni_remote;
+    xqc_conn_state_t                conn_state;
+    xqc_memory_pool_t              *conn_pool;
 
-    xqc_trans_settings_t    local_settings;
-    xqc_trans_settings_t    remote_settings;
-    xqc_conn_flag_t         conn_flag;
-    xqc_conn_type_t         conn_type;
+    xqc_id_hash_table_t            *streams_hash;
+    xqc_id_hash_table_t            *passive_streams_hash;
+    xqc_list_head_t                 conn_write_streams,
+                                    conn_read_streams, /* xqc_stream_t */
+                                    conn_closing_streams,
+                                    conn_all_streams;
+    xqc_stream_t                   *crypto_stream[XQC_ENC_MAX_LEVEL];
+    uint64_t                        cur_stream_id_bidi_local;
+    uint64_t                        cur_stream_id_uni_local;
+    int64_t                         max_stream_id_bidi_remote;
+    int64_t                         max_stream_id_uni_remote;
 
-    void                   *user_data;  /* user_data for application layer */
+    xqc_trans_settings_t            local_settings;
+    xqc_trans_settings_t            remote_settings;
+    xqc_conn_flag_t                 conn_flag;
+    xqc_conn_type_t                 conn_type;
 
-    xqc_list_head_t         undecrypt_packet_in[XQC_ENC_MAX_LEVEL];  /* xqc_packet_in_t */
-    uint32_t                undecrypt_count[XQC_ENC_MAX_LEVEL];
+    /* callback function and user_data to application layer */
+    xqc_transport_callbacks_t       transport_cbs;
+    void                           *user_data;      /* user_data for application layer */
 
-    xqc_recv_record_t       recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
-    uint32_t                ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
+    /* callback function and user_data to application-layer-protocol layer */
+    xqc_app_proto_callbacks_t       app_proto_cbs;
+    void                           *app_proto_user_data;
 
-    xqc_log_t              *log;
+    xqc_list_head_t                 undecrypt_packet_in[XQC_ENC_MAX_LEVEL];  /* xqc_packet_in_t */
+    uint32_t                        undecrypt_count[XQC_ENC_MAX_LEVEL];
 
-    xqc_send_ctl_t         *conn_send_ctl;
+    xqc_recv_record_t               recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
+    uint32_t                        ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
+
+    xqc_log_t                      *log;
+
+    xqc_send_ctl_t                 *conn_send_ctl;
     //xqc_send_ctl_info_t     ctl_info;
 
-    xqc_usec_t              last_ticked_time;
-    xqc_usec_t              next_tick_time;
-    xqc_usec_t              conn_create_time;
-    xqc_usec_t              handshake_complete_time; /* record the time when the handshake ends */
-    xqc_usec_t              first_data_send_time;    /* record the time when the bidirectional stream first sent data */
+    xqc_usec_t                      last_ticked_time;
+    xqc_usec_t                      next_tick_time;
+    xqc_usec_t                      conn_create_time;
+    xqc_usec_t                      handshake_complete_time; /* record the time when the handshake ends */
+    xqc_usec_t                      first_data_send_time;    /* record the time when the bidirectional stream first sent data */
 
-    SSL                     *xc_ssl; /* ssl for connection */
-    xqc_tlsref_t            tlsref;  /* all tls reference */
+    SSL                            *xc_ssl; /* ssl for connection */
+    xqc_tlsref_t                    tlsref;  /* all tls reference */
 
-    xqc_conn_flow_ctl_t     conn_flow_ctl;
+    xqc_conn_flow_ctl_t             conn_flow_ctl;
 
-    uint32_t                wakeup_pq_index;
+    uint32_t                        wakeup_pq_index;
 
-    uint64_t                conn_err;
+    uint64_t                        conn_err;
 
     /* for multi-path */
-    xqc_path_ctx_t         *conn_initial_path;
-    xqc_list_head_t         conn_paths_list;
+    xqc_path_ctx_t                 *conn_initial_path;
+    xqc_list_head_t                 conn_paths_list;
 
 
 #ifdef XQC_PRINT_SECRET
-    unsigned char           client_random_hex[XQC_SECRET_HEX_MAX];
-    unsigned char           secret_hex[SECRET_TYPE_NUM][XQC_SECRET_HEX_MAX];
+    unsigned char                   client_random_hex[XQC_SECRET_HEX_MAX];
+    unsigned char                   secret_hex[SECRET_TYPE_NUM][XQC_SECRET_HEX_MAX];
 #endif
 };
 
@@ -309,19 +319,22 @@ void
 xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
 xqc_connection_t *
-xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid, const xqc_conn_callbacks_t *callbacks,
+xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type);
 
 xqc_connection_t *
-xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr, socklen_t local_addrlen,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, xqc_cid_t *dcid, xqc_cid_t *scid,
-    xqc_conn_callbacks_t *callbacks, xqc_conn_settings_t *settings, void *user_data);
+xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
+    socklen_t local_addrlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_settings_t *settings, void *user_data);
 
 void
 xqc_conn_destroy(xqc_connection_t *xc);
 
-void
-xqc_conn_server_on_alpn(xqc_connection_t *conn);
+xqc_int_t
+xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
+
+xqc_int_t
+xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
 
 ssize_t
 xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
@@ -362,10 +375,6 @@ xqc_conn_is_handshake_confirmed(xqc_connection_t *conn);
 
 xqc_int_t
 xqc_conn_immediate_close(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, void *user_data);
 
 xqc_int_t
 xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
@@ -469,5 +478,6 @@ xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
 xqc_bool_t
 xqc_conn_has_hsk_keys(xqc_connection_t *c);
 
+void * xqc_conn_get_user_data(xqc_connection_t *c);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

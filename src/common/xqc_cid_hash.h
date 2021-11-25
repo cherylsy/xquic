@@ -12,24 +12,21 @@
  * interfase reference: xqc_id_hash.h
  */
 
-typedef struct xqc_cid_hash_element_s
-{
-    uint8_t cid_len;
-    uint8_t cid_buf[XQC_MAX_CID_LEN];
-    void *value; /* associated element data */
+typedef struct xqc_cid_hash_element_s {
+    uint8_t     cid_len;
+    uint8_t     cid_buf[XQC_MAX_CID_LEN];
+    void       *value;                      /* associated element data */
 } xqc_cid_hash_element_t;
 
-typedef struct xqc_cid_hash_node_s
-{
+typedef struct xqc_cid_hash_node_s {
     struct xqc_cid_hash_node_s *next;
-    xqc_cid_hash_element_t element;
+    xqc_cid_hash_element_t      element;
 } xqc_cid_hash_node_t;
 
-typedef struct xqc_cid_hash_table_s
-{
-    xqc_cid_hash_node_t **list; 
-    size_t count;
-    xqc_allocator_t allocator;
+typedef struct xqc_cid_hash_table_s {
+    xqc_cid_hash_node_t   **list; 
+    size_t                  count;
+    xqc_allocator_t         allocator;
 } xqc_cid_hash_table_t;
 
 
@@ -41,8 +38,10 @@ xqc_cid_hash_init(xqc_cid_hash_table_t* hash_tab,  xqc_allocator_t allocator, si
     if (hash_tab->list == NULL) {
         return XQC_ERROR;
     }
+
     memset(hash_tab->list, 0, sizeof(xqc_cid_hash_node_t*) * bucket_num);
     hash_tab->count = bucket_num;
+
     return XQC_OK;
 }
 
@@ -70,19 +69,23 @@ xqc_cid_hash(const uint8_t *cid_buf, uint8_t cid_len)
     while (cid_len) {
         if (cid_len >= 8) {
             hash ^= *(const uint64_t*)cid_buf;
-            cid_buf += 8; cid_len -= 8;
+            cid_buf += 8;
+            cid_len -= 8;
 
         } else if (cid_len >= 4) {
             hash ^= *(const uint32_t*)cid_buf;
-            cid_buf += 4; cid_len -= 4;
+            cid_buf += 4;
+            cid_len -= 4;
 
         } else if (cid_len >= 2) {
             hash ^= *(const uint16_t*)cid_buf;
-            cid_buf += 2; cid_len -= 2;
+            cid_buf += 2;
+            cid_len -= 2;
 
         } else {
             hash ^= *(const uint8_t*)cid_buf;
-            cid_buf += 1; cid_len -= 1;
+            cid_buf += 1;
+            cid_len -= 1;
         }
     }
     return hash;
@@ -100,11 +103,14 @@ xqc_cid_hash_find(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_
     uint64_t index = hash % hash_tab->count;
     xqc_cid_hash_node_t* node = hash_tab->list[index];
     while (node) {
-        if (cid_len == node->element.cid_len && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len)) {
+        if (cid_len == node->element.cid_len
+            && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len))
+        {
             return node->element.value;
         }
         node = node->next;
     }
+
     return NULL;
 }
 
@@ -122,7 +128,9 @@ xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t
     /* duplicate connection id */
     xqc_cid_hash_node_t* node = hash_tab->list[index];
     while (node) {
-        if (cid_len == node->element.cid_len && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len)) {
+        if (cid_len == node->element.cid_len
+            && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len))
+        {
             return XQC_ERROR;
         }
         node = node->next;
@@ -157,7 +165,9 @@ xqc_cid_hash_delete(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint
     xqc_cid_hash_node_t** pp = &hash_tab->list[index];
     xqc_cid_hash_node_t* node = hash_tab->list[index];
     while (node) {
-        if (cid_len == node->element.cid_len && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len)) {
+        if (cid_len == node->element.cid_len
+            && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len))
+        {
             *pp = node->next;
             return XQC_OK;
         }

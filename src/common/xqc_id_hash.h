@@ -7,66 +7,26 @@
 #include "src/common/xqc_common.h"
 #include "src/common/xqc_memory_pool.h"
 
-/* Usage examples
-    xqc_id_hash_table_t hash_tab;
-    xqc_id_hash_init(&hash_tab, xqc_default_allocator, 100);
-
-    xqc_id_hash_element_t e1 = {1, "hello"};
-    xqc_id_hash_add(&hash_tab, e1);
-
-    xqc_id_hash_element_t e2 = {3, "world"};
-    xqc_id_hash_add(&hash_tab, e2);
-
-    xqc_id_hash_element_t e3 = {5, "!"};
-    xqc_id_hash_add(&hash_tab, e3);
-
-    char* p1 = xqc_id_hash_find(&hash_tab, 3);
-    if (p1) {
-        printf("found hash 3: %s\n", p1);
-    } else {
-        printf("not found hash 3\n");
-    }
-
-    void* p2 = xqc_id_hash_find(&hash_tab, 4);
-    if (p2) {
-        printf("found hash 4: %s\n", p2);
-    } else {
-        printf("not found hash 4\n");
-    }
-
-    int ret = xqc_id_hash_delete(&hash_tab, 3);
-    printf("delete 3 return %d\n", ret);
-
-    p1 = xqc_id_hash_find(&hash_tab, 3);
-    if (p1) {
-        printf("found hash 3: %s\n", p1);
-    } else {
-        printf("not found hash 3\n");
-    }
-
-    xqc_id_hash_release(&hash_tab);
- * */
-
 
 typedef struct xqc_id_hash_element_s
 {
-    uint64_t hash;
-    void *value;
+    uint64_t                    hash;
+    void                       *value;
 } xqc_id_hash_element_t;
 
 
 typedef struct xqc_id_hash_node_s
 {
-    struct xqc_id_hash_node_s *next;
-    xqc_id_hash_element_t element;
+    struct xqc_id_hash_node_s  *next;
+    xqc_id_hash_element_t       element;
 } xqc_id_hash_node_t;
 
 typedef struct xqc_id_hash_table_s
 {
-    xqc_id_hash_node_t **list;
-    size_t count;
-    size_t mask;
-    xqc_allocator_t allocator;
+    xqc_id_hash_node_t        **list;
+    size_t                      count;
+    size_t                      mask;
+    xqc_allocator_t             allocator;
 } xqc_id_hash_table_t;
 
 
@@ -84,7 +44,7 @@ xqc_pow2(unsigned int n)
 }
 
 
-static inline int
+static inline xqc_int_t
 xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
@@ -95,7 +55,7 @@ xqc_id_hash_init(xqc_id_hash_table_t* hash_tab,  xqc_allocator_t allocator, size
     }
     memset(hash_tab->list, 0, sizeof(xqc_id_hash_node_t*) * bucket_num);
     hash_tab->count = bucket_num;
-    hash_tab->mask  = bucket_num - 1 ;
+    hash_tab->mask  = bucket_num - 1;
     return XQC_OK;
 }
 
@@ -137,7 +97,7 @@ xqc_id_hash_find(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 }
 
 
-static inline int
+static inline xqc_int_t
 xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_element_t e)
 {
     if (xqc_id_hash_find(hash_tab, e.hash)) {
@@ -159,7 +119,7 @@ xqc_id_hash_add(xqc_id_hash_table_t* hash_tab, xqc_id_hash_element_t e)
 }
 
 
-static inline int
+static inline xqc_int_t
 xqc_id_hash_delete(xqc_id_hash_table_t* hash_tab, uint64_t hash)
 {
     uint64_t index = hash & hash_tab->mask;

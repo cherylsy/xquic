@@ -1,6 +1,7 @@
 #include <CUnit/CUnit.h>
 
 #include <xquic/xquic.h>
+#include <xquic/xqc_http3.h>
 #include "xqc_common_test.h"
 #include "src/common/xqc_object_manager.h"
 #include "src/common/xqc_rbtree.h"
@@ -188,9 +189,7 @@ engine_ssl_config.cert_file = "./server.crt";           \
 engine_ssl_config.ciphers = XQC_TLS_CIPHERS;            \
 engine_ssl_config.groups = XQC_TLS_GROUPS;              \
 engine_ssl_config.session_ticket_key_len = 0;           \
-engine_ssl_config.session_ticket_key_data = NULL;       \
-engine_ssl_config.alpn_list_len = 0;                    \
-engine_ssl_config.alpn_list = NULL;
+engine_ssl_config.session_ticket_key_data = NULL;
 
 static ssize_t 
 null_socket_write(const unsigned char *buf, size_t size,
@@ -221,13 +220,43 @@ test_create_engine()
 {
     def_engine_ssl_config;
     xqc_engine_callback_t callback = {
-            .log_callbacks = xqc_null_log_cb,
-            .write_socket = null_socket_write,
-            .set_event_timer = null_set_event_timer,
+        .log_callbacks = xqc_null_log_cb,
+        .set_event_timer = null_set_event_timer,
+    };
+    xqc_transport_callbacks_t tcbs = {
+        .write_socket = null_socket_write,
     };
 
     xqc_conn_settings_t conn_settings;
-    return xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config, &callback, NULL);
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_CLIENT, NULL, &engine_ssl_config,
+                                             &callback, &tcbs, NULL);
+
+    xqc_h3_callbacks_t h3_cbs = {
+        .h3c_cbs = {
+            .h3_conn_create_notify = NULL,
+            .h3_conn_close_notify = NULL,
+            .h3_conn_handshake_finished = NULL,
+        },
+        .h3r_cbs = {
+            .h3_request_create_notify = NULL,
+            .h3_request_close_notify = NULL,
+            .h3_request_read_notify = NULL,
+            .h3_request_write_notify = NULL,
+        }
+    };
+
+    /* init http3 context */
+    int ret = xqc_h3_ctx_init(engine, &h3_cbs);
+    if (ret != XQC_OK) {
+        xqc_engine_destroy(engine);
+        return NULL;
+    }
+
+    /* transport ALPN */
+    xqc_app_proto_callbacks_t transport_cbs = {{NULL}, {NULL}};
+    xqc_engine_register_alpn(engine, "transport", 9, &transport_cbs);
+
+    return engine;
 }
 
 const xqc_cid_t* 
@@ -240,7 +269,7 @@ test_cid_connect(xqc_engine_t *engine)
     xqc_conn_ssl_config_t conn_ssl_config;
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
     const xqc_cid_t *cid = xqc_connect(engine, &conn_settings, NULL, 0, "", 0, &conn_ssl_config,
-                                       NULL, 0, NULL, NULL);
+                                       NULL, 0, "transport", NULL);
     return cid;
 }
 

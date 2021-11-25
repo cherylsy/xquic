@@ -67,13 +67,6 @@
 
 
 typedef enum {
-    XQC_ALPN_DEFAULT_NUM = 0,
-    XQC_ALPN_HTTP3_NUM = 1,
-    XQC_ALPN_TRANSPORT_NUM = 2,
-    XQC_ALPN_HQ_NUM = 3,
-}xqc_alpn_num;
-
-typedef enum {
   //XQC_CONN_FLAG_NONE = 0x00,
   /* XQC_CONN_FLAG_HANDSHAKE_COMPLETED_EX is set if handshake
      completed. */
@@ -249,7 +242,6 @@ struct xqc_tlsref
     xqc_connection_t       *conn;
     uint8_t                 initial;
     uint8_t                 resumption;
-    xqc_alpn_num            alpn_num;
     uint64_t                flags; //record handshake completed or recv retry packet
    
 #define hs_crypto_ctx crypto_ctx_store[XQC_ENC_LEV_INIT] 

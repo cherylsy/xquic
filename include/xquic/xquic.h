@@ -20,198 +20,517 @@ extern "C" {
 #endif
 
 
-/* support version for IETF drafts */
-#define XQC_SUPPORT_VERSION_MAX         64
+/**
+ * @brief engine type definition
+ */
+typedef enum {
+    XQC_ENGINE_SERVER,
+    XQC_ENGINE_CLIENT
+} xqc_engine_type_t;
 
+
+/**
+ * @brief supported versions for IETF drafts
+ */
 typedef enum xqc_proto_version_s {
+    /* placeholder */
+    XQC_IDRAFT_INIT_VER,
 
-    XQC_IDRAFT_INIT_VER,            /* placeholder */
+    /* former version of QUIC RFC 9000 */
+    XQC_VERSION_V1,
 
-    XQC_VERSION_V1,                 /* former version of QUIC RFC */
+    /* IETF Draft-29 */
+    XQC_IDRAFT_VER_29,
 
-    XQC_IDRAFT_VER_29,              /* IETF Draft-29 */
-
-    XQC_IDRAFT_VER_NEGOTIATION,     /* Special version for version negotiation. */
+     /* Special version for version negotiation. */
+    XQC_IDRAFT_VER_NEGOTIATION,
 
     XQC_VERSION_MAX
 } xqc_proto_version_t;
 
+#define XQC_SUPPORT_VERSION_MAX         64
+
 
 #define XQC_TLS_CIPHERS "TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256"
 #define XQC_TLS_GROUPS "P-256:X25519:P-384:P-521"
-#define XQC_TLS_AEAD_OVERHEAD_MAX_LEN   16
 
-#define XQC_MAX_SEND_MSG_ONCE           32
-
-#define XQC_SOCKET_ERROR                -1
-#define XQC_SOCKET_EAGAIN               -2
 
 #define XQC_RESET_TOKEN_MAX_KEY_LEN     256
 
-typedef enum {
-    XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
-    XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
-} xqc_request_notify_flag_t;
 
+/**
+ * the max message count of iovec in sendmmsg
+ */
+#define XQC_MAX_SEND_MSG_ONCE           32
+
+
+/**
+ * @brief event timer callback function. MUST for both client and server
+ * xquic don't have implementation of timer, but will tell the interval of timer by this function.
+ * applications shall implement the timer, and invoke xqc_engine_main_logic after timer expires.
+ * 
+ * @param wake_after interval of timer, with micro-second.
+ * @param engine_user_data user_data of engine
+ */
 typedef void (*xqc_set_event_timer_pt)(xqc_usec_t wake_after, void *engine_user_data);
 
-typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len, void *conn_user_data);
-
-typedef void (*xqc_save_string_pt)(const char *data, size_t data_len, void *conn_user_data);
-
-/* session save callback */
-typedef xqc_save_string_pt xqc_save_session_pt;
-
-/* transport parameters save callback */
-typedef xqc_save_string_pt xqc_save_trans_param_pt;
-
-typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *conn_user_data);
-
-typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *conn_user_data);
-
-typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *conn_user_data);
-
-typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *ping_user_data, void *conn_user_data);
-
-typedef void (*xqc_conn_update_cid_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *conn_user_data);
-
-typedef void (*xqc_h3_conn_update_cid_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *conn_user_data);
-
-
-
 /**
- * write socket
- * @param conn_user_data user_data of connection
- * @param buf  packet buffer
- * @param size  packet size
- * @param peer_addr  peer address
- * @param peer_addrlen  peer address length
- * @return bytes of data which is successfully sent to socket:
- * XQC_SOCKET_ERROR for error, xquic will destroy the connection
- * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket write event is ready
- * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
- */
-typedef ssize_t (*xqc_socket_write_pt)(const unsigned char *buf, size_t size,
-                                       const struct sockaddr *peer_addr, socklen_t peer_addrlen,
-                                       void *conn_user_data);
-typedef ssize_t (*xqc_send_mmsg_pt)(const struct iovec *msg_iov, unsigned int vlen,
-                                        const struct sockaddr *peer_addr,
-                                        socklen_t peer_addrlen, void *conn_user_data);
-
-/**
- * for multi-path write socket
- * @param path_id  path identifier
- * @param conn_user_data user_data of connection
- * @param buf  packet buffer
- * @param size  packet size
- * @param peer_addr  peer address
- * @param peer_addrlen  peer address length
- * @return bytes of data which is successfully sent to socket:
- * XQC_SOCKET_ERROR for error, xquic will destroy the connection
- * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket write event is ready
- * Warning: server's user_data is what we passed in xqc_engine_packet_process when send a reset packet
- */
-typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id,
-    const unsigned char *buf, size_t size, const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
-typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id,
-    const struct iovec *msg_iov, unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
-
-typedef void (*xqc_conn_ready_to_create_path_notify_pt)(const xqc_cid_t *scid, void *conn_user_data);
-typedef void (*xqc_path_created_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
-    void *conn_user_data);
-typedef void (*xqc_path_removed_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
-    void *conn_user_data);
-
-/**
- * client certificate verify callback
- * @param certs[] X509 certificates in DER format
- * @param cert_len[] lengths of X509 certificates in DER format
- * @return 0 for success, -1 for verify failed and xquic will close the connection 
- */
-typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cert_len[], size_t certs_len, void *conn_user_data);
-
-/**
- * for server, custom cid generate handler,
+ * @brief cid generate callback.
+ * 
  * @param ori_cid the original dcid sent by client.
  * @param cid_buf  buffer for cid generated
  * @param cid_buflen len for cid_buf
  * @param engine_user_data  user data of engine from `xqc_engine_create`
- * @return  negative for failed , non-negative (0 contians ) for the length of bytes written
- * if the length of bytes written shorter than cid_buflen , xquic will fill rest of them with random bytes
- * */
-typedef ssize_t (*xqc_cid_generate_pt)(const xqc_cid_t *ori_cid, uint8_t *cid_buf, size_t cid_buflen, void *engine_user_data);
-
+ * @return negative for failed, non-negative (including 0) for the length of bytes written. if the
+ * count of written bytes is less than cid_buflen, xquic will fill rest of cid_buf with random bytes
+ */
+typedef ssize_t (*xqc_cid_generate_pt)(const xqc_cid_t *ori_cid, uint8_t *cid_buf,
+    size_t cid_buflen, void *engine_user_data);
 
 /**
- * keylog callback
+ * @brief tls secret log callback. will only be effective when build with XQC_PRINT_SECRET
+ * 
+ * this callback will be invoked everytime when TLS layer generates a secret, and will be triggered
+ * multiple times during handshake. keylog could be used in wireshark to parse QUIC packets
  */
 typedef void (*xqc_keylog_pt)(const char *line, void *engine_user_data);
 
-
-/*
- * Callbacks below return -1 for fatal error, e.g. malloc fail, xquic will close the connection, return 0 otherwise
+/**
+ * @brief log callback functions
  */
-typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *cid, void *conn_user_data);
-typedef int (*xqc_h3_conn_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, void *conn_user_data);
-typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
-typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *strm_user_data);
-typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *strm_user_data);
-/* user_data is the parameter of xqc_engine_packet_process */
-typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data);
-
-
-/* log interface */
-#define XQC_MAX_LOG_LEN 2048
 typedef struct xqc_log_callbacks_s {
+    /**
+     * trace log callback function
+     * 
+     * trace log including XQC_LOG_FATAL, XQC_LOG_ERROR, XQC_LOG_WARN, XQC_LOG_STATS, XQC_LOG_INFO,
+     * XQC_LOG_DEBUG, xquic will output logs with the level higher or equal to the level configured
+     * in xqc_congit_t.
+     */
     void (*xqc_log_write_err)(const void *buf, size_t size, void *engine_user_data);
+
+    /**
+     * statistic log callback function
+     * 
+     * this function will be triggered when write XQC_LOG_REPORT or XQC_LOG_STATS level logs.
+     * mainly when connection close, stream close, tls key derived.
+     */
     void (*xqc_log_write_stat)(const void *buf, size_t size, void *engine_user_data);
+
 } xqc_log_callbacks_t;
 
-/* transport layer */
+
+/**
+ * @brief connection accept callback.
+ * 
+ * this function is invoked when incoming a new QUIC connection. return 0 means accept this new
+ * connection. return negative values if application layer will not accept the new connection
+ * due to busy or some reaseon else
+ * 
+ * @param user_data the user_data parameter of xqc_engine_packet_process
+ * @return negative for refuse conneciton. 0 for accept
+ */
+typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn,
+    const xqc_cid_t *cid, void *user_data);
+
+/**
+ * @brief engine can't find connection related to input udp packet, and return a STATELESS_RESET
+ * packet, implementations shall send this buffer back to peer. this callback function is almost the
+ * same with xqc_socket_write_pt, but with different user_data definition.
+ * 
+ * @param user_data user_data related to connection, originated from the user_data parameter of
+ * xqc_engine_packet_process
+ */
+typedef ssize_t (*xqc_stateless_reset_pt)(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user_data);
+
+/**
+ * @brief general callback function definition for connection create and close
+ */
+typedef int (*xqc_conn_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *cid,
+    void *conn_user_data);
+
+/**
+ * @brief QUIC connection token callback. REQIRED for client.
+ * token is used by the server to validate client's address during the handshake period of next
+ * connection to the same server. client applications shall save token to local storage, if
+ * need to connect the same server, read the token and take it as the parameter of xqc_connect.
+ * 
+ * NOTICE: as client initiate multiple connections to multiple QUIC servers or server clusters,
+ * it shall save the tokens seperately, e.g. save the token with the domain as the key
+ */
+typedef void (*xqc_save_token_pt)(const unsigned char *token, uint32_t token_len,
+    void *conn_user_data);
+
+/**
+ * @brief general type of session ticket and transport parameter callback function
+ */
+typedef void (*xqc_save_string_pt)(const char *data, size_t data_len, void *conn_user_data);
+
+/**
+ * @brief session ticket callback function
+ * 
+ * session ticket is essential for 0-RTT connections. with the same storage requirements and
+ * strategy as token. when initiating a new connection, session ticket is part of
+ * xqc_conn_ssl_config_t parameter
+ */
+typedef xqc_save_string_pt xqc_save_session_pt;
+
+/**
+ * @brief transport parameters callback
+ *
+ * transport parameters are use when initiating 0-RTT connections to avoid violating the server's 
+ * restraintion, it shall be remembered with the same storage requirements and strategy as token.
+ * When initiating a new connection, transport parameters is part of xqc_conn_ssl_config_t parameter
+*/
+typedef xqc_save_string_pt xqc_save_trans_param_pt;
+
+/**
+ * @brief handshake finished callback function
+ * 
+ * this will be trigger when the QUIC connection handshake is completed, that is, when the TLS
+ * stack has both sent a Finished message and verified the peer's Finished message
+ */
+typedef void (*xqc_handshake_finished_pt)(xqc_connection_t *conn, void *conn_user_data);
+
+/**
+ * @brief PING acked callback function.
+ * 
+ * if application send a PING frame with xqc_conn_send_ping function, this callback function will be
+ * triggered when this PING frame is acked by peer. noticing that PING frame do not need repair, it
+ * might not be triggered if PING frame is lost or ACK frame is lost. 
+ * xquic might send PING frames  will not trigger this callback
+ */
+typedef void (*xqc_conn_ping_ack_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *cid,
+    void *ping_user_data, void *conn_user_data);
+
+/**
+ * @brief cid update callback function.
+ * 
+ * this function will be trigger after receive peer's RETIRE_CONNECTION_ID frame and the SCID of
+ * endpoint is changed. cid change might be essential if load balance or some other mechanism 
+ * related with cid is introduced, applications shall update the CID after the callback is triggered
+ * 
+ * @param conn connection handler
+ * @param retire_cid cid that was retired by peer
+ * @param new_cid cid that would be used
+ * @param conn_user_data connection level user_data
+ */
+typedef void (*xqc_conn_update_cid_notify_pt)(xqc_connection_t *conn, const xqc_cid_t *retire_cid,
+    const xqc_cid_t *new_cid, void *conn_user_data);
+
+/**
+ * @brief client certificate verify callback
+ * 
+ * @param certs[] X509 certificates in DER format
+ * @param cert_len[] lengths of X509 certificates in DER format
+ * @return 0 for success, -1 for verify failed and xquic will close the connection 
+ */
+typedef int (*xqc_cert_verify_pt)(const unsigned char *certs[], const size_t cert_len[],
+    size_t certs_len, void *conn_user_data);
+
+
+/**
+ * @brief return value of xqc_socket_write_pt and xqc_send_mmsg_pt callback function
+ */
+#define XQC_SOCKET_ERROR                -1
+#define XQC_SOCKET_EAGAIN               -2
+
+/**
+ * @brief writing data callback function
+ * 
+ * @param buf  packet buffer
+ * @param size  packet size
+ * @param peer_addr  peer address
+ * @param peer_addrlen  peer address length
+ * @param conn_user_data user_data of connection
+ * @return bytes of data which is successfully sent:
+ * XQC_SOCKET_ERROR for error, xquic will destroy the connection
+ * XQC_SOCKET_EAGAIN for EAGAIN, application could continue sending data with xqc_conn_continue_send
+ * function when socket write event is ready
+ */
+typedef ssize_t (*xqc_socket_write_pt)(const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
+
+/**
+ * @brief sendmmsg callback function. the implementation of this shall send data with sendmmsg
+ * 
+ * @param msg_iov message vector
+ * @param vlen vector of messages
+ * @param peer_addr address of peer
+ * @param peer_addrlen  length of peer_addr param
+ * @param conn_user_data user_data of connection
+ * @return count of messages that are successfully sent:
+ * XQC_SOCKET_ERROR for error, xquic will destroy the connection
+ * XQC_SOCKET_EAGAIN for EAGAIN, application could continue sending data with xqc_conn_continue_send
+ * function when socket write event is ready
+ * Warning: server's user_data is what passed in xqc_engine_packet_process when send a stateless
+ * reset packet, as xquic can't find a connection
+ */
+typedef ssize_t (*xqc_send_mmsg_pt)(const struct iovec *msg_iov, unsigned int vlen,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
+
+
+/**
+ * @brief multi-path ready callback function
+ *
+ * this callback function will be triggered when a new connection id is received and endpoint
+ * get unsed cids. it's a precondition of multi-path
+ * 
+ * @param scid source connection id of endpoint
+ * @param conn_user_data user_data of connection
+ */
+typedef void (*xqc_conn_ready_to_create_path_notify_pt)(const xqc_cid_t *scid,
+    void *conn_user_data);
+
+/**
+ * @brief multi-path create callback function
+ * 
+ * @param scid source connection id of endpoint
+ * @param path_id id of path
+ * @param conn_user_data user_data of connection
+ */
+typedef void (*xqc_path_created_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
+    void *conn_user_data);
+
+/**
+ * @brief multi-path remove path callback function. will be triggered when path is destroyed
+ * 
+ * @param scid source connection id of endpoint
+ * @param path_id id of path
+ * @param conn_user_data user_data of connection
+ */
+typedef void (*xqc_path_removed_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
+    void *conn_user_data);
+
+/**
+ * @brief multi-path write socket callback function
+ * 
+ * @param path_id path identifier
+ * @param conn_user_data user_data of connection
+ * @param buf packet buffer
+ * @param size packet size
+ * @param peer_addr peer address
+ * @param peer_addrlen peer address length
+ * @param conn_user_data user_data of connection
+ * @return bytes of data which is successfully sent to socket:
+ * XQC_SOCKET_ERROR for error, xquic will destroy the connection
+ * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket is ready to write
+ * Warning: server's user_data is what passed in xqc_engine_packet_process when send a reset packet
+ */
+typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id, const unsigned char *buf, size_t size,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
+
+/**
+ * @brief multi-path write socket callback function with sendmmsg
+ * 
+ * @param path_id path identifier
+ * @param msg_iov vector of messages
+ * @param vlen count of messages
+ * @param peer_addr peer address
+ * @param peer_addrlen peer address length
+ * @param conn_user_data user_data of connection, which was the parameter of xqc_connect set by
+ * client, or the parameter of xqc_conn_set_transport_user_data set by server
+ * @return bytes of data which is successfully sent to socket:
+ * XQC_SOCKET_ERROR for error, xquic will destroy the connection
+ * XQC_SOCKET_EAGAIN for EAGAIN, we should call xqc_conn_continue_send when socket is ready to write
+ * Warning: server's user_data is what passed in xqc_engine_packet_process when send a reset packet
+ */
+typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id, const struct iovec *msg_iov,
+    unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    void *conn_user_data);
+
+
+/**
+ * @brief general callback function definition for stream create, close, read and write.
+ * 
+ * @param stream QUIC stream handler
+ * @param strm_user_data stream level user_data, which was the parameter of xqc_stream_create set by
+ * client, or the parameter of xqc_stream_set_user_data set by server
+ * @return 0 for success, -1 for failure
+ */
+typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
+
+
+/**
+ * @brief callback functions which are more related to attributes of QUIC [Transport] but not ALPN.
+ * In another word, these callback functions are events of QUIC Transport layer, and need to 
+ * interact with application-layer, which have less thing to do with ALPN layer.
+ * 
+ * These callback functions shall directly call back to application layer, with user_data from
+ * struct xqc_connection_t. unless Application-Layer-Protocol take over them.
+ * 
+ * Generally, xquic defines callbacks as below:
+ * 1. Callbacks between Trasnport and Application:
+ * QUIC events that are common between different Application Protocols, 
+ * and is much more convenient to interact with Application and Application Protocol. 
+ * 
+ * 2. Callbacks between Application Protocol and Applicaiton:
+ * Application-Protocol events will interact with Application Layer. these callback functions are
+ * defined by Application Protocol Layers.
+ * 
+ * 3. Callbacks between Transport and Application Protocol:
+ * QUIC events that might be more essential to Application-Layer-Protocols, especially stream data
+ * 
+ * +------------------------------------------------------------------------------+
+ * |                             Application                                      |
+ * |                                 +-- Application Protocol defined callbacks --+
+ * |                                 |             Application Protocol           |
+ * +-------- transport callbacks ----+--------- app protocol callbacks -----------+
+ * |                              Transport                                       |
+ * +------------------------------------------------------------------------------+
+ */
+typedef struct xqc_transport_callbacks_s {
+    /**
+     * accept new connection callback. REQUIRED only for server
+     * NOTICE: this is the headmost callback trigger by xquic, the user_data of server_accept is
+     * what was passed into xqc_engine_packet_process
+     */
+    xqc_server_accept_pt            server_accept;
+
+    /* stateless reset callback */
+    xqc_stateless_reset_pt          stateless_reset;
+
+    /**
+     * write socket callback, ALTERNATIVE with write_mmsg
+     */
+    xqc_socket_write_pt             write_socket;
+
+    /** 
+     * write socket with send_mmsg callback, ALTERNATIVE with write_socket
+     */
+    xqc_send_mmsg_pt                write_mmsg;
+
+    /**
+     * QUIC connection cid update callback, REQUIRED for both server and client
+     */
+    xqc_conn_update_cid_notify_pt   conn_update_cid_notify;
+
+    /**
+     * QUIC token callback. REQUIRED for client
+     */
+    xqc_save_token_pt               save_token;
+
+    /**
+     * tls session ticket callback. REQUIRED for client
+     */
+    xqc_save_session_pt             save_session_cb;
+
+    /**
+     * QUIC transport parameter callback. REQUIRED for client
+     */
+    xqc_save_trans_param_pt         save_tp_cb;
+
+    /**
+     * tls certificate verify callback. REQUIRED for client
+     */
+    xqc_cert_verify_pt              cert_verify_cb;
+
+    /**
+     * multi-path available callback. REQUIRED both for client and server if multi-path is needed
+     */
+    xqc_conn_ready_to_create_path_notify_pt ready_to_create_path_notify;
+
+    /**
+     * path create callback funcion. REQUIRED both for client and server if multi-path is needed
+     */
+    xqc_path_created_notify_pt      path_created_notify;
+
+    /**
+     * path remove callback funcion. REQUIRED both for client and server if multi-path is needed
+     */
+    xqc_path_removed_notify_pt      path_reomved_notify;
+
+} xqc_transport_callbacks_t;
+
+
+/** 
+ * @brief QUIC connection callback functions for Application-layer-Protocol.
+ */
 typedef struct xqc_conn_callbacks_s {
-    /* callback after connection creation, user can create their own connection contexts */
-    xqc_conn_notify_pt            conn_create_notify;         /* required for server, optional for client */
-    /* callback on connection closure, user can recycle resources */
-    xqc_conn_notify_pt            conn_close_notify;
-    /* for handshake done */
-    xqc_handshake_finished_pt     conn_handshake_finished;    /* optional */
-    /* ping is acked */
-    xqc_conn_ping_ack_notify_pt   conn_ping_acked;            /* optional */
-    /* user cid updated */
-    xqc_conn_update_cid_notify_pt conn_update_cid_notify;     /* required for server and client */
+
+    /**
+     * connection create notify callback. REQUIRED for server, OPTIONAL for client.
+     * 
+     * this function will be invoked after connection is created, user can create application layer
+     * context in this callback function 
+     * 
+     * return 0 for success, -1 for failure, e.g. malloc error, on which xquic will close connection
+     */
+    xqc_conn_notify_pt              conn_create_notify;
+
+    /**
+     * connection close notify. REQUIRED for both client and server
+     * 
+     * this function will be invoked after QUIC connection is closed. user can free application
+     * level context created in conn_create_notify callback function
+     */
+    xqc_conn_notify_pt              conn_close_notify;
+
+    /**
+     * handkeshake complete callback. OPTIONAL for client and server
+     */
+    xqc_handshake_finished_pt       conn_handshake_finished;
+
+    /**
+     * active PING acked callback. OPTIONAL for both client and server
+     */
+    xqc_conn_ping_ack_notify_pt     conn_ping_acked;
+
 } xqc_conn_callbacks_t;
 
-/* application layer */
-typedef struct xqc_h3_conn_callbacks_s {
-    /* callback after connection creation, user can create their own connection contexts */
-    xqc_h3_conn_notify_pt            h3_conn_create_notify;       /* required for server, optional for client */
-    /* callback on connection closure, user can recycle resources */
-    xqc_h3_conn_notify_pt            h3_conn_close_notify;
-    /* for handshake done */
-    xqc_h3_handshake_finished_pt     h3_conn_handshake_finished;  /* optional */
-    /* ping is acked */
-    xqc_h3_conn_ping_ack_notify_pt   h3_conn_ping_acked;          /* optional */
-    /* user cid updated */
-    xqc_h3_conn_update_cid_notify_pt h3_conn_update_cid_notify;   /* required for server and client */
-} xqc_h3_conn_callbacks_t;
 
-/* transport layer */
+/* QUIC layer stream callback functions */
 typedef struct xqc_stream_callbacks_s {
-    xqc_stream_notify_pt        stream_read_notify;     /* callback when readable, user can call the read interface */
-    xqc_stream_notify_pt        stream_write_notify;    /* callback when writable, user can call the write interface */
-    xqc_stream_notify_pt        stream_create_notify;   /* required for server, optional for client，
-                                                         * callback after request creation, user can create their own request contexts */
-    xqc_stream_notify_pt        stream_close_notify;    /* callback on closure, user can recycle resources */
+    /**
+     * stream read callback function. REQUIRED for both client and server
+     * 
+     * this will be triggered when QUIC stream data is ready for read. application layer could read
+     * data when xqc_stream_recv interface.
+     */
+    xqc_stream_notify_pt        stream_read_notify;
+
+    /**
+     * stream write callback function. REQUIRED for both client and server
+     * 
+     * when sending data with xqc_stream_send, xquic might be blocked or send part of the data. if
+     * this callback function is triggered, applications can continue to send the rest data.
+     */
+    xqc_stream_notify_pt        stream_write_notify;
+
+    /**
+     * stream create callback function. REQUIRED for server, OPTIONAL for client.
+     * 
+     * this will be triggered when QUIC stream is created. applications can create its own stream
+     * context in this callback function.
+     */
+    xqc_stream_notify_pt        stream_create_notify;
+
+    /**
+     * stream close callback function. REQUIRED for both server and client.
+     * 
+     * this will be triggered when QUIC stream is finally closed. xquic will close stream after
+     * sending or receiving RESET_STREAM frame after 3 times of PTO, or when connection is closed.
+     * Applications can free the context which was created in stream_create_notify here.
+     */
+    xqc_stream_notify_pt        stream_close_notify;
+
 } xqc_stream_callbacks_t;
 
-/* application layer */
-typedef struct xqc_h3_request_callbacks_s {
-    xqc_h3_request_read_notify_pt   h3_request_read_notify;     /* callback when readable, user can call the read interface */
-    xqc_h3_request_notify_pt        h3_request_write_notify;    /* callback when writable, user can call the write interface */
-    xqc_h3_request_notify_pt        h3_request_create_notify;   /* required for server, optional for client，
-                                                                 * callback after request creation, user can create their own request contexts */
-    xqc_h3_request_notify_pt        h3_request_close_notify;    /* callback on closure, user can recycle resources */
-} xqc_h3_request_callbacks_t;
+
+/**
+ * @brief connection and stream callbacks for QUIC level, Application-Layer-Protocol shall implement
+ * these callback functions and register ALP with xqc_engine_register_alpn
+ */
+typedef struct xqc_app_proto_callbacks_s {
+
+    /* QUIC connection callback functions for Application-Layer-Protocol */
+    xqc_conn_callbacks_t        conn_cbs;
+
+    /* QUIC stream callback functions */
+    xqc_stream_callbacks_t      stream_cbs;
+
+} xqc_app_proto_callbacks_t;
+
 
 typedef struct xqc_cc_params_s {
     uint32_t    customize_on;
@@ -224,16 +543,22 @@ typedef struct xqc_cc_params_s {
 typedef struct xqc_congestion_control_callback_s {
     /* Callback on initialization, for memory allocation */
     size_t (*xqc_cong_ctl_size) (void);
+
     /* Callback on connection initialization, support for passing in congestion algorithm parameters */
     void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params);
+
     /* Callback when packet loss is detected, reduce congestion window according to algorithm */
     void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_usec_t lost_sent_time);
+
     /* Callback when packet acked, increase congestion window according to algorithm */
     void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now);
+
     /* Callback when sending a packet, to determine if the packet can be sent */
     uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+
     /* Callback when all packets are detected as lost within 1-RTT, reset the congestion window */
     void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
+
     /* If the connection is in slow start state */
     int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
 
@@ -245,8 +570,11 @@ typedef struct xqc_congestion_control_callback_s {
 
     /* For BBR */
     void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+
     void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
+
     uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
+
     uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
 
     xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;
@@ -268,82 +596,76 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_kernel_cb;
  * QUIC config parameters
  */
 typedef struct xqc_config_s {
+    /* log level */
     xqc_log_level_t cfg_log_level;
+
+    /* print timestamp in log or not, non-zero for print, 0 for not */
     xqc_flag_t      cfg_log_timestamp;
+
+    /* connection memory pool size, which will be used for congestion control */
     size_t          conn_pool_size;
+
+    /* bucket size of stream hash table in xqc_connection_t */
     size_t          streams_hash_bucket_size;
+
+    /* bucket size of connection hash table in engine */
     size_t          conns_hash_bucket_size;
+
+    /* capacity of connection priority queue in engine */
     size_t          conns_active_pq_capacity;
+
+    /* capacity of wakeup connection priority queue in engine */
     size_t          conns_wakeup_pq_capacity;
-    uint32_t        support_version_list[XQC_SUPPORT_VERSION_MAX]; /* supported version list */
-    uint32_t        support_version_count;                         /* number of supported versions */
+
+    /* supported quic version list, actually draft-29 and quic-v1 is supported */
+    uint32_t        support_version_list[XQC_SUPPORT_VERSION_MAX];
+
+    /* supported quic version count */
+    uint32_t        support_version_count;
+
+    /* default connection id length */
     uint8_t         cid_len;
-    uint8_t         cid_negotiate;                                 /* just for server, default:0 */
+
+    /**
+     * only for server, whether server will negotiate cid with client. non-zero for negotiate and 0
+     * for not. when enable, server will not reuse client's original DCID, and generate its own cid.
+     * 
+     * NOTICE: if length of client's original DCID is not equal to cid_len, server will always
+     * generate its own cid, despite of the enable of cid negotiation.
+     */
+    uint8_t         cid_negotiate;
+
+    /* used to generate stateless reset token */
     char            reset_token_key[XQC_RESET_TOKEN_MAX_KEY_LEN];
     size_t          reset_token_keylen;
+
+    /**
+     * sendmmsg switch. non-zero for enable, 0 for disable.
+     * if enabled, xquic will try to use write_mmsg callback function instead of write_socket. 
+     * 
+     * NOTICE: if sendmmsg is enabled, xquic will check write_mmsg callback function when creating
+     * engine. if write_mmsg is NULL and sendmmsg_on is non-zero, xqc_engine_create will fail
+     */
+    int             sendmmsg_on;
 } xqc_config_t;
 
 
-typedef enum {
-    XQC_ENGINE_SERVER,
-    XQC_ENGINE_CLIENT
-} xqc_engine_type_t;
-
 /**
- * User should implement following callbacks.
+ * @brief engine callback functions.
  */
 typedef struct xqc_engine_callback_s {
-    /* for event loop */
-    xqc_set_event_timer_pt      set_event_timer;/* call xqc_engine_main_logic when the timer expires */
+    /* timer callback for event loop */
+    xqc_set_event_timer_pt          set_event_timer;
 
-    /* for socket write */
-    xqc_socket_write_pt         write_socket;   /* user implementation of socket write interface */
+    /* write log file callback, REQUIRED */
+    xqc_log_callbacks_t             log_callbacks;
 
-    /* for send_mmsg write*/
-    xqc_send_mmsg_pt            write_mmsg;     /* sendmmsg interface */
+    /* custom cid generator, OPTIONAL for server */
+    xqc_cid_generate_pt             cid_generate_cb;
 
-    /* for server, callback when server accept a new connection */
-    xqc_server_accept_pt        server_accept;
+    /* tls secret callback, OPTIONAL */
+    xqc_keylog_pt                   keylog_cb;
 
-    /* for connection notify */
-    xqc_conn_callbacks_t        conn_callbacks;
-
-    /* for h3 connection notify */
-    xqc_h3_conn_callbacks_t     h3_conn_callbacks;
-
-    /* for stream notify */
-    xqc_stream_callbacks_t      stream_callbacks;
-
-    /* for hq stream notify */
-    xqc_stream_callbacks_t      hq_stream_callbacks;
-
-    /* for request notify */
-    xqc_h3_request_callbacks_t  h3_request_callbacks;
-
-    /* for write log file */
-    xqc_log_callbacks_t         log_callbacks;
-
-    /* for client, save token. connect with token to verify client ip is real. */
-    xqc_save_token_pt           save_token;
-
-    /* for client, save session data, Use the domain as the key to save */
-    xqc_save_session_pt         save_session_cb;
-
-    /* for client, save transport parameter data, Use the domain as the key to save */
-    xqc_save_trans_param_pt     save_tp_cb;
-
-    /* for client , verify certificate */
-    xqc_cert_verify_pt          cert_verify_cb;
-
-    /* for server, custom cid generator */
-    xqc_cid_generate_pt         cid_generate_cb;
-
-    /* for multi-path */
-    xqc_conn_ready_to_create_path_notify_pt  ready_to_create_path_notify;
-    xqc_path_created_notify_pt               path_created_notify;
-
-    /* keylog */
-    xqc_keylog_pt               keylog_cb;
 } xqc_engine_callback_t;
 
 
@@ -357,8 +679,6 @@ typedef struct xqc_engine_ssl_config_s {
     char       *session_ticket_key_data;    /* For server */
     size_t      session_ticket_key_len;     /* For server */
 
-    char       *alpn_list;                  /* For server */
-    int         alpn_list_len;              /* For server */
 } xqc_engine_ssl_config_t;
 
 
@@ -368,37 +688,39 @@ typedef enum {
     XQC_TLS_CERT_FLAG_ALLOW_SELF_SIGNED  = 1 << 1,
 } xqc_cert_verify_flag_e;
 
+/**
+ * @brief connection tls config for client
+ */
 typedef struct xqc_conn_ssl_config_s {
-    char       *session_ticket_data;             /* For client, client should Use the domain as the key to save */
-    size_t      session_ticket_len;              /* For client */
-    char       *transport_parameter_data;        /* For client, client should Use the domain as the key to save */
-    size_t      transport_parameter_data_len;    /* For client */
-    uint8_t     cert_verify_flag;                /* For client certificate verify, bit-map flag defined in xqc_cert_verify_flag_e */
+    /**
+     * session ticket data buffer.
+     * 
+     * session ticket is read from client's local storage, which is from save_session_cb callback
+     * and was stored after previous successful connection to a server
+     */
+    char       *session_ticket_data;
+
+    /**
+     * length of session_ticket_data
+     */
+    size_t      session_ticket_len;
+
+    /**
+     * server's transport parameter, derived as well as session_ticket_data 
+     */
+    char       *transport_parameter_data;
+
+    /**
+     * length of transport_parameter_data
+     */
+    size_t      transport_parameter_data_len;
+
+    /**
+     * certificate verify flag. which is a bit-map flag defined in xqc_cert_verify_flag_e
+     */
+    uint8_t     cert_verify_flag;
 } xqc_conn_ssl_config_t;
 
-typedef enum xqc_http3_nv_flag_s {
-    /* no flag is set */
-    XQC_HTTP_HEADER_FLAG_NONE = 0,
-
-    /* header's name and value shall be encoded as literal, and shall never be indexed */
-    XQC_HTTP_HEADER_FLAG_NEVER_INDEX = 0x01,
-
-    /* header's value shall never be indexed */
-    XQC_HTTP_HEADER_FLAG_NEVER_INDEX_VALUE = 0x02
-} xqc_http3_nv_flag_t;
-
-typedef struct xqc_http_header_s {
-    struct iovec        name;
-    struct iovec        value;
-    uint8_t             flags;          /* 1:do not compress this header */
-} xqc_http_header_t;
-
-typedef struct xqc_http_headers_s {
-    xqc_http_header_t      *headers;
-    size_t                  count;
-    size_t                  capacity;   /* User does't care */
-    size_t                  total_len;
-} xqc_http_headers_t;
 
 typedef struct xqc_conn_settings_s {
     int                         pacing_on;          /* default: 0 */
@@ -412,12 +734,6 @@ typedef struct xqc_conn_settings_s {
     int32_t                     spurious_loss_detect_on;
 } xqc_conn_settings_t;
 
-typedef struct xqc_h3_conn_settings_s {
-    uint64_t max_field_section_size;
-    uint64_t max_pushes;
-    uint64_t qpack_max_table_capacity;
-    uint64_t qpack_blocked_streams;
-} xqc_h3_conn_settings_t;
 
 typedef enum {
     XQC_0RTT_NONE,      /* without 0RTT */
@@ -426,17 +742,17 @@ typedef enum {
 } xqc_0rtt_flag_t;
 
 typedef struct xqc_conn_stats_s {
-    uint32_t    send_count;
-    uint32_t    lost_count;
-    uint32_t    tlp_count;
-    uint32_t    spurious_loss_count;
-    xqc_usec_t  srtt;
-    xqc_0rtt_flag_t    early_data_flag;
-    uint32_t    recv_count;
-    int         enable_multipath;
-    int         spurious_loss_detect_on;
-    int         conn_err;
-    char        ack_info[50];
+    uint32_t            send_count;
+    uint32_t            lost_count;
+    uint32_t            tlp_count;
+    uint32_t            spurious_loss_count;
+    xqc_usec_t          srtt;
+    xqc_0rtt_flag_t     early_data_flag;
+    uint32_t            recv_count;
+    int                 enable_multipath;
+    int                 spurious_loss_detect_on;
+    int                 conn_err;
+    char                ack_info[50];
 } xqc_conn_stats_t;
 
 typedef struct xqc_request_stats_s {
@@ -447,10 +763,92 @@ typedef struct xqc_request_stats_s {
     int         stream_err;         /* 0 For no-error */
 } xqc_request_stats_t;
 
-typedef xqc_usec_t (*xqc_timestamp_pt)(void);
 
-extern xqc_timestamp_pt xqc_realtime_timestamp;  // get real-time timestamp
-extern xqc_timestamp_pt xqc_monotonic_timestamp; // get monotonically increasing timestamp
+
+/*************************************************************
+ *  engine layer APIs
+ *************************************************************/
+
+/**
+ * @brief Create new xquic engine.
+ * 
+ * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
+ * @param engine_config config for basic framework, quic, network, etc.
+ * @param ssl_config basic ssl config
+ * @param engine_callback environment callback functions, including timer, socket, log, etc.
+ * @param transport_cbs transport callback functions
+ * @param conn_callback default connection callback functions
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
+    const xqc_config_t *engine_config,
+    const xqc_engine_ssl_config_t *ssl_config,
+    const xqc_engine_callback_t *engine_callback,
+    const xqc_transport_callbacks_t *transport_cbs,
+    void *user_data);
+
+
+/**
+ * @brief destroy engine. this is called after all connections are destroyed
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_destroy(xqc_engine_t *engine);
+
+
+/**
+ * @brief register alpn and connection and stream callbacks. user can implement his own application
+ * protocol by registering apln, and taking quic connection and streams as application connection
+ * and request
+ * 
+ * @param engine engine handler
+ * @param alpn Application-Layer-Protocol, for example, h3, hq-interop, or self-defined
+ * @param alpn_len length of Application-Layer-Protocol string
+ * @param ap_cbs connection and stream event callback functions for application-layer-protocol
+ * @return XQC_EXPORT_PUBLIC_API 
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
+    xqc_app_proto_callbacks_t *ap_cbs);
+
+
+/**
+ * @brief unregister an alpn and its quic connection callbacks
+ * 
+ * @param engine engine handler
+ * @param alpn Application-Layer-Protocol, for example, h3, hq-interop, or self-defined
+ * @param alpn_len 
+ * @return XQC_EXPORT_PUBLIC_API 
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len);
+
+
+/**
+ * Pass received UDP packet payload into xquic engine.
+ * @param recv_time   UDP packet recieved time in microsecond
+ * @param user_data   connection user_data, server is NULL
+ */
+XQC_EXPORT_PUBLIC_API
+int xqc_engine_packet_process(xqc_engine_t *engine,
+    const unsigned char *packet_in_buf, size_t packet_in_size,
+    const struct sockaddr *local_addr, socklen_t local_addrlen,
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen,
+    xqc_usec_t recv_time, void *user_data);
+
+
+/**
+ * @brief Process all connections, application implements MUST call this function in timer callback
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_engine_main_logic(xqc_engine_t *engine);
+
+
+/**
+ * @brief get default config of xquic
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+
 
 /**
  * Modify engine config before engine created. Default config will be used otherwise.
@@ -462,26 +860,16 @@ xqc_int_t xqc_engine_set_config(xqc_engine_t *engine, const xqc_config_t *engine
 
 
 /**
- * For server, it can be called anytime. settings will take effect on new connections
+ * @brief Set server's connection settings. it can be called anytime. settings will take effect on
+ * new created connections
  */
+XQC_EXPORT_PUBLIC_API
 void xqc_server_set_conn_settings(const xqc_conn_settings_t *settings);
 
-/**
- * Create new xquic engine.
- * @param engine_type  XQC_ENGINE_SERVER or XQC_ENGINE_CLIENT
- */
-XQC_EXPORT_PUBLIC_API
-xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
-    const xqc_config_t *engine_config,
-    const xqc_engine_ssl_config_t *ssl_config,
-    const xqc_engine_callback_t *engine_callback,
-    void *user_data);
-
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_destroy(xqc_engine_t *engine);
 
 /**
- * Set engine log level, call after engine is created
+ * @brief Set the log level of xquic
+ * 
  * @param log_level engine will print logs which level >= log_level
  */
 XQC_EXPORT_PUBLIC_API
@@ -489,211 +877,22 @@ void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
 
 
 /**
- * Client connect with http3
- * @param engine return from xqc_engine_create
- * @param user_data For connection
- * @param token token receive from server, xqc_save_token_pt callback
- * @param token_len
- * @param server_host server domain
- * @param no_crypto_flag 1:without crypto
- * @param conn_ssl_config For handshake
- * @return scid of the connection; user should copy cid to your own memory, in case of cid destroyed in xquic library
+ * user should call after a number of packet processed in xqc_engine_packet_process
+ * call after recv a batch packets, may destory connection when error
  */
 XQC_EXPORT_PUBLIC_API
-const xqc_cid_t *xqc_h3_connect(xqc_engine_t *engine,
-                          const xqc_conn_settings_t *conn_settings,
-                          const unsigned char *token, unsigned token_len,
-                          const char *server_host, int no_crypto_flag,
-                          const xqc_conn_ssl_config_t *conn_ssl_config,
-                          const struct sockaddr *peer_addr,
-                          socklen_t peer_addrlen, void *user_data);
-
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
-
-/**
- * Return quic_connection on which h3_conn rely
- * @param h3_conn http3 connection
- */
-XQC_EXPORT_PUBLIC_API
-xqc_connection_t *  xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn);
-
-/**
- * Get errno when h3_conn_close_notify, HTTP_NO_ERROR(0x100) For no-error
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn);
-
-/**
- * Server should set user_data when h3_conn_create_notify callbacks
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
-                               void *user_data);
-
-/**
- * User can set h3 settings when h3_conn_create_notify callbacks
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
-    const xqc_h3_conn_settings_t *h3_conn_settings);
-
-/**
- * Server should get peer addr when h3_conn_create_notify callbacks
- * @param peer_addr_len is a return value
- * @return peer addr
- */
-XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_h3_conn_get_peer_addr(xqc_h3_conn_t *h3_conn,
-                                           socklen_t *peer_addr_len);
-
-/**
- * Server should get local addr when h3_conn_create_notify callbacks
- * @param local_addr_len is a return value
- * @return local addr
- */
-XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_h3_conn_get_local_addr(xqc_h3_conn_t *h3_conn,
-                                           socklen_t *local_addr_len);
-
-/**
- * Send PING to peer, if ack received, h3_conn_ping_acked will callback with user_data
- * @return 0 for success, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
+void xqc_engine_finish_recv(xqc_engine_t *engine);
 
 
 /**
- * @return 1 for can send 0rtt, 0 for cannot send 0rtt
+ * call after recv a batch packets, do not destory connection
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_h3_conn_is_ready_to_send_early_data(xqc_h3_conn_t *h3_conn);
-
-/**
- * @param user_data For request
- */
-XQC_EXPORT_PUBLIC_API
-xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine,
-                                        const xqc_cid_t *cid,
-                                        void *user_data);
-
-/**
- * User can get xqc_request_stats_t before request destroyed
- */
-XQC_EXPORT_PUBLIC_API
-xqc_request_stats_t xqc_h3_request_get_stats(xqc_h3_request_t *h3_request);
-
-/**
- * Server should set user_data when h3_request_create_notify callbacks
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request,
-                                  void *user_data);
-
-/**
- * Get connection's user_data by request
- */
-XQC_EXPORT_PUBLIC_API
-void* xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request);
-
-/**
- * Get stream ID by request
- */
-XQC_EXPORT_PUBLIC_API
-xqc_stream_id_t xqc_h3_stream_id(xqc_h3_request_t *h3_request);
-
-/**
- * Send RESET_STREAM to peer, h3_request_close_notify will callback when request destroyed
- * @retval 0 for success, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_h3_request_close (xqc_h3_request_t *h3_request);
-
-/**
- * @param fin 1:without body
- * @return Bytes sent，<0 for error
- */
-XQC_EXPORT_PUBLIC_API
-ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request,
-                                    xqc_http_headers_t *headers,
-                                    uint8_t fin);
-
-/**
- * @param fin 1:Request finish
- * @return Bytes sent，-XQC_EAGAIN try next time, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request,
-                                 unsigned char *data,
-                                 size_t data_size,
-                                 uint8_t fin);
-
-/**
- * @param fin 1:without body
- * @return user should copy headers to your own memory，NULL for error
- */
-XQC_EXPORT_PUBLIC_API
-xqc_http_headers_t *
-xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request,
-                            uint8_t *fin);
+void xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn);
 
 
-/**
- * @param fin 1:Request finished
- * @return Bytes read，-XQC_EAGAIN try next time, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-ssize_t
-xqc_h3_request_recv_body(xqc_h3_request_t *h3_request,
-                         unsigned char *recv_buf,
-                         size_t recv_buf_size,
-                         uint8_t *fin);
-
-
-/**
- * @deprecated use xqc_h3_engine_set_max_dtable_capacity instead
- * @param value 0:disable dynamic table
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_dec_max_dtable_capacity(xqc_engine_t *engine, size_t value);
-
-/**
- * @deprecated use xqc_h3_engine_set_max_dtable_capacity instead
- * @param value 0:disable dynamic table
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, size_t value);
-
-/**
- * @brief set max h3 max dynamic table capacity
- * @param engine 
- * @param value capacity of dynamic table, 0 for disable dynamic table 
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_h3_engine_set_max_dtable_capacity(xqc_engine_t *engine, size_t capacity);
-
-/**
- * @brief set max h3 field section size
- * @param engine
- * @param size size of field section size
- */
-XQC_EXPORT_PUBLIC_API
-void
-xqc_h3_engine_set_max_field_section_size(xqc_engine_t *engine, size_t size);
-
-/**
- * @brief set the dynamic table capacity of an existing h3 connection
- * @param h3c h3 connection handler
- * @param capacity capacity of dynamic table, 0 for disable dynamic table 
- * @return XQC_OK for success, others for failure
- */
-xqc_int_t
-xqc_h3_conn_set_qpack_dtable_cap(xqc_h3_conn_t *h3c, size_t capacity);
-
-
-/* ************************************************************
- *  transport layer APIs, if you don't need application layer
+/*************************************************************
+ *  QUIC layer APIs
  *************************************************************/
 /**
  * Client connect without http3
@@ -707,7 +906,7 @@ xqc_h3_conn_set_qpack_dtable_cap(xqc_h3_conn_t *h3c, size_t capacity);
  * @param user_data For connection
  * @param peer_addr address of peer
  * @param peer_addrlen length of peer_addr
- * @param alpn application level protocol, if be NULL, will use "transport" as default
+ * @param alpn Application-Layer-Protocol, MUST NOT be NULL
  * @return user should copy cid to your own memory, in case of cid destroyed in xquic library
  */
 XQC_EXPORT_PUBLIC_API
@@ -732,65 +931,70 @@ int xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
 XQC_EXPORT_PUBLIC_API
 int xqc_conn_get_errno(xqc_connection_t *conn);
 
+
 /**
  * Server should set user_data when conn_create_notify callbacks
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_conn_set_user_data(xqc_connection_t *conn,
-                           void *user_data);
+void xqc_conn_set_transport_user_data(xqc_connection_t *conn, void *user_data);
+
+/**
+ * @brief set application-layer-protocol user_data to xqc_connection_t. which will be used in 
+ * xqc_conn_callbacks_t
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_conn_set_alp_user_data(xqc_connection_t *conn, void *app_proto_user_data);
+
 
 /**
  * Server should get peer addr when conn_create_notify callbacks
  * @param peer_addr_len is a return value
- * @return peer addr
+ * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_conn_get_peer_addr(xqc_connection_t *conn,
-                                       socklen_t *peer_addr_len);
+xqc_int_t xqc_conn_get_peer_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *peer_addr_len);
 
 /**
  * Server should get local addr when conn_create_notify callbacks
  * @param local_addr_len is a return value
- * @return local addr
+ * @return XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-struct sockaddr* xqc_conn_get_local_addr(xqc_connection_t *conn,
-                                        socklen_t *local_addr_len);
+xqc_int_t xqc_conn_get_local_addr(xqc_connection_t *conn, struct sockaddr *addr, socklen_t addr_cap,
+    socklen_t *local_addr_len);
 
 /**
  * Send PING to peer, if ack received, conn_ping_acked will callback with user_data
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
+xqc_int_t xqc_conn_send_ping(xqc_engine_t *engine, const xqc_cid_t *cid, void *ping_user_data);
 
 /**
  * @return 1 for can send 0rtt, 0 for cannot send 0rtt
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_is_ready_to_send_early_data(xqc_connection_t * conn);
+xqc_bool_t xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn);
 
 /**
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
 XQC_EXPORT_PUBLIC_API
-xqc_stream_t* xqc_stream_create (xqc_engine_t *engine,
-                                 const xqc_cid_t *cid,
-                                 void *user_data);
+xqc_stream_t *xqc_stream_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data);
 
 /**
  * Server should set user_data when stream_create_notify callbacks
  */
 XQC_EXPORT_PUBLIC_API
-void xqc_stream_set_user_data(xqc_stream_t *stream,
-                              void *user_data);
+void xqc_stream_set_user_data(xqc_stream_t *stream, void *user_data);
 
 /**
  * Get connection's user_data by stream
  */
 XQC_EXPORT_PUBLIC_API
-void* xqc_get_conn_user_data_by_stream(xqc_stream_t *stream);
+void *xqc_get_conn_user_data_by_stream(xqc_stream_t *stream);
 
 /**
  * Get stream ID
@@ -803,17 +1007,17 @@ xqc_stream_id_t xqc_stream_id(xqc_stream_t *stream);
  * @retval 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_stream_close (xqc_stream_t *stream);
+int xqc_stream_close(xqc_stream_t *stream);
 
 /**
  * Recv data in stream.
  * @return bytes read, -XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-ssize_t xqc_stream_recv (xqc_stream_t *stream,
-                         unsigned char *recv_buf,
-                         size_t recv_buf_size,
-                         uint8_t *fin);
+ssize_t xqc_stream_recv(xqc_stream_t *stream,
+                        unsigned char *recv_buf,
+                        size_t recv_buf_size,
+                        uint8_t *fin);
 
 /**
  * Send data in stream.
@@ -821,53 +1025,10 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream,
  * @return bytes sent, -XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-ssize_t xqc_stream_send (xqc_stream_t *stream,
-                         unsigned char *send_data,
-                         size_t send_data_size,
-                         uint8_t fin);
-
-/* ************************************************************
- * transport layer APIs end
- *************************************************************/
-
-
-/**
- * Pass received UDP packet payload into xquic engine.
- * @param recv_time   UDP packet recieved time in microsecond
- * @param user_data   connection user_data, server is NULL
- */
-XQC_EXPORT_PUBLIC_API
-int xqc_engine_packet_process (xqc_engine_t *engine,
-                               const unsigned char *packet_in_buf,
-                               size_t packet_in_size,
-                               const struct sockaddr *local_addr,
-                               socklen_t local_addrlen,
-                               const struct sockaddr *peer_addr,
-                               socklen_t peer_addrlen,
-                               xqc_usec_t recv_time,
-                               void *user_data);
-
-/**
- * user should call after a number of packet processed in xqc_engine_packet_process
- * call after recv a batch packets, may destory connection when error
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_finish_recv (xqc_engine_t *engine);
-
-/**
- * call after recv a batch packets, do not destory connection
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_recv_batch (xqc_engine_t *engine, xqc_connection_t *conn);
-
-/**
- * Process all connections, user should call when timer expire
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_engine_main_logic (xqc_engine_t *engine);
-
-XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_engine_get_default_config(xqc_config_t *config, xqc_engine_type_t engine_type);
+ssize_t xqc_stream_send(xqc_stream_t *stream,
+                        unsigned char *send_data,
+                        size_t send_data_size,
+                        uint8_t fin);
 
 
 /**
@@ -886,13 +1047,13 @@ xqc_int_t xqc_cid_is_equal(const xqc_cid_t *dst, const xqc_cid_t *src);
  * @return user should copy return buffer to your own memory if you will access in the future
  */
 XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_scid_str(const xqc_cid_t *scid);
+unsigned char *xqc_scid_str(const xqc_cid_t *scid);
 
 XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_dcid_str(const xqc_cid_t *dcid);
+unsigned char *xqc_dcid_str(const xqc_cid_t *dcid);
 
 XQC_EXPORT_PUBLIC_API
-unsigned char* xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid);
+unsigned char *xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid);
 
 XQC_EXPORT_PUBLIC_API
 uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);

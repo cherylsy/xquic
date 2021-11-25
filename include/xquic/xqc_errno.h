@@ -100,7 +100,8 @@ typedef enum {
     XQC_EILLEGAL_FRAME                  = 636,      // illegal stream & frame, close connection
     XQC_ECID_STATE                      = 637,      // abnormal connection ID status
     XQC_EACTIVE_CID_LIMIT               = 638,      // active cid exceed active_connection_id_limit
-
+    XQC_EALPN_NOT_SUPPORTED             = 639,      // alpn is not supported by server
+    XQC_EALPN_NOT_REGISTERED            = 640,      // alpn is not registered
 
     XQC_EMP_NOT_SUPPORT_MP              = 650,      // Multipath - don't support multipath
     XQC_EMP_NO_AVAIL_PATH_ID            = 651,      // Multipath - no available path id
