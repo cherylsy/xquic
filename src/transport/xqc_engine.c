@@ -1073,9 +1073,9 @@ xqc_engine_add_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len,
 
     xqc_list_add_tail(&registration->head, &engine->alpn_reg_list);
 
-    if (alpn_len > engine->alpn_list_sz - engine->alpn_list_len) {
+    if (alpn_len + 1 > engine->alpn_list_sz - engine->alpn_list_len) {
         /* realloc buffer */
-        size_t new_alpn_list_sz = 2 * (engine->alpn_list_sz + alpn_len);
+        size_t new_alpn_list_sz = 2 * (engine->alpn_list_sz + alpn_len) + 1;
         char *alpn_list_new = xqc_malloc(new_alpn_list_sz);
         engine->alpn_list_sz = new_alpn_list_sz;
 
