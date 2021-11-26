@@ -14,7 +14,6 @@
 int gettimeofday(struct timeval *tv, struct timezone *tz);
 #endif
 
-typedef xqc_usec_t (*xqc_timestamp_pt)(void);
 
 /**
  * @brief get realtime timestamp

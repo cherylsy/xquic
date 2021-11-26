@@ -65,6 +65,12 @@ typedef enum xqc_proto_version_s {
 
 
 /**
+ * @brief get timestamp callback function. this might be useful on different platforms
+ * @return timestamp in microsecond
+ */
+typedef xqc_usec_t (*xqc_timestamp_pt)(void);
+
+/**
  * @brief event timer callback function. MUST for both client and server
  * xquic don't have implementation of timer, but will tell the interval of timer by this function.
  * applications shall implement the timer, and invoke xqc_engine_main_logic after timer expires.
@@ -665,6 +671,14 @@ typedef struct xqc_engine_callback_s {
 
     /* tls secret callback, OPTIONAL */
     xqc_keylog_pt                   keylog_cb;
+
+    /* get realtime timestamp callback function. if not set, xquic will get timestamp with inner
+       function xqc_now, which relies on gettimeofday */
+    xqc_timestamp_pt                realtime_ts;
+
+    /* get monotinic increasing timestamp callback function. if not set, xquic will get timestamp
+       with inner function xqc_now, which relies on gettimeofday */
+    xqc_timestamp_pt                monotonic_ts;
 
 } xqc_engine_callback_t;
 
