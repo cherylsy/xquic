@@ -386,6 +386,9 @@ xqc_conn_early_data_reject(xqc_connection_t *conn);
 xqc_int_t
 xqc_conn_early_data_accept(xqc_connection_t *conn);
 
+xqc_bool_t
+xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn);
+
 xqc_int_t
 xqc_conn_handshake_complete(xqc_connection_t *conn);
 

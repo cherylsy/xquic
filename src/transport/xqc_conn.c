@@ -2651,12 +2651,6 @@ xqc_conn_peer_complete_address_validation(xqc_connection_t *c)
     }
 }
 
-xqc_bool_t
-xqc_conn_has_hsk_keys(xqc_connection_t *c)
-{
-    return xqc_tls_check_hs_tx_key_ready(c) && xqc_tls_check_hs_rx_key_ready(c);
-}
-
 
 void *
 xqc_conn_get_user_data(xqc_connection_t *c)
