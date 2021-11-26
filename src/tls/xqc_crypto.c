@@ -297,7 +297,8 @@ xqc_crypto_decrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
     if (ret != XQC_OK || *dst_len < 0
         || *dst_len != (payload_len - xqc_aead_overhead(pp_aead, payload_len)))
     {
-        xqc_log(crypto->log, XQC_LOG_ERROR,
+        /* decrypt error might be common */
+        xqc_log(crypto->log, XQC_LOG_INFO,
                 "|decrypt payload error|ret:%d|write:%z|", ret, *dst_len);
         return -XQC_TLS_DECRYPT_DATA_ERROR;
     }

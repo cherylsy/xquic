@@ -643,7 +643,7 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
                                   header, header_len, payload, payload_len,
                                   dst, dst_cap, &packet_in->decode_payload_len);
     if (ret != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_INFO, "|xqc_tls_decrypt_payload error|");
+        xqc_log(conn->log, XQC_LOG_WARN, "|xqc_tls_decrypt_payload error|pkt_type|");
         return ret;
     }
 
