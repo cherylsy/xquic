@@ -11,6 +11,7 @@
 #include "src/transport/xqc_packet_parser.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_engine.h"
+#include "src/tls/xqc_tls.h"
 
 
 
@@ -126,7 +127,7 @@ xqc_packet_parse_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_0RTT) {
             c->conn_flag |= XQC_CONN_FLAG_HAS_0RTT;
 
-            if (!xqc_tls_check_0rtt_key_ready(c)) {
+            if (!xqc_tls_is_key_ready(c->tls, XQC_ENC_LEV_0RTT, XQC_KEY_TYPE_RX_READ)) {
                 /* buffer packets */
                 xqc_log(c->log, XQC_LOG_INFO, "|delay|buff 0RTT before 0rtt_key_ready|");
                 xqc_conn_buff_undecrypt_packet_in(packet_in, c, XQC_ENC_LEV_0RTT);
@@ -134,7 +135,7 @@ xqc_packet_parse_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
             }
 
         } else if (XQC_PACKET_LONG_HEADER_GET_TYPE(packet_in->pos) == XQC_PTYPE_HSK
-                   && !xqc_tls_check_hs_rx_key_ready(c))
+                   && !xqc_tls_is_key_ready(c->tls, XQC_ENC_LEV_HSK, XQC_KEY_TYPE_RX_READ))
         {
             /* buffer packets */
             xqc_log(c->log, XQC_LOG_INFO, "|delay|buff HSK before hs_rx_key_ready|");

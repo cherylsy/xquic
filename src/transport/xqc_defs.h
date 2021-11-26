@@ -27,6 +27,10 @@
 
 #define XQC_PROTO_VERSION_LEN 4
 
+/* the value of max_streams transport parameter or MAX_STREAMS frame must <= 2^60 */
+#define XQC_MAX_STREAMS ((uint64_t)1 << 60)
+
+
 extern const uint32_t xqc_proto_version_value[];
 extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
 
@@ -34,10 +38,5 @@ extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
 #define xqc_check_proto_version_valid(ver) \
         ((ver) > XQC_IDRAFT_INIT_VER && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
 
-
-/**
- * Initial salt for handshake
- */
-extern const char* const xqc_crypto_initial_salt[];
 
 #endif

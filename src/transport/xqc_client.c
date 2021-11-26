@@ -1,7 +1,6 @@
 #include <xquic/xquic.h>
 #include "src/http3/xqc_h3_stream.h"
 #include "src/http3/xqc_h3_conn.h"
-#include "src/crypto/xqc_tls_init.h"
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_client.h"
 #include "src/transport/xqc_cid.h"
@@ -9,6 +8,7 @@
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_defs.h"
+#include "src/tls/xqc_tls.h"
 
 xqc_connection_t *
 xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
@@ -110,6 +110,51 @@ xqc_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
     return NULL;
 }
 
+
+xqc_int_t
+xqc_client_create_tls(xqc_connection_t *conn, const xqc_conn_ssl_config_t *conn_ssl_config,
+    const char *hostname, int no_crypto_flag, const char *alpn)
+{
+    /* init cfg */
+    xqc_tls_config_t cfg = {0};
+    cfg.session_ticket = conn_ssl_config->session_ticket_data;
+    cfg.session_ticket_len = conn_ssl_config->session_ticket_len;
+    cfg.cert_verify_flag = conn_ssl_config->cert_verify_flag;
+    cfg.hostname = (char *)hostname;
+    cfg.alpn = (char *)alpn;
+    cfg.no_crypto_flag = no_crypto_flag;
+
+    xqc_trans_settings_t *settings = &conn->local_settings;
+    if (no_crypto_flag == 1) {
+        settings->no_crypto = XQC_TRUE;  /* no_crypto 1 means do not crypto*/
+
+    } else {
+        settings->no_crypto = XQC_FALSE;
+    }
+
+    xqc_int_t ret = xqc_conn_get_local_transport_params(conn, &cfg.trans_params);
+    if (ret != XQC_OK) {
+        return ret;
+    }
+
+    /* create tls instance */
+    conn->tls = xqc_tls_create(conn->engine->tls_ctx, &cfg, conn->log, conn);
+    if (NULL == conn->tls) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|create tls instance error");
+        return -XQC_EMALLOC;
+    }
+
+    /* start handshake */
+    ret = xqc_tls_init(conn->tls, conn->version, &conn->original_dcid);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|init tls error");
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
+
 xqc_connection_t *
 xqc_client_create_connection(xqc_engine_t *engine,
     xqc_cid_t dcid, xqc_cid_t scid,
@@ -126,15 +171,31 @@ xqc_client_create_connection(xqc_engine_t *engine,
         return NULL;
     }
 
-    if (xqc_client_tls_initial(engine, xc, server_host, conn_ssl_config, alpn, &dcid, no_crypto_flag) < 0) {
-        goto fail;
-    }
-
+    /* save odcid */
     xqc_cid_copy(&(xc->original_dcid), &(xc->dcid_set.current_dcid));
 
+    /* create initial crypto stream, which MUST be created before tls for storing ClientHello */
     xc->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(xc, XQC_ENC_LEV_INIT, user_data);
     if (!xc->crypto_stream[XQC_ENC_LEV_INIT]) {
         goto fail;
+    }
+
+    /* create and init tls, startup ClientHello */
+    if (xqc_client_create_tls(xc, conn_ssl_config, server_host, no_crypto_flag, alpn) != XQC_OK) {
+        goto fail;
+    }
+
+    /* recover server's transport parameter */
+    if (conn_ssl_config->transport_parameter_data
+        && conn_ssl_config->transport_parameter_data_len > 0)
+    {
+        xqc_transport_params_t tp;
+        memset(&tp, 0, sizeof(xqc_transport_params_t));
+        xqc_int_t ret = xqc_read_transport_params(conn_ssl_config->transport_parameter_data,
+                                                conn_ssl_config->transport_parameter_data_len, &tp);
+        if (ret == XQC_OK) {
+            xqc_conn_set_early_remote_transport_params(xc, &tp);
+        }
     }
 
     if (xqc_conn_client_on_alpn(xc, alpn, strlen(alpn)) != XQC_OK) {

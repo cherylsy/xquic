@@ -36,9 +36,8 @@ void xqc_test_engine_packet_process()
     struct sockaddr peer_addr;
     socklen_t peer_addrlen = 0;
 
-    xqc_engine_t *engine = test_create_engine();
+    xqc_engine_t *engine = test_create_engine_server();
     CU_ASSERT(engine != NULL);
-    engine->eng_type = XQC_ENGINE_SERVER;
 
     xqc_msec_t recv_time = xqc_monotonic_timestamp();
 

@@ -259,6 +259,50 @@ test_create_engine()
     return engine;
 }
 
+xqc_engine_t*
+test_create_engine_server()
+{
+    def_engine_ssl_config;
+    xqc_engine_callback_t callback = {
+        .log_callbacks = xqc_null_log_cb,
+        .set_event_timer = null_set_event_timer,
+    };
+    xqc_transport_callbacks_t tcbs = {
+        .write_socket = null_socket_write,
+    };
+
+    xqc_conn_settings_t conn_settings;
+    xqc_engine_t *engine = xqc_engine_create(XQC_ENGINE_SERVER, NULL, &engine_ssl_config,
+                                             &callback, &tcbs, NULL);
+
+    xqc_h3_callbacks_t h3_cbs = {
+        .h3c_cbs = {
+            .h3_conn_create_notify = NULL,
+            .h3_conn_close_notify = NULL,
+            .h3_conn_handshake_finished = NULL,
+        },
+        .h3r_cbs = {
+            .h3_request_create_notify = NULL,
+            .h3_request_close_notify = NULL,
+            .h3_request_read_notify = NULL,
+            .h3_request_write_notify = NULL,
+        }
+    };
+
+    /* init http3 context */
+    int ret = xqc_h3_ctx_init(engine, &h3_cbs);
+    if (ret != XQC_OK) {
+        xqc_engine_destroy(engine);
+        return NULL;
+    }
+
+    /* transport ALPN */
+    xqc_app_proto_callbacks_t transport_cbs = {{NULL}, {NULL}};
+    xqc_engine_register_alpn(engine, "transport", 9, &transport_cbs);
+
+    return engine;
+}
+
 const xqc_cid_t* 
 test_cid_connect(xqc_engine_t *engine)
 {

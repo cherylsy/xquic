@@ -18,6 +18,8 @@
 #include "xqc_wakeup_pq_test.h"
 #include "xqc_process_frame_test.h"
 #include "xqc_tp_test.h"
+#include "xqc_tls_test.h"
+#include "xqc_crypto_test.h"
 #include "xqc_h3_test.h"
 #include "xqc_stable_test.h"
 #include "xqc_dtable_test.h"
@@ -70,7 +72,9 @@ int main()
         || !CU_add_test(pSuite, "xqc_test_parse_padding_frame", xqc_test_parse_padding_frame)
         || !CU_add_test(pSuite, "xqc_test_large_ack_frame", xqc_test_large_ack_frame)
         || !CU_add_test(pSuite, "xqc_test_h3_frame", xqc_test_frame)
-        || !CU_add_test(pSuite, "xqc_test_decode_transport_params", xqc_test_decode_transport_params)
+        || !CU_add_test(pSuite, "xqc_test_transport_params", xqc_test_transport_params)
+        || !CU_add_test(pSuite, "xqc_test_tls", xqc_test_tls)
+        || !CU_add_test(pSuite, "xqc_test_crypto", xqc_test_crypto)
         || !CU_add_test(pSuite, "xqc_test_h3_stream", xqc_test_stream)
         || !CU_add_test(pSuite, "xqc_test_stable", xqc_test_stable)
         || !CU_add_test(pSuite, "xqc_test_dtable", xqc_test_dtable)

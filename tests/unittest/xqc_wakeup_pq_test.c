@@ -37,4 +37,6 @@ void xqc_test_wakeup_pq()
         //printf("key:%llu\n", elem->wakeup_time);
         xqc_wakeup_pq_pop(&pq);
     }
+
+    xqc_wakeup_pq_destroy(&pq);
 }

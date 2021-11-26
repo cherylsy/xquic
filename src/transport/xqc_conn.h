@@ -4,7 +4,6 @@
 #include <openssl/ssl.h>
 #include <xquic/xquic.h>
 #include <xquic/xquic_typedef.h>
-#include "src/crypto/xqc_tls_public.h"
 #include "src/transport/xqc_cid.h"
 #include "src/common/xqc_log.h"
 #include "src/common/xqc_log_event_callback.h"
@@ -12,10 +11,9 @@
 #include "src/transport/xqc_packet_in.h"
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_recv_record.h"
+#include "src/transport/xqc_defs.h"
+#include "src/tls/xqc_tls.h"
 
-
-#define XQC_STATELESS_RESET_TOKENLEN 16
-#define XQC_MAX_TOKEN_LEN 256
 
 #define XQC_TOKEN_EXPIRE_DELTA (7 * 24 * 60 * 60)           /* expire in N seconds */
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */
@@ -26,9 +24,6 @@
 #define XQC_MAX_PACKET_PROCESS_BATCH 100
 
 #define XQC_MAX_RECV_WINDOW (16 * 1024 * 1024)
-
-/* the max_streams transmission parameter or the value received in the MAX_STREAMS frame must <= 2^60 */
-#define XQC_MAX_STREAMS ((uint64_t)1 << 60)
 
 static const uint32_t MAX_RSP_CONN_CLOSE_CNT = 3;
 
@@ -49,6 +44,7 @@ static const uint32_t MAX_RSP_CONN_CLOSE_CNT = 3;
 } while(0)                                  \
 
 extern xqc_conn_settings_t default_conn_settings;
+extern const xqc_tls_callbacks_t xqc_conn_tls_cbs;
 
 /* !!WARNING: to add state, please update conn_state_2_str */
 typedef enum {
@@ -113,7 +109,9 @@ typedef enum {
     XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT,
     XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
-    XQC_CONN_FLAG_LINGER_CLOSING_SHIFT,
+    XQC_CONN_FLAG_SENT_RETRY_SHIFT,
+    XQC_CONN_FLAG_RECV_RETRY_SHIFT,
+    XQC_CONN_FLAG_TLS_HSK_COMPLETED_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 } xqc_conn_flag_shift_t;
 
@@ -146,18 +144,10 @@ typedef enum {
     XQC_CONN_FLAG_HANDSHAKE_CONFIRMED   = 1 << XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT,
     XQC_CONN_FLAG_ADDR_VALIDATED        = 1 << XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED      = 1 << XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
-    XQC_CONN_FLAG_LINGER_CLOSING        = 1 << XQC_CONN_FLAG_LINGER_CLOSING_SHIFT,
+    XQC_CONN_FLAG_SENT_RETRY            = 1 << XQC_CONN_FLAG_SENT_RETRY_SHIFT,
+    XQC_CONN_FLAG_RECV_RETRY            = 1 << XQC_CONN_FLAG_RECV_RETRY_SHIFT,
+    XQC_CONN_FLAG_TLS_HSK_COMPLETED     = 1 << XQC_CONN_FLAG_TLS_HSK_COMPLETED_SHIFT,
 } xqc_conn_flag_t;
-
-
-typedef struct {
-    uint8_t     ipv4[4];    
-    uint16_t    ipv4_port;
-    uint8_t     ipv6[16];
-    uint16_t    ipv6_port;
-    xqc_cid_t   cid;
-    uint8_t     stateless_reset_token[XQC_STATELESS_RESET_TOKENLEN];
-} xqc_preferred_addr_t;
 
 
 typedef struct {
@@ -199,18 +189,11 @@ typedef struct {
 } xqc_conn_flow_ctl_t;
 
 
-#ifdef XQC_PRINT_SECRET
-#define XQC_SECRET_HEX_MAX 129
-typedef enum xqc_secret_type_s {
-    CLIENT_EARLY_TRAFFIC_SECRET,
-    CLIENT_HANDSHAKE_TRAFFIC_SECRET,
-    SERVER_HANDSHAKE_TRAFFIC_SECRET,
-    CLIENT_TRAFFIC_SECRET_0,
-    SERVER_TRAFFIC_SECRET_0,
-    SECRET_TYPE_NUM,
-} xqc_secret_type_t;
-#endif
-
+typedef struct {
+    xqc_list_head_t list_head;
+    size_t          data_len;
+    char            data[];
+} xqc_hs_buffer_t;
 
 struct xqc_connection_s {
 
@@ -250,13 +233,16 @@ struct xqc_connection_s {
     xqc_conn_state_t                conn_state;
     xqc_memory_pool_t              *conn_pool;
 
+    /* tls instance for tls handshake and data encryption/decryption */
+    xqc_tls_t                      *tls;
+
     xqc_id_hash_table_t            *streams_hash;
     xqc_id_hash_table_t            *passive_streams_hash;
     xqc_list_head_t                 conn_write_streams,
                                     conn_read_streams, /* xqc_stream_t */
                                     conn_closing_streams,
                                     conn_all_streams;
-    xqc_stream_t                   *crypto_stream[XQC_ENC_MAX_LEVEL];
+    xqc_stream_t                   *crypto_stream[XQC_ENC_LEV_MAX];
     uint64_t                        cur_stream_id_bidi_local;
     uint64_t                        cur_stream_id_uni_local;
     int64_t                         max_stream_id_bidi_remote;
@@ -275,8 +261,8 @@ struct xqc_connection_s {
     xqc_app_proto_callbacks_t       app_proto_cbs;
     void                           *app_proto_user_data;
 
-    xqc_list_head_t                 undecrypt_packet_in[XQC_ENC_MAX_LEVEL];  /* xqc_packet_in_t */
-    uint32_t                        undecrypt_count[XQC_ENC_MAX_LEVEL];
+    xqc_list_head_t                 undecrypt_packet_in[XQC_ENC_LEV_MAX];  /* buffer for reordered packets */
+    uint32_t                        undecrypt_count[XQC_ENC_LEV_MAX];
 
     xqc_recv_record_t               recv_record[XQC_PNS_N]; /* record received pkt number range in a list */
     uint32_t                        ack_eliciting_pkt[XQC_PNS_N]; /* Ack-eliciting Packets received since last ack sent */
@@ -292,9 +278,6 @@ struct xqc_connection_s {
     xqc_usec_t                      handshake_complete_time; /* record the time when the handshake ends */
     xqc_usec_t                      first_data_send_time;    /* record the time when the bidirectional stream first sent data */
 
-    SSL                            *xc_ssl; /* ssl for connection */
-    xqc_tlsref_t                    tlsref;  /* all tls reference */
-
     xqc_conn_flow_ctl_t             conn_flow_ctl;
 
     uint32_t                        wakeup_pq_index;
@@ -305,11 +288,14 @@ struct xqc_connection_s {
     xqc_path_ctx_t                 *conn_initial_path;
     xqc_list_head_t                 conn_paths_list;
 
+    /* xqc_hs_buffer_t data buffer for crypto data from tls */
+    xqc_list_head_t                 initial_crypto_data_list;
+    xqc_list_head_t                 hsk_crypto_data_list;
+    xqc_list_head_t                 application_crypto_data_list;
 
-#ifdef XQC_PRINT_SECRET
-    unsigned char                   client_random_hex[XQC_SECRET_HEX_MAX];
-    unsigned char                   secret_hex[SECRET_TYPE_NUM][XQC_SECRET_HEX_MAX];
-#endif
+    /* only for initial level crypto data */
+    xqc_list_head_t                 retry_crypto_data_buffer;
+
 };
 
 const char*
@@ -350,7 +336,7 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn);
 
 xqc_int_t
 xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
-    char *enc_pkt, size_t * enc_pkt_len, xqc_usec_t current_time);
+    char *enc_pkt, size_t enc_pkt_cap, size_t *enc_pkt_len, xqc_usec_t current_time);
 
 void
 xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
@@ -430,13 +416,24 @@ xqc_conn_addr_str(xqc_connection_t *conn);
 static inline void
 xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
 {
-    if (conn->undecrypt_count[XQC_ENC_LEV_1RTT] > 0 && conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+    /* process reordered 1RTT packets after handshake completed */
+    if (conn->undecrypt_count[XQC_ENC_LEV_1RTT] > 0
+        && conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
+    {
         xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_1RTT);
     }
-    if (conn->undecrypt_count[XQC_ENC_LEV_0RTT] > 0 && xqc_tls_check_0rtt_key_ready(conn)) {
+
+    /* process reordered 0RTT packets after 0RTT read key is installed */
+    if (conn->undecrypt_count[XQC_ENC_LEV_0RTT] > 0
+        && xqc_tls_is_key_ready(conn->tls, XQC_ENC_LEV_0RTT, XQC_KEY_TYPE_RX_READ))
+    {
         xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_0RTT);
     }
-    if (conn->undecrypt_count[XQC_ENC_LEV_HSK] > 0 && xqc_tls_check_hs_rx_key_ready(conn)) {
+
+    /* process reordered HSK packets after HSK read key is installed */
+    if (conn->undecrypt_count[XQC_ENC_LEV_HSK] > 0
+        && xqc_tls_is_key_ready(conn->tls, XQC_ENC_LEV_HSK, XQC_KEY_TYPE_RX_READ))
+    {
         xqc_conn_process_undecrypt_packet_in(conn, XQC_ENC_LEV_HSK);
     }
 }
@@ -481,6 +478,29 @@ xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
 xqc_bool_t
 xqc_conn_has_hsk_keys(xqc_connection_t *c);
 
-void * xqc_conn_get_user_data(xqc_connection_t *c);
+void *xqc_conn_get_user_data(xqc_connection_t *c);
+
+/* transport parameters functions */
+
+xqc_int_t
+xqc_conn_validate_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
+
+xqc_int_t
+xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params_t *params);
+
+xqc_int_t
+xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn,
+    const xqc_transport_params_t *params);
+
+// TODO: 这两个函数与标准无关，建议挪出到应用层
+xqc_int_t
+xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params);
+
+xqc_int_t
+xqc_write_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
+
+xqc_int_t
+xqc_conn_on_recv_retry(xqc_connection_t *conn);
+
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

@@ -74,7 +74,9 @@ void
 xqc_cid_set(xqc_cid_t *cid, const unsigned char *data, uint8_t len)
 {
     cid->cid_len = len;
-    xqc_memcpy(cid->cid_buf, data, len);
+    if (len) {
+        xqc_memcpy(cid->cid_buf, data, len);
+    }
 }
 
 static unsigned char g_scid_buf[XQC_MAX_CID_LEN * 2 + 1];

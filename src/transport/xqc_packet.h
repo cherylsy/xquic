@@ -4,6 +4,7 @@
 
 #include <xquic/xquic_typedef.h>
 #include "src/common/xqc_list.h"
+#include "src/tls/xqc_tls_defs.h"
 
 #define XQC_MSS 1460 //TODO
 #define XQC_QUIC_MSS 1200
@@ -18,15 +19,6 @@ typedef enum xqc_pkt_num_space
     XQC_PNS_APP_DATA  = 2,
     XQC_PNS_N         = 3,
 } xqc_pkt_num_space_t;
-
-typedef enum xqc_encrypt_level
-{
-    XQC_ENC_LEV_INIT   = 0,
-    XQC_ENC_LEV_0RTT   = 1,
-    XQC_ENC_LEV_HSK    = 2,
-    XQC_ENC_LEV_1RTT   = 3,
-    XQC_ENC_MAX_LEVEL  = 4,
-} xqc_encrypt_level_t;
 
 typedef enum xqc_pkt_type
 {

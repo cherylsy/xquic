@@ -56,12 +56,12 @@ xqc_int_t xqc_gen_reset_packet(xqc_cid_t *cid, unsigned char *dst_buf, char *key
 
 int xqc_is_reset_packet(xqc_cid_t *cid, const unsigned char *buf, unsigned buf_size, char *key, size_t keylen);
 
-int xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-int xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+xqc_int_t xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
-int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
-    unsigned char *enc_pkt, size_t *enc_pkt_len);
+xqc_int_t xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
+    unsigned char *enc_pkt, size_t enc_pkt_cap, size_t *enc_pkt_len);
 
 void xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len, char *key, size_t keylen);
 

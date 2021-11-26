@@ -11,8 +11,9 @@
 #include "src/transport/xqc_frame_parser.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_stream.h"
-#include "src/crypto/xqc_tls_public.h"
 #include "src/transport/xqc_multipath.h"
+#include "src/transport/xqc_defs.h"
+#include "src/tls/xqc_tls.h"
 
 
 

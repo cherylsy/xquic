@@ -50,6 +50,7 @@ void xqc_test_cid_basic()
     CU_ASSERT(xqc_cid_in_cid_set(&conn->dcid_set.cid_set, &test_dcid) == NULL);
     CU_ASSERT(xqc_cid_is_equal(xqc_get_cid_by_seq(&conn->dcid_set.cid_set, 1), &test_dcid) != XQC_OK)
 
+    xqc_engine_destroy(conn->engine);
 }
 
 void xqc_test_new_cid()
@@ -69,6 +70,8 @@ void xqc_test_new_cid()
     ret = xqc_get_unused_cid(&conn->scid_set.cid_set, &test_scid);
     CU_ASSERT(ret == XQC_OK);
     CU_ASSERT(conn->scid_set.cid_set.unused_cnt == 0);
+
+    xqc_engine_destroy(conn->engine);
 }
 
 void xqc_test_retire_cid()
@@ -90,6 +93,8 @@ void xqc_test_retire_cid()
     CU_ASSERT(ret == XQC_OK);
     ret = xqc_write_retire_conn_id_frame_to_packet(conn, 0);
     CU_ASSERT(ret == XQC_OK);
+
+    xqc_engine_destroy(conn->engine);
 }
 
 void
@@ -132,6 +137,8 @@ xqc_test_recv_retire_cid()
 
     // retired timer
     CU_ASSERT(xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_RETIRE_CID));
+
+    xqc_engine_destroy(conn->engine);
 }
 
 void
@@ -183,6 +190,8 @@ xqc_test_retire_cid_with_odcid_in_set()
     CU_ASSERT(xqc_cid_is_equal(&conn->scid_set.user_scid, &test_odcid) == XQC_OK);
     // cid_len changed
     CU_ASSERT(conn->scid_set.user_scid.cid_len == XQC_MAX_CID_LEN);
+
+    xqc_engine_destroy(conn->engine);
 }
 
 void xqc_test_cid()

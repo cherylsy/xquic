@@ -33,4 +33,6 @@ void xqc_test_recv_record ()
         pnode = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
         //printf("low:%llu, high=%llu\n", pnode->pktno_range.low, pnode->pktno_range.high);
     }
+
+    xqc_recv_record_destroy(&record);
 }

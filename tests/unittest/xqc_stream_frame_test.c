@@ -12,8 +12,7 @@ xqc_test_stream_frame()
 {
     xqc_int_t ret;
 
-    xqc_connection_t *conn;
-    conn = test_engine_connect();
+    xqc_connection_t *conn = test_engine_connect();
     CU_ASSERT(conn != NULL);
 
     xqc_stream_t *stream = xqc_create_stream_with_conn(conn, XQC_UNDEFINE_STREAM_ID, XQC_CLI_BID, NULL);
@@ -71,5 +70,9 @@ xqc_test_stream_frame()
         offset += ret;
     } while (ret > 0);
 
+    for (int i = 4; i < 10; i++) {
+        xqc_destroy_stream_frame(frame[i]);
+    }
 
+    xqc_engine_destroy(conn->engine);
 }

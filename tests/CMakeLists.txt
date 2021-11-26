@@ -28,6 +28,8 @@ if(HAVE_CUNIT)
     ${UNIT_TEST_DIR}/xqc_wakeup_pq_test.c
     ${UNIT_TEST_DIR}/xqc_process_frame_test.c
     ${UNIT_TEST_DIR}/xqc_tp_test.c
+    ${UNIT_TEST_DIR}/xqc_tls_test.c
+    ${UNIT_TEST_DIR}/xqc_crypto_test.c
     ${UNIT_TEST_DIR}/xqc_h3_test.c
     ${UNIT_TEST_DIR}/xqc_stable_test.c
     ${UNIT_TEST_DIR}/xqc_dtable_test.c
