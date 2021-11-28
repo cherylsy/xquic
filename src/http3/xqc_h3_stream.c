@@ -649,7 +649,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
                     ret = xqc_h3_request_on_recv_header(h3s->h3r);
                     if (ret != XQC_OK) {
-                        xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_request_on_recv error|%d|", ret);
+                        xqc_log(h3s->log, XQC_LOG_ERROR, "|recv header error|%d|", ret);
                         return ret;
                     }
                 }
@@ -661,12 +661,15 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 if (buf == NULL) {
                     return -XQC_EMALLOC;
                 }
+
                 ret = xqc_var_buf_save_data(buf, data + processed, len);
                 if (ret != XQC_OK) {
                     xqc_var_buf_free(buf);
                     xqc_h3_frm_reset_pctx(pctx);
                     return ret;
                 }
+
+                /* add data to buffer list */
                 ret = xqc_list_buf_to_tail(&h3s->h3r->body_buf, buf);
                 if (ret < 0) {
                     xqc_h3_frm_reset_pctx(pctx);
@@ -682,6 +685,13 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                     if (fin_flag && processed == data_len) {
                         h3s->h3r->fin_flag = fin_flag;
                     }
+
+                    /* notify DATA whenever there is data */
+                    ret = xqc_h3_request_on_recv_body(h3s->h3r);
+                    if (ret != XQC_OK) {
+                        xqc_log(h3s->log, XQC_LOG_ERROR, "|recv body error|%d|", ret);
+                        return ret;
+                    }
                 }
                 break;
 
@@ -690,7 +700,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 break;
 
             default:
-                xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_request error|error "
+                xqc_log(h3s->log, XQC_LOG_ERROR, "|process request error|error "
                         "frame type:%z|", pctx->frame.type);
                 xqc_h3_frm_reset_pctx(pctx);
                 return -H3_FRAME_UNEXPECTED;
@@ -1167,15 +1177,6 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
         } else if (ret != XQC_OK) {
             xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_data error|%d|", ret);
             return ret;
-        }
-
-        /* after recv and process data, h3_stream shall notify h3_request */
-        if (h3s->type == XQC_H3_STREAM_TYPE_REQUEST) {
-            ret = xqc_h3_request_on_recv_body(h3s->h3r);
-            if (ret != XQC_OK) {
-                xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_request_on_recv error|%d|", ret);
-                return ret;
-            }
         }
     }
 
