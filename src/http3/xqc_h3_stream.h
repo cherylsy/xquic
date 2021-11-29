@@ -76,11 +76,14 @@ typedef struct xqc_h3_blocked_stream_s {
 
 
 typedef struct xqc_h3_stream_s {
-    /* transport context */
+    /* transport stream context, the lifetime might be out of sync with h3_stream. */
     xqc_stream_t                   *stream;
     uint64_t                        stream_id;
-    xqc_h3_conn_t                  *h3c;
+    uint64_t                        stream_err;
     void                           *user_data;
+
+    /* http3 connection */
+    xqc_h3_conn_t                  *h3c;
 
     /* bidi stream user interface, used to send/recv request contents */
     xqc_h3_request_t               *h3r;
@@ -156,5 +159,8 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_blocked_stream_t *blocked_stream);
 
 xqc_var_buf_t *
 xqc_h3_stream_get_send_buf(xqc_h3_stream_t *h3s);
+
+uint64_t
+xqc_h3_stream_get_err(xqc_h3_stream_t *h3s);
 
 #endif
