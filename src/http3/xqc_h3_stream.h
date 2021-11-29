@@ -67,6 +67,14 @@ typedef struct xqc_h3_stream_pctx_s{
     xqc_h3_frame_pctx_t             frame_pctx;
 } xqc_h3_stream_pctx_t;
 
+
+typedef struct xqc_h3_blocked_stream_s {
+    xqc_list_head_t          head;
+    xqc_h3_stream_t         *h3s;
+    uint64_t                 ricnt;
+} xqc_h3_blocked_stream_t;
+
+
 typedef struct xqc_h3_stream_s {
     /* transport context */
     xqc_stream_t                   *stream;
@@ -95,6 +103,7 @@ typedef struct xqc_h3_stream_s {
        stream data when stream is blocked */
     xqc_list_head_t                 blocked_buf;
     xqc_bool_t                      blocked;
+    xqc_h3_blocked_stream_t        *block_stream;
 
     /* context of representation */
     xqc_rep_ctx_t                  *ctx;
@@ -102,13 +111,6 @@ typedef struct xqc_h3_stream_s {
     xqc_log_t                      *log;
 
 } xqc_h3_stream_t;
-
-
-typedef struct xqc_h3_blocked_stream_s {
-    xqc_list_head_t          head;
-    xqc_h3_stream_t         *h3s;
-    uint64_t                 ricnt;
-} xqc_h3_blocked_stream_t;
 
 
 /* transport layer callback hook */
