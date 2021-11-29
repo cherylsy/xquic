@@ -78,6 +78,7 @@ typedef struct xqc_h3_blocked_stream_s {
 typedef struct xqc_h3_stream_s {
     /* transport context */
     xqc_stream_t                   *stream;
+    uint64_t                        stream_id;
     xqc_h3_conn_t                  *h3c;
     void                           *user_data;
 
@@ -126,13 +127,11 @@ xqc_h3_stream_t *
 xqc_h3_stream_create(xqc_h3_conn_t *h3c, xqc_stream_t *stream, xqc_h3_stream_type_t type,
    void *user_data);
 
+xqc_int_t
+xqc_h3_stream_close(xqc_h3_stream_t *h3s);
+
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3s);
-
-#if 0
-ssize_t
-xqc_h3_stream_send(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_size, uint8_t fin);
-#endif
 
 xqc_int_t
 xqc_h3_stream_send_buffer(xqc_h3_stream_t *h3s);

@@ -38,6 +38,7 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3c, xqc_stream_t *stream, xqc_h3_stream_typ
     }
 
     h3s->stream = stream;
+    h3s->stream_id = stream->stream_id;
     h3s->h3c = h3c;
     h3s->user_data = user_data;
     h3s->h3r = NULL;
@@ -57,6 +58,17 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3c, xqc_stream_t *stream, xqc_h3_stream_typ
     stream->stream_flag |= XQC_STREAM_FLAG_HAS_H3;
 
     return h3s;
+}
+
+xqc_int_t
+xqc_h3_stream_close(xqc_h3_stream_t *h3s)
+{
+    /* transport stream notified its lifetime before, do nothing */
+    if (!h3s->stream) {
+        return XQC_OK;
+    }
+
+    return xqc_stream_close(h3s->stream);
 }
 
 
@@ -1217,9 +1229,10 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
 
     xqc_h3_stream_t *h3s = (xqc_h3_stream_t*)user_data;
     h3s->flags |= XQC_HTTP3_STREAM_FLAG_CLOSED;
+    h3s->stream = NULL;     /* stream closed, MUST NOT use it any more */
 
     /**
-     * there is several suitations when handling QUIC Transport stream close event:
+     * there are several suitations when handling QUIC Transport stream close event:
      * 
      * 1. request stream is not blocked, and all the stream data is received, destroy h3_stream.
      * for no more data will be received from this QUIC stream any longer.
