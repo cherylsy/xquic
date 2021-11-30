@@ -49,7 +49,6 @@ if [ -z "$result" ]; then
     case_print_result "stream_read_notify_fail" "pass"
 else
     echo ">>>>>>>> pass:0"
-    echo "$result"
     case_print_result "stream_read_notify_fail" "fail"
 fi
 
