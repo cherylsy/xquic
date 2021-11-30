@@ -1257,15 +1257,16 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
      */
     if (h3s->blocked && h3s->flags & XQC_HTTP3_STREAM_FLAG_READ_EOF) {
         /* wait for encoder stream */
-        xqc_log(h3s->log, XQC_LOG_DEBUG,
-                "|transport stream close while blocked and fin, will delay until unblocked");
+        xqc_log(h3s->log, XQC_LOG_DEBUG, "|transport stream close while blocked and fin, "
+                "will delay until unblocked|stream_id:%ui|h3s:%p|stream:%p", h3s->stream_id, h3s, stream);
         return XQC_OK;
     }
 
+    xqc_log(h3s->log, XQC_LOG_DEBUG, "|destroy h3 stream success|h3_stream_type:%d|stream_id:%ui|h3s:%p|stream:%p",
+            h3s->type, h3s->stream_id, h3s, stream);
+
     /* destroy h3_stream */
     xqc_h3_stream_destroy(h3s);
-    xqc_log(h3s->log, XQC_LOG_DEBUG, "|destroy h3 stream success|h3_stream_type:%d|",
-            h3s->type);
 
     return XQC_OK;
 }
