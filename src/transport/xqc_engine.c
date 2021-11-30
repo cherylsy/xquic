@@ -332,6 +332,14 @@ xqc_engine_set_callback(xqc_engine_t *engine, const xqc_engine_callback_t *engin
 {
     engine->eng_callback = *engine_callback;
     engine->transport_cbs = *transport_cbs;
+
+    if (engine_callback->realtime_ts) {
+        xqc_realtime_timestamp = engine_callback->realtime_ts;
+    }
+
+    if (engine_callback->monotonic_ts) {
+        xqc_monotonic_timestamp = engine_callback->monotonic_ts;
+    }
 }
 
 
