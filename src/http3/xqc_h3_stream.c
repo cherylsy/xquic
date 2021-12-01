@@ -1230,20 +1230,9 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
     h3s->stream = NULL;     /* stream closed, MUST NOT use it any more */
 
     /**
-     * there are several suitations when handling QUIC Transport stream close event:
-     * 
-     * 1. request stream is not blocked, and all the stream data is received, destroy h3_stream.
-     * for no more data will be received from this QUIC stream any longer.
-     * 
-     * 2. request stream is not blocked, and not all the stream data is received, destroy h3_stream.
-     * for h3_stream might be closed by application actively due to overtime or reset.
-     * 
-     * 3. request stream is blocked, and not all the stream data is received, destroy h3_stream.
-     * for h3_stream might be closed by application actively due to overtime or reset.
-     * 
-     * 4. request stream is blocked while all data was received, h3_stream shall wait for encoder
-     * stream data to unblock it. Hence, the deletion will be deleyed until all data from current
-     * request stream is processed and notify to application.
+     * transport stream will automatically close itself after all stream data was received by h3
+     * stream. under this situation, blocked h3_stream shall wait for encoder stream insertions.
+     * otherwise, the h3_stream shall be destroyed.
      */
     if (!(h3s->flags & XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED)
         && h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED
