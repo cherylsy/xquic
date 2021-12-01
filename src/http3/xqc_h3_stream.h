@@ -57,6 +57,11 @@ typedef enum {
     XQC_HTTP3_STREAM_FLAG_RESET = 0x0200,
     XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY = 0x0400,
     XQC_HTTP3_STREAM_IN_READING = 0x0800,
+    /* XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED indicates that application actively
+       closed request, this will close h3 stream immediately when h3 stream is 
+       blocked and waiting for encoder stream insertions while Transport stream
+       notify its close */
+    XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED = 0x1000,
 } xqc_h3_stream_flag;
 
 typedef struct xqc_h3_stream_pctx_s{

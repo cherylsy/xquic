@@ -573,7 +573,7 @@ xqc_h3_conn_destroy_blocked_stream_list(xqc_h3_conn_t *h3c)
         /**
          * when destroying h3 connection, and a h3 stream is still blocked, it means that Transport
          * stream was destroyed while h3 stream is still waiting for encoder instructions, but
-         * connection was closed actively or some reason elase.
+         * connection was closed actively or some reason else.
          */
         xqc_h3_stream_t *h3s = blocked_stream->h3s;
         xqc_h3_stream_destroy(h3s);

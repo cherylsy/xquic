@@ -44,6 +44,7 @@ xqc_h3_stream_create(xqc_h3_conn_t *h3c, xqc_stream_t *stream, xqc_h3_stream_typ
 xqc_int_t
 xqc_h3_stream_close(xqc_h3_stream_t *h3s)
 {
+    h3s->flags |= XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED;
     /* application layer might closed h3_stream actively while request stream was still blocked,
        should free block stream and delete it from h3_connection's blocked_stream list */
     if (h3s->blocked) {
@@ -53,7 +54,8 @@ xqc_h3_stream_close(xqc_h3_stream_t *h3s)
     }
 
     if (h3s->flags & XQC_HTTP3_STREAM_FLAG_CLOSED) {
-        /* transport stream notified its close event before, will destroy h3 stream immediately */
+        /* transport stream notified its close event before, will destroy h3 stream and notify to
+           application immediately */
         xqc_h3_stream_destroy(h3s);
         return XQC_OK;
 
@@ -1243,8 +1245,12 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
      * stream data to unblock it. Hence, the deletion will be deleyed until all data from current
      * request stream is processed and notify to application.
      */
-    if (h3s->blocked && h3s->flags & XQC_HTTP3_STREAM_FLAG_READ_EOF) {
-        /* wait for encoder stream */
+    if (!(h3s->flags & XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED)
+        && h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED
+        && h3s->flags & XQC_HTTP3_STREAM_FLAG_READ_EOF)
+    {
+        /* if stream closed passively, while h3 stream received all data and is waiting for
+           encoder stream, will delay the destruction */
         xqc_log(h3s->log, XQC_LOG_DEBUG, "|transport stream close while blocked and fin, "
                 "will delay until unblocked|stream_id:%ui|h3s:%p|stream:%p", h3s->stream_id, h3s, stream);
         return XQC_OK;
