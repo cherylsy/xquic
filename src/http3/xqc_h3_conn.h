@@ -126,6 +126,9 @@ xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c);
 void
 xqc_h3_conn_delete_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream);
 
+void
+xqc_h3_conn_free_blocked_stream(xqc_h3_conn_t *h3c);
+
 xqc_int_t
 xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_t ric);
 
