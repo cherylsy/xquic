@@ -114,7 +114,7 @@ end:
     return ret;
 }
 
-/* only for client. TODO: 对alpn封装的内容进行拆分 */
+/* only for client */
 xqc_int_t
 xqc_tls_set_alpn(SSL *ssl, const char *alpn)
 {
@@ -903,7 +903,6 @@ xqc_ssl_cert_verify_cb(int ok, X509_STORE_CTX *store_ctx)
         && !((tls->cert_verify_flag & XQC_TLS_CERT_FLAG_ALLOW_SELF_SIGNED) != 0
              && XQC_TLS_SELF_SIGNED_CERT(err_code)))
     {
-        // TODO: check下是否error会重复回调
         xqc_log(tls->log, XQC_LOG_ERROR, "|certificate verify failed with err_code:%d|", err_code);
         if (tls->cbs->error_cb) {
             tls->cbs->error_cb(err_code, tls->user_data);
@@ -915,7 +914,6 @@ xqc_ssl_cert_verify_cb(int ok, X509_STORE_CTX *store_ctx)
     xqc_int_t ret = xqc_ssl_get_certs_array(ssl, store_ctx, certs_array, XQC_MAX_VERIFY_DEPTH,
                                             &certs_array_len, certs_len);
     if (ret != XQC_OK) {
-        // TODO: check下是否error会重复回调
         xqc_log(tls->log, XQC_LOG_ERROR, "|get cert array error|%d|", ret);
         if (tls->cbs->error_cb) {
             tls->cbs->error_cb(err_code, tls->user_data);

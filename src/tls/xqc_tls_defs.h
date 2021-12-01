@@ -150,7 +150,6 @@ typedef struct {
  * @brief tls config for create xqc_tls_t instance
  */
 typedef struct xqc_tls_config_s {
-    // TODO: 全部改成unsigned char *
     /* session ticket, only for client */
     unsigned char          *session_ticket;
     size_t                  session_ticket_len;
