@@ -1238,7 +1238,7 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
      * otherwise, the h3_stream shall be destroyed.
      */
     if (!(h3s->flags & XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED)
-        && h3s->flabgs & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED
+        && h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED
         && h3s->flags & XQC_HTTP3_STREAM_FLAG_READ_EOF)
     {
         /* if stream closed passively, while h3 stream received all data and is waiting for
