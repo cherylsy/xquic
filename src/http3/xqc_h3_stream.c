@@ -1027,6 +1027,10 @@ xqc_h3_stream_process_blocked_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, x
         buf->data_len += rcvd;
         buf->fin_flag = *fin;
 
+        if (*fin) {
+            h3s->flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
+        }
+
     } while (buf->buf_len == buf->data_len && !*fin);
 
     return XQC_OK;
@@ -1077,7 +1081,6 @@ xqc_h3_stream_process_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, xqc_bool_
 
     if (*fin) {
         h3s->h3r->fin_flag = *fin;
-        h3s->flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
     }
 
     if (xqc_qpack_get_dec_insert_count(h3s->qpack) > insert_cnt) {
