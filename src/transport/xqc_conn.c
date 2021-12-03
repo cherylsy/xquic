@@ -2906,7 +2906,8 @@ xqc_create_hs_buffer(int buf_size)
     return buf;
 }
 
-
+// TODO: 限制crypto data长度，1）底层生成无限数据；2）对端发送重复、不同CH等数据
+// TLS加单元测试，conn加保护
 xqc_int_t
 xqc_conn_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data,
     size_t len, void *user_data)
@@ -3113,7 +3114,7 @@ xqc_conn_session_cb(const char *data, size_t data_len, void *user_data)
     conn->transport_cbs.save_session_cb(data, data_len, conn->user_data);
 }
 
-
+// TODO: 加一个配置项控制
 void
 xqc_conn_keylog_cb(const char *line, void *user_data)
 {

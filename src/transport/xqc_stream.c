@@ -609,7 +609,7 @@ xqc_insert_passive_stream_hash(xqc_connection_t *conn, int64_t cur_max_sid, xqc_
 }
 
 xqc_stream_t *
-xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
+xqc_passive_create_stream(xqc_connection_t *conn, xqc_stream_id_t stream_id,
                    void *user_data)
 {
     if (xqc_stream_do_create_flow_ctl(conn, stream_id, xqc_get_stream_type(stream_id)) != XQC_OK) {
@@ -646,12 +646,10 @@ xqc_passive_create_stream (xqc_connection_t *conn, xqc_stream_id_t stream_id,
 xqc_int_t 
 xqc_read_crypto_stream(xqc_stream_t * stream)
 {
-    xqc_list_head_t *pos, *next;
-
     xqc_stream_frame_t *stream_frame = NULL;
-
-
     xqc_connection_t *conn = stream->stream_conn;
+
+    xqc_list_head_t *pos, *next;
     xqc_list_for_each_safe(pos, next, &stream->stream_data_in.frames_tailq) {
         stream_frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 

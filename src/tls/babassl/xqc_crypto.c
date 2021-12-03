@@ -23,7 +23,7 @@ xqc_ossl_aead_encrypt(const xqc_packet_prot_aead_t *pp_aead,
     if (ctx == NULL) {
         return -XQC_TLS_INVALID_ARGUMENT;
     }
-    
+
     if (EVP_EncryptInit_ex(ctx, pp_aead->aead, NULL, NULL, NULL) != XQC_SSL_SUCCESS) {
         goto err;
     }
@@ -35,7 +35,6 @@ xqc_ossl_aead_encrypt(const xqc_packet_prot_aead_t *pp_aead,
     if (EVP_EncryptInit_ex(ctx, NULL, NULL, key, nonce) != XQC_SSL_SUCCESS) {
         goto err;
     }
-
 
     if (EVP_EncryptUpdate(ctx, NULL, &len, ad, adlen) != XQC_SSL_SUCCESS) {
         goto err ;
