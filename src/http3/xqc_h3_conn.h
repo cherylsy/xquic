@@ -124,12 +124,12 @@ xqc_qpack_t *
 xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c);
 
 /* add a blocked request stream */
-xqc_h3_blocked_stream_t *
+xqc_int_t
 xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_t ric);
 
 /* remove a blocked request stream when unblocked or abandoned */
 void
-xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream);
+xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s);
 
 xqc_int_t
 xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c);

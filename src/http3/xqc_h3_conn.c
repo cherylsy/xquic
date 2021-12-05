@@ -520,7 +520,7 @@ xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_
     if (h3c->block_stream_count == h3c->local_h3_conn_settings.qpack_blocked_streams) {
         xqc_log(h3c->log, XQC_LOG_ERROR, "|exceed max blocked stream limit|limit:%ui",
                 h3c->local_h3_conn_settings.qpack_blocked_streams);
-        return NULL;
+        return -XQC_H3_BLOCKED_STREAM_EXCEED;
     }
 
     xqc_h3_blocked_stream_t *blocked_stream = xqc_h3_blocked_stream_create(h3s, ric);
@@ -549,6 +549,21 @@ xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *b
 }
 
 void
+xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s)
+{
+    xqc_list_head_t *pos, *next;
+
+    xqc_list_for_each_safe(pos ,next, &h3c->block_stream_head) {
+        xqc_h3_blocked_stream_t *blocked_stream =
+                xqc_list_entry(pos, xqc_h3_blocked_stream_t, head);
+
+        if (blocked_stream->h3s == h3s) {
+            xqc_h3_conn_delete_blocked_stream(h3c, blocked_stream);
+        }
+    }
+}
+
+void
 xqc_h3_conn_destroy_blocked_stream_list(xqc_h3_conn_t *h3c)
 {
     xqc_list_head_t *pos, *next;
@@ -564,6 +579,9 @@ xqc_h3_conn_destroy_blocked_stream_list(xqc_h3_conn_t *h3c)
          */
         xqc_h3_stream_t *h3s = blocked_stream->h3s;
         xqc_h3_stream_destroy(h3s);
+
+        /* destroy blocked stream */
+        xqc_h3_conn_delete_blocked_stream(h3c, blocked_stream);
     }
 }
 
