@@ -350,7 +350,6 @@ xqc_dtable_make_space(xqc_dtable_t *dt, size_t space)
         }
 
         size_t nv_len = entry_min_ref->sum - first_entry->sum;
-        //  = dt->min_ref - dt->first_idx;
         size_t available = dt->capacity - dt->used + nv_len;
         if (available < space) {
             xqc_log(dt->log, XQC_LOG_DEBUG, "|space exceed available|available:%uz|space:%uz|",
