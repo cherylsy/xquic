@@ -2846,7 +2846,7 @@ xqc_conn_check_transport_params(xqc_connection_t *conn, const xqc_transport_para
 }
 
 void
-xqc_conn_transport_params_cb(const xqc_transport_params_t *params, void *user_data)
+xqc_conn_tls_transport_params_cb(const xqc_transport_params_t *params, void *user_data)
 {
     xqc_int_t ret;
     xqc_connection_t *conn = (xqc_connection_t *)user_data;
@@ -2909,7 +2909,7 @@ xqc_create_hs_buffer(int buf_size)
 // TODO: 限制crypto data长度，1）底层生成无限数据；2）对端发送重复、不同CH等数据
 // TLS加单元测试，conn加保护
 xqc_int_t
-xqc_conn_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data,
+xqc_conn_tls_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data,
     size_t len, void *user_data)
 {
     xqc_connection_t *conn = (xqc_connection_t *)user_data;
@@ -3091,7 +3091,7 @@ xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn,
 }
 
 xqc_int_t
-xqc_conn_alpn_select_cb(const char *alpn, size_t alpn_len, void *user_data)
+xqc_conn_tls_alpn_select_cb(const char *alpn, size_t alpn_len, void *user_data)
 {
     xqc_connection_t *conn = (xqc_connection_t *)user_data;
     xqc_conn_server_on_alpn(conn, alpn, alpn_len);
@@ -3099,7 +3099,7 @@ xqc_conn_alpn_select_cb(const char *alpn, size_t alpn_len, void *user_data)
 }
 
 xqc_int_t
-xqc_conn_cert_verify_cb(const unsigned char *certs[], const size_t cert_len[],
+xqc_conn_tls_cert_verify_cb(const unsigned char *certs[], const size_t cert_len[],
     size_t certs_len, void *user_data)
 {
     xqc_connection_t *conn = (xqc_connection_t *)user_data;
@@ -3108,14 +3108,14 @@ xqc_conn_cert_verify_cb(const unsigned char *certs[], const size_t cert_len[],
 
 
 void
-xqc_conn_session_cb(const char *data, size_t data_len, void *user_data)
+xqc_conn_tls_session_cb(const char *data, size_t data_len, void *user_data)
 {
     xqc_connection_t *conn = (xqc_connection_t *)user_data;
     conn->transport_cbs.save_session_cb(data, data_len, conn->user_data);
 }
 
 void
-xqc_conn_keylog_cb(const char *line, void *user_data)
+xqc_conn_tls_keylog_cb(const char *line, void *user_data)
 {
 #ifdef XQC_PRINT_SECRET
     xqc_connection_t *conn = (xqc_connection_t *)user_data;
@@ -3150,7 +3150,7 @@ xqc_free_crypto_buffer_list(xqc_list_head_t *buffer_list)
 }
 
 void
-xqc_conn_handshake_completed_cb(void *user_data)
+xqc_conn_tls_handshake_completed_cb(void *user_data)
 {
     xqc_connection_t *conn = (xqc_connection_t *)user_data;
 
@@ -3159,14 +3159,13 @@ xqc_conn_handshake_completed_cb(void *user_data)
     xqc_free_crypto_buffer_list(&conn->retry_crypto_data_buffer);
 }
 
-// TODO: tls->conn回调，rename xqc_conn_tls_xxx
 const xqc_tls_callbacks_t xqc_conn_tls_cbs = {
-    .crypto_data_cb = xqc_conn_crypto_data_cb,
-    .tp_cb = xqc_conn_transport_params_cb,
-    .alpn_select_cb = xqc_conn_alpn_select_cb,
-    .cert_verify_cb = xqc_conn_cert_verify_cb,
-    .session_cb = xqc_conn_session_cb,
-    .keylog_cb = xqc_conn_keylog_cb,
+    .crypto_data_cb = xqc_conn_tls_crypto_data_cb,
+    .tp_cb = xqc_conn_tls_transport_params_cb,
+    .alpn_select_cb = xqc_conn_tls_alpn_select_cb,
+    .cert_verify_cb = xqc_conn_tls_cert_verify_cb,
+    .session_cb = xqc_conn_tls_session_cb,
+    .keylog_cb = xqc_conn_tls_keylog_cb,
     .error_cb = xqc_conn_tls_error_cb,
-    .hsk_completed_cb = xqc_conn_handshake_completed_cb,
+    .hsk_completed_cb = xqc_conn_tls_handshake_completed_cb,
 };
