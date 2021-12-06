@@ -442,7 +442,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
         goto fail;
     }
 
-    /* create tls context */    // TODO: 会不会有默认ssl_config
+    /* create tls context */
     if (ssl_config != NULL) {
         engine->tls_ctx = xqc_tls_ctx_create((xqc_tls_type_t)engine->eng_type, ssl_config, &xqc_conn_tls_cbs, engine->log);
         if (NULL == engine->tls_ctx) {
