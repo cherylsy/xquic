@@ -182,7 +182,7 @@ typedef struct xqc_tls_config_s {
  */
 typedef xqc_int_t (*xqc_tls_crypto_data_pt)(xqc_encrypt_level_t level, const uint8_t *data,
     size_t len, void *user_data);
-// TODO: 错误码返回与结果明确
+
 typedef void (*xqc_tls_trans_param_pt)(const xqc_transport_params_t *tp, void *user_data);
 
 typedef xqc_int_t (*xqc_tls_alpn_select_pt)(const char *alpn, size_t alpn_len, void *user_data);

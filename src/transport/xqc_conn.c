@@ -3114,7 +3114,6 @@ xqc_conn_session_cb(const char *data, size_t data_len, void *user_data)
     conn->transport_cbs.save_session_cb(data, data_len, conn->user_data);
 }
 
-// TODO: 加一个配置项控制
 void
 xqc_conn_keylog_cb(const char *line, void *user_data)
 {

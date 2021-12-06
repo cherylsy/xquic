@@ -298,123 +298,59 @@ struct xqc_connection_s {
 
 };
 
-const char*
-xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);
+const char * xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);
+const char * xqc_conn_state_2_str(xqc_conn_state_t state);
+void xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
-const char*
-xqc_conn_state_2_str(xqc_conn_state_t state);
-
-void
-xqc_conn_init_flow_ctl(xqc_connection_t *conn);
-
-xqc_connection_t *
-xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
+xqc_connection_t * xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type);
 
-xqc_connection_t *
-xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
+xqc_connection_t * xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
     socklen_t local_addrlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
     xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_settings_t *settings, void *user_data);
 
-void
-xqc_conn_destroy(xqc_connection_t *xc);
+void xqc_conn_destroy(xqc_connection_t *xc);
 
-xqc_int_t
-xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
+xqc_int_t xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
+xqc_int_t xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
 
-xqc_int_t
-xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len);
+ssize_t xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
+void xqc_conn_send_packets(xqc_connection_t *conn);
+void xqc_conn_send_packets_batch(xqc_connection_t *conn);
 
-ssize_t
-xqc_conn_send_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
-
-void
-xqc_conn_send_packets(xqc_connection_t *conn);
-
-void
-xqc_conn_send_packets_batch(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
+xqc_int_t xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out, 
     char *enc_pkt, size_t enc_pkt_cap, size_t *enc_pkt_len, xqc_usec_t current_time);
 
-void
-xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
+void xqc_conn_transmit_pto_probe_packets(xqc_connection_t *conn);
+void xqc_conn_transmit_pto_probe_packets_batch(xqc_connection_t *conn);
+void xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
+void xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn);
+void xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_t pns);
+void xqc_conn_send_one_ack_eliciting_pkt(xqc_connection_t *conn, xqc_pkt_num_space_t pns);
 
-void
-xqc_conn_transmit_pto_probe_packets_batch(xqc_connection_t *conn);
+xqc_int_t xqc_conn_check_handshake_completed(xqc_connection_t *conn);
+xqc_int_t xqc_conn_is_handshake_confirmed(xqc_connection_t *conn);
+xqc_int_t xqc_conn_immediate_close(xqc_connection_t *conn);
+xqc_int_t xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
+xqc_int_t xqc_conn_version_check(xqc_connection_t *c, uint32_t version);
+xqc_int_t xqc_conn_send_version_negotiation(xqc_connection_t *c);
+xqc_int_t xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
+void xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
+xqc_int_t xqc_conn_early_data_reject(xqc_connection_t *conn);
+xqc_int_t xqc_conn_early_data_accept(xqc_connection_t *conn);
+xqc_bool_t xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn);
+xqc_int_t xqc_conn_handshake_complete(xqc_connection_t *conn);
 
-void
-xqc_conn_retransmit_lost_packets(xqc_connection_t *conn);
+xqc_int_t xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
+    xqc_encrypt_level_t encrypt_level);
+xqc_int_t xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
+void xqc_conn_buff_1rtt_packets(xqc_connection_t *conn);
+void xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn);
+xqc_usec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
-void
-xqc_conn_retransmit_lost_packets_batch(xqc_connection_t *conn);
-
-void
-xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_t pns);
-
-void
-xqc_conn_send_one_ack_eliciting_pkt(xqc_connection_t *conn, xqc_pkt_num_space_t pns);
-
-xqc_int_t
-xqc_conn_check_handshake_completed(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_is_handshake_confirmed(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_immediate_close(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token_len);
-
-xqc_int_t
-xqc_conn_version_check(xqc_connection_t *c, uint32_t version);
-
-xqc_int_t
-xqc_conn_send_version_negotiation(xqc_connection_t *c);
-
-xqc_int_t
-xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigned token_len);
-
-void
-xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token_len);
-
-xqc_int_t
-xqc_conn_early_data_reject(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_early_data_accept(xqc_connection_t *conn);
-
-xqc_bool_t
-xqc_conn_is_ready_to_send_early_data(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_handshake_complete(xqc_connection_t *conn);
-
-xqc_int_t
-xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
-
-xqc_int_t
-xqc_conn_process_undecrypt_packet_in(xqc_connection_t *conn, xqc_encrypt_level_t encrypt_level);
-
-void
-xqc_conn_buff_1rtt_packets(xqc_connection_t *conn);
-
-void
-xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn);
-
-xqc_usec_t
-xqc_conn_next_wakeup_time(xqc_connection_t *conn);
-
-char *
-xqc_conn_local_addr_str(const struct sockaddr *local_addr, socklen_t local_addrlen);
-
-char *
-xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen);
-
-char *
-xqc_conn_addr_str(xqc_connection_t *conn);
+char * xqc_conn_local_addr_str(const struct sockaddr *local_addr, socklen_t local_addrlen);
+char * xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen);
+char * xqc_conn_addr_str(xqc_connection_t *conn);
 
 static inline void
 xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
@@ -475,35 +411,20 @@ void xqc_conn_destroy_cids(xqc_connection_t *conn);
 xqc_int_t xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set);
 xqc_int_t xqc_conn_set_cid_retired_ts(xqc_connection_t *conn, xqc_cid_inner_t *inner_cid);
 
-xqc_bool_t
-xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
-
-xqc_bool_t
-xqc_conn_has_hsk_keys(xqc_connection_t *c);
-
+xqc_bool_t xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
+xqc_bool_t xqc_conn_has_hsk_keys(xqc_connection_t *c);
 void *xqc_conn_get_user_data(xqc_connection_t *c);
 
 /* transport parameters functions */
 
-xqc_int_t
-xqc_conn_validate_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
-
-xqc_int_t
-xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params_t *params);
-
-xqc_int_t
-xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn,
-    const xqc_transport_params_t *params);
+xqc_int_t xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params_t *params);
+xqc_int_t xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
 
 // TODO: 这两个函数与标准无关，建议挪出到应用层
-xqc_int_t
-xqc_read_transport_params(char * tp_data, size_t tp_data_len, xqc_transport_params_t *params);
+xqc_int_t xqc_read_transport_params(char *tp_data, size_t tp_data_len, xqc_transport_params_t *params);
+xqc_int_t xqc_write_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
 
-xqc_int_t
-xqc_write_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
-
-xqc_int_t
-xqc_conn_on_recv_retry(xqc_connection_t *conn);
+xqc_int_t xqc_conn_on_recv_retry(xqc_connection_t *conn);
 
 
 #endif /* _XQC_CONN_H_INCLUDED_ */
