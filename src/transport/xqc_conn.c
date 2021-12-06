@@ -290,6 +290,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     for (xqc_encrypt_level_t encrypt_level = XQC_ENC_LEV_INIT; encrypt_level < XQC_ENC_LEV_MAX; encrypt_level++) {
         xqc_init_list_head(&xc->undecrypt_packet_in[encrypt_level]);
     }
+    xc->crypto_data_total_len = 0;
 
     /* create streams_hash */
     xc->streams_hash = xqc_pcalloc(xc->conn_pool, sizeof(xqc_id_hash_table_t));
@@ -2906,8 +2907,6 @@ xqc_create_hs_buffer(int buf_size)
     return buf;
 }
 
-// TODO: 限制crypto data长度，1）底层生成无限数据；2）对端发送重复、不同CH等数据
-// TLS加单元测试，conn加保护
 xqc_int_t
 xqc_conn_tls_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data,
     size_t len, void *user_data)
@@ -2934,7 +2933,7 @@ xqc_conn_tls_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data,
 
     default:
         xqc_log(conn->log, XQC_LOG_ERROR,
-                "|impossible crypto data from encryptoin level|level:%d", level);
+                "|impossible crypto data from encryptoin level|level:%d|", level);
         XQC_CONN_ERR(conn, TRA_CRYPTO_ERROR_BASE);
         return -XQC_EFATAL;
     }
@@ -2942,11 +2941,21 @@ xqc_conn_tls_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data,
     xqc_hs_buffer_t *hs_buf = xqc_create_hs_buffer(len);
     if (XQC_UNLIKELY(!hs_buf)) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_create_hs_buffer failed|");
-        return 0 ;
+        return -XQC_EMALLOC;
+    }
+
+    /* should limit the length of crypto data when the TLS layer generates unlimited data
+     * or when the client sends duplicate ClientHello, etc. */
+    conn->crypto_data_total_len += len;
+    if (conn->crypto_data_total_len > XQC_CONN_MAX_CRYPTO_DATA_TOTAL_LEN) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|crypto_data_total_len exceed limit|total_len:%ui|", conn->crypto_data_total_len);
+        XQC_CONN_ERR(conn, TRA_CRYPTO_BUFFER_EXCEEDED);
+        return -XQC_EFATAL;
     }
 
     memcpy(hs_buf->data, data, len);
-    xqc_list_add_tail(&hs_buf->list_head, crypto_data_list) ;
+    xqc_list_add_tail(&hs_buf->list_head, crypto_data_list);
 
     return XQC_OK;
 }

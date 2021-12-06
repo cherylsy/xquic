@@ -30,6 +30,8 @@
 /* the value of max_streams transport parameter or MAX_STREAMS frame must <= 2^60 */
 #define XQC_MAX_STREAMS ((uint64_t)1 << 60)
 
+#define XQC_CONN_MAX_CRYPTO_DATA_TOTAL_LEN (10*1024*1024)
+
 
 extern const uint32_t xqc_proto_version_value[];
 extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];

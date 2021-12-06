@@ -296,6 +296,9 @@ struct xqc_connection_s {
     /* only for initial level crypto data */
     xqc_list_head_t                 retry_crypto_data_buffer;
 
+    /* for limit the length of crypto_data */
+    size_t                          crypto_data_total_len;
+
 };
 
 const char * xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);
