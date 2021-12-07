@@ -48,6 +48,7 @@ typedef enum {
     XQC_TIMER_STREAM_CLOSE,
     XQC_TIMER_PING,
     XQC_TIMER_RETIRE_CID,
+    XQC_TIMER_LINGER_CLOSE,
     XQC_TIMER_N,
 } xqc_send_ctl_timer_type;
 
@@ -192,6 +193,8 @@ xqc_packet_out_t* xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned nee
 void xqc_send_ctl_destroy_packets_list(xqc_list_head_t *head);
 
 void xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl);
+
+int xqc_send_ctl_out_q_empty(xqc_send_ctl_t *ctl);
 
 int xqc_send_ctl_can_send (xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 

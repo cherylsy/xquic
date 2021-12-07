@@ -745,6 +745,7 @@ typedef struct xqc_conn_settings_s {
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
     xqc_cc_params_t             cc_params;
     uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
+    uint32_t                    so_linger;          /* close connection after all data sent and acked, default: 0 */
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
     uint32_t                    idle_time_out;      /* idle timeout interval */
     uint64_t                    enable_multipath;   /* default: 0 */

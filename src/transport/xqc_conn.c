@@ -30,6 +30,7 @@ xqc_conn_settings_t default_conn_settings = {
     .pacing_on               = 0,
     .ping_on                 = 0,
     .so_sndbuf               = 0,
+    .so_linger               = 0,
     .proto_version           = XQC_VERSION_V1,
     .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath        = 0,
@@ -44,6 +45,7 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     default_conn_settings.pacing_on = settings->pacing_on;
     default_conn_settings.ping_on = settings->ping_on;
     default_conn_settings.so_sndbuf = settings->so_sndbuf;
+    default_conn_settings.so_linger = settings->so_linger;
     default_conn_settings.spurious_loss_detect_on = settings->spurious_loss_detect_on;
     if (settings->idle_time_out > 0) {
         default_conn_settings.idle_time_out = settings->idle_time_out;
@@ -84,6 +86,8 @@ static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
     [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
     [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
     [XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT]        = "ADDR_VALIDATED",
+    [XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT]      = "NEW_CID_RECEIVED",
+    [XQC_CONN_FLAG_LINGER_CLOSING_SHIFT]        = "LINGER_CLOSING",
 };
 
 unsigned char g_conn_flag_buf[256];
@@ -1410,11 +1414,20 @@ xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
         return -XQC_ECONN_NFOUND;
     }
 
+    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+
     xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|state:%s|flag:%s|", conn,
             xqc_conn_state_2_str(conn->conn_state), xqc_conn_flag_2_str(conn->conn_flag));
 
     if (conn->conn_state >= XQC_CONN_STATE_DRAINING) {
         return XQC_OK;
+    }
+
+    /* close connection after all data sent and acked or XQC_TIMER_LINGER_CLOSE timeout */
+    if (conn->conn_settings.so_linger && !xqc_send_ctl_out_q_empty(ctl)) {
+        conn->conn_flag |= XQC_CONN_FLAG_LINGER_CLOSING;
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_LINGER_CLOSE, xqc_monotonic_timestamp() + 3 * xqc_send_ctl_calc_pto(ctl));
+        goto end;
     }
 
     ret = xqc_conn_immediate_close(conn);
@@ -1423,6 +1436,7 @@ xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
         return ret;
     }
 
+end:
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
