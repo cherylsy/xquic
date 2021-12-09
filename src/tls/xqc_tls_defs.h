@@ -183,15 +183,30 @@ typedef struct xqc_tls_config_s {
 typedef xqc_int_t (*xqc_tls_crypto_data_pt)(xqc_encrypt_level_t level, const uint8_t *data,
     size_t len, void *user_data);
 
+/**
+ * @brief quic transport parameter callback
+ */
 typedef void (*xqc_tls_trans_param_pt)(const xqc_transport_params_t *tp, void *user_data);
 
+/**
+ * @brief application level protocol negotiation callback.
+ */
 typedef xqc_int_t (*xqc_tls_alpn_select_pt)(const char *alpn, size_t alpn_len, void *user_data);
 
+/**
+ * @brief certificate verify callback
+ */
 typedef xqc_int_t (*xqc_tls_cert_pt)(const unsigned char *certs[], const size_t cert_len[],
     size_t certs_len, void *user_data);
 
+/**
+ * @brief new session ticket callback, SHALL be stored by application
+ */
 typedef void (*xqc_tls_session_pt)(const char *data, size_t data_len, void *user_data);
 
+/**
+ * @brief keylog callback, might be used for debug
+ */
 typedef xqc_keylog_pt xqc_tls_keylog_pt;
 
 /**
@@ -201,6 +216,9 @@ typedef xqc_keylog_pt xqc_tls_keylog_pt;
  */
 typedef void (*xqc_tls_error_pt)(xqc_int_t tls_err, void *user_data);   // TODO: check细tls_err的范围，明确下错误码是否必须CLOSE
 
+/**
+ * @brief tls handshake complete callback
+ */
 typedef void (*xqc_tls_handshake_completed)(void *user_data);
 
 /**

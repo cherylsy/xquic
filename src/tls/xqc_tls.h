@@ -28,6 +28,7 @@ xqc_int_t xqc_tls_ctx_register_alpn(xqc_tls_ctx_t *ctx, const char *alpn, size_t
 xqc_int_t xqc_tls_ctx_unregister_alpn(xqc_tls_ctx_t *ctx, const char *alpn, size_t alpn_len);
 
 
+
 /**
  * @brief create and initiate a tls instance
  * 
@@ -101,8 +102,8 @@ xqc_int_t xqc_tls_decrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
 /**
  * @brief encrypt packet payload
  * 
- * @param pktno packet number
- * @param header position of packet header
+ * @param pktno packet number, MUST be the original uncoded packet number
+ * @param header position of packet header, will be used as ad, MUST be plaintext
  * @param header_len length of packet header
  * @param payload packet payload plaintext to be encrypted
  * @param payload_len length of packet payload plaintext
@@ -117,21 +118,39 @@ xqc_int_t xqc_tls_encrypt_payload(xqc_tls_t *tls, xqc_encrypt_level_t level,
 
 /**
  * @brief decrypt packet payload
+ * 
+ * @param pktno packet number, MUST be the original uncoded packet number
+ * @param header position of packet header, will be used as ad, MUST be plaintext
+ * @param header_len length of packet header
+ * @param payload packet payload plaintext to be encrypted
+ * @param payload_len length of packet payload plaintext
+ * @param dst destination buffer
+ * @param dst_cap capacity of dst
+ * @param dst_len written length
+ * @return XQC_OK for success, others for failure
  */
 xqc_int_t xqc_tls_decrypt_payload(xqc_tls_t *tls, xqc_encrypt_level_t level,
     uint64_t pktno, uint8_t *header, size_t header_len, uint8_t *payload, size_t payload_len,
     uint8_t *dst, size_t dst_cap, size_t *dst_len);
 
-/* check packet protection keys */
+/**
+ * @brief check if key is ready at specified encryption level
+ */
 xqc_bool_t xqc_tls_is_key_ready(xqc_tls_t *tls, xqc_encrypt_level_t level, xqc_key_type_t key_type);
 
-/* check early keys to send early data */
+/**
+ * @brief check whether it is adequate to send early data
+ */
 xqc_bool_t xqc_tls_is_ready_to_send_early_data(xqc_tls_t *tls);
 
-/* check early data accepted */
+/**
+ * @brief check if early data is accepted
+ */
 xqc_tls_early_data_accept_t xqc_tls_is_early_data_accepted(xqc_tls_t *tls);
 
-/* get crypto aead tag length */
+/**
+ * @brief get crypto aead tag length
+ */
 ssize_t xqc_tls_aead_tag_len(xqc_tls_t *tls, xqc_encrypt_level_t level);
 
 #endif
