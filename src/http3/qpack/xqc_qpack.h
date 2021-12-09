@@ -83,7 +83,7 @@ xqc_int_t
 xqc_qpack_set_max_blocked_stream(xqc_qpack_t *qpk, size_t max_blocked_stream);
 
 /**
- * get known received count
+ * get insert count
  */
 uint64_t
 xqc_qpack_get_dec_insert_count(xqc_qpack_t *qpk);

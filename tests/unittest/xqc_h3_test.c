@@ -126,7 +126,7 @@ void xqc_test_frame()
     processed = xqc_test_frame_parse(buf->data + buf->consumed_len, buf->data_len - buf->consumed_len, &pctx);
     CU_ASSERT(processed > 0);
     CU_ASSERT(pctx.state == XQC_H3_FRM_STATE_END);
-    CU_ASSERT(pctx.frame.frame_payload.goaway.push_id.vi == push_id);
+    CU_ASSERT(pctx.frame.frame_payload.goaway.stream_id.vi == push_id);
     buf->consumed_len += processed;
     xqc_h3_frm_reset_pctx(&pctx);
     /* parse max_push_id frame */

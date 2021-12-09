@@ -493,7 +493,7 @@ xqc_write_reset_stream_to_packet(xqc_connection_t *conn, xqc_stream_t *stream,
     packet_out->po_stream_frames[0].ps_is_reset = 1;
     packet_out->po_stream_frames[0].ps_is_used = 1;
     if (stream->stream_state_send < XQC_SEND_STREAM_ST_RESET_SENT) {
-        stream->stream_state_send = XQC_SEND_STREAM_ST_RESET_SENT;
+        xqc_stream_send_state_update(stream, XQC_SEND_STREAM_ST_RESET_SENT);
     }
 
     if (stream->stream_stats.app_reset_time == 0) {

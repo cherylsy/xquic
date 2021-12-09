@@ -18,7 +18,7 @@
  * only set for Server
  */
 int 
-xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned char *outlen, 
+xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned char *outlen,
     const unsigned char *in, unsigned int inlen, void *arg)
 {
     xqc_connection_t *conn = (xqc_connection_t *)SSL_get_app_data(ssl) ;
@@ -36,12 +36,17 @@ xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned char *out
     const unsigned char *alpn = (uint8_t *)(*out);
     size_t alpn_len = *outlen;
 
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn|%*s|", alpn_len, alpn);
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn|%*s|", (size_t) alpn_len, alpn);
 
     xqc_int_t ret = xqc_conn_server_on_alpn(conn, alpn, alpn_len);
     if (XQC_OK != ret) {
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
+
+    xqc_log_event(conn->log, TRA_ALPN_INFORMATION, (uint32_t) alpn_list_len, alpn_list, (uint32_t) inlen,
+                  in, conn->tlsref.alpn_num);
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn number:%d|", conn->tlsref.alpn_num);
 
     return SSL_TLSEXT_ERR_OK;
 }

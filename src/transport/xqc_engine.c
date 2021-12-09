@@ -28,6 +28,7 @@ extern const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb;
 
 xqc_config_t default_client_config = {
     .cfg_log_level             = XQC_LOG_WARN,
+    .cfg_log_event             = 1,
     .cfg_log_timestamp         = 1,
     .cfg_log_level_name        = 1,
     .conn_pool_size            = 4096,
@@ -47,6 +48,7 @@ xqc_config_t default_client_config = {
 
 xqc_config_t default_server_config = {
     .cfg_log_level             = XQC_LOG_WARN,
+    .cfg_log_event             = 1,
     .cfg_log_timestamp         = 1,
     .cfg_log_level_name        = 1,
     .conn_pool_size            = 4096,
@@ -115,6 +117,7 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
 
     dst->cid_negotiate = src->cid_negotiate;
     dst->cfg_log_level = src->cfg_log_level;
+    dst->cfg_log_event = src->cfg_log_event;
     dst->cfg_log_timestamp = src->cfg_log_timestamp;
     dst->cfg_log_level_name = src->cfg_log_level_name;
     dst->sendmmsg_on = src->sendmmsg_on;
@@ -407,7 +410,8 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     xqc_engine_set_callback(engine, engine_callback, transport_cbs);
     engine->user_data = user_data;
 
-    engine->log = xqc_log_init(engine->config->cfg_log_level, 
+    engine->log = xqc_log_init(engine->config->cfg_log_level,
+                               engine->config->cfg_log_event,
                                engine->config->cfg_log_timestamp,
                                engine->config->cfg_log_level_name,
                                &engine->eng_callback.log_callbacks, engine->user_data);
@@ -477,6 +481,7 @@ xqc_engine_create(xqc_engine_type_t engine_type,
     if (xqc_set_cipher_suites(engine) != XQC_OK) {
         goto fail;
     }
+    xqc_log_event(engine->log, SEC_KEY_UPDATED, engine->ssl_config, XQC_LOG_LOCAL_EVENT);
 
     /* set keylog callback */
     if (engine_callback->keylog_cb) {
@@ -731,7 +736,7 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
         && xqc_conn_check_unused_cids(conn) == XQC_OK)
     {
         if (conn->transport_cbs.ready_to_create_path_notify) {
-            conn->transport_cbs.ready_to_create_path_notify(&conn->scid_set.user_scid, 
+            conn->transport_cbs.ready_to_create_path_notify(&conn->scid_set.user_scid,
                                                             xqc_conn_get_user_data(conn));
         }
         conn->conn_flag &= ~XQC_CONN_FLAG_NEW_CID_RECEIVED;
@@ -1004,7 +1009,7 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
                     xqc_send_ctl_drop_packets(conn->conn_send_ctl);
                     xqc_usec_t pto = xqc_send_ctl_calc_pto(conn->conn_send_ctl);
                     if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
-                        xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_DRAINING, 3 * pto + recv_time);
+                        xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_DRAINING, recv_time, 3 * pto);
                     }
                 }
                 goto after_process;
@@ -1016,12 +1021,14 @@ int xqc_engine_packet_process(xqc_engine_t *engine,
     }
 
 process:
+    xqc_log_event(conn->log, TRA_DATAGRAMS_RECEIVED, packet_in_size);
     xqc_log(engine->log, XQC_LOG_INFO, "|==>|conn:%p|size:%uz|state:%s|recv_time:%ui|",
             conn, packet_in_size, xqc_conn_state_2_str(conn->conn_state), recv_time);
 
     if (XQC_UNLIKELY(conn->local_addrlen == 0)) {
         xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
         conn->local_addrlen = local_addrlen;
+        xqc_log_event(conn->log, CON_CONNECTION_STARTED, conn, XQC_LOG_LOCAL_EVENT);
     }
 
     /* process packets */
@@ -1033,7 +1040,7 @@ process:
     }
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
-                           recv_time + conn->conn_send_ctl->ctl_conn->local_settings.max_idle_timeout * 1000);
+                           recv_time, conn->conn_send_ctl->ctl_conn->local_settings.max_idle_timeout * 1000);
 
 after_process:
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {

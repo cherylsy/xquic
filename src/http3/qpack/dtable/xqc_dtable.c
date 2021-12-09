@@ -278,6 +278,7 @@ xqc_dtable_pop_entry(xqc_dtable_t *dt)
         return -XQC_QPACK_DYNAMIC_TABLE_REFFERED;
     }
 
+    xqc_log_event(dt->log, QPACK_DYNAMIC_TABLE_UPDATED, XQC_LOG_DTABLE_EVICTED, entry->abs_index);
     /* remove name and value from ring memory */
     ret = xqc_dtable_dequeue_nv(dt, entry);
     if (ret != XQC_OK) {
@@ -434,7 +435,8 @@ xqc_dtable_add(xqc_dtable_t *dt, unsigned char *name, uint64_t nlen, unsigned ch
     *idx = entry->abs_index;    /* return absolute index */
 
     xqc_log(dt->log, XQC_LOG_DEBUG, "|dtable add entry|idx:%ui|name:%*s|value:%*s|", *idx,
-            xqc_min(nlen, 1024), name, xqc_min(vlen, 1024), value);
+            (size_t) xqc_min(nlen, 1024), name, (size_t) xqc_min(vlen, 1024), value);
+    xqc_log_event(dt->log, QPACK_DYNAMIC_TABLE_UPDATED, XQC_LOG_DTABLE_INSERTED, *idx, nlen, name, vlen, value);
     return ret;
 }
 
@@ -721,4 +723,24 @@ xqc_dtable_is_entry_draining(xqc_dtable_t *dt, uint64_t idx, xqc_bool_t *drainin
     }
 
     return XQC_OK;
+}
+
+void
+xqc_log_QPACK_STATE_UPDATED_callback(xqc_log_t *log, const char *func, ...)
+{
+    va_list args;
+    va_start(args, func);
+    xqc_int_t type = va_arg(args, xqc_int_t);
+    xqc_dtable_t *dt = va_arg(args, xqc_dtable_t*);
+    uint64_t krc = va_arg(args, uint64_t);
+    if (type == XQC_LOG_DECODER_EVENT) {
+        xqc_log_implement(log, QPACK_STATE_UPDATED, func,
+                          "|encoder|dtable_cap:%ui|dtable_size:%ui|know_received_count:%ui|insert_count:%ui|",
+                          dt->capacity, dt->used, krc, dt->insert_cnt);
+    } else {
+        xqc_log_implement(log, QPACK_STATE_UPDATED, func,
+                          "|decoder|dtable_cap:%ui|dtable_size:%ui|insert_count:%ui|",
+                          dt->capacity, dt->used, dt->insert_cnt);
+    }
+    va_end(args);
 }

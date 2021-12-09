@@ -271,6 +271,8 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xqc_cid_copy(&(xc->scid_set.user_scid), scid);
+    xqc_hex_dump(xc->scid_set.original_scid_str, scid->cid_buf, scid->cid_len);
+    xc->scid_set.original_scid_str[scid->cid_len * 2] = '\0';
     xc->scid_set.largest_scid_seq_num = scid->cid_seq_num;
     if (xqc_cid_set_insert_cid(&xc->scid_set.cid_set, scid, XQC_CID_USED, xc->remote_settings.active_connection_id_limit)) {
         goto fail;
@@ -279,7 +281,8 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_cid_copy(&(xc->initial_scid), scid);
 
     xc->engine = engine;
-    xc->log = engine->log;
+    xc->log = xqc_log_init(engine->log->log_level, engine->log->log_event, engine->log->log_timestamp, engine->log->log_callbacks, engine->log->user_data);
+    xc->log->scid = xc->scid_set.original_scid_str;
     xc->transport_cbs = engine->transport_cbs;
     xc->user_data = user_data;
     xc->discard_vn_flag = 0;
@@ -347,6 +350,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
 
     xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|",
             xqc_scid_str(&xc->scid_set.user_scid), xqc_dcid_str(&xc->dcid_set.current_dcid), xc);
+    xqc_log_event(xc->log, TRA_PARAMETERS_SET, xc, XQC_LOG_LOCAL_EVENT);
     return xc;
 
 fail:
@@ -426,6 +430,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
         conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
+    xqc_log_event(conn->log, CON_CONNECTION_STARTED, conn, XQC_LOG_REMOTE_EVENT);
     return conn;
 
 fail:
@@ -500,6 +505,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
             (xc->handshake_complete_time > xc->conn_create_time) ? (xc->handshake_complete_time - xc->conn_create_time) : 0,
             (xc->first_data_send_time > xc->conn_create_time) ? (xc->first_data_send_time - xc->conn_create_time) : 0,
             xqc_monotonic_timestamp() - xc->conn_create_time, xc->conn_err, xqc_conn_addr_str(xc));
+    xqc_log_event(xc->log, CON_CONNECTION_CLOSED, xc);
 
     if (xc->conn_flag & XQC_CONN_FLAG_WAIT_WAKEUP) {
         xqc_wakeup_pq_remove(xc->engine->conns_wait_wakeup_pq, xc);
@@ -555,6 +561,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xc->xc_ssl = NULL;
     }
     xqc_tls_free_tlsref(xc); /* must before free pool */
+
+    xqc_log_release(xc->log);
 
     /* free pool, must be the last thing to do */
     if (xc->conn_pool) {
@@ -825,7 +833,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
             }
 
             /* check cc limit */
-            if (congest 
+            if (congest
                 && !xqc_send_burst_check_cc(ctl, packet_out, inflight, total_bytes_to_send))
             {
                 break;
@@ -1047,6 +1055,7 @@ xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
         }
         return -XQC_ESOCKET;
     }
+    xqc_log_event(conn->log, TRA_DATAGRAMS_SENT, sent);
 
     return sent;
 }
@@ -1059,6 +1068,10 @@ xqc_process_packet_without_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_o
     ssize_t sent = xqc_send(conn, packet_out->po_buf, packet_out->po_used_size);
     xqc_log(conn->log, XQC_LOG_INFO, "|<==|conn:%p|size:%ud|sent:%z|pkt_type:%s|",
             conn, packet_out->po_used_size, sent, xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type));
+
+    if (sent > 0) {
+        xqc_log_event(conn->log, TRA_PACKET_SENT, packet_out);
+    }
     return sent;
 }
 
@@ -1087,6 +1100,7 @@ xqc_send_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
                 conn, packet_out->po_pkt.pkt_num, packet_out->po_used_size, sent,
                 xqc_pkt_type_2_str(packet_out->po_pkt.pkt_type),
                 xqc_frame_type_2_str(packet_out->po_frame_types), conn->conn_send_ctl->ctl_bytes_in_flight, now);
+        xqc_log_event(conn->log, TRA_PACKET_SENT, packet_out);
     }
 
     /* deliver packet to send control */
@@ -1483,7 +1497,7 @@ xqc_conn_immediate_close(xqc_connection_t *conn)
         now = xqc_monotonic_timestamp();
         xqc_usec_t pto = xqc_send_ctl_calc_pto(ctl);
         if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_DRAINING)) {
-            xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, 3 * pto + now);
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_DRAINING, now, 3 * pto);
         }
 
         for (int i = 0; i <= XQC_TIMER_LOSS_DETECTION; i++) {
@@ -1825,8 +1839,8 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
                 xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
                 return XQC_OK;
             }
-            stream->stream_state_send = XQC_SEND_STREAM_ST_READY;
-            stream->stream_state_recv = XQC_RECV_STREAM_ST_RECV;
+            xqc_stream_send_state_update(stream, XQC_SEND_STREAM_ST_READY);
+            xqc_stream_recv_state_update(stream, XQC_RECV_STREAM_ST_RECV);
             xqc_stream_write_buffed_data_to_packets(stream);
         }
     }
@@ -1979,6 +1993,7 @@ xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in,
     xqc_list_add_tail(&new_packet->pi_list, &conn->undecrypt_packet_in[encrypt_level]);
     conn->undecrypt_count[encrypt_level]++;
 
+    xqc_log_event(conn->log, TRA_PACKET_BUFFERED, new_packet);
     xqc_log(conn->log, XQC_LOG_DEBUG, "|====>|delay|undecrypt_count:%ud|encrypt_level:%d|",
             conn->undecrypt_count[encrypt_level], encrypt_level);
     return XQC_OK;
@@ -2441,6 +2456,7 @@ xqc_conn_process_packet(xqc_connection_t *c,
 
         /* consume all the bytes and start parse next QUIC packet */
         pos = packet_in->last;
+        xqc_log_event(c->log, TRA_PACKET_RECEIVED, packet_in);
     }
 
     return XQC_OK;
@@ -2581,7 +2597,7 @@ xqc_int_t
 xqc_conn_set_cid_retired_ts(xqc_connection_t *conn, xqc_cid_inner_t *inner_cid)
 {
     xqc_int_t ret = XQC_OK;
-    
+
     ret = xqc_cid_switch_to_next_state(&conn->scid_set.cid_set, inner_cid, XQC_CID_RETIRED);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|set cid retired error|");
@@ -2598,7 +2614,7 @@ xqc_conn_set_cid_retired_ts(xqc_connection_t *conn, xqc_cid_inner_t *inner_cid)
 
     /* set timer to remove the retired cids */
     if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_RETIRE_CID)) {
-        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, now + 2 * srtt);
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_RETIRE_CID, now, 2 * srtt);
     }
 
     return ret;

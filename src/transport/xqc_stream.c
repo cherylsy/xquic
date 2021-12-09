@@ -117,7 +117,7 @@ xqc_stream_maybe_need_close (xqc_stream_t *stream)
         if ((ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set &&
                 new_expire < ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_expire_time) ||
             !ctl->ctl_timer[XQC_TIMER_STREAM_CLOSE].ctl_timer_is_set) {
-            xqc_send_ctl_timer_set(ctl, XQC_TIMER_STREAM_CLOSE, new_expire);
+            xqc_send_ctl_timer_set(ctl, XQC_TIMER_STREAM_CLOSE, now, new_expire - now);
         }
         stream->stream_close_time = new_expire;
         xqc_list_add_tail(&stream->closing_stream_list, &stream->stream_conn->conn_closing_streams);
@@ -1046,7 +1046,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream, unsigned char *recv_buf, size_t r
         *fin = 1;
         stream->stream_stats.peer_fin_read_time = xqc_monotonic_timestamp();
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_DATA_RECVD) {
-            stream->stream_state_recv = XQC_RECV_STREAM_ST_DATA_READ;
+            xqc_stream_recv_state_update(stream, XQC_RECV_STREAM_ST_DATA_READ);
             xqc_stream_maybe_need_close(stream);
         }
     }
@@ -1444,3 +1444,17 @@ xqc_stream_refcnt_del(xqc_stream_t *stream)
     stream->stream_refcnt--;
 }
 
+
+void
+xqc_stream_send_state_update(xqc_stream_t *stream, xqc_send_stream_state_t state)
+{
+    xqc_log_event(stream->stream_conn->log, TRA_STREAM_STATE_UPDATED, stream, XQC_LOG_STREAM_SEND, state);
+    stream->stream_state_send = state;
+}
+
+void
+xqc_stream_recv_state_update(xqc_stream_t *stream, xqc_recv_stream_state_t state)
+{
+    xqc_log_event(stream->stream_conn->log, TRA_STREAM_STATE_UPDATED, stream, XQC_LOG_STREAM_RECV, state);
+    stream->stream_state_recv = state;
+}

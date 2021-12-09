@@ -85,6 +85,7 @@ int g_ipv6;
 int g_batch=0;
 char g_write_file[256];
 char g_read_file[256];
+char g_log_path[256];
 char g_host[64] = "test.xquic.com";
 char g_path[256] = "/path/resource";
 char g_scheme[8] = "https";
@@ -977,7 +978,7 @@ xqc_server_open_log_file(void *engine_user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t*)engine_user_data;
     //ctx->log_fd = open("/home/jiuhai.zjh/ramdisk/slog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
-    ctx->log_fd = open("./slog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
+    ctx->log_fd = open(g_log_path, (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (ctx->log_fd <= 0) {
         return -1;
     }
@@ -1113,6 +1114,7 @@ void usage(int argc, char *argv[]) {
 "   -6    IPv6\n"
 "   -b    batch\n"
 "   -S    server sid\n"
+"   -o    Output log file path, default ./slog\n"
 , prog);
 }
 
@@ -1133,9 +1135,10 @@ int main(int argc, char *argv[]) {
     char c_log_level = 'd';
     int c_cong_plus = 0;
     int pacing_on = 0;
+    strcpy(g_log_path, "./slog");
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6bS:")) != -1){
+    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6bS:o:")) != -1){
         switch(ch)
         {
             case 'p': /* Server port. */
@@ -1205,6 +1208,10 @@ int main(int argc, char *argv[]) {
                 snprintf(g_sid, sizeof(g_sid), optarg);
                 g_sid_len = strlen(g_sid);
                 break;
+            case 'o':
+                printf("option log path :%s\n", optarg);
+                snprintf(g_log_path, sizeof(g_log_path), optarg);
+                break;
             default:
                 printf("other option :%c\n", ch);
                 usage(argc, argv);
@@ -1242,6 +1249,7 @@ int main(int argc, char *argv[]) {
         .set_event_timer = xqc_server_set_event_timer,
         .log_callbacks = {
             .xqc_log_write_err = xqc_server_write_log,
+            .xqc_log_write_stat = xqc_server_write_log,
         },
         .keylog_cb = xqc_keylog_cb,
 

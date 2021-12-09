@@ -362,7 +362,7 @@ xqc_rep_decode_literal(xqc_rep_ctx_t *ctx, unsigned char *buf, uint64_t buf_len)
     ssize_t read;
     int fin = 0;
 
-switch (ctx->state) {
+    switch (ctx->state) {
     case XQC_REP_DECODE_STATE_OPCODE:
         ctx->never = (*pos) & 0x10;
         xqc_prefixed_str_init(ctx->name, 3);
