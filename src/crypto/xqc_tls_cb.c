@@ -44,9 +44,7 @@ xqc_alpn_select_proto_cb(SSL *ssl, const unsigned char **out, unsigned char *out
     }
 
     xqc_log_event(conn->log, TRA_ALPN_INFORMATION, (uint32_t) alpn_list_len, alpn_list, (uint32_t) inlen,
-                  in, conn->tlsref.alpn_num);
-
-    xqc_log(conn->log, XQC_LOG_DEBUG, "|select alpn number:%d|", conn->tlsref.alpn_num);
+                  in, alpn_len, alpn);
 
     return SSL_TLSEXT_ERR_OK;
 }

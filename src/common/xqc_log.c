@@ -172,15 +172,12 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
     unsigned char *p = buf;
     unsigned char *last = buf + sizeof(buf);
 
-    /* do not need time & level if use outside log format */
+    /* do not need time if use outside log format */
     if (log->log_timestamp) {
         /* time */
         char time[64];
         xqc_log_time(time);
         p = xqc_sprintf(p, last, "[%s] ", time);
-
-        /* log level */
-        p = xqc_sprintf(p, last, "[%s] ", xqc_log_level_str(level));
     }
 
     if (log->scid != NULL) {

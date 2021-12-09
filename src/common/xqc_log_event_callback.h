@@ -26,7 +26,7 @@ xqc_log_TRA_VERSION_INFORMATION_callback(xqc_log_t *log, const char *func, uint3
 
 void
 xqc_log_TRA_ALPN_INFORMATION_callback(xqc_log_t *log, const char *func, size_t local_count, uint8_t *local_alpn,
-                                      size_t remote_count, const uint8_t *remote_alpn, uint32_t choose);
+                                      size_t remote_count, const uint8_t *remote_alpn, size_t alpn_len, const unsigned char *alpn);
 
 void xqc_log_TRA_PARAMETERS_SET_callback(xqc_log_t *log, const char *func, xqc_connection_t *conn, xqc_int_t local);
 
@@ -67,7 +67,7 @@ xqc_log_REC_CONGESTION_STATE_UPDATED_callback(xqc_log_t *log, const char *func, 
 
 void
 xqc_log_REC_LOSS_TIMER_UPDATED_callback(xqc_log_t *log, const char *func, xqc_send_ctl_t *ctl,
-                                        xqc_int_t type, xqc_int_t event);
+                                        xqc_usec_t inter_time, xqc_int_t type, xqc_int_t event);
 
 void
 xqc_log_REC_PACKET_LOST_callback(xqc_log_t *log, const char *func, xqc_packet_out_t *packet_out);
