@@ -806,6 +806,8 @@ xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
 
 /**
  * @brief destroy engine. this is called after all connections are destroyed
+ * NOTICE: MUST NOT be called in any xquic callback functions, for this function will destroy engine
+ * immediately, result in segmentation fault.
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);
