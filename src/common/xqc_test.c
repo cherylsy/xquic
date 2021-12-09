@@ -193,8 +193,8 @@ test_hash_table(int argc, char* argv[])
 int
 test_log(int argc, char* argv[])
 {
-    xqc_log_t *log = xqc_log_init(XQC_LOG_DEBUG, 1, ".", "log");
-    xqc_log_implement(log, XQC_LOG_DEBUG, "hello, %s", "world");
+    xqc_log_t *log = xqc_log_init(XQC_LOG_DEBUG, 1, 1, ".", "log");
+    xqc_log_implement(log, xqc_log_event_type(XQC_LOG_DEBUG), "hello, %s", "world");
     xqc_log_debug(log, "alibaba %s", "taobao");
     xqc_log_debug(log, "1 min = %d secs", 60);
     xqc_log_release(log);

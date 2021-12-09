@@ -74,6 +74,7 @@ typedef struct user_conn_s {
 
     struct sockaddr    *local_addr;
     socklen_t           local_addrlen;
+    xqc_flag_t          get_local_addr;
     struct sockaddr    *peer_addr;
     socklen_t           peer_addrlen;
 
@@ -130,8 +131,9 @@ int g_test_case;
 int g_ipv6;
 int g_no_crypt;
 int g_conn_timeout = 1;
-char g_write_file[64];
-char g_read_file[64];
+char g_write_file[256];
+char g_read_file[256];
+char g_log_path[256];
 char g_host[64] = "test.xquic.com";
 char g_url_path[256] = "/path/resource";
 char g_scheme[8] = "https";
@@ -1450,9 +1452,10 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         recv_sum += recv_size;
         rcv_sum += recv_size;
 
-        if (user_conn->local_addrlen == 0) {
+        if (user_conn->get_local_addr == 0) {
+            user_conn->get_local_addr = 1;
             socklen_t tmp = sizeof(struct sockaddr_in6);
-            getsockname(user_conn->fd, (struct sockaddr *) &user_conn->local_addr, &tmp);
+            getsockname(user_conn->fd, (struct sockaddr *) user_conn->local_addr, &tmp);
             user_conn->local_addrlen = tmp;
         }
 
@@ -1616,7 +1619,7 @@ int xqc_client_open_log_file(void *engine_user_data)
 {
     client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
     //ctx->log_fd = open("/home/jiuhai.zjh/ramdisk/clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
-    ctx->log_fd = open("./clog", (O_WRONLY | O_APPEND | O_CREAT), 0644);
+    ctx->log_fd = open(g_log_path, (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (ctx->log_fd <= 0) {
         return -1;
     }
@@ -1743,6 +1746,7 @@ void usage(int argc, char *argv[]) {
 "   -6    IPv6\n"
 "   -V    Force cert verification. 0: don't allow self-signed cert. 1: allow self-signed cert.\n"
 "   -q    name-value pair num of request header, default and larger than 6\n"
+"   -o    Output log file path, default ./clog\n"
 , prog);
 }
 
@@ -1771,9 +1775,10 @@ int main(int argc, char *argv[]) {
     int pacing_on = 0;
     int transport = 0;
     int use_1rtt = 0;
+    strcpy(g_log_path, "./clog");
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:q:")) != -1){
+    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:q:o:")) != -1){
         switch(ch)
         {
             case 'a': /* Server addr. */
@@ -1900,6 +1905,10 @@ int main(int argc, char *argv[]) {
                 printf("option name-value pair num: %s\n", optarg);
                 g_header_num = atoi(optarg);
                 break;
+            case 'o':
+                printf("option log path :%s\n", optarg);
+                snprintf(g_log_path, sizeof(g_log_path), optarg);
+                break;
             default:
                 printf("other option :%c\n", ch);
                 usage(argc, argv);
@@ -1929,6 +1938,7 @@ int main(int argc, char *argv[]) {
         .set_event_timer = xqc_client_set_event_timer, /* call xqc_engine_main_logic when the timer expires */
         .log_callbacks = {
                 .xqc_log_write_err = xqc_client_write_log,
+                .xqc_log_write_stat = xqc_client_write_log,
         },
         .keylog_cb = xqc_keylog_cb,
     };

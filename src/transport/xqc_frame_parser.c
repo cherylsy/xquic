@@ -4,6 +4,7 @@
 #include "src/transport/xqc_frame_parser.h"
 #include "src/common/utils/vint/xqc_variable_len_int.h"
 #include "src/common/xqc_log.h"
+#include "src/common/xqc_log_event_callback.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_packet_out.h"
@@ -196,6 +197,8 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
 
     packet_in->pos = (unsigned char *)p;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAM;
+
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_STREAM, frame);
     return XQC_OK;
 }
 
@@ -292,6 +295,8 @@ xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn , xqc_
 
     packet_in->pos = (unsigned char*)p;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
+
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_CRYPTO, offset, length);
     return XQC_OK;
 }
 
@@ -311,12 +316,15 @@ xqc_parse_padding_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
     packet_in->pi_frame_types |= XQC_FRAME_BIT_PADDING;
     packet_in->pos++;   /* skip frame type 0x00 */
+    uint32_t length = 1;
 
     /* skip all padding bytes(0x00) */
     while (packet_in->pos < packet_in->last && *packet_in->pos == 0x00) {
         packet_in->pos++;
+        length++;
     }
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_PADDING, length);
     return XQC_OK;
 }
 
@@ -341,6 +349,8 @@ xqc_parse_ping_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
     ++packet_in->pos;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_PING;
+
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_PING);
     return XQC_OK;
 }
 
@@ -572,6 +582,8 @@ xqc_parse_ack_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn, xqc_ack_
     ack_info->n_ranges = n_ranges;
     packet_in->pos = p;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_ACK;
+
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_ACK, ack_info);
     return XQC_OK;
 }
 
@@ -644,7 +656,7 @@ xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out,
 
 
 xqc_int_t
-xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code)
+xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -681,6 +693,7 @@ xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code)
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_CONNECTION_CLOSE;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_CONNECTION_CLOSE, *err_code);
     return XQC_OK;
 }
 
@@ -735,7 +748,7 @@ xqc_gen_reset_stream_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_
 
 xqc_int_t
 xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
-    uint64_t *err_code, uint64_t *final_size)
+    uint64_t *err_code, uint64_t *final_size, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -765,6 +778,7 @@ xqc_parse_reset_stream_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_RESET_STREAM;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_RESET_STREAM, *stream_id, *err_code, *final_size);
     return XQC_OK;
 }
 
@@ -812,7 +826,7 @@ xqc_gen_stop_sending_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stream_
 
 xqc_int_t
 xqc_parse_stop_sending_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id,
-    uint64_t *err_code)
+    uint64_t *err_code, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -836,6 +850,7 @@ xqc_parse_stop_sending_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_STOP_SENDING;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_STOP_SENDING, *stream_id, *err_code);
     return XQC_OK;
 }
 
@@ -864,7 +879,7 @@ xqc_gen_data_blocked_frame(xqc_packet_out_t *packet_out, uint64_t data_limit)
 }
 
 xqc_int_t
-xqc_parse_data_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *data_limit)
+xqc_parse_data_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *data_limit, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -882,6 +897,7 @@ xqc_parse_data_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *data_limit)
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_DATA_BLOCKED;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_DATA_BLOCKED, *data_limit);
     return XQC_OK;
 }
 
@@ -919,7 +935,7 @@ xqc_gen_stream_data_blocked_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t 
 
 
 xqc_int_t
-xqc_parse_stream_data_blocked_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *stream_data_limit)
+xqc_parse_stream_data_blocked_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *stream_data_limit, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -943,6 +959,7 @@ xqc_parse_stream_data_blocked_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t 
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAM_DATA_BLOCKED;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_STREAM_DATA_BLOCKED, *stream_id, *stream_data_limit);
     return XQC_OK;
 }
 
@@ -976,7 +993,7 @@ xqc_gen_streams_blocked_frame(xqc_packet_out_t *packet_out, uint64_t stream_limi
 
 
 xqc_int_t
-xqc_parse_streams_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *stream_limit, int *bidirectional)
+xqc_parse_streams_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *stream_limit, int *bidirectional, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -1000,6 +1017,7 @@ xqc_parse_streams_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *stream_lim
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_STREAMS_BLOCKED;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_STREAMS_BLOCKED, *bidirectional, *stream_limit);
     return XQC_OK;
 }
 
@@ -1030,7 +1048,7 @@ xqc_gen_max_data_frame(xqc_packet_out_t *packet_out, uint64_t max_data)
 
 
 xqc_int_t
-xqc_parse_max_data_frame(xqc_packet_in_t *packet_in, uint64_t *max_data)
+xqc_parse_max_data_frame(xqc_packet_in_t *packet_in, uint64_t *max_data, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -1048,6 +1066,7 @@ xqc_parse_max_data_frame(xqc_packet_in_t *packet_in, uint64_t *max_data)
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_MAX_DATA;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_MAX_DATA, *max_data);
     return XQC_OK;
 }
 
@@ -1084,7 +1103,7 @@ xqc_gen_max_stream_data_frame(xqc_packet_out_t *packet_out, xqc_stream_id_t stre
 
 
 xqc_int_t
-xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *max_stream_data)
+xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *stream_id, uint64_t *max_stream_data, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -1108,6 +1127,7 @@ xqc_parse_max_stream_data_frame(xqc_packet_in_t *packet_in, xqc_stream_id_t *str
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_MAX_STREAM_DATA;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_MAX_STREAM_DATA, *stream_id, *max_stream_data);
     return XQC_OK;
 }
 
@@ -1142,7 +1162,7 @@ xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, in
 
 
 xqc_int_t
-xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, int *bidirectional)
+xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, int *bidirectional, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -1167,6 +1187,7 @@ xqc_parse_max_streams_frame(xqc_packet_in_t *packet_in, uint64_t *max_streams, i
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_MAX_STREAMS;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_MAX_STREAM_DATA, *bidirectional, *max_streams);
     return XQC_OK;
 }
 
@@ -1208,7 +1229,7 @@ xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *token
 
 
 xqc_int_t
-xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsigned *token_len)
+xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsigned *token_len, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -1240,6 +1261,7 @@ xqc_parse_new_token_frame(xqc_packet_in_t *packet_in, unsigned char *token, unsi
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_NEW_TOKEN;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_NEW_TOKEN, recv_token_len, token);
     return XQC_OK;
 }
 
@@ -1263,10 +1285,12 @@ xqc_gen_handshake_done_frame(xqc_packet_out_t *packet_out)
 
 
 xqc_int_t
-xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in)
+xqc_parse_handshake_done_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
     ++packet_in->pos;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_HANDSHAKE_DONE;
+
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_HANDSHAKE_DONE);
     return XQC_OK;
 }
 
@@ -1341,7 +1365,7 @@ xqc_gen_new_conn_id_frame(xqc_packet_out_t *packet_out, xqc_cid_t *new_cid, uint
  *               Figure 39: NEW_CONNECTION_ID Frame Format
  * */
 xqc_int_t
-xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in, xqc_cid_t *new_cid, uint64_t *retire_prior_to)
+xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in, xqc_cid_t *new_cid, uint64_t *retire_prior_to, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -1391,6 +1415,7 @@ xqc_parse_new_conn_id_frame(xqc_packet_in_t *packet_in, xqc_cid_t *new_cid, uint
 
     packet_in->pi_frame_types |= XQC_FRAME_BIT_NEW_CONNECTION_ID;
 
+    xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_NEW_CONNECTION_ID, new_cid, retire_prior_to);
     return XQC_OK;
 }
 
@@ -1451,7 +1476,7 @@ xqc_gen_path_status_frame(xqc_packet_out_t *packet_out,
 
 xqc_int_t
 xqc_parse_path_status_frame(xqc_packet_in_t *packet_in,
-    uint64_t *path_id, uint64_t *path_status, uint64_t *path_status_seq, uint64_t *path_prio)
+    uint64_t *path_id, uint64_t *path_status, uint64_t *path_status_seq, uint64_t *path_prio, xqc_connection_t *conn)
 {
     unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;

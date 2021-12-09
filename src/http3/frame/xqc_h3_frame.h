@@ -18,6 +18,7 @@ typedef union xqc_h3_frame_payload_s {
 typedef struct xqc_h3_frame_s {
     xqc_h3_frm_type_t   type;
     uint64_t            len;
+    uint64_t            consumed_len;
     xqc_h3_frame_pl_t   frame_payload;
 } xqc_h3_frame_t;
 

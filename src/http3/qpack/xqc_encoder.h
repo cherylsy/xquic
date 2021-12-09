@@ -8,6 +8,8 @@
 #define _XQC_ENCODER_H_
 
 #include "src/http3/qpack/xqc_qpack_defs.h"
+#include "src/http3/qpack/stable/xqc_stable.h"
+#include "src/http3/qpack/dtable/xqc_dtable.h"
 
 typedef struct xqc_encoder_s xqc_encoder_t;
 

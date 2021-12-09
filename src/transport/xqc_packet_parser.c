@@ -1055,6 +1055,8 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
             break;
         }
     }
+    xqc_log_event(c->log, TRA_VERSION_INFORMATION, config_version_count, config_version_list, supported_version_count,
+                  supported_version_list, version_chosen);
 
     /* can't chose a version, abort the connection attempt */
     if (version_chosen == 0) {

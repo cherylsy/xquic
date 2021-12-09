@@ -120,6 +120,9 @@ xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
     {
         send_ctl->ctl_app_limited = (send_ctl->ctl_delivered + 
                                     send_ctl->ctl_bytes_in_flight) ?: 1;
+        if (send_ctl->ctl_app_limited > 0) {
+            xqc_log_event(send_ctl->ctl_conn->log, REC_CONGESTION_STATE_UPDATED, "application_limit");
+        }
         return 1;
     }
     return 0;

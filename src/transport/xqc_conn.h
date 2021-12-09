@@ -7,6 +7,7 @@
 #include "src/crypto/xqc_tls_public.h"
 #include "src/transport/xqc_cid.h"
 #include "src/common/xqc_log.h"
+#include "src/common/xqc_log_event_callback.h"
 #include "src/common/xqc_common.h"
 #include "src/transport/xqc_packet_in.h"
 #include "src/transport/xqc_packet_out.h"

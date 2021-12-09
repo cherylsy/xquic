@@ -308,12 +308,13 @@ xqc_send_ctl_timer_is_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
 }
 
 static inline void
-xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_usec_t expire)
+xqc_send_ctl_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc_usec_t now, xqc_usec_t inter_time)
 {
     ctl->ctl_timer[type].ctl_timer_is_set = 1;
-    ctl->ctl_timer[type].ctl_expire_time = expire;
+    ctl->ctl_timer[type].ctl_expire_time = now + inter_time;
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|interv:%ui|",
-            xqc_timer_type_2_str(type), expire, xqc_monotonic_timestamp(), expire - xqc_monotonic_timestamp());
+            xqc_timer_type_2_str(type), ctl->ctl_timer[type].ctl_expire_time, xqc_monotonic_timestamp(), inter_time);
+    xqc_log_event(ctl->ctl_conn->log, REC_LOSS_TIMER_UPDATED, ctl, (xqc_int_t) type, (xqc_int_t) XQC_LOG_TIMER_SET);
 }
 
 static inline void
@@ -323,6 +324,7 @@ xqc_send_ctl_timer_unset(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type)
     ctl->ctl_timer[type].ctl_expire_time = 0;
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|",
             xqc_timer_type_2_str(type));
+    xqc_log_event(ctl->ctl_conn->log, REC_LOSS_TIMER_UPDATED, ctl, (xqc_int_t) type, (xqc_int_t) XQC_LOG_TIMER_CANCEL);
 }
 
 /*
@@ -336,6 +338,7 @@ xqc_send_pacing_timer_set(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, xqc
     ctl->ctl_timer[type].ctl_pacing_time_isexpire = 0;
     xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|expire:%ui|now:%ui|",
             xqc_timer_type_2_str(type), expire, xqc_monotonic_timestamp());
+    xqc_log_event(ctl->ctl_conn->log, REC_LOSS_TIMER_UPDATED, ctl, (xqc_int_t) type, (xqc_int_t) XQC_LOG_TIMER_SET);
 }
 
 static inline void
@@ -382,6 +385,7 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_usec_t now)
                     "|timer expired|type:%s|expire_time:%ui|now:%ui|",
                     xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
             }
+            xqc_log_event(ctl->ctl_conn->log, REC_LOSS_TIMER_UPDATED, ctl, (xqc_int_t) type, (xqc_int_t) XQC_LOG_TIMER_EXPIRE);
             timer->ctl_timer_callback(type, now, timer->ctl_ctx);
 
             /* unset timer if it is not updated in ctl_timer_callback */

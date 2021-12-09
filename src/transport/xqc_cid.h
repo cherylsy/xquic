@@ -38,6 +38,7 @@ typedef struct xqc_scid_set_s
     xqc_cid_t         user_scid; // one of the USED SCIDs, for create/close notify
     xqc_cid_set_t     cid_set;   // a set of SCID, includes used/unused/retired SCID
     uint64_t          largest_scid_seq_num;
+    unsigned char     original_scid_str[XQC_MAX_CID_LEN * 2 + 1];
 } xqc_scid_set_t;
 
 typedef struct xqc_dcid_set_s
