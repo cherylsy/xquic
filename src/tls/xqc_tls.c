@@ -407,19 +407,6 @@ xqc_tls_do_handshake(xqc_tls_t *tls)
     return XQC_OK;
 }
 
-
-xqc_int_t
-xqc_tls_install_initial_keys(xqc_tls_t *tls,
-    uint8_t *cli_initial_secret, size_t cli_initial_secret_len,
-    uint8_t *svr_initial_secret, size_t svr_initial_secret_len)
-{
-    xqc_int_t ret;
-    xqc_crypto_t *init_crypto = tls->crypto[XQC_ENC_LEV_INIT];
-
-
-    return XQC_OK;
-}
-
 xqc_int_t
 xqc_tls_derive_and_install_initial_keys(xqc_tls_t *tls, const xqc_cid_t *odcid)
 {
