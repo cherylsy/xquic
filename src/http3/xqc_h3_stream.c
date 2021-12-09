@@ -1262,6 +1262,7 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
 
     xqc_h3_stream_t *h3s = (xqc_h3_stream_t*)user_data;
     h3s->flags |= XQC_HTTP3_STREAM_FLAG_CLOSED;
+    xqc_h3_stream_get_err(h3s);
     h3s->stream = NULL;     /* stream closed, MUST NOT use it any more */
 
     /**
