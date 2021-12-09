@@ -88,7 +88,7 @@ xqc_log_TRA_VERSION_INFORMATION_callback(xqc_log_t *log, const char *func, uint3
 
 void
 xqc_log_TRA_ALPN_INFORMATION_callback(xqc_log_t *log, const char *func, size_t local_count, uint8_t *local_alpn,
-                           size_t remote_count, const uint8_t *remote_alpn, uint32_t choose)
+                           size_t remote_count, const uint8_t *remote_alpn, size_t alpn_len, const unsigned char *alpn)
 {
     unsigned char *p = log_buf;
     unsigned char *last = log_buf + sizeof(log_buf);
@@ -108,7 +108,7 @@ xqc_log_TRA_ALPN_INFORMATION_callback(xqc_log_t *log, const char *func, size_t l
     }
 
     xqc_log_implement(log, TRA_ALPN_INFORMATION, func,
-                      "|%s|choose:%d|", log_buf, choose);
+                      "|%s|choose:%*s|", log_buf, alpn_len, alpn);
 }
 
 void xqc_log_TRA_PARAMETERS_SET_callback(xqc_log_t *log, const char *func, xqc_connection_t *conn, xqc_int_t local)
@@ -417,13 +417,12 @@ xqc_log_REC_CONGESTION_STATE_UPDATED_callback(xqc_log_t *log, const char *func, 
 
 void
 xqc_log_REC_LOSS_TIMER_UPDATED_callback(xqc_log_t *log, const char *func, xqc_send_ctl_t *ctl,
-                                        xqc_int_t type, xqc_int_t event)
+                                        xqc_usec_t inter_time, xqc_int_t type, xqc_int_t event)
 {
     if (event == XQC_LOG_TIMER_SET) {
         xqc_log_implement(log, REC_LOSS_TIMER_UPDATED, func,
                           "|set|type:%s|expire:%ui|interv:%ui|",
-                          xqc_timer_type_2_str(type), ctl->ctl_timer[type].ctl_expire_time,
-                          ctl->ctl_timer[type].ctl_expire_time - xqc_monotonic_timestamp());
+                          xqc_timer_type_2_str(type), ctl->ctl_timer[type].ctl_expire_time, inter_time);
 
     } else if (event == XQC_LOG_TIMER_EXPIRE) {
         xqc_log_implement(log, REC_LOSS_TIMER_UPDATED, func,
