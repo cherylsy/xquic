@@ -105,7 +105,7 @@ typedef struct xqc_h3_stream_s {
     /* blocked data buffer, used to store request
        stream data when stream is blocked */
     xqc_list_head_t                 blocked_buf;
-    xqc_bool_t                      blocked;
+    xqc_h3_blocked_stream_t        *blocked_stream;
 
     /* context of representation */
     xqc_rep_ctx_t                  *ctx;

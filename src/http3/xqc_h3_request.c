@@ -74,7 +74,7 @@ xqc_h3_request_close(xqc_h3_request_t *h3_request)
 }
 
 void
-xqc_h3_request_header_initial(xqc_h3_request_header_t * h3_header)
+xqc_h3_request_header_initial(xqc_h3_request_header_t *h3_header)
 {
     h3_header->read_flag = XQC_H3_REQUEST_HEADER_DATA_NONE;
     xqc_h3_headers_initial(&h3_header->headers);
