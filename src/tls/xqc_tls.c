@@ -551,7 +551,9 @@ xqc_tls_process_crypto_data(xqc_tls_t *tls, xqc_encrypt_level_t level,
     int ret;
     int err;
 
-    if (SSL_provide_quic_data(ssl, level, crypto_data, data_len) != XQC_SSL_SUCCESS) {
+    if (SSL_provide_quic_data(ssl, (enum ssl_encryption_level_t)level, crypto_data, data_len)
+        != XQC_SSL_SUCCESS)
+    {
         xqc_log(tls->log, XQC_LOG_ERROR, "|SSL_provide_quic_data failed|level:%d|%s|",
                 level, ERR_error_string(ERR_get_error(), NULL));
         return -XQC_TLS_INTERNAL;
@@ -977,7 +979,7 @@ xqc_tls_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     xqc_tls_t *tls = SSL_get_app_data(ssl);
 
      /* do tp callback */
-    if (xqc_tls_is_peer_tp_ready(tls->type, level)) {
+    if (xqc_tls_is_peer_tp_ready(tls->type, (enum ssl_encryption_level_t)level)) {
         xqc_int_t ret = xqc_tls_on_recv_tp(tls);
         if (ret != XQC_OK) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|handle peer's transport parameter error|");
@@ -1015,7 +1017,7 @@ xqc_tls_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     xqc_tls_t *tls = SSL_get_app_data(ssl);
 
      /* do tp callback */
-    if (xqc_tls_is_peer_tp_ready(tls->type, level)) {
+    if (xqc_tls_is_peer_tp_ready(tls->type, (enum ssl_encryption_level_t)level)) {
         xqc_int_t ret = xqc_tls_on_recv_tp(tls);
         if (ret != XQC_OK) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|handle peer's transport parameter error|");
