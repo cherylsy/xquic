@@ -340,6 +340,7 @@ void xqc_tt_session_cb(const char *data, size_t data_len, void *user_data)
         memcpy(ttbuf->new_session_ticket, data, data_len);
         ttbuf->new_session_ticket_len = data_len;
     }
+    printf("session_ticket_len: %zu\n", data_len);
 }
 
 void xqc_tt_keylog_cb(const char *line, void *user_data)
@@ -633,6 +634,135 @@ xqc_test_tls_multiple_crypto_data()
     xqc_engine_destroy(engine_svr);
 }
 
+void
+xqc_test_tls_session_ticket_in_two_packets()
+{
+    def_engine_ssl_config
+    xqc_int_t ret;
+    int cnt;
+
+    uint8_t data_buf[XQC_TEST_MAX_CRYPTO_DATA_BUF] = {0};
+    size_t  data_len = 0;
+
+    /* 1-RTT */
+
+    /* create server engine and tls_ctx */
+    xqc_engine_t *engine_svr = test_create_engine_server();
+    xqc_tls_ctx_t *ctx_svr = xqc_tls_ctx_create(XQC_TLS_TYPE_SERVER, &engine_ssl_config,
+                                                &tls_test_cbs, engine_svr->log);
+    CU_ASSERT(ctx_svr != NULL);
+
+    ret = xqc_tls_ctx_register_alpn(ctx_svr, "transport", 9);
+    CU_ASSERT(ret == XQC_OK);
+
+    /* create client engine and tls_ctx */
+    xqc_engine_t *engine_cli = test_create_engine();
+    xqc_tls_ctx_t *ctx_cli = xqc_tls_ctx_create(XQC_TLS_TYPE_CLIENT, &engine_ssl_config,
+                                                &tls_test_cbs, engine_cli->log);
+    CU_ASSERT(ctx_cli != NULL);
+
+    ret = xqc_tls_ctx_register_alpn(ctx_cli, "transport", 9);
+    CU_ASSERT(ret == XQC_OK);
+
+    /* get tls config */
+    xqc_connection_t *test_conn = test_engine_connect();
+    xqc_tls_config_t tls_config = {0};
+    tls_config.session_ticket = NULL;
+    tls_config.session_ticket_len = 0;
+    tls_config.cert_verify_flag = 0;
+    tls_config.hostname = "127.0.0.1";
+    tls_config.alpn = "transport";
+    tls_config.no_crypto_flag = 0;
+    xqc_conn_get_local_transport_params(test_conn, &tls_config.trans_params);
+
+    /* create client tls */
+    xqc_tls_test_buff_t *ttbuf_cli = xqc_create_tls_test_buffer();
+    xqc_tls_t *tls_cli = xqc_tls_create(ctx_cli, &tls_config, engine_cli->log, ttbuf_cli);
+
+    /* client start handshake, generate ClientHello */
+    xqc_cid_t odcid;
+    xqc_generate_cid(engine_cli, NULL, &odcid, 0);
+
+    ret = xqc_tls_init(tls_cli, XQC_VERSION_V1, &odcid);
+    CU_ASSERT(ret == XQC_OK);
+    CU_ASSERT(!xqc_list_empty(&ttbuf_cli->initial_crypto_data_list)); /* ClientHello */
+
+    /* create server tls */
+    xqc_tls_test_buff_t *ttbuf_svr = xqc_create_tls_test_buffer();
+    xqc_tls_t *tls_svr = xqc_tls_create(ctx_svr, &tls_config, engine_svr->log, ttbuf_svr);
+
+    /* server handshake, process ClientHello, genrate ServerHello & Handshake data */
+    ret = xqc_tls_init(tls_svr, XQC_VERSION_V1, &odcid);
+    CU_ASSERT(ret == XQC_OK);
+
+    data_len = xqc_crypto_data_list_get_buf(&ttbuf_cli->initial_crypto_data_list, data_buf);
+    CU_ASSERT(data_len > 0);
+    ret = xqc_tls_process_crypto_data(tls_svr, XQC_ENC_LEV_INIT, data_buf, data_len);
+    CU_ASSERT(ret == XQC_OK);
+    CU_ASSERT(!xqc_list_empty(&ttbuf_svr->initial_crypto_data_list)); /* ServerHello */
+    CU_ASSERT(!xqc_list_empty(&ttbuf_svr->hsk_crypto_data_list));     /* EE, CERT, CV, FIN */
+
+    /* client process handshake data from server */
+    data_len = xqc_crypto_data_list_get_buf(&ttbuf_svr->initial_crypto_data_list, data_buf);
+    CU_ASSERT(data_len > 0);
+    ret = xqc_tls_process_crypto_data(tls_cli, XQC_ENC_LEV_INIT, data_buf, data_len);
+    CU_ASSERT(ret == XQC_OK);
+
+    data_len = xqc_crypto_data_list_get_buf(&ttbuf_svr->hsk_crypto_data_list, data_buf);
+    CU_ASSERT(data_len > 0);
+    ret = xqc_tls_process_crypto_data(tls_cli, XQC_ENC_LEV_HSK, data_buf, data_len);
+    CU_ASSERT(ret == XQC_OK);
+    CU_ASSERT(ttbuf_cli->handshake_completed == XQC_TRUE);
+    CU_ASSERT(!xqc_list_empty(&ttbuf_cli->hsk_crypto_data_list)); /* FIN */
+
+    /* server process handshake data from client, send new session ticket */
+    data_len = xqc_crypto_data_list_get_buf(&ttbuf_cli->hsk_crypto_data_list, data_buf);
+    CU_ASSERT(data_len > 0);
+    ret = xqc_tls_process_crypto_data(tls_svr, XQC_ENC_LEV_HSK, data_buf, data_len);
+    CU_ASSERT(ret == XQC_OK);
+    CU_ASSERT(ttbuf_svr->handshake_completed == XQC_TRUE);
+    CU_ASSERT(!xqc_list_empty(&ttbuf_svr->application_crypto_data_list)); /* New Session Ticket */
+
+
+    /* get session ticket data */
+    data_len = xqc_crypto_data_list_get_buf(&ttbuf_svr->application_crypto_data_list, data_buf);
+    CU_ASSERT(data_len > 0);
+    ret = xqc_tls_process_crypto_data(tls_cli, XQC_ENC_LEV_1RTT, data_buf, data_len);
+    // CU_ASSERT(ttbuf_cli->new_session_ticket != NULL);
+    // CU_ASSERT(ttbuf_cli->new_session_ticket_len > 0);
+
+    /* split session ticket data in 2 buf */
+    uint8_t split_st_buf_1[XQC_TEST_MAX_CRYPTO_DATA_BUF] = {0};
+    uint8_t split_st_buf_2[XQC_TEST_MAX_CRYPTO_DATA_BUF] = {0};
+    size_t  split_st_len_1 = data_len/2;
+    size_t  split_st_len_2 = data_len - split_st_len_1;
+
+    memcpy(split_st_buf_1, data_buf, split_st_len_1);
+    memcpy(split_st_buf_2, data_buf + split_st_len_1, split_st_len_2);
+
+    /* client process split session ticket data */
+    ret = xqc_tls_process_crypto_data(tls_cli, XQC_ENC_LEV_1RTT, split_st_buf_1, split_st_len_1);
+    CU_ASSERT(ret == XQC_OK);
+    // CU_ASSERT(ttbuf_cli->new_session_ticket != NULL);
+    // CU_ASSERT(ttbuf_cli->new_session_ticket_len > 0);
+
+    ret = xqc_tls_process_crypto_data(tls_cli, XQC_ENC_LEV_1RTT, split_st_buf_2, split_st_len_2);
+    CU_ASSERT(ret == XQC_OK);
+    // CU_ASSERT(ttbuf_cli->new_session_ticket != NULL);
+    // CU_ASSERT(ttbuf_cli->new_session_ticket_len > 0);
+
+
+
+    xqc_destroy_tls_test_buffer(ttbuf_cli);
+    xqc_destroy_tls_test_buffer(ttbuf_svr);
+    xqc_tls_destroy(tls_cli);
+    xqc_tls_destroy(tls_svr);
+    xqc_tls_ctx_destroy(ctx_cli);
+    xqc_tls_ctx_destroy(ctx_svr);
+    xqc_engine_destroy(engine_cli);
+    xqc_engine_destroy(engine_svr);
+}
+
 void xqc_test_tls()
 {
     xqc_test_create_client_tls_ctx();
@@ -643,4 +773,5 @@ void xqc_test_tls()
     xqc_test_tls_generic();
 
     xqc_test_tls_multiple_crypto_data();
+    xqc_test_tls_session_ticket_in_two_packets();
 }

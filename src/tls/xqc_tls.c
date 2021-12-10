@@ -548,6 +548,8 @@ xqc_tls_process_crypto_data(xqc_tls_t *tls, xqc_encrypt_level_t level,
     const uint8_t *crypto_data, size_t data_len)
 {
     SSL *ssl = tls->ssl;
+    int ret;
+    int err;
 
     if (SSL_provide_quic_data(ssl, level, crypto_data, data_len) != XQC_SSL_SUCCESS) {
         xqc_log(tls->log, XQC_LOG_ERROR, "|SSL_provide_quic_data failed|level:%d|%s|",
@@ -564,10 +566,21 @@ xqc_tls_process_crypto_data(xqc_tls_t *tls, xqc_encrypt_level_t level,
 
     } else {
         /* handshake finished, process NewSessionTicket */
-        if (SSL_process_quic_post_handshake(ssl) != XQC_SSL_SUCCESS) {
-            xqc_log(tls->log, XQC_LOG_ERROR, "|SSL_process_quic_post_handshake failed|%s",
-                    ERR_error_string(ERR_get_error(), NULL));
-            return -XQC_TLS_POST_HANDSHAKE_ERROR;
+        ret = SSL_process_quic_post_handshake(ssl);
+
+        if (ret != XQC_SSL_SUCCESS) {
+            err = SSL_get_error(ssl, ret);
+            switch (err) {
+            case SSL_ERROR_WANT_READ:
+            case SSL_ERROR_WANT_WRITE:
+                return XQC_OK;
+            case SSL_ERROR_SSL:
+            case SSL_ERROR_ZERO_RETURN:
+            default:
+                xqc_log(tls->log, XQC_LOG_ERROR, "|SSL_process_quic_post_handshake failed|%s",
+                        ERR_error_string(ERR_get_error(), NULL));
+                return -XQC_TLS_POST_HANDSHAKE_ERROR;
+            }
         }
     }
 
