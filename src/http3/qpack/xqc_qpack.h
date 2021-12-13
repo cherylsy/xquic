@@ -47,16 +47,14 @@ typedef struct xqc_qpack_ins_cb_s {
  * @param log log handler for log print
  * @return qpack handler, will be used when qpack functions called
  */
-xqc_qpack_t *
-xqc_qpack_create(uint64_t max_cap, xqc_log_t *log, const xqc_qpack_ins_cb_t *ins_cb,
+xqc_qpack_t * xqc_qpack_create(uint64_t max_cap, xqc_log_t *log, const xqc_qpack_ins_cb_t *ins_cb,
     void *user_data);
 
 /**
  * destroy qpack handler
  * @param qpk qpack handler
  */
-void
-xqc_qpack_destroy(xqc_qpack_t *qpk);
+void xqc_qpack_destroy(xqc_qpack_t *qpk);
 
 
 /**
@@ -65,8 +63,7 @@ xqc_qpack_destroy(xqc_qpack_t *qpk);
  * @param max_cap max capacity of dynamic table. SETTINGS_QPACK_MAX_TABLE_CAPACITY from peer
  * @return XQC_OK for suc; negative for failure 
  */
-xqc_int_t
-xqc_qpack_set_enc_max_dtable_cap(xqc_qpack_t *qpk, size_t max_cap);
+xqc_int_t xqc_qpack_set_enc_max_dtable_cap(xqc_qpack_t *qpk, size_t max_cap);
 
 /**
  * @brief set ENCODER's dynamic table capacity, the final capacity will be negotiated. capacity of
@@ -76,30 +73,25 @@ xqc_qpack_set_enc_max_dtable_cap(xqc_qpack_t *qpk, size_t max_cap);
  * @return XQC_OK for suc; negative for failure. when there are still referred entries in dynamic 
  * table, set capacity might return error
  */
-xqc_int_t
-xqc_qpack_set_dtable_cap(xqc_qpack_t *qpk, size_t cap);
+xqc_int_t xqc_qpack_set_dtable_cap(xqc_qpack_t *qpk, size_t cap);
 
-xqc_int_t
-xqc_qpack_set_max_blocked_stream(xqc_qpack_t *qpk, size_t max_blocked_stream);
+xqc_int_t xqc_qpack_set_max_blocked_stream(xqc_qpack_t *qpk, size_t max_blocked_stream);
 
 /**
  * get insert count
  */
-uint64_t
-xqc_qpack_get_dec_insert_count(xqc_qpack_t *qpk);
+uint64_t xqc_qpack_get_dec_insert_count(xqc_qpack_t *qpk);
 
 
 /**
  * process encoder instructions
  */
-ssize_t
-xqc_qpack_process_encoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len);
+ssize_t xqc_qpack_process_encoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len);
 
 /**
  * process decoder instructions
  */
-ssize_t
-xqc_qpack_process_decoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len);
+ssize_t xqc_qpack_process_decoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len);
 
 
 
@@ -108,26 +100,22 @@ xqc_qpack_process_decoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len
  * invoked everytime when a new request stream is created
  * @return the context handler of request stream
  */
-xqc_rep_ctx_t *
-xqc_qpack_create_req_ctx(uint64_t stream_id);
+xqc_rep_ctx_t * xqc_qpack_create_req_ctx(uint64_t stream_id);
 
 /**
  * reset context, called when an HEADERS frame was totally decoded
  */
-void
-xqc_qpack_clear_req_ctx(void *ctx);
+void xqc_qpack_clear_req_ctx(void *ctx);
 
 /**
  * destroy ctx created by xqc_qpack_create_req_ctx
  */
-void
-xqc_qpack_destroy_req_ctx(void *ctx);
+void xqc_qpack_destroy_req_ctx(void *ctx);
 
 /**
  * get required insert count
  */
-uint64_t
-xqc_qpack_get_req_rqrd_insert_cnt(void *ctx);
+uint64_t xqc_qpack_get_req_rqrd_insert_cnt(void *ctx);
 
 
 /**
@@ -138,9 +126,7 @@ xqc_qpack_get_req_rqrd_insert_cnt(void *ctx);
  * @param entry_limit the limit of entry length percent of dtable capacity, [0, 1]
  * @return XQC_OK for success, others for failure 
  */
-void
-xqc_qpack_set_enc_insert_limit(xqc_qpack_t *qpk, double name_limit, double entry_limit);
-
+void xqc_qpack_set_enc_insert_limit(xqc_qpack_t *qpk, double name_limit, double entry_limit);
 
 
 /**
@@ -151,8 +137,8 @@ xqc_qpack_set_enc_insert_limit(xqc_qpack_t *qpk, double name_limit, double entry
  * @param headers output headers
  * 
  */
-ssize_t
-xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, unsigned char *data, size_t data_len,
+ssize_t xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx,
+    unsigned char *data, size_t data_len,
     xqc_http_headers_t *headers, xqc_bool_t fin, xqc_bool_t *blocked);
 
 /**
@@ -164,8 +150,7 @@ xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, unsigned char *d
  * @param ins_buf instruction buff
  * @return XQC_OK for success, < 0 for failure
  */
-xqc_int_t
-xqc_qpack_enc_headers(xqc_qpack_t *qpk, uint64_t stream_id,
+xqc_int_t xqc_qpack_enc_headers(xqc_qpack_t *qpk, uint64_t stream_id,
     xqc_http_headers_t *headers, xqc_var_buf_t *rep_buf);
 
 #endif

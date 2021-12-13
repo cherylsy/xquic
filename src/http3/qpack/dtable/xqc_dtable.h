@@ -9,12 +9,8 @@ typedef struct xqc_dtable_s xqc_dtable_t;
 
 
 
-xqc_dtable_t *
-xqc_dtable_create(size_t htable_buckets, xqc_log_t *log);
-
-
-void
-xqc_dtable_free(xqc_dtable_t *dt);
+xqc_dtable_t * xqc_dtable_create(size_t htable_buckets, xqc_log_t *log);
+void xqc_dtable_free(xqc_dtable_t *dt);
 
 
 /**
@@ -23,8 +19,7 @@ xqc_dtable_free(xqc_dtable_t *dt);
  * @param capactiy capacity of dynamic table
  * @return XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_dtable_set_capacity(xqc_dtable_t *dt, uint64_t capactiy);
+xqc_int_t xqc_dtable_set_capacity(xqc_dtable_t *dt, uint64_t capactiy);
 
 
 /**
@@ -36,9 +31,8 @@ xqc_dtable_set_capacity(xqc_dtable_t *dt, uint64_t capactiy);
  * @param vlen length of value
  * @return XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_dtable_add(xqc_dtable_t *dt, unsigned char *name, uint64_t nlen, unsigned char *value, uint64_t vlen,
-    uint64_t *idx);
+xqc_int_t xqc_dtable_add(xqc_dtable_t *dt, unsigned char *name, uint64_t nlen,
+    unsigned char *value, uint64_t vlen, uint64_t *idx);
 
 
 /**
@@ -48,8 +42,7 @@ xqc_dtable_add(xqc_dtable_t *dt, unsigned char *name, uint64_t nlen, unsigned ch
  * @param new_idx output the duplicated index
  * @return XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_dtable_duplicate(xqc_dtable_t *dt, uint64_t idx, uint64_t *new_idx);
+xqc_int_t xqc_dtable_duplicate(xqc_dtable_t *dt, uint64_t idx, uint64_t *new_idx);
 
 
 /**
@@ -60,8 +53,7 @@ xqc_dtable_duplicate(xqc_dtable_t *dt, uint64_t idx, uint64_t *new_idx);
  * @param value_buf output value buffere
  * @return XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_dtable_get_nv(xqc_dtable_t *dt, uint64_t idx,
+xqc_int_t xqc_dtable_get_nv(xqc_dtable_t *dt, uint64_t idx,
     xqc_var_buf_t *name_buf, xqc_var_buf_t *value_buf);
 
 
@@ -75,9 +67,8 @@ xqc_dtable_get_nv(xqc_dtable_t *dt, uint64_t idx,
  * @param idx output absolute index of entry if found
  * @return xqc_nv_ref_type_t result of lookup 
  */
-xqc_nv_ref_type_t
-xqc_dtable_lookup(xqc_dtable_t *dt, unsigned char *name, size_t nlen, unsigned char *value, size_t vlen,
-    uint64_t *idx);
+xqc_nv_ref_type_t xqc_dtable_lookup(xqc_dtable_t *dt, unsigned char *name, size_t nlen,
+    unsigned char *value, size_t vlen, uint64_t *idx);
 
 
 /**
@@ -87,8 +78,7 @@ xqc_dtable_lookup(xqc_dtable_t *dt, unsigned char *name, size_t nlen, unsigned c
  * @param ref referred entry index
  * @return XQC_OK for success, others for failure 
  */
-xqc_int_t
-xqc_dtable_set_min_ref(xqc_dtable_t *dt, uint64_t ref);
+xqc_int_t xqc_dtable_set_min_ref(xqc_dtable_t *dt, uint64_t ref);
 
 
 /**
@@ -98,12 +88,10 @@ xqc_dtable_set_min_ref(xqc_dtable_t *dt, uint64_t ref);
  * @param known_cnt known received count.
  * @return XQC_OK for success, others for failure 
  */
-xqc_int_t
-xqc_dtable_set_known_rcvd_cnt(xqc_dtable_t *dt, uint64_t known_cnt);
+xqc_int_t xqc_dtable_set_known_rcvd_cnt(xqc_dtable_t *dt, uint64_t known_cnt);
 
 
-xqc_int_t
-xqc_dtable_set_blocked(xqc_dtable_t *dt, xqc_bool_t blocked);
+xqc_int_t xqc_dtable_set_blocked(xqc_dtable_t *dt, xqc_bool_t blocked);
 
 
 /**
@@ -111,8 +99,7 @@ xqc_dtable_set_blocked(xqc_dtable_t *dt, xqc_bool_t blocked);
  * @param dt dynamic table handler
  * @return insert count
  */
-uint64_t
-xqc_dtable_get_insert_cnt(xqc_dtable_t *dt);
+uint64_t xqc_dtable_get_insert_cnt(xqc_dtable_t *dt);
 
 
 /**
@@ -123,8 +110,7 @@ xqc_dtable_get_insert_cnt(xqc_dtable_t *dt);
  * @param draining 
  * @return xqc_int_t 
  */
-xqc_int_t
-xqc_dtable_is_entry_draining(xqc_dtable_t *dt, uint64_t idx, xqc_bool_t *draining);
+xqc_int_t xqc_dtable_is_entry_draining(xqc_dtable_t *dt, uint64_t idx, xqc_bool_t *draining);
 
 
 /* calculate the size of an entry in dynamic table */
@@ -142,7 +128,6 @@ xqc_dtable_max_entry_cnt(uint64_t capactiy)
 {
     return capactiy / XQC_QPACK_ENTRY_SIZE_BASE;
 }
-
 
 
 #endif

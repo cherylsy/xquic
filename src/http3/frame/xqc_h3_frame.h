@@ -49,8 +49,7 @@ typedef struct xqc_h3_frame_pctx_s {
  * @param pctx, the parse context
  * @return XQC_ERROR for failure, >= 0 for bytes consumed
  */
-ssize_t
-xqc_h3_frm_parse(const unsigned char *pos, size_t sz, xqc_h3_frame_pctx_t *pctx);
+ssize_t xqc_h3_frm_parse(const unsigned char *pos, size_t sz, xqc_h3_frame_pctx_t *pctx);
 
 
 /**
@@ -59,37 +58,30 @@ xqc_h3_frm_parse(const unsigned char *pos, size_t sz, xqc_h3_frame_pctx_t *pctx)
  * @param user_data 
  * @return ssize_t 
  */
-ssize_t
-xqc_h3_frm_parse_setting(xqc_var_buf_t *data, void *user_data);
+ssize_t xqc_h3_frm_parse_setting(xqc_var_buf_t *data, void *user_data);
 
 /**
  * write a frame to buffer
  */
 
-xqc_int_t
-xqc_h3_frm_write_headers(xqc_list_head_t* send_buf, xqc_var_buf_t * encoded_field_section,
+xqc_int_t xqc_h3_frm_write_headers(xqc_list_head_t* send_buf, xqc_var_buf_t * encoded_field_section,
     uint8_t fin);
 
-xqc_int_t
-xqc_h3_frm_write_data(xqc_list_head_t* send_buf, unsigned char* data, size_t size, uint8_t fin);
+xqc_int_t xqc_h3_frm_write_data(xqc_list_head_t* send_buf, unsigned char* data, size_t size,
+    uint8_t fin);
 
-xqc_int_t
-xqc_h3_frm_write_cancel_push(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin);
+xqc_int_t xqc_h3_frm_write_cancel_push(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin);
 
-xqc_int_t
-xqc_h3_frm_write_settings(xqc_list_head_t* send_buf, xqc_h3_conn_settings_t *setting, uint8_t fin);
+xqc_int_t xqc_h3_frm_write_settings(xqc_list_head_t* send_buf, xqc_h3_conn_settings_t *setting,
+    uint8_t fin);
 
-xqc_int_t
-xqc_h3_frm_write_push_promise(xqc_list_head_t* send_buf, uint64_t push_id, 
+xqc_int_t xqc_h3_frm_write_push_promise(xqc_list_head_t* send_buf, uint64_t push_id, 
     xqc_var_buf_t *encoded_field_section, uint8_t fin);
 
-xqc_int_t
-xqc_h3_frm_write_goaway(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin);
+xqc_int_t xqc_h3_frm_write_goaway(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin);
 
-xqc_int_t
-xqc_h3_frm_write_max_push_id(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin);
+xqc_int_t xqc_h3_frm_write_max_push_id(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin);
 
-void
-xqc_h3_frm_reset_pctx(xqc_h3_frame_pctx_t *pctx);
+void xqc_h3_frm_reset_pctx(xqc_h3_frame_pctx_t *pctx);
 
 #endif

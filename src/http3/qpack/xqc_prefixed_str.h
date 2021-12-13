@@ -45,14 +45,10 @@ typedef struct xqc_prefixed_str_s {
     xqc_huffman_dec_ctx         huff_ctx;
 } xqc_prefixed_str_t;
 
-void
-xqc_prefixed_str_init(xqc_prefixed_str_t *pctx, uint8_t n);
+void xqc_prefixed_str_init(xqc_prefixed_str_t *pctx, uint8_t n);
+void xqc_prefixed_str_free(xqc_prefixed_str_t *pctx);
 
-void
-xqc_prefixed_str_free(xqc_prefixed_str_t *pctx);
-
-xqc_prefixed_str_t *
-xqc_prefixed_str_pctx_create(size_t capacity);
+xqc_prefixed_str_t * xqc_prefixed_str_pctx_create(size_t capacity);
 
 /**
  * @brief parse prefixed string
@@ -62,12 +58,9 @@ xqc_prefixed_str_pctx_create(size_t capacity);
  * @param pstr prefixed string
  * @return ssize_t bytes consumed
  */
-ssize_t
-xqc_parse_prefixed_str(xqc_prefixed_str_t *pstr, uint8_t *buf, size_t len, int *fin_flag);
+ssize_t xqc_parse_prefixed_str(xqc_prefixed_str_t *pstr, uint8_t *buf, size_t len, int *fin_flag);
 
-
-xqc_int_t
-xqc_write_prefixed_str(xqc_var_buf_t *buf, uint8_t *str, uint64_t len, uint8_t n);
+xqc_int_t xqc_write_prefixed_str(xqc_var_buf_t *buf, uint8_t *str, uint64_t len, uint8_t n);
 
 
 

@@ -112,44 +112,24 @@ typedef struct xqc_ins_dec_ctx_s {
  * @brief create context for parsing decoder instruction bytes
  * @return xqc_ins_dec_ctx_t* decoder context
  */
-xqc_ins_dec_ctx_t *
-xqc_ins_decoder_ctx_create();
-
-void
-xqc_ins_decoder_ctx_free(xqc_ins_dec_ctx_t *ctx);
-
-ssize_t
-xqc_ins_parse_decoder(unsigned char *buf, uint64_t buf_len, xqc_ins_dec_ctx_t *ctx);
-
-
+xqc_ins_dec_ctx_t *xqc_ins_decoder_ctx_create();
+void xqc_ins_decoder_ctx_free(xqc_ins_dec_ctx_t *ctx);
+ssize_t xqc_ins_parse_decoder(unsigned char *buf, uint64_t buf_len, xqc_ins_dec_ctx_t *ctx);
 
 
 /**
  * write instructions
  */
 
-xqc_int_t
-xqc_ins_write_set_dtable_cap(xqc_var_buf_t *buf, uint64_t capacity);
-
-xqc_int_t
-xqc_ins_write_insert_name_ref(xqc_var_buf_t *buf, xqc_flag_t t, uint64_t index,
+xqc_int_t xqc_ins_write_set_dtable_cap(xqc_var_buf_t *buf, uint64_t capacity);
+xqc_int_t xqc_ins_write_insert_name_ref(xqc_var_buf_t *buf, xqc_flag_t t, uint64_t index,
     unsigned char *value, uint64_t vlen);
-
-xqc_int_t
-xqc_ins_write_insert_literal_name(xqc_var_buf_t *buf, unsigned char *name, uint64_t nlen,
+xqc_int_t xqc_ins_write_insert_literal_name(xqc_var_buf_t *buf, unsigned char *name, uint64_t nlen,
     unsigned char *value, uint64_t vlen);
-
-xqc_int_t
-xqc_ins_write_dup(xqc_var_buf_t *buf, uint64_t index);
-
-xqc_int_t
-xqc_ins_write_section_ack(xqc_var_buf_t *buf, uint64_t stream_id);
-
-xqc_int_t
-xqc_ins_write_stream_cancel(xqc_var_buf_t *buf, uint64_t stream_id);
-
-xqc_int_t
-xqc_ins_write_icnt_increment(xqc_var_buf_t *buf, uint64_t increment);
+xqc_int_t xqc_ins_write_dup(xqc_var_buf_t *buf, uint64_t index);
+xqc_int_t xqc_ins_write_section_ack(xqc_var_buf_t *buf, uint64_t stream_id);
+xqc_int_t xqc_ins_write_stream_cancel(xqc_var_buf_t *buf, uint64_t stream_id);
+xqc_int_t xqc_ins_write_icnt_increment(xqc_var_buf_t *buf, uint64_t increment);
 
 
 #endif
