@@ -57,7 +57,9 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
         char time[64];
         xqc_log_time(time);
         p = xqc_sprintf(p, last, "[%s] ", time);
+    }
 
+    if (log->log_level_name) {
         /* log level */
         p = xqc_sprintf(p, last, "[%s] ", xqc_log_level_str(level));
     }
@@ -79,10 +81,10 @@ xqc_log_implement(xqc_log_t *log, unsigned level, const char *func, const char *
     if ((level == XQC_LOG_STATS || level == XQC_LOG_REPORT)
         && log->log_callbacks->xqc_log_write_stat)
     {
-        log->log_callbacks->xqc_log_write_stat(buf, p - buf, log->user_data);
+        log->log_callbacks->xqc_log_write_stat(level, buf, p - buf, log->user_data);
 
     } else if (log->log_callbacks->xqc_log_write_err) {
-        log->log_callbacks->xqc_log_write_err(buf, p - buf, log->user_data);
+        log->log_callbacks->xqc_log_write_err(level, buf, p - buf, log->user_data);
     }
 
     /* if didn't set log callback, just return */

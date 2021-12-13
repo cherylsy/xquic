@@ -112,7 +112,7 @@ typedef struct xqc_log_callbacks_s {
      * XQC_LOG_DEBUG, xquic will output logs with the level higher or equal to the level configured
      * in xqc_congit_t.
      */
-    void (*xqc_log_write_err)(const void *buf, size_t size, void *engine_user_data);
+    void (*xqc_log_write_err)(xqc_log_level_t lvl, const void *buf, size_t size, void *engine_user_data);
 
     /**
      * statistic log callback function
@@ -120,7 +120,7 @@ typedef struct xqc_log_callbacks_s {
      * this function will be triggered when write XQC_LOG_REPORT or XQC_LOG_STATS level logs.
      * mainly when connection close, stream close, tls key derived.
      */
-    void (*xqc_log_write_stat)(const void *buf, size_t size, void *engine_user_data);
+    void (*xqc_log_write_stat)(xqc_log_level_t lvl, const void *buf, size_t size, void *engine_user_data);
 
 } xqc_log_callbacks_t;
 
@@ -607,6 +607,9 @@ typedef struct xqc_config_s {
 
     /* print timestamp in log or not, non-zero for print, 0 for not */
     xqc_flag_t      cfg_log_timestamp;
+
+    /* print level name in log or not, non-zero for print, 0 for not */
+    xqc_flag_t      cfg_log_level_name;
 
     /* connection memory pool size, which will be used for congestion control */
     size_t          conn_pool_size;

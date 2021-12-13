@@ -246,7 +246,7 @@ xqc_demo_svr_close_log_file(xqc_demo_svr_ctx_t *ctx)
 }
 
 void
-xqc_demo_svr_write_log_file(const void *buf, size_t size, void *eng_user_data)
+xqc_demo_svr_write_log_file(xqc_log_level_t lvl, const void *buf, size_t size, void *eng_user_data)
 {
     xqc_demo_svr_ctx_t *ctx = (xqc_demo_svr_ctx_t*)eng_user_data;
     if (ctx->log_fd <= 0) {
