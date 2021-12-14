@@ -659,15 +659,10 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return -XQC_EPROTO;
     }
 
-    xqc_cid_t *cid = xqc_get_cid_by_seq(&conn->scid_set.cid_set, seq_num);
-    if (cid == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|can't find scid with seq_number|%ui|", seq_num);
-        return -XQC_ECONN_CID_NOT_FOUND;
-    }
-
-    xqc_cid_inner_t* inner_cid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, cid);
+    xqc_cid_inner_t* inner_cid = xqc_get_inner_cid_by_seq(&conn->scid_set.cid_set, seq_num);
     if (inner_cid == NULL) {
-        return -XQC_ECONN_CID_NOT_FOUND;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|can't find scid with seq_number|%ui|", seq_num);
+        return XQC_OK;
     }
 
     if (XQC_OK == xqc_cid_is_equal(&inner_cid->cid, &packet_in->pi_pkt.pkt_dcid)) {
