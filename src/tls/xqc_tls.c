@@ -884,7 +884,6 @@ xqc_ssl_cert_verify_cb(int ok, X509_STORE_CTX *store_ctx)
     unsigned char *certs_array[XQC_MAX_VERIFY_DEPTH] = {0};
     size_t certs_len[XQC_MAX_VERIFY_DEPTH] = {0};
 
-    // TODO: 似乎判断条件是有问题的，babassl中，ok可能是0、1、2，boringssl中，ok可能是0、2，不明白这些魔数的意义
     if (ok == XQC_SSL_SUCCESS) {
         return XQC_SSL_SUCCESS;
     }
@@ -1052,7 +1051,7 @@ xqc_tls_add_handshake_data(SSL *ssl, enum ssl_encryption_level_t level,
 {
     xqc_tls_t *tls = SSL_get_app_data(ssl);
 
-    /* notify tls handshake data to upper layer */ // TODO: double check NEW_SESSION_TICKET  ？？
+    /* notify tls handshake data to upper layer */
     if (tls->cbs->crypto_data_cb) {
         if (tls->cbs->crypto_data_cb((xqc_encrypt_level_t)level, data, len,
                                      tls->user_data) != XQC_OK)

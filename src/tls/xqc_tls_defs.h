@@ -214,7 +214,7 @@ typedef xqc_keylog_pt xqc_tls_keylog_pt;
  * the parameter tls_err is from tls. which ranges in [0, 255], upper layer shall convert it to QUIC
  * CONNECTION_CLOSE error codes (CRYPTO_ERROR, 0x0100-0x01ff).
  */
-typedef void (*xqc_tls_error_pt)(xqc_int_t tls_err, void *user_data);   // TODO: check细tls_err的范围，明确下错误码是否必须CLOSE
+typedef void (*xqc_tls_error_pt)(xqc_int_t tls_err, void *user_data);
 
 /**
  * @brief tls handshake complete callback
