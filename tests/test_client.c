@@ -1633,18 +1633,9 @@ int xqc_client_close_log_file(void *engine_user_data)
     return 0;
 }
 
-ssize_t xqc_client_write_log_file(const void *buf, size_t count, void *engine_user_data)
-{
-    client_ctx_t *ctx = (client_ctx_t*)engine_user_data;
-    if (ctx->log_fd <= 0) {
-        return -1;
-    }
-    //printf("%s",(char*)buf);
-    return write(ctx->log_fd, buf, count);
-}
 
 void 
-xqc_client_write_log(const void *buf, size_t count, void *engine_user_data)
+xqc_client_write_log(xqc_log_level_t lvl, const void *buf, size_t count, void *engine_user_data)
 {
     unsigned char log_buf[XQC_MAX_LOG_LEN + 1];
 

@@ -206,7 +206,7 @@ null_set_event_timer(xqc_msec_t wake_after, void *engine_user_data)
 }
 
 void 
-xqc_write_log_default(const void *buf, size_t count, void *user_data)
+xqc_write_log_default(xqc_log_level_t lvl, const void *buf, size_t count, void *user_data)
 {
     return;
 }

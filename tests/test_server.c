@@ -981,7 +981,7 @@ xqc_server_close_log_file(void *engine_user_data)
 
 
 void 
-xqc_server_write_log(const void *buf, size_t count, void *engine_user_data)
+xqc_server_write_log(xqc_log_level_t lvl, const void *buf, size_t count, void *engine_user_data)
 {
     unsigned char log_buf[XQC_MAX_LOG_LEN + 1];
 

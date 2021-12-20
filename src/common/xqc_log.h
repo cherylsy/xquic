@@ -22,13 +22,14 @@ typedef struct xqc_log_s
 {
     xqc_log_level_t      log_level;         
     xqc_flag_t           log_timestamp; /* 1:add timestamp before log, 0:don't need timestamp */
+    xqc_flag_t           log_level_name; /* 1:add level name before log, 0:don't need level name */
     xqc_log_callbacks_t *log_callbacks;
     void *user_data;
 } xqc_log_t;
 
 static inline xqc_log_t *
 xqc_log_init(xqc_log_level_t log_level, 
-    xqc_flag_t log_timestamp, xqc_log_callbacks_t *log_callbacks, void *user_data)
+    xqc_flag_t log_timestamp, xqc_flag_t log_level_name, xqc_log_callbacks_t *log_callbacks, void *user_data)
 {
     xqc_log_t* log = xqc_malloc(sizeof(xqc_log_t));
     if (log == NULL) {
@@ -38,6 +39,7 @@ xqc_log_init(xqc_log_level_t log_level,
     log->log_level = log_level;
     log->user_data = user_data;
     log->log_timestamp = log_timestamp;
+    log->log_level_name = log_level_name;
     log->log_callbacks = log_callbacks;
     return log;
 }

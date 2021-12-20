@@ -421,7 +421,7 @@ xqc_demo_cli_close_log_file(xqc_demo_cli_ctx_t *ctx)
 }
 
 void
-xqc_demo_cli_write_log_file(const void *buf, size_t size, void *engine_user_data)
+xqc_demo_cli_write_log_file(xqc_log_level_t lvl, const void *buf, size_t size, void *engine_user_data)
 {
     xqc_demo_cli_ctx_t *ctx = (xqc_demo_cli_ctx_t*)engine_user_data;
     if (ctx->log_fd <= 0) {
