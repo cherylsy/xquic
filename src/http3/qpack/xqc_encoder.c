@@ -654,10 +654,14 @@ xqc_encoder_prepare(xqc_encoder_t *enc, xqc_http_headers_t *hdrs, xqc_field_sect
             && info->index < fs->min_ref_idx)
         {
             fs->min_ref_idx = info->index;
-            ret = xqc_dtable_set_min_ref(enc->dtable, info->index);
-            if (ret != XQC_OK) {
-                xqc_log(enc->log, XQC_LOG_ERROR, "|set min ref error|");
-                return ret;
+
+            /* if new insertion will generate a lower bound, set the min_ref of dtable */
+            if (fs->min_ref_idx < enc->min_unack_index) {
+                ret = xqc_dtable_set_min_ref(enc->dtable, info->index);
+                if (ret != XQC_OK) {
+                    xqc_log(enc->log, XQC_LOG_ERROR, "|set min ref error|");
+                    return ret;
+                }
             }
         }
 

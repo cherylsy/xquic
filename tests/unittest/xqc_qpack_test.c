@@ -574,9 +574,175 @@ xqc_qpack_test_robust()
 
 
 void
+xqc_test_min_ref()
+{
+    xqc_int_t ret = XQC_OK;
+    xqc_var_buf_t *efs_buf_client = xqc_var_buf_create(32*1024);
+    xqc_var_buf_t *efs_buf_client2 = xqc_var_buf_create(32*1024);
+    xqc_var_buf_t *enc_ins_buf_client = xqc_var_buf_create(16384);
+    xqc_var_buf_t *dec_ins_buf_client = xqc_var_buf_create(16384);
+    xqc_ins_buf_t ins_buf_client = {enc_ins_buf_client, dec_ins_buf_client};
+
+    xqc_var_buf_t *efs_buf_server = xqc_var_buf_create(32*1024);
+    xqc_var_buf_t *enc_ins_buf_server = xqc_var_buf_create(16384);
+    xqc_var_buf_t *dec_ins_buf_server = xqc_var_buf_create(16384);
+    xqc_ins_buf_t ins_buf_server = {enc_ins_buf_server, dec_ins_buf_server};
+    xqc_bool_t blocked = XQC_FALSE;
+
+    xqc_http_header_t header[XQC_TEST_ENCODER_MAX_HEADERS] = {
+        {
+            .name   = {.iov_base = "test_header_0001", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00001", .iov_len = 16},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "test_header_0002", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00002", .iov_len = 16},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "test_header_0003", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00003", .iov_len = 16},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "test_header_0004", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00004", .iov_len = 16},
+            .flags  = 0,
+        },
+    };
+
+    xqc_http_headers_t hdrs1 = {
+        header, 4, XQC_TEST_ENCODER_MAX_HEADERS
+    };
+
+    xqc_http_header_t header2[XQC_TEST_ENCODER_MAX_HEADERS] = {
+        {
+            .name   = {.iov_base = "test_header_0002", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00002", .iov_len = 16},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "test_header_0003", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00003", .iov_len = 16},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "test_header_0004", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00004", .iov_len = 16},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "test_header_0005", .iov_len = 16},
+            .value  = {.iov_base = "test_value_00005", .iov_len = 16},
+            .flags  = 0,
+        },
+    };
+
+    xqc_http_headers_t hdrs2 = {
+        header2, 4, XQC_TEST_ENCODER_MAX_HEADERS
+    };
+
+    xqc_http_header_t header_out[XQC_TEST_ENCODER_MAX_HEADERS];
+    xqc_http_headers_t hdrs_out = {
+        header_out, 0, XQC_TEST_ENCODER_MAX_HEADERS
+    };
+
+    xqc_http_header_t header_out2[XQC_TEST_ENCODER_MAX_HEADERS];
+    xqc_http_headers_t hdrs_out2 = {
+        header_out2, 0, XQC_TEST_ENCODER_MAX_HEADERS
+    };
+
+    ssize_t read = 0;
+    size_t recvd = 0;
+
+    /* encoder side */
+    xqc_engine_t *engine = test_create_engine();
+    CU_ASSERT(engine != NULL);
+
+    xqc_qpack_t *qpk_client = xqc_qpack_create(16384, engine->log, &ins_cb, &ins_buf_client);
+    CU_ASSERT(qpk_client != NULL);
+
+    ret = xqc_qpack_set_enc_max_dtable_cap(qpk_client, 256);
+    CU_ASSERT(ret == XQC_OK);
+    xqc_qpack_set_enc_insert_limit(qpk_client, 0.25, 0.75);
+    /* set encoder's blocked streams, pretending it as SETTINGS from decoder */
+    ret = xqc_qpack_set_max_blocked_stream(qpk_client, 16);
+    CU_ASSERT(ret == XQC_OK);
+    /* set encoder's dtable cap. pretending it as SETTINGS from decoder, and set dtable cap ins generated */
+    ret = xqc_qpack_set_dtable_cap(qpk_client, 256);
+    CU_ASSERT(ret == XQC_OK && enc_ins_buf_client->data_len > 0);
+
+
+    /* decoder side */
+    xqc_qpack_t *qpk_server = xqc_qpack_create(16384, engine->log, &ins_cb, &ins_buf_server);
+    CU_ASSERT(qpk_server != NULL);
+
+    ret = xqc_qpack_set_enc_max_dtable_cap(qpk_server, 256);
+    CU_ASSERT(ret == XQC_OK);
+    xqc_qpack_set_enc_insert_limit(qpk_server, 0.25, 0.75);
+    ret = xqc_qpack_set_max_blocked_stream(qpk_server, 16);
+    CU_ASSERT(ret == XQC_OK);
+    ret = xqc_qpack_set_dtable_cap(qpk_server, 256);
+    CU_ASSERT(ret == XQC_OK && enc_ins_buf_server->data_len > 0);
+
+
+    /* server received Set Dynamic Table Capacity from client */
+    read = xqc_qpack_process_encoder(qpk_server, enc_ins_buf_client->data, enc_ins_buf_client->data_len);
+    CU_ASSERT(read == enc_ins_buf_client->data_len);
+    xqc_var_buf_clear(enc_ins_buf_client);
+
+    /* client received Set Dynamic Table Capacity from server */
+    read = xqc_qpack_process_encoder(qpk_client, enc_ins_buf_server->data, enc_ins_buf_server->data_len);
+    CU_ASSERT(read == enc_ins_buf_server->data_len);
+    xqc_var_buf_clear(enc_ins_buf_server);
+
+
+    /* header encode */
+    ret = xqc_qpack_enc_headers(qpk_client, 0, &hdrs1, efs_buf_client);
+    CU_ASSERT(ret == XQC_OK && efs_buf_client->data_len > 0 && enc_ins_buf_client->data_len > 0);
+
+    /* header encode */
+    ret = xqc_qpack_enc_headers(qpk_client, 4, &hdrs2, efs_buf_client2);
+    CU_ASSERT(ret == XQC_OK && efs_buf_client2->data_len > 0 && enc_ins_buf_client->data_len > 0);
+
+
+    ssize_t processed = xqc_qpack_process_encoder(qpk_server, ins_buf_client.enc_ins->data,
+        ins_buf_client.enc_ins->data_len);
+    CU_ASSERT(processed > 0);
+    xqc_var_buf_clear(ins_buf_client.enc_ins);
+
+    xqc_rep_ctx_t *rep_ctx1 = xqc_qpack_create_req_ctx(0);
+    processed = xqc_qpack_dec_headers(qpk_server, rep_ctx1, efs_buf_client->data, efs_buf_client->data_len, &hdrs_out, XQC_TRUE, &blocked);
+    CU_ASSERT(processed == efs_buf_client->data_len);
+
+
+    xqc_rep_ctx_t *rep_ctx2 = xqc_qpack_create_req_ctx(4);
+    processed = xqc_qpack_dec_headers(qpk_server, rep_ctx2, efs_buf_client2->data, efs_buf_client2->data_len, &hdrs_out2, XQC_TRUE, &blocked);
+    CU_ASSERT(processed == efs_buf_client2->data_len);
+
+
+    xqc_var_buf_free(efs_buf_client);
+    xqc_var_buf_free(enc_ins_buf_client);
+    xqc_var_buf_free(dec_ins_buf_client);
+    xqc_var_buf_free(efs_buf_server);
+    xqc_var_buf_free(enc_ins_buf_server);
+    xqc_var_buf_free(dec_ins_buf_server);
+
+    xqc_qpack_destroy(qpk_client);
+    xqc_qpack_destroy(qpk_server);
+
+    xqc_engine_destroy(engine);
+
+}
+
+
+
+void
 xqc_qpack_test()
 {
     xqc_qpack_test_basic();
     xqc_qpack_test_duplicate();
     xqc_qpack_test_robust();
+    xqc_test_min_ref();
 }
