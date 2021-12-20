@@ -562,9 +562,6 @@ xqc_h3_conn_destroy_blocked_stream_list(xqc_h3_conn_t *h3c)
          */
         xqc_h3_stream_t *h3s = blocked_stream->h3s;
         xqc_h3_stream_destroy(h3s);
-
-        /* destroy blocked stream */
-        xqc_h3_conn_remove_blocked_stream(h3c, blocked_stream);
     }
 }
 

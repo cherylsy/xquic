@@ -96,6 +96,18 @@ typedef struct xqc_http_headers_s {
 } xqc_http_headers_t;
 
 
+/**
+ * @brief request statistics structure
+ */
+typedef struct xqc_request_stats_s {
+    size_t      send_body_size;
+    size_t      recv_body_size;
+    size_t      send_header_size;   /* compressed header size */
+    size_t      recv_header_size;   /* compressed header size */
+    int         stream_err;         /* QUIC layer error code, 0 for no error */
+} xqc_request_stats_t;
+
+
 /* connection settings for http3 */
 typedef struct xqc_h3_conn_settings_s {
     /* MAX_FIELD_SECTION_SIZE of http3 */

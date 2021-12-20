@@ -47,17 +47,8 @@ xqc_h3_stream_close(xqc_h3_stream_t *h3s)
     h3s->flags |= XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED;
 
     if (h3s->flags & XQC_HTTP3_STREAM_FLAG_CLOSED) {
-        /* application layer might closed h3_stream actively while request stream was still blocked,
-           should free block stream and delete it from h3_connection's blocked_stream list */
-        if (h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED && h3s->blocked_stream) {
-            xqc_log(h3s->log, XQC_LOG_INFO, "|h3 stream actively closed and destroyed while "
-                    "blocked|stream_id:%ui", h3s->stream_id);
-            xqc_h3_conn_remove_blocked_stream(h3s->h3c, h3s->blocked_stream);
-            h3s->blocked_stream = NULL;
-        }
-
         /* transport stream notified its close event before, will destroy h3 stream and notify to
-           application immediately */
+           application immediately, even h3 stream is being blocked now */
         xqc_h3_stream_destroy(h3s);
         return XQC_OK;
 
@@ -72,6 +63,12 @@ xqc_h3_stream_close(xqc_h3_stream_t *h3s)
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3s)
 {
+    /* if h3 stream is still blocked, remove it from h3 connection */
+    if (h3s->blocked_stream) {
+        xqc_h3_conn_remove_blocked_stream(h3s->h3c, h3s->blocked_stream);
+        h3s->blocked_stream = NULL;
+    }
+
     if (h3s->h3r) {
         xqc_h3_request_destroy(h3s->h3r);
     }
@@ -650,7 +647,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 /* decode blocked, shall wait for dynamic table entries from encoder stream */
                 if (blocked) {
                     /* shall not block again */
-                    if (h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED
+                    if ((h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED)
                         || h3s->blocked_stream)
                     {
                         xqc_log(h3s->log, XQC_LOG_ERROR, "|stream blocked twice, peer's qpack "
@@ -1162,7 +1159,7 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s)
      * unblocked again, it will be destroyed after all bytes processed; If the connection is closed,
      * it will be destroyed when h3 connection destroy the blocked stream list.
      */
-    if (h3s->flags & XQC_HTTP3_STREAM_FLAG_CLOSED
+    if ((h3s->flags & XQC_HTTP3_STREAM_FLAG_CLOSED)
         && h3s->blocked_stream == NULL)
     {
         /* QUIC transport stream was closed while h3_stream was being blocked, destroy h3_stream */
@@ -1271,8 +1268,8 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
      * otherwise, the h3_stream shall be destroyed.
      */
     if (!(h3s->flags & XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED)
-        && h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED
-        && h3s->flags & XQC_HTTP3_STREAM_FLAG_READ_EOF)
+        && (h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED)
+        && (h3s->flags & XQC_HTTP3_STREAM_FLAG_READ_EOF))
     {
         /* if stream closed passively, while h3 stream received all data and is waiting for
            encoder stream, will delay the destruction */
@@ -1283,13 +1280,9 @@ xqc_h3_stream_close_notify(xqc_stream_t *stream, void *user_data)
 
     xqc_log(h3s->log, XQC_LOG_DEBUG, "|destroy h3 stream success|h3_stream_type:%d|stream_id:%ui"
             "|blocked:%d", h3s->type, h3s->stream_id,
-            h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED ? 1 : 0);
+            (h3s->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED ? 1 : 0));
 
     /* destroy h3_stream */
-    if (h3s->blocked_stream) {
-        xqc_h3_conn_remove_blocked_stream(h3s->h3c, h3s->blocked_stream);
-        h3s->blocked_stream = NULL;
-    }
     xqc_h3_stream_destroy(h3s);
 
     return XQC_OK;
