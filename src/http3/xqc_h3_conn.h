@@ -10,7 +10,6 @@
 #define XQC_H3_SETTINGS_UNSET XQC_MAX_UINT64_VALUE
 
 
-
 /* Send CONNECTION_CLOSE with err if ret is an h3 retcode */
 #define XQC_H3_CONN_ERR(h3_conn, err, ret) do {                 \
     if (h3_conn->conn->conn_err == 0 && ret <= -XQC_H3_EMALLOC) {\
@@ -23,6 +22,8 @@
 
 
 extern xqc_h3_conn_settings_t default_h3_conn_settings;
+
+
 
 typedef enum {
     /* settings recved, the first frame recved on
@@ -81,10 +82,9 @@ typedef struct xqc_h3_conn_s {
     uint64_t                    block_stream_count;
 
     /* h3 settings */
-    xqc_h3_conn_settings_t      local_h3_conn_settings; //set by user for sending to the peer 
-    xqc_h3_conn_settings_t      peer_h3_conn_settings;  //receive from peer
+    xqc_h3_conn_settings_t      local_h3_conn_settings; /* set by user for sending to the peer */
+    xqc_h3_conn_settings_t      peer_h3_conn_settings;  /* receive from peer */
 } xqc_h3_conn_t;
-
 
 
 extern const xqc_conn_callbacks_t  h3_conn_callbacks;
@@ -123,11 +123,13 @@ xqc_h3_conn_on_settings_entry_received(uint64_t identifier, uint64_t value, void
 xqc_qpack_t *
 xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c);
 
-void
-xqc_h3_conn_delete_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream);
-
-xqc_int_t
+/* add a blocked request stream */
+xqc_h3_blocked_stream_t *
 xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_t ric);
+
+/* remove a blocked request stream when unblocked or abandoned */
+void
+xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream);
 
 xqc_int_t
 xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c);

@@ -23,6 +23,37 @@ xqc_h3_conn_settings_t default_peer_h3_conn_settings = {
 
 
 /**
+ * @brief structure and functions for blocked stream
+ */
+typedef struct xqc_h3_blocked_stream_s {
+    xqc_list_head_t          head;
+    xqc_h3_stream_t         *h3s;
+    uint64_t                 ricnt;
+} xqc_h3_blocked_stream_t;
+
+xqc_h3_blocked_stream_t *
+xqc_h3_blocked_stream_create(xqc_h3_stream_t *h3s, uint64_t ricnt)
+{
+    xqc_h3_blocked_stream_t *blocked_stream = xqc_malloc(sizeof(xqc_h3_blocked_stream_t));
+    xqc_init_list_head(&blocked_stream->head);
+    blocked_stream->h3s = h3s;
+    blocked_stream->ricnt = ricnt;
+    return blocked_stream;
+}
+
+void
+xqc_h3_blocked_stream_free(xqc_h3_blocked_stream_t *blocked_stream)
+{
+    xqc_list_del(&blocked_stream->head);
+    xqc_free(blocked_stream);
+}
+
+/* destroy blocked streams and related h3 stream */
+void
+xqc_h3_conn_destroy_blocked_stream_list(xqc_h3_conn_t *h3c);
+
+
+/**
  * h3_conn external interfaces
  */
 void
@@ -299,6 +330,7 @@ xqc_h3_conn_destroy(xqc_h3_conn_t *h3_conn)
         h3_conn->flags &= ~XQC_H3_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
+    xqc_h3_conn_destroy_blocked_stream_list(h3_conn);
     xqc_qpack_destroy(h3_conn->qpack);
 
     xqc_log(h3_conn->log, XQC_LOG_DEBUG, "|success|");
@@ -480,11 +512,13 @@ xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c)
 }
 
 
-xqc_int_t
+xqc_h3_blocked_stream_t *
 xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_t ric)
 {
     if (h3c->block_stream_count == h3c->local_h3_conn_settings.qpack_blocked_streams) {
-        return XQC_ERROR;
+        xqc_log(h3c->log, XQC_LOG_ERROR, "|exceed max blocked stream limit|limit:%ui",
+                h3c->local_h3_conn_settings.qpack_blocked_streams);
+        return NULL;
     }
 
     xqc_h3_blocked_stream_t *blocked_stream = xqc_h3_blocked_stream_create(h3s, ric);
@@ -502,14 +536,33 @@ xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_
     xqc_list_add_tail(&blocked_stream->head, pos);
     h3c->block_stream_count++;
 
-    return XQC_OK;
+    return blocked_stream;
 }
 
 void
-xqc_h3_conn_delete_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream)
+xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream)
 {
     xqc_h3_blocked_stream_free(blocked_stream);
     h3c->block_stream_count--;
+}
+
+void
+xqc_h3_conn_destroy_blocked_stream_list(xqc_h3_conn_t *h3c)
+{
+    xqc_list_head_t *pos, *next;
+
+    xqc_list_for_each_safe(pos ,next, &h3c->block_stream_head) {
+        xqc_h3_blocked_stream_t *blocked_stream =
+                xqc_list_entry(pos, xqc_h3_blocked_stream_t, head);
+
+        /**
+         * when destroying h3 connection, and a h3 stream is still blocked, it means that Transport
+         * stream was destroyed while h3 stream is still waiting for encoder instructions, but
+         * connection was closed actively or some reason else.
+         */
+        xqc_h3_stream_t *h3s = blocked_stream->h3s;
+        xqc_h3_stream_destroy(h3s);
+    }
 }
 
 xqc_int_t
@@ -521,7 +574,7 @@ xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c)
         xqc_h3_blocked_stream_t *blocked_stream = 
             xqc_list_entry(pos, xqc_h3_blocked_stream_t, head);
         if (blocked_stream->ricnt <= known_received_count) {
-            xqc_int_t ret = xqc_h3_stream_process_blocked_stream(blocked_stream);
+            xqc_int_t ret = xqc_h3_stream_process_blocked_stream(blocked_stream->h3s);
             if (ret < 0) {
                 return ret;
             }

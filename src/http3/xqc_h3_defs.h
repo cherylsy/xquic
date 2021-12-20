@@ -39,4 +39,6 @@ typedef enum {
 } xqc_h3_settings_id;
 
 
+typedef struct xqc_h3_blocked_stream_s xqc_h3_blocked_stream_t;
+
 #endif

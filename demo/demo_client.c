@@ -851,6 +851,8 @@ xqc_demo_cli_h3_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_no
         user_stream->recv_body_len += read;
     } while (read > 0 && !fin);
 
+    printf("xqc_h3_request_recv_body size %zd, fin:%d\n", read, fin);
+
     if (fin) {
         user_stream->recv_fin = 1;
         xqc_request_stats_t stats;

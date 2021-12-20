@@ -1363,6 +1363,8 @@ xqc_demo_svr_init_xquic_engine(xqc_demo_svr_ctx_t *ctx, xqc_demo_svr_args_t *arg
         return XQC_ERROR;
     }
 
+    config.cid_len = 12;
+
     switch (args->env_cfg.log_level)
     {
     case 'd':
