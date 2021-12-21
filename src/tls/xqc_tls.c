@@ -7,6 +7,21 @@
 #include "src/common/xqc_common.h"
 #include <openssl/rand.h>
 
+
+typedef enum xqc_tls_flag_e {
+    /* initial state */
+    XQC_TLS_FLAG_NONE                   = 0,
+
+    /* received peer's transport parameter. this is used for transport parameter callback */
+    XQC_TLS_FLAG_TRANSPORT_PARAM_RCVD   = 1 << 0,
+
+    /* handshake completed flag. this is set when ssl library report handshake completion,
+       and is used for process crypto data */
+    XQC_TLS_FLAG_HSK_COMPLETED          = 1 << 1,
+
+} xqc_tls_flag_t;
+
+
 typedef struct xqc_tls_s {
     /* tls context */
     xqc_tls_ctx_t              *ctx;
@@ -14,6 +29,7 @@ typedef struct xqc_tls_s {
     /* SSL handler */
     SSL                        *ssl;
 
+    /* tls type. instance of client and server got different behaviour */
     xqc_tls_type_t              type;
 
     /* cert verify config */
@@ -35,13 +51,16 @@ typedef struct xqc_tls_s {
     /* whether client used resumption. aka, whether client inputs session ticket */
     xqc_bool_t                  resumption;
 
-    xqc_bool_t                  hsk_completed;
+    /* tls state flag */
+    xqc_tls_flag_t              flag;
 
+    /* quic version. used to decide protection salt */
     xqc_proto_version_t         version;
 
 } xqc_tls_t;
 
 
+/* quic method callback functions for ssl library */
 SSL_QUIC_METHOD xqc_ssl_quic_method;
 
 
@@ -179,22 +198,6 @@ xqc_tls_set_local_transport_params(xqc_tls_t *tls, xqc_transport_params_t *tp)
     return XQC_OK;
 }
 
-static inline int
-xqc_check_numeric_host(const char *hostname, int family)
-{
-  uint8_t dst[32];
-  int ret = inet_pton(family, hostname, dst); // ip transfer success return 1, else return 0 or -1
-  return (ret == 1);
-}
-
-// if host is number ,return 1, else return 0
-static inline int
-xqc_numeric_host(const char *hostname)
-{
-  return xqc_check_numeric_host(hostname, AF_INET) || xqc_check_numeric_host(hostname, AF_INET6);
-}
-
-
 xqc_int_t
 xqc_tls_init_client_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
 {
@@ -204,9 +207,8 @@ xqc_tls_init_client_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
     /* configure ssl as client */
     SSL_set_connect_state(ssl);
 
-    /* If remote host is numeric address, send "localhost" as SNI. when using numeric address,
-       client shall disable cert verify, in case it might fail cert verification */
-    if (xqc_numeric_host(cfg->hostname)) {
+    /* If remote host is NULL, send "localhost" as SNI. */
+    if (NULL == cfg->hostname || 0 == strlen(cfg->hostname)) {
         SSL_set_tlsext_host_name(ssl, "localhost");
 
     } else {
@@ -277,7 +279,8 @@ xqc_tls_create_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
     if (ssl == NULL) {
         xqc_log(tls->log, XQC_LOG_ERROR, "|SSL_new return null|%s|",
                 ERR_error_string(ERR_get_error(), NULL));
-        return -XQC_TLS_INTERNAL;
+        ret = -XQC_TLS_INTERNAL;
+        goto end;
     }
     tls->ssl = ssl;
 
@@ -289,14 +292,16 @@ xqc_tls_create_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
     if (ssl_ret != XQC_SSL_SUCCESS) {
         xqc_log(tls->log, XQC_LOG_ERROR, "|ssl set app data error|%s|",
                 ERR_error_string(ERR_get_error(), NULL));
-        return -XQC_TLS_INTERNAL;
+        ret = -XQC_TLS_INTERNAL;
+        goto end;
     }
 
     ssl_ret = SSL_set_quic_method(ssl, &xqc_ssl_quic_method);
     if (ssl_ret != XQC_SSL_SUCCESS) {
         xqc_log(tls->log, XQC_LOG_ERROR, "|ssl set quic method error|",
                 ERR_error_string(ERR_get_error(), NULL));
-        return -XQC_TLS_INTERNAL;
+        ret = -XQC_TLS_INTERNAL;
+        goto end;
     }
 
     /* set transport parameter */
@@ -321,6 +326,8 @@ end:
 xqc_tls_t *
 xqc_tls_create(xqc_tls_ctx_t *ctx, xqc_tls_config_t *cfg, xqc_log_t *log, void *user_data)
 {
+    xqc_int_t ret;
+
     xqc_tls_t *tls = xqc_calloc(1, sizeof(xqc_tls_t));
     if (NULL == tls) {
         return NULL;
@@ -337,7 +344,10 @@ xqc_tls_create(xqc_tls_ctx_t *ctx, xqc_tls_config_t *cfg, xqc_log_t *log, void *
     tls->no_crypto = cfg->no_crypto_flag;
 
     /* init ssl with input config */
-    xqc_tls_create_ssl(tls, cfg);
+    ret = xqc_tls_create_ssl(tls, cfg);
+    if (XQC_OK != ret) {
+        goto fail;
+    }
 
     return tls;
 
@@ -399,7 +409,7 @@ xqc_tls_do_handshake(xqc_tls_t *tls)
     }
 
     /* SSL_do_handshake returns 1 when handshake has completed or False Started */
-    tls->hsk_completed = XQC_TRUE;
+    tls->flag |= XQC_TLS_FLAG_HSK_COMPLETED;
     if (tls->cbs->hsk_completed_cb) {
         tls->cbs->hsk_completed_cb(tls->user_data);
     }
@@ -559,7 +569,7 @@ xqc_tls_process_crypto_data(xqc_tls_t *tls, xqc_encrypt_level_t level,
         return -XQC_TLS_INTERNAL;
     }
 
-    if (tls->hsk_completed != XQC_TRUE) {
+    if (!(tls->flag & XQC_TLS_FLAG_HSK_COMPLETED)) {
         /* handshake not completed, continue handshake */
         if (xqc_tls_do_handshake(tls) != XQC_OK) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|xqc_do_handshake failed |");
@@ -779,7 +789,7 @@ xqc_ssl_session_ticket_key_cb(SSL *ssl, uint8_t *key_name, uint8_t *iv,
     }
 
     if (encrypt == 1) {
-        /* encrypt session ticket */
+        /* encrypt session ticket, returns 1 on success and -1 on error */
         if (key->size == 48) {
             cipher = EVP_aes_128_cbc();
             size = 16;
@@ -807,10 +817,11 @@ xqc_ssl_session_ticket_key_cb(SSL *ssl, uint8_t *key_name, uint8_t *iv,
         memcpy(key_name, key->name, 16);
 
     } else {
-        /* decrypt session ticket */
+        /* decrypt session ticket, returns -1 to abort the handshake, 0 if decrypting the ticket
+           failed, and 1 or 2 on success */
         if (memcmp(key_name, key->name, 16) != 0) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|ssl session ticket decrypt, key name not match|");
-            return 0;
+            return -1;
         }
 
         if (key -> size == 48) {
@@ -824,12 +835,12 @@ xqc_ssl_session_ticket_key_cb(SSL *ssl, uint8_t *key_name, uint8_t *iv,
 
         if (HMAC_Init_ex(hmac_ctx, key->hmac_key, size, digest, NULL) != 1) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|HMAC_Init_ex() failed|");
-            return -1;
+            return 0;
         }
 
         if (EVP_DecryptInit_ex(cipher_ctx, cipher, NULL, key->aes_key, iv) != 1) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|EVP_DecryptInit_ex() failed|");
-            return -1;
+            return 0;
         }
     }
 
@@ -845,24 +856,22 @@ xqc_ssl_new_session_cb(SSL *ssl, SSL_SESSION *session)
     /* check if early data is enabled */
     if (!xqc_ssl_session_is_early_data_enabled(session)) {
         xqc_log(tls->log, XQC_LOG_ERROR, "|early data is not enabled|");
-        return -1;
+        goto end;
     }
 
-    int ret = 0;
     if (tls->cbs->session_cb != NULL) {
         char *data = NULL;
 
         BIO *bio = BIO_new(BIO_s_mem());
         if (bio == NULL) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|save new session error|");
-            return -1;
+            goto end;
         }
 
         PEM_write_bio_SSL_SESSION(bio, session);
         size_t data_len = BIO_get_mem_data(bio,  &data);
         if (data_len == 0 || data == NULL) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|save new session error|");
-            ret = -1;
 
         } else {
             /* callback to upper layer */
@@ -872,7 +881,9 @@ xqc_ssl_new_session_cb(SSL *ssl, SSL_SESSION *session)
         BIO_free(bio);
     }
 
-    return ret;
+end:
+    /* return one for taking ownership and zero otherwise */
+    return 0;
 }
 
 
