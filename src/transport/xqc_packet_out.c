@@ -353,6 +353,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                 pkt_type = XQC_PTYPE_SHORT_HEADER;
             }
 
+#if 0
             xqc_list_for_each_safe(pos, next, &conn->conn_send_ctl->ctl_send_packets) {
                 packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
                 if (packet_out->po_pkt.pkt_type == pkt_type) {
@@ -370,6 +371,8 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                 }
                 goto write_new;
             }
+#endif
+
 
 write_new:
             packet_out = xqc_write_new_packet(conn, pkt_type);
