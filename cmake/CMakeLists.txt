@@ -138,7 +138,9 @@ set(
     "src/transport/xqc_utils.c"
     "src/transport/xqc_multipath.c"
     "src/transport/xqc_defs.c"
-    )
+    "src/transport/xqc_transport_params.c"
+
+)
 
 
 set (
@@ -148,7 +150,6 @@ set (
     "src/tls/xqc_hkdf.c"
     "src/tls/xqc_null_crypto.c"
     "src/tls/xqc_crypto.c"
-    "src/tls/xqc_transport_params.c"
     "src/tls/xqc_tls_ctx.c"
     "src/tls/xqc_tls.c"
 )

@@ -314,7 +314,7 @@ xqc_tt_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data, size_t len
     return XQC_OK;
 }
 
-void xqc_tt_transport_params_cb(const xqc_transport_params_t *params, void *user_data)
+void xqc_tt_transport_params_cb(const uint8_t *tp, size_t len, void *user_data)
 {
 }
 
@@ -413,7 +413,12 @@ void xqc_test_tls_generic()
     tls_config.hostname = "127.0.0.1";
     tls_config.alpn = "transport";
     tls_config.no_crypto_flag = 0;
-    xqc_conn_get_local_transport_params(test_conn, &tls_config.trans_params);
+
+    /* encode local transport params */
+    char tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+    tls_config.trans_params = tp_buf;
+    xqc_conn_encode_local_tp(test_conn, tls_config.trans_params,
+                             XQC_MAX_TRANSPORT_PARAM_BUF_LEN, &tls_config.trans_params_len);
 
     /* create client tls */
     xqc_tls_test_buff_t *ttbuf_cli = xqc_create_tls_test_buffer();
@@ -578,7 +583,12 @@ xqc_test_tls_multiple_crypto_data()
     tls_config.hostname = "127.0.0.1";
     tls_config.alpn = "transport";
     tls_config.no_crypto_flag = 0;
-    xqc_conn_get_local_transport_params(test_conn, &tls_config.trans_params);
+
+    /* encode local transport params */
+    char tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+    tls_config.trans_params = tp_buf;
+    xqc_conn_encode_local_tp(test_conn, tls_config.trans_params,
+                             XQC_MAX_TRANSPORT_PARAM_BUF_LEN, &tls_config.trans_params_len);
 
     /* create client tls */
     xqc_tls_test_buff_t *ttbuf_cli = xqc_create_tls_test_buffer();
@@ -671,7 +681,12 @@ xqc_test_tls_process_truncated_crypto_handshake()
     tls_config.hostname = "127.0.0.1";
     tls_config.alpn = "transport";
     tls_config.no_crypto_flag = 0;
-    xqc_conn_get_local_transport_params(test_conn, &tls_config.trans_params);
+
+    /* encode local transport params */
+    char tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+    tls_config.trans_params = tp_buf;
+    xqc_conn_encode_local_tp(test_conn, tls_config.trans_params,
+                             XQC_MAX_TRANSPORT_PARAM_BUF_LEN, &tls_config.trans_params_len);
 
     /* create client tls */
     xqc_tls_test_buff_t *ttbuf_cli = xqc_create_tls_test_buffer();

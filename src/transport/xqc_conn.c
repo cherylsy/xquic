@@ -23,7 +23,6 @@
 #include "src/transport/xqc_wakeup_pq.h"
 #include "src/transport/xqc_multipath.h"
 #include "src/tls/xqc_tls.h"
-#include "src/tls/xqc_transport_params.h"
 
 
 xqc_conn_settings_t default_conn_settings = {
@@ -340,13 +339,46 @@ fail:
     return NULL;
 }
 
+xqc_int_t
+xqc_conn_encode_local_tp(xqc_connection_t *conn, uint8_t *dst, size_t dst_cap, size_t *dst_len)
+{
+    xqc_transport_params_t params;
+    memset(&params, 0, sizeof(xqc_transport_params_t));
+
+    xqc_transport_params_type_t tp_type = 
+        (conn->conn_type == XQC_CONN_TYPE_CLIENT ? XQC_TP_TYPE_CLIENT_HELLO :
+            XQC_TP_TYPE_ENCRYPTED_EXTENSIONS);
+
+    /* get local transport params */
+    xqc_int_t ret = xqc_conn_get_local_transport_params(conn, &params);
+    if (ret != XQC_OK) {
+        return ret;
+    }
+
+    /* serialize transport params */
+    ret = xqc_encode_transport_params(&params, tp_type, dst, dst_cap, dst_len);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|encode tls trans param error|ret:%d", ret);
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
 
 xqc_int_t
 xqc_conn_create_server_tls(xqc_connection_t *conn)
 {
+    xqc_int_t ret;
+
     /* init cfg */
     xqc_tls_config_t cfg = {0};
-    xqc_int_t ret = xqc_conn_get_local_transport_params(conn, &cfg.trans_params);
+    char tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+    cfg.trans_params = tp_buf;
+
+    /* encode local transport parameters, and set to tls config */
+    ret = xqc_conn_encode_local_tp(conn, cfg.trans_params,
+                                   XQC_MAX_TRANSPORT_PARAM_BUF_LEN, &cfg.trans_params_len);
     if (ret != XQC_OK) {
         return ret;
     }
@@ -2784,7 +2816,8 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params
     params->stateless_reset_token_present = settings->stateless_reset_token_present;
     if (settings->stateless_reset_token_present) {
         memcpy(params->stateless_reset_token, settings->stateless_reset_token,
-              sizeof(params->stateless_reset_token));
+               sizeof(params->stateless_reset_token));
+
     } else {
         memset(params->stateless_reset_token, 0, sizeof(params->stateless_reset_token));
     }
@@ -2847,50 +2880,58 @@ xqc_conn_check_transport_params(xqc_connection_t *conn, const xqc_transport_para
 }
 
 void
-xqc_conn_tls_transport_params_cb(const xqc_transport_params_t *params, void *user_data)
+xqc_conn_tls_transport_params_cb(const uint8_t *tp, size_t len, void *user_data)
 {
     xqc_int_t ret;
-    xqc_connection_t *conn = (xqc_connection_t *)user_data;
+    xqc_transport_params_t params;
 
-    ret = xqc_conn_check_transport_params(conn, params);
+    xqc_connection_t *conn = (xqc_connection_t *)user_data;
+    xqc_transport_params_type_t tp_type = (conn->conn_type == XQC_CONN_TYPE_CLIENT 
+        ? XQC_TP_TYPE_ENCRYPTED_EXTENSIONS : XQC_TP_TYPE_CLIENT_HELLO);
+
+    memset(&params, 0, sizeof(xqc_transport_params_t));
+
+    /* decode peer's transport parameter */
+    ret = xqc_decode_transport_params(&params, tp_type, tp, len);
     if (ret != XQC_OK) {
         XQC_CONN_ERR(conn, TRA_TRANSPORT_PARAMETER_ERROR);
-    }
-
-    switch (conn->conn_type) {
-
-    case XQC_CONN_TYPE_CLIENT:
-        ret = xqc_conn_set_remote_transport_params(conn, params, XQC_TP_TYPE_ENCRYPTED_EXTENSIONS);
-        if (ret != XQC_OK) {
-            xqc_log(conn->log, XQC_LOG_ERROR,
-                    "|xqc_conn_set_remote_transport_params failed|ret:%d|", ret);
-            return;
-        }
-        break;
-    
-    case XQC_CONN_TYPE_SERVER:
-        ret = xqc_conn_set_remote_transport_params(conn, params, XQC_TP_TYPE_CLIENT_HELLO);
-        if (ret != XQC_OK) {
-            xqc_log(conn->log, XQC_LOG_ERROR,
-                    "|xqc_conn_set_remote_transport_params failed|ret:%d|", ret);
-            return;
-        }
-
-        /* save no crypto flag */
-        if (params->no_crypto == 1) {
-            conn->remote_settings.no_crypto = 1;
-            conn->local_settings.no_crypto = 1;
-        }
-        break;
-
-    default:
-        xqc_log(conn->log, XQC_ERROR, "|illegal connection type:%d|", conn->conn_type);
         return;
     }
 
-    xqc_write_transport_params(conn, params);
+    /* validate peer's tranport parameter */
+    ret = xqc_conn_check_transport_params(conn, &params);
+    if (ret != XQC_OK) {
+        XQC_CONN_ERR(conn, TRA_TRANSPORT_PARAMETER_ERROR);
+        return;
+    }
 
-    return;
+    /* set remote transport param */
+    ret = xqc_conn_set_remote_transport_params(conn, &params, tp_type);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|xqc_conn_set_remote_transport_params failed|ret:%d|", ret);
+        XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+        return;
+    }
+
+    /* save no crypto flag */
+    if (params.no_crypto == 1) {
+        conn->remote_settings.no_crypto = 1;
+        conn->local_settings.no_crypto = 1;
+        xqc_tls_set_no_crypto(conn->tls);
+    }
+
+    /* notify application layer to save tranport parameter */
+    if (conn->transport_cbs.save_tp_cb) {
+        char tp_buf[8192] = {0};
+        ssize_t written = xqc_write_transport_params(tp_buf, sizeof(tp_buf), &params);
+        if (written < 0) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|write transport params error|");
+            return;
+        }
+
+        conn->transport_cbs.save_tp_cb(tp_buf, written, conn->user_data);
+    }
 }
 
 
@@ -2992,99 +3033,6 @@ xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
     dest->enable_multipath = src->enable_multipath;
 }
 
-
-xqc_int_t
-xqc_read_transport_params(char *tp_data, size_t tp_data_len, xqc_transport_params_t *params)
-{
-    if (strlen(tp_data) != tp_data_len) {
-        tp_data[tp_data_len] = '\0';
-    }
-
-    char *p = tp_data;
-    while (*p != '\0') {
-        if (*p == ' ') {
-            p++;
-        }
-
-        if (strncmp(p, "initial_max_streams_bidi=",
-                    xqc_lengthof("initial_max_streams_bidi=")) == 0)
-        {
-            p += xqc_lengthof("initial_max_streams_bidi=");
-            params->initial_max_streams_bidi = strtoul(p, NULL, 10);
-
-        } else if (strncmp(p, "initial_max_streams_uni=",
-                           xqc_lengthof("initial_max_streams_uni=")) == 0)
-        {
-            p += xqc_lengthof("initial_max_streams_uni=");
-            params->initial_max_streams_uni = strtoul(p, NULL, 10);
-
-        } else if (strncmp(p, "initial_max_stream_data_bidi_local=",
-                           xqc_lengthof("initial_max_stream_data_bidi_local=")) == 0)
-        {
-            p += xqc_lengthof("initial_max_stream_data_bidi_local=");
-            params->initial_max_stream_data_bidi_local = strtoul(p, NULL, 10);
-
-        } else if (strncmp(p, "initial_max_stream_data_bidi_remote=",
-                           xqc_lengthof("initial_max_stream_data_bidi_remote=")) == 0)
-        {
-            p += xqc_lengthof("initial_max_stream_data_bidi_remote=");
-            params->initial_max_stream_data_bidi_remote = strtoul(p, NULL, 10);
-
-        } else if (strncmp(p, "initial_max_stream_data_uni=",
-                           xqc_lengthof("initial_max_stream_data_uni=")) == 0)
-        {
-            p += xqc_lengthof("initial_max_stream_data_uni=");
-            params->initial_max_stream_data_uni = strtoul(p, NULL, 10);
-
-        } else if (strncmp(p, "initial_max_data=", xqc_lengthof("initial_max_data=")) == 0) {
-            p += xqc_lengthof("initial_max_data=");
-            params->initial_max_data = strtoul(p, NULL, 10);
-
-        } else if (strncmp(p, "max_ack_delay=", xqc_lengthof("max_ack_delay=")) == 0) {
-            p += xqc_lengthof("max_ack_delay=");
-            params->max_ack_delay = strtoul(p, NULL, 10);
-        }
-
-        p = strchr(p, '\n');
-        if (p == NULL) {
-            return 0;
-        }
-        p++;
-    }
-
-    return XQC_OK;
-}
-
-
-xqc_int_t
-xqc_write_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params)
-{
-    if (conn->transport_cbs.save_tp_cb != NULL) {
-        char tp_buf[8192] = {0};
-        int tp_data_len = snprintf(tp_buf, sizeof(tp_buf), "initial_max_streams_bidi=%"PRIu64"\n"
-                                "initial_max_streams_uni=%"PRIu64"\n"
-                                "initial_max_stream_data_bidi_local=%"PRIu64"\n"
-                                "initial_max_stream_data_bidi_remote=%"PRIu64"\n"
-                                "initial_max_stream_data_uni=%"PRIu64"\n"
-                                "initial_max_data=%"PRIu64"\n"
-                                "max_ack_delay=%"PRIu64"\n",
-                                params->initial_max_streams_bidi,
-                                params->initial_max_streams_uni,
-                                params->initial_max_stream_data_bidi_local,
-                                params->initial_max_stream_data_bidi_remote,
-                                params->initial_max_stream_data_uni,
-                                params->initial_max_data,
-                                params->max_ack_delay);
-        if (tp_data_len < 0) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|write tp data error|ret code:%d|", tp_data_len);
-            return -XQC_ESYS;
-        }
-
-        conn->transport_cbs.save_tp_cb(tp_buf, tp_data_len, conn->user_data);
-    }
-
-    return XQC_OK;
-}
 
 xqc_int_t
 xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn,

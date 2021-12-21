@@ -3,7 +3,6 @@
 #include "xqc_ssl_if.h"
 #include "xqc_ssl_cbs.h"
 #include "xqc_crypto.h"
-#include "xqc_transport_params.h"
 #include "src/common/xqc_common.h"
 #include <openssl/rand.h>
 
@@ -169,6 +168,7 @@ xqc_tls_set_alpn(SSL *ssl, const char *alpn)
     return XQC_OK;
 }
 
+#if 0
 xqc_int_t
 xqc_tls_set_local_transport_params(xqc_tls_t *tls, xqc_transport_params_t *tp)
 {
@@ -197,6 +197,7 @@ xqc_tls_set_local_transport_params(xqc_tls_t *tls, xqc_transport_params_t *tp)
 
     return XQC_OK;
 }
+#endif
 
 xqc_int_t
 xqc_tls_init_client_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
@@ -304,11 +305,15 @@ xqc_tls_create_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
         goto end;
     }
 
-    /* set transport parameter */
-    ret = xqc_tls_set_local_transport_params(tls, &cfg->trans_params);
-    if (ret != XQC_OK) {
+    /* set local transport parameter */
+    ssl_ret = SSL_set_quic_transport_params(tls->ssl, cfg->trans_params, cfg->trans_params_len);
+    if (ssl_ret != XQC_SSL_SUCCESS) {
+        xqc_log(tls->log, XQC_LOG_ERROR, "|set transport params error|%s|",
+                ERR_error_string(ERR_get_error(), NULL));
+        ret = -XQC_TLS_INTERNAL;
         goto end;
     }
+
 
     /* the difference of initialization between client and server */
     if (tls->type == XQC_TLS_TYPE_SERVER) {
@@ -357,41 +362,30 @@ fail:
 }
 
 
-xqc_int_t
-xqc_tls_on_recv_tp(xqc_tls_t *tls)
+/* try to get trasnport parameter bytes from ssl and notify to Transport layer */
+void
+xqc_tls_process_trans_param(xqc_tls_t *tls)
 {
-    xqc_transport_params_t tp;
-    memset(&tp, 0, sizeof(xqc_transport_params_t));
-
-    xqc_transport_params_type_t tp_type;
     const uint8_t *peer_tp;
     size_t tp_len = 0;
 
+    if (tls->flag & XQC_TLS_FLAG_TRANSPORT_PARAM_RCVD) {
+        /* transport parameter already known, need no more process */
+        return;
+    }
+
+    /* get buffer */
     SSL_get_peer_quic_transport_params(tls->ssl, &peer_tp, &tp_len);
     if (tp_len <= 0) {
-        return -XQC_TLS_INTERNAL;
+        return;
     }
 
-    tp_type = (tls->type == XQC_TLS_TYPE_CLIENT 
-        ? XQC_TP_TYPE_ENCRYPTED_EXTENSIONS : XQC_TP_TYPE_CLIENT_HELLO);
-
-    /* decode peer's transport parameter */
-    xqc_int_t ret = xqc_decode_transport_params(&tp, tp_type, peer_tp, tp_len);
-    if (ret != XQC_OK) {
-        return ret;
-    }
-
-    /* callback to upper layer */
+    /* callback to Transport layer */
     if (tls->cbs->tp_cb) {
-        tls->cbs->tp_cb(&tp, tls->user_data);
+        tls->cbs->tp_cb(peer_tp, tp_len, tls->user_data);
     }
 
-    /* set tls no_crypto flag */
-    if (tls->type == XQC_TLS_TYPE_SERVER && tp.no_crypto == 1) {
-        tls->no_crypto = XQC_TRUE;
-    }
-
-    return XQC_OK;
+    tls->flag |= XQC_TLS_FLAG_TRANSPORT_PARAM_RCVD;
 }
 
 xqc_int_t
@@ -718,6 +712,12 @@ xqc_tls_aead_tag_len(xqc_tls_t *tls, xqc_encrypt_level_t level)
     return xqc_crypto_aead_tag_len(crypto);
 }
 
+void
+xqc_tls_set_no_crypto(xqc_tls_t *tls)
+{
+    tls->no_crypto = XQC_TRUE;
+}
+
 
 /**
  * ============================================================================
@@ -958,29 +958,6 @@ end:
  * ============================================================================
  */
 
-xqc_bool_t
-xqc_tls_is_peer_tp_ready(xqc_tls_type_t type, enum ssl_encryption_level_t ready_key_level)
-{
-    /*
-     * client's tp is from ClientHello, which means server have successfully processed initial
-     * level, and enters handshake level, equivalent to server have get its handshake level
-     * read/write secret.
-     * 
-     * server's tp is from ServerHello, which is from the Handshake packet. which means client
-     * have successfully processed handshake level and enters application level, aka, applicaton
-     * level read/write secret is ready.
-     */
-
-    if (type == XQC_TLS_TYPE_SERVER) {
-        return ready_key_level == ssl_encryption_handshake
-            || ready_key_level == ssl_encryption_early_data;
-
-    } else { /* XQC_TLS_TYPE_CLIENT */
-        return ready_key_level == ssl_encryption_application;
-    }
-}
-
-
 int 
 xqc_tls_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     const SSL_CIPHER *cipher, const uint8_t *secret, size_t secret_len)
@@ -988,14 +965,8 @@ xqc_tls_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
     xqc_int_t ret;
     xqc_tls_t *tls = SSL_get_app_data(ssl);
 
-     /* do tp callback */
-    if (xqc_tls_is_peer_tp_ready(tls->type, (enum ssl_encryption_level_t)level)) {
-        xqc_int_t ret = xqc_tls_on_recv_tp(tls);
-        if (ret != XQC_OK) {
-            xqc_log(tls->log, XQC_LOG_ERROR, "|handle peer's transport parameter error|");
-            return ret;
-        }
-    }
+    /* try to process transport parameter if ssl parsed the quic_transport_params extension */
+    xqc_tls_process_trans_param(tls);
 
     /* create crypto instance if not created */
     if (NULL == tls->crypto[level]) {
@@ -1026,14 +997,8 @@ xqc_tls_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
     xqc_int_t ret;
     xqc_tls_t *tls = SSL_get_app_data(ssl);
 
-     /* do tp callback */
-    if (xqc_tls_is_peer_tp_ready(tls->type, (enum ssl_encryption_level_t)level)) {
-        xqc_int_t ret = xqc_tls_on_recv_tp(tls);
-        if (ret != XQC_OK) {
-            xqc_log(tls->log, XQC_LOG_ERROR, "|handle peer's transport parameter error|");
-            return ret;
-        }
-    }
+    /* try to process transport parameter if ssl parsed the quic_transport_params extension */
+    xqc_tls_process_trans_param(tls);
 
     /* create crypto instance if not created */
     if (NULL == tls->crypto[level]) {

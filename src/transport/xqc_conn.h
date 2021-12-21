@@ -12,6 +12,7 @@
 #include "src/transport/xqc_packet_out.h"
 #include "src/transport/xqc_recv_record.h"
 #include "src/transport/xqc_defs.h"
+#include "src/transport/xqc_transport_params.h"
 #include "src/tls/xqc_tls.h"
 
 
@@ -418,15 +419,16 @@ xqc_int_t xqc_conn_set_cid_retired_ts(xqc_connection_t *conn, xqc_cid_inner_t *i
 
 xqc_bool_t xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
 xqc_bool_t xqc_conn_has_hsk_keys(xqc_connection_t *c);
-void *xqc_conn_get_user_data(xqc_connection_t *c);
+void * xqc_conn_get_user_data(xqc_connection_t *c);
 
 /* transport parameters functions */
+xqc_int_t xqc_conn_get_local_transport_params(xqc_connection_t *conn,
+    xqc_transport_params_t *params);
+xqc_int_t xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn,
+    const xqc_transport_params_t *params);
 
-xqc_int_t xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params_t *params);
-xqc_int_t xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
-
-xqc_int_t xqc_read_transport_params(char *tp_data, size_t tp_data_len, xqc_transport_params_t *params);
-xqc_int_t xqc_write_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
+xqc_int_t xqc_conn_encode_local_tp(xqc_connection_t *conn, uint8_t *dst, size_t dst_cap,
+    size_t *dst_len);
 
 xqc_int_t xqc_conn_on_recv_retry(xqc_connection_t *conn);
 

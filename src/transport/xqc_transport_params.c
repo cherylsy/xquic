@@ -1,8 +1,11 @@
-
 #include "xqc_transport_params.h"
 #include "src/common/utils/vint/xqc_variable_len_int.h"
 #include "src/common/xqc_str.h"
+#include "src/transport/xqc_defs.h"
 #include "src/transport/xqc_cid.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <inttypes.h>
 
 
 #define XQC_PREFERRED_ADDR_IPV4_LEN         4
@@ -720,4 +723,92 @@ xqc_decode_transport_params(xqc_transport_params_t *params,
     }
 
     return XQC_OK;
+}
+
+
+xqc_int_t
+xqc_read_transport_params(char *tp_data, size_t tp_data_len, xqc_transport_params_t *params)
+{
+    if (strlen(tp_data) != tp_data_len) {
+        tp_data[tp_data_len] = '\0';
+    }
+
+    char *p = tp_data;
+    while (*p != '\0') {
+        if (*p == ' ') {
+            p++;
+        }
+
+        if (strncmp(p, "initial_max_streams_bidi=",
+                    xqc_lengthof("initial_max_streams_bidi=")) == 0)
+        {
+            p += xqc_lengthof("initial_max_streams_bidi=");
+            params->initial_max_streams_bidi = strtoul(p, NULL, 10);
+
+        } else if (strncmp(p, "initial_max_streams_uni=",
+                           xqc_lengthof("initial_max_streams_uni=")) == 0)
+        {
+            p += xqc_lengthof("initial_max_streams_uni=");
+            params->initial_max_streams_uni = strtoul(p, NULL, 10);
+
+        } else if (strncmp(p, "initial_max_stream_data_bidi_local=",
+                           xqc_lengthof("initial_max_stream_data_bidi_local=")) == 0)
+        {
+            p += xqc_lengthof("initial_max_stream_data_bidi_local=");
+            params->initial_max_stream_data_bidi_local = strtoul(p, NULL, 10);
+
+        } else if (strncmp(p, "initial_max_stream_data_bidi_remote=",
+                           xqc_lengthof("initial_max_stream_data_bidi_remote=")) == 0)
+        {
+            p += xqc_lengthof("initial_max_stream_data_bidi_remote=");
+            params->initial_max_stream_data_bidi_remote = strtoul(p, NULL, 10);
+
+        } else if (strncmp(p, "initial_max_stream_data_uni=",
+                           xqc_lengthof("initial_max_stream_data_uni=")) == 0)
+        {
+            p += xqc_lengthof("initial_max_stream_data_uni=");
+            params->initial_max_stream_data_uni = strtoul(p, NULL, 10);
+
+        } else if (strncmp(p, "initial_max_data=", xqc_lengthof("initial_max_data=")) == 0) {
+            p += xqc_lengthof("initial_max_data=");
+            params->initial_max_data = strtoul(p, NULL, 10);
+
+        } else if (strncmp(p, "max_ack_delay=", xqc_lengthof("max_ack_delay=")) == 0) {
+            p += xqc_lengthof("max_ack_delay=");
+            params->max_ack_delay = strtoul(p, NULL, 10);
+        }
+
+        p = strchr(p, '\n');
+        if (p == NULL) {
+            return 0;
+        }
+        p++;
+    }
+
+    return XQC_OK;
+}
+
+
+ssize_t
+xqc_write_transport_params(char *tp_buf, size_t cap, const xqc_transport_params_t *params)
+{
+    int tp_data_len = snprintf(tp_buf, cap, "initial_max_streams_bidi=%"PRIu64"\n"
+                               "initial_max_streams_uni=%"PRIu64"\n"
+                               "initial_max_stream_data_bidi_local=%"PRIu64"\n"
+                               "initial_max_stream_data_bidi_remote=%"PRIu64"\n"
+                               "initial_max_stream_data_uni=%"PRIu64"\n"
+                               "initial_max_data=%"PRIu64"\n"
+                               "max_ack_delay=%"PRIu64"\n",
+                               params->initial_max_streams_bidi,
+                               params->initial_max_streams_uni,
+                               params->initial_max_stream_data_bidi_local,
+                               params->initial_max_stream_data_bidi_remote,
+                               params->initial_max_stream_data_uni,
+                               params->initial_max_data,
+                               params->max_ack_delay);
+    if (tp_data_len < 0) {
+        return -XQC_ESYS;
+    }
+
+    return tp_data_len;
 }

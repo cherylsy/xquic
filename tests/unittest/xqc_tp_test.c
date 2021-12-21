@@ -2,7 +2,7 @@
 #include "src/tls/xqc_tls_common.h"
 #include "xqc_common_test.h"
 #include "src/transport/xqc_conn.h"
-#include "src/tls/xqc_transport_params.h"
+#include "src/transport/xqc_transport_params.h"
 
 #include <CUnit/CUnit.h>
 

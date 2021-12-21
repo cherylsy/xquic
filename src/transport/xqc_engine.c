@@ -20,7 +20,6 @@
 #include "src/transport/xqc_utils.h"
 #include "src/http3/xqc_h3_conn.h"
 #include "src/tls/xqc_tls.h"
-#include "src/tls/xqc_transport_params.h"
 
 
 extern const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb;

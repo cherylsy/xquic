@@ -26,10 +26,6 @@
 
 #define XQC_SESSION_DEFAULT_TIMEOUT (7 * 24 * 60 * 60)
 
-
-#define XQC_MAX_TRANSPORT_PARAM_BUF_LEN 512
-
-
 #define INITIAL_SECRET_MAX_LEN  32
 
 static const char * const (xqc_crypto_initial_salt)[] = {

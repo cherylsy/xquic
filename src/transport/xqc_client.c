@@ -115,6 +115,9 @@ xqc_int_t
 xqc_client_create_tls(xqc_connection_t *conn, const xqc_conn_ssl_config_t *conn_ssl_config,
     const char *hostname, int no_crypto_flag, const char *alpn)
 {
+    xqc_int_t ret;
+    char tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+
     /* init cfg */
     xqc_tls_config_t cfg = {0};
     cfg.session_ticket = conn_ssl_config->session_ticket_data;
@@ -123,6 +126,7 @@ xqc_client_create_tls(xqc_connection_t *conn, const xqc_conn_ssl_config_t *conn_
     cfg.hostname = (char *)hostname;
     cfg.alpn = (char *)alpn;
     cfg.no_crypto_flag = no_crypto_flag;
+    cfg.trans_params = tp_buf;
 
     xqc_trans_settings_t *settings = &conn->local_settings;
     if (no_crypto_flag == 1) {
@@ -132,7 +136,9 @@ xqc_client_create_tls(xqc_connection_t *conn, const xqc_conn_ssl_config_t *conn_
         settings->no_crypto = XQC_FALSE;
     }
 
-    xqc_int_t ret = xqc_conn_get_local_transport_params(conn, &cfg.trans_params);
+    /* encode local transport parameters, and set to tls config */
+    ret = xqc_conn_encode_local_tp(conn, cfg.trans_params,
+                                   XQC_MAX_TRANSPORT_PARAM_BUF_LEN, &cfg.trans_params_len);
     if (ret != XQC_OK) {
         return ret;
     }
