@@ -1057,13 +1057,6 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     switch (type) {
 
     case XQC_PTYPE_INIT:
-        if ((c->conn_type == XQC_CONN_TYPE_SERVER) 
-            && (c->conn_state == XQC_CONN_STATE_SERVER_INIT)
-            && ((c->conn_flag & XQC_CONN_FLAG_SENT_RETRY) == 0))
-        {
-            // TODO: retry 发送逻辑，server似乎不该再处理retry包，并且要重置odcid，等待initial包，客户端crypto帧不再处理
-
-        }
         ret = xqc_packet_parse_initial(c, packet_in);
         break;
     case XQC_PTYPE_0RTT:
