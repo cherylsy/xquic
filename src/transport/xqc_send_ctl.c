@@ -497,7 +497,11 @@ xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 void
 xqc_send_ctl_insert_unacked(xqc_packet_out_t *packet_out, xqc_list_head_t *head, xqc_send_ctl_t *ctl)
 {
-    xqc_list_add_tail(&packet_out->po_list, head);
+    if (packet_out->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE) {
+        xqc_list_add(&packet_out->po_list, head);
+    } else {
+        xqc_list_add_tail(&packet_out->po_list, head);
+    }
 }
 
 void
