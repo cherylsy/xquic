@@ -155,8 +155,16 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request, void *user_data)
 ssize_t
 xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers, uint8_t fin)
 {
-    if (!headers) {
-        xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR, "|headers MUST NOT be NULL|");
+    if (headers && !headers->headers && headers->count) {
+        return -XQC_H3_EPARAM;
+    }
+
+    if (!headers || !headers->count) { //没有KV要发送。
+        if (fin) { //只为发个FIN标记。
+            return xqc_h3_request_send_body(h3_request, NULL, 0, 1);
+        }
+
+        xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR, "|headers MUST NOT be NULL or empty|");
         return -XQC_H3_EPARAM;
     }
 
