@@ -30,7 +30,7 @@ xqc_conn_settings_t default_conn_settings = {
     .pacing_on               = 0,
     .ping_on                 = 0,
     .so_sndbuf               = 0,
-    .so_linger               = 0,
+    .linger                  = {.linger_on = 0, .linger_timeout = 0},
     .proto_version           = XQC_VERSION_V1,
     .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath        = 0,
@@ -45,7 +45,7 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     default_conn_settings.pacing_on = settings->pacing_on;
     default_conn_settings.ping_on = settings->ping_on;
     default_conn_settings.so_sndbuf = settings->so_sndbuf;
-    default_conn_settings.so_linger = settings->so_linger;
+    default_conn_settings.linger = settings->linger;
     default_conn_settings.spurious_loss_detect_on = settings->spurious_loss_detect_on;
     if (settings->idle_time_out > 0) {
         default_conn_settings.idle_time_out = settings->idle_time_out;
@@ -1424,9 +1424,10 @@ xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
     }
 
     /* close connection after all data sent and acked or XQC_TIMER_LINGER_CLOSE timeout */
-    if (conn->conn_settings.so_linger && !xqc_send_ctl_out_q_empty(ctl)) {
+    if (conn->conn_settings.linger.linger_on && !xqc_send_ctl_out_q_empty(ctl)) {
         conn->conn_flag |= XQC_CONN_FLAG_LINGER_CLOSING;
-        xqc_send_ctl_timer_set(ctl, XQC_TIMER_LINGER_CLOSE, xqc_monotonic_timestamp() + 3 * xqc_send_ctl_calc_pto(ctl));
+        xqc_send_ctl_timer_set(ctl, XQC_TIMER_LINGER_CLOSE,
+            xqc_monotonic_timestamp() + (conn->conn_settings.linger.linger_timeout ? : 3 * xqc_send_ctl_calc_pto(ctl)));
         goto end;
     }
 

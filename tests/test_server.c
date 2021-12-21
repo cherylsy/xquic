@@ -1308,7 +1308,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (g_test_case == 12) {
-        conn_settings.so_linger = 1;
+        conn_settings.linger.linger_on = 1;
     }
 
     xqc_server_set_conn_settings(&conn_settings);
