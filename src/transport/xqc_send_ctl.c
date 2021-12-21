@@ -187,6 +187,26 @@ xqc_send_ctl_destroy_packets_lists(xqc_send_ctl_t *ctl)
     ctl->ctl_packets_free = 0;
 }
 
+int
+xqc_send_ctl_out_q_empty(xqc_send_ctl_t *ctl)
+{
+    int empty;
+    empty = xqc_list_empty(&ctl->ctl_send_packets)
+            && xqc_list_empty(&ctl->ctl_send_packets_high_pri)
+            && xqc_list_empty(&ctl->ctl_lost_packets)
+            && xqc_list_empty(&ctl->ctl_pto_probe_packets)
+            && xqc_list_empty(&ctl->ctl_buff_1rtt_packets);
+    if (!empty) {
+        return empty;
+    }
+
+    for (xqc_pkt_num_space_t pns = 0; pns < XQC_PNS_N; ++pns) {
+        empty = empty && xqc_list_empty(&ctl->ctl_unacked_packets[pns]);
+    }
+
+    return empty;
+}
+
 void 
 xqc_send_ctl_info_circle_record(xqc_connection_t *conn)
 {
@@ -1739,6 +1759,7 @@ static const char * const timer_type_2_str[XQC_TIMER_N] = {
         [XQC_TIMER_STREAM_CLOSE]= "STREAM_CLOSE",
         [XQC_TIMER_PING]        = "PING",
         [XQC_TIMER_RETIRE_CID]  = "RETIRE_CID",
+        [XQC_TIMER_LINGER_CLOSE]= "LINGER_CLOSE",
 };
 
 const char *
@@ -1928,6 +1949,22 @@ xqc_send_ctl_retire_cid_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, vo
     }
 }
 
+void
+xqc_send_ctl_linger_close_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, void *ctx)
+{
+    xqc_send_ctl_t *ctl = (xqc_send_ctl_t *) ctx;
+    xqc_connection_t *conn = ctl->ctl_conn;
+    xqc_int_t ret;
+
+    conn->conn_flag &= ~XQC_CONN_FLAG_LINGER_CLOSING;
+
+    ret = xqc_conn_immediate_close(conn);
+    if (ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_conn_immediate_close error|");
+        return;
+    }
+}
+
 /* timer callbacks end */
 
 void
@@ -1966,6 +2003,9 @@ xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl)
             timer->ctl_ctx = ctl;
         } else if (type == XQC_TIMER_RETIRE_CID) {
             timer->ctl_timer_callback = xqc_send_ctl_retire_cid_timeout;
+            timer->ctl_ctx = ctl;
+        } else if (type == XQC_TIMER_LINGER_CLOSE) {
+            timer->ctl_timer_callback = xqc_send_ctl_linger_close_timeout;
             timer->ctl_ctx = ctl;
         }
     }

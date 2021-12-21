@@ -738,6 +738,10 @@ typedef struct xqc_conn_ssl_config_s {
     uint8_t     cert_verify_flag;
 } xqc_conn_ssl_config_t;
 
+typedef struct xqc_linger_s {
+    uint32_t                    linger_on;          /* close connection after all data sent and acked, default: 0 */
+    xqc_msec_t                  linger_timeout;     /* 3*PTO if linger_timeout is 0 */
+} xqc_linger_t;
 
 typedef struct xqc_conn_settings_s {
     int                         pacing_on;          /* default: 0 */
@@ -745,6 +749,7 @@ typedef struct xqc_conn_settings_s {
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
     xqc_cc_params_t             cc_params;
     uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
+    xqc_linger_t                linger;
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
     uint32_t                    idle_time_out;      /* idle timeout interval */
     uint64_t                    enable_multipath;   /* default: 0 */

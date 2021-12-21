@@ -1074,5 +1074,36 @@ else
 fi
 
 killall test_server
+./test_server -l e -e -x 12 > /dev/null &
+sleep 1
+
+clear_log
+echo -e "linger close transport ...\c"
+rm -f test_session xqc_token tp_localhost
+result=`./test_client -l e -T -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "linger_close_transport" "pass"
+else
+    case_print_result "linger_close_transport" "fail"
+    echo "$errlog"
+fi
+rm -f test_session xqc_token tp_localhost
+
+clear_log
+echo -e "linger close h3 ...\c"
+result=`./test_client -l e -t 1 -E|grep ">>>>>>>> pass"`
+errlog=`grep_err_log`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "linger_close_h3" "pass"
+else
+    case_print_result "linger_close_h3" "fail"
+    echo "$errlog"
+fi
+
+
+killall test_server
 
 cd -

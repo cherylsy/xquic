@@ -225,6 +225,13 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
             printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
         }
     }
+    if (g_test_case == 12 /* test linger close */
+        && user_stream->send_offset == user_stream->send_body_len)
+    {
+        user_conn_t *user_conn = xqc_get_conn_user_data_by_stream(stream);
+        xqc_conn_close(ctx.engine, &user_conn->cid);
+        printf("xqc_conn_close\n");
+    }
     return 0;
 }
 
@@ -501,6 +508,13 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
+    }
+    if (g_test_case == 12 /* test linger close */
+        && user_stream->send_offset == user_stream->send_body_len)
+    {
+        user_conn_t *user_conn = xqc_h3_get_conn_user_data_by_request(h3_request);
+        xqc_h3_conn_close(ctx.engine, &user_conn->cid);
+        printf("xqc_h3_conn_close\n");
     }
     return 0;
 }
@@ -839,6 +853,8 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
 
     xqc_conn_get_peer_addr(conn, (struct sockaddr *)&user_conn->peer_addr,
                            sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
+
+    memcpy(&user_conn->cid, cid, sizeof(*cid));
 
     if (g_test_case == 11) {
         g_test_case = -1;
@@ -1289,6 +1305,10 @@ int main(int argc, char *argv[]) {
     /* enable_multipath */
     if (g_test_case == 7) {
         conn_settings.enable_multipath = 1;
+    }
+
+    if (g_test_case == 12) {
+        conn_settings.linger.linger_on = 1;
     }
 
     xqc_server_set_conn_settings(&conn_settings);
