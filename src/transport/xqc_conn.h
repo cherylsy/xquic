@@ -109,6 +109,7 @@ typedef enum {
     XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT,
     XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
+    XQC_CONN_FLAG_LINGER_CLOSING_SHIFT,
     XQC_CONN_FLAG_SENT_RETRY_SHIFT,
     XQC_CONN_FLAG_RECV_RETRY_SHIFT,
     XQC_CONN_FLAG_TLS_HSK_COMPLETED_SHIFT,
@@ -144,6 +145,7 @@ typedef enum {
     XQC_CONN_FLAG_HANDSHAKE_CONFIRMED   = 1 << XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT,
     XQC_CONN_FLAG_ADDR_VALIDATED        = 1 << XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED      = 1 << XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
+    XQC_CONN_FLAG_LINGER_CLOSING        = 1 << XQC_CONN_FLAG_LINGER_CLOSING_SHIFT,
     XQC_CONN_FLAG_SENT_RETRY            = 1 << XQC_CONN_FLAG_SENT_RETRY_SHIFT,
     XQC_CONN_FLAG_RECV_RETRY            = 1 << XQC_CONN_FLAG_RECV_RETRY_SHIFT,
     XQC_CONN_FLAG_TLS_HSK_COMPLETED     = 1 << XQC_CONN_FLAG_TLS_HSK_COMPLETED_SHIFT,
@@ -423,7 +425,6 @@ void *xqc_conn_get_user_data(xqc_connection_t *c);
 xqc_int_t xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params_t *params);
 xqc_int_t xqc_conn_set_early_remote_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
 
-// TODO: 这两个函数与标准无关，建议挪出到应用层
 xqc_int_t xqc_read_transport_params(char *tp_data, size_t tp_data_len, xqc_transport_params_t *params);
 xqc_int_t xqc_write_transport_params(xqc_connection_t *conn, const xqc_transport_params_t *params);
 

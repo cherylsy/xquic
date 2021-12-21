@@ -35,7 +35,7 @@ xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_dat
     }
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|conn:%p|conn_state:%s|flag:%s|",
-            stream->stream_id, h3_conn->conn, xqc_conn_state_2_str(h3_conn->conn->conn_state),
+            h3_stream->stream_id, h3_conn->conn, xqc_conn_state_2_str(h3_conn->conn->conn_state),
             xqc_conn_flag_2_str(h3_conn->conn->conn_flag));
     return h3_request;
 }
@@ -55,22 +55,22 @@ xqc_h3_request_destroy(xqc_h3_request_t *h3_request)
     xqc_free(h3_request);
 }
 
-int 
+xqc_int_t 
 xqc_h3_request_close(xqc_h3_request_t *h3_request)
 {
     xqc_connection_t *conn = h3_request->h3_stream->h3c->conn;
-    xqc_stream_t *stream = h3_request->h3_stream->stream;
+    xqc_h3_stream_t *h3s = h3_request->h3_stream;
 
-    int ret = xqc_stream_close(stream);
+    xqc_int_t ret = xqc_h3_stream_close(h3_request->h3_stream);
     if (ret) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|fail|ret:%d|stream_id:%ui|conn:%p|conn_state:%s|"
-                "flag:%s|", ret, stream->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
+                "flag:%s|", ret, h3s->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
                 xqc_conn_flag_2_str(conn->conn_flag));
         return ret;
     }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|success|stream_id:%ui|conn:%p|conn_state:%s|flag:%s|",
-            stream->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
+            h3s->stream_id, conn, xqc_conn_state_2_str(conn->conn_state),
             xqc_conn_flag_2_str(conn->conn_flag));
 
     return XQC_OK;
@@ -133,12 +133,12 @@ xqc_request_stats_t
 xqc_h3_request_get_stats(xqc_h3_request_t *h3_request)
 {
     xqc_request_stats_t stats;
-    uint64_t conn_err = h3_request->h3_stream->stream->stream_conn->conn_err;
+    uint64_t conn_err = h3_request->h3_stream->h3c->conn->conn_err;
     stats.recv_body_size = h3_request->body_recvd;
     stats.send_body_size = h3_request->body_sent;
     stats.recv_header_size = h3_request->header_recvd;
     stats.send_header_size = h3_request->header_sent;
-    stats.stream_err = conn_err != 0 ? conn_err : h3_request->h3_stream->stream->stream_err;
+    stats.stream_err = conn_err != 0 ? conn_err : (int)xqc_h3_stream_get_err(h3_request->h3_stream);
     return stats;
 }
 
@@ -313,13 +313,13 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
     if (sent == -XQC_EAGAIN) {
         xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG,
                 "|xqc_h3_stream_send_data eagain|stream_id:%ui|data_size:%z|fin:%d|",
-                h3_request->h3_stream->stream->stream_id, data_size, fin);
+                h3_request->h3_stream->stream_id, data_size, fin);
         return sent;
 
     } else if (sent < 0) {
         xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_ERROR,
                 "|xqc_h3_stream_send_data error|stream_id:%ui|ret:%z|data_size:%z|fin:%d|",
-                h3_request->h3_stream->stream->stream_id, sent, data_size, fin);
+                h3_request->h3_stream->stream_id, sent, data_size, fin);
         return sent;
     }
 
@@ -329,10 +329,9 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
     }
 
     xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|data_size:%z|sent:%z|"
-            "body_sent:%uz|body_sent_final_size:%uz|fin:%d|flag:%d|conn:%p|",
-            h3_request->h3_stream->stream->stream_id, data_size, sent, h3_request->body_sent, 
-            h3_request->body_sent_final_size, fin, h3_request->h3_stream->stream->stream_flag, 
-            h3_request->h3_stream->h3c->conn);
+            "body_sent:%uz|body_sent_final_size:%uz|fin:%d|conn:%p|",
+            h3_request->h3_stream->stream_id, data_size, sent, h3_request->body_sent, 
+            h3_request->body_sent_final_size, fin, h3_request->h3_stream->h3c->conn);
 
     return sent;
 }
@@ -432,9 +431,9 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
 
     xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG,
             "|stream_id:%ui|recv_buf_size:%z|n_recv:%z|body_recvd:%uz|body_recvd_final_size:%uz|"
-            "fin:%d|flag:%d|conn:%p|", h3_request->h3_stream->stream->stream_id, recv_buf_size,
+            "fin:%d|conn:%p|", h3_request->h3_stream->stream_id, recv_buf_size,
             n_recv, h3_request->body_recvd, h3_request->body_recvd_final_size, *fin,
-            h3_request->h3_stream->stream->stream_flag, h3_request->h3_stream->h3c->conn);
+            h3_request->h3_stream->h3c->conn);
     return n_recv;
 }
 
@@ -481,7 +480,7 @@ xqc_h3_request_on_recv_header(xqc_h3_request_t *h3r)
     xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, h3r->read_flag, h3r->user_data);
     if (ret < 0) {
         xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
-                "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream->stream_id,
+                "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream_id,
                 h3r->h3_stream->h3c->conn);
         return ret;
     }
@@ -502,7 +501,7 @@ xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r)
         xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, h3r->read_flag, h3r->user_data);
         if (ret < 0) {
             xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
-                    "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream->stream_id,
+                    "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream_id,
                     h3r->h3_stream->h3c->conn);
             return ret;
         }

@@ -351,7 +351,6 @@ xqc_dtable_make_space(xqc_dtable_t *dt, size_t space)
         }
 
         size_t nv_len = entry_min_ref->sum - first_entry->sum;
-        //  = dt->min_ref - dt->first_idx;
         size_t available = dt->capacity - dt->used + nv_len;
         if (available < space) {
             xqc_log(dt->log, XQC_LOG_DEBUG, "|space exceed available|available:%uz|space:%uz|",
@@ -596,31 +595,32 @@ xqc_dtable_set_capacity(xqc_dtable_t *dt, uint64_t capactiy)
 xqc_int_t
 xqc_dtable_prepare_dup(xqc_dtable_t *dt, uint64_t idx, size_t space)
 {
-    xqc_int_t ret = XQC_OK;
+    xqc_int_t ret = XQC_OK; /* for make space */
+    xqc_int_t res = XQC_OK; /* for set min_ref */
 
     /* protect the duplicated entry, or itself might be popped */
     uint64_t ori_min_ref = dt->min_ref;
     if (idx < ori_min_ref) {
-        ret = xqc_dtable_set_min_ref(dt, idx);
-        if (ret != XQC_OK) {
-            xqc_log(dt->log, XQC_LOG_ERROR, "|set min ref error|ret:%d|idx:%ui|", ret, idx);
-            return ret;
+        res = xqc_dtable_set_min_ref(dt, idx);
+        if (res != XQC_OK) {
+            xqc_log(dt->log, XQC_LOG_ERROR, "|set min ref error|res:%d|idx:%ui|", res, idx);
+            return res;
         }
     }
 
     /* make space for new entry, entries that are not referred will be deleted */
     ret = xqc_dtable_make_space(dt, space);
     if (ret != XQC_OK) {
+        /* if make space fails, dtalbe shall recover its min_ref */
         xqc_log(dt->log, XQC_LOG_DEBUG, "|unable to make space for duplicate|ret:%d|", ret);
-        return ret;
     }
 
     /* recover min_ref, no matter success or failure */
     if (idx < ori_min_ref) {
-        ret = xqc_dtable_set_min_ref(dt, ori_min_ref);
-        if (ret != XQC_OK) {
-            xqc_log(dt->log, XQC_LOG_ERROR, "|recover min ref error|ret:%d|idx:%ui|", ret, idx);
-            return ret;
+        res = xqc_dtable_set_min_ref(dt, ori_min_ref);
+        if (res != XQC_OK) {
+            xqc_log(dt->log, XQC_LOG_ERROR, "|recover min ref error|res:%d|idx:%ui|", res, idx);
+            return res;
         }
     }
 

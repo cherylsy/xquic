@@ -42,7 +42,7 @@ typedef enum {
        fin. */
     XQC_HTTP3_STREAM_FLAG_READ_EOF = 0x0020,
     /* XQC_HTTP3_STREAM_FLAG_CLOSED indicates that QUIC stream was closed.
-       nghttp3_stream object can still alive because it might be blocked
+       h3 stream object will still alive because it might be blocked
        by QPACK decoder. */
     XQC_HTTP3_STREAM_FLAG_CLOSED = 0x0040,
     /* XQC_HTTP3_STREAM_FLAG_PUSH_PROMISE_BLOCKED indicates that stream is
@@ -57,6 +57,11 @@ typedef enum {
     XQC_HTTP3_STREAM_FLAG_RESET = 0x0200,
     XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY = 0x0400,
     XQC_HTTP3_STREAM_IN_READING = 0x0800,
+    /* XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED indicates that application actively
+       closed request, this will close h3 stream immediately when h3 stream is 
+       blocked and waiting for encoder stream insertions while Transport stream
+       notify its close */
+    XQC_HTTP3_STREAM_FLAG_ACTIVELY_CLOSED = 0x1000,
 } xqc_h3_stream_flag;
 
 typedef struct xqc_h3_stream_pctx_s{
@@ -67,11 +72,17 @@ typedef struct xqc_h3_stream_pctx_s{
     xqc_h3_frame_pctx_t             frame_pctx;
 } xqc_h3_stream_pctx_t;
 
+
+
 typedef struct xqc_h3_stream_s {
-    /* transport context */
+    /* transport stream context, the lifetime might be out of sync with h3_stream. */
     xqc_stream_t                   *stream;
-    xqc_h3_conn_t                  *h3c;
+    uint64_t                        stream_id;
+    uint64_t                        stream_err;
     void                           *user_data;
+
+    /* http3 connection */
+    xqc_h3_conn_t                  *h3c;
 
     /* bidi stream user interface, used to send/recv request contents */
     xqc_h3_request_t               *h3r;
@@ -104,33 +115,18 @@ typedef struct xqc_h3_stream_s {
 } xqc_h3_stream_t;
 
 
-typedef struct xqc_h3_blocked_stream_s {
-    xqc_list_head_t          head;
-    xqc_h3_stream_t         *h3s;
-    uint64_t                 ricnt;
-} xqc_h3_blocked_stream_t;
-
-
 /* transport layer callback hook */
 extern const xqc_stream_callbacks_t h3_stream_callbacks;
-
-xqc_h3_blocked_stream_t *
-xqc_h3_blocked_stream_create(xqc_h3_stream_t *h3s, uint64_t ricnt);
-
-void
-xqc_h3_blocked_stream_free(xqc_h3_blocked_stream_t *blocked_stream);
 
 xqc_h3_stream_t *
 xqc_h3_stream_create(xqc_h3_conn_t *h3c, xqc_stream_t *stream, xqc_h3_stream_type_t type,
    void *user_data);
 
+xqc_int_t
+xqc_h3_stream_close(xqc_h3_stream_t *h3s);
+
 void
 xqc_h3_stream_destroy(xqc_h3_stream_t *h3s);
-
-#if 0
-ssize_t
-xqc_h3_stream_send(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_size, uint8_t fin);
-#endif
 
 xqc_int_t
 xqc_h3_stream_send_buffer(xqc_h3_stream_t *h3s);
@@ -154,9 +150,12 @@ xqc_int_t
 xqc_h3_stream_send_goaway(xqc_h3_stream_t *h3s, uint64_t push_id, uint8_t fin);
 
 xqc_int_t
-xqc_h3_stream_process_blocked_stream(xqc_h3_blocked_stream_t *blocked_stream);
+xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s);
 
 xqc_var_buf_t *
 xqc_h3_stream_get_send_buf(xqc_h3_stream_t *h3s);
+
+uint64_t
+xqc_h3_stream_get_err(xqc_h3_stream_t *h3s);
 
 #endif
