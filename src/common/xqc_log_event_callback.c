@@ -63,7 +63,7 @@ xqc_log_SEC_KEY_UPDATED_callback(xqc_log_t *log, const char *func, xqc_engine_ss
 
 void
 xqc_log_TRA_VERSION_INFORMATION_callback(xqc_log_t *log, const char *func, uint32_t local_count, uint32_t *local_version,
-   uint32_t remote_count, uint32_t *remote_version, uint32_t choose)
+    uint32_t remote_count, uint32_t *remote_version, uint32_t choose)
 {
     unsigned char *p = log_buf;
     unsigned char *last = log_buf + sizeof(log_buf);
@@ -88,7 +88,7 @@ xqc_log_TRA_VERSION_INFORMATION_callback(xqc_log_t *log, const char *func, uint3
 
 void
 xqc_log_TRA_ALPN_INFORMATION_callback(xqc_log_t *log, const char *func, size_t local_count, uint8_t *local_alpn,
-                           size_t remote_count, const uint8_t *remote_alpn, size_t alpn_len, const unsigned char *alpn)
+    size_t remote_count, const uint8_t *remote_alpn, size_t alpn_len, const unsigned char *alpn)
 {
     unsigned char *p = log_buf;
     unsigned char *last = log_buf + sizeof(log_buf);
@@ -111,7 +111,8 @@ xqc_log_TRA_ALPN_INFORMATION_callback(xqc_log_t *log, const char *func, size_t l
                       "|%s|choose:%*s|", log_buf, alpn_len, alpn);
 }
 
-void xqc_log_TRA_PARAMETERS_SET_callback(xqc_log_t *log, const char *func, xqc_connection_t *conn, xqc_int_t local)
+void
+xqc_log_TRA_PARAMETERS_SET_callback(xqc_log_t *log, const char *func, xqc_connection_t *conn, xqc_int_t local)
 {
     xqc_trans_settings_t *setting;
     if (local == XQC_LOG_LOCAL_EVENT) {
@@ -180,7 +181,7 @@ xqc_log_TRA_DATAGRAMS_RECEIVED_callback(xqc_log_t *log, const char *func, ssize_
 
 void
 xqc_log_TRA_STREAM_STATE_UPDATED_callback(xqc_log_t *log, const char *func, xqc_stream_t *stream,
-                                          xqc_int_t stream_type, xqc_int_t state)
+    xqc_int_t stream_type, xqc_int_t state)
 {
     if (stream_type == XQC_LOG_STREAM_SEND) {
         xqc_log_implement(log, TRA_STREAM_STATE_UPDATED, func,
@@ -590,7 +591,8 @@ void
 xqc_log_QPACK_STREAM_STATE_UPDATED_callback(xqc_log_t *log, const char *func, xqc_h3_stream_t *h3_stream)
 {
     xqc_log_implement(log, QPACK_STREAM_STATE_UPDATED, func,
-                      "|stream_id:%ui|%s|", h3_stream->stream->stream_id, h3_stream->blocked == 1 ? "blocked" : "unblocked");
+                      "|stream_id:%ui|%s|", h3_stream->stream->stream_id,
+                      h3_stream->flags & XQC_HTTP3_STREAM_FLAG_QPACK_DECODE_BLOCKED ? "blocked" : "unblocked");
 }
 
 void

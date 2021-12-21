@@ -281,7 +281,8 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_cid_copy(&(xc->initial_scid), scid);
 
     xc->engine = engine;
-    xc->log = xqc_log_init(engine->log->log_level, engine->log->log_event, engine->log->log_timestamp, engine->log->log_callbacks, engine->log->user_data);
+    xc->log = xqc_log_init(engine->log->log_level, engine->log->log_event, engine->log->log_timestamp,
+                           engine->log->log_level_name, engine->log->log_callbacks, engine->log->user_data);
     xc->log->scid = xc->scid_set.original_scid_str;
     xc->transport_cbs = engine->transport_cbs;
     xc->user_data = user_data;
@@ -1441,7 +1442,7 @@ xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
     if (conn->conn_settings.linger.linger_on && !xqc_send_ctl_out_q_empty(ctl)) {
         conn->conn_flag |= XQC_CONN_FLAG_LINGER_CLOSING;
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_LINGER_CLOSE,
-            xqc_monotonic_timestamp() + (conn->conn_settings.linger.linger_timeout ? : 3 * xqc_send_ctl_calc_pto(ctl)));
+            xqc_monotonic_timestamp(), (conn->conn_settings.linger.linger_timeout ? : 3 * xqc_send_ctl_calc_pto(ctl)));
         goto end;
     }
 

@@ -182,13 +182,13 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
 
     if (log->log_level_name) {
         /* log level */
-        p = xqc_sprintf(p, last, "[%s] ", xqc_log_level_str(level));
+        p = xqc_sprintf(p, last, "[%s] ", xqc_log_type_str(type));
     }
 
     if (log->scid != NULL) {
-        p = xqc_sprintf(p, last, "[%s] |scid:%s|%s", xqc_log_type_str(type), log->scid, func);
+        p = xqc_sprintf(p, last, "|scid:%s|%s", log->scid, func);
     } else {
-        p = xqc_sprintf(p, last, "[%s] |%s", xqc_log_type_str(type), func);
+        p = xqc_sprintf(p, last, "|%s", func);
     }
 
     /* log */

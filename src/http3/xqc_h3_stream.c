@@ -506,8 +506,7 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
                 h3s->h3c->flags |= XQC_H3_CONN_FLAG_SETTINGS_RECVED;
 
-                if (xqc_h3_frm_parse_setting(pl->settings.setting, (void *)h3c) < 0)
-                {
+                if (xqc_h3_frm_parse_setting(pl->settings.setting, (void *)h3c) < 0) {
                     xqc_h3_frm_reset_pctx(pctx);
                     return -H3_SETTINGS_ERROR;
                 }
