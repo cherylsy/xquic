@@ -5,23 +5,22 @@
 #include "src/common/xqc_common_inc.h"
 #include "src/http3/xqc_h3_defs.h"
 
+
+/* header section and trailer section */
+#define XQC_H3_REQUEST_MAX_HEADERS_CNT          2
+
 typedef enum {
-    /* nothing for reading */
-    XQC_H3_REQUEST_HEADER_DATA_NONE     = 0,
+    XQC_H3_REQUEST_HEADER           = 0,
+    XQC_H3_REQUEST_TRAILER_HEADER   = 1,
+} xqc_h3_header_type_t;
 
-    /* HEADER or DATA to be read */
-    XQC_H3_REQUEST_HEADER_DATA          = 1,
-} xqc_h3_request_header_read_flag;
+#if 0
+typedef struct xqc_h3_request_headers_s {
+    /* http headers, including header and trailer header */
+    xqc_http_headers_t                  headers[XQC_H3_REQUEST_MAX_HEADERS_CNT];
 
-
-typedef struct xqc_h3_request_header_s {
-    /* http headers */
-    xqc_http_headers_t                  headers;
-
-    /* read flag for read HEADER and DATA */
-    xqc_h3_request_header_read_flag     read_flag;
-} xqc_h3_request_header_t;
-
+} xqc_h3_request_headers_t;
+#endif
 
 /**
  * @brief create headers array for xqc_http_headers_t
