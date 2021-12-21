@@ -210,6 +210,12 @@ void xqc_destroy_write_buff_list(xqc_list_head_t *head);
 void xqc_stream_refcnt_add(xqc_stream_t *stream);
 void xqc_stream_refcnt_del(xqc_stream_t *stream);
 
+void
+xqc_stream_send_state_update(xqc_stream_t *stream, xqc_send_stream_state_t state);
+
+void
+xqc_stream_recv_state_update(xqc_stream_t *stream, xqc_recv_stream_state_t state);
+
 
 #endif /* _XQC_STREAM_H_INCLUDED_ */
 

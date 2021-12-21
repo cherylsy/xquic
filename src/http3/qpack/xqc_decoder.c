@@ -1,6 +1,4 @@
 #include "src/http3/qpack/xqc_decoder.h"
-#include "src/http3/qpack/stable/xqc_stable.h"
-#include "src/http3/qpack/dtable/xqc_dtable.h"
 #include "src/http3/xqc_h3_header.h"
 
 typedef struct xqc_decoder_s {
@@ -180,6 +178,7 @@ xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *bu
         if (ctx->state == XQC_REP_DECODE_STATE_OPCODE) {
             xqc_log(dec->log, XQC_LOG_DEBUG, "|encoded field section prefix|ric:%ui|s:%d|db:%ui|",
                     ctx->ric.value, ctx->sign, ctx->base.value);
+            xqc_log_event(dec->log, QPACK_HEADERS_DECODED, XQC_LOG_BLOCK_PREFIX, ctx->ric.value, ctx->base.value);
         }
     }
 
@@ -217,6 +216,7 @@ xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *bu
                 xqc_log(dec->log, XQC_LOG_ERROR, "|save header error|ret:%d|", ret);
                 return ret;
             }
+            xqc_log_event(dec->log, QPACK_HEADERS_DECODED, XQC_LOG_HEADER_BLOCK, ctx, hdr);
         }
     }
 
@@ -228,6 +228,7 @@ xqc_int_t
 xqc_decoder_set_dtable_cap(xqc_decoder_t *dec, uint64_t cap)
 {
     xqc_log(dec->log, XQC_LOG_DEBUG, "|on set dtable cap|cap:%ui|", cap);
+    xqc_log_event(dec->log, QPACK_STATE_UPDATED, XQC_LOG_DECODER_EVENT, dec->dtable);
     return xqc_dtable_set_capacity(dec->dtable, cap);
 }
 
@@ -247,6 +248,7 @@ xqc_decoder_duplicate(xqc_decoder_t *dec, uint64_t idx)
 
     xqc_log(dec->log, XQC_LOG_DEBUG, "|on duplicate|idx:%ui|new_idx:%ui|ret:%d|", 
             idx, new_idx, ret);
+    xqc_log_event(dec->log, QPACK_STATE_UPDATED, XQC_LOG_DECODER_EVENT, dec->dtable);
 
     return XQC_OK;
 }
@@ -261,13 +263,14 @@ xqc_decoder_insert_literal(xqc_decoder_t *dec, unsigned char *name, size_t nlen,
     xqc_int_t ret = xqc_dtable_add(dec->dtable, name, nlen, value, vlen, &idx);
     if (ret != XQC_OK) {
         xqc_log(dec->log, XQC_LOG_ERROR, "|insert entry error|ret:%d|name:%*s|value:%*s|", ret,
-                (int)xqc_min(nlen, 512), name, (int)xqc_min(vlen, 512), value);
+                (size_t) xqc_min(nlen, 512), name, (size_t) xqc_min(vlen, 512), value);
         return -XQC_QPACK_DECODER_ERROR;
     }
 
     xqc_log(dec->log, XQC_LOG_DEBUG, "|on insert literal|idx:%ui|ret:%d|nlen:%ui|name:%*s|vlen:%ui|"
             "value:%*s|", idx, ret, nlen, xqc_min(nlen, 512), name, vlen, xqc_min(vlen, 512),
             value);
+    xqc_log_event(dec->log, QPACK_STATE_UPDATED, XQC_LOG_DECODER_EVENT, dec->dtable);
 
     return XQC_OK;
 }
@@ -296,13 +299,14 @@ xqc_decoder_insert_name_ref(xqc_decoder_t *dec, xqc_flag_t t, uint64_t nidx,
     ret = xqc_dtable_add(dec->dtable, nbuf->data, nbuf->data_len, value, vlen, &idx);
     if (ret != XQC_OK) {
         xqc_log(dec->log, XQC_LOG_ERROR, "|insert entry error|ret:%d|nidx:%ui|value:%*s|", ret,
-                nidx, (int)xqc_min(vlen, 512), value);
+                nidx, (size_t) xqc_min(vlen, 512), value);
         xqc_var_buf_free(nbuf);
         return -XQC_QPACK_DECODER_ERROR;
     }
 
     xqc_log(dec->log, XQC_LOG_DEBUG, "|on insert name ref|nidx:%ui|value:%*s|idx:%ui|",
-            nidx, (int)xqc_min(vlen, 512), value, idx);
+            nidx, (size_t) xqc_min(vlen, 512), value, idx);
+    xqc_log_event(dec->log, QPACK_STATE_UPDATED, XQC_LOG_DECODER_EVENT, dec->dtable);
 
     xqc_var_buf_free(nbuf);
     return XQC_OK;
@@ -310,7 +314,63 @@ xqc_decoder_insert_name_ref(xqc_decoder_t *dec, xqc_flag_t t, uint64_t nidx,
 
 
 uint64_t
-xqc_decoder_get_known_rcvd_cnt(xqc_decoder_t *dec)
+xqc_decoder_get_insert_cnt(xqc_decoder_t *dec)
 {
     return xqc_dtable_get_insert_cnt(dec->dtable);
+}
+
+void
+xqc_log_QPACK_HEADERS_DECODED_callback(xqc_log_t *log, const char *func, ...)
+{
+    va_list args;
+    va_start(args, func);
+    xqc_int_t type = va_arg(args, xqc_int_t);
+    if (type == XQC_LOG_BLOCK_PREFIX) {
+        uint64_t ricnt = va_arg(args, uint64_t);
+        uint64_t base = va_arg(args, uint64_t);
+        xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
+                          "|prefix|ricnt:%ui|base:%ui|", ricnt, base);
+    } else if (type == XQC_LOG_HEADER_BLOCK){
+        xqc_rep_ctx_t *ctx = va_arg(args, xqc_rep_ctx_t*);
+        xqc_http_header_t *hdr = va_arg(args, xqc_http_header_t*);
+        switch (ctx->type) {
+        case XQC_REP_TYPE_INDEXED:
+        case XQC_REP_TYPE_POST_BASE_INDEXED: {
+            xqc_flag_t pb = ctx->type == XQC_REP_TYPE_POST_BASE_INDEXED;
+            xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
+                              "|header|indexed field line|%s%s|index:%ui|",
+                              ctx->table == XQC_DTABLE_FLAG ? "dtable" : "stable",
+                              pb ? "" : "|post base", ctx->index.value);
+            break;
+        }
+        case XQC_REP_TYPE_NAME_REFERENCE:
+        case XQC_REP_TYPE_POST_BASE_NAME_REFERENCE: {
+            xqc_flag_t pb = ctx->type == XQC_REP_TYPE_POST_BASE_NAME_REFERENCE;
+            xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
+                              "|header|literal with name reference|%s%s|index:%ui|value:%*s|",
+                              ctx->table == XQC_DTABLE_FLAG ? "|dtable" : "|stable",
+                              pb ? "" : "|post base", ctx->index.value,
+                              (size_t) hdr->value.iov_len, hdr->value.iov_base);
+            break;
+        }
+        case XQC_REP_TYPE_LITERAL:
+            if (hdr->value.iov_len > 0) {
+                xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
+                                  "|header|literal|name:%*s|value:%*s|",
+                                  (size_t) hdr->name.iov_len, hdr->name.iov_base,
+                                  (size_t) hdr->value.iov_len, hdr->value.iov_base);
+            } else {
+                xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
+                                  "|header|literal|name:%*s|",
+                                  (size_t) hdr->name.iov_len, hdr->name.iov_base);
+            }
+            break;
+        }
+    } else {
+        uint64_t stream_id = va_arg(args, uint64_t);
+        uint64_t length = va_arg(args, uint64_t);
+        xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
+                          "|frame|stream_id:%ui|length:%ui|", stream_id, length);
+    }
+    va_end(args);
 }

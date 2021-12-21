@@ -45,7 +45,7 @@ typedef struct xqc_h3_frm_push_promise_t {
 } xqc_h3_frame_push_promise_t;
 
 typedef struct xqc_h3_frm_goaway_t {
-    xqc_discrete_vint_pctx_t push_id;
+    xqc_discrete_vint_pctx_t stream_id;
 } xqc_h3_frame_goaway_t;
 
 typedef struct xqc_h3_frm_max_push_id_t {

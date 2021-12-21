@@ -119,6 +119,7 @@ xqc_qpack_notify_set_dtable_cap(xqc_qpack_t *qpk, uint64_t cap)
         xqc_log(qpk->log, XQC_LOG_ERROR, "|write sdtc error|ret:%d|", ret);
         goto fail;
     }
+    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT, XQC_INS_TYPE_ENC_SET_DTABLE_CAP, cap);
 
     ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, buf, qpk->user_data);
     if (cb_ret < 0) {
@@ -147,6 +148,7 @@ xqc_qpack_notify_insert_cnt_increment(xqc_qpack_t *qpk, uint64_t increment)
         xqc_log(qpk->log, XQC_LOG_ERROR, "|write ici error|ret:%ui|", ret);
         goto fail;
     }
+    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT, XQC_INS_TYPE_DEC_INSERT_CNT_INC, increment);
 
     ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
     if (cb_ret < 0) {
@@ -174,6 +176,7 @@ xqc_qpack_notify_section_ack(xqc_qpack_t *qpk, uint64_t stream_id)
         xqc_log(qpk->log, XQC_LOG_ERROR, "|write sack error|ret:%ui|", ret);
         goto fail;
     }
+    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT, XQC_INS_TYPE_DEC_SECTION_ACK, stream_id);
 
     ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
     if (cb_ret < 0) {
@@ -224,7 +227,7 @@ xqc_qpack_set_max_blocked_stream(xqc_qpack_t *qpk, size_t max_blocked_stream)
 uint64_t
 xqc_qpack_get_dec_insert_count(xqc_qpack_t *qpk)
 {
-    return xqc_decoder_get_known_rcvd_cnt(qpk->dec);
+    return xqc_decoder_get_insert_cnt(qpk->dec);
 }
 
 static inline xqc_int_t
@@ -294,6 +297,7 @@ xqc_qpack_process_encoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len
 
         /* process instruction */
         if (ctx->state == XQC_INS_ES_STATE_FINISH) {
+            xqc_log_event(qpk->log, QPACK_INSTRUCTION_PARSED, XQC_LOG_ENCODER_EVENT, ctx);
             ret = xqc_qpack_on_encoder_ins(qpk, ctx);
             if (ret != XQC_OK) {
                 xqc_log(qpk->log, XQC_LOG_ERROR, "|process encoder instruction error|ret:%d|", ret);
@@ -380,6 +384,7 @@ xqc_qpack_process_decoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len
 
         /* respond to instruction */
         if (ctx->state == XQC_INS_DS_STATE_FINISH) {
+            xqc_log_event(qpk->log, QPACK_INSTRUCTION_PARSED, XQC_LOG_DECODER_EVENT, ctx);
             xqc_int_t ret = xqc_qpack_on_decoder_ins(qpk, ctx);
             if (ret != XQC_OK) {
                 xqc_log(qpk->log, XQC_LOG_ERROR, "|process encoder instruction error|ret:%d|", ret);

@@ -474,6 +474,8 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
 
     xqc_settings_copy_from_transport_params(&conn->remote_settings, params);
 
+    xqc_log_event(conn->log, TRA_PARAMETERS_SET, conn, XQC_LOG_REMOTE_EVENT);
+
     conn->tlsref.flags |= XQC_CONN_FLAG_TRANSPORT_PARAM_RECVED;
 
     return XQC_OK;

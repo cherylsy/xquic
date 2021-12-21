@@ -3,6 +3,8 @@
 
 #include "src/http3/qpack/xqc_qpack_defs.h"
 #include "src/http3/qpack/xqc_rep.h"
+#include "src/http3/qpack/stable/xqc_stable.h"
+#include "src/http3/qpack/dtable/xqc_dtable.h"
 
 typedef struct xqc_decoder_s xqc_decoder_t;
 
@@ -71,7 +73,7 @@ xqc_decoder_insert_name_ref(xqc_decoder_t *dec, xqc_flag_t t, uint64_t nidx,
     unsigned char *value, size_t vlen);
 
 uint64_t
-xqc_decoder_get_known_rcvd_cnt(xqc_decoder_t *dec);
+xqc_decoder_get_insert_cnt(xqc_decoder_t *dec);
 
 ssize_t
 xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *buf, size_t buf_len,

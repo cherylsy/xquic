@@ -40,7 +40,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     }
 
     xqc_connection_t *xc = xqc_client_create_connection(engine, dcid, scid, conn_settings,
-                                                        server_host, no_crypto_flag, 
+                                                        server_host, no_crypto_flag,
                                                         conn_ssl_config, alpn, user_data);
     if (xc == NULL) {
         xqc_log(engine->log, XQC_LOG_ERROR,
@@ -59,6 +59,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     }
 
     xqc_log(engine->log, XQC_LOG_DEBUG, "|xqc_connect|");
+    xqc_log_event(xc->log, CON_CONNECTION_STARTED, xc, XQC_LOG_REMOTE_EVENT);
 
     /* conn_create callback */
     if (xc->app_proto_cbs.conn_cbs.conn_create_notify) {
@@ -119,7 +120,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
     const char *alpn,
     void *user_data)
 {
-    xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid, settings, user_data, 
+    xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid, settings, user_data,
                                            XQC_CONN_TYPE_CLIENT);
     if (xc == NULL) {
         return NULL;

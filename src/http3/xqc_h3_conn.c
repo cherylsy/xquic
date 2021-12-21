@@ -149,6 +149,7 @@ xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
     if (h3_conn_settings->qpack_blocked_streams) {
         h3_conn->local_h3_conn_settings.qpack_blocked_streams = h3_conn_settings->qpack_blocked_streams;
     }
+    xqc_log_event(h3_conn->log, HTTP_PARAMETERS_SET, h3_conn, XQC_LOG_LOCAL_EVENT);
 }
 
 
@@ -462,6 +463,7 @@ xqc_h3_conn_on_settings_entry_received(uint64_t identifier, uint64_t value, void
 {
     xqc_h3_conn_t *h3c = (xqc_h3_conn_t *) user_data;
     xqc_log(h3c->log, XQC_LOG_DEBUG, "|id:%ui|value:%ui|", identifier, value);
+    xqc_log_event(h3c->log, HTTP_SETTING_PARSED, identifier, value);
     xqc_int_t ret;
     switch (identifier) {
     case XQC_H3_SETTINGS_MAX_FIELD_SECTION_SIZE:
