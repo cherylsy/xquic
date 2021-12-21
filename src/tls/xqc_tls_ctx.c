@@ -23,9 +23,6 @@ typedef struct xqc_tls_ctx_s {
     /* log hander */
     xqc_log_t                      *log;
 
-    /* list of xqc_alpn_registration_t */
-    xqc_list_head_t                 alpn_reg_list;
-
     /* the buffer of alpn, for server alpn selection */
     unsigned char                  *alpn_list;
     size_t                          alpn_list_sz;
@@ -276,9 +273,6 @@ xqc_tls_ctx_create(xqc_tls_type_t type, const xqc_engine_ssl_config_t *cfg,
     ctx->type = type;
     ctx->tls_cbs = *cbs;
     ctx->log = log;
-
-    /* init alpn list */
-    xqc_init_list_head(&ctx->alpn_reg_list);
 
     /* copy config */
     xqc_int_t ret = xqc_tls_ctx_set_config(ctx, cfg);
