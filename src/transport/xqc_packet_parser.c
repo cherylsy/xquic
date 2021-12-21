@@ -550,7 +550,7 @@ xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     /* copy header to dest */
     xqc_memcpy(dst_header, header, header_len);
 
-    /* refresh header length */ // TODO: 是否可以放到加密里边？
+    /* refresh header length */
     if (level == XQC_ENC_LEV_INIT || level == XQC_ENC_LEV_0RTT ||
         level == XQC_ENC_LEV_HSK)
     {
