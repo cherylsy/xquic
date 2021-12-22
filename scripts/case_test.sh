@@ -190,7 +190,9 @@ fi
 clear_log
 echo -e "header header data ...\c"
 ./test_client -s 5120 -l d -t 1 -E -x 30 >> clog
-if [ -n `grep "recv header" slog` ] && [ -n `grep "recv tailer header" slog` ]; then
+header_res=`grep "recv header" slog`
+trailer_res=`grep "recv tailer header" slog`
+if [ -n "$header_res" ] && [ -n "$trailer_res" ]; then
     echo ">>>>>>>> pass:1"
     case_print_result "header_header_data" "pass"
 else
@@ -202,8 +204,9 @@ grep_err_log
 clear_log
 echo -e "header data header ...\c"
 ./test_client -s 5120 -l d -t 1 -E -x 31 >> clog
-if [ -n `grep "recv header" slog` ] && [ -n `grep "recv tailer header" slog` ]; then
-    echo ">>>>>>>> pass:1"
+header_res=`grep "recv header" slog`
+trailer_res=`grep "recv tailer header" slog`
+if [ -n "$header_res" ] && [ -n "$trailer_res" ]; then    echo ">>>>>>>> pass:1"
     case_print_result "header_data_header" "pass"
 else
     echo ">>>>>>>> pass:0"
