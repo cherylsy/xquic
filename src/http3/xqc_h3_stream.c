@@ -1163,8 +1163,8 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s)
     /*
      * Blocked h3 stream will be delayed to destroy when stream was closed while all bytes are read.
      * Hence, if the h3 stream is unblocked, h3 stream shall be destroyed after processing.
-     *
-     * NOTICE: if there is a trailer header, h3 stream might be blocked again. If it will be
+     * 
+     * NOTICE: if there is a trailer section, h3 stream might be blocked again. If it will be
      * unblocked again, it will be destroyed after all bytes processed; If the connection is closed,
      * it will be destroyed when h3 connection destroy the blocked stream list.
      */

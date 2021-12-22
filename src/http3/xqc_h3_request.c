@@ -79,7 +79,7 @@ void
 xqc_h3_request_header_initial(xqc_h3_request_t *h3_request)
 {
     xqc_h3_headers_initial(&h3_request->h3_header[XQC_H3_REQUEST_HEADER]);
-    xqc_h3_headers_initial(&h3_request->h3_header[XQC_H3_REQUEST_TRAILER_HEADER]);
+    xqc_h3_headers_initial(&h3_request->h3_header[XQC_H3_REQUEST_TRAILER]);
 }
 
 
@@ -275,16 +275,16 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
         return &h3_request->h3_header[XQC_H3_REQUEST_HEADER];
     }
 
-    /* trailer header */
-    if (h3_request->read_flag & XQC_REQ_NOTIFY_READ_TRAILER_HEADER) {
+    /* trailer section */
+    if (h3_request->read_flag & XQC_REQ_NOTIFY_READ_TRAILER) {
         xqc_log(h3_request->h3_stream->log, XQC_LOG_DEBUG,
                 "|recv tailer header|stream_id:%ui|fin:%d|conn:%p|",
                 h3_request->h3_stream->stream_id, *fin,
                 h3_request->h3_stream->h3c->conn);
 
         /* set headers flag to NONE */
-        h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_TRAILER_HEADER;
-        return &h3_request->h3_header[XQC_H3_REQUEST_TRAILER_HEADER];
+        h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_TRAILER;
+        return &h3_request->h3_header[XQC_H3_REQUEST_TRAILER];
     }
 
     return NULL;
@@ -349,12 +349,12 @@ xqc_h3_request_on_recv_header(xqc_h3_request_t *h3r)
     /* used to set read_flag */
     static const xqc_request_notify_flag_t hdr_type_2_flag[XQC_H3_REQUEST_MAX_HEADERS_CNT] = {
         XQC_REQ_NOTIFY_READ_HEADER,
-        XQC_REQ_NOTIFY_READ_TRAILER_HEADER
+        XQC_REQ_NOTIFY_READ_TRAILER
     };
 
     xqc_http_headers_t *headers;
 
-    /* header section and trailer header section are all processed */
+    /* header section and trailer section are all processed */
     if (h3r->current_header >= XQC_H3_REQUEST_MAX_HEADERS_CNT) {
         xqc_log(h3r->h3_stream->log, XQC_LOG_WARN, "|headers count exceed 2|"
                 "stream_id:%ui|", h3r->h3_stream->stream_id);

@@ -11,16 +11,9 @@
 
 typedef enum {
     XQC_H3_REQUEST_HEADER           = 0,
-    XQC_H3_REQUEST_TRAILER_HEADER   = 1,
+    XQC_H3_REQUEST_TRAILER          = 1,
 } xqc_h3_header_type_t;
 
-#if 0
-typedef struct xqc_h3_request_headers_s {
-    /* http headers, including header and trailer header */
-    xqc_http_headers_t                  headers[XQC_H3_REQUEST_MAX_HEADERS_CNT];
-
-} xqc_h3_request_headers_t;
-#endif
 
 /**
  * @brief create headers array for xqc_http_headers_t
