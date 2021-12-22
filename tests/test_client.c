@@ -1050,7 +1050,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
 
     if (g_test_case == 29) {
         memset(test_long_value, 'a', XQC_TEST_LONG_HEADER_LEN - 1);
-    
+
         xqc_http_header_t test_long_hdr = {
             .name   = {.iov_base = "long_filed_line", .iov_len = 15},
             .value  = {.iov_base = test_long_value, .iov_len = strlen(test_long_value)},
@@ -1058,6 +1058,39 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         };
 
         header[header_size] = test_long_hdr;
+        header_size++;
+    }
+
+    if (g_test_case == 34) {
+
+        xqc_http_header_t uppercase_name_hdr = {
+            .name   = {.iov_base = "UpperCaseFiledLineName", .iov_len = 22},
+            .value  = {.iov_base = "UpperCaseFiledLineValue", .iov_len = 23},
+            .flags  = 0,
+        };
+        header[header_size] = uppercase_name_hdr;
+        header_size++;
+
+        xqc_http_header_t lowcase_start_hdr = {
+            .name   = {.iov_base = "filelineNamewithLowerCaseStart", .iov_len = 30},
+            .value  = {.iov_base = "UpperCaseFiledLineValue", .iov_len = 23},
+            .flags  = 0,
+        };
+        header[header_size] = lowcase_start_hdr;
+        header_size++;
+
+        memset(test_long_value, 'A', 9999);
+    
+        xqc_http_header_t test_long_hdr = {
+            .name   = {.iov_base = test_long_value, .iov_len = 9999},
+            .value  = {.iov_base = "header_with_long_name", .iov_len = 21},
+            .flags  = 0,
+        };
+
+        header[header_size] = test_long_hdr;
+        header_size++;
+
+        header[header_size] = lowcase_start_hdr;
         header_size++;
     }
 
@@ -1217,7 +1250,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
     }
 
     if (g_test_case == 12) { return -1;} /* stream read notify fail */
-    if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
+    if (flag & XQC_REQ_NOTIFY_READ_HEADER || flag & XQC_REQ_NOTIFY_READ_TRAILER) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
         if (headers == NULL) {
