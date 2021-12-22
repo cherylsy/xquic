@@ -310,6 +310,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|ack_size:%ui|", ret);
 
+    packet_out->po_ack_offset = packet_out->po_used_size;
     packet_out->po_used_size += ret;
     packet_out->po_largest_ack = largest_ack;
 
