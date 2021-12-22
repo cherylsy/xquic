@@ -159,8 +159,8 @@ xqc_get_lowercase_buf(xqc_list_buf_t *list_buf, size_t expected_size)
 
     /* try to reuse buf */
     if (!xqc_list_empty(head)) {
-        xqc_list_buf_t *list_buf = xqc_list_entry(head->prev, xqc_list_buf_t, list_head);
-        buf = list_buf->buf;
+        xqc_list_buf_t *last_buf = xqc_list_entry(head->prev, xqc_list_buf_t, list_head);
+        buf = last_buf->buf;
 
         /* if the last buf in list has enough memory, reuse it */
         if (buf->buf_len - buf->data_len < expected_size) {
