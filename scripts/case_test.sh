@@ -219,10 +219,10 @@ echo -e "uppercase header ...\c"
 ./test_client -s 5120 -l d -t 1 -E -x 34 >> clog
 if [ -n `grep "recv header" slog` ] && [ -n `grep "recv tailer header" slog` ]; then
     echo ">>>>>>>> pass:1"
-    case_print_result "header_data_header" "pass"
+    case_print_result "uppercase_header" "pass"
 else
     echo ">>>>>>>> pass:0"
-    case_print_result "header_data_header" "fail"
+    case_print_result "uppercase_header" "fail"
 fi
 grep_err_log
 
