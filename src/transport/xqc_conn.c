@@ -1104,6 +1104,11 @@ xqc_send_packet_with_pn(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
         xqc_log_event(conn->log, TRA_PACKET_SENT, packet_out);
     }
 
+    if (packet_out->po_ack_offset > 0 && packet_out->po_frame_types & XQC_FRAME_BIT_ACK) {
+        packet_out->po_frame_types &= ~XQC_FRAME_BIT_ACK;
+        packet_out->po_used_size = packet_out->po_ack_offset;
+    }
+
     /* deliver packet to send control */
     conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
     xqc_send_ctl_on_packet_sent(conn->conn_send_ctl, packet_out, now);
