@@ -7,8 +7,8 @@
 #include "src/tls/xqc_tls_common.h"
 #include "src/transport/xqc_packet.h"
 
-typedef struct xqc_packet_prot_aead_s      xqc_packet_prot_aead_t;
-typedef struct xqc_header_prot_cipher_s    xqc_header_prot_cipher_t;
+typedef struct xqc_pkt_protect_aead_s      xqc_pkt_protect_aead_t;
+typedef struct xqc_hdr_protect_cipher_s    xqc_hdr_protect_cipher_t;
 
 #undef  XQC_CRYPTO_PRIVAYE
 #define XQC_CRYPTO_PRIVAYE
@@ -37,10 +37,10 @@ typedef struct xqc_header_prot_cipher_s    xqc_header_prot_cipher_t;
 /* length of aead overhead */
 #define xqc_aead_overhead(obj, cln)                 (XQC_AEAD_OVERHEAD_IMPL((obj), cln))
 
-void xqc_aead_init_null(xqc_packet_prot_aead_t *pp_aead, size_t taglen);
-void xqc_cipher_init_null(xqc_header_prot_cipher_t *hp_cipher);
+void xqc_aead_init_null(xqc_pkt_protect_aead_t *pp_aead, size_t taglen);
+void xqc_cipher_init_null(xqc_hdr_protect_cipher_t *hp_cipher);
 
-struct xqc_packet_prot_aead_s {
+struct xqc_pkt_protect_aead_s {
     /**
      * implementation handler for aead
      * boringssl: const EVP_AEAD
@@ -53,7 +53,7 @@ struct xqc_packet_prot_aead_s {
     size_t                  taglen;
 
     xqc_int_t
-    (*xqc_aead_encrypt_func)(const xqc_packet_prot_aead_t *pp_aead,
+    (*xqc_aead_encrypt_func)(const xqc_pkt_protect_aead_t *pp_aead,
         uint8_t *dest, size_t destcap, size_t *destlen,
         const uint8_t *plaintext, size_t plaintextlen,
         const uint8_t *key, size_t keylen,
@@ -61,7 +61,7 @@ struct xqc_packet_prot_aead_s {
         const uint8_t *ad, size_t adlen);
     
     xqc_int_t
-    (*xqc_aead_decrypt_func)(const xqc_packet_prot_aead_t *pp_aead,
+    (*xqc_aead_decrypt_func)(const xqc_pkt_protect_aead_t *pp_aead,
         uint8_t *dest, size_t destcap, size_t *destlen,
         const uint8_t *ciphertext, size_t ciphertextlen,
         const uint8_t *key, size_t keylen,
@@ -70,7 +70,7 @@ struct xqc_packet_prot_aead_s {
 };
 
 
-struct xqc_header_prot_cipher_s {
+struct xqc_hdr_protect_cipher_s {
     /**
      * implementation handler for cipher
      * boringssl & babassl: const EVP_CIPHER *
@@ -81,7 +81,7 @@ struct xqc_header_prot_cipher_s {
     size_t                  noncelen;
 
     xqc_int_t
-    (*xqc_hp_mask_func)(const xqc_header_prot_cipher_t *hp_cipher,
+    (*xqc_hp_mask_func)(const xqc_hdr_protect_cipher_t *hp_cipher,
         uint8_t *dest, size_t destcap, size_t *destlen,
         const uint8_t *plaintext, size_t plaintextlen,
         const uint8_t *key, size_t keylen,
@@ -102,8 +102,8 @@ typedef enum {
 
 
 typedef struct xqc_vec_s {
-    uint8_t            *base;   /* base points to the data. */
-    size_t              len;    /* the number of bytes which the buffer pointed by base contains */
+    uint8_t            *base;     /* pointer of data. */
+    size_t              len;      /* byte count of base */
 } xqc_vec_t;
 
 typedef struct xqc_crypto_km_s {
@@ -127,10 +127,10 @@ typedef struct xqc_crypto_keys_s {
 typedef struct xqc_crypto_s {
 
     /* aead suites for packet payload protection */
-    xqc_packet_prot_aead_t      pp_aead;
+    xqc_pkt_protect_aead_t      pp_aead;
 
     /* cipher suites for packet header protection */
-    xqc_header_prot_cipher_t    hp_cipher;
+    xqc_hdr_protect_cipher_t    hp_cipher;
 
     /* digest suites for hkdf operation */
     xqc_digest_t                md;

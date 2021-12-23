@@ -4,7 +4,7 @@
 #include <openssl/err.h>
 
 xqc_int_t 
-xqc_ossl_aead_encrypt(const xqc_packet_prot_aead_t *pp_aead,
+xqc_ossl_aead_encrypt(const xqc_pkt_protect_aead_t *pp_aead,
     uint8_t *dest, size_t destcap, size_t *destlen,
     const uint8_t *plaintext, size_t plaintextlen,
     const uint8_t *key, size_t keylen,
@@ -73,7 +73,7 @@ err:
 }
 
 xqc_int_t
-xqc_ossl_aead_decrypt(const xqc_packet_prot_aead_t *pp_aead,
+xqc_ossl_aead_decrypt(const xqc_pkt_protect_aead_t *pp_aead,
     uint8_t *dest, size_t destcap, size_t *destlen,
     const uint8_t *ciphertext, size_t ciphertextlen,
     const uint8_t *key, size_t keylen,
@@ -139,7 +139,7 @@ err:
 
 
 xqc_int_t
-xqc_ossl_hp_mask(const xqc_header_prot_cipher_t *hp_cipher,
+xqc_ossl_hp_mask(const xqc_hdr_protect_cipher_t *hp_cipher,
     uint8_t *dest, size_t destcap, size_t *destlen,
     const uint8_t *plaintext, size_t plaintextlen,
     const uint8_t *key, size_t keylen,

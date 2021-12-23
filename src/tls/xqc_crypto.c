@@ -143,7 +143,7 @@ xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t
     uint8_t *sample     = pktno + 4;
 
     /* hp cipher and key */
-    xqc_header_prot_cipher_t *hp_cipher = &crypto->hp_cipher;
+    xqc_hdr_protect_cipher_t *hp_cipher = &crypto->hp_cipher;
     xqc_vec_t *hp  = &crypto->keys.tx_hp;
     if (hp_cipher == NULL || hp->base == NULL || hp->len == 0) {
         xqc_log(crypto->log, XQC_LOG_ERROR, "|hp encrypt key NULL|");
@@ -187,7 +187,7 @@ xqc_crypto_decrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t
     size_t nwrite;
 
     /* header protection cipher and rx hp key */
-    xqc_header_prot_cipher_t *hp_cipher = &crypto->hp_cipher;
+    xqc_hdr_protect_cipher_t *hp_cipher = &crypto->hp_cipher;
     xqc_vec_t *hp = &crypto->keys.rx_hp;
     if (hp->base == NULL || hp->len == 0) {
         xqc_log(crypto->log, XQC_LOG_ERROR, "|hp rx key NULL|");
@@ -236,7 +236,7 @@ xqc_crypto_encrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
     uint8_t nonce[XQC_NONCE_LEN];
 
     /* aead function and tx key */
-    xqc_packet_prot_aead_t *pp_aead = &crypto->pp_aead;
+    xqc_pkt_protect_aead_t *pp_aead = &crypto->pp_aead;
     xqc_crypto_km_t        *ckm     = &crypto->keys.tx_ckm;
     if (ckm->key.base == NULL || ckm->key.len == 0
         || ckm->iv.base == NULL || ckm->iv.len == 0)
@@ -276,7 +276,7 @@ xqc_crypto_decrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
     uint8_t nonce[XQC_NONCE_LEN];
 
     /* keys for decryption */
-    xqc_packet_prot_aead_t *pp_aead = &crypto->pp_aead;
+    xqc_pkt_protect_aead_t *pp_aead = &crypto->pp_aead;
     xqc_crypto_km_t        *ckm     = &crypto->keys.rx_ckm;
     if (ckm->key.base == NULL || ckm->key.len == 0
         || ckm->iv.base == NULL || ckm->iv.len == 0)
