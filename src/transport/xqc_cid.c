@@ -308,3 +308,20 @@ xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num)
 
     return NULL;
 }
+
+xqc_cid_inner_t *
+xqc_get_inner_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num)
+{
+    xqc_cid_inner_t *inner_cid = NULL;
+    xqc_list_head_t *pos, *next;
+
+    xqc_list_for_each_safe(pos, next, &cid_set->list_head) {
+        inner_cid = xqc_list_entry(pos, xqc_cid_inner_t, list);
+
+        if (inner_cid->cid.cid_seq_num == seq_num) {
+            return inner_cid;
+        }
+    }
+
+    return NULL;
+}
