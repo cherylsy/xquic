@@ -582,60 +582,64 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
         /* continue to receive body */
     }
 
-    if (!(flag & XQC_REQ_NOTIFY_READ_BODY)) {
-        return 0;
+    if (flag & XQC_REQ_NOTIFY_READ_BODY) {
+
+        if (g_echo && user_stream->recv_body == NULL) {
+            user_stream->recv_body = malloc(MAX_BUF_SIZE);
+            if (user_stream->recv_body == NULL) {
+                printf("recv_body malloc error\n");
+                return -1;
+            }
+        }
+
+        int save = g_save_body;
+
+        if (save && user_stream->recv_body_fp == NULL) {
+            user_stream->recv_body_fp = fopen(g_write_file, "wb");
+            if (user_stream->recv_body_fp == NULL) {
+                printf("open error\n");
+                return -1;
+            }
+        }
+
+        char buff[4096] = {0};
+        size_t buff_size = 4096;
+        ssize_t read;
+        ssize_t read_sum = 0;
+        do {
+            read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+            if (read == -XQC_EAGAIN) {
+                break;
+            } else if (read < 0) {
+                printf("xqc_h3_request_recv_body error %zd\n", read);
+                return 0;
+            }
+
+            read_sum += read;
+
+            /* write received body to file */
+            if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+                printf("fwrite error\n");
+                return -1;
+            }
+            if (save) fflush(user_stream->recv_body_fp);
+
+            /* write received body to memory */
+            if (g_echo) {
+                memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
+            }
+            user_stream->recv_body_len += read;
+
+        } while (read > 0 && !fin);
+
+        printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
     }
 
-    if (g_echo && user_stream->recv_body == NULL) {
-        user_stream->recv_body = malloc(MAX_BUF_SIZE);
-        if (user_stream->recv_body == NULL) {
-            printf("recv_body malloc error\n");
-            return -1;
-        }
+    if (flag & XQC_REQ_NOTIFY_READ_FIN) {
+        fin = 1;
+
+        printf("h3 fin only received\n");
     }
-
-    int save = g_save_body;
-
-    if (save && user_stream->recv_body_fp == NULL) {
-        user_stream->recv_body_fp = fopen(g_write_file, "wb");
-        if (user_stream->recv_body_fp == NULL) {
-            printf("open error\n");
-            return -1;
-        }
-    }
-
-    char buff[4096] = {0};
-    size_t buff_size = 4096;
-    ssize_t read;
-    ssize_t read_sum = 0;
-    do {
-        read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
-        if (read == -XQC_EAGAIN) {
-            break;
-        } else if (read < 0) {
-            printf("xqc_h3_request_recv_body error %zd\n", read);
-            return 0;
-        }
-
-        read_sum += read;
-
-        /* write received body to file */
-        if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
-            printf("fwrite error\n");
-            return -1;
-        }
-        if (save) fflush(user_stream->recv_body_fp);
-
-        /* write received body to memory */
-        if (g_echo) {
-            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
-        }
-        user_stream->recv_body_len += read;
-
-    } while (read > 0 && !fin);
-
-    printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
-
 
     if (fin) {
         xqc_server_request_send(h3_request, user_stream);

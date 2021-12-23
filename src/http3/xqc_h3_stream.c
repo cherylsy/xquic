@@ -647,10 +647,6 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
         }
     }
 
-    if (data_len == 0) {
-        return 0;
-    }
-
     if (data == NULL) {
         return -XQC_H3_EPARAM;
     }
@@ -985,12 +981,14 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
 {
     ssize_t processed;
     xqc_h3_conn_t *h3c = h3s->h3c;
-    if (data_len == 0) {
+
+    /* nothing to process */
+    if (data_len == 0 && !fin_flag) {
         return XQC_OK;
     }
 
-    xqc_log(h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|data_size:%z|",
-            h3s->stream_id, h3s->type, data_len);
+    xqc_log(h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|data_size:%z|fin:%d",
+            h3s->stream_id, h3s->type, data_len, fin_flag);
 
     if (xqc_stream_is_uni(h3s->stream_id)) {
         /* process uni stream bytes */

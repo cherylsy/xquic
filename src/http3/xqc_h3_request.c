@@ -520,6 +520,8 @@ xqc_h3_request_on_recv_fin(xqc_h3_request_t *h3r)
         return ret;
     }
 
+    h3r->read_flag &= ~XQC_REQ_NOTIFY_READ_FIN;
+
     return XQC_OK;
 }
 
