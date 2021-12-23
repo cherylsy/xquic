@@ -614,6 +614,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
     ssize_t len = 0;
     xqc_int_t ret;
     xqc_bool_t blocked = XQC_FALSE;
+    xqc_http_headers_t *hdrs = NULL;
 
     while (processed < data_len) {
         xqc_log(h3s->log, XQC_LOG_DEBUG, "|parse frame|state:%d|data_len:%d|process:%d|",
@@ -638,15 +639,17 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
         if (pctx->state >= XQC_H3_FRM_STATE_PAYLOAD) {
             switch (pctx->frame.type) {
             case XQC_H3_FRM_HEADERS:
-                /* the previous headers shall be read, or it might cause errors */
-                if (h3s->h3r->h3_header.read_flag == XQC_H3_REQUEST_HEADER_DATA) {
-                    xqc_log(h3s->log, XQC_LOG_WARN, "|prev header still not read|");
+                /* get headers memory for writing */
+                hdrs = xqc_h3_request_get_writing_headers(h3s->h3r);
+                if (NULL == hdrs) {
+                    xqc_log(h3s->log, XQC_LOG_ERROR, "|get writing header error|");
+                    XQC_H3_CONN_ERR(h3s->h3c, H3_GENERAL_PROTOCOL_ERROR, -XQC_H3_INVALID_HEADER);
+                    return -XQC_H3_INVALID_HEADER;
                 }
 
                 len = xqc_min(pctx->frame.len - pctx->frame.consumed_len, data_len - processed);
-                read = xqc_qpack_dec_headers(h3s->qpack, h3s->ctx,
-                                             data + processed, len,
-                                             &h3s->h3r->h3_header.headers, fin, &blocked);
+                read = xqc_qpack_dec_headers(h3s->qpack, h3s->ctx, data + processed, len,
+                                             hdrs, fin, &blocked);
                 if (read < 0) {
                     xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_request error"
                             "|error frame type:%z|", pctx->frame.type);
@@ -700,13 +703,6 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 if (pctx->frame.len == pctx->frame.consumed_len) {
                     xqc_log_event(h3s->log, HTTP_FRAME_PARSED, h3s);
                     fin = 1;
-                    h3s->h3r->header_frame_count++;
-                    if (h3s->h3r->header_frame_count > 1) {
-                        xqc_log(h3s->log, XQC_LOG_DEBUG, "|headers_frame_count exceed 1|"
-                                "stream_id:%ui|cnt:%uz|", h3s->stream_id,
-                                h3s->h3r->header_frame_count);
-                    }
-
                     xqc_h3_frm_reset_pctx(pctx);
                     xqc_qpack_clear_req_ctx(h3s->ctx);
                     if (fin_flag && processed == data_len) {
@@ -1167,8 +1163,8 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s)
     /*
      * Blocked h3 stream will be delayed to destroy when stream was closed while all bytes are read.
      * Hence, if the h3 stream is unblocked, h3 stream shall be destroyed after processing.
-     *
-     * NOTICE: if there is a trailer header, h3 stream might be blocked again. If it will be
+     * 
+     * NOTICE: if there is a trailer section, h3 stream might be blocked again. If it will be
      * unblocked again, it will be destroyed after all bytes processed; If the connection is closed,
      * it will be destroyed when h3 connection destroy the blocked stream list.
      */

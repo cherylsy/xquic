@@ -13,8 +13,17 @@ extern "C" {
  * @brief read flag of xqc_h3_request_read_notify_pt
  */
 typedef enum {
-    XQC_REQ_NOTIFY_READ_HEADER  = 1 << 0,
-    XQC_REQ_NOTIFY_READ_BODY    = 1 << 1,
+    /* nothing readable */
+    XQC_REQ_NOTIFY_READ_NULL            = 0,
+
+    /* read header section flag, this will be set when the first HEADERS is processed */
+    XQC_REQ_NOTIFY_READ_HEADER          = 1 << 0,
+
+    /* read body flag, this will be set when a DATA frame is processed */
+    XQC_REQ_NOTIFY_READ_BODY            = 1 << 1,
+
+    /* read trailer section flag, this will be set when trailer HEADERS frame is processed */
+    XQC_REQ_NOTIFY_READ_TRAILER         = 1 << 2,
 } xqc_request_notify_flag_t;
 
 
