@@ -23,26 +23,29 @@ typedef struct xqc_header_prot_cipher_s    xqc_header_prot_cipher_t;
 
 
 /* aes_d_gcm  d is the length of key */
-#define xqc_aead_init_aes_gcm(aead,d,...)           XQC_AEAD_INIT_AES_GCM_IMPL(aead,d,__VA_ARGS__)
+#define xqc_aead_init_aes_gcm(aead, d, ...)         XQC_AEAD_INIT_AES_GCM_IMPL(aead, d, __VA_ARGS__)
 
 /* chacha20_poly1305 */
-#define xqc_aead_init_chacha20_poly1305(obj,...)    XQC_AEAD_INIT_CHACHA20_POLY1305_IMPL(obj,__VA_ARGS__)
+#define xqc_aead_init_chacha20_poly1305(obj, ...)   XQC_AEAD_INIT_CHACHA20_POLY1305_IMPL(obj, __VA_ARGS__)
 
 /* aes_d_ctr */
-#define xqc_cipher_init_aes_ctr(cipher,d,...)       XQC_CIPHER_INIT_AES_CTR_IMPL(cipher,d,__VA_ARGS__)
+#define xqc_cipher_init_aes_ctr(cipher, d, ...)     XQC_CIPHER_INIT_AES_CTR_IMPL(cipher, d, __VA_ARGS__)
 
 /* chacha20 */
-#define xqc_cipher_init_chacha20(cipher,...)        XQC_CIPHER_INIT_CHACHA20_IMPL(cipher,__VA_ARGS__)
+#define xqc_cipher_init_chacha20(cipher, ...)       XQC_CIPHER_INIT_CHACHA20_IMPL(cipher, __VA_ARGS__)
 
-
-#define xqc_aead_overhead(obj,cln)                  (XQC_AEAD_OVERHEAD_IMPL((obj),cln))
+/* length of aead overhead */
+#define xqc_aead_overhead(obj, cln)                 (XQC_AEAD_OVERHEAD_IMPL((obj), cln))
 
 void xqc_aead_init_null(xqc_packet_prot_aead_t *pp_aead, size_t taglen);
 void xqc_cipher_init_null(xqc_header_prot_cipher_t *hp_cipher);
 
 struct xqc_packet_prot_aead_s {
-    // boringssl: const EVP_AEAD *
-    // babassl:   const EVP_CIPHER  * 
+    /**
+     * implementation handler for aead
+     * boringssl: const EVP_AEAD
+     * babassl:   const EVP_CIPHER
+     */
     XQC_AEAD_SUITES_IMPL    aead;
 
     size_t                  keylen;
@@ -64,12 +67,14 @@ struct xqc_packet_prot_aead_s {
         const uint8_t *key, size_t keylen,
         const uint8_t *nonce, size_t noncelen,
         const uint8_t *ad, size_t adlen);
-
 };
 
 
 struct xqc_header_prot_cipher_s {
-    // boringssl & babassl: const EVP_CIPHER * 
+    /**
+     * implementation handler for cipher
+     * boringssl & babassl: const EVP_CIPHER *
+     */
     XQC_CIPHER_SUITES_IMPL  cipher;
 
     size_t                  keylen;
@@ -81,7 +86,6 @@ struct xqc_header_prot_cipher_s {
         const uint8_t *plaintext, size_t plaintextlen,
         const uint8_t *key, size_t keylen,
         const uint8_t *sample, size_t samplelen);
-
 };
 
 typedef struct xqc_digest_st {
