@@ -102,25 +102,25 @@ typedef enum {
 
 
 typedef struct xqc_vec_s {
-    uint8_t         *base;   /* base points to the data. */
-    size_t           len;    /* the number of bytes which the buffer pointed by base contains */
+    uint8_t            *base;   /* base points to the data. */
+    size_t              len;    /* the number of bytes which the buffer pointed by base contains */
 } xqc_vec_t;
 
 typedef struct xqc_crypto_km_s {
-    xqc_vec_t        key;
-    xqc_vec_t        iv;
+    xqc_vec_t           key;
+    xqc_vec_t           iv;
 
-    uint8_t          flags;  /* for key update */
+    uint8_t             flags;  /* for key update */
 } xqc_crypto_km_t;
 
 typedef struct xqc_crypto_keys_s {
     /* packet payload protect key */
-    xqc_crypto_km_t  rx_ckm;
-    xqc_crypto_km_t  tx_ckm;
+    xqc_crypto_km_t     rx_ckm;
+    xqc_crypto_km_t     tx_ckm;
 
     /* packet header protect key */
-    xqc_vec_t        rx_hp;
-    xqc_vec_t        tx_hp;
+    xqc_vec_t           rx_hp;
+    xqc_vec_t           tx_hp;
 } xqc_crypto_keys_t;
 
 
@@ -144,17 +144,25 @@ typedef struct xqc_crypto_s {
 } xqc_crypto_t;
 
 
-/* set aead suites, cipher suites and digest suites */
+/**
+ * @brief create crypto instance, initialize aead suites, cipher suites and digest suites
+ */
 xqc_crypto_t * xqc_crypto_create(uint32_t cipher_id, xqc_log_t *log);
 
+/**
+ * @brief destroy crypto instance
+ */
 void xqc_crypto_destroy(xqc_crypto_t *crypto);
 
-
-/* derive packet protection keys and store them in xqc_crypto_t */
+/**
+ * @brief install keys from secret
+ */
 xqc_int_t xqc_crypto_derive_keys(xqc_crypto_t *crypto, const uint8_t *secret, size_t secretlen,
     xqc_key_type_t type);
 
-/* check packet protection keys */
+/**
+ * @brief query is protection key is ready
+ */
 xqc_bool_t xqc_crypto_is_key_ready(xqc_crypto_t *crypto, xqc_key_type_t type);
 
 /**
@@ -209,8 +217,9 @@ xqc_int_t xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_typ
 xqc_int_t xqc_crypto_decrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t *header,
     uint8_t *pktno);
 
-
-/* derive initial secret (for initial encryption level) */
+/**
+ * @brief derive initial level secret
+ */
 xqc_int_t xqc_crypto_derive_initial_secret(
     uint8_t *cli_initial_secret, size_t cli_initial_secret_len,
     uint8_t *svr_initial_secret, size_t svr_initial_secret_len,

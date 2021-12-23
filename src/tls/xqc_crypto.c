@@ -122,6 +122,7 @@ xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen, uint64_t
     memcpy(dest, iv, ivlen);
     pktno = bswap64(pktno);
 
+    /* nonce is formed by combining the packet protection IV with the packet number */
     for (i = 0; i < 8; ++i) {
         dest[ivlen - 8 + i] ^= ((uint8_t *)&pktno)[i];
     }
@@ -310,8 +311,8 @@ xqc_crypto_decrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
 /* derive packet protection keys and store them in xqc_crypto_t */
 
 xqc_int_t
-xqc_crypto_derive_packet_protection_key(uint8_t *dest, size_t destcap, size_t *destlen,
-    const uint8_t *secret, size_t secretlen, const xqc_crypto_t *crypto)
+xqc_crypto_derive_packet_protection_key(xqc_crypto_t *crypto, uint8_t *dest, size_t destcap,
+    size_t *destlen, const uint8_t *secret, size_t secretlen)
 {
     static uint8_t LABEL[] = "quic key";
 
@@ -331,8 +332,8 @@ xqc_crypto_derive_packet_protection_key(uint8_t *dest, size_t destcap, size_t *d
 }
 
 xqc_int_t
-xqc_crypto_derive_packet_protection_iv(uint8_t *dest, size_t destcap, size_t *destlen,
-    const uint8_t *secret, size_t secretlen, const xqc_crypto_t *crypto)
+xqc_crypto_derive_packet_protection_iv(xqc_crypto_t *crypto, uint8_t *dest, size_t destcap,
+    size_t *destlen, const uint8_t *secret, size_t secretlen)
 {
     static uint8_t LABEL[] = "quic iv";
 
@@ -352,8 +353,8 @@ xqc_crypto_derive_packet_protection_iv(uint8_t *dest, size_t destcap, size_t *de
 }
 
 xqc_int_t
-xqc_crypto_derive_header_protection_key(uint8_t *dest, size_t destcap, size_t *destlen,
-    const uint8_t *secret, size_t secretlen, const xqc_crypto_t *crypto)
+xqc_crypto_derive_header_protection_key(xqc_crypto_t *crypto, uint8_t *dest, size_t destcap,
+    size_t *destlen, const uint8_t *secret, size_t secretlen)
 {
     static uint8_t LABEL[] = "quic hp";
 
@@ -385,7 +386,7 @@ xqc_crypto_derive_keys(xqc_crypto_t *crypto, const uint8_t *secret, size_t secre
 
     xqc_int_t ret;
 
-    ret = xqc_crypto_derive_packet_protection_key(key, keycap, &keylen, secret, secretlen, crypto);
+    ret = xqc_crypto_derive_packet_protection_key(crypto, key, keycap, &keylen, secret, secretlen);
     if (ret != XQC_OK || keylen <= 0) {
         xqc_log(crypto->log, XQC_LOG_ERROR,
                 "|xqc_crypto_derive_packet_protection_key failed|ret:%d|", ret);
