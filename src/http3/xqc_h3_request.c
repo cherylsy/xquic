@@ -5,7 +5,6 @@
 #include "src/http3/xqc_h3_conn.h"
 #include "src/http3/xqc_h3_ctx.h"
 
-#define XQC_H3_HEADERS_LOWCASE_BUF_SIZE     1024
 
 xqc_h3_request_t *
 xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)
@@ -150,45 +149,9 @@ xqc_h3_request_set_user_data(xqc_h3_request_t *h3_request, void *user_data)
 }
 
 
-xqc_var_buf_t *
-xqc_get_lowercase_buf(xqc_list_buf_t *list_buf, size_t expected_size)
-{
-    xqc_int_t           ret;
-    xqc_var_buf_t      *buf = NULL;
-    xqc_list_head_t    *head = &list_buf->list_head;
-
-    /* try to reuse buf */
-    if (!xqc_list_empty(head)) {
-        xqc_list_buf_t *last_buf = xqc_list_entry(head->prev, xqc_list_buf_t, list_head);
-        buf = last_buf->buf;
-
-        /* if the last buf in list has enough memory, reuse it */
-        if (buf->buf_len - buf->data_len < expected_size) {
-            buf = NULL;
-        }
-    }
-
-    /* can't find a buf, or can't reuse a buf, create a new one  */
-    if (buf == NULL) {
-        /* no memory buffer or the last is full, create a new one */
-        buf = xqc_var_buf_create(xqc_max(XQC_H3_HEADERS_LOWCASE_BUF_SIZE, expected_size));
-        if (buf == NULL) {
-            return NULL;
-        }
-
-        if (xqc_list_buf_to_tail(head, buf) < 0) {
-            xqc_var_buf_free(buf);
-            return NULL;
-        }
-    }
-
-    return buf;
-}
-
-
 xqc_int_t
 xqc_h3_request_make_name_lowercase(xqc_http_header_t *dst, xqc_http_header_t *src,
-    xqc_list_buf_t *list_buf)
+    xqc_var_buf_t *buf)
 {
     xqc_int_t       ret;
     xqc_var_buf_t  *buf;
@@ -202,10 +165,9 @@ xqc_h3_request_make_name_lowercase(xqc_http_header_t *dst, xqc_http_header_t *sr
         /* if uppercase character found, convert to lowercase and store name in lc_buf */
         if (c >= 'A' && c <='Z') {
 
-            /* get buf for writing lowercase filed name */
-            buf = xqc_get_lowercase_buf(list_buf, src->name.iov_len + 1);
-            if (buf == NULL) {
-                return -XQC_EMALLOC;
+            /* check capacity */
+            if (buf->buf_len - buf->data_len < src->name.iov_len + 1) {
+                return -XQC_ELIMIT;
             }
 
             /* make memory from var buf the memory of lowercase header */
@@ -240,10 +202,10 @@ xqc_h3_request_make_name_lowercase(xqc_http_header_t *dst, xqc_http_header_t *sr
 }
 
 xqc_int_t
-xqc_h3_request_copy_header(xqc_http_header_t *dst, xqc_http_header_t *src, xqc_list_buf_t *list_buf)
+xqc_h3_request_copy_header(xqc_http_header_t *dst, xqc_http_header_t *src, xqc_var_buf_t *buf)
 {
     /* try to make field name to lower-case if upper-case characters is contained */
-    xqc_int_t ret = xqc_h3_request_make_name_lowercase(dst, src, list_buf);
+    xqc_int_t ret = xqc_h3_request_make_name_lowercase(dst, src, buf);
     if (ret != XQC_OK) {
         return ret;
     }
@@ -270,8 +232,11 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
     }
 
     /* used to convert upper case filed line key to lowcase */
-    xqc_list_buf_t lowercase_buf;
-    xqc_init_list_head(&lowercase_buf.list_head);
+    xqc_var_buf_t *lowercase_buf = xqc_var_buf_create(XQC_H3_HEADERS_LOWCASE_BUF_SIZE);
+    if (NULL == lowercase_buf) {
+        xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR, "|malloc buf for lowercase error|");
+        return -XQC_EMALLOC;
+    }
 
     /*  malloc a new  move pesudo headers in the front of list */
     xqc_http_headers_t new_headers;
@@ -292,7 +257,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             && *((unsigned char *)headers->headers[i].name.iov_base) == ':')
         {
             ret = xqc_h3_request_copy_header(&headers_in->headers[pt],
-                                             &headers->headers[i], &lowercase_buf);
+                                             &headers->headers[i], lowercase_buf);
             if (ret != XQC_OK) {
                 xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR,
                         "|copy header error|ret:%d|", ret);
@@ -312,7 +277,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
             && *((unsigned char *)headers->headers[i].name.iov_base) != ':')
         {
             ret = xqc_h3_request_copy_header(&headers_in->headers[pt],
-                                             &headers->headers[i], &lowercase_buf);
+                                             &headers->headers[i], lowercase_buf);
             if (ret != XQC_OK) {
                 xqc_log(h3_request->h3_stream->log, XQC_LOG_ERROR,
                         "|copy header error|ret:%d|", ret);
@@ -332,7 +297,7 @@ xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *he
 end:
     /* free headers_in->headers */
     xqc_free(headers_in->headers);
-    xqc_list_buf_list_free(&lowercase_buf.list_head);
+    xqc_var_buf_free(lowercase_buf);
 
     return sent;
 }

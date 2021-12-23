@@ -1079,10 +1079,10 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         header[header_size] = lowcase_start_hdr;
         header_size++;
 
-        memset(test_long_value, 'A', 9999);
+        memset(test_long_value, 'A', 1024);
     
         xqc_http_header_t test_long_hdr = {
-            .name   = {.iov_base = test_long_value, .iov_len = 9999},
+            .name   = {.iov_base = test_long_value, .iov_len = 1024},
             .value  = {.iov_base = "header_with_long_name", .iov_len = 21},
             .flags  = 0,
         };
