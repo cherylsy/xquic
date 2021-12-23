@@ -63,6 +63,8 @@ xqc_h3_request_on_recv_header(xqc_h3_request_t *h3r);
 
 xqc_int_t xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r);
 
+xqc_int_t xqc_h3_request_on_recv_fin(xqc_h3_request_t *h3r);
+
 
 xqc_http_headers_t *xqc_h3_request_get_writing_headers(xqc_h3_request_t *h3r);
 

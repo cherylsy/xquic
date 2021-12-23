@@ -141,6 +141,9 @@ ssize_t
 xqc_h3_stream_send_data(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_size, uint8_t fin);
 
 xqc_int_t
+xqc_h3_stream_send_finish(xqc_h3_stream_t *h3s);
+
+xqc_int_t
 xqc_h3_stream_send_setting(xqc_h3_stream_t *h3s, xqc_h3_conn_settings_t *settings, uint8_t fin);
 
 xqc_int_t

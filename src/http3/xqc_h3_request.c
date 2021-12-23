@@ -336,6 +336,13 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
     return sent;
 }
 
+ssize_t
+xqc_h3_request_finish(xqc_h3_request_t *h3_request)
+{
+    return xqc_h3_stream_send_finish(h3_request->h3_stream);
+}
+
+
 
 xqc_http_headers_t *
 xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
@@ -478,13 +485,12 @@ xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r)
 {
     /* there might be a fin only operation, which shall be notified to user */
     if (!xqc_list_empty(&h3r->body_buf) || (h3r->fin_flag == XQC_TRUE)) {
-        xqc_request_notify_flag_t flag = 0;
 
         if (!xqc_list_empty(&h3r->body_buf)) {
-            flag |= XQC_REQ_NOTIFY_READ_BODY;
+            h3r->read_flag |= XQC_REQ_NOTIFY_READ_BODY;
         }
 
-        xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, flag, h3r->user_data);
+        xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, h3r->read_flag, h3r->user_data);
         if (ret < 0) {
             xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
                     "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream_id,
@@ -495,6 +501,28 @@ xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r)
 
     return XQC_OK;
 }
+
+xqc_int_t
+xqc_h3_request_on_recv_fin(xqc_h3_request_t *h3r)
+{
+    if (h3r->fin_flag) {
+        xqc_log(h3r->h3_stream->log, XQC_LOG_WARN, "|duplicated fin|");
+        return XQC_OK;
+    }
+
+    h3r->read_flag |= XQC_REQ_NOTIFY_READ_FIN;
+
+    xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, h3r->read_flag, h3r->user_data);
+    if (ret < 0) {
+        xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
+                "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream_id,
+                h3r->h3_stream->h3c->conn);
+        return ret;
+    }
+
+    return XQC_OK;
+}
+
 
 void*
 xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request)
