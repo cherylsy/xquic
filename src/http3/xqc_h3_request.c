@@ -154,7 +154,6 @@ xqc_h3_request_make_name_lowercase(xqc_http_header_t *dst, xqc_http_header_t *sr
     xqc_var_buf_t *buf)
 {
     xqc_int_t       ret;
-    xqc_var_buf_t  *buf;
 
     xqc_bool_t      use_original_buf    = XQC_TRUE; /* whether use memory from original header */
     unsigned char  *lc_buf              = src->name.iov_base;
@@ -174,16 +173,9 @@ xqc_h3_request_make_name_lowercase(xqc_http_header_t *dst, xqc_http_header_t *sr
             unsigned char *lc_dst = buf->data + buf->data_len;
             lc_buf = lc_dst;
 
-            /* copy lowercase characters to lowercase buf first */
-            if (i > 0) {
-                xqc_memcpy(lc_dst, src->name.iov_base, i);
-                lc_dst += i;
-            }
-
             /* convert reset characters to lowercase */
-            size_t remain = src->name.iov_len - i;
-            xqc_str_tolower(lc_dst, src->name.iov_base + i, src->name.iov_len - i);
-            lc_dst += remain;
+            xqc_str_tolower(lc_dst, src->name.iov_base, src->name.iov_len);
+            lc_dst += src->name.iov_len;
 
             /* add terminator */
             *lc_dst = '\0';
