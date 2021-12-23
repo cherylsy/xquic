@@ -95,7 +95,7 @@ struct xqc_hdr_protect_cipher_s {
     xqc_hp_mask_pt          hp_mask;
 };
 
-typedef struct xqc_digest_st {
+typedef struct xqc_digest_s {
     const EVP_MD *digest ;
 } xqc_digest_t;
 
