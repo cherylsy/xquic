@@ -609,8 +609,7 @@ xqc_insert_passive_stream_hash(xqc_connection_t *conn, int64_t cur_max_sid, xqc_
 }
 
 xqc_stream_t *
-xqc_passive_create_stream(xqc_connection_t *conn, xqc_stream_id_t stream_id,
-                   void *user_data)
+xqc_passive_create_stream(xqc_connection_t *conn, xqc_stream_id_t stream_id, void *user_data)
 {
     if (xqc_stream_do_create_flow_ctl(conn, stream_id, xqc_get_stream_type(stream_id)) != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_stream_do_create_flow_ctl error|");

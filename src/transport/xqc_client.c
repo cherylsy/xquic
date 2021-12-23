@@ -196,7 +196,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
         && conn_ssl_config->transport_parameter_data_len > 0)
     {
         xqc_transport_params_t tp;
-        memset(&tp, 0, sizeof(xqc_transport_params_t));
+        xqc_memzero(&tp, sizeof(xqc_transport_params_t));
         xqc_int_t ret = xqc_read_transport_params(conn_ssl_config->transport_parameter_data,
                                                 conn_ssl_config->transport_parameter_data_len, &tp);
         if (ret == XQC_OK) {
