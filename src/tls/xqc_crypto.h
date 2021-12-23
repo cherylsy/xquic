@@ -40,6 +40,31 @@ typedef struct xqc_hdr_protect_cipher_s    xqc_hdr_protect_cipher_t;
 void xqc_aead_init_null(xqc_pkt_protect_aead_t *pp_aead, size_t taglen);
 void xqc_cipher_init_null(xqc_hdr_protect_cipher_t *hp_cipher);
 
+
+/* aead encrypt function */
+typedef xqc_int_t (*xqc_aead_encrypt_pt)(const xqc_pkt_protect_aead_t *pp_aead,
+    uint8_t *dest, size_t destcap, size_t *destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen);
+
+/* aead decrypt function */
+typedef xqc_int_t (*xqc_aead_decrypt_pt)(const xqc_pkt_protect_aead_t *pp_aead,
+    uint8_t *dest, size_t destcap, size_t *destlen,
+    const uint8_t *ciphertext, size_t ciphertextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *nonce, size_t noncelen,
+    const uint8_t *ad, size_t adlen);
+
+/* hp mask function */
+typedef xqc_int_t (*xqc_hp_mask_pt)(const xqc_hdr_protect_cipher_t *hp_cipher,
+    uint8_t *dest, size_t destcap, size_t *destlen,
+    const uint8_t *plaintext, size_t plaintextlen,
+    const uint8_t *key, size_t keylen,
+    const uint8_t *sample, size_t samplelen);
+
+
 struct xqc_pkt_protect_aead_s {
     /**
      * implementation handler for aead
@@ -52,21 +77,8 @@ struct xqc_pkt_protect_aead_s {
     size_t                  noncelen;
     size_t                  taglen;
 
-    xqc_int_t
-    (*xqc_aead_encrypt_func)(const xqc_pkt_protect_aead_t *pp_aead,
-        uint8_t *dest, size_t destcap, size_t *destlen,
-        const uint8_t *plaintext, size_t plaintextlen,
-        const uint8_t *key, size_t keylen,
-        const uint8_t *nonce, size_t noncelen,
-        const uint8_t *ad, size_t adlen);
-    
-    xqc_int_t
-    (*xqc_aead_decrypt_func)(const xqc_pkt_protect_aead_t *pp_aead,
-        uint8_t *dest, size_t destcap, size_t *destlen,
-        const uint8_t *ciphertext, size_t ciphertextlen,
-        const uint8_t *key, size_t keylen,
-        const uint8_t *nonce, size_t noncelen,
-        const uint8_t *ad, size_t adlen);
+    xqc_aead_encrypt_pt     encrypt;
+    xqc_aead_decrypt_pt     decrypt;
 };
 
 
@@ -80,12 +92,7 @@ struct xqc_hdr_protect_cipher_s {
     size_t                  keylen;
     size_t                  noncelen;
 
-    xqc_int_t
-    (*xqc_hp_mask_func)(const xqc_hdr_protect_cipher_t *hp_cipher,
-        uint8_t *dest, size_t destcap, size_t *destlen,
-        const uint8_t *plaintext, size_t plaintextlen,
-        const uint8_t *key, size_t keylen,
-        const uint8_t *sample, size_t samplelen);
+    xqc_hp_mask_pt          hp_mask;
 };
 
 typedef struct xqc_digest_st {

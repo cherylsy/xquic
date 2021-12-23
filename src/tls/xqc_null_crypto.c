@@ -69,8 +69,8 @@ xqc_aead_init_null(xqc_pkt_protect_aead_t *pp_aead, size_t taglen)
     pp_aead->noncelen   = 1;
     pp_aead->taglen     = taglen;
 
-    pp_aead->xqc_aead_encrypt_func = xqc_null_aead_encrypt;
-    pp_aead->xqc_aead_decrypt_func = xqc_null_aead_decrypt;
+    pp_aead->encrypt    = xqc_null_aead_encrypt;
+    pp_aead->decrypt    = xqc_null_aead_decrypt;
 }
 
 void
@@ -79,5 +79,5 @@ xqc_cipher_init_null(xqc_hdr_protect_cipher_t *hp_cipher)
     hp_cipher->keylen   = 1;
     hp_cipher->noncelen = 1;
 
-    hp_cipher->xqc_hp_mask_func    = xqc_null_hp_mask;
+    hp_cipher->hp_mask  = xqc_null_hp_mask;
 }

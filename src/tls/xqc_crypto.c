@@ -151,11 +151,11 @@ xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t
     }
 
     /* generate header protection mask */
-    ret = hp_cipher->xqc_hp_mask_func(hp_cipher,
-                                      mask, XQC_HP_MASKLEN, &nwrite,                  /* mask */
-                                      XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK) - 1, /* plaintext */
-                                      hp->base, hp->len,                              /* key */
-                                      sample, XQC_HP_SAMPLELEN);                      /* sample */
+    ret = hp_cipher->hp_mask(hp_cipher,
+                             mask, XQC_HP_MASKLEN, &nwrite,                  /* mask */
+                             XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK) - 1, /* plaintext */
+                             hp->base, hp->len,                              /* key */
+                             sample, XQC_HP_SAMPLELEN);                      /* sample */
     if (ret != XQC_OK || nwrite < XQC_HP_MASKLEN) {
         xqc_log(crypto->log, XQC_LOG_ERROR,
                 "|calculate header protection mask error|ret:%d|nwrite:%z|", ret, nwrite);
@@ -197,11 +197,11 @@ xqc_crypto_decrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t
     /* generate hp mask */
     uint8_t mask[XQC_HP_MASKLEN];
     uint8_t *sample = pktno + 4;
-    ret = hp_cipher->xqc_hp_mask_func(hp_cipher,
-                                      mask, XQC_HP_MASKLEN, &nwrite,                    /* mask */
-                                      XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK) - 1,   /* ciphertext */
-                                      hp->base, hp->len,                                /* key */
-                                      sample, XQC_HP_SAMPLELEN);                        /* sample */
+    ret = hp_cipher->hp_mask(hp_cipher,
+                             mask, XQC_HP_MASKLEN, &nwrite,                     /* mask */
+                             XQC_FAKE_HP_MASK, sizeof(XQC_FAKE_HP_MASK) - 1,    /* ciphertext */
+                             hp->base, hp->len,                                 /* key */
+                             sample, XQC_HP_SAMPLELEN);                         /* sample */
     if (ret != XQC_OK || nwrite < XQC_HP_MASKLEN) {
         xqc_log(crypto->log, XQC_LOG_ERROR, "|calculate header protection mask error|ret:%d|"
                 "nwrite:%z|", ret, nwrite);
@@ -249,12 +249,11 @@ xqc_crypto_encrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
     xqc_crypto_create_nonce(nonce, ckm->iv.base, ckm->iv.len, pktno);
 
     /* do aead encryption */
-    ret = pp_aead->xqc_aead_encrypt_func(pp_aead,
-                                         dst, dst_cap, dst_len,         /* dest */
-                                         payload, payload_len,          /* plaintext */
-                                         ckm->key.base, ckm->key.len,   /* tx key */
-                                         nonce, ckm->iv.len,            /* nonce and iv */
-                                         header, header_len);           /* ad */
+    ret = pp_aead->encrypt(pp_aead, dst, dst_cap, dst_len,         /* dest */
+                           payload, payload_len,          /* plaintext */
+                           ckm->key.base, ckm->key.len,   /* tx key */
+                           nonce, ckm->iv.len,            /* nonce and iv */
+                           header, header_len);           /* ad */
     if (ret != XQC_OK || *dst_len < 0
         || *dst_len != (payload_len + xqc_aead_overhead(pp_aead, payload_len)))
     {
@@ -289,12 +288,12 @@ xqc_crypto_decrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
     xqc_crypto_create_nonce(nonce, ckm->iv.base, ckm->iv.len, pktno);
 
     /* do aead decryption */
-    ret = pp_aead->xqc_aead_decrypt_func(pp_aead,
-                                         dst, dst_cap, dst_len,         /* dest */
-                                         payload, payload_len,          /* ciphertext */
-                                         ckm->key.base, ckm->key.len,   /* rx key */
-                                         nonce, ckm->iv.len,            /* nonce and iv */
-                                         header, header_len);           /* ad */
+    ret = pp_aead->decrypt(pp_aead,
+                           dst, dst_cap, dst_len,       /* dest */
+                           payload, payload_len,        /* ciphertext */
+                           ckm->key.base, ckm->key.len, /* rx key */
+                           nonce, ckm->iv.len,          /* nonce and iv */
+                           header, header_len);         /* ad */
     if (ret != XQC_OK || *dst_len < 0
         || *dst_len != (payload_len - xqc_aead_overhead(pp_aead, payload_len)))
     {
@@ -394,14 +393,14 @@ xqc_crypto_derive_keys(xqc_crypto_t *crypto, const uint8_t *secret, size_t secre
     }
 
 
-    ret = xqc_crypto_derive_packet_protection_iv(iv, ivcap, &ivlen, secret, secretlen, crypto);
+    ret = xqc_crypto_derive_packet_protection_iv(crypto, iv, ivcap, &ivlen, secret, secretlen);
     if (ret != XQC_OK || ivlen <= 0) {
         xqc_log(crypto->log, XQC_LOG_ERROR,
                 "|xqc_crypto_derive_packet_protection_iv failed|ret:%d|", ret);
         return ret;
     }
 
-    ret = xqc_crypto_derive_header_protection_key(hp, hpcap, &hplen, secret, secretlen, crypto);
+    ret = xqc_crypto_derive_header_protection_key(crypto, hp, hpcap, &hplen, secret, secretlen);
     if (ret != XQC_OK || hplen <= 0) {
         xqc_log(crypto->log, XQC_LOG_ERROR,
                 "|xqc_crypto_derive_header_protection_key failed|ret:%d|", ret);

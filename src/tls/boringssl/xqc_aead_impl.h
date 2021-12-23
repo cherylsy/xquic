@@ -26,8 +26,8 @@
     obj->taglen         = EVP_AEAD_max_tag_len(obj->aead);                  \
     obj->keylen         = EVP_AEAD_key_length(obj->aead);                   \
     obj->noncelen       = EVP_AEAD_nonce_length(obj->aead);                 \
-    obj->xqc_aead_encrypt_func = xqc_bssl_aead_encrypt;                     \
-    obj->xqc_aead_decrypt_func = xqc_bssl_aead_decrypt;                     \
+    obj->encrypt        = xqc_bssl_aead_encrypt;                            \
+    obj->decrypt        = xqc_bssl_aead_decrypt;                            \
     0;})
 
 /* inner definition, MUST NOT be called directly */
@@ -53,7 +53,7 @@
 #define XQC_CIPHER_INIT_AES_CTR_IMPL(obj, d, ...) ({                        \
     xqc_hdr_protect_cipher_t *___cipher = (obj);                            \
     DO_NOT_CALL_XQC_CIPHER_INIT(___cipher, EVP_aes_##d##_ctr());            \
-    ___cipher->xqc_hp_mask_func = xqc_bssl_hp_mask;                         \
+    ___cipher->hp_mask = xqc_bssl_hp_mask;                                  \
     0;})
 
 /* chacha20 follow openssl impl */
@@ -61,7 +61,7 @@
     xqc_hdr_protect_cipher_t *___cipher = (obj);                            \
     ___cipher->keylen   = 32;                                               \
     ___cipher->noncelen = 16;                                               \
-    ___cipher->xqc_hp_mask_func = xqc_bssl_hp_mask_chacha20;                \
+    ___cipher->hp_mask = xqc_bssl_hp_mask_chacha20;                         \
     0;})
 
 

@@ -26,8 +26,8 @@
     obj->keylen     = EVP_CIPHER_key_length(obj->aead);                     \
     obj->noncelen   = EVP_CIPHER_iv_length(obj->aead);                      \
     obj->taglen     = (tgl);                                                \
-    obj->xqc_aead_encrypt_func = xqc_ossl_aead_encrypt;                     \
-    obj->xqc_aead_decrypt_func = xqc_ossl_aead_decrypt;                     \
+    obj->encrypt    = xqc_ossl_aead_encrypt;                                \
+    obj->decrypt    = xqc_ossl_aead_decrypt;                                \
 })
 
 /* inner definition, MUST NOT be called directly */
@@ -35,7 +35,7 @@
     obj->cipher     = c;                                                    \
     obj->keylen     = EVP_CIPHER_key_length(obj->cipher);                   \
     obj->noncelen   = EVP_CIPHER_iv_length(obj->cipher);                    \
-    obj->xqc_hp_mask_func   = xqc_ossl_hp_mask;                             \
+    obj->hp_mask    = xqc_ossl_hp_mask;                                     \
 })
 
 /* aes gcm initialization */
@@ -63,7 +63,7 @@
 })
 
 
-xqc_int_t  xqc_ossl_aead_encrypt(const xqc_pkt_protect_aead_t *pp_aead,
+xqc_int_t xqc_ossl_aead_encrypt(const xqc_pkt_protect_aead_t *pp_aead,
     uint8_t *dest, size_t destcap, size_t *destlen,
     const uint8_t *plaintext, size_t plaintextlen,
     const uint8_t *key, size_t keylen,
