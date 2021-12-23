@@ -520,6 +520,9 @@ xqc_h3_request_on_recv_fin(xqc_h3_request_t *h3r)
         return ret;
     }
 
+    xqc_log(h3r->h3_stream->h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|recv_fin|conn:%p|",
+            h3r->h3_stream->stream_id, h3r->h3_stream->h3c->conn);
+
     h3r->read_flag &= ~XQC_REQ_NOTIFY_READ_FIN;
 
     return XQC_OK;

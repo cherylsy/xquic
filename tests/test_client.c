@@ -1145,11 +1145,10 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
          header[0].value.iov_len = sizeof("GET") - 1;
     }
 
-
+    /* send header */
     if (user_stream->header_sent == 0) {
-        if (g_test_case == 30) {
+        if (g_test_case == 30 || g_test_case == 37 || g_test_case == 38) {
             ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
-
         } else  {
             ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         }
@@ -1174,6 +1173,16 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
                 printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             }
         }
+
+        if (g_test_case == 37) {
+            header_only = 1;
+            struct timeval finish = {1, 0};
+            ctx.ev_delay = event_new(eb, -1, 0, xqc_client_request_send_fin_only, user_stream);
+            event_add(ctx.ev_delay, &finish);
+        } else if (g_test_case == 38) {
+            header_only = 1;
+            ret = xqc_h3_request_finish(h3_request);
+        }
     }
 
     if (header_only) {
@@ -1181,10 +1190,11 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     int fin = 1;
-    if (g_test_case == 4 || g_test_case == 31 || g_test_case == 35) { //test fin_only
+    if (g_test_case == 4 || g_test_case == 31 || g_test_case == 35 || g_test_case == 36) { //test fin_only
         fin = 0;
     }
 
+    /* send body */
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
         if (ret == -XQC_EAGAIN) {
@@ -1200,6 +1210,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         }
     }
 
+    /* send trailer header */
     if (user_stream->send_offset == user_stream->send_body_len) {
         if (g_test_case == 31) {
             ret = xqc_h3_request_send_headers(h3_request, &headers, 1);
@@ -1212,10 +1223,19 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             }
         }
 
+        /* no tailer header, fin only */
         if (g_test_case == 35) {
             struct timeval finish = {1, 0};
             ctx.ev_delay = event_new(eb, -1, 0, xqc_client_request_send_fin_only, user_stream);
             event_add(ctx.ev_delay, &finish);
+
+        } else if (g_test_case == 36) {
+            ret = xqc_h3_request_finish(h3_request);
+            if (ret != XQC_OK) {
+                printf("send request finish error, ret: %zd\n", ret);
+            } else {
+                printf("send request finish suc\n");
+            }
         }
     }
 

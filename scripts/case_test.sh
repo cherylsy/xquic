@@ -215,6 +215,70 @@ else
 fi
 grep_err_log
 
+
+clear_log
+echo -e "header data fin ...\c"
+./test_client  -l d -t 2 -s 100 -E -x 35 >> clog
+result=`grep ">>>>>>>> pass" clog`
+sres=`grep "|recv_fin|" slog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ -n "$sres" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "header_data_fin" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "header_data_fin" "fail"
+fi
+grep_err_log
+
+
+clear_log
+echo -e "header data immediate fin ...\c"
+./test_client  -l d -t 2 -s 100 -E -x 36 >> clog
+result=`grep ">>>>>>>> pass" clog`
+sres=`grep "h3 fin only received" slog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ -z "$sres" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "header_data_immediate_fin" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "header_data_immediate_fin" "fail"
+fi
+grep_err_log
+
+
+clear_log
+echo -e "header fin ...\c"
+./test_client  -l d -t 2 -x 37 >> clog
+sres=`grep "|recv_fin|" slog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ -n "$sres" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "header_fin" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "header_fin" "fail"
+fi
+grep_err_log
+
+
+clear_log
+echo -e "header immediate fin ...\c"
+./test_client  -l d -t 2 -x 38 >> clog
+sres=`grep "h3 fin only received" slog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ -z "$sres" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "header_data_immediate_fin" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "header_data_immediate_fin" "fail"
+fi
+grep_err_log
+
+
+
 clear_log
 echo -e "uppercase header ...\c"
 ./test_client -s 5120 -l d -t 1 -E -x 34 >> clog
@@ -227,7 +291,6 @@ else
     echo ">>>>>>>> pass:0"
     case_print_result "uppercase_header" "fail"
 fi
-grep_err_log
 
 
 clear_log
