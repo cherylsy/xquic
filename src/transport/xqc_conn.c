@@ -793,9 +793,6 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     memmove(packet_out->po_buf + ret, ori_payload, ori_payload_len);
     packet_out->po_payload = packet_out->po_buf + ret;
     packet_out->po_used_size += ori_payload_len;
-    if (packet_out->po_frame_types & XQC_FRAME_BIT_ACK && packet_out->po_ack_offset > 0) {
-        packet_out->po_ack_offset = packet_out->po_ack_offset + packet_out->po_used_size - ori_po_used_size;
-    }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|0RTT to 1RTT|conn:%p|type:%d|pkt_num:%ui|pns:%d|frame:%s|", 
             conn, packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num, packet_out->po_pkt.pkt_pns, 
