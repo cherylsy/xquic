@@ -658,11 +658,13 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
     xqc_bool_t blocked = XQC_FALSE;
     xqc_http_headers_t *hdrs = NULL;
 
-    /* process fin only */
-    if (data_len == 0 && fin_flag) {
-        ret = xqc_h3_request_on_recv_fin(h3s->h3r);
-        if (ret < 0) {
-            return ret;
+    if (data_len == 0) {
+        if (fin_flag) {
+            /* process fin only */
+            ret = xqc_h3_request_on_recv_empty_fin(h3s->h3r);
+            if (ret < 0) {
+                return ret;
+            }
         }
 
         return 0;

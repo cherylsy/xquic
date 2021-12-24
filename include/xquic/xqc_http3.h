@@ -26,10 +26,10 @@ typedef enum {
     XQC_REQ_NOTIFY_READ_TRAILER         = 1 << 2,
 
     /* a read notify callback will be triggered when a single fin frame is received while HEADERS
-       and DATA frames were processed and notified */
-    XQC_REQ_NOTIFY_READ_FIN             = 1 << 3,
+       and DATA frames were notified. This flag will NEVER be set together with others */
+    XQC_REQ_NOTIFY_READ_EMPTY_FIN       = 1 << 3,
 } xqc_request_notify_flag_t;
-
+S
 
 /**
  * @brief definition for http3 connection state callback function. including create and close

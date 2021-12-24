@@ -635,7 +635,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
         printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
     }
 
-    if (flag & XQC_REQ_NOTIFY_READ_FIN) {
+    if (flag & XQC_REQ_NOTIFY_READ_EMPTY_FIN) {
         fin = 1;
 
         printf("h3 fin only received\n");
