@@ -410,7 +410,7 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
     }
 
     /* all data in body buf was read, reset XQC_REQ_NOTIFY_READ_BODY */
-    if (xqc_list_empty(&h3r->body_buf)) {
+    if (xqc_list_empty(&h3_request->body_buf)) {
         h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_BODY;
     }
 
