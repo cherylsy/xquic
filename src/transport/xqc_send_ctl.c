@@ -489,12 +489,8 @@ xqc_send_ctl_decrease_inflight(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out
                 ctl->ctl_bytes_in_flight = 0;
 
             } else {
-                unsigned int used_size = packet_out->po_used_size;
-                if (packet_out->po_flag & XQC_POF_RETRANSED && packet_out->po_frame_types & XQC_FRAME_BIT_ACK) {
-                    used_size = packet_out->po_ack_offset;
-                }
-                ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] -= used_size;
-                ctl->ctl_bytes_in_flight -= used_size;
+                ctl->ctl_bytes_ack_eliciting_inflight[packet_out->po_pkt.pkt_pns] -= packet_out->po_used_size;
+                ctl->ctl_bytes_in_flight -= packet_out->po_used_size;
             }
             packet_out->po_flag &= ~XQC_POF_IN_FLIGHT;
         }
