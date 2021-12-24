@@ -355,7 +355,7 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
         /* if trailer section exists, set fin as 0 */
         *fin = (h3_request->read_flag & XQC_REQ_NOTIFY_READ_TRAILER) ? 0 : h3_request->fin_flag;
 
-        /* set headers flag to NONE */
+        /* unset read flag */
         h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_HEADER;
         return &h3_request->h3_header[XQC_H3_REQUEST_HEADER];
     }
@@ -369,7 +369,7 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
 
         *fin = h3_request->fin_flag;
 
-        /* set headers flag to NONE */
+        /* unset read flag */
         h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_TRAILER;
         return &h3_request->h3_header[XQC_H3_REQUEST_TRAILER];
     }
@@ -384,6 +384,7 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
     ssize_t n_recv = 0;
     xqc_list_head_t *pos, *next;
     xqc_list_buf_t *list_buf = NULL;
+
     *fin = XQC_FALSE;
 
     xqc_list_for_each_safe(pos, next, &h3_request->body_buf) {
@@ -519,7 +520,7 @@ xqc_h3_request_on_recv_empty_fin(xqc_h3_request_t *h3r)
         return XQC_OK;
     }
 
-    h3r->fin_lag = 1;
+    h3r->fin_flag = 1;
 
     /* if read flag is not XQC_REQ_NOTIFY_READ_NULL, it means that there is header or content not
        received by application, shall not notify empty fin event, application will be noticed when

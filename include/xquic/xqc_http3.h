@@ -25,11 +25,11 @@ typedef enum {
     /* read trailer section flag, this will be set when trailer HEADERS frame is processed */
     XQC_REQ_NOTIFY_READ_TRAILER         = 1 << 2,
 
-    /* a read notify callback will be triggered when a single fin frame is received while HEADERS
-       and DATA frames were notified. This flag will NEVER be set together with others */
+    /* read empty fin flag, notify callback will be triggered when a single fin frame is received
+       while HEADERS and DATA were notified. This flag will NEVER be set with other flags */
     XQC_REQ_NOTIFY_READ_EMPTY_FIN       = 1 << 3,
 } xqc_request_notify_flag_t;
-S
+
 
 /**
  * @brief definition for http3 connection state callback function. including create and close
@@ -46,11 +46,13 @@ typedef void (*xqc_h3_conn_update_cid_notify_pt)(xqc_h3_conn_t *h3_conn, const
     xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *h3c_user_data);
 
 /**
- * @brief http3 connection callbacks with the same pattern of QUIC connection
+ * @brief http3 request callbacks
  */
-
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *h3s_user_data);
 
+/**
+ * @brief read data callback function
+ */
 typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, 
     xqc_request_notify_flag_t flag, void *h3s_user_data);
 
