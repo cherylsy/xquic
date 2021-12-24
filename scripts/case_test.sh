@@ -190,7 +190,9 @@ fi
 clear_log
 echo -e "header header data ...\c"
 ./test_client -s 5120 -l d -t 1 -E -x 30 >> clog
-if [[ `grep "xqc_h3_request_recv_headers.*count:6" slog|wc -l` -eq 2 ]]; then
+header_res=`grep "recv header" slog`
+trailer_res=`grep "recv tailer header" slog`
+if [ -n "$header_res" ] && [ -n "$trailer_res" ]; then
     echo ">>>>>>>> pass:1"
     case_print_result "header_header_data" "pass"
 else
@@ -202,7 +204,9 @@ grep_err_log
 clear_log
 echo -e "header data header ...\c"
 ./test_client -s 5120 -l d -t 1 -E -x 31 >> clog
-if [[ `grep "xqc_h3_request_recv_headers.*count:6" slog|wc -l` -eq 2 ]]; then
+header_res=`grep "recv header" slog`
+trailer_res=`grep "recv tailer header" slog`
+if [ -n "$header_res" ] && [ -n "$trailer_res" ]; then
     echo ">>>>>>>> pass:1"
     case_print_result "header_data_header" "pass"
 else
@@ -210,6 +214,21 @@ else
     case_print_result "header_data_header" "fail"
 fi
 grep_err_log
+
+clear_log
+echo -e "uppercase header ...\c"
+./test_client -s 5120 -l d -t 1 -E -x 34 >> clog
+result=`grep ">>>>>>>> pass" clog`
+errlog=`grep_err_log`
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "uppercase_header" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "uppercase_header" "fail"
+fi
+grep_err_log
+
 
 clear_log
 echo -e "user close connection ...\c"
@@ -869,7 +888,7 @@ sleep 1
 client_print_res=`./test_client -s 1024000 -l d -t 1 -x 22 -E | grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 server_log_res=`grep "decrypt data error" slog`
-server_conn_cnt=`grep "|xqc_conn_create|success|" slog | wc -l`
+server_conn_cnt=`grep "xqc_conn_create" slog | wc -l`
 echo "$client_print_res"
 if [ "$client_print_res" != "" ] && [ "$server_log_res" != "" ] && [ $server_conn_cnt -eq 2 ]; then
     case_print_result "client_initial_dcid_corruption" "pass"

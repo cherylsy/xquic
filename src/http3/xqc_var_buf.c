@@ -165,7 +165,7 @@ xqc_var_buf_save_prepare(xqc_var_buf_t *buf, size_t data_len)
 }
 
 
-unsigned char*
+unsigned char *
 xqc_var_buf_take_over(xqc_var_buf_t *buf)
 {
     unsigned char* buffer = buf->data;

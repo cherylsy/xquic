@@ -560,7 +560,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
 
-    if (flag & XQC_REQ_NOTIFY_READ_HEADER) {
+    if ((flag & XQC_REQ_NOTIFY_READ_HEADER) || (flag & XQC_REQ_NOTIFY_READ_TRAILER)) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
         if (headers == NULL) {
