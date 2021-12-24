@@ -154,40 +154,45 @@ xqc_h3_request_make_name_lowercase(xqc_http_header_t *dst, xqc_http_header_t *sr
     xqc_var_buf_t *buf)
 {
     xqc_int_t       ret;
-
     xqc_bool_t      use_original_buf    = XQC_TRUE; /* whether use memory from original header */
-    unsigned char  *lc_buf              = src->name.iov_base;
 
     for (size_t i = 0; i < src->name.iov_len; i++) {
         unsigned char c = ((char *)src->name.iov_base)[i];
 
-        /* if uppercase character found, convert to lowercase and store name in lc_buf */
+        /* uppercase character found */
         if (c >= 'A' && c <='Z') {
-
-            /* check capacity */
-            if (buf->buf_len - buf->data_len < src->name.iov_len + 1) {
-                return -XQC_ELIMIT;
-            }
-
-            /* make memory from var buf the memory of lowercase header */
-            unsigned char *lc_dst = buf->data + buf->data_len;
-            lc_buf = lc_dst;
-
-            /* convert reset characters to lowercase */
-            xqc_str_tolower(lc_dst, src->name.iov_base, src->name.iov_len);
-            lc_dst += src->name.iov_len;
-
-            /* add terminator */
-            *lc_dst = '\0';
-
-            buf->data_len += (src->name.iov_len + 1);
             use_original_buf = XQC_FALSE;
-
             break;
         }
     }
 
-    dst->name.iov_base = lc_buf;
+    /* all lower case, do not need to copy */
+    if (use_original_buf == XQC_TRUE) {
+        dst->name.iov_base = src->name.iov_base;
+        dst->name.iov_len = src->name.iov_len;
+        return XQC_OK;
+    }
+
+    /* copy to new buffer */
+    /* check capacity */
+    if (buf->buf_len - buf->data_len < src->name.iov_len + 1) {
+        return -XQC_ELIMIT;
+    }
+    
+    /* make memory from var buf the memory of lowercase header */
+    unsigned char *lc_dst = buf->data + buf->data_len;
+    unsigned char *lc_src = lc_dst;
+    
+    /* convert reset characters to lowercase */
+    xqc_str_tolower(lc_dst, src->name.iov_base, src->name.iov_len);
+    lc_dst += src->name.iov_len;
+    
+    /* add terminator */
+    *lc_dst = '\0';
+    
+    buf->data_len += (src->name.iov_len + 1);
+
+    dst->name.iov_base = lc_src;
     dst->name.iov_len = src->name.iov_len;
 
     return XQC_OK;
