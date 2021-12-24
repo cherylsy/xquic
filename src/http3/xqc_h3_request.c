@@ -342,6 +342,7 @@ xqc_h3_request_finish(xqc_h3_request_t *h3_request)
     return xqc_h3_stream_send_finish(h3_request->h3_stream);
 }
 
+
 xqc_http_headers_t *
 xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
 {
@@ -352,8 +353,8 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
                 h3_request->h3_stream->stream_id, *fin,
                 h3_request->h3_stream->h3c->conn);
 
-        /* if trailer section exists, set fin as 0 */
-        *fin = (h3_request->read_flag & XQC_REQ_NOTIFY_READ_TRAILER) ? 0 : h3_request->fin_flag;
+        /* if there is body or trailer exists, recv fin together with body or trailer */
+        *fin = (h3_request->read_flag == XQC_REQ_NOTIFY_READ_HEADER) ? h3_request->fin_flag : 0;
 
         /* unset read flag */
         h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_HEADER;
