@@ -1230,8 +1230,9 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s)
     {
         /* QUIC transport stream was closed while h3_stream was being blocked, destroy h3_stream */
         xqc_log(h3s->log, XQC_LOG_INFO, "|h3 stream unblocked and destroyed while transport stream"
-                " was closed|stream_id:%ui", h3s->blocked, h3s->stream_id);
+                " was closed|stream_id:%ui", h3s->stream_id);
         xqc_h3_stream_destroy(h3s);
+        return XQC_OK;
     }
 
     return XQC_OK;
