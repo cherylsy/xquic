@@ -235,6 +235,7 @@ xqc_int_t
 xqc_packet_parse_short_header(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
+    unsigned char *end = packet_in->last;
     xqc_packet_t *packet = &packet_in->pi_pkt;
     uint8_t cid_len = c->scid_set.user_scid.cid_len;
 
@@ -274,6 +275,10 @@ xqc_packet_parse_short_header(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* packet number */
     packet_in->pi_pkt.length = packet_in->last - pos;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
         c->discard_vn_flag = 1;
@@ -460,6 +465,10 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->last = pos + length;
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
@@ -515,6 +524,10 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->last = pos + length;
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
@@ -703,6 +716,10 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* packet number */
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
