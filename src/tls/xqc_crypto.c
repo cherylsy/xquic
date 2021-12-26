@@ -131,7 +131,7 @@ xqc_crypto_create_nonce(uint8_t *dest, const uint8_t *iv, size_t ivlen, uint64_t
 
 xqc_int_t
 xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t *header,
-    uint8_t *pktno)
+    uint8_t *pktno, uint8_t *end)
 {
     xqc_int_t       ret;
 
@@ -148,6 +148,12 @@ xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t
     if (hp_cipher == NULL || hp->base == NULL || hp->len == 0) {
         xqc_log(crypto->log, XQC_LOG_ERROR, "|hp encrypt key NULL|");
         return -XQC_EENCRYPT;
+    }
+
+    /* get length of packet number */
+    if (pktno + pktno_len > end) {
+        xqc_log(crypto->log, XQC_LOG_ERROR, "|illegal pkt, pkt num exceed buffer");
+        return -XQC_EILLPKT;
     }
 
     /* generate header protection mask */
@@ -181,7 +187,7 @@ xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t
 
 xqc_int_t
 xqc_crypto_decrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t *header,
-    uint8_t *pktno)
+    uint8_t *pktno, uint8_t *end)
 {
     xqc_int_t ret;
     size_t nwrite;
@@ -216,15 +222,20 @@ xqc_crypto_decrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t
         header[0] = (uint8_t)(header[0] ^ (mask[0] & 0x0f));
     }
 
-    /* remove protection for packet number */
+    /* get length of packet number */
     size_t pktno_len = (header[0] & 0x03) + 1;
+    if (pktno + pktno_len > end) {
+        xqc_log(crypto->log, XQC_LOG_ERROR, "|illegal pkt, pkt num exceed buffer");
+        return -XQC_EILLPKT;
+    }
+
+    /* remove protection for packet number */
     for (size_t i = 0; i < pktno_len; ++i) {
         pktno[i] = pktno[i] ^ mask[i + 1];
     }
 
     return XQC_OK;
 }
-
 
 
 xqc_int_t

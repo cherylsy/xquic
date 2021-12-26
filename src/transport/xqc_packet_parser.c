@@ -102,6 +102,46 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len, const un
 }
 
 
+void
+xqc_packet_parse_packet_number(uint8_t *pos, xqc_uint_t packet_number_len, uint64_t *packet_num)
+{
+    *packet_num = 0;
+    for (int i = 0; i < packet_number_len; i++) {
+        *packet_num = ((*packet_num) << 8u) + (*pos);
+        pos++;
+    }
+}
+
+/**
+ * https://datatracker.ietf.org/doc/html/rfc9000#appendix-A.3
+ * @param largest_pn Largest received packet number
+ * @param truncated_pn Packet number parsed from header
+ * @param pn_nbits Number of bits the truncated_pn has
+ * @return
+ */
+xqc_packet_number_t
+xqc_packet_decode_packet_number(xqc_packet_number_t largest_pn, xqc_packet_number_t truncated_pn,
+    unsigned pn_nbits)
+{
+    xqc_packet_number_t expected_pn, pn_win, pn_hwin, pn_mask, candidate_pn;
+    expected_pn = largest_pn + 1;
+    pn_win = (xqc_packet_number_t) 1 << pn_nbits;
+    pn_hwin = pn_win >> (xqc_packet_number_t) 1;
+    pn_mask = pn_win - 1;
+
+    candidate_pn = (expected_pn & ~pn_mask) | truncated_pn;
+
+    if (candidate_pn + pn_hwin <= expected_pn) {
+        return candidate_pn + pn_win;
+    }
+
+    if (candidate_pn > expected_pn + pn_hwin && candidate_pn > pn_win) {
+        return candidate_pn - pn_win;
+    }
+
+    return candidate_pn;
+}
+
 int
 xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number, unsigned char packet_number_bits)
 {
@@ -421,10 +461,6 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
 
-    /* packet number */
-    /* decrypt payload */
-    /* process in xqc_packet_decrypt */
-
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
     return XQC_OK;
@@ -486,45 +522,6 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 }
 
 
-void
-xqc_packet_parse_packet_number(uint8_t *pos, xqc_uint_t packet_number_len, uint64_t *packet_num)
-{
-    *packet_num = 0;
-    for (int i = 0; i < packet_number_len; i++) {
-        *packet_num = ((*packet_num) << 8u) + (*pos);
-        pos++;
-    }
-}
-
-/**
- * https://datatracker.ietf.org/doc/html/rfc9000#appendix-A.3
- * @param largest_pn Largest received packet number
- * @param truncated_pn Packet number parsed from header
- * @param pn_nbits Number of bits the truncated_pn has
- * @return
- */
-xqc_packet_number_t
-xqc_packet_decode_packet_number(xqc_packet_number_t largest_pn, xqc_packet_number_t truncated_pn,
-    unsigned pn_nbits)
-{
-    xqc_packet_number_t expected_pn, pn_win, pn_hwin, pn_mask, candidate_pn;
-    expected_pn = largest_pn + 1;
-    pn_win = (xqc_packet_number_t) 1 << pn_nbits;
-    pn_hwin = pn_win >> (xqc_packet_number_t) 1;
-    pn_mask = pn_win - 1;
-
-    candidate_pn = (expected_pn & ~pn_mask) | truncated_pn;
-
-    if (candidate_pn + pn_hwin <= expected_pn) {
-        return candidate_pn + pn_win;
-    }
-
-    if (candidate_pn > expected_pn + pn_hwin && candidate_pn > pn_win) {
-        return candidate_pn - pn_win;
-    }
-
-    return candidate_pn;
-}
 
 xqc_int_t
 xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
@@ -546,6 +543,7 @@ xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     uint8_t *dst_header = enc_pkt;
     uint8_t *dst_pktno = dst_header + (pktno - header);
     uint8_t *dst_payload = dst_header + header_len;
+    uint8_t *dst_end = dst_payload;
 
     /* copy header to dest */
     xqc_memcpy(dst_header, header, header_len);
@@ -574,7 +572,7 @@ xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 
     /* do header protection */
     ret = xqc_tls_encrypt_header(conn->tls, level, packet_out->po_pkt.pkt_type,
-                                 dst_header, dst_pktno);
+                                 dst_header, dst_pktno, dst_end);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|header protection error|pkt_type:%d|pkt_num:%ui",
                 packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num);
@@ -611,12 +609,14 @@ xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     /* source buffer for header decryption */
     uint8_t *header = (uint8_t *)packet_in->buf;
     uint8_t *pktno = header + packet_in->pi_pkt.pkt_num_offset;
+    uint8_t *end = pktno + packet_in->pi_pkt.length;
 
     /*
      * remove header protection, which will modify the first byte and packet number bytes in
      * original header buffer.
      */
-    ret = xqc_tls_decrypt_header(conn->tls, level, packet_in->pi_pkt.pkt_type, header, pktno);
+    ret = xqc_tls_decrypt_header(conn->tls, level, packet_in->pi_pkt.pkt_type,
+                                 header, pktno, end);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_INFO, "|remove header protection error|ret:%d", ret);
         return ret;

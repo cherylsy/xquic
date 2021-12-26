@@ -207,10 +207,11 @@ xqc_int_t xqc_crypto_decrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
  * @param header header to be protected with subsequent encrypted payload buffer, after header 
  * protection, the first byte and packet number will be modified and protected with mask.
  * @param pktno position of packet number
+ * @param end end position of buffer
  * @return XQC_OK for success, others for failure 
  */
 xqc_int_t xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t *header,
-    uint8_t *pktno);
+    uint8_t *pktno, uint8_t *end);
 
 /**
  * @brief remove header protection
@@ -219,10 +220,11 @@ xqc_int_t xqc_crypto_encrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_typ
  * @param header header buffer to be remove header protection, after remove, the first byte and 
  * packet number will be modified and restored
  * @param pktno position of packet number
+ * @param end end position of buffer
  * @return XQC_OK for success, others for failure 
  */
 xqc_int_t xqc_crypto_decrypt_header(xqc_crypto_t *crypto, xqc_pkt_type_t pkt_type, uint8_t *header,
-    uint8_t *pktno);
+    uint8_t *pktno, uint8_t *end);
 
 /**
  * @brief derive initial level secret

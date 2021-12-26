@@ -82,10 +82,11 @@ xqc_int_t xqc_tls_process_crypto_data(xqc_tls_t *tls, xqc_encrypt_level_t level,
  * @param header header to be protected with subsequent encrypted payload buffer, after header 
  * protection, the first byte and packet number will be modified and protected with mask.
  * @param pktno position of packet number
+ * @param end end position of buffer, which is used to validate pktno and packet number length
  * @return XQC_OK for success, others for failure 
  */
 xqc_int_t xqc_tls_encrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
-    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno);
+    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno, uint8_t *end);
 
 /**
  * @brief remove header protection, will generate header protection mask, and modify the first byte
@@ -94,10 +95,11 @@ xqc_int_t xqc_tls_encrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
  * @param header header buffer to be remove header protection, after remove, the first byte and 
  * packet number will be modified and restored
  * @param pktno position of packet number
+ * @param end end position of buffer, which is used to validate pktno and packet number length
  * @return XQC_OK for success, others for failure 
  */
 xqc_int_t xqc_tls_decrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
-    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno);
+    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno, uint8_t *end);
 
 /**
  * @brief encrypt packet payload

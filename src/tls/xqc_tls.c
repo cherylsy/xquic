@@ -596,7 +596,7 @@ xqc_tls_process_crypto_data(xqc_tls_t *tls, xqc_encrypt_level_t level,
 
 xqc_int_t
 xqc_tls_encrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
-    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno)
+    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno, uint8_t *end)
 {
     xqc_crypto_t *crypto = tls->crypto[level];
     if (crypto == NULL) {
@@ -604,7 +604,8 @@ xqc_tls_encrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
         return -XQC_TLS_INVALID_STATE;
     }
 
-    return xqc_crypto_encrypt_header(crypto, pkt_type, header, pktno);
+    return xqc_crypto_encrypt_header(crypto, pkt_type, header, pktno, end
+    );
 }
 
 
@@ -625,7 +626,7 @@ xqc_tls_encrypt_payload(xqc_tls_t *tls, xqc_encrypt_level_t level,
 
 xqc_int_t
 xqc_tls_decrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level, 
-    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno)
+    xqc_pkt_type_t pkt_type, uint8_t *header, uint8_t *pktno, uint8_t *end)
 {
     xqc_crypto_t *crypto = tls->crypto[level];
     if (crypto == NULL) {
@@ -633,7 +634,7 @@ xqc_tls_decrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
         return -XQC_TLS_INVALID_STATE;
     }
 
-    return xqc_crypto_decrypt_header(crypto, pkt_type, header, pktno);
+    return xqc_crypto_decrypt_header(crypto, pkt_type, header, pktno, end);
 }
 
 
