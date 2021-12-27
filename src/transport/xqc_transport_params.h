@@ -16,7 +16,7 @@
 /* default value for active_connection_id_limit */
 #define XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT 2
 
-
+/* max buffer length of encoded transport parameter */
 #define XQC_MAX_TRANSPORT_PARAM_BUF_LEN 512
 
 

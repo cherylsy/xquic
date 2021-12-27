@@ -115,49 +115,84 @@ xqc_int_t
 xqc_client_create_tls(xqc_connection_t *conn, const xqc_conn_ssl_config_t *conn_ssl_config,
     const char *hostname, int no_crypto_flag, const char *alpn)
 {
-    xqc_int_t ret;
-    char tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+    xqc_int_t           ret;
+    xqc_tls_config_t    cfg = {0};
+    uint8_t             tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+    uint8_t            *session_ticket_buf;
+    uint8_t            *alpn_buf;
+    unsigned char      *hostname_buf;
 
-    /* init cfg */
-    xqc_tls_config_t cfg = {0};
-    cfg.session_ticket = conn_ssl_config->session_ticket_data;
-    cfg.session_ticket_len = conn_ssl_config->session_ticket_len;
+    /* init tls config */
     cfg.cert_verify_flag = conn_ssl_config->cert_verify_flag;
-    cfg.hostname = (char *)hostname;
-    cfg.alpn = (char *)alpn;
     cfg.no_crypto_flag = no_crypto_flag;
-    cfg.trans_params = tp_buf;
 
-    xqc_trans_settings_t *settings = &conn->local_settings;
-    if (no_crypto_flag == 1) {
-        settings->no_crypto = XQC_TRUE;  /* no_crypto 1 means do not crypto*/
-
-    } else {
-        settings->no_crypto = XQC_FALSE;
+    /* copy session ticket */
+    cfg.session_ticket = xqc_malloc(conn_ssl_config->session_ticket_len + 1);
+    if (NULL == cfg.session_ticket) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|malloc for session ticket fail|");
+        ret = -XQC_EMALLOC;
+        goto end;
     }
+    xqc_memcpy(cfg.session_ticket, conn_ssl_config->session_ticket_data,
+               conn_ssl_config->session_ticket_len);
+    cfg.session_ticket_len = conn_ssl_config->session_ticket_len;
+
+    /* copy alpn */
+    cfg.alpn = xqc_malloc(strlen(alpn) + 1);
+    if (NULL == cfg.alpn) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|malloc for alpn fail|");
+        ret = -XQC_EMALLOC;
+        goto end;
+    }
+    strcpy(cfg.alpn, alpn);
+
+    /* copy hostname */
+    cfg.hostname = xqc_malloc(strlen(hostname) + 1);
+    if (NULL == cfg.alpn) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|malloc for alpn fail|");
+        ret = -XQC_EMALLOC;
+        goto end;
+    }
+    strcpy(cfg.hostname, hostname);
 
     /* encode local transport parameters, and set to tls config */
+    cfg.trans_params = tp_buf;
     ret = xqc_conn_encode_local_tp(conn, cfg.trans_params,
                                    XQC_MAX_TRANSPORT_PARAM_BUF_LEN, &cfg.trans_params_len);
     if (ret != XQC_OK) {
-        return ret;
+        xqc_log(conn->log, XQC_LOG_ERROR, "|encode transport parameter error|ret:%d", ret);
+        goto end;
     }
 
     /* create tls instance */
     conn->tls = xqc_tls_create(conn->engine->tls_ctx, &cfg, conn->log, conn);
     if (NULL == conn->tls) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|create tls instance error");
-        return -XQC_EMALLOC;
+        ret = -XQC_EMALLOC;
+        goto end;
     }
 
     /* start handshake */
     ret = xqc_tls_init(conn->tls, conn->version, &conn->original_dcid);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|init tls error");
-        return ret;
+        goto end;
     }
 
-    return XQC_OK;
+end:
+    if (cfg.session_ticket) {
+        xqc_free(cfg.session_ticket);
+    }
+
+    if (cfg.alpn) {
+        xqc_free(cfg.alpn);
+    }
+
+    if (cfg.hostname) {
+        xqc_free(cfg.hostname);
+    }
+
+    return ret;
 }
 
 
@@ -184,6 +219,15 @@ xqc_client_create_connection(xqc_engine_t *engine,
     xc->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(xc, XQC_ENC_LEV_INIT, user_data);
     if (!xc->crypto_stream[XQC_ENC_LEV_INIT]) {
         goto fail;
+    }
+
+    /* set no crypto option */
+    xqc_trans_settings_t *local_settings = &xc->local_settings;
+    if (no_crypto_flag == 1) {
+        local_settings->no_crypto = XQC_TRUE;  /* no_crypto 1 means do not crypto*/
+
+    } else {
+        local_settings->no_crypto = XQC_FALSE;
     }
 
     /* create and init tls, startup ClientHello */
