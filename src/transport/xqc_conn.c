@@ -589,16 +589,16 @@ xqc_conn_destroy(xqc_connection_t *xc)
     /* remove from engine's conns_hash and destroy cid_set*/
     xqc_conn_destroy_cids(xc);
 
-    /* free pool, must be the last thing to do */
-    if (xc->conn_pool) {
-        xqc_destroy_pool(xc->conn_pool);
-    }
-
     if (xc->tls) {
         xqc_tls_destroy(xc->tls);
     }
 
     xqc_log_release(xc->log);
+
+    /* free pool, must be the last thing to do */
+    if (xc->conn_pool) {
+        xqc_destroy_pool(xc->conn_pool);
+    }
 }
 
 void
