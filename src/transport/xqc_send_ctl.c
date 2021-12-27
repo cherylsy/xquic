@@ -507,11 +507,7 @@ xqc_send_ctl_remove_unacked(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 void
 xqc_send_ctl_insert_unacked(xqc_packet_out_t *packet_out, xqc_list_head_t *head, xqc_send_ctl_t *ctl)
 {
-    if (packet_out->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE && packet_out->po_origin == NULL) {
-        xqc_list_add(&packet_out->po_list, head);
-    } else {
-        xqc_list_add_tail(&packet_out->po_list, head);
-    }
+    xqc_list_add_tail(&packet_out->po_list, head);
 }
 
 void
@@ -1537,6 +1533,10 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl,
     xqc_stream_t *stream;
     xqc_packet_out_t *packet_out = acked_packet;
     xqc_connection_t *conn = ctl->ctl_conn;
+
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER && acked_packet->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE) {
+        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED;
+    }
 
     xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
 

@@ -1352,6 +1352,11 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
     xqc_list_head_t *pos, *next;
     xqc_int_t ret;
     xqc_int_t probe_num = XQC_CONN_PTO_PKT_CNT_MAX;
+    xqc_bool_t find_hsd = XQC_FALSE;
+
+    if (c->conn_type == XQC_CONN_TYPE_SERVER && !(c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED)) {
+        find_hsd = XQC_TRUE;
+    }
 
     /* if only one packet is in pns unacked list, this loop will try to send this packet again */
     while (probe_num > 0) {
@@ -1365,6 +1370,14 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)
                 && XQC_NEED_REPAIR(packet_out->po_frame_types))
             {
+                if (find_hsd){
+                    if (!(packet_out->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)) {
+                        continue;
+                    }
+
+                    find_hsd = XQC_FALSE;
+                }
+
                 packet_out->po_flag |= XQC_POF_TLP;
 
                 xqc_log(c->log, XQC_LOG_DEBUG, "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|conn_state:%s|",
@@ -1380,6 +1393,11 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
                     break;
                 }
             }
+        }
+
+        if (find_hsd && XQC_CONN_PTO_PKT_CNT_MAX == probe_num) {
+            find_hsd = XQC_FALSE;
+            continue;
         }
 
         /* no data found in PTO pns, break and send PING */
