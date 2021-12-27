@@ -604,8 +604,7 @@ xqc_tls_encrypt_header(xqc_tls_t *tls, xqc_encrypt_level_t level,
         return -XQC_TLS_INVALID_STATE;
     }
 
-    return xqc_crypto_encrypt_header(crypto, pkt_type, header, pktno, end
-    );
+    return xqc_crypto_encrypt_header(crypto, pkt_type, header, pktno, end);
 }
 
 
