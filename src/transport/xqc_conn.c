@@ -597,6 +597,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
     if (xc->tls) {
         xqc_tls_destroy(xc->tls);
     }
+
+    xqc_log_release(xc->log);
 }
 
 void
