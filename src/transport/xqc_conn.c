@@ -1371,12 +1371,8 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)
                 && XQC_NEED_REPAIR(packet_out->po_frame_types))
             {
-                if (find_hsd){
-                    if (!(packet_out->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)) {
-                        continue;
-                    }
-
-                    find_hsd = XQC_FALSE;
+                if (find_hsd && !(packet_out->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)) {
+                    continue;
                 }
 
                 packet_out->po_flag |= XQC_POF_TLP;
@@ -1393,17 +1389,21 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
                 if (--probe_num == 0) {
                     break;
                 }
-            }
-        }
 
-        if (find_hsd && XQC_CONN_PTO_PKT_CNT_MAX == probe_num) {
-            find_hsd = XQC_FALSE;
-            continue;
+                if (find_hsd) {
+                    find_hsd = XQC_FALSE;
+                    break;
+                }
+            }
         }
 
         /* no data found in PTO pns, break and send PING */
         if (XQC_CONN_PTO_PKT_CNT_MAX == probe_num) {
-            break;
+            if (find_hsd) {
+                find_hsd = XQC_FALSE;
+            } else {
+                break;
+            }
         }
     }
 
