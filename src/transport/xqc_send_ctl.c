@@ -1211,10 +1211,9 @@ xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_usec_t *latest_rtt, xqc_usec_t 
 
     /* Based on {{RFC6298}}. */
     if (ctl->ctl_first_rtt_sample_time == 0) {
-        xqc_usec_t first_rtt = (ack_delay < *latest_rtt) ? *latest_rtt - ack_delay : *latest_rtt;
-        ctl->ctl_minrtt = first_rtt;
-        ctl->ctl_srtt = first_rtt;
-        ctl->ctl_rttvar = first_rtt >> 1;
+        ctl->ctl_minrtt = *latest_rtt;
+        ctl->ctl_srtt = *latest_rtt;
+        ctl->ctl_rttvar = *latest_rtt >> 1;
         ctl->ctl_first_rtt_sample_time = xqc_monotonic_timestamp();
 
     } else {
