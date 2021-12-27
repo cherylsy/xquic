@@ -336,12 +336,16 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
     return sent;
 }
 
+ssize_t
+xqc_h3_request_finish(xqc_h3_request_t *h3_request)
+{
+    return xqc_h3_stream_send_finish(h3_request->h3_stream);
+}
+
 
 xqc_http_headers_t *
 xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
 {
-    *fin = h3_request->fin_flag;
-
     /* header */
     if (h3_request->read_flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_log(h3_request->h3_stream->log, XQC_LOG_DEBUG,
@@ -349,7 +353,10 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
                 h3_request->h3_stream->stream_id, *fin,
                 h3_request->h3_stream->h3c->conn);
 
-        /* set headers flag to NONE */
+        /* if there is body or trailer exists, recv fin together with body or trailer */
+        *fin = (h3_request->read_flag == XQC_REQ_NOTIFY_READ_HEADER) ? h3_request->fin_flag : 0;
+
+        /* unset read flag */
         h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_HEADER;
         return &h3_request->h3_header[XQC_H3_REQUEST_HEADER];
     }
@@ -361,7 +368,9 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
                 h3_request->h3_stream->stream_id, *fin,
                 h3_request->h3_stream->h3c->conn);
 
-        /* set headers flag to NONE */
+        *fin = h3_request->fin_flag;
+
+        /* unset read flag */
         h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_TRAILER;
         return &h3_request->h3_header[XQC_H3_REQUEST_TRAILER];
     }
@@ -376,6 +385,7 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
     ssize_t n_recv = 0;
     xqc_list_head_t *pos, *next;
     xqc_list_buf_t *list_buf = NULL;
+
     *fin = XQC_FALSE;
 
     xqc_list_for_each_safe(pos, next, &h3_request->body_buf) {
@@ -400,6 +410,11 @@ xqc_h3_request_recv_body(xqc_h3_request_t *h3_request, unsigned char *recv_buf,
             n_recv = recv_buf_size;
             break;
         }
+    }
+
+    /* all data in body buf was read, reset XQC_REQ_NOTIFY_READ_BODY */
+    if (xqc_list_empty(&h3_request->body_buf)) {
+        h3_request->read_flag &= ~XQC_REQ_NOTIFY_READ_BODY;
     }
 
     h3_request->body_recvd += n_recv;
@@ -478,13 +493,12 @@ xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r)
 {
     /* there might be a fin only operation, which shall be notified to user */
     if (!xqc_list_empty(&h3r->body_buf) || (h3r->fin_flag == XQC_TRUE)) {
-        xqc_request_notify_flag_t flag = 0;
 
         if (!xqc_list_empty(&h3r->body_buf)) {
-            flag |= XQC_REQ_NOTIFY_READ_BODY;
+            h3r->read_flag |= XQC_REQ_NOTIFY_READ_BODY;
         }
 
-        xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, flag, h3r->user_data);
+        xqc_int_t ret = h3r->request_if->h3_request_read_notify(h3r, h3r->read_flag, h3r->user_data);
         if (ret < 0) {
             xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
                     "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream_id,
@@ -496,7 +510,44 @@ xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r)
     return XQC_OK;
 }
 
-void*
+
+xqc_int_t
+xqc_h3_request_on_recv_empty_fin(xqc_h3_request_t *h3r)
+{
+    xqc_int_t ret;
+
+    if (h3r->fin_flag) {
+        xqc_log(h3r->h3_stream->log, XQC_LOG_WARN, "|duplicated fin|");
+        return XQC_OK;
+    }
+
+    h3r->fin_flag = 1;
+
+    /* if read flag is not XQC_REQ_NOTIFY_READ_NULL, it means that there is header or content not
+       received by application, shall not notify empty fin event, application will be noticed when
+       receiving header and content */
+    if (h3r->read_flag != XQC_REQ_NOTIFY_READ_NULL) {
+        return XQC_OK;
+    }
+
+    /* if all header and content were received by application, notify empty fin */
+    ret = h3r->request_if->h3_request_read_notify(h3r, XQC_REQ_NOTIFY_READ_EMPTY_FIN,
+                                                  h3r->user_data);
+    if (ret < 0) {
+        xqc_log(h3r->h3_stream->log, XQC_LOG_ERROR, "|h3_request_read_notify error|%d|"
+                "stream_id:%ui|conn:%p|", ret, h3r->h3_stream->stream_id,
+                h3r->h3_stream->h3c->conn);
+        return ret;
+    }
+
+    xqc_log(h3r->h3_stream->h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|recv_fin|conn:%p|",
+            h3r->h3_stream->stream_id, h3r->h3_stream->h3c->conn);
+
+    return XQC_OK;
+}
+
+
+void *
 xqc_h3_get_conn_user_data_by_request(xqc_h3_request_t *h3_request)
 {
     return h3_request->h3_stream->h3c->user_data;

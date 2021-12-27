@@ -110,6 +110,7 @@ typedef struct client_ctx_s {
     struct event    *ev_engine;
     int             log_fd;
     int             keylog_fd;
+    struct event    *ev_delay;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -971,6 +972,19 @@ int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
     return 0;
 }
 
+void
+xqc_client_request_send_fin_only(int fd, short what, void *arg)
+{
+    user_stream_t *us = (user_stream_t *)arg;
+    xqc_int_t ret = xqc_h3_request_finish(us->h3_request);
+    if (ret < 0) {
+        printf("xqc_h3_request_finish error %d\n", ret);
+
+    } else {
+        printf("xqc_h3_request_finish success\n");
+    }
+}
+
 int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
 {
     if (user_stream->start_time == 0) {
@@ -1016,36 +1030,36 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
     int header_size = 6;
     xqc_http_header_t header[MAX_HEADER] = {
-            {
-                    .name   = {.iov_base = ":method", .iov_len = 7},
-                    .value  = {.iov_base = "POST", .iov_len = 4},
-                    .flags  = 0,
-            },
-            {
-                    .name   = {.iov_base = ":scheme", .iov_len = 7},
-                    .value  = {.iov_base = g_scheme, .iov_len = strlen(g_scheme)},
-                    .flags  = 0,
-            },
-            {
-                    .name   = {.iov_base = "host", .iov_len = 4},
-                    .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
-                    .flags  = 0,
-            },
-            {
-                    .name   = {.iov_base = ":path", .iov_len = 5},
-                    .value  = {.iov_base = g_url_path, .iov_len = strlen(g_url_path)},
-                    .flags  = 0,
-            },
-            {
-                    .name   = {.iov_base = "content-type", .iov_len = 12},
-                    .value  = {.iov_base = "text/plain", .iov_len = 10},
-                    .flags  = 0,
-            },
-            {
-                    .name   = {.iov_base = "content-length", .iov_len = 14},
-                    .value  = {.iov_base = content_len, .iov_len = strlen(content_len)},
-                    .flags  = 0,
-            },
+        {
+            .name   = {.iov_base = ":method", .iov_len = 7},
+            .value  = {.iov_base = "POST", .iov_len = 4},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = ":scheme", .iov_len = 7},
+            .value  = {.iov_base = g_scheme, .iov_len = strlen(g_scheme)},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "host", .iov_len = 4},
+            .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = ":path", .iov_len = 5},
+            .value  = {.iov_base = g_url_path, .iov_len = strlen(g_url_path)},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "content-type", .iov_len = 12},
+            .value  = {.iov_base = "text/plain", .iov_len = 10},
+            .flags  = 0,
+        },
+        {
+            .name   = {.iov_base = "content-length", .iov_len = 14},
+            .value  = {.iov_base = content_len, .iov_len = strlen(content_len)},
+            .flags  = 0,
+        },
     };
 
     if (g_test_case == 29) {
@@ -1121,8 +1135,8 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     }
 
     xqc_http_headers_t headers = {
-            .headers = header,
-            .count  = header_size,
+        .headers = header,
+        .count  = header_size,
     };
 
     int header_only = g_is_get;
@@ -1131,29 +1145,43 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
          header[0].value.iov_len = sizeof("GET") - 1;
     }
 
-
+    /* send header */
     if (user_stream->header_sent == 0) {
-        if (g_test_case == 30) {
+        if (g_test_case == 30 || g_test_case == 37 || g_test_case == 38) {
             ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
         } else  {
             ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         }
+
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %zd\n", ret);
             return ret;
+
         } else {
             printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
         }
+
         if (g_test_case == 30) {
             usleep(200*1000);
             ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
             if (ret < 0) {
                 printf("xqc_h3_request_send_headers error %zd\n", ret);
                 return ret;
+
             } else {
                 printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             }
+        }
+
+        if (g_test_case == 37) {
+            header_only = 1;
+            struct timeval finish = {1, 0};
+            ctx.ev_delay = event_new(eb, -1, 0, xqc_client_request_send_fin_only, user_stream);
+            event_add(ctx.ev_delay, &finish);
+        } else if (g_test_case == 38) {
+            header_only = 1;
+            ret = xqc_h3_request_finish(h3_request);
         }
     }
 
@@ -1161,32 +1189,56 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         return 0;
     }
 
-
     int fin = 1;
-    if (g_test_case == 4 || g_test_case == 31) { //test fin_only
+    if (g_test_case == 4 || g_test_case == 31 || g_test_case == 35 || g_test_case == 36) { //test fin_only
         fin = 0;
     }
+
+    /* send body */
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
         if (ret == -XQC_EAGAIN) {
             return 0;
+
         } else if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
             return 0;
+
         } else {
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
     }
-    if (user_stream->send_offset == user_stream->send_body_len && g_test_case == 31) {
-        ret = xqc_h3_request_send_headers(h3_request, &headers, 1);
-        if (ret < 0) {
-            printf("xqc_h3_request_send_headers error %zd\n", ret);
-            return ret;
-        } else {
-            printf("xqc_h3_request_send_headers success size=%zd\n", ret);
+
+    /* send trailer header */
+    if (user_stream->send_offset == user_stream->send_body_len) {
+        if (g_test_case == 31) {
+            ret = xqc_h3_request_send_headers(h3_request, &headers, 1);
+            if (ret < 0) {
+                printf("xqc_h3_request_send_headers error %zd\n", ret);
+                return ret;
+
+            } else {
+                printf("xqc_h3_request_send_headers success size=%zd\n", ret);
+            }
+        }
+
+        /* no tailer header, fin only */
+        if (g_test_case == 35) {
+            struct timeval finish = {1, 0};
+            ctx.ev_delay = event_new(eb, -1, 0, xqc_client_request_send_fin_only, user_stream);
+            event_add(ctx.ev_delay, &finish);
+
+        } else if (g_test_case == 36) {
+            ret = xqc_h3_request_finish(h3_request);
+            if (ret != XQC_OK) {
+                printf("send request finish error, ret: %zd\n", ret);
+            } else {
+                printf("send request finish suc\n");
+            }
         }
     }
+
     if (g_test_case == 4) { //test fin_only
         if (user_stream->send_offset == user_stream->send_body_len) {
             fin = 1;
@@ -1272,59 +1324,71 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
         /* continue to receive body */
     }
 
-    if (!(flag & XQC_REQ_NOTIFY_READ_BODY)) {
-        return 0;
+    if (flag & XQC_REQ_NOTIFY_READ_BODY) {
+
+        char buff[4096] = {0};
+        size_t buff_size = 4096;
+
+        int save = g_save_body;
+
+        if (save && user_stream->recv_body_fp == NULL) {
+            user_stream->recv_body_fp = fopen(g_write_file, "wb");
+            if (user_stream->recv_body_fp == NULL) {
+                printf("open error\n");
+                return -1;
+            }
+        }
+
+        if (g_echo_check && user_stream->recv_body == NULL) {
+            user_stream->recv_body = malloc(user_stream->send_body_len);
+            if (user_stream->recv_body == NULL) {
+                printf("recv_body malloc error\n");
+                return -1;
+            }
+        }
+
+        ssize_t read;
+        ssize_t read_sum = 0;
+        do {
+            read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
+            if (read == -XQC_EAGAIN) {
+                break;
+            } else if (read < 0) {
+                printf("xqc_h3_request_recv_body error %zd\n", read);
+                return 0;
+            }
+
+            if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+                printf("fwrite error\n");
+                return -1;
+            }
+            if(save) fflush(user_stream->recv_body_fp);
+
+            /* write received body to memory */
+            if (g_echo_check && user_stream->recv_body_len + read <= user_stream->send_body_len) {
+                memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
+            }
+
+            read_sum += read;
+            user_stream->recv_body_len += read;
+
+        } while (read > 0 && !fin);
+
+        if (flag & XQC_REQ_NOTIFY_READ_EMPTY_FIN) {
+            fin = 1;
+        }
+
+        printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
     }
 
-    char buff[4096] = {0};
-    size_t buff_size = 4096;
 
-    int save = g_save_body;
+    if (flag & XQC_REQ_NOTIFY_READ_EMPTY_FIN) {
+        fin = 1;
 
-    if (save && user_stream->recv_body_fp == NULL) {
-        user_stream->recv_body_fp = fopen(g_write_file, "wb");
-        if (user_stream->recv_body_fp == NULL) {
-            printf("open error\n");
-            return -1;
-        }
+        printf("h3 fin only received\n");
     }
 
-    if (g_echo_check && user_stream->recv_body == NULL) {
-        user_stream->recv_body = malloc(user_stream->send_body_len);
-        if (user_stream->recv_body == NULL) {
-            printf("recv_body malloc error\n");
-            return -1;
-        }
-    }
 
-    ssize_t read;
-    ssize_t read_sum = 0;
-    do {
-        read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
-        if (read == -XQC_EAGAIN) {
-            break;
-        } else if (read < 0) {
-            printf("xqc_h3_request_recv_body error %zd\n", read);
-            return 0;
-        }
-
-        if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
-            printf("fwrite error\n");
-            return -1;
-        }
-        if(save) fflush(user_stream->recv_body_fp);
-
-        /* write received body to memory */
-        if (g_echo_check && user_stream->recv_body_len + read <= user_stream->send_body_len) {
-            memcpy(user_stream->recv_body + user_stream->recv_body_len, buff, read);
-        }
-
-        read_sum += read;
-        user_stream->recv_body_len += read;
-
-    } while (read > 0 && !fin);
-
-    printf("xqc_h3_request_recv_body read:%zd, offset:%zu, fin:%d\n", read_sum, user_stream->recv_body_len, fin);
     if (fin) {
         user_stream->recv_fin = 1;
         xqc_request_stats_t stats;
@@ -2216,6 +2280,11 @@ int main(int argc, char *argv[]) {
     free(user_conn->peer_addr);
     free(user_conn->local_addr);
     free(user_conn);
+
+    if (ctx.ev_delay) {
+        event_free(ctx.ev_delay);
+    }
+    
 
     xqc_engine_destroy(ctx.engine);
     xqc_client_close_keylog_file(&ctx);

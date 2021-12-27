@@ -24,6 +24,10 @@ typedef enum {
 
     /* read trailer section flag, this will be set when trailer HEADERS frame is processed */
     XQC_REQ_NOTIFY_READ_TRAILER         = 1 << 2,
+
+    /* read empty fin flag, notify callback will be triggered when a single fin frame is received
+       while HEADERS and DATA were notified. This flag will NEVER be set with other flags */
+    XQC_REQ_NOTIFY_READ_EMPTY_FIN       = 1 << 3,
 } xqc_request_notify_flag_t;
 
 
@@ -42,11 +46,13 @@ typedef void (*xqc_h3_conn_update_cid_notify_pt)(xqc_h3_conn_t *h3_conn, const
     xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *h3c_user_data);
 
 /**
- * @brief http3 connection callbacks with the same pattern of QUIC connection
+ * @brief http3 request callbacks
  */
-
 typedef int (*xqc_h3_request_notify_pt)(xqc_h3_request_t *h3_request, void *h3s_user_data);
 
+/**
+ * @brief read data callback function
+ */
 typedef int (*xqc_h3_request_read_notify_pt)(xqc_h3_request_t *h3_request, 
     xqc_request_notify_flag_t flag, void *h3s_user_data);
 
@@ -417,7 +423,7 @@ xqc_int_t xqc_h3_request_close(xqc_h3_request_t *h3_request);
  * @param h3_request handler of http3 request
  * @param headers http headers
  * @param fin request finish flag, 1 for finish. if set here, it means request has no body
- * @return > 0 for Bytes sent，-XQC_EAGAIN try next time, < 0 for error, 0 for request finnished
+ * @return > 0 for Bytes sent，-XQC_EAGAIN try next time, < 0 for error, 0 for request finished
  */
 XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_headers_t *headers,
@@ -430,11 +436,20 @@ ssize_t xqc_h3_request_send_headers(xqc_h3_request_t *h3_request, xqc_http_heade
  * @param data content of body
  * @param data_size length of body
  * @param fin request finish flag, 1 for finish.
- * @return > 0 for Bytes sent，-XQC_EAGAIN try next time, < 0 for error, 0 for request finnished
+ * @return > 0 for Bytes sent，-XQC_EAGAIN try next time, < 0 for error, 0 for request finished
  */
 XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, 
     size_t data_size, uint8_t fin);
+
+/**
+ * @brief finish request. if fin is not sent yet, and application has nothing to send anymore, call
+ * this function to send a QUIC STREAM frame with only fin
+ *
+ * @return > 0 for Bytes sent，-XQC_EAGAIN try next time, < 0 for error, 0 for request finished
+ */
+XQC_EXPORT_PUBLIC_API
+ssize_t xqc_h3_request_finish(xqc_h3_request_t *h3_request);
 
 /**
  * @brief receive headers of a request
