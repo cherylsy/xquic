@@ -107,9 +107,24 @@ typedef struct {
     xqc_cid_t               retry_source_connection_id;
     uint8_t                 retry_source_connection_id_present;
 
+    /**
+     * no_crypto is a self-defined experimental transport parameter by xquic, xquic will do no
+     * encryption on 0-RTT or 1-RTT packets if no_crypto is set to be 1.
+     * no_crypto is designed to be effective only on current connection and do not apply to future
+     * connections, it is prohibited to store this parameter.
+     * NOTICE: no_crypto MIGHT be modified or removed as it is not an official parameter.
+     */
     uint64_t                no_crypto;
 
+    /**
+     * enable_multipath is a self-defined experimental transport parameter by xquic, which will
+     * enable multipath quic if enable_multipath is set to be 1.
+     * enable_multipath is designed to be effective only on current connection and do not apply to
+     * future connections, storing this parameter and recover on future connections is prohibited.
+     * NOTICE: enable_multipath MIGHT be modified or removed as it is not an official parameter
+     */
     uint64_t                enable_multipath;
+
 } xqc_transport_params_t;
 
 

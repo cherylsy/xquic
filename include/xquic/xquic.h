@@ -919,7 +919,9 @@ void xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn);
  * @param token token receive from server, xqc_save_token_pt callback
  * @param token_len
  * @param server_host server domain
- * @param no_crypto_flag 1:without crypto
+ * @param no_crypto_flag 1: without encryption on 0-RTT and 1-RTT packets. this flag will add
+ * no_crypto transport parameter when initiating a connection, which is not an official parameter
+ * and might be modified or removed
  * @param conn_ssl_config For handshake
  * @param user_data For connection
  * @param peer_addr address of peer
