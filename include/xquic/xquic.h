@@ -71,7 +71,7 @@ typedef enum xqc_proto_version_s {
 typedef xqc_usec_t (*xqc_timestamp_pt)(void);
 
 /**
- * @brief event timer callback function. MUST for both client and server
+ * @brief event timer callback function. MUST be set for both client and server
  * xquic don't have implementation of timer, but will tell the interval of timer by this function.
  * applications shall implement the timer, and invoke xqc_engine_main_logic after timer expires.
  *
@@ -118,7 +118,7 @@ typedef struct xqc_log_callbacks_s {
      * statistic log callback function
      *
      * this function will be triggered when write XQC_LOG_REPORT or XQC_LOG_STATS level logs.
-     * mainly when connection close, stream close, tls key derived.
+     * mainly when connection close, stream close.
      */
     void (*xqc_log_write_stat)(xqc_log_level_t lvl, const void *buf, size_t size, void *engine_user_data);
 
