@@ -548,40 +548,43 @@ typedef struct xqc_cc_params_s {
 
 typedef struct xqc_congestion_control_callback_s {
     /* Callback on initialization, for memory allocation */
-    size_t (*xqc_cong_ctl_size) (void);
+    size_t (*xqc_cong_ctl_size)(void);
 
     /* Callback on connection initialization, support for passing in congestion algorithm parameters */
-    void (*xqc_cong_ctl_init) (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params);
+    void (*xqc_cong_ctl_init)(void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params);
 
     /* Callback when packet loss is detected, reduce congestion window according to algorithm */
-    void (*xqc_cong_ctl_on_lost) (void *cong_ctl, xqc_usec_t lost_sent_time);
+    void (*xqc_cong_ctl_on_lost)(void *cong_ctl, xqc_usec_t lost_sent_time);
 
     /* Callback when packet acked, increase congestion window according to algorithm */
-    void (*xqc_cong_ctl_on_ack) (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now);
+    void (*xqc_cong_ctl_on_ack)(void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now);
 
     /* Callback when sending a packet, to determine if the packet can be sent */
-    uint64_t (*xqc_cong_ctl_get_cwnd) (void *cong_ctl);
+    uint64_t (*xqc_cong_ctl_get_cwnd)(void *cong_ctl);
 
     /* Callback when all packets are detected as lost within 1-RTT, reset the congestion window */
-    void (*xqc_cong_ctl_reset_cwnd) (void *cong_ctl);
+    void (*xqc_cong_ctl_reset_cwnd)(void *cong_ctl);
 
     /* If the connection is in slow start state */
-    int (*xqc_cong_ctl_in_slow_start) (void *cong_ctl);
+    int (*xqc_cong_ctl_in_slow_start)(void *cong_ctl);
 
     /* If the connection is in recovery state. */
-    int (*xqc_cong_ctl_in_recovery) (void *cong_ctl);
+    int (*xqc_cong_ctl_in_recovery)(void *cong_ctl);
 
     /* This function is used by BBR and Cubic*/
-    void (*xqc_cong_ctl_restart_from_idle) (void *cong_ctl, uint64_t arg);
+    void (*xqc_cong_ctl_restart_from_idle)(void *cong_ctl, uint64_t arg);
 
     /* For BBR */
-    void (*xqc_cong_ctl_bbr) (void *cong_ctl, xqc_sample_t *sampler);
+    void (*xqc_cong_ctl_bbr)(void *cong_ctl, xqc_sample_t *sampler);
 
-    void (*xqc_cong_ctl_init_bbr) (void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
+    /* initialize bbr */
+    void (*xqc_cong_ctl_init_bbr)(void *cong_ctl, xqc_sample_t *sampler, xqc_cc_params_t cc_params);
 
-    uint32_t (*xqc_cong_ctl_get_pacing_rate) (void *cong_ctl);
+    /* get pacing rate */
+    uint32_t (*xqc_cong_ctl_get_pacing_rate)(void *cong_ctl);
 
-    uint32_t (*xqc_cong_ctl_get_bandwidth_estimate) (void *cong_ctl);
+    /* get estimation of bandwidth */
+    uint32_t (*xqc_cong_ctl_get_bandwidth_estimate)(void *cong_ctl);
 
     xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;
 } xqc_cong_ctrl_callback_t;
@@ -761,9 +764,9 @@ typedef struct xqc_conn_settings_s {
 
 
 typedef enum {
-    XQC_0RTT_NONE,      /* without 0RTT */
-    XQC_0RTT_ACCEPT,
-    XQC_0RTT_REJECT,
+    XQC_0RTT_NONE,      /* without 0-RTT */
+    XQC_0RTT_ACCEPT,    /* 0-RTT was accepted */
+    XQC_0RTT_REJECT,    /* 0-RTT was rejected */
 } xqc_0rtt_flag_t;
 
 typedef struct xqc_conn_stats_s {
@@ -834,7 +837,7 @@ xqc_int_t xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_
  *
  * @param engine engine handler
  * @param alpn Application-Layer-Protocol, for example, h3, hq-interop, or self-defined
- * @param alpn_len
+ * @param alpn_len length of alpn
  * @return XQC_EXPORT_PUBLIC_API
  */
 XQC_EXPORT_PUBLIC_API
@@ -1034,10 +1037,8 @@ int xqc_stream_close(xqc_stream_t *stream);
  * @return bytes read, -XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-ssize_t xqc_stream_recv(xqc_stream_t *stream,
-                        unsigned char *recv_buf,
-                        size_t recv_buf_size,
-                        uint8_t *fin);
+ssize_t xqc_stream_recv(xqc_stream_t *stream, unsigned char *recv_buf, size_t recv_buf_size,
+    uint8_t *fin);
 
 /**
  * Send data in stream.
@@ -1045,11 +1046,8 @@ ssize_t xqc_stream_recv(xqc_stream_t *stream,
  * @return bytes sent, -XQC_EAGAIN try next time, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-ssize_t xqc_stream_send(xqc_stream_t *stream,
-                        unsigned char *send_data,
-                        size_t send_data_size,
-                        uint8_t fin);
-
+ssize_t xqc_stream_send(xqc_stream_t *stream, unsigned char *send_data, size_t send_data_size,
+    uint8_t fin);
 
 /**
  * Get dcid and scid before process packet
@@ -1058,6 +1056,10 @@ XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len,
                                const unsigned char *buf, size_t size);
 
+/**
+ * @brief compare two cids
+ * @return XQC_OK if equal, others if not equal
+ */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_cid_is_equal(const xqc_cid_t *dst, const xqc_cid_t *src);
 
