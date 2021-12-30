@@ -1541,7 +1541,7 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl,
     xqc_packet_out_t *packet_out = acked_packet;
     xqc_connection_t *conn = ctl->ctl_conn;
 
-    if (conn->conn_type == XQC_CONN_TYPE_SERVER && acked_packet->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE) {
+    if ((conn->conn_type == XQC_CONN_TYPE_SERVER) && (acked_packet->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)) {
         conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED;
     }
 
