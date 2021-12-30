@@ -54,7 +54,7 @@ typedef enum h3_hdr_type {
     H3_HDR_PATH,
 
     H3_HDR_CNT
-}H3_HDR_TYPE;
+} H3_HDR_TYPE;
 
 
 int
