@@ -19,7 +19,8 @@ typedef int (*xqc_wakeup_pq_compare_ptr)(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_t
  * default element compare function, priority: a < b
  * higher priority first
  */
-static inline int xqc_wakeup_pq_default_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_time_t b)
+static inline int
+xqc_wakeup_pq_default_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_time_t b)
 {
     return (a < b) ? 1 : 0;
 }
@@ -28,13 +29,13 @@ static inline int xqc_wakeup_pq_default_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeu
  * inverse element compare function, priority: a > b
  * lower priority first
  */
-static inline int xqc_wakeup_pq_revert_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_time_t b)
+static inline int
+xqc_wakeup_pq_revert_cmp(xqc_pq_wakeup_time_t a, xqc_pq_wakeup_time_t b)
 {
     return (b < a) ? 1 : 0;
 }
 
-typedef struct xqc_wakeup_pq_s
-{
+typedef struct xqc_wakeup_pq_s {
     char* elements;         /* elements */
     size_t element_size;    /* memory size of element objects */
     size_t count;           /* number of elements */
@@ -101,7 +102,7 @@ xqc_wakeup_pq_element_swap(xqc_wakeup_pq_t *pq, size_t i, size_t j)
     memcpy(xqc_wakeup_pq_element(pq, i), buf, pq->element_size);
 }
 
-static inline xqc_wakeup_pq_elem_t*
+static inline xqc_wakeup_pq_elem_t *
 xqc_wakeup_pq_push(xqc_wakeup_pq_t *pq, xqc_pq_wakeup_time_t wakeup_time, struct xqc_connection_s *conn)
 {
     if (pq->count == pq->capacity) {
@@ -136,7 +137,7 @@ xqc_wakeup_pq_push(xqc_wakeup_pq_t *pq, xqc_pq_wakeup_time_t wakeup_time, struct
     return xqc_wakeup_pq_element(pq, i);
 }
 
-static inline xqc_wakeup_pq_elem_t*
+static inline xqc_wakeup_pq_elem_t *
 xqc_wakeup_pq_top(xqc_wakeup_pq_t *pq)
 {
     if (pq->count == 0) {
@@ -208,16 +209,15 @@ xqc_wakeup_pq_remove(xqc_wakeup_pq_t *pq, struct xqc_connection_s *conn)
     }
 
     i = pq_index;
-    while(i != 0){
+    while (i != 0) {
         j = (i - 1)/2;
-        if (!pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, i)->wakeup_time)){
+        if (!pq->cmp(xqc_wakeup_pq_element(pq, j)->wakeup_time, xqc_wakeup_pq_element(pq, i)->wakeup_time)) {
             break;
         }
 
         xqc_wakeup_pq_element_swap(pq, i, j);
         i = j;
     }
-
 }
 
 #undef xqc_wakeup_pq_element

@@ -16,8 +16,7 @@ typedef enum {
 } xqc_cid_state_t;
 
 
-typedef struct xqc_cid_inner_s
-{
+typedef struct xqc_cid_inner_s {
     xqc_list_head_t   list;
 
     xqc_cid_t         cid;
@@ -25,24 +24,21 @@ typedef struct xqc_cid_inner_s
     xqc_usec_t        retired_ts;
 } xqc_cid_inner_t;
 
-typedef struct xqc_cid_set_s
-{
+typedef struct xqc_cid_set_s {
     xqc_list_head_t   list_head;
     uint64_t          unused_cnt;
     uint64_t          used_cnt;
     uint64_t          retired_cnt;
 } xqc_cid_set_t;
 
-typedef struct xqc_scid_set_s
-{
+typedef struct xqc_scid_set_s {
     xqc_cid_t         user_scid; // one of the USED SCIDs, for create/close notify
     xqc_cid_set_t     cid_set;   // a set of SCID, includes used/unused/retired SCID
     uint64_t          largest_scid_seq_num;
     unsigned char     original_scid_str[XQC_MAX_CID_LEN * 2 + 1];
 } xqc_scid_set_t;
 
-typedef struct xqc_dcid_set_s
-{
+typedef struct xqc_dcid_set_s {
     xqc_cid_t         current_dcid; // one of the USED DCIDs, for send packets
     xqc_cid_set_t     cid_set;      // a set of DCID, includes used/unused/retired DCID
     uint64_t          largest_retire_prior_to;
@@ -65,9 +61,9 @@ void xqc_destroy_cid_set(xqc_cid_set_t *cid_set);
 xqc_int_t xqc_cid_set_insert_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid, xqc_cid_state_t state, uint64_t limit);
 xqc_int_t xqc_cid_set_delete_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid);
 
-xqc_cid_t* xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num);
-xqc_cid_inner_t* xqc_get_inner_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num);
-xqc_cid_inner_t* xqc_cid_in_cid_set(const xqc_cid_set_t *cid_set, const xqc_cid_t *cid);
+xqc_cid_t *xqc_get_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num);
+xqc_cid_inner_t *xqc_get_inner_cid_by_seq(xqc_cid_set_t *cid_set, uint64_t seq_num);
+xqc_cid_inner_t *xqc_cid_in_cid_set(const xqc_cid_set_t *cid_set, const xqc_cid_t *cid);
 
 xqc_int_t xqc_cid_switch_to_next_state(xqc_cid_set_t *cid_set, xqc_cid_inner_t *cid, xqc_cid_state_t state);
 xqc_int_t xqc_get_unused_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid);

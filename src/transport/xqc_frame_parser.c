@@ -53,6 +53,7 @@ xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
     if (offset) {
         offset_bits = xqc_vint_get_2bit(offset);
         offset_len = xqc_vint_len(offset_bits);
+
     } else {
         offset_len = 0;
     }
@@ -114,10 +115,12 @@ xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
         }
         xqc_vint_write(p, stream_id, stream_id_bits, stream_id_len);
         p += stream_id_len;
+
         if (offset_len) {
             xqc_vint_write(p, offset, offset_bits, offset_len);
         }
         p += offset_len;
+
         if (length_len) {
             *p++ = 0;
         }
@@ -139,7 +142,7 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
 {
     uint64_t offset;
     uint64_t length;
-    int vlen;
+    int      vlen;
 
     const unsigned char *p = packet_in->pos;
     const unsigned char *end = packet_in->last;
@@ -169,6 +172,7 @@ xqc_parse_stream_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
         if (vlen < 0) {
             return -XQC_EVINTREAD;
         }
+
         if (length > end - p) {
             return -XQC_EILLEGAL_FRAME;
         }
@@ -259,9 +263,10 @@ xqc_gen_crypto_frame(xqc_packet_out_t *packet_out, size_t offset,
 }
 
 xqc_int_t
-xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn , xqc_stream_frame_t * frame)
+xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn ,
+    xqc_stream_frame_t *frame)
 {
-    int vlen;
+    int      vlen;
     uint64_t offset;
     uint64_t length;
     const unsigned char *p = packet_in->pos;
@@ -293,7 +298,7 @@ xqc_parse_crypto_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn , xqc_
 
     p += length;
 
-    packet_in->pos = (unsigned char*)p;
+    packet_in->pos = (unsigned char *)p;
     packet_in->pi_frame_types |= XQC_FRAME_BIT_CRYPTO;
 
     xqc_log_event(conn->log, TRA_FRAMES_PROCESSED, XQC_FRAME_CRYPTO, offset, length);
@@ -306,7 +311,6 @@ xqc_gen_padding_frame(xqc_packet_out_t *packet_out)
     if (packet_out->po_used_size < XQC_PACKET_INITIAL_MIN_LENGTH) {
         memset(packet_out->po_buf + packet_out->po_used_size, 0, XQC_PACKET_INITIAL_MIN_LENGTH - packet_out->po_used_size);
         packet_out->po_used_size = XQC_PACKET_INITIAL_MIN_LENGTH;
-        //xqc_long_packet_update_length(packet_out);
         packet_out->po_frame_types |= XQC_FRAME_BIT_PADDING;
     }
 }
@@ -387,8 +391,8 @@ xqc_parse_ping_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
  */
 ssize_t
 xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
-    xqc_usec_t now, int ack_delay_exponent,
-    xqc_recv_record_t *recv_record, int *has_gap, xqc_packet_number_t *largest_ack)
+    xqc_usec_t now, int ack_delay_exponent, xqc_recv_record_t *recv_record,
+    int *has_gap, xqc_packet_number_t *largest_ack)
 {
     unsigned char *dst_buf = packet_out->po_buf + packet_out->po_used_size;
     size_t dst_buf_len = packet_out->po_buf_size - packet_out->po_used_size + XQC_ACK_SPACE;
@@ -429,10 +433,10 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     unsigned ack_delay_bits = xqc_vint_get_2bit(ack_delay);
     unsigned first_ack_range_bits = xqc_vint_get_2bit(first_ack_range);
 
-    need = 1    //type
+    need = 1    /* type */
             + xqc_vint_len(lagest_recv_bits)
             + xqc_vint_len(ack_delay_bits)
-            + 1  //range_count
+            + 1 /* range_count */
             + xqc_vint_len(first_ack_range_bits);
 
     if (dst_buf + need > end) {
@@ -450,13 +454,13 @@ xqc_gen_ack_frame(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     dst_buf += xqc_vint_len(ack_delay_bits);
 
     p_range_count = dst_buf;
-    dst_buf += 1; //max range_count 63, 1 byte
+    dst_buf += 1;   /* max range_count 63, 1 byte */
 
     xqc_vint_write(dst_buf, first_ack_range, first_ack_range_bits, xqc_vint_len(first_ack_range_bits));
     dst_buf += xqc_vint_len(first_ack_range_bits);
 
     int is_first = 1;
-    xqc_list_for_each_safe(pos, next, &recv_record->list_head) { //from second node
+    xqc_list_for_each_safe(pos, next, &recv_record->list_head) {    /* from second node */
         range_node = xqc_list_entry(pos, xqc_pktno_range_node_t, list);
 
         xqc_log(conn->log, XQC_LOG_DEBUG, "|high:%ui|low:%ui|pkt_pns:%d|",
@@ -627,6 +631,7 @@ xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out,
 
     if (is_app) {
         *dst_buf++ = 0x1d;
+
     } else {
         *dst_buf++ = 0x1c;
     }
@@ -642,7 +647,7 @@ xqc_gen_conn_close_frame(xqc_packet_out_t *packet_out,
     xqc_vint_write(dst_buf, reason_len, reason_len_bits, xqc_vint_len(reason_len_bits));
     dst_buf += xqc_vint_len(reason_len_bits);
 
-#if 0   /* reason not supported yet */
+#if 0   /* TODO: reason not supported yet */
     if (reason_len > 0) {
         memcpy(dst_buf, reason, reason_len);
         dst_buf += reason_len;
@@ -686,7 +691,7 @@ xqc_parse_conn_close_frame(xqc_packet_in_t *packet_in, uint64_t *err_code, xqc_c
     }
     p += vlen;
 
-    //TODO: get reason string
+    /* TODO: get reason string */
     p += reason_len;
 
     packet_in->pos = p;
@@ -978,6 +983,7 @@ xqc_gen_streams_blocked_frame(xqc_packet_out_t *packet_out, uint64_t stream_limi
 
     if (bidirectional) {
         *dst_buf++ = 0x16;
+
     } else {
         *dst_buf++ = 0x17;
     }
@@ -1003,6 +1009,7 @@ xqc_parse_streams_blocked_frame(xqc_packet_in_t *packet_in, uint64_t *stream_lim
 
     if (first_byte == 0x16) {
         *bidirectional = 1;
+
     } else {
         *bidirectional = 0;
     }
@@ -1147,6 +1154,7 @@ xqc_gen_max_streams_frame(xqc_packet_out_t *packet_out, uint64_t max_streams, in
 
     if (bidirectional) {
         *dst_buf++ = 0x12;
+
     } else {
         *dst_buf++ = 0x13;
     }
@@ -1216,7 +1224,8 @@ xqc_gen_new_token_frame(xqc_packet_out_t *packet_out, const unsigned char *token
         + 1
         + xqc_vint_len(token_len_bits)
         + token_len
-        > packet_out->po_buf_size) {
+        > packet_out->po_buf_size)
+    {
         return -XQC_ENOBUF;
     }
     xqc_memcpy(dst_buf, token, token_len);

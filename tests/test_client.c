@@ -1513,7 +1513,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
                 if (xqc_engine_packet_process(ctx.engine, iovecs[i].iov_base, msgs[i].msg_len,
                                               user_conn->local_addr, user_conn->local_addrlen,
                                               user_conn->peer_addr, user_conn->peer_addrlen,
-                                              (xqc_msec_t)recv_time, user_conn) != 0) 
+                                              (xqc_msec_t)recv_time, user_conn) != XQC_OK) 
                 {
                     printf("xqc_server_read_handler: packet process err\n");
                     return;
@@ -1600,7 +1600,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (xqc_engine_packet_process(ctx.engine, packet_buf, recv_size,
                                       user_conn->local_addr, user_conn->local_addrlen,
                                       user_conn->peer_addr, user_conn->peer_addrlen,
-                                      (xqc_msec_t)recv_time, user_conn) != 0)
+                                      (xqc_msec_t)recv_time, user_conn) != XQC_OK)
         {
             printf("xqc_client_read_handler: packet process err\n");
             return;

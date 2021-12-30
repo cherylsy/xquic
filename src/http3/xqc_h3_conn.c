@@ -117,8 +117,8 @@ xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn)
 xqc_int_t
 xqc_h3_conn_get_errno(xqc_h3_conn_t *h3_conn)
 {
-    int ret = xqc_conn_get_errno(h3_conn->conn);
-    return ret == 0 ? H3_NO_ERROR : ret;
+    xqc_int_t ret = xqc_conn_get_errno(h3_conn->conn);
+    return ret == XQC_OK ? H3_NO_ERROR : ret;
 }
 
 

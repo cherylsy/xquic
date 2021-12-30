@@ -24,8 +24,8 @@ xqc_packet_in_init(xqc_packet_in_t *packet_in,
 void
 xqc_packet_in_destroy(xqc_packet_in_t *packet_in, xqc_connection_t *conn)
 {
-    xqc_free((void*)packet_in->buf);
-    xqc_free((void*)packet_in->decode_payload);
+    xqc_free((void *)packet_in->buf);
+    xqc_free((void *)packet_in->decode_payload);
     xqc_free(packet_in);
 }
 

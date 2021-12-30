@@ -17,7 +17,7 @@ void xqc_pacing_init(xqc_pacing_t *pacing, int pacing_on, xqc_send_ctl_t *ctl);
 
 void xqc_pacing_on_timeout(xqc_pacing_t *pacing);
 
-void  xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, uint32_t bytes);
+void xqc_pacing_on_packet_sent(xqc_pacing_t *pacing, uint32_t bytes);
 
 void xqc_pacing_on_app_limit(xqc_pacing_t *pacing);
 

@@ -81,7 +81,8 @@ xqc_pacing_calc_budget(xqc_pacing_t *pacing, xqc_usec_t now)
     return xqc_min(budget, max_burst_bytes);
 }
 
-void xqc_pacing_on_timeout(xqc_pacing_t *pacing)
+void
+xqc_pacing_on_timeout(xqc_pacing_t *pacing)
 {
     xqc_usec_t now = xqc_monotonic_timestamp();
     uint32_t budget = xqc_pacing_calc_budget(pacing, now);

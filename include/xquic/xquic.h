@@ -850,7 +850,7 @@ xqc_int_t xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, siz
  * @param user_data   connection user_data, server is NULL
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_engine_packet_process(xqc_engine_t *engine,
+xqc_int_t xqc_engine_packet_process(xqc_engine_t *engine,
     const unsigned char *packet_in_buf, size_t packet_in_size,
     const struct sockaddr *local_addr, socklen_t local_addrlen,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen,
@@ -946,13 +946,13 @@ const xqc_cid_t *xqc_connect(xqc_engine_t *engine,
  * @return 0 for success, <0 for error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
+xqc_int_t xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid);
 
 /**
  * Get errno when conn_close_notify, 0 For no-error
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_get_errno(xqc_connection_t *conn);
+xqc_int_t xqc_conn_get_errno(xqc_connection_t *conn);
 
 
 /**
@@ -1027,10 +1027,10 @@ xqc_stream_id_t xqc_stream_id(xqc_stream_t *stream);
 
 /**
  * Send RESET_STREAM to peer, stream_close_notify will callback when stream destroyed
- * @retval 0 for success, <0 for error
+ * @retval XQC_OK for success, others for failure
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_stream_close(xqc_stream_t *stream);
+xqc_int_t xqc_stream_close(xqc_stream_t *stream);
 
 /**
  * Recv data in stream.
@@ -1085,7 +1085,7 @@ uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
  * User should call xqc_conn_continue_send when write event ready
  */
 XQC_EXPORT_PUBLIC_API
-int xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid);
+xqc_int_t xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid);
 
 /**
  * User can get xqc_conn_stats_t by cid

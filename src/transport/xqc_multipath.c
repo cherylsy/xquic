@@ -30,7 +30,7 @@ xqc_path_create(xqc_connection_t *conn,
     xqc_path_ctx_t *path = NULL;
 
     path = xqc_calloc(1, sizeof(xqc_path_ctx_t));
-    if (path == NULL){
+    if (path == NULL) {
         return NULL;
     }
     xqc_memzero(path, sizeof(xqc_path_ctx_t));

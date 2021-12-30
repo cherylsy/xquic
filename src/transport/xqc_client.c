@@ -72,7 +72,7 @@ xqc_client_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_setting
     }
 
     /* xqc_conn_destroy must be called before the connection is inserted into conns_active_pq */
-    if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)){
+    if (!(xc->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (xqc_conns_pq_push(engine->conns_active_pq, xc, 0)) {
             return NULL;
         }
@@ -197,14 +197,9 @@ end:
 
 
 xqc_connection_t *
-xqc_client_create_connection(xqc_engine_t *engine,
-    xqc_cid_t dcid, xqc_cid_t scid,
-    const xqc_conn_settings_t *settings,
-    const char * server_host,
-    int no_crypto_flag,
-    const xqc_conn_ssl_config_t *conn_ssl_config,
-    const char *alpn,
-    void *user_data)
+xqc_client_create_connection(xqc_engine_t *engine, xqc_cid_t dcid, xqc_cid_t scid,
+    const xqc_conn_settings_t *settings, const char *server_host, int no_crypto_flag,
+    const xqc_conn_ssl_config_t *conn_ssl_config, const char *alpn, void *user_data)
 {
     xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid, settings, user_data,
                                            XQC_CONN_TYPE_CLIENT);
@@ -242,7 +237,7 @@ xqc_client_create_connection(xqc_engine_t *engine,
         xqc_transport_params_t tp;
         xqc_memzero(&tp, sizeof(xqc_transport_params_t));
         xqc_int_t ret = xqc_read_transport_params(conn_ssl_config->transport_parameter_data,
-                                                conn_ssl_config->transport_parameter_data_len, &tp);
+                                                  conn_ssl_config->transport_parameter_data_len, &tp);
         if (ret == XQC_OK) {
             xqc_conn_set_early_remote_transport_params(xc, &tp);
         }

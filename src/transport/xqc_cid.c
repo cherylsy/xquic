@@ -82,7 +82,7 @@ xqc_cid_set(xqc_cid_t *cid, const unsigned char *data, uint8_t len)
 static unsigned char g_scid_buf[XQC_MAX_CID_LEN * 2 + 1];
 static unsigned char g_dcid_buf[XQC_MAX_CID_LEN * 2 + 1];
 
-unsigned char*
+unsigned char *
 xqc_dcid_str(const xqc_cid_t *dcid)
 {
     xqc_hex_dump(g_dcid_buf, dcid->cid_buf, dcid->cid_len);
@@ -90,7 +90,7 @@ xqc_dcid_str(const xqc_cid_t *dcid)
     return g_dcid_buf;
 }
 
-unsigned char*
+unsigned char *
 xqc_scid_str(const xqc_cid_t *scid)
 {
     xqc_hex_dump(g_scid_buf, scid->cid_buf, scid->cid_len);
@@ -98,7 +98,7 @@ xqc_scid_str(const xqc_cid_t *scid)
     return g_scid_buf;
 }
 
-unsigned char*
+unsigned char *
 xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid)
 {
     xqc_connection_t *conn;
@@ -108,7 +108,8 @@ xqc_dcid_str_by_scid(xqc_engine_t *engine, const xqc_cid_t *scid)
         return NULL;
     }
 
-    xqc_hex_dump(conn->dcid_set.current_dcid_str, conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len);
+    xqc_hex_dump(conn->dcid_set.current_dcid_str, conn->dcid_set.current_dcid.cid_buf,
+                 conn->dcid_set.current_dcid.cid_len);
     conn->dcid_set.current_dcid_str[conn->dcid_set.current_dcid.cid_len * 2] = '\0';
 
     return conn->dcid_set.current_dcid_str;
@@ -215,7 +216,7 @@ xqc_cid_set_delete_cid(xqc_cid_set_t *cid_set, xqc_cid_t *cid)
     return XQC_ERROR;
 }
 
-xqc_cid_inner_t*
+xqc_cid_inner_t *
 xqc_cid_in_cid_set(const xqc_cid_set_t *cid_set, const xqc_cid_t *cid)
 {
     xqc_cid_inner_t *inner_cid = NULL;

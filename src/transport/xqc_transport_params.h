@@ -5,19 +5,19 @@
 #include "src/transport/xqc_defs.h"
 
 /* default value for max_ack_delay */
-#define XQC_DEFAULT_MAX_ACK_DELAY 25
+#define XQC_DEFAULT_MAX_ACK_DELAY               25
 
 /* default value for ack_delay_exponent */
-#define XQC_DEFAULT_ACK_DELAY_EXPONENT 3
+#define XQC_DEFAULT_ACK_DELAY_EXPONENT          3
 
 /* default value for max_udp_payload_size */
-#define XQC_DEFAULT_MAX_UDP_PAYLOAD_SIZE 65527
+#define XQC_DEFAULT_MAX_UDP_PAYLOAD_SIZE        65527
 
 /* default value for active_connection_id_limit */
-#define XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT 2
+#define XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT  2
 
 /* max buffer length of encoded transport parameter */
-#define XQC_MAX_TRANSPORT_PARAM_BUF_LEN 512
+#define XQC_MAX_TRANSPORT_PARAM_BUF_LEN         512
 
 
 /**

@@ -12,7 +12,7 @@
 #define XQC_MP_NEW_PATH_MAX_TRY_COUNT   3
 
 #define XQC_MP_FIRST_DATA_OFFSET        1460
-#define XQC_MP_FIRST_FRAME_OFFSET       128 * 1024 // 128k
+#define XQC_MP_FIRST_FRAME_OFFSET       128 * 1024 /* 128k */
 
 #define XQC_MP_INITIAL_PATH_ID          0
 
@@ -27,30 +27,30 @@ typedef enum {
 } xqc_mp_path_state_t;
 
 typedef enum {
-    XQC_MP_STATE_ABANDON    = 0,    
-    XQC_MP_STATE_STANDBY    = 1,    
-    XQC_MP_STATE_AVAILABLE  = 2,    
+    XQC_MP_STATE_ABANDON    = 0,
+    XQC_MP_STATE_STANDBY    = 1,
+    XQC_MP_STATE_AVAILABLE  = 2,
 } xqc_path_status_e;
 
 
 /* path close mode: passive & proactive */
 typedef enum {
-    XQC_MP_PATH_CLOSE_PASSIVE = 0,
+    XQC_MP_PATH_CLOSE_PASSIVE   = 0,
     XQC_MP_PATH_CLOSE_PROACTIVE = 1,
 } xqc_path_close_mode_t;
 
 typedef enum {
-    XQC_MP_SCHED_DEFAULT = 0,
-    XQC_MP_SCHED_IGNORE_CONG_CTRL = 1,
-    XQC_MP_SCHED_REINJECTION = 1<<1,
+    XQC_MP_SCHED_DEFAULT            = 0,
+    XQC_MP_SCHED_IGNORE_CONG_CTRL   = 1,
+    XQC_MP_SCHED_REINJECTION        = 1<<1,
 } xqc_mp_sched_flag_t;
 
 typedef uint32_t xqc_mp_sched_mode_t;
 
 typedef enum {
-    XQC_MP_PKT_PRIO_LOW = 0,
+    XQC_MP_PKT_PRIO_LOW     = 0,
     XQC_MP_PKT_PRIO_DEFAULT = 1,
-    XQC_MP_PKT_PRIO_HIGH = 2,
+    XQC_MP_PKT_PRIO_HIGH    = 2,
 } xqc_mp_pkt_prioirty_t;
 
 
@@ -122,11 +122,11 @@ void xqc_path_update_status(xqc_path_ctx_t *path,
 
 
 /* path scheduler & send ctl */
-xqc_path_ctx_t* xqc_mp_schedule_a_path(xqc_connection_t *conn, 
+xqc_path_ctx_t *xqc_mp_schedule_a_path(xqc_connection_t *conn, 
     xqc_packet_out_t *po, xqc_mp_sched_mode_t mode);
 
-xqc_path_ctx_t* xqc_mp_schedule_paths_for_burst_sending(xqc_connection_t *conn, 
-    xqc_list_head_t * po_head, int congest);
+xqc_path_ctx_t *xqc_mp_schedule_paths_for_burst_sending(xqc_connection_t *conn, 
+    xqc_list_head_t *po_head, int congest);
 void xqc_mp_server_send_packets(xqc_connection_t *conn);
 void xqc_mp_path_send_ctl_timer_expire(xqc_connection_t *conn, xqc_usec_t now);
 

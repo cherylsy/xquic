@@ -74,9 +74,9 @@ typedef enum {
     XQC_CONN_TYPE_CLIENT,
 } xqc_conn_type_t;
 
-#define XQC_CONN_FLAG_SHOULD_ACK (XQC_CONN_FLAG_SHOULD_ACK_INIT   \
-                                    |XQC_CONN_FLAG_SHOULD_ACK_HSK    \
-                                    |XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
+#define XQC_CONN_FLAG_SHOULD_ACK (XQC_CONN_FLAG_SHOULD_ACK_INIT     \
+                                  | XQC_CONN_FLAG_SHOULD_ACK_HSK    \
+                                  | XQC_CONN_FLAG_SHOULD_ACK_01RTT) \
 
 #define XQC_CONN_IMMEDIATE_CLOSE_FLAGS (XQC_CONN_FLAG_ERROR)
 
@@ -87,8 +87,8 @@ typedef enum {
     XQC_CONN_FLAG_CAN_SEND_1RTT_SHIFT,
     XQC_CONN_FLAG_TICKING_SHIFT,
     XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT,
-    XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT        = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_HSK),
-    XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT      = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_APP_DATA),
+    XQC_CONN_FLAG_SHOULD_ACK_HSK_SHIFT      = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_HSK),
+    XQC_CONN_FLAG_SHOULD_ACK_01RTT_SHIFT    = (XQC_CONN_FLAG_SHOULD_ACK_INIT_SHIFT + XQC_PNS_APP_DATA),
     XQC_CONN_FLAG_ACK_HAS_GAP_SHIFT,
     XQC_CONN_FLAG_TIME_OUT_SHIFT,
     XQC_CONN_FLAG_ERROR_SHIFT,
@@ -112,7 +112,6 @@ typedef enum {
     XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
     XQC_CONN_FLAG_LINGER_CLOSING_SHIFT,
-    XQC_CONN_FLAG_SENT_RETRY_SHIFT,
     XQC_CONN_FLAG_RECV_RETRY_SHIFT,
     XQC_CONN_FLAG_TLS_HSK_COMPLETED_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
@@ -149,7 +148,6 @@ typedef enum {
     XQC_CONN_FLAG_ADDR_VALIDATED        = 1 << XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT,
     XQC_CONN_FLAG_NEW_CID_RECEIVED      = 1 << XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT,
     XQC_CONN_FLAG_LINGER_CLOSING        = 1 << XQC_CONN_FLAG_LINGER_CLOSING_SHIFT,
-    XQC_CONN_FLAG_SENT_RETRY            = 1 << XQC_CONN_FLAG_SENT_RETRY_SHIFT,
     XQC_CONN_FLAG_RECV_RETRY            = 1 << XQC_CONN_FLAG_RECV_RETRY_SHIFT,
     XQC_CONN_FLAG_TLS_HSK_COMPLETED     = 1 << XQC_CONN_FLAG_TLS_HSK_COMPLETED_SHIFT,
 } xqc_conn_flag_t;
@@ -306,14 +304,14 @@ struct xqc_connection_s {
 
 };
 
-const char * xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);
-const char * xqc_conn_state_2_str(xqc_conn_state_t state);
+const char *xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);
+const char *xqc_conn_state_2_str(xqc_conn_state_t state);
 void xqc_conn_init_flow_ctl(xqc_connection_t *conn);
 
-xqc_connection_t * xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
+xqc_connection_t *xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     const xqc_conn_settings_t *settings, void *user_data, xqc_conn_type_t type);
 
-xqc_connection_t * xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
+xqc_connection_t *xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
     socklen_t local_addrlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
     xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_settings_t *settings, void *user_data);
 
@@ -356,9 +354,9 @@ void xqc_conn_buff_1rtt_packets(xqc_connection_t *conn);
 void xqc_conn_write_buffed_1rtt_packets(xqc_connection_t *conn);
 xqc_usec_t xqc_conn_next_wakeup_time(xqc_connection_t *conn);
 
-char * xqc_conn_local_addr_str(const struct sockaddr *local_addr, socklen_t local_addrlen);
-char * xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen);
-char * xqc_conn_addr_str(xqc_connection_t *conn);
+char *xqc_conn_local_addr_str(const struct sockaddr *local_addr, socklen_t local_addrlen);
+char *xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen);
+char *xqc_conn_addr_str(xqc_connection_t *conn);
 
 static inline void
 xqc_conn_process_undecrypt_packets(xqc_connection_t *conn)
@@ -421,7 +419,7 @@ xqc_int_t xqc_conn_set_cid_retired_ts(xqc_connection_t *conn, xqc_cid_inner_t *i
 
 xqc_bool_t xqc_conn_peer_complete_address_validation(xqc_connection_t *c);
 xqc_bool_t xqc_conn_has_hsk_keys(xqc_connection_t *c);
-void * xqc_conn_get_user_data(xqc_connection_t *c);
+void *xqc_conn_get_user_data(xqc_connection_t *c);
 
 /* transport parameters functions */
 xqc_int_t xqc_conn_get_local_transport_params(xqc_connection_t *conn,

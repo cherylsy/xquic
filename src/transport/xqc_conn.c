@@ -42,9 +42,9 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     default_conn_settings.cong_ctrl_callback = settings->cong_ctrl_callback;
     default_conn_settings.cc_params = settings->cc_params;
     default_conn_settings.pacing_on = settings->pacing_on;
-    default_conn_settings.ping_on = settings->ping_on;
+    default_conn_settings.ping_on   = settings->ping_on;
     default_conn_settings.so_sndbuf = settings->so_sndbuf;
-    default_conn_settings.linger = settings->linger;
+    default_conn_settings.linger    = settings->linger;
     default_conn_settings.spurious_loss_detect_on = settings->spurious_loss_detect_on;
     if (settings->idle_time_out > 0) {
         default_conn_settings.idle_time_out = settings->idle_time_out;
@@ -88,14 +88,13 @@ static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
     [XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT]        = "ADDR_VALIDATED",
     [XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT]      = "NEW_CID_RECEIVED",
     [XQC_CONN_FLAG_LINGER_CLOSING_SHIFT]        = "LINGER_CLOSING",
-    [XQC_CONN_FLAG_SENT_RETRY_SHIFT]            = "RETRY_SENT",
     [XQC_CONN_FLAG_RECV_RETRY_SHIFT]            = "RETRY_RCVD",
     [XQC_CONN_FLAG_TLS_HSK_COMPLETED_SHIFT]     = "TLS_HSK_CMPTD"
 };
 
 unsigned char g_conn_flag_buf[256];
 
-const char*
+const char *
 xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag)
 {
     g_conn_flag_buf[0] = '\0';
@@ -147,9 +146,9 @@ xqc_conn_set_default_settings(xqc_trans_settings_t *settings)
     memset(settings, 0, sizeof(xqc_trans_settings_t));
 
     /* transport paramter related attributes */
-    settings->max_ack_delay = XQC_DEFAULT_MAX_ACK_DELAY;
-    settings->ack_delay_exponent = XQC_DEFAULT_ACK_DELAY_EXPONENT;
-    settings->max_udp_payload_size = XQC_DEFAULT_MAX_UDP_PAYLOAD_SIZE;
+    settings->max_ack_delay              = XQC_DEFAULT_MAX_ACK_DELAY;
+    settings->ack_delay_exponent         = XQC_DEFAULT_ACK_DELAY_EXPONENT;
+    settings->max_udp_payload_size       = XQC_DEFAULT_MAX_UDP_PAYLOAD_SIZE;
     settings->active_connection_id_limit = XQC_DEFAULT_ACTIVE_CONNECTION_ID_LIMIT;
 }
 
@@ -239,7 +238,9 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_cid_copy(&(xc->dcid_set.current_dcid), dcid);
     xqc_hex_dump(xc->dcid_set.current_dcid_str, dcid->cid_buf, dcid->cid_len);
     xc->dcid_set.current_dcid_str[dcid->cid_len * 2] = '\0';
-    if (xqc_cid_set_insert_cid(&xc->dcid_set.cid_set, dcid, XQC_CID_USED, xc->local_settings.active_connection_id_limit)) {
+    if (xqc_cid_set_insert_cid(&xc->dcid_set.cid_set, dcid, XQC_CID_USED,
+                               xc->local_settings.active_connection_id_limit))
+    {
         goto fail;
     }
 
@@ -247,7 +248,9 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_hex_dump(xc->scid_set.original_scid_str, scid->cid_buf, scid->cid_len);
     xc->scid_set.original_scid_str[scid->cid_len * 2] = '\0';
     xc->scid_set.largest_scid_seq_num = scid->cid_seq_num;
-    if (xqc_cid_set_insert_cid(&xc->scid_set.cid_set, scid, XQC_CID_USED, xc->remote_settings.active_connection_id_limit)) {
+    if (xqc_cid_set_insert_cid(&xc->scid_set.cid_set, scid, XQC_CID_USED,
+                               xc->remote_settings.active_connection_id_limit))
+    {
         goto fail;
     }
 
@@ -298,6 +301,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     if (xc->streams_hash == NULL) {
         goto fail;
     }
+
     if (xqc_id_hash_init(xc->streams_hash,
                          xqc_default_allocator,
                          engine->config->streams_hash_bucket_size) == XQC_ERROR) {
@@ -308,8 +312,8 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     if (xc->passive_streams_hash == NULL) {
         goto fail;
     }
-    if (xqc_id_hash_init(xc->passive_streams_hash,
-                         xqc_default_allocator,
+
+    if (xqc_id_hash_init(xc->passive_streams_hash, xqc_default_allocator,
                          engine->config->streams_hash_bucket_size) == XQC_ERROR) {
         goto fail;
     }
@@ -331,6 +335,7 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|",
             xqc_scid_str(&xc->scid_set.user_scid), xqc_dcid_str(&xc->dcid_set.current_dcid), xc);
     xqc_log_event(xc->log, TRA_PARAMETERS_SET, xc, XQC_LOG_LOCAL_EVENT);
+
     return xc;
 
 fail:
@@ -476,9 +481,10 @@ fail:
 xqc_int_t
 xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len)
 {
+    xqc_int_t ret;
+
     /* set quic callbacks to quic connection */
-    xqc_int_t ret =
-        xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->app_proto_cbs);
+    ret = xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->app_proto_cbs);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
         return ret;
@@ -491,9 +497,10 @@ xqc_conn_client_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_
 xqc_int_t
 xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_t alpn_len)
 {
+    xqc_int_t ret;
+
     /* set quic callbacks to quic connection */
-    xqc_int_t ret =
-        xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->app_proto_cbs);
+    ret = xqc_engine_get_alpn_callbacks(conn->engine, alpn, alpn_len, &conn->app_proto_cbs);
     if (ret != XQC_OK) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|can't get application level|ret:%d", ret);
         return ret;
@@ -547,7 +554,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
     }
 
     xqc_list_head_t *pos, *next;
-    xqc_stream_t *stream;
+    xqc_stream_t    *stream;
     xqc_packet_in_t *packet_in;
 
     /* destroy streams, must before conn_close_notify */
@@ -574,6 +581,7 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_id_hash_release(xc->streams_hash);
         xc->streams_hash = NULL;
     }
+
     if (xc->passive_streams_hash) {
         xqc_id_hash_release(xc->passive_streams_hash);
         xc->passive_streams_hash = NULL;
@@ -679,7 +687,7 @@ typedef enum {
 } xqc_send_type_t;
 
 ssize_t
-xqc_send_burst(xqc_connection_t * conn, struct iovec* iov, int cnt)
+xqc_send_burst(xqc_connection_t *conn, struct iovec *iov, int cnt)
 {
     ssize_t ret = conn->transport_cbs.write_mmsg(iov, cnt, (struct sockaddr *)conn->peer_addr,
                                                  conn->peer_addrlen, xqc_conn_get_user_data(conn));
@@ -698,8 +706,9 @@ xqc_int_t
 xqc_check_duplicate_acked_pkt(xqc_connection_t *conn,
     xqc_packet_out_t *packet_out, xqc_send_type_t send_type, xqc_usec_t now)
 {
-    xqc_int_t ret;
+    xqc_int_t       ret;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+
     if (send_type == XQC_SEND_TYPE_RETRANS) {
         if (xqc_send_ctl_indirectly_ack_po(ctl, packet_out)) {
             return XQC_TRUE;
@@ -727,7 +736,8 @@ xqc_check_duplicate_acked_pkt(xqc_connection_t *conn,
 }
 
 uint8_t
-xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint32_t inflight, uint32_t total_bytes)
+xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint32_t inflight,
+    uint32_t total_bytes)
 {
     xqc_connection_t *conn = ctl->ctl_conn;
 
@@ -748,13 +758,14 @@ xqc_send_burst_check_cc(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out, uint3
             }
         }
     }
+
     return XQC_TRUE;
 }
 
 void
 xqc_on_packets_send_burst(xqc_connection_t *conn, xqc_list_head_t *head, ssize_t sent, xqc_usec_t now)
 {
-    xqc_list_head_t *pos, *next;
+    xqc_list_head_t  *pos, *next;
     xqc_packet_out_t *packet_out;
     int remove_count = 0; /* remove from send */
 
@@ -832,17 +843,18 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
 
 
 ssize_t
-xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int congest, xqc_send_type_t send_type)
+xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int congest,
+    xqc_send_type_t send_type)
 {
-    ssize_t ret;
-    struct iovec iov_array[XQC_MAX_SEND_MSG_ONCE];
-    char enc_pkt_array[XQC_MAX_SEND_MSG_ONCE][XQC_PACKET_OUT_SIZE_EXT];
-    int burst_cnt = 0;
+    ssize_t           ret;
+    struct iovec      iov_array[XQC_MAX_SEND_MSG_ONCE];
+    char              enc_pkt_array[XQC_MAX_SEND_MSG_ONCE][XQC_PACKET_OUT_SIZE_EXT];
+    int               burst_cnt = 0;
     xqc_packet_out_t *packet_out;
-    xqc_list_head_t *pos, *next;
-    xqc_send_ctl_t *ctl = conn->conn_send_ctl;
-    uint32_t total_bytes_to_send = 0;
-    uint32_t inflight = ctl->ctl_bytes_in_flight;
+    xqc_list_head_t  *pos, *next;
+    xqc_send_ctl_t   *ctl = conn->conn_send_ctl;
+    uint32_t          total_bytes_to_send = 0;
+    uint32_t          inflight = ctl->ctl_bytes_in_flight;
 
     /* process packets */
     xqc_usec_t now = xqc_monotonic_timestamp();
@@ -924,9 +936,9 @@ xqc_conn_send_packets_batch(xqc_connection_t *conn)
 {
     ssize_t ret;
     xqc_send_ctl_t *ctl = conn->conn_send_ctl;
+    int congest = 0;
 
     xqc_list_head_t *head = &ctl->ctl_send_packets_high_pri;
-    int congest = 0;
     while (!(xqc_list_empty(head))) {
         ssize_t send_burst_count = xqc_conn_send_burst_packets(conn, head, congest, XQC_SEND_TYPE_NORMAL);
         if (send_burst_count != XQC_MAX_SEND_MSG_ONCE) {
@@ -1072,7 +1084,7 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 
 /* send data with callback, and process callback errors */
 ssize_t
-xqc_send(xqc_connection_t *conn, unsigned char* data, unsigned int len)
+xqc_send(xqc_connection_t *conn, unsigned char *data, unsigned int len)
 {
     ssize_t sent = conn->transport_cbs.write_socket(data, len,
         (struct sockaddr *)conn->peer_addr, conn->peer_addrlen, conn->user_data);
@@ -1466,10 +1478,10 @@ xqc_conn_is_handshake_confirmed(xqc_connection_t *conn)
     return ((conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_CONFIRMED) != 0);
 }
 
-int
+xqc_int_t
 xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
 {
-    int ret;
+    xqc_int_t ret;
     xqc_connection_t *conn;
 
     conn = xqc_engine_conns_hash_find(engine, cid, 's');
@@ -1513,7 +1525,7 @@ end:
     return XQC_OK;
 }
 
-int
+xqc_int_t
 xqc_conn_get_errno(xqc_connection_t *conn)
 {
     return conn->conn_err;
@@ -1606,7 +1618,7 @@ xqc_conn_send_retry(xqc_connection_t *conn, unsigned char *token, unsigned token
 xqc_int_t
 xqc_conn_version_check(xqc_connection_t *c, uint32_t version)
 {
-    xqc_engine_t* engine = c->engine;
+    xqc_engine_t *engine = c->engine;
     int i = 0;
 
     if (c->conn_type == XQC_CONN_TYPE_SERVER && c->version == XQC_IDRAFT_INIT_VER) {
@@ -1653,7 +1665,7 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
     *p++ = (1 << 7);
 
     /* version */
-    *(uint32_t*)p = 0;
+    *(uint32_t *)p = 0;
     p += sizeof(uint32_t);
 
     /* dcid len */
@@ -1673,7 +1685,7 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
     p += c->original_dcid.cid_len;
 
     /* set supported version list */
-    uint32_t* version_list = c->engine->config->support_version_list;
+    uint32_t *version_list = c->engine->config->support_version_list;
     uint32_t version_count = c->engine->config->support_version_count;
     unsigned char* end = packet_out->po_buf + packet_out->po_buf_size;
     for (size_t i = 0; i < version_count; ++i) {
@@ -1782,7 +1794,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
     const unsigned char *pos = token;
     if (*pos++ & 0x80) {
         struct in6_addr *in6 = (struct in6_addr *)pos;
-        struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)sa;
+        struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)sa;
         if (token_len != 21) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|token_len error|token_len:%ui|", token_len);
             return XQC_ERROR;
@@ -1795,7 +1807,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
 
     } else {
         struct in_addr *in4 = (struct in_addr *)pos;
-        struct sockaddr_in *sa4 = (struct sockaddr_in*)sa;
+        struct sockaddr_in *sa4 = (struct sockaddr_in *)sa;
         if (token_len != 9) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|token_len error|token_len:%ui|", token_len);
             return XQC_ERROR;
@@ -1810,7 +1822,7 @@ xqc_conn_check_token(xqc_connection_t *conn, const unsigned char *token, unsigne
     }
 
     /* check token lifetime */
-    uint32_t *expire = (uint32_t*)pos;
+    uint32_t *expire = (uint32_t *)pos;
     *expire = ntohl(*expire);
     uint64_t now = xqc_monotonic_timestamp() / 1000000;
     if (*expire < now) {
@@ -1843,7 +1855,7 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
     struct sockaddr *sa = (struct sockaddr *)conn->peer_addr;
     if (sa->sa_family == AF_INET) {
         *token++ = 0x00;
-        struct sockaddr_in *sa4 = (struct sockaddr_in*)sa;
+        struct sockaddr_in *sa4 = (struct sockaddr_in *)sa;
         memcpy(token, &sa4->sin_addr, sizeof(struct in_addr));
         token += sizeof(struct in_addr);
 
@@ -1851,7 +1863,7 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
 
     } else {
         *token++ = 0x80;
-        struct sockaddr_in6 *sa6 = (struct sockaddr_in6*)sa;
+        struct sockaddr_in6 *sa6 = (struct sockaddr_in6 *)sa;
         memcpy(token, &sa6->sin6_addr, sizeof(struct in6_addr));
         token += sizeof(struct in6_addr);
 
@@ -2196,7 +2208,9 @@ xqc_conn_peer_addr_str(const struct sockaddr *peer_addr, socklen_t peer_addrlen)
 char *
 xqc_conn_addr_str(xqc_connection_t *conn)
 {
-    if (conn->local_addrlen == 0 || conn->peer_addrlen == 0 || conn->scid_set.user_scid.cid_len == 0 || conn->dcid_set.current_dcid.cid_len == 0) {
+    if (conn->local_addrlen == 0 || conn->peer_addrlen == 0
+        || conn->scid_set.user_scid.cid_len == 0 || conn->dcid_set.current_dcid.cid_len == 0)
+    {
         return "addr or cid not avail";
     }
 
@@ -2232,12 +2246,15 @@ xqc_conn_record_single(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         if (XQC_IS_ACK_ELICITING(packet_in->pi_frame_types)) {
             ++c->ack_eliciting_pkt[pns];
         }
+
         if (pkt_num > c->conn_send_ctl->ctl_largest_recvd[pns]) {
             c->conn_send_ctl->ctl_largest_recvd[pns] = pkt_num;
         }
+
         if (pkt_num != xqc_recv_record_largest(&c->recv_record[pns])) {
             out_of_order = 1;
         }
+
         xqc_maybe_should_ack(c, pns, out_of_order, packet_in->pkt_recv_time);
     }
 
@@ -2252,9 +2269,8 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
 {
     /* 
      *  after a successful process of Initial packet, SCID from Initial
-     *  is not equal to what remembered when connection was created, it
-     *  might owing to:
-     *  1) server is not willing to use the client's DCID as SCID;
+     *  is not equal to what remembered when connection was created, as
+     *  server is not willing to use the client's DCID as SCID;
      */
 
     xqc_int_t ret;
@@ -2292,7 +2308,7 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
 
 
 /**
- * client will validate server's addr by sucessfully :
+ * client will validate server's addr by:
  * 1) sucessful processing of Initial packet.
  * 2) sucessful processing of VN/Retry packet with the DCID client chose
  * 3) server uses the CID which client provided in Initial packet with at least 8 bytes
@@ -2621,7 +2637,7 @@ xqc_conn_check_dcid(xqc_connection_t *conn, xqc_cid_t *dcid)
 {
     xqc_int_t ret;
 
-    xqc_cid_inner_t* scid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, dcid);
+    xqc_cid_inner_t *scid = xqc_cid_in_cid_set(&conn->scid_set.cid_set, dcid);
     if (scid == NULL) {
         return -XQC_ECONN_CID_NOT_FOUND;
     }
@@ -2760,7 +2776,6 @@ xqc_conn_on_recv_retry(xqc_connection_t *conn)
 }
 
 
-
 xqc_int_t
 xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
     const xqc_transport_params_t *params, xqc_transport_params_type_t exttype)
@@ -2835,6 +2850,7 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params
     params->max_idle_timeout = settings->max_idle_timeout;
     params->max_udp_payload_size = settings->max_udp_payload_size;
     params->stateless_reset_token_present = settings->stateless_reset_token_present;
+
     if (settings->stateless_reset_token_present) {
         memcpy(params->stateless_reset_token, settings->stateless_reset_token,
                sizeof(params->stateless_reset_token));
@@ -2842,6 +2858,7 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params
     } else {
         memset(params->stateless_reset_token, 0, sizeof(params->stateless_reset_token));
     }
+
     params->ack_delay_exponent = settings->ack_delay_exponent;
     params->disable_active_migration = settings->disable_active_migration;
     params->max_ack_delay = settings->max_ack_delay;
@@ -3138,12 +3155,12 @@ xqc_conn_tls_handshake_completed_cb(void *user_data)
 }
 
 const xqc_tls_callbacks_t xqc_conn_tls_cbs = {
-    .crypto_data_cb = xqc_conn_tls_crypto_data_cb,
-    .tp_cb = xqc_conn_tls_transport_params_cb,
-    .alpn_select_cb = xqc_conn_tls_alpn_select_cb,
-    .cert_verify_cb = xqc_conn_tls_cert_verify_cb,
-    .session_cb = xqc_conn_tls_session_cb,
-    .keylog_cb = xqc_conn_tls_keylog_cb,
-    .error_cb = xqc_conn_tls_error_cb,
-    .hsk_completed_cb = xqc_conn_tls_handshake_completed_cb,
+    .crypto_data_cb     = xqc_conn_tls_crypto_data_cb,
+    .tp_cb              = xqc_conn_tls_transport_params_cb,
+    .alpn_select_cb     = xqc_conn_tls_alpn_select_cb,
+    .cert_verify_cb     = xqc_conn_tls_cert_verify_cb,
+    .session_cb         = xqc_conn_tls_session_cb,
+    .keylog_cb          = xqc_conn_tls_keylog_cb,
+    .error_cb           = xqc_conn_tls_error_cb,
+    .hsk_completed_cb   = xqc_conn_tls_handshake_completed_cb,
 };
