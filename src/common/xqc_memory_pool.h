@@ -14,27 +14,24 @@
  * void* xqc_pcalloc(xqc_memory_pool_t *pool, size_t size)
  */
 
-typedef struct xqc_memory_block_s
-{
-    char* last;
-    char* end;
-    unsigned failed;
+typedef struct xqc_memory_block_s {
+    char       *last;
+    char       *end;
+    unsigned    failed;
     struct xqc_memory_block_s *next;
 } xqc_memory_block_t;
 
-typedef struct xqc_memory_large_s
-{
+typedef struct xqc_memory_large_s {
     struct xqc_memory_large_s *next;
-    unsigned size;
-    char data[0];
+    unsigned    size;
+    char        data[0];
 } xqc_memory_large_t;
 
-typedef struct xqc_memory_pool_s
-{
-    xqc_memory_block_t block;
-    xqc_memory_block_t* current;
-    xqc_memory_large_t* large; /*large chunk list*/
-    size_t max;
+typedef struct xqc_memory_pool_s {
+    xqc_memory_block_t  block;
+    xqc_memory_block_t *current;
+    xqc_memory_large_t *large;  /* large chunk list */
+    size_t              max;
 } xqc_memory_pool_t;
 
 #define XQC_MAX_MALLOC_FROM_POOL (4096)
@@ -47,12 +44,12 @@ xqc_create_pool(size_t size)
         return NULL;
     }
 
-    char* m = xqc_malloc(size);
+    char *m = xqc_malloc(size);
     if (m == NULL) {
         return NULL;
     }
 
-    xqc_memory_pool_t* pool = (xqc_memory_pool_t*)m;
+    xqc_memory_pool_t *pool = (xqc_memory_pool_t *)m;
     pool->block.last = m + sizeof(xqc_memory_pool_t);
     pool->block.end = m + size;
     pool->block.failed = 0;
@@ -69,9 +66,9 @@ xqc_create_pool(size_t size)
 }
 
 static inline void
-xqc_destroy_pool(xqc_memory_pool_t* pool)
+xqc_destroy_pool(xqc_memory_pool_t *pool)
 {
-    xqc_memory_block_t* block = pool->block.next;
+    xqc_memory_block_t *block = pool->block.next;
     while (block) {
         xqc_memory_block_t *p = block;
         block = block->next;
@@ -91,7 +88,7 @@ xqc_destroy_pool(xqc_memory_pool_t* pool)
 static inline void *
 xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
 {
-    xqc_memory_large_t* p = xqc_malloc(size + sizeof(xqc_memory_large_t));
+    xqc_memory_large_t *p = xqc_malloc(size + sizeof(xqc_memory_large_t));
     if (p == NULL) {
         return NULL;
     }
@@ -109,14 +106,14 @@ xqc_palloc_large(xqc_memory_pool_t *pool, size_t size)
 static inline void *
 xqc_palloc_block(xqc_memory_pool_t *pool, size_t size)
 {
-    size_t psize = pool->block.end - (char*)pool;
+    size_t psize = pool->block.end - (char *)pool;
 
-    char* m = xqc_malloc(psize);
+    char *m = xqc_malloc(psize);
     if (m == NULL) {
         return NULL;
     }
 
-    xqc_memory_block_t* b = (xqc_memory_block_t*)m;
+    xqc_memory_block_t *b = (xqc_memory_block_t *)m;
 
     b->end = m + psize;
 
