@@ -970,8 +970,8 @@ xqc_tls_set_read_secret(SSL *ssl, enum ssl_encryption_level_t level,
 
     /* create crypto instance if not created */
     if (NULL == tls->crypto[level]) {
-        tls->crypto[level] =
-            xqc_crypto_create(xqc_tls_get_cipher_id(ssl, level, tls->no_crypto), tls->log);
+        tls->crypto[level] = xqc_crypto_create(
+            xqc_tls_get_cipher_id(ssl, (xqc_encrypt_level_t)level, tls->no_crypto), tls->log);
         if (NULL == tls->crypto[level]) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|create crypto error");
             return XQC_SSL_FAIL;
@@ -1002,8 +1002,8 @@ xqc_tls_set_write_secret(SSL *ssl, enum ssl_encryption_level_t level,
 
     /* create crypto instance if not created */
     if (NULL == tls->crypto[level]) {
-        tls->crypto[level] =
-            xqc_crypto_create(xqc_tls_get_cipher_id(ssl, level, tls->no_crypto), tls->log);
+        tls->crypto[level] = xqc_crypto_create(
+            xqc_tls_get_cipher_id(ssl, (xqc_encrypt_level_t)level, tls->no_crypto), tls->log);
         if (NULL == tls->crypto[level]) {
             xqc_log(tls->log, XQC_LOG_ERROR, "|create crypto error");
             return XQC_SSL_FAIL;
