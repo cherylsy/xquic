@@ -375,7 +375,6 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                 goto write_new;
             }
 
-
 write_new:
             packet_out = xqc_write_new_packet(conn, pkt_type);
             if (packet_out == NULL) {

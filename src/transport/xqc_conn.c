@@ -1355,7 +1355,7 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
     xqc_int_t probe_num = XQC_CONN_PTO_PKT_CNT_MAX;
     xqc_bool_t find_hsd = XQC_FALSE;
 
-    if (c->conn_type == XQC_CONN_TYPE_SERVER && !(c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED)) {
+    if ((c->conn_type == XQC_CONN_TYPE_SERVER) && !(c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED)) {
         find_hsd = XQC_TRUE;
     }
 
