@@ -4,8 +4,6 @@
 #include "src/tls/xqc_tls_common.h"
 
 
-
-
 void
 xqc_ssl_ctx_set_timeout(SSL_CTX *ctx, uint32_t timeout)
 {

@@ -28,70 +28,70 @@ typedef enum {
     BBR_IN_RECOVERY,
 } xqc_bbr_recovery_mode;
 
-typedef struct xqc_bbr_s{
-    /*Current mode */
+typedef struct xqc_bbr_s {
+    /* Current mode */
     xqc_bbr_mode           mode;
-    /*State of the sender */
+    /* State of the sender */
     xqc_send_ctl_t         *send_ctl;
-    /*Minimum rrt in the time window, in usec */
+    /* Minimum rrt in the time window, in usec */
     xqc_usec_t             min_rtt;
-    /*Time stamp of min_rtt */
+    /* Time stamp of min_rtt */
     uint64_t               min_rtt_stamp;
-    /*min_rtt does not update in the time window */
+    /* min_rtt does not update in the time window */
     bool                   min_rtt_expired;
-    /*Time to exit PROBE_RTT */
+    /* Time to exit PROBE_RTT */
     xqc_usec_t             probe_rtt_round_done_stamp;
-    /*Maximum bandwidth byte/sec */
+    /* Maximum bandwidth byte/sec */
     xqc_win_filter_t       bandwidth;
-    /*Count round trips during the connection */
+    /* Count round trips during the connection */
     uint32_t               round_cnt;
-    /*Start of an measurement? */
+    /* Start of an measurement? */
     bool                   round_start;
-    /*packet delivered value denoting the end of a packet-timed round trip */
+    /* packet delivered value denoting the end of a packet-timed round trip */
     uint32_t               next_round_delivered;
     uint64_t               aggregation_epoch_start_time;
-    /*Number of bytes acked during the aggregation time */
+    /* Number of bytes acked during the aggregation time */
     uint32_t               aggregation_epoch_bytes;
-    /*The maximum allowed number of bytes in flight */
+    /* The maximum allowed number of bytes in flight */
     uint32_t               congestion_window;
     uint32_t               prior_cwnd;
-    /*Initial congestion window of connection */
+    /* Initial congestion window of connection */
     uint32_t               initial_congestion_window;
-    /*Current pacing rate */
+    /* Current pacing rate */
     uint32_t               pacing_rate;
-    /*Gain currently applied to pacing rate */
+    /* Gain currently applied to pacing rate */
     float                  pacing_gain;
     xqc_usec_t             last_cycle_start;
-    /*Gain currently applied to congestion window */
+    /* Gain currently applied to congestion window */
     float                  cwnd_gain;
-    /*If packet loss in STARTUP without bandwidth increase, exit STARTUP and
+    /* If packet loss in STARTUP without bandwidth increase, exit STARTUP and
     the connection is in recovery*/
     bool                   exit_startup_on_loss;
-    /*Current pacing gain cycle offset */
+    /* Current pacing gain cycle offset */
     uint32_t               cycle_idx;
-    /*Time that the last pacing gain cycle was started */
+    /* Time that the last pacing gain cycle was started */
     uint64_t               cycle_start_stamp;
-    /*Indicates whether maximum bandwidth is reached in STARTUP */
+    /* Indicates whether maximum bandwidth is reached in STARTUP */
     bool                   full_bandwidth_reached;
-    /*Number of rounds during which there was no significant bandwidth increase */
+    /* Number of rounds during which there was no significant bandwidth increase */
     uint32_t               full_bandwidth_cnt;
-    /*The bandwidth compared to which the increase is measured */
+    /* The bandwidth compared to which the increase is measured */
     uint32_t               last_bandwidth;
-    /*Indicates whether a round-trip has passed since PROBE_RTT became active */
+    /* Indicates whether a round-trip has passed since PROBE_RTT became active */
     bool                   probe_rtt_round_done;
-    /*Indicates whether the most recent bandwidth sample was marked as
+    /* Indicates whether the most recent bandwidth sample was marked as
     app-limited. */
     bool                   last_sample_app_limited;
     /* Indicates whether any non app-limited samples have been recorded*/
     bool                   has_non_app_limited_sample;
-    /*If true, use a CWND of 0.75*BDP during probe_rtt instead of 4 packets.*/
+    /* If true, use a CWND of 0.75*BDP during probe_rtt instead of 4 packets.*/
     bool                   probe_rtt_based_on_bdp;
     /**
      * If true, skip probe_rtt and update the timestamp of the existing min_rtt to
      * now if min_rtt over the last cycle is within 12.5% of the current min_rtt.
      */
     bool                   probe_rtt_skipped_if_similar_rtt;
-    /*Indicates app-limited calls should be ignored as long as there's
+    /* Indicates app-limited calls should be ignored as long as there's
     enough data inflight to see more bandwidth when necessary. */
     bool                   flexible_app_limited;
     bool                   probe_rtt_disabled_if_app_limited;
@@ -109,7 +109,7 @@ typedef struct xqc_bbr_s{
 
     xqc_usec_t             last_round_trip_time;
 
-    /*adjust cwnd in loss recovery*/
+    /* adjust cwnd in loss recovery*/
     xqc_bbr_recovery_mode  recovery_mode;
     bool                   just_enter_recovery_mode;
     bool                   just_exit_recovery_mode;
@@ -123,13 +123,13 @@ typedef struct xqc_bbr_s{
     uint64_t               probe_rtt_min_us;
     uint64_t               probe_rtt_min_us_stamp;
 
-    uint32_t               snd_cwnd_cnt_bytes; /*For AI*/
-    uint32_t               beyond_target_cwnd; /*To compete with buffer fillers*/
+    uint32_t               snd_cwnd_cnt_bytes; /* For AI */
+    uint32_t               beyond_target_cwnd; /* To compete with buffer fillers */
     uint32_t               ai_scale_accumulated_bytes;
     uint32_t               ai_scale;
 
 #if XQC_BBR_RTTVAR_COMPENSATION_ENABLED
-    /*CWND compensation for RTT variation+ */
+    /* CWND compensation for RTT variation+ */
     xqc_win_filter_t       max_rtt;
     uint32_t               max_rtt_win_len;
     uint32_t               rtt_compensation_thresh;

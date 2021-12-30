@@ -8,18 +8,18 @@
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_packet.h"
 
-#define XQC_BBR_MAX_DATAGRAMSIZE XQC_QUIC_MSS
-#define XQC_BBR_MIN_WINDOW (4 * XQC_BBR_MAX_DATAGRAMSIZE)
-#define XQC_BBR_MAX_WINDOW (100 * XQC_BBR_MAX_DATAGRAMSIZE)
+#define XQC_BBR_MAX_DATAGRAMSIZE    XQC_QUIC_MSS
+#define XQC_BBR_MIN_WINDOW          (4 * XQC_BBR_MAX_DATAGRAMSIZE)
+#define XQC_BBR_MAX_WINDOW          (100 * XQC_BBR_MAX_DATAGRAMSIZE)
 /* The RECOMMENDED value is the minimum of 10 * kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)) */
 /* same init window as cubic */
 /* 32 is too aggressive. we have observed heavy bufferbloat events from online deployment */
 /* 1440 * 10 / 1200 = 12 */
-#define XQC_BBR_INITIAL_WINDOW (32 * XQC_BBR_MAX_DATAGRAMSIZE) 
+#define XQC_BBR_INITIAL_WINDOW  (32 * XQC_BBR_MAX_DATAGRAMSIZE) 
 /*Pacing gain cycle rounds */
-#define XQC_BBR_CYCLE_LENGTH 8
-#define XQC_BBR_INF 0x7fffffff
-#define XQC_BBR_MAX_AI_SCALE (~0U)
+#define XQC_BBR_CYCLE_LENGTH    8
+#define XQC_BBR_INF             0x7fffffff
+#define XQC_BBR_MAX_AI_SCALE    (~0U)
 
 
 /*Size of window of bandwidth filter, in rtts */
@@ -187,7 +187,7 @@ static void
 xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
     bbr->round_start = FALSE;
-    /*Check whether the data is legal */
+    /* Check whether the data is legal */
     if (/*sampler->delivered < 0 ||*/ sampler->interval <= 0) {
         return;
     }
@@ -211,7 +211,7 @@ xqc_bbr_update_bandwidth(xqc_bbr_t *bbr, xqc_sample_t *sampler)
         bbr->last_round_trip_time = xqc_monotonic_timestamp();
     } */
     uint32_t bandwidth;
-    /*Calculate the new bandwidth, bytes per second */
+    /* Calculate the new bandwidth, bytes per second */
     bandwidth = 1.0 * sampler->delivered / sampler->interval * MSEC2SEC;
 
     if (bbr->enable_max_expect_bw && bandwidth >= bbr->max_expect_bw) {
@@ -237,7 +237,7 @@ xqc_bbr_bdp(xqc_bbr_t *bbr)
 static uint32_t
 xqc_bbr_compensate_cwnd_for_rttvar(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 {
-	xqc_usec_t srtt = sampler->srtt;
+    xqc_usec_t srtt = sampler->srtt;
     xqc_usec_t recent_max_rtt = xqc_win_filter_get_u64(&bbr->max_rtt);
     xqc_usec_t compensation_thresh = (1 + bbr->rtt_compensation_thresh) *
                                      bbr->min_rtt;
@@ -339,6 +339,7 @@ xqc_update_ack_aggregation(xqc_bbr_t *bbr, xqc_sample_t *sampler)
     {
         return;
     } 
+
     if (bbr->round_start) {
         bbr->extra_ack_round_rtt += 1;
         if (bbr->extra_ack_in_startup && !bbr->full_bandwidth_reached) {
@@ -581,7 +582,6 @@ xqc_bbr_update_min_rtt(xqc_bbr_t *bbr, xqc_sample_t *sampler)
 static uint64_t 
 xqc_bbr_get_min_rtt(xqc_bbr_t *bbr)
 {
-
     return bbr->min_rtt == 0 ? xqc_bbr_initial_rtt_ms * 1000 : bbr->min_rtt;
 }
 

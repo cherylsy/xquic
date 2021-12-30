@@ -64,16 +64,10 @@ xqc_ins_encoder_ctx_free(xqc_ins_enc_ctx_t *ctx);
 
 /**
  * @brief parse encoder instruction bytes
- * 
- * @param buf 
- * @param buf_len 
- * @param ctx 
  * @return >= 0 for bytes processed, < 0 for failure
  */
 ssize_t
 xqc_ins_parse_encoder(unsigned char *buf, uint64_t buf_len, xqc_ins_enc_ctx_t *ctx);
-
-
 
 
 
@@ -114,21 +108,49 @@ typedef struct xqc_ins_dec_ctx_s {
  */
 xqc_ins_dec_ctx_t *xqc_ins_decoder_ctx_create();
 void xqc_ins_decoder_ctx_free(xqc_ins_dec_ctx_t *ctx);
+
+/**
+ * @brief parse decoder instructions from input buf
+ * @param ctx the parsing context
+ */
 ssize_t xqc_ins_parse_decoder(unsigned char *buf, uint64_t buf_len, xqc_ins_dec_ctx_t *ctx);
 
 
 /**
- * write instructions
+ * @brief Set Dynamic Table Capacity
  */
-
 xqc_int_t xqc_ins_write_set_dtable_cap(xqc_var_buf_t *buf, uint64_t capacity);
+
+/**
+ * @brief Insert With Name Reference
+ */
 xqc_int_t xqc_ins_write_insert_name_ref(xqc_var_buf_t *buf, xqc_flag_t t, uint64_t index,
     unsigned char *value, uint64_t vlen);
+
+/**
+ * @brief Insert With Literal Name
+ */
 xqc_int_t xqc_ins_write_insert_literal_name(xqc_var_buf_t *buf, unsigned char *name, uint64_t nlen,
     unsigned char *value, uint64_t vlen);
+
+/**
+ * @brief Duplicate
+ */
 xqc_int_t xqc_ins_write_dup(xqc_var_buf_t *buf, uint64_t index);
+
+/**
+ * @brief Section Acknoledgement
+ */
 xqc_int_t xqc_ins_write_section_ack(xqc_var_buf_t *buf, uint64_t stream_id);
+
+/**
+ * @brief Stream Cancellation
+ */
 xqc_int_t xqc_ins_write_stream_cancel(xqc_var_buf_t *buf, uint64_t stream_id);
+
+/**
+ * @brief Insert Count Increment
+ */
 xqc_int_t xqc_ins_write_icnt_increment(xqc_var_buf_t *buf, uint64_t increment);
 
 

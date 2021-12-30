@@ -100,7 +100,7 @@ xqc_log_type_2_level(xqc_log_type_t type)
     }
 }
 
-const char*
+const char *
 xqc_log_type_str(xqc_log_type_t type)
 {
     static const char* event_type2str[] = {
@@ -215,7 +215,7 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
 }
 
 void
-xqc_log_time(char* buf)
+xqc_log_time(char *buf)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);

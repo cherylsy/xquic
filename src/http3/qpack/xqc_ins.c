@@ -421,8 +421,8 @@ xqc_ins_write_insert_name_ref(xqc_var_buf_t *buf, xqc_flag_t table, uint64_t ind
 
 
 xqc_int_t
-xqc_ins_write_insert_literal_name(xqc_var_buf_t *buf, unsigned char *name, uint64_t nlen, unsigned char *value,
-    uint64_t vlen)
+xqc_ins_write_insert_literal_name(xqc_var_buf_t *buf, unsigned char *name, uint64_t nlen,
+    unsigned char *value, uint64_t vlen)
 {
     xqc_int_t ret = xqc_var_buf_save_prepare(buf, xqc_prefixed_int_put_len(nlen, 5) + nlen
                                                   + xqc_prefixed_int_put_len(vlen, 7) + vlen);

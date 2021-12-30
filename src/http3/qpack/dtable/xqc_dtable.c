@@ -436,7 +436,8 @@ xqc_dtable_add(xqc_dtable_t *dt, unsigned char *name, uint64_t nlen, unsigned ch
 
     xqc_log(dt->log, XQC_LOG_DEBUG, "|dtable add entry|idx:%ui|name:%*s|value:%*s|", *idx,
             (size_t) xqc_min(nlen, 1024), name, (size_t) xqc_min(vlen, 1024), value);
-    xqc_log_event(dt->log, QPACK_DYNAMIC_TABLE_UPDATED, XQC_LOG_DTABLE_INSERTED, *idx, nlen, name, vlen, value);
+    xqc_log_event(dt->log, QPACK_DYNAMIC_TABLE_UPDATED, XQC_LOG_DTABLE_INSERTED, *idx,
+                  nlen, name, vlen, value);
     return ret;
 }
 
@@ -447,7 +448,8 @@ xqc_dtable_get_nv(xqc_dtable_t *dt, uint64_t idx,
 {
     xqc_dtable_entry_t *entry = xqc_dtable_get_entry_by_abs_idx(dt, idx);
     if (NULL == entry) {
-        xqc_log(dt->log, XQC_LOG_ERROR, "|get entry error|idx:%ui|first_idx:%ui|insert_count:%ui|", idx, dt->first_idx, dt->insert_cnt);
+        xqc_log(dt->log, XQC_LOG_ERROR, "|get entry error|idx:%ui|first_idx:%ui|insert_count:%ui|",
+                idx, dt->first_idx, dt->insert_cnt);
         return -XQC_QPACK_DYNAMIC_TABLE_VOID_ENTRY;
     }
 
@@ -507,8 +509,8 @@ xqc_dtable_get_nv(xqc_dtable_t *dt, uint64_t idx,
 
 
 xqc_nv_ref_type_t
-xqc_dtable_lookup(xqc_dtable_t *dt, unsigned char *name, size_t nlen, unsigned char *value, size_t vlen,
-    uint64_t *idx)
+xqc_dtable_lookup(xqc_dtable_t *dt, unsigned char *name, size_t nlen,
+    unsigned char *value, size_t vlen, uint64_t *idx)
 {
     /* nothing in dtable, nothing to refer */
     if (dt->used == 0) {
@@ -734,9 +736,9 @@ xqc_log_QPACK_STATE_UPDATED_callback(xqc_log_t *log, const char *func, ...)
     xqc_dtable_t *dt = va_arg(args, xqc_dtable_t*);
     uint64_t krc = va_arg(args, uint64_t);
     if (type == XQC_LOG_DECODER_EVENT) {
-        xqc_log_implement(log, QPACK_STATE_UPDATED, func,
-                          "|encoder|dtable_cap:%ui|dtable_size:%ui|know_received_count:%ui|insert_count:%ui|",
-                          dt->capacity, dt->used, krc, dt->insert_cnt);
+        xqc_log_implement(log, QPACK_STATE_UPDATED, func, "|encoder|dtable_cap:%ui|dtable_size:%ui"
+                          "|know_received_count:%ui|insert_count:%ui|", dt->capacity, dt->used,
+                          krc, dt->insert_cnt);
     } else {
         xqc_log_implement(log, QPACK_STATE_UPDATED, func,
                           "|decoder|dtable_cap:%ui|dtable_size:%ui|insert_count:%ui|",

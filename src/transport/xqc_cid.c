@@ -10,7 +10,7 @@ xqc_generate_cid(xqc_engine_t *engine, xqc_cid_t *ori_cid, xqc_cid_t *cid,
     uint64_t cid_seq_num)
 {
     unsigned char *buf;
-    ssize_t len, written;
+    ssize_t        len, written;
 
     cid->cid_seq_num = cid_seq_num;
     cid->cid_len = engine->config->cid_len;

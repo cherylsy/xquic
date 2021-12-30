@@ -3,9 +3,9 @@
 void
 xqc_prefixed_int_init(xqc_prefixed_int_t *pint, size_t prefix)
 {
-    pint->value = 0;
+    pint->value  = 0;
     pint->prefix = prefix;
-    pint->shift = 0;
+    pint->shift  = 0;
 }
 
 ssize_t
@@ -34,7 +34,7 @@ xqc_prefixed_int_read(xqc_prefixed_int_t *pint, uint8_t *begin, uint8_t *end, in
         n = k;
         if (++p == end) {
             pint->value = n;
-            return (ssize_t)(p - begin);
+            return (ssize_t) (p - begin);
         }
     }
 
@@ -67,7 +67,7 @@ xqc_prefixed_int_read(xqc_prefixed_int_t *pint, uint8_t *begin, uint8_t *end, in
 
     pint->shift = shift;
     pint->value = n;
-    return (ssize_t)(p - begin);
+    return (ssize_t) (p - begin);
 }
 
 size_t
@@ -75,7 +75,7 @@ xqc_prefixed_int_put_len(uint64_t n, size_t prefix)
 {
     size_t len = 0;
 
-    size_t k = (size_t)((1 << prefix) - 1);
+    size_t k = (size_t) ((1 << prefix) - 1);
     if (n < k) {
         return 1;
     }
@@ -92,23 +92,23 @@ xqc_prefixed_int_put_len(uint64_t n, size_t prefix)
 uint8_t *
 xqc_prefixed_int_put(uint8_t *buf, uint64_t n, size_t prefix)
 {
-    size_t k = (size_t)((1 << prefix) - 1);
-    *buf = (uint8_t)(*buf & ~k);
+    size_t k = (size_t) ((1 << prefix) - 1);
+    *buf = (uint8_t) (*buf & ~k);
 
     if (n < k) {
-        *buf = (uint8_t)(*buf | n);
+        *buf = (uint8_t) (*buf | n);
         return buf + 1;
     }
 
-    *buf = (uint8_t)(*buf | k);
+    *buf = (uint8_t) (*buf | k);
     ++buf;
 
     n -= k;
     for (; n >= 128; n >>= 7) {
-        *buf++ = (uint8_t)((1 << 7) | (n & 0x7f));
+        *buf++ = (uint8_t) ((1 << 7) | (n & 0x7f));
     }
 
-    *buf++ = (uint8_t)n;
+    *buf++ = (uint8_t) n;
     return buf;
 }
 

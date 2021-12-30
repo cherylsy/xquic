@@ -250,7 +250,7 @@ xqc_h3_frm_parse_setting(xqc_var_buf_t *data, void *user_data)
 }
 
 xqc_int_t
-xqc_h3_frm_write_headers(xqc_list_head_t* send_buf, xqc_var_buf_t *encoded_field_section,
+xqc_h3_frm_write_headers(xqc_list_head_t *send_buf, xqc_var_buf_t *encoded_field_section,
     uint8_t fin)
 {
     xqc_var_buf_t *buf = xqc_var_buf_create(xqc_put_varint_len(XQC_H3_FRM_HEADERS)
@@ -280,7 +280,7 @@ xqc_h3_frm_write_headers(xqc_list_head_t* send_buf, xqc_var_buf_t *encoded_field
 }
 
 xqc_int_t
-xqc_h3_frm_write_data(xqc_list_head_t* send_buf, unsigned char* data, size_t size, uint8_t fin)
+xqc_h3_frm_write_data(xqc_list_head_t *send_buf, unsigned char *data, size_t size, uint8_t fin)
 {
     xqc_var_buf_t *buf = xqc_var_buf_create(xqc_put_varint_len(XQC_H3_FRM_DATA)
                                             + xqc_put_varint_len(size) + size);
@@ -309,7 +309,7 @@ xqc_h3_frm_write_data(xqc_list_head_t* send_buf, unsigned char* data, size_t siz
 }
 
 xqc_int_t
-xqc_h3_frm_write_cancel_push(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin)
+xqc_h3_frm_write_cancel_push(xqc_list_head_t *send_buf, uint64_t push_id, uint8_t fin)
 {
     size_t len = xqc_put_varint_len(push_id);
     xqc_var_buf_t *buf = xqc_var_buf_create(xqc_put_varint_len(XQC_H3_FRM_CANCEL_PUSH)
@@ -336,7 +336,7 @@ xqc_h3_frm_write_cancel_push(xqc_list_head_t* send_buf, uint64_t push_id, uint8_
 }
 
 xqc_int_t
-xqc_h3_frm_write_settings(xqc_list_head_t* send_buf, xqc_h3_conn_settings_t *setting, uint8_t fin)
+xqc_h3_frm_write_settings(xqc_list_head_t *send_buf, xqc_h3_conn_settings_t *setting, uint8_t fin)
 {
     size_t len = 0;
     size_t count = 0;
@@ -387,7 +387,7 @@ xqc_h3_frm_write_settings(xqc_list_head_t* send_buf, xqc_h3_conn_settings_t *set
 }
 
 xqc_int_t
-xqc_h3_frm_write_push_promise(xqc_list_head_t* send_buf, uint64_t push_id, xqc_var_buf_t *encoded_field_section,
+xqc_h3_frm_write_push_promise(xqc_list_head_t *send_buf, uint64_t push_id, xqc_var_buf_t *encoded_field_section,
     uint8_t fin)
 {
     size_t push_id_len = xqc_put_varint_len(push_id);
@@ -421,7 +421,7 @@ xqc_h3_frm_write_push_promise(xqc_list_head_t* send_buf, uint64_t push_id, xqc_v
 }
 
 xqc_int_t
-xqc_h3_frm_write_goaway(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin)
+xqc_h3_frm_write_goaway(xqc_list_head_t *send_buf, uint64_t push_id, uint8_t fin)
 {
     size_t len = xqc_put_varint_len(push_id);
     xqc_var_buf_t *buf = xqc_var_buf_create(xqc_put_varint_len(XQC_H3_FRM_GOAWAY)
@@ -448,7 +448,7 @@ xqc_h3_frm_write_goaway(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin
 }
 
 xqc_int_t
-xqc_h3_frm_write_max_push_id(xqc_list_head_t* send_buf, uint64_t push_id, uint8_t fin)
+xqc_h3_frm_write_max_push_id(xqc_list_head_t *send_buf, uint64_t push_id, uint8_t fin)
 {
     size_t len = xqc_put_varint_len(push_id);
     xqc_var_buf_t *buf = xqc_var_buf_create(xqc_put_varint_len(XQC_H3_FRM_MAX_PUSH_ID)

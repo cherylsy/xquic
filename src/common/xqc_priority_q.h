@@ -18,10 +18,9 @@
 
 typedef uint64_t xqc_pq_key_t;
 
-typedef struct xqc_priority_queue_element_s
-{
-    xqc_pq_key_t key;
-    char data[0];
+typedef struct xqc_priority_queue_element_s {
+    xqc_pq_key_t    key;
+    char            data[0];
 } xqc_pq_element_t;
 
 /* element compare function */
@@ -41,17 +40,16 @@ xqc_pq_revert_cmp(xqc_pq_key_t a, xqc_pq_key_t b)
     return (b < a) ? 1 : 0;
 }
 
-typedef struct xqc_priority_queue_s
-{
-    char* elements;         /* elements */
-    size_t element_size;    /* memory size of element objects */
-    size_t count;           /* number of elements */
-    size_t capacity;        /* capacity */
-    xqc_allocator_t a;      /* memory allocator */
-    xqc_pq_compare_ptr cmp; /* compare function */
+typedef struct xqc_priority_queue_s {
+    char               *elements;       /* elements */
+    size_t              element_size;   /* memory size of element objects */
+    size_t              count;          /* number of elements */
+    size_t              capacity;       /* capacity */
+    xqc_allocator_t     a;              /* memory allocator */
+    xqc_pq_compare_ptr  cmp;            /* compare function */
 } xqc_pq_t;
 
-#define xqc_pq_element(pq, index) ((xqc_pq_element_t*)&(pq)->elements[(index) * (pq)->element_size])
+#define xqc_pq_element(pq, index) ((xqc_pq_element_t *)&(pq)->elements[(index) * (pq)->element_size])
 #define xqc_pq_element_copy(pq, dst, src) memcpy(xqc_pq_element((pq), (dst)), xqc_pq_element((pq), (src)), (pq)->element_size)
 #define xqc_pq_default_capacity 16
 
@@ -107,17 +105,18 @@ xqc_pq_push(xqc_pq_t *pq, xqc_pq_key_t key)
     if (pq->count == pq->capacity) {
         size_t capacity = pq->capacity * 2;
         size_t size = capacity * pq->element_size;
-        void* buf = pq->a.malloc(pq->a.opaque, size);
+        void *buf = pq->a.malloc(pq->a.opaque, size);
         if (buf == NULL) {
             return NULL;
         }
+
         memcpy(buf, pq->elements, pq->capacity * pq->element_size);
         pq->a.free(pq->a.opaque, pq->elements);
         pq->elements = buf;
         pq->capacity = capacity;
     }
 
-    xqc_pq_element_t* p = xqc_pq_element(pq, pq->count);
+    xqc_pq_element_t *p = xqc_pq_element(pq, pq->count);
     p->key = key;
 
     size_t i = pq->count++;

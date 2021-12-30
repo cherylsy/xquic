@@ -13,7 +13,7 @@ typedef struct xqc_decoder_s xqc_decoder_t;
  * @brief create decoder
  * @return xqc_decoder_t* decoder handler
  */
-xqc_decoder_t * xqc_decoder_create(xqc_log_t *log, size_t max_dtable_cap);
+xqc_decoder_t *xqc_decoder_create(xqc_log_t *log, size_t max_dtable_cap);
 
 
 /**

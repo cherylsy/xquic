@@ -42,12 +42,13 @@ xqc_prefixed_str_pctx_create(size_t capacity)
 ssize_t
 xqc_parse_prefixed_str(xqc_prefixed_str_t *pstr, uint8_t *buf, size_t len, int *fin_flag)
 {
-    uint8_t *pos = buf, *end = buf + len;
-    ssize_t read = 0;
-    ssize_t write = 0;
-    ssize_t l = 0;
-    int fin = 0;
-    xqc_int_t ret;
+    xqc_int_t   ret;
+    uint8_t    *pos = buf, *end = buf + len;
+    ssize_t     read = 0;
+    ssize_t     write = 0;
+    ssize_t     l = 0;
+    int         fin = 0;
+
     *fin_flag = XQC_FALSE;
     switch (pstr->stg) {
     case XQC_PS_STAGE_H:
@@ -149,9 +150,9 @@ xqc_parse_prefixed_str(xqc_prefixed_str_t *pstr, uint8_t *buf, size_t len, int *
 xqc_int_t
 xqc_write_prefixed_str(xqc_var_buf_t *buf, uint8_t *str, uint64_t len, uint8_t n)
 {
-    uint8_t *pos;
-    size_t ps_len = 0;
-    xqc_int_t ret;
+    xqc_int_t   ret;
+    uint8_t    *pos;
+    size_t      ps_len = 0;
 
     /* write str */
     size_t huff_len = xqc_huffman_enc_len(str, len);
@@ -161,13 +162,16 @@ xqc_write_prefixed_str(xqc_var_buf_t *buf, uint8_t *str, uint64_t len, uint8_t n
         if (ret != XQC_OK) {
             return ret;
         }
+
         pos = buf->data + buf->data_len;
 
         /* write huffman flag */
         pos[0] |= 1 << n;
+
         /* write length */
         pos = xqc_prefixed_int_put(pos, huff_len, n);
         buf->data_len = pos - buf->data;
+
         /* write string */
         pos = xqc_huffman_enc(pos, str, len);
         buf->data_len = pos - buf->data;
@@ -189,6 +193,7 @@ xqc_write_prefixed_str(xqc_var_buf_t *buf, uint8_t *str, uint64_t len, uint8_t n
 
         pos = xqc_prefixed_int_put(pos, len, n);
         buf->data_len = pos - buf->data;
+
         ret = xqc_var_buf_save_data(buf, str, len);
         if (ret != XQC_OK) {
             return ret;

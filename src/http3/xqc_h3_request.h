@@ -5,6 +5,7 @@
 #include "src/http3/xqc_h3_header.h"
 
 #define XQC_H3_REQUEST_INITIAL_HEADERS_CAPACITY 32
+
 typedef struct xqc_h3_request_s {
     /* h3 stream handler */
     xqc_h3_stream_t                *h3_stream;

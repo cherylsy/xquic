@@ -129,4 +129,4 @@ typedef enum {
 xqc_hdr_type_t xqc_h3_hdr_type(unsigned char *name, size_t nlen);
 
 
-#endif //XQUIC_XQC_H3_HEADER_H
+#endif /* XQUIC_XQC_H3_HEADER_H */

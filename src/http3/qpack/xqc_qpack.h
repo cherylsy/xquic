@@ -21,19 +21,20 @@ typedef enum xqc_qpack_ins_type_s {
  * @brief get buffer to write instruction
  * 
  */
-typedef xqc_var_buf_t *(*xqc_get_ins_buf_cb)(xqc_qpack_ins_type_t type, void *user_data);
+typedef xqc_var_buf_t *(*xqc_get_ins_buf_pt)(xqc_qpack_ins_type_t type, void *user_data);
 
-/*
+/**
+ * @brief output instruction callback function.
  * instructions might be generated in multiple suituations,
  * it easier to handle them with a callback
  */
-typedef ssize_t (*xqc_write_ins_cb)(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf,
+typedef ssize_t (*xqc_write_ins_pt)(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf,
     void *user_data);
 
 /* instruction buffer callback */
 typedef struct xqc_qpack_ins_cb_s {
-    xqc_get_ins_buf_cb  get_buf_cb;
-    xqc_write_ins_cb    write_ins_cb;
+    xqc_get_ins_buf_pt  get_buf_cb;
+    xqc_write_ins_pt    write_ins_cb;
 } xqc_qpack_ins_cb_t;
 
 
@@ -47,11 +48,11 @@ typedef struct xqc_qpack_ins_cb_s {
  * @param log log handler for log print
  * @return qpack handler, will be used when qpack functions called
  */
-xqc_qpack_t * xqc_qpack_create(uint64_t max_cap, xqc_log_t *log, const xqc_qpack_ins_cb_t *ins_cb,
+xqc_qpack_t *xqc_qpack_create(uint64_t max_cap, xqc_log_t *log, const xqc_qpack_ins_cb_t *ins_cb,
     void *user_data);
 
 /**
- * destroy qpack handler
+ * @brief destroy qpack handler
  * @param qpk qpack handler
  */
 void xqc_qpack_destroy(xqc_qpack_t *qpk);
@@ -75,45 +76,48 @@ xqc_int_t xqc_qpack_set_enc_max_dtable_cap(xqc_qpack_t *qpk, size_t max_cap);
  */
 xqc_int_t xqc_qpack_set_dtable_cap(xqc_qpack_t *qpk, size_t cap);
 
+/**
+ * @brief set max blocked stream
+ */
 xqc_int_t xqc_qpack_set_max_blocked_stream(xqc_qpack_t *qpk, size_t max_blocked_stream);
 
 /**
- * get insert count
+ * @brief get insert count
  */
 uint64_t xqc_qpack_get_dec_insert_count(xqc_qpack_t *qpk);
 
 
 /**
- * process encoder instructions
+ * @brief process encoder instructions
  */
 ssize_t xqc_qpack_process_encoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len);
 
 /**
- * process decoder instructions
+ * @brief process decoder instructions
  */
 ssize_t xqc_qpack_process_decoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len);
 
 
 
 /**
- * create parse context for request stream, this shall be
- * invoked everytime when a new request stream is created
+ * @brief create parse context for request stream, this shall be invoked everytime when a new
+ * request stream is created
  * @return the context handler of request stream
  */
-xqc_rep_ctx_t * xqc_qpack_create_req_ctx(uint64_t stream_id);
+xqc_rep_ctx_t *xqc_qpack_create_req_ctx(uint64_t stream_id);
 
 /**
- * reset context, called when an HEADERS frame was totally decoded
+ * @brief reset context, called when an HEADERS frame was totally decoded
  */
 void xqc_qpack_clear_req_ctx(void *ctx);
 
 /**
- * destroy ctx created by xqc_qpack_create_req_ctx
+ * @brief destroy ctx created by xqc_qpack_create_req_ctx
  */
 void xqc_qpack_destroy_req_ctx(void *ctx);
 
 /**
- * get required insert count
+ * @brief get required insert count
  */
 uint64_t xqc_qpack_get_req_rqrd_insert_cnt(void *ctx);
 
@@ -130,19 +134,20 @@ void xqc_qpack_set_enc_insert_limit(xqc_qpack_t *qpk, double name_limit, double 
 
 
 /**
- * decode bytes from request stream
+ * @brief decode bytes from request stream
  * @param qpk qpack handler
  * @param ctx context for decoding representation
  * @param data input data
  * @param headers output headers
- * 
+ * @param fin if stream is finished
+ * @param blocked [out] tells that if this request stream is blocked
+ * @return >= 0 for bytes consumed, others for failure
  */
-ssize_t xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx,
-    unsigned char *data, size_t data_len,
-    xqc_http_headers_t *headers, xqc_bool_t fin, xqc_bool_t *blocked);
+ssize_t xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, unsigned char *data,
+    size_t data_len, xqc_http_headers_t *headers, xqc_bool_t fin, xqc_bool_t *blocked);
 
 /**
- * encode http headers to encoded field section
+ * @brief encode http headers to encoded field section
  * @param qpk qpack handler
  * @param stream_id QUIC stream's id of the request
  * @param headers h3 request headers

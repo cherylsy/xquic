@@ -57,15 +57,13 @@ xqc_h3_conn_destroy_blocked_stream_list(xqc_h3_conn_t *h3c);
  * h3_conn external interfaces
  */
 void
-xqc_h3_engine_set_dec_max_dtable_capacity(xqc_engine_t *engine,  
-    size_t value)
+xqc_h3_engine_set_dec_max_dtable_capacity(xqc_engine_t *engine, size_t value)
 {
     default_local_h3_conn_settings.qpack_max_table_capacity = value;
 }
 
 void
-xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, 
-    size_t value)
+xqc_h3_engine_set_enc_max_dtable_capacity(xqc_engine_t *engine, size_t value)
 {
     default_local_h3_conn_settings.qpack_max_table_capacity = value;
 }
@@ -112,7 +110,7 @@ xqc_h3_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
 xqc_connection_t *  
 xqc_h3_conn_get_xqc_conn(xqc_h3_conn_t *h3_conn)
 {
-    return  XQC_LIKELY(h3_conn) ? h3_conn->conn : NULL ;
+    return  XQC_LIKELY(h3_conn) ? h3_conn->conn : NULL;
 }
 
 
@@ -134,21 +132,26 @@ xqc_h3_conn_set_user_data(xqc_h3_conn_t *h3_conn,
 
 
 void
-xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn,
-    const xqc_h3_conn_settings_t *h3_conn_settings)
+xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn, const xqc_h3_conn_settings_t *h3_conn_settings)
 {
+    xqc_h3_conn_settings_t *settings = &h3_conn->local_h3_conn_settings;
+
     if (h3_conn_settings->max_field_section_size) {
-        h3_conn->local_h3_conn_settings.max_field_section_size = h3_conn_settings->max_field_section_size;
+        settings->max_field_section_size = h3_conn_settings->max_field_section_size;
     }
+
     if (h3_conn_settings->max_pushes) {
-        h3_conn->local_h3_conn_settings.max_pushes = h3_conn_settings->max_pushes;
+        settings->max_pushes = h3_conn_settings->max_pushes;
     }
+
     if (h3_conn_settings->qpack_max_table_capacity) {
-        h3_conn->local_h3_conn_settings.qpack_max_table_capacity = h3_conn_settings->qpack_max_table_capacity;
+        settings->qpack_max_table_capacity = h3_conn_settings->qpack_max_table_capacity;
     }
+
     if (h3_conn_settings->qpack_blocked_streams) {
-        h3_conn->local_h3_conn_settings.qpack_blocked_streams = h3_conn_settings->qpack_blocked_streams;
+        settings->qpack_blocked_streams = h3_conn_settings->qpack_blocked_streams;
     }
+
     xqc_log_event(h3_conn->log, HTTP_PARAMETERS_SET, h3_conn, XQC_LOG_LOCAL_EVENT);
 }
 
@@ -248,8 +251,8 @@ xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data)
 
 /* callback for processing instruction buffer */
 const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb = {
-    .get_buf_cb = xqc_h3_conn_get_ins_buf,
-    .write_ins_cb = xqc_h3_conn_send_ins
+    .get_buf_cb     = xqc_h3_conn_get_ins_buf,
+    .write_ins_cb   = xqc_h3_conn_send_ins
 };
 
 
@@ -461,10 +464,12 @@ xqc_h3_conn_is_goaway_recved(xqc_h3_conn_t *h3c, uint64_t stream_id)
 xqc_int_t
 xqc_h3_conn_on_settings_entry_received(uint64_t identifier, uint64_t value, void *user_data)
 {
+    xqc_int_t ret;
     xqc_h3_conn_t *h3c = (xqc_h3_conn_t *) user_data;
+
     xqc_log(h3c->log, XQC_LOG_DEBUG, "|id:%ui|value:%ui|", identifier, value);
     xqc_log_event(h3c->log, HTTP_SETTING_PARSED, identifier, value);
-    xqc_int_t ret;
+
     switch (identifier) {
     case XQC_H3_SETTINGS_MAX_FIELD_SECTION_SIZE:
         h3c->peer_h3_conn_settings.max_field_section_size = value;

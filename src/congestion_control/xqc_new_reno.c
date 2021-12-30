@@ -16,13 +16,13 @@ kMaxDatagramSize and max(2* kMaxDatagramSize, 14720)).*/
 #define xqc_max(a, b) ((a) > (b) ? (a) : (b))
 
 size_t
-xqc_reno_size ()
+xqc_reno_size()
 {
     return sizeof(xqc_new_reno_t);
 }
 
 static void
-xqc_reno_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
+xqc_reno_init(void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
 
@@ -43,19 +43,18 @@ xqc_reno_was_pkt_sent_in_recovery(void *cong_ctl, xqc_usec_t sent_time)
 }
 
 static void
-xqc_reno_on_lost (void *cong_ctl, xqc_usec_t lost_sent_time)
+xqc_reno_on_lost(void *cong_ctl, xqc_usec_t lost_sent_time)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
 
-    // Start a new congestion event if the sent time is larger
-    // than the start time of the previous recovery epoch.
+    /* Start a new congestion event if the sent time is larger
+       than the start time of the previous recovery epoch. */
     if (!xqc_reno_was_pkt_sent_in_recovery(cong_ctl, lost_sent_time)) {
         reno->reno_recovery_start_time = xqc_monotonic_timestamp();
         reno->reno_congestion_window *= XQC_kLossReductionFactor;
         reno->reno_congestion_window = xqc_max(reno->reno_congestion_window, XQC_kMinimumWindow);
         reno->reno_ssthresh = reno->reno_congestion_window;
     }
-
 }
 
 static void
@@ -65,7 +64,7 @@ xqc_reno_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
     xqc_usec_t sent_time = po->po_sent_time;
     uint32_t acked_bytes = po->po_used_size;
     if (xqc_reno_was_pkt_sent_in_recovery(cong_ctl, sent_time)) {
-        // Do not increase congestion window in recovery period.
+        /* Do not increase congestion window in recovery period. */
         return;
     }
 
@@ -78,32 +77,32 @@ xqc_reno_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
     }
 
     if (reno->reno_congestion_window < reno->reno_ssthresh) {
-        // Slow start.
+        /* Slow start. */
         reno->reno_congestion_window += acked_bytes;
     }
     else {
-        // Congestion avoidance.
+        /* Congestion avoidance. */
         reno->reno_congestion_window += XQC_kMaxDatagramSize * acked_bytes / reno->reno_congestion_window;
     }
 }
 
 uint64_t
-xqc_reno_get_cwnd (void *cong_ctl)
+xqc_reno_get_cwnd(void *cong_ctl)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
     return reno->reno_congestion_window;
 }
 
 void
-xqc_reno_reset_cwnd (void *cong_ctl)
+xqc_reno_reset_cwnd(void *cong_ctl)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
     reno->reno_congestion_window = XQC_kMinimumWindow;
-    reno->reno_recovery_start_time  = 0; /*clear recovery epoch.*/
+    reno->reno_recovery_start_time  = 0;    /*clear recovery epoch. */
 }
 
 int
-xqc_reno_in_slow_start (void *cong_ctl)
+xqc_reno_in_slow_start(void *cong_ctl)
 {
     xqc_new_reno_t *reno = (xqc_new_reno_t*)(cong_ctl);
     return reno->reno_congestion_window < reno->reno_ssthresh ? 1 : 0;

@@ -8,7 +8,7 @@
  * see https://tools.ietf.org/html/draft-cheng-iccrg-delivery-rate-estimation-00#section-3.3
  */
 /* Upon receiving ACK, fill in delivery rate sample rs. */
-bool 
+xqc_bool_t 
 xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl, 
     xqc_usec_t now)
 {
@@ -22,7 +22,7 @@ xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
     /* we do NOT have a valid sample yet. */
     if (sampler->prior_time == 0) {
         sampler->interval = 0;
-        return FALSE;
+        return XQC_FALSE;
     }
 
     sampler->acked = send_ctl->ctl_delivered - send_ctl->ctl_prior_delivered;
@@ -42,10 +42,10 @@ xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
      */
     if (sampler->interval < send_ctl->ctl_minrtt) {
         sampler->interval = 0;
-        return FALSE;
+        return XQC_FALSE;
     }
     if (sampler->interval != 0) {
-        /*unit of interval is us*/
+        /* unit of interval is us */
         sampler->delivery_rate = (uint64_t)(1e6 * sampler->delivered / sampler->interval);
     }
     sampler->now = now;
@@ -60,7 +60,7 @@ xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
             "delivered %ud|",
             sampler->send_elapse, sampler->ack_elapse,
             sampler->delivered);
-    return TRUE;
+    return XQC_TRUE;
 }
 
 /* Update rs when packet is SACKed or ACKed. */
@@ -94,7 +94,7 @@ xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
                               packet->po_delivered_time;
         send_ctl->ctl_first_sent_time = packet->po_sent_time;
         sampler->lagest_ack_time = now;
-        sampler->po_sent_time = packet->po_sent_time; /*always keep it updated*/
+        sampler->po_sent_time = packet->po_sent_time; /* always keep it updated */
     }
     /* Mark the packet as delivered once it's SACKed to
      * avoid being used again when it's cumulatively acked.
@@ -102,7 +102,7 @@ xqc_update_sample(xqc_sample_t *sampler, xqc_packet_out_t *packet,
     packet->po_delivered_time = 0;
 }
 
-bool 
+xqc_bool_t
 xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
 {
     uint8_t not_cwnd_limited = 0;
@@ -123,9 +123,10 @@ xqc_sample_check_app_limited(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl)
         if (send_ctl->ctl_app_limited > 0) {
             xqc_log_event(send_ctl->ctl_conn->log, REC_CONGESTION_STATE_UPDATED, "application_limit");
         }
-        return 1;
+        return XQC_TRUE;
     }
-    return 0;
+
+    return XQC_FALSE;
 }
 
 void 

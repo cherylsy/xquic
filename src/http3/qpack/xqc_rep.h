@@ -88,23 +88,31 @@ typedef struct xqc_rep_ctx_s {
 } xqc_rep_ctx_s;
 
 
+/**
+ * @brief create representation parsing context
+ * @param stream_id stream ID of request stream
+ */
+xqc_rep_ctx_t *xqc_rep_ctx_create(uint64_t stream_id);
 
-xqc_rep_ctx_t *
-xqc_rep_ctx_create(uint64_t stream_id);
+/**
+ * @brief clear the whole request context
+ */
+void xqc_rep_ctx_clear(xqc_rep_ctx_t *ctx);
 
-/* clear the whole request context */
-void
-xqc_rep_ctx_clear(xqc_rep_ctx_t *ctx);
+/**
+ * @brief clear the context for parsing one representation
+ */
+void xqc_rep_ctx_clear_rep(xqc_rep_ctx_t *ctx);
 
-/* clear the context for parsing one representation */
-void
-xqc_rep_ctx_clear_rep(xqc_rep_ctx_t *ctx);
+/**
+ * @brief destroy representation parsing context
+ */
+void xqc_rep_ctx_free(xqc_rep_ctx_t *ctx);
 
-void
-xqc_rep_ctx_free(xqc_rep_ctx_t *ctx);
-
-uint64_t
-xqc_rep_get_ric(xqc_rep_ctx_t *ctx);
+/**
+ * @brief get required insert count of Encoded Filed Section
+ */
+uint64_t xqc_rep_get_ric(xqc_rep_ctx_t *ctx);
 
 /**
  * @brief decode encoded field section prefix
@@ -115,10 +123,8 @@ xqc_rep_get_ric(xqc_rep_ctx_t *ctx);
  * @param buf_len input buffer len
  * @return ssize_t >= 0 for bytes consumed, < 0 for failure
  */
-ssize_t
-xqc_rep_decode_prefix(xqc_rep_ctx_t *ctx, size_t max_ents, uint64_t icnt, unsigned char *buf,
-    uint64_t buf_len);
-
+ssize_t xqc_rep_decode_prefix(xqc_rep_ctx_t *ctx, size_t max_ents, uint64_t icnt,
+    unsigned char *buf, uint64_t buf_len);
 
 /**
  * @brief decode a filed line
@@ -127,9 +133,7 @@ xqc_rep_decode_prefix(xqc_rep_ctx_t *ctx, size_t max_ents, uint64_t icnt, unsign
  * @param end end of buffer
  * @return ssize_t >= 0 for bytes consumed, < 0 for failure
  */
-ssize_t
-xqc_rep_decode_field_line(xqc_rep_ctx_t *ctx, unsigned char *pos, uint64_t buf_len);
-
+ssize_t xqc_rep_decode_field_line(xqc_rep_ctx_t *ctx, unsigned char *pos, uint64_t buf_len);
 
 
 /**
@@ -140,9 +144,7 @@ xqc_rep_decode_field_line(xqc_rep_ctx_t *ctx, unsigned char *pos, uint64_t buf_l
  * @param base base
  * @return ssize_t
  */
-xqc_int_t
-xqc_rep_write_prefix(xqc_var_buf_t *buf, uint64_t max_ents, uint64_t ricnt, uint64_t base);
-
+xqc_int_t xqc_rep_write_prefix(xqc_var_buf_t *buf, uint64_t max_ents, uint64_t ricnt, uint64_t base);
 
 /**
  * @brief Indexed Field Line
@@ -151,9 +153,7 @@ xqc_rep_write_prefix(xqc_var_buf_t *buf, uint64_t max_ents, uint64_t ricnt, uint
  * @param idx absolute index
  * @return ssize_t 
  */
-xqc_int_t
-xqc_rep_write_indexed(xqc_var_buf_t *buf, xqc_flag_t t, uint64_t idx);
-
+xqc_int_t xqc_rep_write_indexed(xqc_var_buf_t *buf, xqc_flag_t t, uint64_t idx);
 
 /**
  * @brief Indexed Field Line With Post-Base Index
@@ -161,9 +161,7 @@ xqc_rep_write_indexed(xqc_var_buf_t *buf, xqc_flag_t t, uint64_t idx);
  * @param idx absolute index
  * @return ssize_t 
  */
-xqc_int_t
-xqc_rep_write_indexed_pb(xqc_var_buf_t *buf, uint64_t idx);
-
+xqc_int_t xqc_rep_write_indexed_pb(xqc_var_buf_t *buf, uint64_t idx);
 
 /**
  * @brief Literal Field Line With Name Reference
@@ -176,10 +174,8 @@ xqc_rep_write_indexed_pb(xqc_var_buf_t *buf, uint64_t idx);
  * @param value value string
  * @return ssize_t 
  */
-xqc_int_t
-xqc_rep_write_literal_with_name_ref(xqc_var_buf_t *buf, xqc_flag_t n, xqc_flag_t t, uint64_t nidx,
-    uint64_t vlen, uint8_t *value);
-
+xqc_int_t xqc_rep_write_literal_with_name_ref(xqc_var_buf_t *buf, xqc_flag_t n, xqc_flag_t t,
+    uint64_t nidx, uint64_t vlen, uint8_t *value);
 
 /**
  * @brief Literal Field Line With Post-Base Name Reference
@@ -192,12 +188,9 @@ xqc_rep_write_literal_with_name_ref(xqc_var_buf_t *buf, xqc_flag_t n, xqc_flag_t
  * @param value value string
  * @return ssize_t 
  */
-xqc_int_t
-xqc_rep_write_literal_with_pb_name_ref(xqc_var_buf_t *buf, xqc_flag_t n, uint64_t nidx,
-                                       uint64_t vlen, uint8_t *value);
+xqc_int_t xqc_rep_write_literal_with_pb_name_ref(xqc_var_buf_t *buf, xqc_flag_t n, uint64_t nidx,
+    uint64_t vlen, uint8_t *value);
 
-
-/* Literal Field Line With Literal name */
 /**
  * @brief Literal Field Line With Literal name
  * @param buf dst buf
@@ -210,11 +203,8 @@ xqc_rep_write_literal_with_pb_name_ref(xqc_var_buf_t *buf, xqc_flag_t n, uint64_
  * @param value value string
  * @return ssize_t 
  */
-xqc_int_t
-xqc_rep_write_literal_name_value(xqc_var_buf_t *buf, xqc_flag_t n, uint64_t nlen,
+xqc_int_t xqc_rep_write_literal_name_value(xqc_var_buf_t *buf, xqc_flag_t n, uint64_t nlen,
     uint8_t *name, uint64_t vlen, uint8_t *value);
-
-
 
 
 #endif

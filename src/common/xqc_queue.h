@@ -5,8 +5,7 @@
 
 /* Queue implement using doubly linked-list */
 
-typedef struct xqc_queue_s
-{
+typedef struct xqc_queue_s {
     struct xqc_queue_s *prev;
     struct xqc_queue_s *next;
 } xqc_queue_t;
@@ -59,7 +58,7 @@ typedef struct xqc_queue_s
     } while (0)
 
 #define xqc_queue_data(q, type, member)\
-    ((type*)((char*)(q) - offsetof(type, member)))
+    ((type *)((char *)(q) - offsetof(type, member)))
 
 #define xqc_queue_foreach(pos, q)\
     for (pos = (q)->next; pos != (q); pos = pos->next)

@@ -8,8 +8,16 @@
 typedef struct xqc_dtable_s xqc_dtable_t;
 
 
+/**
+ * @brief create a dynamic table object
+ * @param htable_buckets the bucket count of 2d hash table
+ */
+xqc_dtable_t *xqc_dtable_create(size_t htable_buckets, xqc_log_t *log);
 
-xqc_dtable_t * xqc_dtable_create(size_t htable_buckets, xqc_log_t *log);
+
+/**
+ * @brief destroy a dynamic table object
+ */
 void xqc_dtable_free(xqc_dtable_t *dt);
 
 
@@ -89,9 +97,6 @@ xqc_int_t xqc_dtable_set_min_ref(xqc_dtable_t *dt, uint64_t ref);
  * @return XQC_OK for success, others for failure 
  */
 xqc_int_t xqc_dtable_set_known_rcvd_cnt(xqc_dtable_t *dt, uint64_t known_cnt);
-
-
-xqc_int_t xqc_dtable_set_blocked(xqc_dtable_t *dt, xqc_bool_t blocked);
 
 
 /**

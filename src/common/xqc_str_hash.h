@@ -5,34 +5,30 @@
 
 #include "src/common/xqc_str.h"
 
-typedef struct xqc_str_hash_element_s
-{
-    uint64_t hash;
-    xqc_str_t str;
-    void *value;
+typedef struct xqc_str_hash_element_s {
+    uint64_t    hash;
+    xqc_str_t   str;
+    void       *value;
 } xqc_str_hash_element_t;
 
-typedef struct xqc_str_hash_node_s
-{
+typedef struct xqc_str_hash_node_s {
     struct xqc_str_hash_node_s *next;
-    xqc_str_hash_element_t element;
+    xqc_str_hash_element_t      element;
 } xqc_str_hash_node_t;
 
-typedef struct xqc_str_hash_table_s
-{
-    xqc_str_hash_node_t **list;
-    size_t count;
-
-    xqc_allocator_t allocator; /* memory allocator */
+typedef struct xqc_str_hash_table_s {
+    xqc_str_hash_node_t   **list;
+    size_t                  count;
+    xqc_allocator_t         allocator;  /* memory allocator */
 } xqc_str_hash_table_t;
 
 
 static inline int
-xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
+xqc_str_hash_init(xqc_str_hash_table_t *hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
-    hash_tab->list = allocator.malloc(allocator.opaque, sizeof(xqc_str_hash_node_t*) * bucket_num);
-    xqc_memzero(hash_tab->list, sizeof(xqc_str_hash_node_t*) * bucket_num);
+    hash_tab->list = allocator.malloc(allocator.opaque, sizeof(xqc_str_hash_node_t *) * bucket_num);
+    xqc_memzero(hash_tab->list, sizeof(xqc_str_hash_node_t *) * bucket_num);
     if (hash_tab->list == NULL) {
         return XQC_ERROR;
     }
@@ -41,13 +37,13 @@ xqc_str_hash_init(xqc_str_hash_table_t* hash_tab,  xqc_allocator_t allocator, si
 }
 
 static inline void
-xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
+xqc_str_hash_release(xqc_str_hash_table_t *hash_tab)
 {
-    xqc_allocator_t* a = &hash_tab->allocator;
+    xqc_allocator_t *a = &hash_tab->allocator;
     for (size_t i = 0; i < hash_tab->count; ++i) {
-        xqc_str_hash_node_t* node = hash_tab->list[i];
+        xqc_str_hash_node_t *node = hash_tab->list[i];
         while (node) {
-            xqc_str_hash_node_t* p = node;
+            xqc_str_hash_node_t *p = node;
             node = node->next;
             a->free(a->opaque, p);
         }
@@ -56,10 +52,10 @@ xqc_str_hash_release(xqc_str_hash_table_t* hash_tab)
 }
 
 static inline void *
-xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
+xqc_str_hash_find(xqc_str_hash_table_t *hash_tab, uint64_t hash, xqc_str_t str)
 {
     uint64_t index = hash % hash_tab->count;
-    xqc_str_hash_node_t* node = hash_tab->list[index];
+    xqc_str_hash_node_t *node = hash_tab->list[index];
     while (node) {
         if (node->element.hash == hash && xqc_str_equal(str, node->element.str)) {
             return node->element.value;
@@ -70,11 +66,11 @@ xqc_str_hash_find(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
 }
 
 static inline int
-xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_element_t e)
+xqc_str_hash_add(xqc_str_hash_table_t *hash_tab, xqc_str_hash_element_t e)
 {
     uint64_t index = e.hash % hash_tab->count;
-    xqc_allocator_t* a = &hash_tab->allocator;
-    xqc_str_hash_node_t* node = a->malloc(a->opaque, sizeof(xqc_str_hash_node_t));
+    xqc_allocator_t *a = &hash_tab->allocator;
+    xqc_str_hash_node_t *node = a->malloc(a->opaque, sizeof(xqc_str_hash_node_t));
     if (node == NULL) {
         return XQC_ERROR;
     }
@@ -95,12 +91,12 @@ xqc_str_hash_add(xqc_str_hash_table_t* hash_tab, xqc_str_hash_element_t e)
 }
 
 static inline int
-xqc_str_hash_delete(xqc_str_hash_table_t* hash_tab, uint64_t hash, xqc_str_t str)
+xqc_str_hash_delete(xqc_str_hash_table_t *hash_tab, uint64_t hash, xqc_str_t str)
 {
     uint64_t index = hash % hash_tab->count;
-    xqc_allocator_t* a = &hash_tab->allocator;
-    xqc_str_hash_node_t** pp = &hash_tab->list[index];
-    xqc_str_hash_node_t* node = hash_tab->list[index];
+    xqc_allocator_t        *a    = &hash_tab->allocator;
+    xqc_str_hash_node_t   **pp   = &hash_tab->list[index];
+    xqc_str_hash_node_t    *node = hash_tab->list[index];
     while (node) {
         if (node->element.hash == hash && xqc_str_equal(str, node->element.str)) {
             *pp = node->next;

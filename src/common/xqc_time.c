@@ -6,9 +6,9 @@
 int
 gettimeofday(struct timeval *tv, struct timezone *tz)
 {
-    FILETIME ft;
-    uint64_t tmpres;
-    static int tzflag;
+    FILETIME    ft;
+    uint64_t    tmpres;
+    static int  tzflag;
 
     if (NULL != tv) {
         GetSystemTimeAsFileTime(&ft);
@@ -34,13 +34,13 @@ gettimeofday(struct timeval *tv, struct timezone *tz)
 }
 #endif
 
-static uint64_t
+static xqc_usec_t
 xqc_now()
 {
     /* get microsecond unit time */
     struct timeval tv;
     gettimeofday(&tv, NULL);
-    uint64_t ul = tv.tv_sec * (uint64_t)1000000 + tv.tv_usec;
+    xqc_usec_t ul = tv.tv_sec * (xqc_usec_t)1000000 + tv.tv_usec;
     return  ul;
 }
 

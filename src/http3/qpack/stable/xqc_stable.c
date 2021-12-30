@@ -80,8 +80,7 @@ static const uint64_t xqc_stable_header_idx[] = {
 };
 
 
-xqc_stable_entry_t xqc_g_static_table[] =
-{
+xqc_stable_entry_t xqc_g_static_table[] = {
     /* 0 */
     {
         {{10, ":authority"}, {0, ""}},

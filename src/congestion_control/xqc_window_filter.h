@@ -16,7 +16,7 @@ struct xqc_win_sample {
 
 typedef struct {
     struct xqc_win_sample s[3];
-}xqc_win_filter_t;
+} xqc_win_filter_t;
 
 static uint32_t 
 xqc_win_filter_get(const xqc_win_filter_t *w)

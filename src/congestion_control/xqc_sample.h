@@ -3,12 +3,8 @@
 
 #include <xquic/xquic_typedef.h>
 
-typedef char bool;
-#define TRUE 1
-#define FALSE 0
 
-typedef struct xqc_sample_s
-{
+typedef struct xqc_sample_s {
     /* sampling time */
     xqc_usec_t       now;
     /* the number of packets that have been transferred when the packet currently in ack is being sent */
@@ -40,7 +36,7 @@ typedef struct xqc_sample_s
  
     xqc_usec_t       po_sent_time;
 
-    bool             is_initialized;
+    xqc_bool_t       is_initialized;
  
     /* for BBRv2 */ 
     uint32_t         prior_lost;
@@ -49,11 +45,11 @@ typedef struct xqc_sample_s
 
 } xqc_sample_t;
 
-bool xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
+xqc_bool_t xqc_generate_sample(xqc_sample_t *sampler, xqc_send_ctl_t *send_ctl,
     xqc_usec_t now);
 void xqc_update_sample(xqc_sample_t *sample, xqc_packet_out_t *packet, 
     xqc_send_ctl_t *send_ctl, xqc_usec_t now);
-bool xqc_sample_check_app_limited(xqc_sample_t *sampler, 
+xqc_bool_t xqc_sample_check_app_limited(xqc_sample_t *sampler, 
     xqc_send_ctl_t *send_ctl);
 void xqc_sample_on_sent(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl, 
     xqc_usec_t now);

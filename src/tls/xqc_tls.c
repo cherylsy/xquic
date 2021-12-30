@@ -168,36 +168,6 @@ xqc_tls_set_alpn(SSL *ssl, const char *alpn)
     return XQC_OK;
 }
 
-#if 0
-xqc_int_t
-xqc_tls_set_local_transport_params(xqc_tls_t *tls, xqc_transport_params_t *tp)
-{
-    xqc_int_t ret = XQC_OK;
-    xqc_transport_params_type_t tp_type = 
-        (tls->type == XQC_TLS_TYPE_CLIENT ? XQC_TP_TYPE_CLIENT_HELLO :
-            XQC_TP_TYPE_ENCRYPTED_EXTENSIONS);
-
-    /* serialize transport params */
-    char tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN];
-    size_t tp_buf_len = 0;
-    ret = xqc_encode_transport_params(tp, tp_type, tp_buf, XQC_MAX_TRANSPORT_PARAM_BUF_LEN,
-                                      &tp_buf_len);
-    if (ret != XQC_OK) {
-        xqc_log(tls->log, XQC_LOG_ERROR, "|encode tls trans param error|ret:%d", ret);
-        return ret;
-    }
-
-    /* set transport params to ssl */
-    int ssl_ret = SSL_set_quic_transport_params(tls->ssl, tp_buf, tp_buf_len);
-    if (ssl_ret != XQC_SSL_SUCCESS) {
-        xqc_log(tls->log, XQC_LOG_ERROR, "|set transport params error|%s|",
-                ERR_error_string(ERR_get_error(), NULL));
-        return -XQC_TLS_INTERNAL;
-    }
-
-    return XQC_OK;
-}
-#endif
 
 xqc_int_t
 xqc_tls_init_client_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
@@ -651,7 +621,6 @@ xqc_tls_decrypt_payload(xqc_tls_t *tls, xqc_encrypt_level_t level,
     return xqc_crypto_decrypt_payload(crypto, pktno, header, header_len, payload, payload_len,
                                       dst, dst_cap, dst_len);
 }
-
 
 
 xqc_bool_t
