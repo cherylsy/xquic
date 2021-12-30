@@ -23,6 +23,8 @@ typedef enum {
     TRA_CRYPTO_ERROR                =  0x1FF, /* 0x1XX */
 } xqc_trans_err_code_t;
 
+#define TRA_CRYPTO_ERROR_BASE   0x100
+
 /**
  *  QUIC Http/3 Protocol error codes
  */
@@ -73,7 +75,7 @@ typedef enum {
     XQC_ESYS                            = 609,      // system error, usually a public library interface failure
     XQC_EAGAIN                          = 610,      // write blocking, similar to EAGAIN
     XQC_EPARAM                          = 611,      // wrong parameters
-    XQC_ESTATE                          = 612,      // abnormal  connection status
+    XQC_ESTATE                          = 612,      // abnormal connection status
     XQC_ELIMIT                          = 613,      // exceed cache limit
     XQC_EPROTO                          = 614,      // violation of protocol
     XQC_ESOCKET                         = 615,      // socket interface error

@@ -2,11 +2,11 @@
 #ifndef _XQC_ENGINE_H_INCLUDED_
 #define _XQC_ENGINE_H_INCLUDED_
 
-#include <openssl/ssl.h>
 
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
-#include "src/crypto/xqc_tls_if.h"
+#include "src/tls/xqc_tls.h"
+#include "src/common/xqc_list.h"
 
 #define XQC_RESET_CNT_ARRAY_LEN 16384
 
@@ -46,11 +46,8 @@ typedef struct xqc_engine_s {
     uint8_t                         reset_sent_cnt[XQC_RESET_CNT_ARRAY_LEN]; /* remote addr hash */
     xqc_usec_t                      reset_sent_cnt_cleared;
 
-    /* for tls */
-    SSL_CTX                        *ssl_ctx;        /* for ssl */
-    BIO_METHOD                     *ssl_meth;       /* for ssl bio method */ 
-    xqc_engine_ssl_config_t         ssl_config;     /* ssl config, such as cipher suit, cert file path etc. */
-    xqc_ssl_session_ticket_key_t    session_ticket_key;
+    /* tls context */
+    xqc_tls_ctx_t                  *tls_ctx;
 
     /* common */
     xqc_log_t                      *log;
@@ -64,11 +61,6 @@ typedef struct xqc_engine_s {
 
     /* list of xqc_alpn_registration_t */
     xqc_list_head_t                 alpn_reg_list;
-
-    /* the buffer of alpn, for server alpn selection */
-    char                           *alpn_list;
-    size_t                          alpn_list_sz;
-    size_t                          alpn_list_len;
 
 } xqc_engine_t;
 

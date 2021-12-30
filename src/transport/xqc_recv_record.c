@@ -208,8 +208,9 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
         return;
     }
 
-
-    if(pns == XQC_PNS_HSK && (xqc_tls_check_hs_tx_key_ready(conn) == 0)){
+    if (pns == XQC_PNS_HSK
+        && (xqc_tls_is_key_ready(conn->tls, XQC_ENC_LEV_HSK, XQC_KEY_TYPE_TX_WRITE) == XQC_FALSE))
+    {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|delay|handshake ack should send after tx key ready|");
         return;
 

@@ -138,39 +138,37 @@ set(
     "src/transport/xqc_utils.c"
     "src/transport/xqc_multipath.c"
     "src/transport/xqc_defs.c"
-    )
+    "src/transport/xqc_transport_params.c"
+
+)
 
 
 set (
-    CRYPTO_SOURCE
 
-    "src/crypto/xqc_tls_init.c"
-    "src/crypto/xqc_tls_0rtt.c"
-    "src/crypto/xqc_tls_shared_if.c"
-    "src/crypto/xqc_crypto_material.c"
-    "src/crypto/xqc_tls_stack_cb.c"
-    "src/crypto/xqc_hkdf.c"
-    "src/crypto/xqc_transport_params.c"
-    "src/crypto/xqc_null_crypto.c"
-    "src/crypto/xqc_tls_cb.c"
-    "src/crypto/xqc_tls_public.c"
+    TLS_SOURCE
+
+    "src/tls/xqc_hkdf.c"
+    "src/tls/xqc_null_crypto.c"
+    "src/tls/xqc_crypto.c"
+    "src/tls/xqc_tls_ctx.c"
+    "src/tls/xqc_tls.c"
 )
 
 if(XQC_OPENSSL_IS_BORINGSSL)
 set (
-    CRYPTO_SOURCE 
-    ${CRYPTO_SOURCE}
-    "src/crypto/boringssl/xqc_hkdf.c"
-    "src/crypto/boringssl/xqc_crypto.c"
-    "src/crypto/boringssl/xqc_tls_if.c"
+    TLS_SOURCE 
+    ${TLS_SOURCE}
+    "src/tls/boringssl/xqc_hkdf.c"
+    "src/tls/boringssl/xqc_crypto.c"
+    "src/tls/boringssl/xqc_ssl_if.c"
 )
 else()
 set(
-    CRYPTO_SOURCE 
-    ${CRYPTO_SOURCE}
-    "src/crypto/openssl/xqc_hkdf.c"
-    "src/crypto/openssl/xqc_crypto.c"
-    "src/crypto/openssl/xqc_tls_if.c"
+    TLS_SOURCE 
+    ${TLS_SOURCE}
+    "src/tls/babsssl/xqc_hkdf.c"
+    "src/tls/babsssl/xqc_crypto.c"
+    "src/tls/babsssl/xqc_ssl_if.c"
 )
 endif()
 
@@ -224,7 +222,7 @@ add_library(
     ${XQC_BINARY_TYPE}
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
-    ${CRYPTO_SOURCE}
+    ${TLS_SOURCE}
     ${COMMON_SOURCES}
     ${CONGESTION_CONTROL_SOURCES}
 )

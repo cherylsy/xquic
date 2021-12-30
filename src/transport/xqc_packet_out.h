@@ -5,6 +5,7 @@
 #include <xquic/xquic_typedef.h>
 #include "src/transport/xqc_packet.h"
 #include "src/transport/xqc_frame.h"
+#include "src/tls/xqc_tls_defs.h"
 
 /*
  * https://tools.ietf.org/html/draft-ietf-quic-transport-20#section-14.1

@@ -12,6 +12,7 @@
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_send_ctl.h"
+#include "src/transport/xqc_defs.h"
 #include "src/http3/xqc_h3_conn.h"
 
 #define xqc_packet_number_bits2len(b) ((b) + 1)
@@ -102,7 +103,7 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len, const un
 
 
 void
-xqc_packet_parse_packet_number(unsigned char *pos, xqc_uint_t packet_number_len, uint64_t *packet_num)
+xqc_packet_parse_packet_number(uint8_t *pos, xqc_uint_t packet_number_len, uint64_t *packet_num)
 {
     *packet_num = 0;
     for (int i = 0; i < packet_number_len; i++) {
@@ -112,14 +113,15 @@ xqc_packet_parse_packet_number(unsigned char *pos, xqc_uint_t packet_number_len,
 }
 
 /**
- * https://tools.ietf.org/html/draft-ietf-quic-transport-24#page-80
+ * https://datatracker.ietf.org/doc/html/rfc9000#appendix-A.3
  * @param largest_pn Largest received packet number
  * @param truncated_pn Packet number parsed from header
  * @param pn_nbits Number of bits the truncated_pn has
  * @return
  */
 xqc_packet_number_t
-xqc_decode_packet_num(xqc_packet_number_t largest_pn, xqc_packet_number_t truncated_pn, unsigned pn_nbits)
+xqc_packet_decode_packet_number(xqc_packet_number_t largest_pn, xqc_packet_number_t truncated_pn,
+    unsigned pn_nbits)
 {
     xqc_packet_number_t expected_pn, pn_win, pn_hwin, pn_mask, candidate_pn;
     expected_pn = largest_pn + 1;
@@ -127,27 +129,16 @@ xqc_decode_packet_num(xqc_packet_number_t largest_pn, xqc_packet_number_t trunca
     pn_hwin = pn_win >> (xqc_packet_number_t) 1;
     pn_mask = pn_win - 1;
 
-    /*
-     * The incoming packet number should be greater than
-     * expected_pn - pn_hwin and less than or equal to
-     * expected_pn + pn_hwin
-     *
-     * This means we can't just strip the trailing bits from
-     * expected_pn and add the truncated_pn because that might
-     * yield a value outside the window.
-     *
-     * The following code calculates a candidate value and
-     * makes sure it's within the packet number window.
-     */
     candidate_pn = (expected_pn & ~pn_mask) | truncated_pn;
+
     if (candidate_pn + pn_hwin <= expected_pn) {
         return candidate_pn + pn_win;
     }
-    /* Note the extra check for underflow when candidate_pn is near zero */
-    if (candidate_pn > expected_pn + pn_hwin &&
-        candidate_pn > pn_win) {
+
+    if (candidate_pn > expected_pn + pn_hwin && candidate_pn > pn_win) {
         return candidate_pn - pn_win;
     }
+
     return candidate_pn;
 }
 
@@ -244,6 +235,7 @@ xqc_int_t
 xqc_packet_parse_short_header(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 {
     unsigned char *pos = packet_in->pos;
+    unsigned char *end = packet_in->last;
     xqc_packet_t *packet = &packet_in->pi_pkt;
     uint8_t cid_len = c->scid_set.user_scid.cid_len;
 
@@ -283,6 +275,10 @@ xqc_packet_parse_short_header(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* packet number */
     packet_in->pi_pkt.length = packet_in->last - pos;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     if (c->conn_type == XQC_CONN_TYPE_CLIENT) {
         c->discard_vn_flag = 1;
@@ -469,10 +465,10 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->last = pos + length;
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
-
-    /* packet number */
-    /* decrypt payload */
-    /* process in xqc_packet_decrypt */
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
@@ -528,255 +524,144 @@ xqc_packet_parse_zero_rtt(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->last = pos + length;
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
     return XQC_OK;
 }
 
-int xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out, unsigned char *enc_pkt, size_t *enc_pkt_len)
+
+
+xqc_int_t
+xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
+    unsigned char *enc_pkt, size_t enc_pkt_cap, size_t *enc_pkt_len)
 {
-    xqc_pktns_t *p_pktns;
-    xqc_encrypt_pt encrypt_func;
-    xqc_hp_mask_pt hp_mask;
+    xqc_int_t ret;
+    size_t enc_payload_len = 0;
 
-    xqc_crypto_km_t *p_ckm = NULL;
-    xqc_vec_t *tx_hp = NULL;
+    xqc_encrypt_level_t level = xqc_packet_type_to_enc_level(packet_out->po_pkt.pkt_type);
 
-    xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(packet_out->po_pkt.pkt_type);
+    /* source buffer */
+    uint8_t *header = (uint8_t *)packet_out->po_buf;
+    size_t header_len = packet_out->po_payload - packet_out->po_buf;
+    uint8_t *payload = (uint8_t *)packet_out->po_payload;
+    size_t payload_len = packet_out->po_used_size - header_len;
+    uint8_t *pktno = (uint8_t *)packet_out->po_ppktno;
 
-    xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
+    /* destination buffer */
+    uint8_t *dst_header = enc_pkt;
+    uint8_t *dst_pktno = dst_header + (pktno - header);
+    uint8_t *dst_payload = dst_header + header_len;
+    uint8_t *dst_end = dst_payload;
 
-    if (encrypt_level == XQC_ENC_LEV_INIT) {
-        p_pktns = &conn->tlsref.initial_pktns;
-        p_ckm = &p_pktns->tx_ckm;
-        tx_hp = &p_pktns->tx_hp;
-        encrypt_func = conn->tlsref.callbacks.in_encrypt;
-        hp_mask = conn->tlsref.callbacks.in_hp_mask;
-        p_ctx  = &conn->tlsref.hs_crypto_ctx;
-
-    } else if (encrypt_level == XQC_ENC_LEV_0RTT) {
-        p_ckm = &conn->tlsref.early_ckm;
-        tx_hp = &conn->tlsref.early_hp;
-        encrypt_func = conn->tlsref.callbacks.encrypt;
-        hp_mask = conn->tlsref.callbacks.hp_mask;
-
-    } else if (encrypt_level == XQC_ENC_LEV_HSK) {
-        p_pktns = &conn->tlsref.hs_pktns;
-        p_ckm = &p_pktns->tx_ckm;
-        tx_hp = &p_pktns->tx_hp;
-        encrypt_func = conn->tlsref.callbacks.encrypt;
-        hp_mask = conn->tlsref.callbacks.hp_mask;
-
-    } else if (encrypt_level == XQC_ENC_LEV_1RTT) {
-        p_pktns = &conn->tlsref.pktns;
-        p_ckm = &p_pktns->tx_ckm;
-        tx_hp = &p_pktns->tx_hp;
-        encrypt_func = conn->tlsref.callbacks.encrypt;
-        hp_mask = conn->tlsref.callbacks.hp_mask;
-
-    } else {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|illegal enc level|%d|", encrypt_level);
-        return -XQC_EILLPKT;
-    }
-
-    unsigned char nonce[XQC_NONCE_LEN];
-    xqc_crypto_create_nonce(nonce, p_ckm->iv.base, p_ckm->iv.len, packet_out->po_pkt.pkt_num);
-
-    unsigned char *pkt_hd = packet_out->po_buf;
-    unsigned int hdlen = (packet_out->po_payload - packet_out->po_buf);
-    unsigned int payloadlen = packet_out->po_used_size - hdlen;
-    unsigned char *payload = packet_out->po_payload;
-    int pktno_len = (packet_out->po_buf[0] & XQC_PKT_NUMLEN_MASK) + 1;
-
-    memcpy(enc_pkt, pkt_hd, hdlen);/* copy header to buf */
+    /* copy header to dest */
+    xqc_memcpy(dst_header, header, header_len);
 
     /* refresh header length */
-    if (encrypt_level == XQC_ENC_LEV_INIT || encrypt_level == XQC_ENC_LEV_0RTT ||
-        encrypt_level == XQC_ENC_LEV_HSK) {
-        unsigned char *plength = enc_pkt + (packet_out->po_ppktno - XQC_LONG_HEADER_LENGTH_BYTE - packet_out->po_buf);
-        uint32_t length = packet_out->po_buf + packet_out->po_used_size - packet_out->po_ppktno ;
-        length += xqc_aead_overhead(&p_ctx->aead,length);
+    if (level == XQC_ENC_LEV_INIT || level == XQC_ENC_LEV_0RTT ||
+        level == XQC_ENC_LEV_HSK)
+    {
+        unsigned char *plength = dst_pktno - XQC_LONG_HEADER_LENGTH_BYTE;
+        uint32_t length = header + packet_out->po_used_size - pktno;
+        length += xqc_tls_aead_tag_len(conn->tls, level);
         xqc_vint_write(plength, length, 0x01, 2);
     }
 
-    ssize_t nwrite = encrypt_func(conn, enc_pkt + hdlen, *(enc_pkt_len) - hdlen, payload, payloadlen,
-                              p_ckm->key.base, p_ckm->key.len, nonce, p_ckm->iv.len, enc_pkt, hdlen, (void*)encrypt_level, p_ctx->aead_encrypter);
-
-    if (nwrite < 0 || nwrite != (payloadlen + xqc_aead_overhead(&p_ctx->aead,payloadlen))) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|encrypt packet error|%z|", nwrite);
-        return -XQC_EENCRYPT;
+    /* do packet protection */
+    ret = xqc_tls_encrypt_payload(conn->tls, level, packet_out->po_pkt.pkt_num,
+                                  dst_header, header_len, payload, payload_len,
+                                  dst_payload, enc_pkt_cap - header_len, &enc_payload_len);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|packet protection error|pkt_type:%d|pkt_num:%ui",
+                packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num);
+        return ret;
     }
 
-    *enc_pkt_len = nwrite + hdlen;
+    *enc_pkt_len = header_len + enc_payload_len;
 
-    unsigned char mask[XQC_HP_SAMPLELEN];
-    unsigned char *po_ppktno = enc_pkt + (packet_out->po_ppktno - packet_out->po_buf);
-
-    nwrite = hp_mask(conn, mask, sizeof(mask), tx_hp->base, tx_hp->len, po_ppktno + 4, XQC_HP_SAMPLELEN, (void*)encrypt_level, p_ctx->hp[XQC_HP_TX]);
-
-    if (nwrite < XQC_HP_MASKLEN) {
-        return -XQC_EENCRYPT;
+    /* do header protection */
+    ret = xqc_tls_encrypt_header(conn->tls, level, packet_out->po_pkt.pkt_type,
+                                 dst_header, dst_pktno, dst_end);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|header protection error|pkt_type:%d|pkt_num:%ui",
+                packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num);
+        return ret;
     }
 
-    xqc_pkt_type_t pkt_type = packet_out->po_pkt.pkt_type;
-    unsigned char *p = enc_pkt;
-    if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
-        *p = (unsigned char) (*p ^ (mask[0] & 0x1f));
-
-    } else {
-        *p = (unsigned char) (*p ^ (mask[0] & 0x0f));
-    }
-
-    p = po_ppktno;
-    int i = 0;
-    for (i = 0; i < pktno_len; ++i) {
-        *(p + i) ^= mask[i + 1];
-    }
     return XQC_OK;
 }
 
-int xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
+xqc_int_t
+xqc_packet_encrypt(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    conn->enc_pkt_len = sizeof(conn->enc_pkt);
-    return xqc_packet_encrypt_buf(conn, packet_out, conn->enc_pkt, &conn->enc_pkt_len);
+    return xqc_packet_encrypt_buf(conn, packet_out, conn->enc_pkt, sizeof(conn->enc_pkt),
+                                  &conn->enc_pkt_len);
 }
 
 
 xqc_int_t 
 xqc_packet_decrypt(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    xqc_pkt_type_t pkt_type = packet_in->pi_pkt.pkt_type;
-    xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
+    xqc_int_t ret;
+    xqc_encrypt_level_t level = xqc_packet_type_to_enc_level(packet_in->pi_pkt.pkt_type);
 
-    xqc_encrypt_level_t encrypt_level = xqc_packet_type_to_enc_level(pkt_type);
-    xqc_tls_context_t *p_ctx = &conn->tlsref.crypto_ctx_store[encrypt_level];
-    xqc_pktns_t *p_pktns = NULL;
-    xqc_decrypt_pt decrypt_func = NULL;
-    xqc_hp_mask_pt hp_mask = NULL;
-
-    xqc_crypto_km_t *ckm = NULL;
-    xqc_vec_t *hp = NULL;
-
-    if (XQC_ENC_LEV_0RTT == encrypt_level) {
-        if(xqc_crypto_is_early_data_accepted(conn) == XQC_FALSE) {
-
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_packet_decrypt|early data not decrypt");
-            return -XQC_TLS_DATA_REJECT;
-        }
-    }
-
-    switch (encrypt_level) {
-
-    case XQC_ENC_LEV_INIT:
-        p_pktns = &conn->tlsref.initial_pktns;
-        ckm = &p_pktns->rx_ckm;
-        hp = &p_pktns->rx_hp;
-        decrypt_func = conn->tlsref.callbacks.in_decrypt;
-        hp_mask = conn->tlsref.callbacks.in_hp_mask;
-        p_ctx = &conn->tlsref.hs_crypto_ctx;
-        break;
-
-    case XQC_ENC_LEV_0RTT:
-        ckm = &conn->tlsref.early_ckm;
-        hp = &conn->tlsref.early_hp;
-        decrypt_func = conn->tlsref.callbacks.decrypt;
-        hp_mask = conn->tlsref.callbacks.hp_mask;
-        break;
-
-    case XQC_ENC_LEV_HSK:
-        p_pktns = &conn->tlsref.hs_pktns;
-        ckm = &p_pktns->rx_ckm;
-        hp = &p_pktns->rx_hp;
-        hp_mask = conn->tlsref.callbacks.hp_mask;
-        decrypt_func = conn->tlsref.callbacks.decrypt;
-        break;
-    case XQC_ENC_LEV_1RTT:
-        p_pktns = &conn->tlsref.pktns;
-        ckm = &p_pktns->rx_ckm;
-        hp = &p_pktns->rx_hp;
-        hp_mask = conn->tlsref.callbacks.hp_mask;
-        decrypt_func = conn->tlsref.callbacks.decrypt;
-        break;
-
-    default:
-        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|invalid packet type|%ud|", pkt_type);
-        return -XQC_EILLPKT;
-
-    }
-
-    if (ckm->key.base == NULL || ckm->key.len == 0 
-        || ckm->iv.base == NULL || ckm->iv.len == 0 
-        || hp->base == NULL || hp->len == 0) 
+    if (level == XQC_ENC_LEV_0RTT
+        && xqc_tls_is_early_data_accepted(conn->tls) != XQC_TLS_EARLY_DATA_ACCEPT)
     {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt key NULL|");
-
-        return -XQC_EDECRYPT;
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|early data not decrypt|");
+        return -XQC_TLS_DATA_REJECT;
     }
 
-    unsigned char *pkt = (unsigned char*)packet_in->buf;
-    size_t pkt_num_offset = packet_in->pi_pkt.pkt_num_offset;
-    size_t sample_offset = pkt_num_offset + 4;
-    char mask[XQC_HP_SAMPLELEN];
-    char header_decrypt[XQC_MAX_PACKET_LEN];
-    size_t header_len = 0;
-    char *p = header_decrypt;
-    char *end = header_decrypt + XQC_MAX_PACKET_LEN;
-    memcpy(p, pkt, pkt_num_offset);
-    p = p + pkt_num_offset;
+    /* destination buffer for payload decryption */
+    unsigned char *dst = packet_in->decode_payload;
+    size_t dst_cap = packet_in->decode_payload_size;
+    /* source buffer for header decryption */
+    uint8_t *header = (uint8_t *)packet_in->buf;
+    uint8_t *pktno = header + packet_in->pi_pkt.pkt_num_offset;
+    uint8_t *end = pktno + packet_in->pi_pkt.length;
 
-    int nwrite = (int)hp_mask(conn, mask, sizeof(mask), hp->base, hp->len, pkt + sample_offset,
-                              XQC_HP_SAMPLELEN, (void*)encrypt_level, p_ctx->hp[XQC_HP_RX]);
-    if (nwrite < XQC_HP_MASKLEN) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|hp_mask return error:%d|", nwrite);
-        return nwrite;
+    /*
+     * remove header protection, which will modify the first byte and packet number bytes in
+     * original header buffer.
+     */
+    ret = xqc_tls_decrypt_header(conn->tls, level, packet_in->pi_pkt.pkt_type,
+                                 header, pktno, end);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_INFO, "|remove header protection error|ret:%d", ret);
+        return ret;
     }
 
-    if (pkt_type == XQC_PTYPE_SHORT_HEADER) {
-        header_decrypt[0] = (uint8_t) (header_decrypt[0] ^ (mask[0] & 0x1f));
+    /* source buffer for payload decryption */
+    size_t pktno_len = (header[0] & 0x03) + 1;
+    size_t header_len = packet_in->pi_pkt.pkt_num_offset + pktno_len;
+    uint8_t *payload = header + header_len;
+    size_t payload_len = packet_in->pi_pkt.length - pktno_len;
 
-    } else {
-        header_decrypt[0] = (uint8_t) (header_decrypt[0] ^ (mask[0] & 0x0f));
+    /* parse packet number from header */
+    xqc_packet_number_t truncated_pn;
+    xqc_packet_parse_packet_number(pktno, pktno_len, &truncated_pn);
+
+    /* decode packet number */
+    xqc_pkt_num_space_t pns = packet_in->pi_pkt.pkt_pns;
+    xqc_packet_number_t largest_pn = conn->conn_send_ctl->ctl_largest_recvd[pns];
+    packet_in->pi_pkt.pkt_num =
+        xqc_packet_decode_packet_number(largest_pn, truncated_pn, pktno_len * 8);
+
+    /* decrypt packet payload */
+    ret = xqc_tls_decrypt_payload(conn->tls, level, packet_in->pi_pkt.pkt_num,
+                                  header, header_len, payload, payload_len,
+                                  dst, dst_cap, &packet_in->decode_payload_len);
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|xqc_tls_decrypt_payload error|pkt_type|");
+        return ret;
     }
 
-    xqc_uint_t packet_number_len = (header_decrypt[0] & 0x03) + 1;
-    for (unsigned i = 0; i < packet_number_len && p < end; ++i) {
-        *p++ = *(pkt + pkt_num_offset + i) ^ mask[i + 1];
-    }
-
-    header_len = pkt_num_offset + packet_number_len;
-
-    xqc_packet_parse_packet_number(header_decrypt + pkt_num_offset, packet_number_len, &packet_in->pi_pkt.pkt_num);
-
-    /* decode pkt_num, then build nonce with pkt_num as an argument */
-    packet_in->pi_pkt.pkt_num = xqc_decode_packet_num(conn->conn_send_ctl->ctl_largest_recvd[pns],
-                                                      packet_in->pi_pkt.pkt_num, packet_number_len * 8);
-
-    uint8_t nonce[XQC_NONCE_LEN];
-    xqc_crypto_create_nonce(nonce, ckm->iv.base, ckm->iv.len, packet_in->pi_pkt.pkt_num);
-
-    char *decrypt_buf = (char *) (packet_in->decode_payload);
-    unsigned char *payload = pkt + pkt_num_offset + packet_number_len;
-    size_t payload_len = packet_in->pi_pkt.length - packet_number_len;
-    nwrite = (int)decrypt_func(conn, decrypt_buf, packet_in->decode_payload_size, 
-                               payload, payload_len, ckm->key.base, ckm->key.len, 
-                               nonce, ckm->iv.len, header_decrypt, header_len, 
-                               (void*) encrypt_level, p_ctx->aead_decrypter);
-
-    if (nwrite < 0 || nwrite > payload_len) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|do_decrypt_pkt|decrypt_func return error:%d|"
-                "encrypt_level:%d|pkt_type:%d|", nwrite, encrypt_level,
-                xqc_pkt_type_2_str(packet_in->pi_pkt.pkt_type));
-        return nwrite;
-    }
-
-    packet_in->decode_payload_len = nwrite;
-    memcpy(payload, decrypt_buf, nwrite);
-
-    packet_in->pos = payload;
-
-    packet_in->last = payload + nwrite;
-
+    packet_in->pos = dst;
+    packet_in->last = dst + packet_in->decode_payload_len;
 
     return XQC_OK;
 }
@@ -831,6 +716,10 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     /* packet number */
     packet_in->pi_pkt.length = length;
     packet_in->pi_pkt.pkt_num_offset = pos - packet_in->buf;
+    if (packet_in->last > end) {
+        xqc_log(c->log, XQC_LOG_ERROR, "|illegal pkt with wrong length");
+        return -XQC_EILLPKT;
+    }
 
     xqc_log(c->log, XQC_LOG_DEBUG, "|success|Length:%ui|", length);
 
@@ -950,21 +839,10 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     xqc_memcpy(c->conn_token, pos, packet_in->last - pos);
     c->conn_token_len = packet_in->last - pos;
 
-    /* store token */
-    c->transport_cbs.save_token(c->conn_token, c->conn_token_len, xqc_conn_get_user_data(c));
-
-    /* re-initiate the handshake process */
-    c->conn_state = XQC_CONN_STATE_CLIENT_INIT;
-    c->crypto_stream[XQC_ENC_LEV_INIT] = xqc_create_crypto_stream(c, XQC_ENC_LEV_INIT, NULL);
-
-    if (c->tlsref.callbacks.recv_retry(c, &c->dcid_set.current_dcid) < 0) {
-        return -XQC_TLS_CLIENT_REINTIAL_ERROR;
-    }
-
     xqc_log(c->log, XQC_LOG_DEBUG, "|packet_parse_retry|success|");
     packet_in->pos = packet_in->last;
 
-    return XQC_OK;
+    return xqc_conn_on_recv_retry(c);
 }
 
 
@@ -1148,7 +1026,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     if ((XQC_BUFF_LEFT_SIZE(pos, end) < dcid->cid_len + 1)
         || (dcid->cid_len > XQC_MAX_CID_LEN))
     {
-        xqc_log(c->log, XQC_LOG_ERROR, "|long hdr dcid len err|size:%d|cid_len:%d|", 
+        xqc_log(c->log, XQC_LOG_ERROR, "|long header dcid len err|size:%d|cid_len:%d|", 
                 XQC_BUFF_LEFT_SIZE(pos, end), dcid->cid_len + 1);
         return -XQC_EILLPKT;
     }
@@ -1162,7 +1040,7 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     if ((XQC_BUFF_LEFT_SIZE(pos, end) < scid->cid_len)
         || (scid->cid_len > XQC_MAX_CID_LEN))
     {
-        xqc_log(c->log, XQC_LOG_ERROR, "|long hdr scid len err|size:%d|cid_len:%d|", 
+        xqc_log(c->log, XQC_LOG_ERROR, "|long header scid len err|size:%d|cid_len:%d|", 
                 XQC_BUFF_LEFT_SIZE(pos, end), scid->cid_len);
         return -XQC_EILLPKT;
     }
@@ -1196,15 +1074,6 @@ xqc_packet_parse_long_header(xqc_connection_t *c,
     switch (type) {
 
     case XQC_PTYPE_INIT:
-        if ((c->conn_type == XQC_CONN_TYPE_SERVER) 
-            && (c->conn_state == XQC_CONN_STATE_SERVER_INIT)
-            && ((c->tlsref.flags & XQC_CONN_FLAG_RETRY_SENT) == 0))
-        {
-            ret = c->tlsref.callbacks.tls_recv_initial(c, dcid);
-            if (ret < 0) {
-                return ret;
-            }
-        }
         ret = xqc_packet_parse_initial(c, packet_in);
         break;
     case XQC_PTYPE_0RTT:

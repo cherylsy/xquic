@@ -15,4 +15,5 @@ void xqc_test_get_random()
     int ret = xqc_get_random(rand_gen, buf, 1024);
 
     CU_ASSERT(ret == XQC_OK);
+    xqc_random_generator_destroy(rand_gen);
 }

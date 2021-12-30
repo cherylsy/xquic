@@ -144,7 +144,7 @@ void xqc_test_frame()
     CU_ASSERT(buf->consumed_len == buf->data_len);
     xqc_h3_frm_reset_pctx(&pctx);
 
-    xqc_free(buf);
+    xqc_var_buf_free(buf);
 }
 
 void xqc_test_ins()
@@ -240,8 +240,9 @@ void xqc_test_ins()
     buf->consumed_len += processed;
     CU_ASSERT(buf->consumed_len == buf->data_len);
 
-    xqc_var_buf_clear(buf);
+    xqc_var_buf_free(buf);
     xqc_ins_encoder_ctx_free(enc_ctx);
+    xqc_ins_decoder_ctx_free(dec_ctx);
 }
 
 void xqc_test_rep()
@@ -418,4 +419,8 @@ void xqc_test_stream()
     conn->conn_flag &= XQC_CONN_FLAG_CANNOT_DESTROY;
     ssize_t n_write = xqc_h3_stream_write_data_to_buffer(h3s, data, data_size, XQC_TRUE);
     CU_ASSERT(n_write == data_size);
+
+    xqc_h3_stream_destroy(h3s);
+    xqc_h3_conn_destroy(h3c);
+    xqc_destroy_stream(stream);
 }

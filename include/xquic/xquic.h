@@ -71,7 +71,7 @@ typedef enum xqc_proto_version_s {
 typedef xqc_usec_t (*xqc_timestamp_pt)(void);
 
 /**
- * @brief event timer callback function. MUST for both client and server
+ * @brief event timer callback function. MUST be set for both client and server
  * xquic don't have implementation of timer, but will tell the interval of timer by this function.
  * applications shall implement the timer, and invoke xqc_engine_main_logic after timer expires.
  *
@@ -118,7 +118,7 @@ typedef struct xqc_log_callbacks_s {
      * statistic log callback function
      *
      * this function will be triggered when write XQC_LOG_REPORT or XQC_LOG_STATS level logs.
-     * mainly when connection close, stream close, tls key derived.
+     * mainly when connection close, stream close.
      */
     void (*xqc_log_write_stat)(xqc_log_level_t lvl, const void *buf, size_t size, void *engine_user_data);
 
@@ -806,6 +806,8 @@ xqc_engine_t *xqc_engine_create(xqc_engine_type_t engine_type,
 
 /**
  * @brief destroy engine. this is called after all connections are destroyed
+ * NOTICE: MUST NOT be called in any xquic callback functions, for this function will destroy engine
+ * immediately, result in segmentation fault.
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_engine_destroy(xqc_engine_t *engine);
@@ -917,7 +919,9 @@ void xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn);
  * @param token token receive from server, xqc_save_token_pt callback
  * @param token_len
  * @param server_host server domain
- * @param no_crypto_flag 1:without crypto
+ * @param no_crypto_flag 1: without encryption on 0-RTT and 1-RTT packets. this flag will add
+ * no_crypto transport parameter when initiating a connection, which is not an official parameter
+ * and might be modified or removed
  * @param conn_ssl_config For handshake
  * @param user_data For connection
  * @param peer_addr address of peer

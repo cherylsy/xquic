@@ -20,12 +20,23 @@
 /* connection active cid limit */
 #define XQC_CONN_ACTIVE_CID_LIMIT       8
 
-
+/* version definitions */
 #define XQC_VERSION_V1_VALUE        0x00000001
 #define XQC_IDRAFT_VER_29_VALUE     0xFF00001D
-#define XQC_IDRAFT_VER_33_VALUE     0xFF000021
 
 #define XQC_PROTO_VERSION_LEN 4
+
+/* the value of max_streams transport parameter or MAX_STREAMS frame must <= 2^60 */
+#define XQC_MAX_STREAMS ((uint64_t)1 << 60)
+
+#define XQC_CONN_MAX_CRYPTO_DATA_TOTAL_LEN (10*1024*1024)
+
+/* length of stateless reset token */
+#define XQC_STATELESS_RESET_TOKENLEN 16
+
+/* max token length supported by xquic */
+#define XQC_MAX_TOKEN_LEN 256
+
 
 extern const uint32_t xqc_proto_version_value[];
 extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
@@ -34,10 +45,5 @@ extern const unsigned char xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
 #define xqc_check_proto_version_valid(ver) \
         ((ver) > XQC_IDRAFT_INIT_VER && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
 
-
-/**
- * Initial salt for handshake
- */
-extern const char* const xqc_crypto_initial_salt[];
 
 #endif

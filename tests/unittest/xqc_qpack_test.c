@@ -120,15 +120,11 @@ xqc_qpack_test_basic()
     };
 
 
-    xqc_http_header_t header_out[XQC_TEST_ENCODER_MAX_HEADERS];
-    xqc_http_headers_t hdrs_out = {
-        header_out, 0, XQC_TEST_ENCODER_MAX_HEADERS
-    };
+    xqc_http_headers_t hdrs_out;
+    xqc_h3_headers_create_buf(&hdrs_out, XQC_TEST_ENCODER_MAX_HEADERS);
 
-    xqc_http_header_t header_out2[XQC_TEST_ENCODER_MAX_HEADERS];
-    xqc_http_headers_t hdrs_out2 = {
-        header_out2, 0, XQC_TEST_ENCODER_MAX_HEADERS
-    };
+    xqc_http_headers_t hdrs_out2;
+    xqc_h3_headers_create_buf(&hdrs_out2, XQC_TEST_ENCODER_MAX_HEADERS);
 
     ssize_t read = 0;
     size_t recvd = 0;
@@ -244,6 +240,9 @@ xqc_qpack_test_basic()
     xqc_var_buf_free(enc_ins_buf_server);
     xqc_var_buf_free(dec_ins_buf_server);
 
+    xqc_h3_headers_free(&hdrs_out);
+    xqc_h3_headers_free(&hdrs_out2);
+
     xqc_qpack_destroy(qpk_client);
     xqc_qpack_destroy(qpk_server);
 
@@ -291,15 +290,11 @@ xqc_qpack_test_duplicate()
         }
     };
 
-    xqc_http_header_t header_out[XQC_TEST_ENCODER_MAX_HEADERS];
-    xqc_http_headers_t hdrs_out = {
-        header_out, 0, XQC_TEST_ENCODER_MAX_HEADERS
-    };
+    xqc_http_headers_t hdrs_out;
+    xqc_h3_headers_create_buf(&hdrs_out, XQC_TEST_ENCODER_MAX_HEADERS);
 
-    xqc_http_header_t header_out_draining[XQC_TEST_ENCODER_MAX_HEADERS];
-    xqc_http_headers_t hdrs_out_draining = {
-        header_out_draining, 0, XQC_TEST_ENCODER_MAX_HEADERS
-    };
+    xqc_http_headers_t hdrs_out_draining;
+    xqc_h3_headers_create_buf(&hdrs_out_draining, XQC_TEST_ENCODER_MAX_HEADERS);
 
 
     ssize_t read = 0;
@@ -419,6 +414,9 @@ xqc_qpack_test_duplicate()
     xqc_var_buf_free(enc_ins_buf_server);
     xqc_var_buf_free(dec_ins_buf_server);
 
+    xqc_h3_headers_free(&hdrs_out);
+    xqc_h3_headers_free(&hdrs_out_draining);
+
     xqc_qpack_destroy(qpk_client);
     xqc_qpack_destroy(qpk_server);
     xqc_engine_destroy(engine);
@@ -475,10 +473,8 @@ xqc_qpack_test_robust()
     };
 
 
-    xqc_http_header_t header_out[header_in_cnt];
-    xqc_http_headers_t hdrs_out = {
-        header_out, 0, header_in_cnt
-    };
+    xqc_http_headers_t hdrs_out;
+    xqc_h3_headers_create_buf(&hdrs_out, header_in_cnt);
 
     ssize_t read = 0;
     size_t recvd = 0;
@@ -566,6 +562,9 @@ xqc_qpack_test_robust()
     xqc_var_buf_free(efs_buf_server);
     xqc_var_buf_free(enc_ins_buf_server);
     xqc_var_buf_free(dec_ins_buf_server);
+
+    xqc_h3_headers_clear(&hdrs_in);
+    xqc_h3_headers_free(&hdrs_out);
 
     xqc_qpack_destroy(qpk_client);
     xqc_qpack_destroy(qpk_server);
