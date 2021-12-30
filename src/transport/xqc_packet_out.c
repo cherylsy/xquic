@@ -65,6 +65,7 @@ xqc_packet_out_t *
 xqc_packet_out_get(xqc_send_ctl_t *ctl)
 {
     xqc_packet_out_t *packet_out;
+    unsigned int buf_size;
     xqc_list_head_t *pos, *next;
 
     xqc_list_for_each_safe(pos, next, &ctl->ctl_free_packets) {
@@ -73,8 +74,10 @@ xqc_packet_out_get(xqc_send_ctl_t *ctl)
         xqc_send_ctl_remove_free(pos, ctl);
 
         unsigned char *tmp = packet_out->po_buf;
+        buf_size = packet_out->po_buf_size;
         memset(packet_out, 0, sizeof(xqc_packet_out_t));
         packet_out->po_buf = tmp;
+        packet_out->po_buf_size = buf_size;
         return packet_out;
     }
 
@@ -310,6 +313,7 @@ xqc_write_ack_to_one_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     }
     xqc_log(conn->log, XQC_LOG_DEBUG, "|ack_size:%ui|", ret);
 
+    packet_out->po_ack_offset = packet_out->po_used_size;
     packet_out->po_used_size += ret;
     packet_out->po_largest_ack = largest_ack;
 

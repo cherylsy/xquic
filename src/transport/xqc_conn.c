@@ -84,6 +84,7 @@ static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
     [XQC_CONN_FLAG_UPDATE_NEW_TOKEN_SHIFT]      = "UPDATE_NEW_TOKEN",
     [XQC_CONN_FLAG_VERSION_NEGOTIATION_SHIFT]   = "VERSION_NEGOTIATION",
     [XQC_CONN_FLAG_HANDSHAKE_CONFIRMED_SHIFT]   = "HSK_CONFIRMED",
+    [XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED_SHIFT]  = "HSK_DONE_ACKED",
     [XQC_CONN_FLAG_ADDR_VALIDATED_SHIFT]        = "ADDR_VALIDATED",
     [XQC_CONN_FLAG_NEW_CID_RECEIVED_SHIFT]      = "NEW_CID_RECEIVED",
     [XQC_CONN_FLAG_LINGER_CLOSING_SHIFT]        = "LINGER_CLOSING",
@@ -1382,6 +1383,11 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
     xqc_list_head_t *pos, *next;
     xqc_int_t ret;
     xqc_int_t probe_num = XQC_CONN_PTO_PKT_CNT_MAX;
+    xqc_bool_t find_hsd = XQC_FALSE;
+
+    if ((c->conn_type == XQC_CONN_TYPE_SERVER) && !(c->conn_flag & XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED)) {
+        find_hsd = XQC_TRUE;
+    }
 
     /* if only one packet is in pns unacked list, this loop will try to send this packet again */
     while (probe_num > 0) {
@@ -1395,6 +1401,10 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
             if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)
                 && XQC_NEED_REPAIR(packet_out->po_frame_types))
             {
+                if (find_hsd && !(packet_out->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)) {
+                    continue;
+                }
+
                 packet_out->po_flag |= XQC_POF_TLP;
 
                 xqc_log(c->log, XQC_LOG_DEBUG, "|conn:%p|pkt_num:%ui|size:%ud|pkt_type:%s|frame:%s|conn_state:%s|",
@@ -1409,12 +1419,21 @@ xqc_conn_send_one_or_two_ack_elicit_pkts(xqc_connection_t *c, xqc_pkt_num_space_
                 if (--probe_num == 0) {
                     break;
                 }
+
+                if (find_hsd) {
+                    find_hsd = XQC_FALSE;
+                    break;
+                }
             }
         }
 
         /* no data found in PTO pns, break and send PING */
         if (XQC_CONN_PTO_PKT_CNT_MAX == probe_num) {
-            break;
+            if (find_hsd) {
+                find_hsd = XQC_FALSE;
+            } else {
+                break;
+            }
         }
     }
 

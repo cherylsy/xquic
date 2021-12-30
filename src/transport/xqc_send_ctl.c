@@ -343,6 +343,15 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
 
     xqc_packet_out_copy(new_po, packet_out);
 
+    if ((new_po->po_ack_offset > 0) && (new_po->po_frame_types & XQC_FRAME_BIT_ACK)) {
+        new_po->po_frame_types &= ~XQC_FRAME_BIT_ACK;
+        new_po->po_used_size = new_po->po_ack_offset;
+        int ret = xqc_write_ack_to_one_packet(ctl->ctl_conn, new_po, new_po->po_pkt.pkt_pns);
+        if (ret < 0) {
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_WARN, "|xqc_write_ack_to_one_packet error|");
+        }
+    }
+
     xqc_send_ctl_insert_lost(&new_po->po_list, &ctl->ctl_lost_packets);
     ctl->ctl_packets_used++;
     packet_out->po_flag |= XQC_POF_RETRANSED;
@@ -358,6 +367,15 @@ xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t
     }
 
     xqc_packet_out_copy(new_po, packet_out);
+
+    if ((new_po->po_ack_offset > 0) && (new_po->po_frame_types & XQC_FRAME_BIT_ACK)) {
+        new_po->po_frame_types &= ~XQC_FRAME_BIT_ACK;
+        new_po->po_used_size = new_po->po_ack_offset;
+        int ret = xqc_write_ack_to_one_packet(ctl->ctl_conn, new_po, new_po->po_pkt.pkt_pns);
+        if (ret < 0) {
+            xqc_log(ctl->ctl_conn->log, XQC_LOG_WARN, "|xqc_write_ack_to_one_packet error|");
+        }
+    }
 
     xqc_send_ctl_insert_probe(&new_po->po_list, &ctl->ctl_pto_probe_packets);
     ctl->ctl_packets_used++;
@@ -1522,6 +1540,10 @@ xqc_send_ctl_on_packet_acked(xqc_send_ctl_t *ctl,
     xqc_stream_t *stream;
     xqc_packet_out_t *packet_out = acked_packet;
     xqc_connection_t *conn = ctl->ctl_conn;
+
+    if ((conn->conn_type == XQC_CONN_TYPE_SERVER) && (acked_packet->po_frame_types & XQC_FRAME_BIT_HANDSHAKE_DONE)) {
+        conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_DONE_ACKED;
+    }
 
     xqc_send_ctl_decrease_unacked_stream_ref(ctl, packet_out);
 
