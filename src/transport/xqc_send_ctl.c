@@ -346,7 +346,7 @@ xqc_send_ctl_copy_to_lost(xqc_packet_out_t *packet_out, xqc_send_ctl_t *ctl)
     if (new_po->po_ack_offset > 0 && new_po->po_frame_types & XQC_FRAME_BIT_ACK) {
         new_po->po_frame_types &= ~XQC_FRAME_BIT_ACK;
         new_po->po_used_size = new_po->po_ack_offset;
-        int ret = xqc_write_ack_to_one_packet(ctl->ctl_conn, packet_out, new_po->po_pkt.pkt_pns);
+        int ret = xqc_write_ack_to_one_packet(ctl->ctl_conn, new_po, new_po->po_pkt.pkt_pns);
         if (ret < 0) {
             xqc_log(ctl->ctl_conn->log, XQC_LOG_WARN, "|xqc_write_ack_to_one_packet error|");
         }
@@ -371,7 +371,7 @@ xqc_send_ctl_copy_to_pto_probe_list(xqc_packet_out_t *packet_out, xqc_send_ctl_t
     if (new_po->po_ack_offset > 0 && new_po->po_frame_types & XQC_FRAME_BIT_ACK) {
         new_po->po_frame_types &= ~XQC_FRAME_BIT_ACK;
         new_po->po_used_size = new_po->po_ack_offset;
-        int ret = xqc_write_ack_to_one_packet(ctl->ctl_conn, packet_out, new_po->po_pkt.pkt_pns);
+        int ret = xqc_write_ack_to_one_packet(ctl->ctl_conn, new_po, new_po->po_pkt.pkt_pns);
         if (ret < 0) {
             xqc_log(ctl->ctl_conn->log, XQC_LOG_WARN, "|xqc_write_ack_to_one_packet error|");
         }
