@@ -118,7 +118,7 @@ typedef struct xqc_h3_stream_s {
 /* transport layer callback hook */
 extern const xqc_stream_callbacks_t h3_stream_callbacks;
 
-xqc_h3_stream_t * xqc_h3_stream_create(xqc_h3_conn_t *h3c, xqc_stream_t *stream,
+xqc_h3_stream_t *xqc_h3_stream_create(xqc_h3_conn_t *h3c, xqc_stream_t *stream,
    xqc_h3_stream_type_t type, void *user_data);
 
 xqc_int_t xqc_h3_stream_close(xqc_h3_stream_t *h3s);
@@ -143,7 +143,7 @@ xqc_int_t xqc_h3_stream_send_goaway(xqc_h3_stream_t *h3s, uint64_t push_id, uint
 
 xqc_int_t xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s);
 
-xqc_var_buf_t * xqc_h3_stream_get_send_buf(xqc_h3_stream_t *h3s);
+xqc_var_buf_t *xqc_h3_stream_get_send_buf(xqc_h3_stream_t *h3s);
 
 uint64_t xqc_h3_stream_get_err(xqc_h3_stream_t *h3s);
 

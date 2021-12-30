@@ -90,7 +90,7 @@ typedef struct xqc_h3_conn_s {
 extern const xqc_conn_callbacks_t  h3_conn_callbacks;
 
 
-xqc_h3_conn_t * xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
+xqc_h3_conn_t *xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
 void xqc_h3_conn_destroy(xqc_h3_conn_t *h3c);
 
 int xqc_h3_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_cid_t *cid,
@@ -107,17 +107,16 @@ xqc_int_t xqc_h3_conn_on_uni_stream_created(xqc_h3_conn_t *h3c, uint64_t stype);
  */
 xqc_bool_t xqc_h3_conn_is_goaway_recved(xqc_h3_conn_t *h3c, uint64_t stream_id);
 
-
 xqc_int_t xqc_h3_conn_on_settings_entry_received(uint64_t identifier, uint64_t value, void *user_data);
 
 /**
  * get qpack instance
  * this is used to encode or decode http headers in xqc_h3_stream_t
  */
-xqc_qpack_t * xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c);
+xqc_qpack_t *xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c);
 
 /* add a blocked request stream */
-xqc_h3_blocked_stream_t * xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s,
+xqc_h3_blocked_stream_t *xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s,
     uint64_t ric);
 
 /* remove a blocked request stream when unblocked or abandoned */
@@ -125,7 +124,7 @@ void xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream
 
 xqc_int_t xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c);
 
-xqc_var_buf_t * xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data);
+xqc_var_buf_t *xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data);
 
 ssize_t xqc_h3_conn_send_ins(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf, void *user_data);
 

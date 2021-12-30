@@ -44,19 +44,22 @@ typedef struct xqc_h3_request_s {
 } xqc_h3_request_t;
 
 
-xqc_h3_request_t * xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data);
+xqc_h3_request_t *xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid,
+    void *user_data);
+
+xqc_h3_request_t *xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream,
+    void *user_data);
+
 void xqc_h3_request_destroy(xqc_h3_request_t *h3_request);
-xqc_h3_request_t * xqc_h3_request_create_inner(xqc_h3_conn_t *h3_conn, xqc_h3_stream_t *h3_stream, void *user_data);
 
 /**
- * @brief notify headers
+ * @brief notify events
  */
 xqc_int_t xqc_h3_request_on_recv_header(xqc_h3_request_t *h3r);
 xqc_int_t xqc_h3_request_on_recv_body(xqc_h3_request_t *h3r);
-
 xqc_int_t xqc_h3_request_on_recv_empty_fin(xqc_h3_request_t *h3r);
 
-
+/* get headers for writing */
 xqc_http_headers_t *xqc_h3_request_get_writing_headers(xqc_h3_request_t *h3r);
 
 
