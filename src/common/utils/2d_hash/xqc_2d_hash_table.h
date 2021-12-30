@@ -51,8 +51,7 @@ typedef xqc_2d_cmp_res_t (*xqc_2d_hash_table_value_cmp)(
  * @param ud user data
  * @return the handler of 2d hash table, return NULL for failure
  */
-xqc_2d_hash_table_t *
-xqc_2d_hash_table_create(size_t bkt_cnt, xqc_2d_hash_table_data_cmp dcmp, 
+xqc_2d_hash_table_t *xqc_2d_hash_table_create(size_t bkt_cnt, xqc_2d_hash_table_data_cmp dcmp, 
     xqc_2d_hash_table_value_cmp vcmp, void *ud);
 
 
@@ -60,8 +59,7 @@ xqc_2d_hash_table_create(size_t bkt_cnt, xqc_2d_hash_table_data_cmp dcmp,
  * @brief free 2d hash table
  * @param ht 2d hash table handler
  */
-void
-xqc_2d_hash_table_free(xqc_2d_hash_table_t *ht);
+void xqc_2d_hash_table_free(xqc_2d_hash_table_t *ht);
 
 
 /**
@@ -72,8 +70,8 @@ xqc_2d_hash_table_free(xqc_2d_hash_table_t *ht);
  * @param data data pointer
  * @return xqc_int_t XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_2d_hash_table_add(xqc_2d_hash_table_t *ht, uint64_t first, uint64_t second, void *data);
+xqc_int_t xqc_2d_hash_table_add(xqc_2d_hash_table_t *ht, uint64_t first, uint64_t second,
+    void *data);
 
 
 /**
@@ -84,8 +82,8 @@ xqc_2d_hash_table_add(xqc_2d_hash_table_t *ht, uint64_t first, uint64_t second, 
  * @param data data pointer
  * @return xqc_int_t XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_2d_hash_table_remove(xqc_2d_hash_table_t *ht, uint64_t first, uint64_t second, void *data);
+xqc_int_t xqc_2d_hash_table_remove(xqc_2d_hash_table_t *ht, uint64_t first, uint64_t second,
+    void *data);
 
 
 /**
@@ -99,8 +97,7 @@ xqc_2d_hash_table_remove(xqc_2d_hash_table_t *ht, uint64_t first, uint64_t secon
  * @return comparasion result, XQC_2D_CMP_RES_2D for both dimensions are matched, XQC_2D_CMP_RES_1D
  * for only first dimension is matched, XQC_2D_CMP_RES_NONE for none matched
  */
-xqc_2d_cmp_res_t
-xqc_2d_hash_lookup(xqc_2d_hash_table_t *ht, uint64_t h1, void *v1, size_t len1,
+xqc_2d_cmp_res_t xqc_2d_hash_lookup(xqc_2d_hash_table_t *ht, uint64_t h1, void *v1, size_t len1,
     uint64_t h2, void *v2, size_t len2, void **data);
 
 
