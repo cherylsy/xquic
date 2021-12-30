@@ -279,17 +279,10 @@ xqc_ring_mem_cmp(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t idx, uint8_t *data, si
 }
 
 
-
-/*  
-    TODO:
-    比如有一块超大内存块，duplicate的话，总大小会超过rmem容量，但是它以及它之前的条目都没有被引用，
-    这是可以覆盖的，但是被覆盖掉的条目index需要通知给外部，以便从相关数据结构中删除这些节点
-    外层判断duplicate是否覆盖，如果覆盖，则逐一弹出条目，直到offset相等，或者尺寸够大
-    条目相等，也就是说duplicate的条目是第一个，因此直接平移内存即可 */
 xqc_bool_t
 xqc_ring_mem_can_duplicate(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t ori_idx, size_t len)
 {
-    if (/* rmem->sidx != ori_idx &&*/ (rmem->used + len > rmem->capacity)) {
+    if (rmem->used + len > rmem->capacity) {
         return XQC_FALSE;
     }
 

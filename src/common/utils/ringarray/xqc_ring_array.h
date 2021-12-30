@@ -31,9 +31,15 @@ void xqc_rarray_destroy(xqc_rarray_t *ra);
 void *xqc_rarray_get(xqc_rarray_t *ra, uint64_t idx);
 
 
+/**
+ * @brief get the count of elements
+ */
 size_t xqc_rarray_size(xqc_rarray_t *ra);
 
 
+/**
+ * @brief get front element
+ */
 void *xqc_rarray_front(xqc_rarray_t *ra);
 
 
@@ -46,13 +52,20 @@ void *xqc_rarray_front(xqc_rarray_t *ra);
 void *xqc_rarray_push(xqc_rarray_t *ra);
 
 
-/* pop element from the front of array */
+/**
+ * @brief pop element from the front of array
+ */
 xqc_int_t xqc_rarray_pop_front(xqc_rarray_t *ra);
 
+/**
+ * @brief pop element from the end of array
+ */
 xqc_int_t xqc_rarray_pop_back(xqc_rarray_t *ra);
 
 
-/* resize ring array */
+/**
+ * @brief resize ring array
+ */
 xqc_int_t xqc_rarray_resize(xqc_rarray_t *ra, uint64_t cap);
 
 #endif

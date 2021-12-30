@@ -32,17 +32,18 @@ void xqc_ring_mem_free(xqc_ring_mem_t *rmem);
 
 
 /**
- * @brief 
- * 
+ * @brief resize a ring memory
+ * @param rmem ring memory
+ * @param cap new capacity
+ * @return XQC_OK for success, others for failure
  */
 xqc_int_t xqc_ring_mem_resize(xqc_ring_mem_t *rmem, size_t cap);
 
 
 /**
- * @brief 
- * 
- * @param rmem 
- * @return size_t 
+ * @brief get the used size of ring memory
+ * @param rmem ring memory object
+ * @return used size
  */
 size_t xqc_ring_mem_used_size(xqc_ring_mem_t *rmem);
 
@@ -91,10 +92,6 @@ xqc_int_t xqc_ring_mem_undo(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t idx, size_t
 
 /**
  * @brief compare a memory block with input data
- * @param rmem 
- * @param start_index 
- * @param data 
- * @param len 
  * @return same semantic result with memcmp
  */
 int xqc_ring_mem_cmp(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t idx, uint8_t *data, size_t len);
@@ -102,10 +99,10 @@ int xqc_ring_mem_cmp(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t idx, uint8_t *data
 
 /**
  * @brief duplicate a memory block to the end of ring memory
- * @param rmem 
- * @param ori_idx 
- * @param len 
- * @param new_idx 
+ * @param rmem ring memory
+ * @param ori_idx index of source memory block
+ * @param len length of memory block
+ * @param new_idx [out] the index of duplicated memory block
  * @return xqc_int_t 
  */
 xqc_int_t xqc_ring_mem_duplicate(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t ori_idx, size_t len,

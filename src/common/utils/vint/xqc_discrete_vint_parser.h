@@ -13,14 +13,19 @@ typedef struct {
     size_t      left;   /* bytes needs to be read to finish the vint */
 } xqc_discrete_vint_pctx_t;
 
+
 /**
- * parse vint from buffers which might be truncated
+ * @brief reset parse context
+ */
+void xqc_h3_vint_pctx_clear(xqc_discrete_vint_pctx_t *pctx);
+
+/**
+ * @brief parse vint from buffers which might be truncated
  * @param p:    input buffer
  * @param sz:   buffer size
  * @param st:   parse state
  * @param fin:  output for parse finished
  */
-void xqc_h3_vint_pctx_clear(xqc_discrete_vint_pctx_t *pctx);
 ssize_t xqc_discrete_vint_parse(const uint8_t *p, size_t sz, xqc_discrete_vint_pctx_t *s,
     xqc_bool_t *fin);
 
