@@ -225,9 +225,9 @@ xqc_log_time(char *buf)
 #ifdef WIN32
     time_t t = tv.tv_sec;
 #ifdef _USE_32BIT_TIME_T
-	_localtime32_s(&tm, &t);
+    _localtime32_s(&tm, &t);
 #else
-	_localtime64_s(&tm, &t);
+    _localtime64_s(&tm, &t);
 #endif
 
 #else

@@ -99,8 +99,8 @@ typedef enum {
 
 #ifdef WIN32
 struct iovec {
-	void *   iov_base;	/* [XSI] Base address of I/O memory region */
-	size_t	 iov_len;	/* [XSI] Size of region iov_base points to */
+    void   *iov_base;   /* [XSI] Base address of I/O memory region */
+    size_t  iov_len;    /* [XSI] Size of region iov_base points to */
 };
 #endif
 

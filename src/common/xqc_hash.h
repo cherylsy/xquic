@@ -106,7 +106,7 @@ xqc_md5_update(xqc_md5_t *ctx, const void *data, size_t size)
         size &= 0x3f;
     }
 
-	memcpy(ctx->buffer, data, size);
+    memcpy(ctx->buffer, data, size);
 }
 
 static inline void

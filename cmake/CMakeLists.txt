@@ -24,7 +24,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Debug)
     set(DYNAMIC_COMPILE_FLAGS ${COMMON_DEBUG_FLAGS})
 elseif(CMAKE_BUILD_TYPE STREQUAL Minsizerel)
     set(DYNAMIC_COMPILE_FLAGS ${COMMON_MIN_FLAGS})
-	set(DYMAMIC_LINK_OPTION "-Wl,--gc-sections")
+    set(DYMAMIC_LINK_OPTION "-Wl,--gc-sections")
 endif()
 
 
@@ -42,9 +42,9 @@ endif()
 
 if(ANDROID)
     set(DYMAMIC_LINK_OPTION 
-		${DYMAMIC_LINK_OPTION}
-		-lm
-		-llog)
+        ${DYMAMIC_LINK_OPTION}
+        -lm
+        -llog)
     if(NOT ANDROID_TOOLCHAIN_ROOT)
         message(FATAL_ERROR  "You Must Define DANDROID_TOOLCHAIN_ROOT")
     endif()
