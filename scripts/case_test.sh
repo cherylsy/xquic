@@ -945,7 +945,7 @@ sleep 1
 client_print_res=`./test_client -s 1024000 -l d -t 1 -x 22 -E | grep ">>>>>>>> pass"`
 errlog=`grep_err_log`
 server_log_res=`grep "decrypt payload error" slog`
-server_conn_cnt=`grep "xqc_conn_create" slog | wc -l`
+server_conn_cnt=`grep "xqc_conn_create" slog | grep -v "tra_parameters_set" | wc -l`
 echo "$client_print_res"
 if [ "$client_print_res" != "" ] && [ "$server_log_res" != "" ] && [ $server_conn_cnt -eq 2 ]; then
     case_print_result "client_initial_dcid_corruption" "pass"
