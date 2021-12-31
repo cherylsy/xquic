@@ -1111,18 +1111,17 @@ xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_l
 
     xqc_list_for_each_safe(pos, next, &engine->alpn_reg_list) {
         alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
-        if (alpn_len == alpn_reg->alpn_len
+        if (alpn_reg && alpn_len == alpn_reg->alpn_len
             && xqc_memcmp(alpn, alpn_reg->alpn, alpn_len) == 0)
         {
-            /* remove registration */
-            if (alpn_reg) {
-                if (alpn_reg->alpn) {
-                    xqc_free(alpn_reg->alpn);
-                }
+            xqc_list_del(&alpn_reg->head);
 
-                xqc_list_del(&alpn_reg->head);
-                xqc_free(alpn_reg);
+            /* remove registration */
+            if (alpn_reg->alpn) {
+                xqc_free(alpn_reg->alpn);
             }
+
+            xqc_free(alpn_reg);
 
             return xqc_tls_ctx_unregister_alpn(engine->tls_ctx, alpn, alpn_len);
         }
@@ -1166,12 +1165,12 @@ xqc_engine_free_alpn_list(xqc_engine_t *engine)
     xqc_list_for_each_safe(pos, next, &engine->alpn_reg_list) {
         alpn_reg = xqc_list_entry(pos, xqc_alpn_registration_t, head);
 
-        xqc_list_del(&alpn_reg->head);
         if (alpn_reg) {
             if (alpn_reg->alpn) {
                 xqc_free(alpn_reg->alpn);
             }
 
+            xqc_list_del(&alpn_reg->head);
             xqc_free(alpn_reg);
         }
     }
