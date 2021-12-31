@@ -1598,11 +1598,11 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         recv_size = recvfrom(user_conn->fd, 
                              packet_buf, sizeof(packet_buf), 0, 
                              user_conn->peer_addr, &user_conn->peer_addrlen);
-        if (recv_size < 0 && errno == EAGAIN && recv_size > XQC_PACKET_TMP_BUF_LEN) {
+        if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
 
-        if (recv_size < 0) {
+        if (recv_size < 0 || recv_size > XQC_PACKET_TMP_BUF_LEN) {
             printf("recvfrom: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
         }

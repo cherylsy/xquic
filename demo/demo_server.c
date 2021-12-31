@@ -940,7 +940,7 @@ xqc_demo_svr_socket_read_handler(xqc_demo_svr_ctx_t *ctx, int fd)
             break;
         }
 
-        if (recv_size < 0) {
+        if (recv_size < 0 || recv_size > XQC_PACKET_TMP_BUF_LEN) {
             printf("!!!!!!!!!recvfrom: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
             break;
         }
