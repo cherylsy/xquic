@@ -110,7 +110,4 @@ int main()
         printf("CUnit Error: %s\n", CU_get_error_msg());
         return (int)CU_get_error();
     }
-
-    CU_cleanup_registry();
-    return (int)CU_get_error();
 }

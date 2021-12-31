@@ -15,6 +15,7 @@
 #include <xquic/xquic_typedef.h>
 #include <xquic/xquic.h>
 #include <xquic/xqc_http3.h>
+#include <time.h>
 
 int
 printf_null(const char *format, ...)
@@ -525,7 +526,9 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
         }
     }
 
-    memset(user_stream->send_body, 0, user_stream->send_body_len);
+    if (user_stream->send_body) {
+        memset(user_stream->send_body, 0, user_stream->send_body_len);
+    }
 
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset,
@@ -899,8 +902,11 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
     user_conn_t *user_conn = calloc(1, sizeof(*user_conn));
     xqc_conn_set_transport_user_data(conn, user_conn);
 
-    xqc_conn_get_peer_addr(conn, (struct sockaddr *)&user_conn->peer_addr,
-                           sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
+    xqc_int_t ret = xqc_conn_get_peer_addr(conn, (struct sockaddr *)&user_conn->peer_addr,
+                                           sizeof(user_conn->peer_addr), &user_conn->peer_addrlen);
+    if (ret != XQC_OK) {
+        return -1;
+    }
 
     memcpy(&user_conn->cid, cid, sizeof(*cid));
 
@@ -922,7 +928,7 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
     int type = g_ipv6 ? AF_INET6 : AF_INET;
     ctx.local_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
     struct sockaddr *saddr = (struct sockaddr *)&ctx.local_addr;
-
+    int size;
     int optval;
 
     fd = socket(type, SOCK_DGRAM, 0);
@@ -942,7 +948,7 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
         goto err;
     }
 
-    int size = 1 * 1024 * 1024;
+    size = 1 * 1024 * 1024;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;

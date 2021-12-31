@@ -23,8 +23,8 @@ xqc_test_vint()
         xqc_vint_write(buff, test[i], bits, len);
 
         uint64_t val;
-        xqc_vint_read(buff, buff+len, &val);
+        int ret = xqc_vint_read(buff, buff+len, &val);
 
-        CU_ASSERT(test[i] == val);
+        CU_ASSERT(test[i] == val && ret == len);
     }
 }

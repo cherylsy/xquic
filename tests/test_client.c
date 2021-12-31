@@ -1238,6 +1238,10 @@ xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
         fin = 0;
     }
 
+    if (user_stream->send_body) {
+        memset(user_stream->send_body, 0, user_stream->send_body_len);
+    }
+
     /* send body */
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
@@ -1509,6 +1513,7 @@ xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
         user_stream->h3_request = xqc_h3_request_create(ctx.engine, &user_conn->cid, user_stream);
         if (user_stream->h3_request == NULL) {
             printf("xqc_h3_request_create error\n");
+            free(user_stream);
             return 0;
         }
 
@@ -1593,7 +1598,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         recv_size = recvfrom(user_conn->fd, 
                              packet_buf, sizeof(packet_buf), 0, 
                              user_conn->peer_addr, &user_conn->peer_addrlen);
-        if (recv_size < 0 && errno == EAGAIN) {
+        if (recv_size < 0 && errno == EAGAIN && recv_size > XQC_PACKET_TMP_BUF_LEN) {
             break;
         }
 
@@ -1630,7 +1635,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
 
         if (g_test_case == 8) { /* packet with wrong cid */
             g_test_case = -1;
-            recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1;
+            recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_A) - 1;
             memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_A, recv_size);
         }
 
@@ -1643,9 +1648,8 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
 
         if (g_test_case == 10) { /* illegal packet */
             g_test_case = -1;
-            recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_B)-1;
-            memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_B,
-            recv_size);
+            recv_size = sizeof(XQC_TEST_SHORT_HEADER_PACKET_B) - 1;
+            memcpy(packet_buf, XQC_TEST_SHORT_HEADER_PACKET_B, recv_size);
         }
 
         /* amplification limit */

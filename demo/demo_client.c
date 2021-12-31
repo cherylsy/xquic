@@ -922,7 +922,7 @@ xqc_demo_cli_socket_read_handler(xqc_demo_cli_user_conn_t *user_conn)
     ssize_t recv_size = 0;
     ssize_t recv_sum = 0;
     struct sockaddr addr;
-    socklen_t addr_len;
+    socklen_t addr_len = 0;
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
     do {
         recv_size = recvfrom(user_conn->fd, packet_buf, sizeof(packet_buf), 0,
@@ -1180,8 +1180,9 @@ xqc_demo_cli_parse_server_addr(char *url, xqc_demo_cli_net_config_t *cfg)
         inet_ntop(result->ai_family, &(((struct sockaddr_in*)result->ai_addr)->sin_addr),
             cfg->server_addr, sizeof(cfg->server_addr));
     }
-    
+
     printf("server[%s] addr: %s:%d.\n", cfg->host, cfg->server_addr, cfg->server_port);
+    freeaddrinfo(result);
 }
 
 void

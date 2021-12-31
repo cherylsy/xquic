@@ -150,9 +150,9 @@ xqc_test_ring_array_resize()
 
     for (size_t i = 0; i < 16; i++) {
         node = (xqc_rarray_test_node_t *)xqc_rarray_push(ra);
+        CU_ASSERT(node != NULL);
         node->idx = i;
         node->value = i;
-        CU_ASSERT(node != NULL);
     }
 
     ret = xqc_rarray_resize(ra, 8);
