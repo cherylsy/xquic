@@ -268,7 +268,7 @@ int
 read_file_data( char * data, size_t data_len, char *filename)
 {
     int ret = 0;
-    size_t total_len;
+    size_t total_len, read_len;
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
         ret = -1;
@@ -276,7 +276,7 @@ read_file_data( char * data, size_t data_len, char *filename)
     }
 
     fseek(fp, 0 , SEEK_END);
-    size_t total_len = ftell(fp);
+    total_len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     if (total_len > data_len) {
         ret = -1;

@@ -785,7 +785,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
     socklen_t peer_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
     ssize_t recv_size = 0;
     unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
-    uint64_t recv_time；
+    uint64_t recv_time;
 
 #ifdef __linux__
     int batch = 0; /* packets are not necessarily on the same connection */

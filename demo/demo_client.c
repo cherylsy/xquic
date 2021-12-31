@@ -1848,7 +1848,7 @@ xqc_demo_cli_get_idle_waiting_task(xqc_demo_cli_ctx_t *ctx)
 static int
 xqc_demo_cli_create_socket(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_net_config_t* cfg)
 {
-    int size；
+    int size;
     int fd = 0;
     struct sockaddr *addr = (struct sockaddr*)&cfg->addr;
     fd = socket(addr->sa_family, SOCK_DGRAM, 0);
