@@ -1,5 +1,5 @@
 /**
- * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
  */
 
 #include "src/common/xqc_memory_pool.h"

@@ -1,5 +1,5 @@
 /**
- * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
  */
 
 #include "src/congestion_control/xqc_sample.h"

@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Alibaba Group Holding Limited
+# Copyright (c) 2022, Alibaba Group Holding Limited
 
 cmake_minimum_required (VERSION 2.6)
 project (xquic)

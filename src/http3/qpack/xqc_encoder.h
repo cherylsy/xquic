@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2021, Alibaba Group Holding Limited
+ * Copyright (c) 2022, Alibaba Group Holding Limited
  *
  * @brief encoder is responsible for:
  * 1. encode http headers into encoded field section

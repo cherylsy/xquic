@@ -1,4 +1,4 @@
-# Copyright (c) 2021, Alibaba Group Holding Limited
+# Copyright (c) 2022, Alibaba Group Holding Limited
 #!/bin/sh
 
 android_archs=(armeabi-v7a arm64-v8a)

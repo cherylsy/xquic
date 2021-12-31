@@ -1,5 +1,5 @@
 /**
- * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
  *
  * @brief xqc_ring_mem_t isa ring memory used to store bytes in a contious buf with fixed capacity.
  * every inserted memory block got an unique index (xqc_ring_mem_idx_t), which acts as the handler

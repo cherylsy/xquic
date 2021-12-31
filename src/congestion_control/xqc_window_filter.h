@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2021, Alibaba Group Holding Limited
+ * Copyright (c) 2022, Alibaba Group Holding Limited
  *
  * Implements Kathleen Nichols' algorithm for tracking the minimum (or maximum)
  * estimate of a stream of samples over some fixed time interval
