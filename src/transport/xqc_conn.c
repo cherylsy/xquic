@@ -409,8 +409,9 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
     socklen_t local_addrlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
     xqc_cid_t *dcid, xqc_cid_t *scid, xqc_conn_settings_t *settings, void *user_data)
 {
-    xqc_connection_t *conn;
-    xqc_cid_t new_scid;
+    xqc_int_t           ret;
+    xqc_connection_t   *conn;
+    xqc_cid_t           new_scid;
 
     xqc_cid_copy(&new_scid, scid);
 
@@ -457,7 +458,7 @@ xqc_conn_server_create(xqc_engine_t *engine, const struct sockaddr *local_addr,
     conn->local_addrlen = local_addrlen;
     conn->peer_addrlen = peer_addrlen;
 
-    xqc_int_t ret = xqc_conn_create_server_tls(conn);
+    ret = xqc_conn_create_server_tls(conn);
     if (ret != XQC_OK) {
         goto fail;
     }

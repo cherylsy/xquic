@@ -268,6 +268,7 @@ int
 read_file_data( char * data, size_t data_len, char *filename)
 {
     int ret = 0;
+    size_t total_len;
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
         ret = -1;
@@ -282,17 +283,19 @@ read_file_data( char * data, size_t data_len, char *filename)
         goto end;
     }
 
-    size_t read_len = fread(data, 1, total_len, fp);
+    read_len = fread(data, 1, total_len, fp);
     if (read_len != total_len) {
         ret = -1;
         goto end;
     }
 
+    ret = read_len;
+
 end:
     if (fp) {
         fclose(fp);
     }
-    return read_len;
+    return ret;
 }
 
 int g_send_total = 0;
@@ -413,6 +416,7 @@ static int
 xqc_client_create_socket(int type, 
     const struct sockaddr *saddr, socklen_t saddr_len)
 {
+    int size;
     int fd = -1;
 
     /* create fd & set socket option */
@@ -427,11 +431,12 @@ xqc_client_create_socket(int type,
         goto err;
     }
 
-    int size = 1 * 1024 * 1024;
+    size = 1 * 1024 * 1024;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
     }
+
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;

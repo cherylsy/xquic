@@ -664,6 +664,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
     xqc_int_t ret;
     xqc_bool_t blocked = XQC_FALSE;
     xqc_http_headers_t *hdrs = NULL;
+    xqc_var_buf_t *buf;
 
     if (data_len == 0) {
         if (fin_flag) {
@@ -781,7 +782,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
             case XQC_H3_FRM_DATA:
                 len = xqc_min(pctx->frame.len - pctx->frame.consumed_len, data_len - processed);
-                xqc_var_buf_t *buf = xqc_var_buf_create(len);
+                buf = xqc_var_buf_create(len);
                 if (buf == NULL) {
                     return -XQC_EMALLOC;
                 }

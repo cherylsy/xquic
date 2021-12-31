@@ -985,6 +985,8 @@ static int
 xqc_demo_svr_init_socket(int family, uint16_t port, 
         struct sockaddr *local_addr, socklen_t local_addrlen)
 {
+    int size;
+    int opt_reuseaddr;
     int fd = socket(family, SOCK_DGRAM, 0);
     if (fd < 0) {
         printf("create socket failed, errno: %d\n", errno);
@@ -998,14 +1000,14 @@ xqc_demo_svr_init_socket(int family, uint16_t port,
     }
 
     /* reuse port */
-    int opt_reuseaddr = 1;
+    opt_reuseaddr = 1;
     if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &opt_reuseaddr, sizeof(opt_reuseaddr)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
     }
 
     /* send/recv buffer size */
-    int size = 1 * 1024 * 1024;
+    size = 1 * 1024 * 1024;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;

@@ -130,6 +130,7 @@ int
 read_file_data( char * data, size_t data_len, char *filename)
 {
     int ret = 0;
+    size_t total_len, read_len;
     FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
         ret = -1;
@@ -137,24 +138,26 @@ read_file_data( char * data, size_t data_len, char *filename)
     }
 
     fseek(fp, 0 , SEEK_END);
-    size_t total_len = ftell(fp);
+    total_len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     if (total_len > data_len) {
         ret = -1;
         goto end;
     }
 
-    size_t read_len = fread(data, 1, total_len, fp);
+    read_len = fread(data, 1, total_len, fp);
     if (read_len != total_len) {
         ret = -1;
         goto end;
     }
 
+    ret = read_len;
+
 end:
     if (fp) {
         fclose(fp);
     }
-    return read_len;
+    return ret;
 
 }
 
@@ -780,6 +783,10 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
     ssize_t recv_sum = 0;
     struct sockaddr_in6 peer_addr;
     socklen_t peer_addrlen = g_ipv6 ? sizeof(struct sockaddr_in6) : sizeof(struct sockaddr_in);
+    ssize_t recv_size = 0;
+    unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
+    uint64_t recv_time；
+
 #ifdef __linux__
     int batch = 0; /* packets are not necessarily on the same connection */
     if (batch) {
@@ -830,10 +837,6 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
     }
 #endif
 
-    ssize_t recv_size = 0;
-
-    unsigned char packet_buf[XQC_PACKET_TMP_BUF_LEN];
-
     do {
         recv_size = recvfrom(ctx->fd, packet_buf, sizeof(packet_buf), 0, (struct sockaddr *) &peer_addr,
                              &peer_addrlen);
@@ -858,7 +861,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
 
         recv_sum += recv_size;
 
-        uint64_t recv_time = now();
+        recv_time = now();
         //printf("xqc_server_read_handler recv_size=%zd, recv_time=%llu, now=%llu, recv_total=%d\n", recv_size, recv_time, now(), ++g_recv_total);
         /*printf("peer_ip: %s, peer_port: %d\n", inet_ntoa(ctx->peer_addr.sin_addr), ntohs(ctx->peer_addr.sin_port));
         printf("local_ip: %s, local_port: %d\n", inet_ntoa(ctx->local_addr.sin_addr), ntohs(ctx->local_addr.sin_port));*/

@@ -1848,6 +1848,7 @@ xqc_demo_cli_get_idle_waiting_task(xqc_demo_cli_ctx_t *ctx)
 static int
 xqc_demo_cli_create_socket(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_net_config_t* cfg)
 {
+    int size；
     int fd = 0;
     struct sockaddr *addr = (struct sockaddr*)&cfg->addr;
     fd = socket(addr->sa_family, SOCK_DGRAM, 0);
@@ -1861,11 +1862,12 @@ xqc_demo_cli_create_socket(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_net
         goto err;
     }
 
-    int size = 1 * 1024 * 1024;
+    size = 1 * 1024 * 1024;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
     }
+
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;

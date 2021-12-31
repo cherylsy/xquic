@@ -205,6 +205,10 @@ xqc_client_create_connection(xqc_engine_t *engine, xqc_cid_t dcid, xqc_cid_t sci
     const xqc_conn_settings_t *settings, const char *server_host, int no_crypto_flag,
     const xqc_conn_ssl_config_t *conn_ssl_config, const char *alpn, void *user_data)
 {
+    xqc_int_t               ret;
+    xqc_transport_params_t  tp;
+    xqc_trans_settings_t   *local_settings;
+
     xqc_connection_t *xc = xqc_conn_create(engine, &dcid, &scid, settings, user_data,
                                            XQC_CONN_TYPE_CLIENT);
     if (xc == NULL) {
@@ -221,7 +225,7 @@ xqc_client_create_connection(xqc_engine_t *engine, xqc_cid_t dcid, xqc_cid_t sci
     }
 
     /* set no crypto option */
-    xqc_trans_settings_t *local_settings = &xc->local_settings;
+    local_settings = &xc->local_settings;
     if (no_crypto_flag == 1) {
         local_settings->no_crypto = XQC_TRUE;  /* no_crypto 1 means do not crypto*/
 
@@ -238,9 +242,8 @@ xqc_client_create_connection(xqc_engine_t *engine, xqc_cid_t dcid, xqc_cid_t sci
     if (conn_ssl_config->transport_parameter_data
         && conn_ssl_config->transport_parameter_data_len > 0)
     {
-        xqc_transport_params_t tp;
         xqc_memzero(&tp, sizeof(xqc_transport_params_t));
-        xqc_int_t ret = xqc_read_transport_params(conn_ssl_config->transport_parameter_data,
+        ret = xqc_read_transport_params(conn_ssl_config->transport_parameter_data,
                                                   conn_ssl_config->transport_parameter_data_len, &tp);
         if (ret == XQC_OK) {
             xqc_conn_set_early_remote_transport_params(xc, &tp);

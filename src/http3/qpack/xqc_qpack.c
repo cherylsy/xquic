@@ -111,7 +111,8 @@ xqc_qpack_destroy(xqc_qpack_t *qpk)
 static inline xqc_int_t
 xqc_qpack_notify_set_dtable_cap(xqc_qpack_t *qpk, uint64_t cap)
 {
-    xqc_var_buf_t *buf = qpk->ins_cb.get_buf_cb(XQC_INS_TYPE_ENCODER, qpk->user_data);
+    ssize_t         cb_ret;
+    xqc_var_buf_t  *buf = qpk->ins_cb.get_buf_cb(XQC_INS_TYPE_ENCODER, qpk->user_data);
     if (NULL == buf) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|get encoder instruction error|");
         return -XQC_ENOBUF;
@@ -126,7 +127,7 @@ xqc_qpack_notify_set_dtable_cap(xqc_qpack_t *qpk, uint64_t cap)
     xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT,
                   XQC_INS_TYPE_ENC_SET_DTABLE_CAP, cap);
 
-    ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, buf, qpk->user_data);
+    cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, buf, qpk->user_data);
     if (cb_ret < 0) {
         xqc_log(qpk->log, XQC_LOG_ERROR, "|encoder instruction callback error|ret:%z|", cb_ret);
         ret = cb_ret;
