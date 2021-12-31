@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #ifndef _XQC_RECV_RECORD_H_INCLUDED_
 #define _XQC_RECV_RECORD_H_INCLUDED_
 

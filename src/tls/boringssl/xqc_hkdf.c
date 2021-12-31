@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include "src/tls/xqc_hkdf.h"
 #include <openssl/hkdf.h>
 #include <openssl/err.h>

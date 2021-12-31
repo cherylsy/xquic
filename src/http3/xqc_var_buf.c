@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include <stdint.h>
 #include "src/http3/xqc_var_buf.h"
 

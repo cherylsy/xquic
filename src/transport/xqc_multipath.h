@@ -1,4 +1,8 @@
 
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #ifndef XQC_MULTIPATH_H
 #define XQC_MULTIPATH_H
 

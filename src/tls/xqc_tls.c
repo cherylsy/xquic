@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include "xqc_tls.h"
 #include "xqc_tls_ctx.h"
 #include "xqc_ssl_if.h"

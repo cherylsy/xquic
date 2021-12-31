@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #ifndef _XQC_PACKET_OUT_H_INCLUDED_
 #define _XQC_PACKET_OUT_H_INCLUDED_
@@ -8,20 +11,16 @@
 #include "src/tls/xqc_tls_defs.h"
 
 /*
- * https://tools.ietf.org/html/draft-ietf-quic-transport-20#section-14.1
-   In the absence of these mechanisms, QUIC endpoints SHOULD NOT send IP
-   packets larger than 1280 bytes.  Assuming the minimum IP header size,
-   this results in a QUIC maximum packet size of 1232 bytes for IPv6 and
-   1252 bytes for IPv4.  A QUIC implementation MAY be more conservative
-   in computing the QUIC maximum packet size to allow for unknown tunnel
-   overheads or IP header options/extensions.
+ * https://datatracker.ietf.org/doc/html/rfc9000#section-14.2
+ * In the absence of these mechanisms, QUIC endpoints SHOULD NOT send
+ * datagrams larger than the smallest allowed maximum datagram size.
  */
-#define XQC_PACKET_OUT_SIZE XQC_QUIC_MSS  /* without XQC_EXTRA_SPACE & XQC_ACK_SPACE */
-#define XQC_EXTRA_SPACE XQC_TLS_AEAD_OVERHEAD_MAX_LEN
-#define XQC_ACK_SPACE 16
-#define XQC_PACKET_OUT_SIZE_EXT (XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE)
+#define XQC_PACKET_OUT_SIZE         XQC_QUIC_MSS  /* without XQC_EXTRA_SPACE & XQC_ACK_SPACE */
+#define XQC_EXTRA_SPACE             XQC_TLS_AEAD_OVERHEAD_MAX_LEN
+#define XQC_ACK_SPACE               16
+#define XQC_PACKET_OUT_SIZE_EXT     (XQC_PACKET_OUT_SIZE + XQC_EXTRA_SPACE + XQC_ACK_SPACE)
 
-#define XQC_MAX_STREAM_FRAME_IN_PO 3
+#define XQC_MAX_STREAM_FRAME_IN_PO  3
 
 typedef enum {
     XQC_POF_IN_FLIGHT        = 1 << 0,

@@ -1,5 +1,9 @@
-#ifndef xqc_pq_test_h
-#define xqc_pq_test_h
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
+#ifndef XQC_PQ_TEST_H
+#define XQC_PQ_TEST_H
 
 #include "src/common/xqc_priority_q.h"
 

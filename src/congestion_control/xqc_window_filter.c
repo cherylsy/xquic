@@ -1,8 +1,13 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include "src/congestion_control/xqc_window_filter.h"
 
-/**As time advances, update the 3 estimate value 
+/**
+ * As time advances, update the 3 estimate value 
  * Check the third value was in the window on entry
-*/
+ */
 static uint32_t xqc_win_filter_update(xqc_win_filter_t *w, 
                                       uint32_t win,
                                       struct xqc_win_sample *nsample)

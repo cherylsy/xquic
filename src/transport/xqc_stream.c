@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include "src/common/xqc_memory_pool.h"
 #include "src/common/xqc_id_hash.h"
 #include "src/transport/xqc_conn.h"

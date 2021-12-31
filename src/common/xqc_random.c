@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include <sys/types.h>
 #include <sys/stat.h>

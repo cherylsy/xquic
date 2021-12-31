@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include "src/congestion_control/xqc_bbr.h"
 #include "src/congestion_control/xqc_bbr2.h"

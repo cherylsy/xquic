@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include <xquic/xquic_typedef.h>
 #include "src/http3/xqc_h3_conn.h"

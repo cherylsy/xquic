@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #ifndef _XQC_H_CONFIG_INCLUDED_
 #define _XQC_H_CONFIG_INCLUDED_
 
@@ -30,6 +34,6 @@
 #define XQC_MAX_UINT64_VALUE  (uint64_t) 0xffffffffffffffff
 #define XQC_MAX_INT64_VALUE   (uint64_t) 0x7fffffffffffffff
 
-#define XQC_MICROS_PER_SECOND   1000000 /* 1s=1000000us */
+#define XQC_MICROS_PER_SECOND 1000000   /* 1s=1000000us */
 
 #endif /*_XQC_H_CONFIG_INCLUDED_*/

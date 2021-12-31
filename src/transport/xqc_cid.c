@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include <xquic/xquic.h>
 #include "src/transport/xqc_cid.h"

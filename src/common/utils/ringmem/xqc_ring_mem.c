@@ -1,12 +1,17 @@
-#include "xqc_ring_mem.h"
-
-
 /**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ *
  * @brief xqc_ring_mem_t isa ring memory used to store bytes in a contious buf with fixed capacity.
  * every inserted memory block got an unique index (xqc_ring_mem_idx_t), which acts as the handler
  * of a memory block.
  * the index is monotone increasing. this class use two monotone increasing numbers, sidx and eidx,
  * to remember the allocation status of index, and calculate the begin and end offset of used buf.
+ */
+
+#include "xqc_ring_mem.h"
+
+
+/**
  */
 typedef struct xqc_ring_mem_s {
     /* original memory */

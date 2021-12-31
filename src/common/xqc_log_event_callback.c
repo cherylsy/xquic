@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include "xqc_log_event_callback.h"
 #include "src/transport/xqc_conn.h"
 #include "src/transport/xqc_stream.h"

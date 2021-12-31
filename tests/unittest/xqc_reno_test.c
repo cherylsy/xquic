@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include "xqc_reno_test.h"
 #include "src/congestion_control/xqc_new_reno.h"
@@ -8,7 +11,6 @@
 void
 print_reno(xqc_new_reno_t *reno)
 {
-
 #ifdef DEBUG_PRINT
     printf("cwnd:%u, ssthresh:%u, recovery_start_time:%llu\n",
            reno->reno_congestion_window, reno->reno_ssthresh, reno->reno_recovery_start_time);

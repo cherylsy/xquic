@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #ifndef _XQC_SEND_CTL_H_INCLUDED_
 #define _XQC_SEND_CTL_H_INCLUDED_

@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #ifndef _XQUIC_TYPEDEF_H_INCLUDED_
 #define _XQUIC_TYPEDEF_H_INCLUDED_

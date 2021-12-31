@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include <CUnit/CUnit.h>
 #include "xqc_wakeup_pq_test.h"
 #include "src/transport/xqc_wakeup_pq.h"

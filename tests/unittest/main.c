@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include <stdio.h>
 #include <string.h>
 #include <CUnit/Basic.h>

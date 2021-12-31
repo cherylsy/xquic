@@ -1,9 +1,11 @@
 /**
- * @file xqc_encoder.h
+ * Copyright (C) 2021, Alibaba Group Holding Limited
+ *
  * @brief encoder is responsible for:
  * 1. encode http headers into encoded field section
  * 2. respond to decoder instructions
  */
+
 #ifndef _XQC_ENCODER_H_
 #define _XQC_ENCODER_H_
 

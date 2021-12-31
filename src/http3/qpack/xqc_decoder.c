@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include "src/http3/qpack/xqc_decoder.h"
 #include "src/http3/xqc_h3_header.h"
 

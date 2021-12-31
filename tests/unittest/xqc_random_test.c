@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include <CUnit/CUnit.h>
 #include "src/common/xqc_random.h"

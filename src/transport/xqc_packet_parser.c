@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #include <string.h>
 #include <openssl/hmac.h>
 #include "src/transport/xqc_packet_parser.h"

@@ -1,7 +1,7 @@
 /**
- * @copyright Copyright (c) 2021
- * @brief definitions for interfaces
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
  */
+
 #ifndef XQC_TLS_DEFS_H
 #define XQC_TLS_DEFS_H
 

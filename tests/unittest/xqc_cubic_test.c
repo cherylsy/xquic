@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include "xqc_cubic_test.h"
 #include "src/congestion_control/xqc_cubic.h"

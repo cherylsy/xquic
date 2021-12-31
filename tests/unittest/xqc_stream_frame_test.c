@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
 
 #include "xqc_stream_frame_test.h"
 #include <CUnit/CUnit.h>

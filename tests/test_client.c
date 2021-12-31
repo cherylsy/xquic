@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2021, Alibaba Group Holding Limited
+ */
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <event2/event.h>
