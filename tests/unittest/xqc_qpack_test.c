@@ -724,11 +724,14 @@ xqc_test_min_ref()
     processed = xqc_qpack_dec_headers(qpk_server, rep_ctx2, efs_buf_client2->data, efs_buf_client2->data_len, &hdrs_out2, XQC_TRUE, &blocked);
     CU_ASSERT(processed == efs_buf_client2->data_len);
 
+    xqc_h3_headers_free(&hdrs_out);
+    xqc_h3_headers_free(&hdrs_out2);
 
     xqc_qpack_destroy_req_ctx(rep_ctx1);
     xqc_qpack_destroy_req_ctx(rep_ctx2);
 
     xqc_var_buf_free(efs_buf_client);
+    xqc_var_buf_free(efs_buf_client2);
     xqc_var_buf_free(enc_ins_buf_client);
     xqc_var_buf_free(dec_ins_buf_client);
     xqc_var_buf_free(efs_buf_server);
