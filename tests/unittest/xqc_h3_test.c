@@ -124,6 +124,9 @@ xqc_test_frame()
     CU_ASSERT(pctx.state == XQC_H3_FRM_STATE_END);
     CU_ASSERT(pctx.frame.frame_payload.push_promise.push_id.vi == push_id);
     CU_ASSERT(pctx.frame.frame_payload.push_promise.encoded_field_section != NULL);
+    if (pctx.frame.frame_payload.push_promise.encoded_field_section == NULL) {
+        return;
+    }
     for (int i = 0; i < strlen(data); i++) {
         CU_ASSERT(data[i] == pctx.frame.frame_payload.push_promise.encoded_field_section->data[i]);
     }

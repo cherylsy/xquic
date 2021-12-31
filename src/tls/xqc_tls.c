@@ -176,19 +176,22 @@ xqc_tls_set_alpn(SSL *ssl, const char *alpn)
 xqc_int_t
 xqc_tls_init_client_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
 {
-    xqc_int_t ret = XQC_OK;
-    SSL *ssl = tls->ssl;
+    xqc_int_t   ret = XQC_OK;
+    char       *hostname = NULL;
+    SSL        *ssl = tls->ssl;
 
     /* configure ssl as client */
     SSL_set_connect_state(ssl);
 
     /* If remote host is NULL, send "localhost" as SNI. */
     if (NULL == cfg->hostname || 0 == strlen(cfg->hostname)) {
-        SSL_set_tlsext_host_name(ssl, "localhost");
+        hostname = "localhost";
 
     } else {
-        SSL_set_tlsext_host_name(ssl, cfg->hostname);
+        hostname = cfg->hostname;
     }
+
+    SSL_set_tlsext_host_name(ssl, cfg->hostname);
 
     /* set alpn in ClientHello. for client, xquic set alpn for every ssl instance. while server set
        the alpn select callback function while initializing tls context. */
@@ -210,8 +213,8 @@ xqc_tls_init_client_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
 
     /* set verify if flag set */
     if (cfg->cert_verify_flag & XQC_TLS_CERT_FLAG_NEED_VERIFY) { 
-        if (X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), cfg->hostname,
-                                        strlen(cfg->hostname)) != XQC_SSL_SUCCESS)
+        if (X509_VERIFY_PARAM_set1_host(SSL_get0_param(ssl), hostname,
+                                        strlen(hostname)) != XQC_SSL_SUCCESS)
         {
             /* hostname set failed need log */
             xqc_log(tls->log,  XQC_LOG_DEBUG, "|centificate verify set hostname failed|");
