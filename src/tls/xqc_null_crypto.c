@@ -13,15 +13,14 @@ xqc_null_aead_encrypt(const xqc_pkt_protect_aead_t *pp_aead,
     const uint8_t *nonce, size_t noncelen,
     const uint8_t *ad, size_t adlen)
 {
-    if (XQC_LIKELY(dest != plaintext)) {
-        memmove(dest, plaintext, plaintextlen);
-    }
     *destlen = plaintextlen + xqc_aead_overhead(pp_aead, plaintextlen);
-
-    if (XQC_UNLIKELY(*destlen < 0 || *destlen > destcap)) {
+    if (XQC_UNLIKELY(*destlen > destcap)) {
         return -XQC_TLS_INTERNAL;
     }
 
+    if (XQC_LIKELY(dest != plaintext)) {
+        memmove(dest, plaintext, plaintextlen);
+    }
     return XQC_OK;
 }
 
@@ -34,13 +33,14 @@ xqc_null_aead_decrypt(const xqc_pkt_protect_aead_t *pp_aead,
     const uint8_t *ad, size_t adlen)
 {
     size_t length = ciphertextlen - xqc_aead_overhead(pp_aead, ciphertextlen);
-    if (XQC_LIKELY(dest != ciphertext)) {
-        memmove(dest, ciphertext, length);
-    }
     *destlen = length;
 
-    if (XQC_UNLIKELY(*destlen < 0 || *destlen > destcap)) {
+    if (XQC_UNLIKELY(*destlen > destcap)) {
         return -XQC_TLS_INTERNAL;
+    }
+
+    if (XQC_LIKELY(dest != ciphertext)) {
+        memmove(dest, ciphertext, length);
     }
 
     return XQC_OK;
@@ -53,13 +53,14 @@ xqc_null_hp_mask(const xqc_hdr_protect_cipher_t *hp_cipher,
     const uint8_t *key, size_t keylen,
     const uint8_t *sample, size_t samplelen)
 {
-    if (XQC_UNLIKELY(dest != plaintext)) {
-        memmove(dest, plaintext, plaintextlen);
-    }
     *destlen = plaintextlen;
 
-    if (XQC_UNLIKELY(*destlen < 0 || *destlen > destcap)) {
+    if (XQC_UNLIKELY(*destlen > destcap)) {
         return -XQC_TLS_INTERNAL;
+    }
+
+    if (XQC_UNLIKELY(dest != plaintext)) {
+        memmove(dest, plaintext, plaintextlen);
     }
 
     return XQC_OK;

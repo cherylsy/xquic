@@ -269,7 +269,7 @@ xqc_crypto_encrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
                            ckm->key.base, ckm->key.len,   /* tx key */
                            nonce, ckm->iv.len,            /* nonce and iv */
                            header, header_len);           /* ad */
-    if (ret != XQC_OK || *dst_len < 0
+    if (ret != XQC_OK
         || *dst_len != (payload_len + xqc_aead_overhead(pp_aead, payload_len)))
     {
         xqc_log(crypto->log, XQC_LOG_ERROR,
@@ -309,7 +309,7 @@ xqc_crypto_decrypt_payload(xqc_crypto_t *crypto, uint64_t pktno,
                            ckm->key.base, ckm->key.len, /* rx key */
                            nonce, ckm->iv.len,          /* nonce and iv */
                            header, header_len);         /* ad */
-    if (ret != XQC_OK || *dst_len < 0
+    if (ret != XQC_OK
         || *dst_len != (payload_len - xqc_aead_overhead(pp_aead, payload_len)))
     {
         /* decrypt error might be common */
