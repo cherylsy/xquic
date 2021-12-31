@@ -124,7 +124,9 @@ xqc_client_create_tls(xqc_connection_t *conn, const xqc_conn_ssl_config_t *conn_
     uint8_t             tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
     uint8_t            *session_ticket_buf;
     uint8_t            *alpn_buf;
+    size_t              alpn_cap;
     unsigned char      *hostname_buf;
+    size_t              host_cap;
 
     /* init tls config */
     cfg.cert_verify_flag = conn_ssl_config->cert_verify_flag;
@@ -142,22 +144,24 @@ xqc_client_create_tls(xqc_connection_t *conn, const xqc_conn_ssl_config_t *conn_
     cfg.session_ticket_len = conn_ssl_config->session_ticket_len;
 
     /* copy alpn */
-    cfg.alpn = xqc_malloc(strlen(alpn) + 1);
+    alpn_cap = strlen(alpn) + 1;
+    cfg.alpn = xqc_malloc(alpn_cap);
     if (NULL == cfg.alpn) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|malloc for alpn fail|");
         ret = -XQC_EMALLOC;
         goto end;
     }
-    strcpy(cfg.alpn, alpn);
+    strncpy(cfg.alpn, alpn_cap, alpn);
 
     /* copy hostname */
-    cfg.hostname = xqc_malloc(strlen(hostname) + 1);
+    host_cap = strlen(hostname) + 1;
+    cfg.hostname = xqc_malloc(host_cap);
     if (NULL == cfg.alpn) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|malloc for alpn fail|");
         ret = -XQC_EMALLOC;
         goto end;
     }
-    strcpy(cfg.hostname, hostname);
+    strncpy(cfg.hostname, host_cap, hostname);
 
     /* encode local transport parameters, and set to tls config */
     cfg.trans_params = tp_buf;
