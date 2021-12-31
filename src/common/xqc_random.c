@@ -19,7 +19,7 @@ xqc_random_generator_create(xqc_log_t *log)
     if (rand_gen == NULL) {
         return NULL;
     }
-    
+
     xqc_memzero(rand_gen, sizeof(xqc_random_generator_t));
     rand_gen->rand_buf.data = xqc_malloc(XQC_RANDOM_BUFFER_SIZE);
     if (rand_gen->rand_buf.data == NULL) {
@@ -59,8 +59,7 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
 
         /* not enough in rand_buf */
 
-        if (rand_gen->rand_fd == -1){
-
+        if (rand_gen->rand_fd == -1) {
             rand_gen->rand_fd = open("/dev/urandom", O_RDONLY|O_NONBLOCK);
             if (rand_gen->rand_fd == -1) {
                 xqc_log(rand_gen->log, XQC_LOG_WARN, "|random|can not open /dev/urandom|\n");
@@ -71,22 +70,22 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
         total_read = 0;
 
         while (total_read < rand_gen->rand_buf_size) {
-	
+
             bytes_read = read(rand_gen->rand_fd, 
-				              rand_gen->rand_buf.data + total_read, 
-				              rand_gen->rand_buf_size - total_read);
-			
-            if(bytes_read == -1){
-				
-                if(errno == EINTR){
+                              rand_gen->rand_buf.data + total_read, 
+                              rand_gen->rand_buf_size - total_read);
+
+            if (bytes_read == -1) {
+                if (errno == EINTR) {
                     continue;
                 }
-                if(errno == EAGAIN){
+
+                if (errno == EAGAIN){
                     break;
                 }
             }
 
-            if (bytes_read <= 0){
+            if (bytes_read <= 0) {
 
                 xqc_log(rand_gen->log, XQC_LOG_WARN, "|random|fail to read bytes from /dev/urandom|");
 
@@ -98,14 +97,14 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
             total_read += bytes_read;
         }
  
-        if(total_read < need_len){
+        if (total_read < need_len) {
             xqc_log(rand_gen->log, XQC_LOG_WARN,
                     "|random|can not generate rand buf|%zu|%zu|", total_read, need_len);
-            return XQC_ERROR;			
+            return XQC_ERROR;            
         }
-		
-	    rand_gen->rand_buf_offset = 0;
-	    rand_gen->rand_buf.len = total_read;   
+        
+        rand_gen->rand_buf_offset = 0;
+        rand_gen->rand_buf.len = total_read;   
     }
 
     xqc_memcpy(buf, rand_gen->rand_buf.data + rand_gen->rand_buf_offset, need_len);
@@ -117,5 +116,4 @@ xqc_get_random(xqc_random_generator_t *rand_gen, u_char *buf, size_t need_len)
 #endif
     return XQC_OK;
 }
-
 

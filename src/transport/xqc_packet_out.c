@@ -199,7 +199,7 @@ xqc_write_packet_header_ex(xqc_connection_t *conn,
 
 
 
-xqc_packet_out_t*
+xqc_packet_out_t *
 xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type)
 {
     int ret;
@@ -231,7 +231,7 @@ error:
 }
 
 
-xqc_packet_out_t*
+xqc_packet_out_t *
 xqc_write_new_packet_ex(xqc_connection_t *conn, 
     xqc_path_ctx_t *path, xqc_pkt_type_t pkt_type)
 {
@@ -267,7 +267,7 @@ error:
 
 
 
-xqc_packet_out_t*
+xqc_packet_out_t *
 xqc_write_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type, unsigned need)
 {
     int ret;
@@ -391,7 +391,7 @@ write_new:
 done:
             xqc_log(conn->log, XQC_LOG_DEBUG, "|pns:%d|", pns);
 
-            //ack packet send first
+            /* send ack packet first */
             xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
 
         }
@@ -735,9 +735,9 @@ xqc_write_new_token_to_packet(xqc_connection_t *conn)
     unsigned token_len = XQC_MAX_TOKEN_LEN;
     xqc_conn_gen_token(conn, token, &token_len);
 
-    need = 1 //type
-            + xqc_vint_get_2bit(token_len) // token len
-            + token_len; //token
+    need = 1 /* type */
+            + xqc_vint_get_2bit(token_len) /* token len */
+            + token_len; /* token */
 
     packet_out = xqc_write_packet(conn, XQC_PTYPE_SHORT_HEADER, need);
     if (packet_out == NULL) {
@@ -796,6 +796,7 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn,
             }
             break;
         }
+
         if (i == XQC_MAX_STREAM_FRAME_IN_PO - 1) {
             xqc_log(conn->log, XQC_LOG_ERROR, "|too many stream frames in a packet|");
             return -XQC_ELIMIT;
@@ -805,6 +806,7 @@ xqc_write_stream_frame_to_packet(xqc_connection_t *conn,
     if (pkt_type == XQC_PTYPE_0RTT) {
         conn->zero_rtt_count++;
     }
+
     if (!stream->stream_stats.first_write_time) {
         stream->stream_stats.first_write_time = xqc_monotonic_timestamp();
     }
@@ -864,12 +866,10 @@ xqc_write_new_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t retire_pr
     ret = xqc_gen_new_conn_id_frame(packet_out, &new_conn_cid, retire_prior_to,
                                     conn->engine->config->reset_token_key,
                                     conn->engine->config->reset_token_keylen);
-
     if (ret < 0) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_new_conn_id_frame error|");
         goto error;
     }
-
     packet_out->po_used_size += ret;
 
     ret = xqc_insert_conns_hash(conn->engine->conns_hash, conn, &new_conn_cid);

@@ -3,7 +3,8 @@
 #include "src/transport/xqc_wakeup_pq.h"
 
 
-void xqc_test_wakeup_pq()
+void
+xqc_test_wakeup_pq()
 {
     int ret;
     xqc_wakeup_pq_t pq;

@@ -62,9 +62,10 @@ xqc_log_SEC_KEY_UPDATED_callback(xqc_log_t *log, const char *func, xqc_engine_ss
 }
 
 void
-xqc_log_TRA_VERSION_INFORMATION_callback(xqc_log_t *log, const char *func, uint32_t local_count, uint32_t *local_version,
-    uint32_t remote_count, uint32_t *remote_version, uint32_t choose)
+xqc_log_TRA_VERSION_INFORMATION_callback(xqc_log_t *log, const char *func, uint32_t local_count,
+    uint32_t *local_version, uint32_t remote_count, uint32_t *remote_version, uint32_t choose)
 {
+    unsigned char log_buf[XQC_MAX_LOG_LEN];
     unsigned char *p = log_buf;
     unsigned char *last = log_buf + sizeof(log_buf);
 
@@ -90,6 +91,7 @@ void
 xqc_log_TRA_ALPN_INFORMATION_callback(xqc_log_t *log, const char *func, size_t local_count, uint8_t *local_alpn,
     size_t remote_count, const uint8_t *remote_alpn, size_t alpn_len, const unsigned char *alpn)
 {
+    unsigned char log_buf[XQC_MAX_LOG_LEN];
     unsigned char *p = log_buf;
     unsigned char *last = log_buf + sizeof(log_buf);
 
@@ -207,10 +209,12 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           "|type:%d|length:%ui|", frame_type, length);
         break;
     }
+
     case XQC_FRAME_PING:
         xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                           "|type:%d|", frame_type);
         break;
+
     case XQC_FRAME_ACK: {
         xqc_ack_info_t *ack_info = va_arg(args, xqc_ack_info_t*);
         unsigned char buf[1024];
@@ -220,10 +224,12 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
         for (int i = 0; i < ack_info->n_ranges; i++) {
             if (i == 0) {
                 p = xqc_sprintf(p, last, "{%ui - %ui", ack_info->ranges[i].low, ack_info->ranges[i].high);
+
             } else {
                 p = xqc_sprintf(p, last, ", %ui - %ui", ack_info->ranges[i].low, ack_info->ranges[i].high);
             }
         }
+
         p = xqc_sprintf(p, last, "}");
         if (p != last) {
             *p = '\0';
@@ -234,6 +240,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           frame_type, ack_info->ack_delay, buf);
         break;
     }
+
     case XQC_FRAME_RESET_STREAM: {
         xqc_stream_id_t stream_id = va_arg(args, xqc_stream_id_t);
         uint64_t err_code = va_arg(args, uint64_t);
@@ -243,6 +250,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           frame_type, stream_id, err_code, final_size);
         break;
     }
+
     case XQC_FRAME_STOP_SENDING: {
         xqc_stream_id_t stream_id = va_arg(args, xqc_stream_id_t);
         uint64_t err_code = va_arg(args, uint64_t);
@@ -250,6 +258,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           "|type:%d|stream_id:%ui|err_code:%ui|", frame_type, stream_id, err_code);
         break;
     }
+
     case XQC_FRAME_CRYPTO: {
         uint64_t offset = va_arg(args, uint64_t);
         uint64_t length = va_arg(args, uint64_t);
@@ -257,6 +266,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           "|type:%d|offset:%ui|length:%ui|", frame_type, offset, length);
         break;
     }
+
     case XQC_FRAME_NEW_TOKEN: {
         uint64_t length = va_arg(args, uint64_t);
         unsigned char* token = va_arg(args, unsigned char*);
@@ -264,6 +274,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           "|type:%d|token_length:%ui|token:%s|", frame_type, length, token);
         break;
     }
+
     case XQC_FRAME_STREAM: {
         xqc_stream_frame_t *frame = va_arg(args, xqc_stream_frame_t*);
         xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
@@ -271,12 +282,14 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           frame_type, frame->data_offset, frame->data_length, frame->fin);
         break;
     }
+
     case XQC_FRAME_MAX_DATA: {
         uint64_t max_data = va_arg(args, uint64_t);
         xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                           "|type:%d|max_data:%ui|", frame_type, max_data);
         break;
     }
+
     case XQC_FRAME_MAX_STREAM_DATA: {
         xqc_stream_id_t stream_id = va_arg(args, xqc_stream_id_t);
         uint64_t max_stream_data = va_arg(args, uint64_t);
@@ -292,6 +305,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
             xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                               "|type:%d|bidirectional|max_stream_data:%ui|",
                               frame_type, max_streams);
+
         } else {
             xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                               "|type:%d|unidirectional|max_stream_data:%ui|",
@@ -299,6 +313,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
         }
         break;
     }
+
     case XQC_FRAME_DATA_BLOCKED: {
         uint64_t *data_limit = va_arg(args, uint64_t*);
         xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
@@ -306,6 +321,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           frame_type, *data_limit);
         break;
     }
+
     case XQC_FRAME_STREAM_DATA_BLOCKED: {
         xqc_stream_id_t stream_id = va_arg(args, xqc_stream_id_t);
         uint64_t stream_data_limit = va_arg(args, uint64_t);
@@ -314,6 +330,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           frame_type, stream_id, stream_data_limit);
         break;
     }
+
     case XQC_FRAME_STREAMS_BLOCKED: {
         int bidirectional = va_arg(args, int);
         uint64_t stream_limit = va_arg(args, uint64_t);
@@ -321,6 +338,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
             xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                               "|type:%d|bidirectional|stream_limit:%ui|",
                               frame_type, stream_limit);
+
         } else {
             xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                               "|type:%d|unidirectional|stream_limit:%ui|",
@@ -328,6 +346,7 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
         }
         break;
     }
+
     case XQC_FRAME_NEW_CONNECTION_ID: {
         xqc_cid_t *new_cid = va_arg(args, xqc_cid_t*);
         uint64_t retire_prior_to = va_arg(args, uint64_t);
@@ -339,30 +358,28 @@ xqc_log_TRA_FRAMES_PROCESSED_callback(xqc_log_t *log, const char *func, ...)
                           frame_type, new_cid->cid_seq_num, retire_prior_to, new_cid->cid_len, scid_str);
         break;
     }
-    case XQC_FRAME_RETIRE_CONNECTION_ID:
-        break;
-    case XQC_FRAME_PATH_CHALLENGE:
-        break;
-    case XQC_FRAME_PATH_RESPONSE:
-        break;
+
     case XQC_FRAME_CONNECTION_CLOSE: {
         uint64_t err_code = va_arg(args, uint64_t);
         xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                           "|type:%d|err_code:%ui|", frame_type, err_code);
         break;
     }
+
     case XQC_FRAME_HANDSHAKE_DONE:
         xqc_log_implement(log, TRA_FRAMES_PROCESSED, func,
                           "|type:%d|", frame_type);
         break;
+
+    case XQC_FRAME_RETIRE_CONNECTION_ID:
+    case XQC_FRAME_PATH_CHALLENGE:
+    case XQC_FRAME_PATH_RESPONSE:
     case XQC_FRAME_PATH_STATUS:
-        break;
     case XQC_FRAME_ACK_MP:
-        break;
     case XQC_FRAME_QOE_CONTROL_SIGNAL:
-        break;
     case XQC_FRAME_Extension:
         break;
+
     default:
         break;
     }
@@ -481,6 +498,7 @@ xqc_log_HTTP_STREAM_TYPE_SET_callback(xqc_log_t *log, const char *func, xqc_h3_s
 void
 xqc_log_HTTP_FRAME_CREATED_callback(xqc_log_t *log, const char *func, ...)
 {
+    unsigned char log_buf[XQC_MAX_LOG_LEN];
     va_list args;
     va_start(args, func);
     xqc_h3_stream_t *h3_stream = va_arg(args, xqc_h3_stream_t*);
@@ -605,6 +623,7 @@ xqc_log_QPACK_DYNAMIC_TABLE_UPDATED_callback(xqc_log_t *log, const char *func, .
     if (type == XQC_LOG_DTABLE_EVICTED) {
         xqc_log_implement(log, QPACK_DYNAMIC_TABLE_UPDATED, func,
                           "|evicted|index:%ui|", index);
+
     } else {
         uint64_t nlen = va_arg(args, uint64_t);
         char *name = va_arg(args, char*);
@@ -660,6 +679,7 @@ xqc_log_QPACK_INSTRUCTION_CREATED_callback(xqc_log_t *log, const char *func, ...
         default:
             break;
         }
+
     } else {
         xqc_ins_dec_type_t type = va_arg(args, xqc_ins_dec_type_t);
         switch (type) {
@@ -717,6 +737,7 @@ xqc_log_QPACK_INSTRUCTION_PARSED_callback(xqc_log_t *log, const char *func, ...)
                               "|duplicate|index:%ui|", ctx->name_index.value);
             break;
         }
+
     } else {
         xqc_ins_dec_ctx_t *ctx = va_arg(args, xqc_ins_dec_ctx_t*);
         switch (ctx->type) {

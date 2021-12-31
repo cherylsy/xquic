@@ -79,21 +79,21 @@ typedef struct xqc_packet_out_s {
     uint64_t                po_path_id;
 } xqc_packet_out_t;
 
-xqc_packet_out_t* xqc_packet_out_create();
+xqc_packet_out_t *xqc_packet_out_create();
 
 void xqc_packet_out_copy(xqc_packet_out_t *dst, xqc_packet_out_t *src);
 
-xqc_packet_out_t* xqc_packet_out_get(xqc_send_ctl_t *ctl);
+xqc_packet_out_t *xqc_packet_out_get(xqc_send_ctl_t *ctl);
 
-xqc_packet_out_t* xqc_packet_out_get_and_insert_send(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
+xqc_packet_out_t *xqc_packet_out_get_and_insert_send(xqc_send_ctl_t *ctl, enum xqc_pkt_type pkt_type);
 
 void xqc_packet_out_destroy(xqc_packet_out_t *packet_out);
 
 void xqc_maybe_recycle_packet_out(xqc_packet_out_t *packet_out, xqc_connection_t *conn);
 
-xqc_packet_out_t* xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type);
+xqc_packet_out_t *xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type);
 
-xqc_packet_out_t* xqc_write_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type, unsigned need);
+xqc_packet_out_t *xqc_write_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type, unsigned need);
 
 int xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out);
 
@@ -135,4 +135,4 @@ xqc_int_t xqc_write_retire_conn_id_frame_to_packet(xqc_connection_t *conn, uint6
 xqc_int_t xqc_write_path_status_to_packet(xqc_connection_t *conn, xqc_path_ctx_t *path);
 
 
-#endif //_XQC_PACKET_OUT_H_INCLUDED_
+#endif /* _XQC_PACKET_OUT_H_INCLUDED_ */

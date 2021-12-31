@@ -4,7 +4,6 @@
 FILE *g_malloc_info_fp;
 #endif
 
-#define XQC_MAX_LOG_LEN 2048
 
 void
 xqc_log_level_set(xqc_log_t *log, xqc_log_level_t level)
@@ -101,7 +100,7 @@ xqc_log_type_2_level(xqc_log_type_t type)
     }
 }
 
-const char*
+const char *
 xqc_log_type_str(xqc_log_type_t type)
 {
     static const char* event_type2str[] = {
@@ -168,9 +167,9 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
         return;
     }
 
-    unsigned char buf[XQC_MAX_LOG_LEN];
-    unsigned char *p = buf;
-    unsigned char *last = buf + sizeof(buf);
+    unsigned char   buf[XQC_MAX_LOG_LEN];
+    unsigned char  *p = buf;
+    unsigned char  *last = buf + sizeof(buf);
 
     /* do not need time & level if use outside log format */
     if (log->log_timestamp) {
@@ -216,7 +215,7 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
 }
 
 void
-xqc_log_time(char* buf)
+xqc_log_time(char *buf)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);

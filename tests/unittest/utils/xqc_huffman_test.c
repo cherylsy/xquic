@@ -7,8 +7,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-static uint8_t *old_xqc_huffman_encode_sym(uint8_t *dest, size_t *prembits,
-                                           const xqc_huffman_enc_code_t *sym) {
+static uint8_t *
+old_xqc_huffman_encode_sym(uint8_t *dest, size_t *prembits, const xqc_huffman_enc_code_t *sym)
+{
     size_t nbits = sym->bits;
     size_t rembits = *prembits;
     uint32_t code = sym->lsb;
@@ -68,9 +69,9 @@ static uint8_t *old_xqc_huffman_encode_sym(uint8_t *dest, size_t *prembits,
     return dest;
 }
 
-size_t old_xqc_http3_qpack_huffman_encode_count(const uint8_t *src, size_t len) {
-
-    //return 0xFFFFFFFF;
+size_t
+old_xqc_http3_qpack_huffman_encode_count(const uint8_t *src, size_t len)
+{
     size_t i;
     size_t nbits = 0;
 
@@ -81,8 +82,9 @@ size_t old_xqc_http3_qpack_huffman_encode_count(const uint8_t *src, size_t len) 
     return (nbits + 7) / 8;
 }
 
-uint8_t *old_xqc_http3_qpack_huffman_encode(uint8_t *dest, const uint8_t *src,
-                                            size_t srclen) {
+uint8_t *
+old_xqc_http3_qpack_huffman_encode(uint8_t *dest, const uint8_t *src, size_t srclen)
+{
     size_t rembits = 8;
     size_t i;
     const xqc_huffman_enc_code_t *sym;
@@ -105,14 +107,16 @@ uint8_t *old_xqc_http3_qpack_huffman_encode(uint8_t *dest, const uint8_t *src,
     return dest;
 }
 
-void old_xqc_http3_qpack_huffman_decode_context_init(
-        xqc_huffman_dec_ctx *ctx) {
+void
+old_xqc_http3_qpack_huffman_decode_context_init(xqc_huffman_dec_ctx *ctx)
+{
     ctx->state = 0;
     ctx->end = 1;
 }
 
-ssize_t old_xqc_http3_qpack_huffman_decode(xqc_huffman_dec_ctx *ctx,
-                                           uint8_t *dest, size_t dstlen, const uint8_t *src, size_t srclen, int fin)
+ssize_t
+old_xqc_http3_qpack_huffman_decode(xqc_huffman_dec_ctx *ctx, uint8_t *dest, size_t dstlen,
+    const uint8_t *src, size_t srclen, int fin)
 {
     uint8_t *p = dest;
     size_t i;

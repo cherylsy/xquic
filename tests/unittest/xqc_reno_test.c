@@ -6,7 +6,7 @@
 #include "src/transport/xqc_packet_out.h"
 
 void
-print_reno (xqc_new_reno_t *reno)
+print_reno(xqc_new_reno_t *reno)
 {
 
 #ifdef DEBUG_PRINT
@@ -16,7 +16,7 @@ print_reno (xqc_new_reno_t *reno)
 }
 
 void
-xqc_test_reno ()
+xqc_test_reno()
 {
 #ifdef XQC_DISABLE_RENO
     return;

@@ -373,7 +373,7 @@ xqc_encoder_check_block_stream_limit(xqc_encoder_t *enc, uint64_t stream_id)
 
 /* check if insertion is possible */
 xqc_bool_t
-xqc_encoder_check_insert(xqc_encoder_t *enc, xqc_hdr_enc_rule_t* info, xqc_bool_t blocked)
+xqc_encoder_check_insert(xqc_encoder_t *enc, xqc_hdr_enc_rule_t *info, xqc_bool_t blocked)
 {
     /* if peer's Max Dynamic Table Capacity is not known, try no dynamic table insertion */
     if (enc->max_entries == 0) {
@@ -424,7 +424,7 @@ xqc_encoder_check_never_value_index_mode(xqc_encoder_t *enc, xqc_hdr_enc_rule_t*
 }
 
 void
-xqc_encoder_check_normal_index_mode(xqc_encoder_t *enc, xqc_hdr_enc_rule_t* info,
+xqc_encoder_check_normal_index_mode(xqc_encoder_t *enc, xqc_hdr_enc_rule_t *info,
     xqc_bool_t blocked)
 {
     /* check if insertion is possible */
@@ -465,7 +465,7 @@ xqc_encoder_check_normal_index_mode(xqc_encoder_t *enc, xqc_hdr_enc_rule_t* info
 /* decide the index mode of headers, based on the lookup result from stable and dtable.
    never-indexed filed line is returned directly before */
 void 
-xqc_encoder_check_index_mode(xqc_encoder_t *enc, xqc_hdr_enc_rule_t* info, xqc_bool_t blocked)
+xqc_encoder_check_index_mode(xqc_encoder_t *enc, xqc_hdr_enc_rule_t *info, xqc_bool_t blocked)
 {
     info->insertion = XQC_INSERT_NONE;
 
@@ -479,7 +479,8 @@ xqc_encoder_check_index_mode(xqc_encoder_t *enc, xqc_hdr_enc_rule_t* info, xqc_b
 
 
 xqc_int_t
-xqc_encoder_write_insert_ins(xqc_encoder_t *enc, xqc_var_buf_t *ins, xqc_hdr_enc_rule_t *info, uint64_t base_idx)
+xqc_encoder_write_insert_ins(xqc_encoder_t *enc, xqc_var_buf_t *ins, xqc_hdr_enc_rule_t *info,
+    uint64_t base_idx)
 {
     xqc_int_t ret = XQC_OK;
     struct iovec *name = &info->hdr->name;
@@ -496,16 +497,20 @@ xqc_encoder_write_insert_ins(xqc_encoder_t *enc, xqc_var_buf_t *ins, xqc_hdr_enc
     case XQC_INSERT_NAME_REF_VALUE: {
         uint64_t idx = (info->ref_table == XQC_DTABLE_FLAG
                         ? xqc_abs2brel(base_idx, info->index) : info->index);
-        ret = xqc_ins_write_insert_name_ref(ins, info->ref_table, idx, value->iov_base, value->iov_len);
+        ret = xqc_ins_write_insert_name_ref(ins, info->ref_table, idx,
+                                            value->iov_base, value->iov_len);
         xqc_log_event(enc->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT,
-                      XQC_INS_TYPE_ENC_INSERT_NAME_REF, info->ref_table, idx, value->iov_len, value->iov_base);
+                      XQC_INS_TYPE_ENC_INSERT_NAME_REF, info->ref_table, idx,
+                      value->iov_len, value->iov_base);
         break;
     }
 
     case XQC_INSERT_LITERAL_NAME_VALUE:
-        ret = xqc_ins_write_insert_literal_name(ins, name->iov_base, name->iov_len, value->iov_base, value->iov_len);
+        ret = xqc_ins_write_insert_literal_name(ins, name->iov_base, name->iov_len,
+                                                value->iov_base, value->iov_len);
         xqc_log_event(enc->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT,
-                      XQC_INS_TYPE_ENC_INSERT_LITERAL, name->iov_len, name->iov_base, value->iov_len, value->iov_base);
+                      XQC_INS_TYPE_ENC_INSERT_LITERAL, name->iov_len, name->iov_base,
+                      value->iov_len, value->iov_base);
         break;
 
     default:
@@ -592,7 +597,8 @@ xqc_encoder_try_duplicate(xqc_encoder_t *enc, xqc_hdr_enc_rule_t *info, xqc_var_
             xqc_log(enc->log, XQC_LOG_ERROR, "|write duplicate instruction error|ret:%d|", ret);
             return ret;
         }
-        xqc_log_event(enc->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT, XQC_INS_TYPE_ENC_DUP, info->index);
+        xqc_log_event(enc->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT,
+                      XQC_INS_TYPE_ENC_DUP, info->index);
 
         /* change info->index until duplicate success, if it fails, will do as lookup result. cause
            peer shall receive encoder ins sequentially, pop of duplicated entry during subsequent
@@ -720,8 +726,10 @@ xqc_encoder_write_efs(xqc_encoder_t *enc, xqc_field_section_t *fs, xqc_var_buf_t
         xqc_log(enc->log, XQC_LOG_ERROR, "|write field section prefix error|ret:%d|", ret);
         return ret;
     }
-    xqc_log(enc->log, XQC_LOG_DEBUG, "|write field section prefix|ricnt:%d|base:%d|", fs->rqrd_insert_cnt, fs->base);
-    xqc_log_event(enc->log, QPACK_HEADERS_ENCODED, XQC_LOG_BLOCK_PREFIX, fs->rqrd_insert_cnt, fs->base);
+    xqc_log(enc->log, XQC_LOG_DEBUG, "|write field section prefix|ricnt:%d|base:%d|",
+            fs->rqrd_insert_cnt, fs->base);
+    xqc_log_event(enc->log, QPACK_HEADERS_ENCODED, XQC_LOG_BLOCK_PREFIX,
+                  fs->rqrd_insert_cnt, fs->base);
 
     uint64_t idx = XQC_INVALID_INDEX;
     xqc_bool_t pb = XQC_FALSE;
@@ -1079,32 +1087,37 @@ xqc_log_QPACK_HEADERS_ENCODED_callback(xqc_log_t *log, const char *func, ...)
         uint64_t base = va_arg(args, uint64_t);
         xqc_log_implement(log, QPACK_HEADERS_ENCODED, func,
                           "|prefix|ricnt:%ui|base:%ui|", ricnt, base);
-    } else if (type == XQC_LOG_HEADER_BLOCK){
+
+    } else if (type == XQC_LOG_HEADER_BLOCK) {
         xqc_rep_type_t rep_type = va_arg(args, xqc_rep_type_t);
         switch (rep_type) {
         case XQC_REP_TYPE_INDEXED:
         case XQC_REP_TYPE_POST_BASE_INDEXED: {
-            xqc_hdr_enc_rule_t *info = va_arg(args, xqc_hdr_enc_rule_t*);
+            xqc_hdr_enc_rule_t *info = va_arg(args, xqc_hdr_enc_rule_t *);
             uint64_t index = va_arg(args, uint64_t);
             xqc_flag_t pb = rep_type == XQC_REP_TYPE_POST_BASE_INDEXED;
             xqc_log_implement(log, QPACK_HEADERS_ENCODED, func,
                               "|header|indexed field line|%s%s|index:%ui|",
-                              info->ref_table == XQC_DTABLE_FLAG ? "dtable" : "stable", pb ? "" : "|post base", index);
+                              info->ref_table == XQC_DTABLE_FLAG ? "dtable" : "stable",
+                              pb ? "" : "|post base", index);
             break;
         }
+
         case XQC_REP_TYPE_NAME_REFERENCE:
         case XQC_REP_TYPE_POST_BASE_NAME_REFERENCE: {
-            xqc_hdr_enc_rule_t *info = va_arg(args, xqc_hdr_enc_rule_t*);
+            xqc_hdr_enc_rule_t *info = va_arg(args, xqc_hdr_enc_rule_t *);
             uint64_t index = va_arg(args, uint64_t);
             xqc_flag_t pb = rep_type == XQC_REP_TYPE_POST_BASE_NAME_REFERENCE;
             xqc_log_implement(log, QPACK_HEADERS_ENCODED, func,
                               "|header|literal with name reference|%s%s|index:%ui|value:%*s|",
-                              info->ref_table == XQC_DTABLE_FLAG ? "dtable" : "stable", pb ? "" : "|post base", index,
+                              info->ref_table == XQC_DTABLE_FLAG ? "dtable" : "stable",
+                              pb ? "" : "|post base", index,
                               (size_t) info->hdr->value.iov_len, info->hdr->value.iov_base);
             break;
         }
+
         case XQC_REP_TYPE_LITERAL: {
-            xqc_hdr_enc_rule_t *info = va_arg(args, xqc_hdr_enc_rule_t*);
+            xqc_hdr_enc_rule_t *info = va_arg(args, xqc_hdr_enc_rule_t *);
             if (info->hdr->value.iov_len > 0) {
                 xqc_log_implement(log, QPACK_HEADERS_ENCODED, func,
                                   "|header|literal|name:%*s|value:%*s|",
@@ -1117,9 +1130,11 @@ xqc_log_QPACK_HEADERS_ENCODED_callback(xqc_log_t *log, const char *func, ...)
             }
             break;
         }
+
         default:
             break;
         }
+
     } else {
         uint64_t stream_id = va_arg(args, uint64_t);
         uint64_t length = va_arg(args, uint64_t);

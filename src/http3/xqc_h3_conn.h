@@ -11,14 +11,14 @@
 
 
 /* Send CONNECTION_CLOSE with err if ret is an h3 retcode */
-#define XQC_H3_CONN_ERR(h3_conn, err, ret) do {                 \
-    if (h3_conn->conn->conn_err == 0 && ret <= -XQC_H3_EMALLOC) {\
-        h3_conn->conn->conn_err = err;                          \
-        h3_conn->conn->conn_flag |= XQC_CONN_FLAG_ERROR;        \
+#define XQC_H3_CONN_ERR(h3_conn, err, ret) do {                     \
+    if (h3_conn->conn->conn_err == 0 && ret <= -XQC_H3_EMALLOC) {   \
+        h3_conn->conn->conn_err = err;                              \
+        h3_conn->conn->conn_flag |= XQC_CONN_FLAG_ERROR;            \
         xqc_log(h3_conn->conn->log, XQC_LOG_ERROR, "|conn:%p|err:0x%xi|ret:%i|%s|", \
-            h3_conn->conn, err, ret, xqc_conn_addr_str(h3_conn->conn)); \
-    }                                                           \
-} while(0)                                                      \
+                h3_conn->conn, err, ret, xqc_conn_addr_str(h3_conn->conn));         \
+    }                                                               \
+} while(0)                                                          \
 
 
 extern xqc_h3_conn_settings_t default_h3_conn_settings;
@@ -90,55 +90,43 @@ typedef struct xqc_h3_conn_s {
 extern const xqc_conn_callbacks_t  h3_conn_callbacks;
 
 
-xqc_h3_conn_t *
-xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
-
-void
-xqc_h3_conn_destroy(xqc_h3_conn_t *h3c);
-
-int
-xqc_h3_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_cid_t *cid,
-    void *user_data);
-
+/**
+ * @brief create and destroy an http3 connection
+ */
+xqc_h3_conn_t *xqc_h3_conn_create(xqc_connection_t *conn, void *user_data);
+void xqc_h3_conn_destroy(xqc_h3_conn_t *h3c);
 
 /**
  * validate the uni stream creation event
  */
-xqc_int_t
-xqc_h3_conn_on_uni_stream_created(xqc_h3_conn_t *h3c, uint64_t stype);
+xqc_int_t xqc_h3_conn_on_uni_stream_created(xqc_h3_conn_t *h3c, uint64_t stype);
 
 /**
  * whether goaway is recved
  */
-xqc_bool_t
-xqc_h3_conn_is_goaway_recved(xqc_h3_conn_t *h3c, uint64_t stream_id);
+xqc_bool_t xqc_h3_conn_is_goaway_recved(xqc_h3_conn_t *h3c, uint64_t stream_id);
 
-xqc_int_t
-xqc_h3_conn_on_settings_entry_received(uint64_t identifier, uint64_t value, void *user_data);
+xqc_int_t xqc_h3_conn_on_settings_entry_received(uint64_t identifier, uint64_t value,
+    void *user_data);
 
 /**
  * get qpack instance
  * this is used to encode or decode http headers in xqc_h3_stream_t
  */
-xqc_qpack_t *
-xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c);
+xqc_qpack_t *xqc_h3_conn_get_qpack(xqc_h3_conn_t *h3c);
 
 /* add a blocked request stream */
-xqc_h3_blocked_stream_t *
-xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s, uint64_t ric);
+xqc_h3_blocked_stream_t *xqc_h3_conn_add_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_stream_t *h3s,
+    uint64_t ric);
 
 /* remove a blocked request stream when unblocked or abandoned */
-void
-xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream);
+void xqc_h3_conn_remove_blocked_stream(xqc_h3_conn_t *h3c, xqc_h3_blocked_stream_t *blocked_stream);
 
-xqc_int_t
-xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c);
+xqc_int_t xqc_h3_conn_process_blocked_stream(xqc_h3_conn_t *h3c);
 
-xqc_var_buf_t *
-xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data);
+xqc_var_buf_t *xqc_h3_conn_get_ins_buf(xqc_qpack_ins_type_t type, void *user_data);
 
-ssize_t
-xqc_h3_conn_send_ins(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf, void *user_data);
+ssize_t xqc_h3_conn_send_ins(xqc_qpack_ins_type_t type, xqc_var_buf_t *buf, void *user_data);
 
 
 #endif /* _XQC_H3_CONN_H_INCLUDED_ */

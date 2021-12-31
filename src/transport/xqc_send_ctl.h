@@ -7,23 +7,23 @@
 #include "src/transport/xqc_pacing.h"
 #include "src/congestion_control/xqc_sample.h"
 
-#define XQC_kPacketThreshold 3
-#define XQC_kTimeThresholdShift 3
-#define XQC_kPersistentCongestionThreshold 3
+#define XQC_kPacketThreshold                3
+#define XQC_kTimeThresholdShift             3
+#define XQC_kPersistentCongestionThreshold  3
 
-#define XQC_CONSECUTIVE_PTO_THRESH 2
+#define XQC_CONSECUTIVE_PTO_THRESH          2
 /*
  * Timer granularity.  This is a system-dependent value.
  * However, implementations SHOULD use a value no smaller than 1ms.
  */
-#define XQC_kGranularity 2
+#define XQC_kGranularity                    2
 
-#define XQC_kInitialRtt 250
+#define XQC_kInitialRtt                     250
 
-//2^n
-#define xqc_send_ctl_pow(n) (1 << n)
+/* 2^n */
+#define xqc_send_ctl_pow(n)                 (1 << n)
 
-#define XQC_CTL_PACKETS_USED_MAX 16000
+#define XQC_CTL_PACKETS_USED_MAX            16000
 
 /*
  * A connection will time out if no packets are sent or received for a
@@ -34,7 +34,7 @@
  * 15 to 30 seconds is necessary to prevent the majority of middleboxes
  * from losing state for UDP flows.
  */
-#define XQC_PING_TIMEOUT 15000
+#define XQC_PING_TIMEOUT                    15000
 
 /* !!warning add to timer_type_2_str */
 typedef enum {
@@ -63,9 +63,9 @@ typedef struct {
 } xqc_send_ctl_timer_t;
 
 
-#define XQC_DEFAULT_RECORD_INTERVAL (100000)         /* 100ms record interval */
-#define XQC_DEFAULT_RTT_CHANGE_THRESHOLD (50 * 1000) /* 50ms */
-#define XQC_DEFAULT_BW_CHANGE_THRESHOLD (50)         /* percentage of bandwidth change */
+#define XQC_DEFAULT_RECORD_INTERVAL         (100000)    /* 100ms record interval */
+#define XQC_DEFAULT_RTT_CHANGE_THRESHOLD    (50 * 1000) /* 50ms */
+#define XQC_DEFAULT_BW_CHANGE_THRESHOLD     (50)        /* percentage of bandwidth change */
 typedef struct {
     xqc_usec_t  last_record_time;     /* last periodic record time */
     xqc_usec_t  last_rtt_time;        /* last time the rtt was drastically changed */
@@ -148,14 +148,13 @@ typedef struct xqc_send_ctl_s {
 
     xqc_pacing_t                ctl_pacing;
 
-    uint64_t                    ctl_prior_delivered; /* the amount of data delivered in the last call of on_ack_received*/
-    uint64_t                    ctl_delivered;       /* the amount of data that has been marked as sent at the current ack moment */
-    uint64_t                    ctl_app_limited;     /* The index of the last transmitted packet marked as application-limited,
-                                                      * or 0 if the connection is not currently application-limited. */
-    xqc_usec_t                  ctl_delivered_time;  /* time when the current packet was acked */
-    xqc_usec_t                  ctl_first_sent_time; /*sSend time of the first packet in the current sampling period */
-    /* how many packets have been lost so far? */
-    uint32_t                    ctl_lost_pkts_number; 
+    uint64_t                    ctl_prior_delivered;    /* the amount of data delivered in the last call of on_ack_received*/
+    uint64_t                    ctl_delivered;          /* the amount of data that has been marked as sent at the current ack moment */
+    uint64_t                    ctl_app_limited;        /* The index of the last transmitted packet marked as application-limited,
+                                                         * or 0 if the connection is not currently application-limited. */
+    xqc_usec_t                  ctl_delivered_time;     /* time when the current packet was acked */
+    xqc_usec_t                  ctl_first_sent_time;    /* Send time of the first packet in the current sampling period */
+    uint32_t                    ctl_lost_pkts_number;   /* how many packets have been lost so far */
 
     xqc_packet_number_t         ctl_reordering_packet_threshold;
     int32_t                     ctl_reordering_time_threshold_shift;
@@ -184,11 +183,11 @@ xqc_send_ctl_can_write(xqc_send_ctl_t *ctl)
 
 int xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *po);
 
-xqc_send_ctl_t* xqc_send_ctl_create (xqc_connection_t *conn);
+xqc_send_ctl_t *xqc_send_ctl_create (xqc_connection_t *conn);
 
 void xqc_send_ctl_destroy(xqc_send_ctl_t *ctl);
 
-xqc_packet_out_t* xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type);
+xqc_packet_out_t *xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type);
 
 void xqc_send_ctl_destroy_packets_list(xqc_list_head_t *head);
 
@@ -255,8 +254,7 @@ void xqc_send_ctl_on_dgram_received(xqc_send_ctl_t *ctl, size_t dgram_size, xqc_
 void xqc_send_ctl_update_rtt(xqc_send_ctl_t *ctl, xqc_usec_t *latest_rtt, xqc_usec_t ack_delay);
 
 void xqc_send_ctl_on_spurious_loss_detected(xqc_send_ctl_t *ctl, xqc_usec_t ack_recv_time,
-    xqc_packet_number_t largest_ack,
-    xqc_packet_number_t spurious_loss_pktnum,
+    xqc_packet_number_t largest_ack, xqc_packet_number_t spurious_loss_pktnum,
     xqc_usec_t spurious_loss_sent_time);
 
 void xqc_send_ctl_detect_lost(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns, xqc_usec_t now);
@@ -300,7 +298,7 @@ xqc_bool_t xqc_send_ctl_ack_received_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_spa
 /*
  * *****************TIMER*****************
  */
-const char* xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type);
+const char *xqc_timer_type_2_str(xqc_send_ctl_timer_type timer_type);
 
 void xqc_send_ctl_timer_init(xqc_send_ctl_t *ctl);
 
@@ -354,7 +352,7 @@ xqc_send_pacing_timer_update(xqc_send_ctl_t *ctl, xqc_send_ctl_timer_type type, 
     int was_set = ctl->ctl_timer[type].ctl_timer_is_set;
 
     if (was_set) {
-        // update
+        /* update */
         ctl->ctl_timer[type].ctl_expire_time = new_expire;
         xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG, "|type:%s|new_expire:%ui|now:%ui|",
                 xqc_timer_type_2_str(type), new_expire, xqc_monotonic_timestamp());
@@ -379,17 +377,18 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_usec_t now)
     for (xqc_send_ctl_timer_type type = 0; type < XQC_TIMER_N; ++type) {
         timer = &ctl->ctl_timer[type];
         if (timer->ctl_timer_is_set && timer->ctl_expire_time <= now) {
-            if(type == XQC_TIMER_IDLE){
+            if (type == XQC_TIMER_IDLE) {
                 xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
                     "|conn:%p|timer expired|type:%s|expire_time:%ui|now:%ui|",
                     ctl->ctl_conn, xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
 
-            }else{
+            } else {
                 xqc_log(ctl->ctl_conn->log, XQC_LOG_DEBUG,
                     "|timer expired|type:%s|expire_time:%ui|now:%ui|",
                     xqc_timer_type_2_str(type), timer->ctl_expire_time, now);
             }
-            xqc_log_event(ctl->ctl_conn->log, REC_LOSS_TIMER_UPDATED, ctl, 0, (xqc_int_t) type, (xqc_int_t) XQC_LOG_TIMER_EXPIRE);
+            xqc_log_event(ctl->ctl_conn->log, REC_LOSS_TIMER_UPDATED, ctl, 0, (xqc_int_t) type,
+                          (xqc_int_t) XQC_LOG_TIMER_EXPIRE);
             timer->ctl_timer_callback(type, now, timer->ctl_ctx);
 
             /* unset timer if it is not updated in ctl_timer_callback */
@@ -406,4 +405,4 @@ xqc_send_ctl_timer_expire(xqc_send_ctl_t *ctl, xqc_usec_t now)
  * *****************TIMER END*****************
  */
 
-#endif //_XQC_SEND_CTL_H_INCLUDED_
+#endif /* _XQC_SEND_CTL_H_INCLUDED_ */

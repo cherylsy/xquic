@@ -44,16 +44,18 @@ xqc_recv_record_print(xqc_connection_t *conn, xqc_recv_record_t *recv_record, ch
 }
 
 static int
-xqc_pktno_range_can_merge (xqc_pktno_range_node_t *node, xqc_packet_number_t packet_number)
+xqc_pktno_range_can_merge(xqc_pktno_range_node_t *node, xqc_packet_number_t packet_number)
 {
     if (node->pktno_range.low - 1 == packet_number) {
         --node->pktno_range.low;
         return 1;
     }
+
     if (node->pktno_range.high + 1 == packet_number) {
         ++node->pktno_range.high;
         return 1;
     }
+
     return 0;
 }
 
@@ -61,7 +63,7 @@ xqc_pktno_range_can_merge (xqc_pktno_range_node_t *node, xqc_packet_number_t pac
  * insert into range list when receive a new packet
  */
 xqc_pkt_range_status
-xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number, xqc_usec_t recv_time)
+xqc_recv_record_add(xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number, xqc_usec_t recv_time)
 {
     xqc_list_head_t *pos, *prev, *next;
     xqc_pktno_range_node_t *pnode, *prev_node;
@@ -137,7 +139,7 @@ xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_
  * del packet number range < del_from
  */
 void
-xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from)
+xqc_recv_record_del(xqc_recv_record_t *recv_record, xqc_packet_number_t del_from)
 {
     if (del_from < recv_record->rr_del_from) {
         return;
@@ -200,7 +202,6 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
 {
     /*
      * Generating Acknowledgements
-     * https://datatracker.ietf.org/doc/html/draft-ietf-quic-recovery-19#section-4
      */
 
     if (conn->conn_flag & (XQC_CONN_FLAG_SHOULD_ACK_INIT << pns)) {
@@ -227,8 +228,7 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
         xqc_send_ctl_timer_unset(conn->conn_send_ctl, XQC_TIMER_ACK_INIT + pns);
 
         xqc_log(conn->log, XQC_LOG_DEBUG, "|yes|out_of_order:%d|ack_eliciting_pkt:%d|"
-                                          "pns:%d|flag:%s|",
-                out_of_order, conn->ack_eliciting_pkt[pns],
+                "pns:%d|flag:%s|", out_of_order, conn->ack_eliciting_pkt[pns],
                 pns, xqc_conn_flag_2_str(conn->conn_flag));
 
     } else if (conn->ack_eliciting_pkt[pns] > 0

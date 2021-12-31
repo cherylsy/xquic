@@ -36,7 +36,7 @@ xqc_send_ctl_indirectly_ack_po(xqc_send_ctl_t *ctl, xqc_packet_out_t *packet_out
 
 
 xqc_send_ctl_t *
-xqc_send_ctl_create (xqc_connection_t *conn)
+xqc_send_ctl_create(xqc_connection_t *conn)
 {
     uint64_t now = xqc_monotonic_timestamp();
     xqc_send_ctl_t *send_ctl;
@@ -133,11 +133,10 @@ xqc_send_ctl_destroy(xqc_send_ctl_t *ctl)
 }
 
 xqc_packet_out_t *
-xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type)
+xqc_send_ctl_get_packet_out(xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t pkt_type)
 {
     xqc_packet_out_t *packet_out;
-
-    xqc_list_head_t *pos;
+    xqc_list_head_t  *pos;
 
     xqc_list_for_each_reverse(pos, &ctl->ctl_send_packets) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
@@ -151,7 +150,6 @@ xqc_send_ctl_get_packet_out (xqc_send_ctl_t *ctl, unsigned need, xqc_pkt_type_t 
     if (packet_out == NULL) {
         return NULL;
     }
-
 
     return packet_out;
 }
@@ -1776,17 +1774,17 @@ xqc_send_ctl_ack_received_in_pns(xqc_send_ctl_t *ctl, xqc_pkt_num_space_t pns)
  * *****************TIMER*****************
  */
 static const char * const timer_type_2_str[XQC_TIMER_N] = {
-        [XQC_TIMER_ACK_INIT]    = "ACK_INIT",
-        [XQC_TIMER_ACK_HSK]     = "ACK_HSK",
-        [XQC_TIMER_ACK_01RTT]   = "ACK_01RTT",
-        [XQC_TIMER_LOSS_DETECTION] = "LOSS_DETECTION",
-        [XQC_TIMER_IDLE]        = "IDLE",
-        [XQC_TIMER_DRAINING]    = "DRAINING",
-        [XQC_TIMER_PACING]      = "PACING",
-        [XQC_TIMER_STREAM_CLOSE]= "STREAM_CLOSE",
-        [XQC_TIMER_PING]        = "PING",
-        [XQC_TIMER_RETIRE_CID]  = "RETIRE_CID",
-        [XQC_TIMER_LINGER_CLOSE]= "LINGER_CLOSE",
+    [XQC_TIMER_ACK_INIT]        = "ACK_INIT",
+    [XQC_TIMER_ACK_HSK]         = "ACK_HSK",
+    [XQC_TIMER_ACK_01RTT]       = "ACK_01RTT",
+    [XQC_TIMER_LOSS_DETECTION]  = "LOSS_DETECTION",
+    [XQC_TIMER_IDLE]            = "IDLE",
+    [XQC_TIMER_DRAINING]        = "DRAINING",
+    [XQC_TIMER_PACING]          = "PACING",
+    [XQC_TIMER_STREAM_CLOSE]    = "STREAM_CLOSE",
+    [XQC_TIMER_PING]            = "PING",
+    [XQC_TIMER_RETIRE_CID]      = "RETIRE_CID",
+    [XQC_TIMER_LINGER_CLOSE]    = "LINGER_CLOSE",
 };
 
 const char *
@@ -1897,7 +1895,8 @@ xqc_send_ctl_stream_close_timeout(xqc_send_ctl_timer_type type, xqc_usec_t now, 
     xqc_list_for_each_safe(pos, next, &conn->conn_closing_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, closing_stream_list);
         if (stream->stream_close_time <= now) {
-            xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|stream close|", stream->stream_id, stream->stream_type);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|stream_id:%ui|stream_type:%d|stream close|", 
+                    stream->stream_id, stream->stream_type);
             xqc_list_del_init(pos);
             xqc_destroy_stream(stream);
 

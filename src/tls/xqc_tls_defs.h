@@ -14,8 +14,8 @@
 #define XQC_TLS_AEAD_OVERHEAD_MAX_LEN   16
 
 
-typedef struct xqc_tls_ctx_s xqc_tls_ctx_t;
-typedef struct xqc_tls_s xqc_tls_t;
+typedef struct xqc_tls_ctx_s    xqc_tls_ctx_t;
+typedef struct xqc_tls_s        xqc_tls_t;
 
 
 typedef enum {
@@ -165,7 +165,6 @@ typedef struct xqc_tls_callbacks_s {
     /* for notify tls handshake completed, which is equivalent to QUIC handshake completed */
     xqc_tls_handshake_completed_pt  hsk_completed_cb;
 } xqc_tls_callbacks_t;
-
 
 
 #endif

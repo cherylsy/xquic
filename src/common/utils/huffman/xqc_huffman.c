@@ -110,7 +110,6 @@ xqc_huffman_enc(uint8_t *dest, const uint8_t *src, size_t srclen)
 }
 
 
-
 void
 xqc_huffman_dec_ctx_init(xqc_huffman_dec_ctx *ctx)
 {

@@ -80,7 +80,7 @@ xqc_decoder_name_index(xqc_decoder_t *dec, xqc_flag_t t, uint64_t idx, xqc_var_b
     }
     xqc_var_buf_clear(name_buf);
 
-    if (t == XQC_DTABLE_FLAG) {   // RENAME t
+    if (t == XQC_DTABLE_FLAG) {
         return xqc_dtable_get_nv(dec->dtable, idx, name_buf, NULL);
 
     } else {
@@ -124,7 +124,8 @@ xqc_decoder_save_hdr(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, xqc_http_header_t *
     case XQC_REP_TYPE_POST_BASE_INDEXED:
         ret = xqc_decoder_index(dec, ctx->table, ctx->index.value, name, value);
         if (ret != XQC_OK) {
-            xqc_log(dec->log, XQC_LOG_ERROR, "|decode indexed field line error|type:%d|base:%ui|ret:%d|", ctx->type, ctx->base.value, ret);
+            xqc_log(dec->log, XQC_LOG_ERROR, "|decode indexed field line error|type:%d"
+                    "|base:%ui|ret:%d|", ctx->type, ctx->base.value, ret);
             return -XQC_QPACK_DECODER_ERROR;
         }
         /* restore never flag */
@@ -136,7 +137,8 @@ xqc_decoder_save_hdr(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, xqc_http_header_t *
     case XQC_REP_TYPE_POST_BASE_NAME_REFERENCE:
         ret = xqc_decoder_name_index(dec, ctx->table, ctx->index.value, name);
         if (ret != XQC_OK) {
-            xqc_log(dec->log, XQC_LOG_ERROR, "|decode name indexed field line error|type:%d|base:%ui|ret:%d|", ctx->type, ctx->base.value, ret);
+            xqc_log(dec->log, XQC_LOG_ERROR, "|decode name indexed field line error|type:%d|"
+                    "base:%ui|ret:%d|", ctx->type, ctx->base.value, ret);
             return -XQC_QPACK_DECODER_ERROR;
         }
         /* restore never flag */
@@ -178,7 +180,8 @@ xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *bu
         if (ctx->state == XQC_REP_DECODE_STATE_OPCODE) {
             xqc_log(dec->log, XQC_LOG_DEBUG, "|encoded field section prefix|ric:%ui|s:%d|db:%ui|",
                     ctx->ric.value, ctx->sign, ctx->base.value);
-            xqc_log_event(dec->log, QPACK_HEADERS_DECODED, XQC_LOG_BLOCK_PREFIX, ctx->ric.value, ctx->base.value);
+            xqc_log_event(dec->log, QPACK_HEADERS_DECODED, XQC_LOG_BLOCK_PREFIX,
+                          ctx->ric.value, ctx->base.value);
         }
     }
 
@@ -198,11 +201,13 @@ xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *bu
                     "processed:%z|", ctx->type, ctx->state, read);
             if (ctx->state == XQC_REP_DECODE_STATE_NAME && ctx->name->huff_flag > 0) {
                 xqc_log(dec->log, XQC_LOG_ERROR, "|decode name error|pre_state:%d|end:%d|bit:%d|",
-                        ctx->name->huff_ctx.pre_state, ctx->name->huff_ctx.end, ctx->name->huff_ctx.bit);
+                        ctx->name->huff_ctx.pre_state, ctx->name->huff_ctx.end,
+                        ctx->name->huff_ctx.bit);
             }
             if (ctx->state == XQC_REP_DECODE_STATE_VALUE && ctx->value->huff_flag > 0) {
                 xqc_log(dec->log, XQC_LOG_ERROR, "|decode value error|pre_state:%d|end:%d|bit:%d|",
-                        ctx->value->huff_ctx.pre_state, ctx->value->huff_ctx.end, ctx->value->huff_ctx.bit);
+                        ctx->value->huff_ctx.pre_state, ctx->value->huff_ctx.end,
+                        ctx->value->huff_ctx.bit);
             }
             return -XQC_QPACK_DECODER_ERROR;
         }
@@ -330,6 +335,7 @@ xqc_log_QPACK_HEADERS_DECODED_callback(xqc_log_t *log, const char *func, ...)
         uint64_t base = va_arg(args, uint64_t);
         xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
                           "|prefix|ricnt:%ui|base:%ui|", ricnt, base);
+
     } else if (type == XQC_LOG_HEADER_BLOCK){
         xqc_rep_ctx_t *ctx = va_arg(args, xqc_rep_ctx_t*);
         xqc_http_header_t *hdr = va_arg(args, xqc_http_header_t*);
@@ -343,6 +349,7 @@ xqc_log_QPACK_HEADERS_DECODED_callback(xqc_log_t *log, const char *func, ...)
                               pb ? "" : "|post base", ctx->index.value);
             break;
         }
+
         case XQC_REP_TYPE_NAME_REFERENCE:
         case XQC_REP_TYPE_POST_BASE_NAME_REFERENCE: {
             xqc_flag_t pb = ctx->type == XQC_REP_TYPE_POST_BASE_NAME_REFERENCE;
@@ -353,12 +360,14 @@ xqc_log_QPACK_HEADERS_DECODED_callback(xqc_log_t *log, const char *func, ...)
                               (size_t) hdr->value.iov_len, hdr->value.iov_base);
             break;
         }
+
         case XQC_REP_TYPE_LITERAL:
             if (hdr->value.iov_len > 0) {
                 xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
                                   "|header|literal|name:%*s|value:%*s|",
                                   (size_t) hdr->name.iov_len, hdr->name.iov_base,
                                   (size_t) hdr->value.iov_len, hdr->value.iov_base);
+
             } else {
                 xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
                                   "|header|literal|name:%*s|",
@@ -366,6 +375,7 @@ xqc_log_QPACK_HEADERS_DECODED_callback(xqc_log_t *log, const char *func, ...)
             }
             break;
         }
+
     } else {
         uint64_t stream_id = va_arg(args, uint64_t);
         uint64_t length = va_arg(args, uint64_t);

@@ -3,7 +3,8 @@
 #include "src/common/xqc_random.h"
 #include "src/common/xqc_common.h"
 
-void xqc_test_get_random()
+void
+xqc_test_get_random()
 {
     u_char buf[1024];
     xqc_random_generator_t *rand_gen = NULL;

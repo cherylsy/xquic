@@ -6,12 +6,13 @@
 #include <CUnit/CUnit.h>
 #include <stdio.h>
 
-void xqc_test_recv_record ()
+void
+xqc_test_recv_record()
 {
     xqc_list_head_t *pos;
     xqc_pktno_range_node_t *pnode;
     xqc_recv_record_t record;
-    memset(&record, 0 , sizeof(xqc_recv_record_t));
+    memset(&record, 0, sizeof(xqc_recv_record_t));
     xqc_init_list_head(&record.list_head);
 
     xqc_recv_record_add(&record, 0, 0);

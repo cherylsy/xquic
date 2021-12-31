@@ -107,20 +107,20 @@ xqc_transport_params_calc_length(const xqc_transport_params_t *params,
     }
 
     if (params->disable_active_migration) {
-        len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_DISABLE_ACTIVE_MIGRATION) + 
+        len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_DISABLE_ACTIVE_MIGRATION) +
                xqc_put_varint_len(0);   /* disable_active_migration is zero-length transport parameter */
     }
 
     /* PREFERRED_ADDRESS */
-    if (exttype == XQC_TP_TYPE_ENCRYPTED_EXTENSIONS 
+    if (exttype == XQC_TP_TYPE_ENCRYPTED_EXTENSIONS
         && params->preferred_address_present
         && params->preferred_address.cid.cid_len > 0)
     {
-        preferred_addrlen = sizeof(params->preferred_address.ipv4) + 
-                            sizeof(params->preferred_address.ipv4_port) + 
-                            sizeof(params->preferred_address.ipv6) + 
+        preferred_addrlen = sizeof(params->preferred_address.ipv4) +
+                            sizeof(params->preferred_address.ipv4_port) +
+                            sizeof(params->preferred_address.ipv6) +
                             sizeof(params->preferred_address.ipv6_port) +
-                            sizeof(params->preferred_address.cid.cid_len) + 
+                            sizeof(params->preferred_address.cid.cid_len) +
                             params->preferred_address.cid.cid_len +
                             sizeof(params->preferred_address.stateless_reset_token);
 
@@ -136,13 +136,13 @@ xqc_transport_params_calc_length(const xqc_transport_params_t *params,
 
     if (params->initial_source_connection_id_present) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_INITIAL_SOURCE_CONNECTION_ID) +
-               xqc_put_varint_len(params->initial_source_connection_id.cid_len) + 
+               xqc_put_varint_len(params->initial_source_connection_id.cid_len) +
                params->initial_source_connection_id.cid_len;
     }
 
     if (params->retry_source_connection_id_present) {
         len += xqc_put_varint_len(XQC_TRANSPORT_PARAM_RETRY_SOURCE_CONNECTION_ID) +
-               xqc_put_varint_len(params->retry_source_connection_id.cid_len) + 
+               xqc_put_varint_len(params->retry_source_connection_id.cid_len) +
                params->retry_source_connection_id.cid_len;
     }
 
@@ -180,8 +180,8 @@ xqc_put_varint_param(uint8_t* p, xqc_transport_param_id_t id, uint64_t v)
 inline static uint8_t*
 xqc_put_zero_length_param(uint8_t* p, xqc_transport_param_id_t id)
 {
-    p = xqc_put_varint(p, id);  // put id
-    p = xqc_put_varint(p, 0);   // put length, which is 0
+    p = xqc_put_varint(p, id);  /* put id */
+    p = xqc_put_varint(p, 0);   /* put length, which is 0 */
     return p;
 }
 
@@ -331,13 +331,13 @@ xqc_encode_transport_params(const xqc_transport_params_t *params,
 
 
 /* dst should be destination value point */
-#define XQC_DECODE_VINT_VALUE(dst, p, end) \
-    do { \
-        ssize_t nread = xqc_vint_read((p), (end), (dst)); \
-        if (nread < 0) { \
-            return -XQC_TLS_MALFORMED_TRANSPORT_PARAM; \
-        } \
-        return XQC_OK; \
+#define XQC_DECODE_VINT_VALUE(dst, p, end)                  \
+    do {                                                    \
+        ssize_t nread = xqc_vint_read((p), (end), (dst));   \
+        if (nread < 0) {                                    \
+            return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;      \
+        }                                                   \
+        return XQC_OK;                                      \
     } while(0) 
 
 
@@ -369,8 +369,8 @@ xqc_decode_stateless_token(xqc_transport_params_t *params, xqc_transport_params_
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
 
-    if ((size_t)(end - p) < sizeof(params->stateless_reset_token) || 
-        param_len != sizeof(params->stateless_reset_token))
+    if ((size_t)(end - p) < sizeof(params->stateless_reset_token)
+        || param_len != sizeof(params->stateless_reset_token))
     {
         return -XQC_TLS_MALFORMED_TRANSPORT_PARAM;
     }
@@ -639,7 +639,7 @@ static inline xqc_int_t
 xqc_decode_one_transport_param(xqc_transport_params_t *params,
     xqc_transport_params_type_t exttype, const uint8_t **start, const uint8_t *end)
 {
-    const uint8_t* p = *start;
+    const uint8_t *p = *start;
     uint64_t param_type = 0;
     uint64_t param_len = 0;
 
@@ -792,20 +792,20 @@ xqc_read_transport_params(char *tp_data, size_t tp_data_len, xqc_transport_param
 ssize_t
 xqc_write_transport_params(char *tp_buf, size_t cap, const xqc_transport_params_t *params)
 {
-    int tp_data_len = snprintf(tp_buf, cap, "initial_max_streams_bidi=%"PRIu64"\n"
-                               "initial_max_streams_uni=%"PRIu64"\n"
-                               "initial_max_stream_data_bidi_local=%"PRIu64"\n"
-                               "initial_max_stream_data_bidi_remote=%"PRIu64"\n"
-                               "initial_max_stream_data_uni=%"PRIu64"\n"
-                               "initial_max_data=%"PRIu64"\n"
-                               "max_ack_delay=%"PRIu64"\n",
-                               params->initial_max_streams_bidi,
-                               params->initial_max_streams_uni,
-                               params->initial_max_stream_data_bidi_local,
-                               params->initial_max_stream_data_bidi_remote,
-                               params->initial_max_stream_data_uni,
-                               params->initial_max_data,
-                               params->max_ack_delay);
+    ssize_t tp_data_len = snprintf(tp_buf, cap, "initial_max_streams_bidi=%"PRIu64"\n"
+                                   "initial_max_streams_uni=%"PRIu64"\n"
+                                   "initial_max_stream_data_bidi_local=%"PRIu64"\n"
+                                   "initial_max_stream_data_bidi_remote=%"PRIu64"\n"
+                                   "initial_max_stream_data_uni=%"PRIu64"\n"
+                                   "initial_max_data=%"PRIu64"\n"
+                                   "max_ack_delay=%"PRIu64"\n",
+                                   params->initial_max_streams_bidi,
+                                   params->initial_max_streams_uni,
+                                   params->initial_max_stream_data_bidi_local,
+                                   params->initial_max_stream_data_bidi_remote,
+                                   params->initial_max_stream_data_uni,
+                                   params->initial_max_data,
+                                   params->max_ack_delay);
     if (tp_data_len < 0) {
         return -XQC_ESYS;
     }

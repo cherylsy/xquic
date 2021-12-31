@@ -22,9 +22,9 @@
 
 
 unsigned
-xqc_short_packet_header_size (unsigned char dcid_len, unsigned char pktno_bits)
+xqc_short_packet_header_size(unsigned char dcid_len, unsigned char pktno_bits)
 {
-    return 1 //first byte
+    return 1    /* first byte */
            + dcid_len
            + xqc_packet_number_bits2len(pktno_bits);
 }
@@ -33,13 +33,13 @@ unsigned
 xqc_long_packet_header_size (unsigned char dcid_len, unsigned char scid_len, unsigned token_len,
     unsigned char pktno_bits, xqc_pkt_type_t type)
 {
-    return 1 //first byte
-           + 4 //version
-           + 2 //DCID Len (8) SCID Len (8)
+    return 1    /* first byte */
+           + 4  /* version */
+           + 2  /* DCID Len (8) SCID Len (8) */
            + dcid_len
            + scid_len
            + (type == XQC_PTYPE_INIT ? xqc_vint_len_by_val((unsigned)token_len) + token_len : 0)
-           + XQC_LONG_HEADER_LENGTH_BYTE //Length (i)
+           + XQC_LONG_HEADER_LENGTH_BYTE    /* Length (i) */
            + xqc_packet_number_bits2len(pktno_bits);
 }
 
@@ -87,7 +87,7 @@ xqc_packet_parse_cid(xqc_cid_t *dcid, xqc_cid_t *scid, uint8_t cid_len, const un
     pos += dcid->cid_len;
 
     scid->cid_len = (uint8_t)(*pos);
-    if(scid->cid_len > XQC_MAX_CID_LEN) {
+    if (scid->cid_len > XQC_MAX_CID_LEN) {
         return -XQC_EILLPKT;
     }
     pos += 1;
@@ -143,7 +143,7 @@ xqc_packet_decode_packet_number(xqc_packet_number_t largest_pn, xqc_packet_numbe
 }
 
 int
-xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number, unsigned char packet_number_bits)
+xqc_write_packet_number(unsigned char *buf, xqc_packet_number_t packet_number, unsigned char packet_number_bits)
 {
     unsigned char *p = buf;
     unsigned int packet_number_len = xqc_packet_number_bits2len(packet_number_bits);
@@ -165,7 +165,7 @@ xqc_write_packet_number (unsigned char *buf, xqc_packet_number_t packet_number, 
 
 
 int
-xqc_gen_short_packet_header (xqc_packet_out_t *packet_out, unsigned char *dcid, unsigned int dcid_len,
+xqc_gen_short_packet_header(xqc_packet_out_t *packet_out, unsigned char *dcid, unsigned int dcid_len,
     unsigned char packet_number_bits, xqc_packet_number_t packet_number)
 {
     /*
@@ -209,7 +209,7 @@ xqc_gen_short_packet_header (xqc_packet_out_t *packet_out, unsigned char *dcid, 
 
     packet_out->po_ppktno = dst_buf;
 
-    dst_buf += xqc_write_packet_number(dst_buf, packet_number, packet_number_bits);//packet_number update when send
+    dst_buf += xqc_write_packet_number(dst_buf, packet_number, packet_number_bits);
     packet_out->po_payload = dst_buf;
 
     return need;
@@ -268,7 +268,8 @@ xqc_packet_parse_short_header(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     pos += cid_len;
     if (xqc_conn_check_dcid(c, &(packet->pkt_dcid)) != XQC_OK) {
         /* log & ignore */
-        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid, pkt dcid: %s, conn scid: %s|", xqc_dcid_str(&packet->pkt_dcid), xqc_scid_str(&c->scid_set.user_scid));
+        xqc_log(c->log, XQC_LOG_ERROR, "|parse short header|invalid destination cid, pkt dcid: %s, conn scid: %s|",
+                xqc_dcid_str(&packet->pkt_dcid), xqc_scid_str(&c->scid_set.user_scid));
         return -XQC_EILLPKT;
     }
 
@@ -289,7 +290,7 @@ xqc_packet_parse_short_header(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
 
 void
-xqc_long_packet_update_length (xqc_packet_out_t *packet_out)
+xqc_long_packet_update_length(xqc_packet_out_t *packet_out)
 {
     if (packet_out->po_pkt.pkt_type == XQC_PTYPE_INIT
         || packet_out->po_pkt.pkt_type == XQC_PTYPE_HSK
@@ -370,14 +371,13 @@ xqc_gen_long_packet_header (xqc_packet_out_t *packet_out,
         }
     }
 
-    dst_buf += XQC_LONG_HEADER_LENGTH_BYTE; //Length update when write frame
+    dst_buf += XQC_LONG_HEADER_LENGTH_BYTE;
 
     packet_out->po_ppktno = dst_buf;
-    dst_buf += xqc_write_packet_number(dst_buf, packet_number, pktno_bits); //packet_number update when send
+    dst_buf += xqc_write_packet_number(dst_buf, packet_number, pktno_bits);
     packet_out->po_payload = dst_buf;
 
     return dst_buf - begin;
-
 }
 
 
@@ -422,7 +422,8 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     packet_in->pi_pkt.pkt_pns = XQC_PNS_INIT;
 
     if (c->conn_state == XQC_CONN_STATE_SERVER_INIT &&
-        !(c->conn_flag & XQC_CONN_FLAG_SVR_INIT_RECVD)) {
+        !(c->conn_flag & XQC_CONN_FLAG_SVR_INIT_RECVD))
+    {
         if (XQC_BUFF_LEFT_SIZE(packet_in->buf, end) < XQC_PACKET_INITIAL_MIN_LENGTH) {
             xqc_log(c->log, XQC_LOG_ERROR, "|initial size too small|%z|",
                     XQC_BUFF_LEFT_SIZE(packet_in->buf, end));
@@ -547,9 +548,9 @@ xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
 
     /* source buffer */
     uint8_t *header = (uint8_t *)packet_out->po_buf;
-    size_t header_len = packet_out->po_payload - packet_out->po_buf;
+    size_t   header_len = packet_out->po_payload - packet_out->po_buf;
     uint8_t *payload = (uint8_t *)packet_out->po_payload;
-    size_t payload_len = packet_out->po_used_size - header_len;
+    size_t   payload_len = packet_out->po_used_size - header_len;
     uint8_t *pktno = (uint8_t *)packet_out->po_ppktno;
 
     /* destination buffer */
@@ -562,8 +563,8 @@ xqc_packet_encrypt_buf(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     xqc_memcpy(dst_header, header, header_len);
 
     /* refresh header length */
-    if (level == XQC_ENC_LEV_INIT || level == XQC_ENC_LEV_0RTT ||
-        level == XQC_ENC_LEV_HSK)
+    if (level == XQC_ENC_LEV_INIT || level == XQC_ENC_LEV_0RTT
+        || level == XQC_ENC_LEV_HSK)
     {
         unsigned char *plength = dst_pktno - XQC_LONG_HEADER_LENGTH_BYTE;
         uint32_t length = header + packet_out->po_used_size - pktno;
@@ -756,7 +757,7 @@ xqc_packet_parse_handshake(xqc_connection_t *c, xqc_packet_in_t *packet_in)
 
                        Retry Packet
  */
-//TODO: protocol update
+/* TODO: protocol update */
 int
 xqc_gen_retry_packet(unsigned char *dst_buf,
     const unsigned char *dcid, unsigned char dcid_len,
@@ -950,14 +951,7 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
         }
     }
 
-    /* connect the server with the new version, which is not defined by protocol */
-#if 0
-    xqc_stream_t *stream = c->crypto_stream[XQC_ENC_LEV_INIT];
-    if (stream == NULL) {
-        return -XQC_ESTREAM_NFOUND;
-    }
-    xqc_stream_ready_to_write(stream);
-#endif
+    /* TODO: connect the server with the new version, which is not defined by protocol */
 
     xqc_log(c->log, XQC_LOG_INFO, "|parse version negotiation packet suc|");
 
@@ -1109,7 +1103,7 @@ xqc_gen_reset_token(xqc_cid_t *cid, unsigned char *token, int token_len, char *k
     int input_len = cid->cid_len;
     unsigned char output[EVP_MAX_MD_SIZE];
     int output_len = EVP_MAX_MD_SIZE;
-    const EVP_MD * engine = NULL;
+    const EVP_MD *engine = NULL;
     engine = EVP_md5();
     HMAC_CTX *ctx = HMAC_CTX_new();
     HMAC_CTX_reset(ctx);

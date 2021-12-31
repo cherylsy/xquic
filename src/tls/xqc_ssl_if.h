@@ -18,12 +18,13 @@ typedef enum xqc_ssl_handshake_res_s {
 
 
 void xqc_ssl_ctx_set_timeout(SSL_CTX *ctx, uint32_t timeout);
-void xqc_ssl_ctx_enable_max_early_data(SSL_CTX *ctx);
+
 xqc_int_t xqc_ssl_ctx_set_cipher_suites(SSL_CTX *ctx, const char *ciphers);
 
 /**
- * @brief check if early data is enabled on a ssl session
+ * @brief early data related functions
  */
+void xqc_ssl_ctx_enable_max_early_data(SSL_CTX *ctx);
 xqc_bool_t xqc_ssl_session_is_early_data_enabled(SSL_SESSION *session);
 xqc_bool_t xqc_ssl_is_early_data_accepted(SSL *ssl);
 void xqc_ssl_enable_max_early_data(SSL *ssl);

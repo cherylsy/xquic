@@ -14,7 +14,8 @@
 #include "xqc_common_test.h"
 
 
-void xqc_test_engine_create()
+void
+xqc_test_engine_create()
 {
     xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
@@ -29,7 +30,8 @@ void xqc_test_engine_create()
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
 
-void xqc_test_engine_packet_process()
+void
+xqc_test_engine_packet_process()
 {
     struct sockaddr local_addr;
     socklen_t local_addrlen = 0;

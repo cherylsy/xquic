@@ -7,9 +7,15 @@
 #include <openssl/err.h>
 
 
-SSL_CTX * xqc_tls_ctx_get_ssl_ctx(xqc_tls_ctx_t *ctx);
-xqc_tls_type_t xqc_tls_ctx_get_type(xqc_tls_ctx_t *ctx);
+/**
+ * @brief get SSL_CTX object
+ */
+SSL_CTX *xqc_tls_ctx_get_ssl_ctx(xqc_tls_ctx_t *ctx);
 
+/**
+ * @brief get configured tls context type
+ */
+xqc_tls_type_t xqc_tls_ctx_get_type(xqc_tls_ctx_t *ctx);
 
 /**
  * @brief get callback functions registered by upper layer

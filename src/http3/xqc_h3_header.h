@@ -21,8 +21,7 @@ typedef enum {
  * @param capacity total headers
  * @return XQC_OK for success
  */
-xqc_int_t
-xqc_h3_headers_create_buf(xqc_http_headers_t *headers, size_t capacity);
+xqc_int_t xqc_h3_headers_create_buf(xqc_http_headers_t *headers, size_t capacity);
 
 
 /**
@@ -31,33 +30,28 @@ xqc_h3_headers_create_buf(xqc_http_headers_t *headers, size_t capacity);
  * @param capacity new capacity
  * @return xqc_int_t 
  */
-xqc_int_t
-xqc_h3_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity);
+xqc_int_t xqc_h3_headers_realloc_buf(xqc_http_headers_t *headers, size_t capacity);
 
 
 /**
  * @brief free name-value buffer for headers
  * @param headers http headers
  */
-void
-xqc_h3_headers_clear(xqc_http_headers_t *headers);
+void xqc_h3_headers_clear(xqc_http_headers_t *headers);
 
 
 /**
  * @brief free headers array and name-value buffer in them
  * @param headers http headers
  */
-void
-xqc_h3_headers_free(xqc_http_headers_t *headers);
+void xqc_h3_headers_free(xqc_http_headers_t *headers);
 
 
 /**
  * @brief set http headers to be empty
  * @param headers http headers
  */
-void
-xqc_h3_headers_initial(xqc_http_headers_t *headers);
-
+void xqc_h3_headers_initial(xqc_http_headers_t *headers);
 
 
 /**
@@ -132,8 +126,7 @@ typedef enum {
  * @param nlen header name len
  * @return XQC_HDR_UNKNOWN for not registered, others for valid header type
  */
-xqc_hdr_type_t
-xqc_h3_hdr_type(unsigned char *name, size_t nlen);
+xqc_hdr_type_t xqc_h3_hdr_type(unsigned char *name, size_t nlen);
 
 
-#endif //XQUIC_XQC_H3_HEADER_H
+#endif /* XQUIC_XQC_H3_HEADER_H */

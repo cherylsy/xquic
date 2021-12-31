@@ -17,25 +17,29 @@
 #include "src/common/xqc_str.h"
 #include "src/common/xqc_time.h"
 
-#define XQC_LOG_REMOTE_EVENT 0
-#define XQC_LOG_LOCAL_EVENT 1
+/* max length for log buffer */
+#define XQC_MAX_LOG_LEN 2048
 
-#define XQC_LOG_STREAM_SEND 0
-#define XQC_LOG_STREAM_RECV 1
 
-#define XQC_LOG_DECODER_EVENT 0
-#define XQC_LOG_ENCODER_EVENT 1
+#define XQC_LOG_REMOTE_EVENT    0
+#define XQC_LOG_LOCAL_EVENT     1
+
+#define XQC_LOG_STREAM_SEND     0
+#define XQC_LOG_STREAM_RECV     1
+
+#define XQC_LOG_DECODER_EVENT   0
+#define XQC_LOG_ENCODER_EVENT   1
 
 #define XQC_LOG_DTABLE_INSERTED 0
-#define XQC_LOG_DTABLE_EVICTED 1
+#define XQC_LOG_DTABLE_EVICTED  1
 
-#define XQC_LOG_BLOCK_PREFIX 0
-#define XQC_LOG_HEADER_BLOCK 1
-#define XQC_LOG_HEADER_FRAME 2
+#define XQC_LOG_BLOCK_PREFIX    0
+#define XQC_LOG_HEADER_BLOCK    1
+#define XQC_LOG_HEADER_FRAME    2
 
-#define XQC_LOG_TIMER_SET 0
-#define XQC_LOG_TIMER_EXPIRE 1
-#define XQC_LOG_TIMER_CANCEL 2
+#define XQC_LOG_TIMER_SET       0
+#define XQC_LOG_TIMER_EXPIRE    1
+#define XQC_LOG_TIMER_CANCEL    2
 
 typedef enum {
     /* connectivity event */

@@ -3,8 +3,9 @@
 #include "src/congestion_control/xqc_cubic.h"
 #include <stdio.h>
 #include "src/common/xqc_time.h"
+
 void
-print_cubic (xqc_cubic_t *cubic)
+print_cubic(xqc_cubic_t *cubic)
 {
 
 #ifdef DEBUG_PRINT
@@ -14,7 +15,7 @@ print_cubic (xqc_cubic_t *cubic)
 }
 
 void
-xqc_test_cubic ()
+xqc_test_cubic()
 {
     xqc_msec_t now = xqc_monotonic_timestamp();
 

@@ -21,9 +21,9 @@
  * xqc_list_entry()
  */
 
-typedef struct xqc_list_head_s
-{
-    struct xqc_list_head_s *prev, *next;
+typedef struct xqc_list_head_s {
+    struct xqc_list_head_s *prev;
+    struct xqc_list_head_s *next;
 } xqc_list_head_t;
 
 #define xqc_list_head_init(name) { &(name), &(name) }
@@ -33,7 +33,7 @@ typedef struct xqc_list_head_s
     const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
     (type *)( (char *)__mptr - offsetof(type,member) );})
 #else
-# define container_of(ptr, type, member) (type *)( (char *)ptr - offsetof(type, member) )
+#define container_of(ptr, type, member) (type *)( (char *)ptr - offsetof(type, member) )
 #endif
 
 #define xqc_list_entry(ptr, type, member) container_of(ptr, type, member)
@@ -71,7 +71,7 @@ xqc_list_add_tail(xqc_list_head_t *node, xqc_list_head_t *head)
 }
 
 static inline void
-__xqc_list_del(xqc_list_head_t * prev, xqc_list_head_t * next)
+__xqc_list_del(xqc_list_head_t *prev, xqc_list_head_t *next)
 {
     next->prev = prev;
     prev->next = next;

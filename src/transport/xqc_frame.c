@@ -18,33 +18,33 @@
 
 
 static const char * const frame_type_2_str[XQC_FRAME_NUM] = {
-    [XQC_FRAME_PADDING]             = "PADDING",
-    [XQC_FRAME_PING]                = "PING",
-    [XQC_FRAME_ACK]                 = "ACK",
-    [XQC_FRAME_RESET_STREAM]        = "RESET_STREAM",
-    [XQC_FRAME_STOP_SENDING]        = "STOP_SENDING",
-    [XQC_FRAME_CRYPTO]              = "CRYPTO",
-    [XQC_FRAME_NEW_TOKEN]           = "NEW_TOKEN",
-    [XQC_FRAME_STREAM]              = "STREAM",
-    [XQC_FRAME_MAX_DATA]            = "MAX_DATA",
-    [XQC_FRAME_MAX_STREAM_DATA]     = "MAX_STREAM_DAT",
-    [XQC_FRAME_MAX_STREAMS]         = "MAX_STREAMS",
-    [XQC_FRAME_DATA_BLOCKED]        = "DATA_BLOCKED",
-    [XQC_FRAME_STREAM_DATA_BLOCKED] = "STREAM_DATA_BLOCKED",
-    [XQC_FRAME_STREAMS_BLOCKED]     = "STREAMS_BLOCKED",
-    [XQC_FRAME_NEW_CONNECTION_ID]   = "NEW_CONNECTION_ID",
-    [XQC_FRAME_RETIRE_CONNECTION_ID]= "RETIRE_CONNECTION_ID",
-    [XQC_FRAME_PATH_CHALLENGE]      = "PATH_CHALLENGE",
-    [XQC_FRAME_PATH_RESPONSE]       = "PATH_RESPONSE",
-    [XQC_FRAME_CONNECTION_CLOSE]    = "CONNECTION_CLOSE",
-    [XQC_FRAME_HANDSHAKE_DONE]      = "HANDSHAKE_DONE",
-    [XQC_FRAME_Extension]           = "Extension",
+    [XQC_FRAME_PADDING]              = "PADDING",
+    [XQC_FRAME_PING]                 = "PING",
+    [XQC_FRAME_ACK]                  = "ACK",
+    [XQC_FRAME_RESET_STREAM]         = "RESET_STREAM",
+    [XQC_FRAME_STOP_SENDING]         = "STOP_SENDING",
+    [XQC_FRAME_CRYPTO]               = "CRYPTO",
+    [XQC_FRAME_NEW_TOKEN]            = "NEW_TOKEN",
+    [XQC_FRAME_STREAM]               = "STREAM",
+    [XQC_FRAME_MAX_DATA]             = "MAX_DATA",
+    [XQC_FRAME_MAX_STREAM_DATA]      = "MAX_STREAM_DAT",
+    [XQC_FRAME_MAX_STREAMS]          = "MAX_STREAMS",
+    [XQC_FRAME_DATA_BLOCKED]         = "DATA_BLOCKED",
+    [XQC_FRAME_STREAM_DATA_BLOCKED]  = "STREAM_DATA_BLOCKED",
+    [XQC_FRAME_STREAMS_BLOCKED]      = "STREAMS_BLOCKED",
+    [XQC_FRAME_NEW_CONNECTION_ID]    = "NEW_CONNECTION_ID",
+    [XQC_FRAME_RETIRE_CONNECTION_ID] = "RETIRE_CONNECTION_ID",
+    [XQC_FRAME_PATH_CHALLENGE]       = "PATH_CHALLENGE",
+    [XQC_FRAME_PATH_RESPONSE]        = "PATH_RESPONSE",
+    [XQC_FRAME_CONNECTION_CLOSE]     = "CONNECTION_CLOSE",
+    [XQC_FRAME_HANDSHAKE_DONE]       = "HANDSHAKE_DONE",
+    [XQC_FRAME_Extension]            = "Extension",
 };
 
 static char g_frame_type_buf[128];
 
 const char*
-xqc_frame_type_2_str (xqc_frame_type_bit_t type_bit)
+xqc_frame_type_2_str(xqc_frame_type_bit_t type_bit)
 {
     g_frame_type_buf[0] = '\0';
     size_t pos = 0;
@@ -59,16 +59,15 @@ xqc_frame_type_2_str (xqc_frame_type_bit_t type_bit)
 }
 
 unsigned int
-xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t length)
+xqc_stream_frame_header_size(xqc_stream_id_t stream_id, uint64_t offset, size_t length)
 {
     return 1 + xqc_vint_len_by_val(stream_id) +
             offset ? xqc_vint_len_by_val(offset) : 0 +
             xqc_vint_len_by_val(length);
-
 }
 
 unsigned int
-xqc_crypto_frame_header_size (uint64_t offset, size_t length)
+xqc_crypto_frame_header_size(uint64_t offset, size_t length)
 {
     return 1 +
            xqc_vint_len_by_val(offset) +
@@ -80,7 +79,7 @@ xqc_int_t
 xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *new_frame)
 {
 
-    //insert xqc_stream_frame_t into stream->stream_data_in.frames_tailq in order of offset
+    /* insert xqc_stream_frame_t into stream->stream_data_in.frames_tailq in order of offset */
     unsigned char inserted = 0;
     xqc_list_head_t *pos;
     xqc_stream_frame_t *frame;
@@ -88,7 +87,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
         frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
         if (xqc_max(frame->data_offset, new_frame->data_offset) <
-                xqc_min(frame->data_offset + frame->data_length, new_frame->data_offset + new_frame->data_length))
+            xqc_min(frame->data_offset + frame->data_length, new_frame->data_offset + new_frame->data_length))
         {
             /*
              * overlap
@@ -101,6 +100,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
             xqc_log(conn->log, XQC_LOG_INFO, "|is overlap|offset:%ui|new_offset:%ui|len:%ud|new_len:%ud|",
                     frame->data_offset, new_frame->data_offset, frame->data_length, new_frame->data_length);
         }
+
         if (new_frame->data_offset >= frame->data_offset && new_frame->data_length > 0
             && new_frame->data_offset + new_frame->data_length <= frame->data_offset + frame->data_length)
         {
@@ -115,6 +115,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
             break;
         }
     }
+
     if (!inserted) {
         xqc_list_add(&new_frame->sf_list, &stream->stream_data_in.frames_tailq);
     }
@@ -190,15 +191,12 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         switch (frame_type) {
 
         case 0x00:
-            //padding frame
             ret = xqc_process_padding_frame(conn, packet_in);
             break;
         case 0x01:
-            //ping frame
             ret = xqc_process_ping_frame(conn, packet_in);
             break;
         case 0x02 ... 0x03:
-            //ack frame
             ret = xqc_process_ack_frame(conn, packet_in);
             break;
         case 0x04:
@@ -207,15 +205,12 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         case 0x05:
             ret = xqc_process_stop_sending_frame(conn, packet_in);
             break;
-        case 0x06:
-            //crypto frame
-            ret = xqc_process_crypto_frame(conn, packet_in);
+        case 0x06:            ret = xqc_process_crypto_frame(conn, packet_in);
             break;
         case 0x07:
             ret = xqc_process_new_token_frame(conn, packet_in);
             break;
         case 0x08 ... 0x0f:
-            //stream frame
             ret = xqc_process_stream_frame(conn, packet_in);
             break;
         case 0x10:
@@ -349,14 +344,18 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             ret = -XQC_EPROTO;
             goto error;
         }
+
         if (!stream->stream_stats.peer_fin_rcv_time) {
             stream->stream_stats.peer_fin_rcv_time = xqc_monotonic_timestamp();
         }
+
         stream->stream_data_in.stream_length = stream_frame->data_offset + stream_frame->data_length;
+
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_RECV) {
             xqc_stream_recv_state_update(stream, XQC_RECV_STREAM_ST_SIZE_KNOWN);
         }
     }
+
     if (stream->stream_data_in.stream_length > 0
         && stream_frame->data_offset + stream_frame->data_length > stream->stream_data_in.stream_length)
     {
@@ -382,8 +381,9 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         stream->stream_max_recv_offset = stream_frame->data_offset + stream_frame->data_length;
     }
 
-    if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end &&
-            stream->stream_data_in.stream_length > 0) {
+    if (stream->stream_data_in.stream_length == stream->stream_data_in.merged_offset_end
+        && stream->stream_data_in.stream_length > 0)
+    {
         if (stream->stream_state_recv == XQC_RECV_STREAM_ST_SIZE_KNOWN) {
             xqc_stream_recv_state_update(stream, XQC_RECV_STREAM_ST_DATA_RECVD);
         }
@@ -409,8 +409,9 @@ free:
 }
 
 
-xqc_int_t xqc_insert_crypto_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *stream_frame){
-
+xqc_int_t
+xqc_insert_crypto_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *stream_frame)
+{
     unsigned char inserted = 0;
     xqc_list_head_t *pos;
     xqc_stream_frame_t *frame;
@@ -423,12 +424,12 @@ xqc_int_t xqc_insert_crypto_frame(xqc_connection_t *conn, xqc_stream_t *stream, 
             break;
         }
     }
+
     if (!inserted) {
         xqc_list_add(&stream_frame->sf_list, &stream->stream_data_in.frames_tailq);
     }
 
     return XQC_OK;
-
 }
 
 
@@ -660,7 +661,7 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return -XQC_EPROTO;
     }
 
-    xqc_cid_inner_t* inner_cid = xqc_get_inner_cid_by_seq(&conn->scid_set.cid_set, seq_num);
+    xqc_cid_inner_t *inner_cid = xqc_get_inner_cid_by_seq(&conn->scid_set.cid_set, seq_num);
     if (inner_cid == NULL) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|can't find scid with seq_number|%ui|", seq_num);
         return XQC_OK;
@@ -746,9 +747,9 @@ xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
     if (!stream) {
-        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI)) ||
-            (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI))
-                ) {
+        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI))
+            || (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI)))
+        {
             stream = xqc_passive_create_stream(conn, stream_id, NULL);
             if (!stream) {
                 return XQC_OK;
@@ -802,9 +803,9 @@ xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_i
 
     stream = xqc_find_stream_by_id(stream_id, conn->streams_hash);
     if (!stream) {
-        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI)) ||
-            (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI))
-                ) {
+        if ((conn->conn_type == XQC_CONN_TYPE_SERVER && (stream_type == XQC_CLI_BID || stream_type == XQC_CLI_UNI))
+            || (conn->conn_type == XQC_CONN_TYPE_CLIENT && (stream_type == XQC_SVR_BID || stream_type == XQC_SVR_UNI)))
+        {
             stream = xqc_passive_create_stream(conn, stream_id, NULL);
             if (!stream) {
                 return XQC_OK;

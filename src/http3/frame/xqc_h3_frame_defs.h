@@ -22,8 +22,7 @@ typedef struct xqc_h3_frm_data_s {
 typedef struct xqc_h3_frm_headers_s {
 } xqc_h3_frame_headers_t;
 
-typedef struct xqc_h3_frm_cancel_push_s
-{
+typedef struct xqc_h3_frm_cancel_push_s {
     xqc_discrete_vint_pctx_t push_id;
 }xqc_h3_frame_cancel_push_t;
 

@@ -14,8 +14,7 @@
  * @param value_buf output value buffer, this parameter could be NULL if user don't need value
  * @return XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_stable_get_nv(uint64_t idx, xqc_var_buf_t *name_buf, xqc_var_buf_t *value_buf);
+xqc_int_t xqc_stable_get_nv(uint64_t idx, xqc_var_buf_t *name_buf, xqc_var_buf_t *value_buf);
 
 
 /**
@@ -28,9 +27,8 @@ xqc_stable_get_nv(uint64_t idx, xqc_var_buf_t *name_buf, xqc_var_buf_t *value_bu
  * @param idx output index of static table entry, if XQC_NV_REF_NONE returned, shall be meaningless
  * @return xqc_nv_ref_type_t the reference mode of name-value pair
  */
-xqc_nv_ref_type_t
-xqc_stable_lookup(unsigned char *name, size_t nlen, unsigned char *value, size_t vlen,
-    xqc_hdr_type_t htype, uint64_t *idx);
+xqc_nv_ref_type_t xqc_stable_lookup(unsigned char *name, size_t nlen,
+    unsigned char *value, size_t vlen, xqc_hdr_type_t htype, uint64_t *idx);
 
 
 #endif

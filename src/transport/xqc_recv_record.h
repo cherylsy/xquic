@@ -3,8 +3,7 @@
 
 #include "src/transport/xqc_packet.h"
 
-typedef enum
-{
+typedef enum {
     XQC_PKTRANGE_OK,
     XQC_PKTRANGE_DUP,
     XQC_PKTRANGE_ERR,
@@ -37,11 +36,11 @@ void xqc_recv_record_log(xqc_connection_t *conn, xqc_recv_record_t *recv_record)
 
 void xqc_recv_record_print(xqc_connection_t *conn, xqc_recv_record_t *recv_record, char *buff, unsigned buff_size);
 
-void xqc_recv_record_del (xqc_recv_record_t *recv_record, xqc_packet_number_t del_from);
+void xqc_recv_record_del(xqc_recv_record_t *recv_record, xqc_packet_number_t del_from);
 
 void xqc_recv_record_destroy(xqc_recv_record_t *recv_record);
 
-xqc_pkt_range_status xqc_recv_record_add (xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number,
+xqc_pkt_range_status xqc_recv_record_add(xqc_recv_record_t *recv_record, xqc_packet_number_t packet_number,
     xqc_usec_t recv_time);
 
 xqc_packet_number_t xqc_recv_record_largest(xqc_recv_record_t *recv_record);

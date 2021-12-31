@@ -19,7 +19,8 @@
 
 #define XQC_TEST_CHECK_CID "ab3f120acdef0089"
 
-void xqc_test_packet_parse_cid(unsigned char *buf, size_t size, int is_short)
+void
+xqc_test_packet_parse_cid(unsigned char *buf, size_t size, int is_short)
 {
     unsigned char dcid_buf[XQC_MAX_CID_LEN * 2];
     unsigned char scid_buf[XQC_MAX_CID_LEN * 2];
@@ -48,16 +49,18 @@ void xqc_test_packet_parse_cid(unsigned char *buf, size_t size, int is_short)
     xqc_engine_destroy(engine);
 }
 
-void xqc_test_short_header_packet_parse_cid()
+void
+xqc_test_short_header_packet_parse_cid()
 {
     xqc_test_packet_parse_cid((unsigned char *)XQC_TEST_SHORT_HEADER_PACKET_A,
-                        sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1, 1);
+                              sizeof(XQC_TEST_SHORT_HEADER_PACKET_A)-1, 1);
 }
 
-void xqc_test_long_header_packet_parse_cid()
+void
+xqc_test_long_header_packet_parse_cid()
 {
     xqc_test_packet_parse_cid((unsigned char *)XQC_TEST_LONG_HEADER_PACKET_B,
-                        sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1, 0);
+                              sizeof(XQC_TEST_LONG_HEADER_PACKET_B)-1, 0);
 }
 
 

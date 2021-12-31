@@ -8,7 +8,8 @@
 #define XQC_TEST_CID_1 "xquictestconnid1"
 #define XQC_TEST_CID_2 "xquictestconnid2"
 
-void xqc_test_cid_basic()
+void
+xqc_test_cid_basic()
 {
     xqc_int_t ret;
 
@@ -53,7 +54,8 @@ void xqc_test_cid_basic()
     xqc_engine_destroy(conn->engine);
 }
 
-void xqc_test_new_cid()
+void
+xqc_test_new_cid()
 {
     xqc_int_t ret;
 
@@ -74,7 +76,8 @@ void xqc_test_new_cid()
     xqc_engine_destroy(conn->engine);
 }
 
-void xqc_test_retire_cid()
+void
+xqc_test_retire_cid()
 {
     xqc_int_t ret;
 

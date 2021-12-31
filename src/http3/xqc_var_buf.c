@@ -104,7 +104,7 @@ xqc_var_buf_realloc(xqc_var_buf_t *buf, size_t cap)
 }
 
 xqc_int_t
-xqc_var_buf_cut(xqc_var_buf_t *buf)
+xqc_var_buf_reduce(xqc_var_buf_t *buf)
 {
     uint64_t capacity = xqc_pow2_upper(buf->data_len - buf->consumed_len);
     if (capacity > buf->limit) {

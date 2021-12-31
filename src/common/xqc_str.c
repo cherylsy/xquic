@@ -4,7 +4,7 @@
 unsigned char *
 xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len)
 {
-    static unsigned char  hex[] = "0123456789abcdef";
+    static const unsigned char hex[] = "0123456789abcdef";
 
     while (len--) {
         *dst++ = hex[*src >> 4];
@@ -15,16 +15,17 @@ xqc_hex_dump(unsigned char *dst, const unsigned char *src, size_t len)
 }
 
 unsigned char *
-xqc_vsprintf(unsigned char* buf, unsigned char* last, const char* fmt, va_list args)
+xqc_vsprintf(unsigned char *buf, unsigned char *last, const char *fmt, va_list args)
 {
-    unsigned char *p, zero;
-    int d;
-    double f;
-    size_t len, slen;
-    int64_t i64;
-    uint64_t ui64, frac;
-    uint64_t width, sign, hex, max_width, frac_width, scale, n;
-    xqc_str_t *v;
+    unsigned char  *p;
+    unsigned char   zero;
+    int             d;
+    double          f;
+    size_t          len, slen;
+    int64_t         i64;
+    uint64_t        ui64, frac;
+    uint64_t        width, sign, hex, max_width, frac_width, scale, n;
+    xqc_str_t      *v;
 
     while (*fmt && buf < last) {
 

@@ -6,14 +6,13 @@
 #include "src/common/xqc_list.h"
 #include "src/tls/xqc_tls_defs.h"
 
-#define XQC_MSS 1460 //TODO
-#define XQC_QUIC_MSS 1200
+#define XQC_MSS                     1460
+#define XQC_QUIC_MSS                1200
 
-#define XQC_PACKET_0RTT_MAX_COUNT  30
-#define XQC_UNDECRYPT_PACKET_MAX  100
+#define XQC_PACKET_0RTT_MAX_COUNT   30
+#define XQC_UNDECRYPT_PACKET_MAX    100
 
-typedef enum xqc_pkt_num_space
-{
+typedef enum xqc_pkt_num_space {
     XQC_PNS_INIT      = 0,
     XQC_PNS_HSK       = 1,
     XQC_PNS_APP_DATA  = 2,
@@ -48,20 +47,20 @@ struct xqc_packet_s {
 };
 
 
-#define XQC_PACKET_IS_LONG_HEADER(buf) ((buf[0] & 0x80) == 0x80)
-#define XQC_PACKET_IS_SHORT_HEADER(buf) ((buf[0] & 0xC0) == 0x40)
+#define XQC_PACKET_IS_LONG_HEADER(buf)          ((buf[0] & 0x80) == 0x80)
+#define XQC_PACKET_IS_SHORT_HEADER(buf)         ((buf[0] & 0xC0) == 0x40)
 
-#define XQC_PACKET_LONG_HEADER_GET_TYPE(buf) ((buf[0] & 0x30) >> 4)
+#define XQC_PACKET_LONG_HEADER_GET_TYPE(buf)    ((buf[0] & 0x30) >> 4)
 
-#define XQC_PACKET_VERSION_LENGTH 4
-#define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH (1 + XQC_PACKET_VERSION_LENGTH)
-#define XQC_PACKET_INITIAL_MIN_LENGTH   XQC_QUIC_MSS
+#define XQC_PACKET_VERSION_LENGTH               4
+#define XQC_PACKET_LONG_HEADER_PREFIX_LENGTH    (1 + XQC_PACKET_VERSION_LENGTH)
+#define XQC_PACKET_INITIAL_MIN_LENGTH           XQC_QUIC_MSS
 
 
 #define xqc_parse_uint16(p) ((p)[0] << 8 | (p)[1])
 #define xqc_parse_uint32(p) ((p)[0] << 24 | (p)[1] << 16 | (p)[2] << 8 | (p)[3])
 
-const char* xqc_pkt_type_2_str(xqc_pkt_type_t pkt_type);
+const char *xqc_pkt_type_2_str(xqc_pkt_type_t pkt_type);
 
 xqc_encrypt_level_t xqc_packet_type_to_enc_level(xqc_pkt_type_t pkt_type);
 
@@ -76,4 +75,4 @@ xqc_int_t xqc_packet_process_single(xqc_connection_t *c, xqc_packet_in_t *packet
 
 uint8_t xqc_has_packet_number(xqc_packet_t *pkt);
 
-#endif //_XQC_PACKET_H_INCLUDED_
+#endif /* _XQC_PACKET_H_INCLUDED_ */

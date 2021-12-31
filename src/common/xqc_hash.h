@@ -9,7 +9,7 @@
 
 
 static inline uint64_t 
-xqc_hash_string(const u_char* data, size_t len)
+xqc_hash_string(const u_char *data, size_t len)
 {
     uint64_t hash_value = 0;
     for (size_t i = 0; i < len; ++i) {
@@ -77,7 +77,7 @@ xqc_md5_init(xqc_md5_t *ctx)
     ctx->bytes = 0;
 }
 
-static const u_char * xqc_md5_body(xqc_md5_t *ctx, const u_char *data, size_t size);
+static const u_char *xqc_md5_body(xqc_md5_t *ctx, const u_char *data, size_t size);
 
 static inline void
 xqc_md5_update(xqc_md5_t *ctx, const void *data, size_t size)
@@ -102,7 +102,7 @@ xqc_md5_update(xqc_md5_t *ctx, const void *data, size_t size)
     }
 
     if (size >= 64) {
-        data = xqc_md5_body(ctx, data, size & ~(size_t) 0x3f);
+        data = xqc_md5_body(ctx, data, size & ~(size_t)0x3f);
         size &= 0x3f;
     }
 
@@ -114,7 +114,7 @@ xqc_md5_final(u_char result[16], xqc_md5_t *ctx)
 {
     size_t  used, free;
 
-    used = (size_t) (ctx->bytes & 0x3f);
+    used = (size_t)(ctx->bytes & 0x3f);
 
     ctx->buffer[used++] = 0x80;
 
@@ -143,22 +143,22 @@ xqc_md5_final(u_char result[16], xqc_md5_t *ctx)
 
     xqc_md5_body(ctx, ctx->buffer, 64);
 
-    result[0] = (u_char) ctx->a;
-    result[1] = (u_char) (ctx->a >> 8);
-    result[2] = (u_char) (ctx->a >> 16);
-    result[3] = (u_char) (ctx->a >> 24);
-    result[4] = (u_char) ctx->b;
-    result[5] = (u_char) (ctx->b >> 8);
-    result[6] = (u_char) (ctx->b >> 16);
-    result[7] = (u_char) (ctx->b >> 24);
-    result[8] = (u_char) ctx->c;
-    result[9] = (u_char) (ctx->c >> 8);
-    result[10] = (u_char) (ctx->c >> 16);
-    result[11] = (u_char) (ctx->c >> 24);
-    result[12] = (u_char) ctx->d;
-    result[13] = (u_char) (ctx->d >> 8);
-    result[14] = (u_char) (ctx->d >> 16);
-    result[15] = (u_char) (ctx->d >> 24);
+    result[0]   = (u_char) ctx->a;
+    result[1]   = (u_char) (ctx->a >> 8);
+    result[2]   = (u_char) (ctx->a >> 16);
+    result[3]   = (u_char) (ctx->a >> 24);
+    result[4]   = (u_char) ctx->b;
+    result[5]   = (u_char) (ctx->b >> 8);
+    result[6]   = (u_char) (ctx->b >> 16);
+    result[7]   = (u_char) (ctx->b >> 24);
+    result[8]   = (u_char) ctx->c;
+    result[9]   = (u_char) (ctx->c >> 8);
+    result[10]  = (u_char) (ctx->c >> 16);
+    result[11]  = (u_char) (ctx->c >> 24);
+    result[12]  = (u_char) ctx->d;
+    result[13]  = (u_char) (ctx->d >> 8);
+    result[14]  = (u_char) (ctx->d >> 16);
+    result[15]  = (u_char) (ctx->d >> 24);
 
     memset(ctx, 0, sizeof(*ctx));
 }

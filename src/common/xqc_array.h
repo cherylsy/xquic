@@ -6,13 +6,12 @@
 #include "src/common/xqc_malloc.h"
 
 /* dynamic arrays with contiguous memory at the bottom */
-typedef struct xqc_array_s
-{
-    void* elts;                 /* pointer to first element */
-    unsigned elt_size;          /* size of each element */
-    unsigned size;              /* number of elements */
-    unsigned capacity;          /* capacity of elements */
-    xqc_allocator_t allocator;  /* memory allocator */
+typedef struct xqc_array_s {
+    void               *elts;       /* pointer to first element */
+    unsigned            elt_size;   /* size of each element */
+    unsigned            size;       /* number of elements */
+    unsigned            capacity;   /* capacity of elements */
+    xqc_allocator_t     allocator;  /* memory allocator */
 } xqc_array_t;
 
 
@@ -29,10 +28,12 @@ xqc_array_create(xqc_allocator_t allocator, size_t elt_capacity, size_t elt_size
         allocator.free(allocator.opaque, a);
         return NULL;
     }
+
     a->elt_size = elt_size;
     a->size = 0;
     a->capacity = elt_capacity;
     a->allocator = allocator;
+
     return a;
 }
 
@@ -49,7 +50,7 @@ xqc_array_push_n(xqc_array_t *a, size_t n)
     if (a->size + n > a->capacity) {
 
         size_t new_capacity = (a->capacity >= n ? a->capacity : n) * 2;
-        void* p = a->allocator.malloc(a->allocator.opaque, a->elt_size * new_capacity);
+        void *p = a->allocator.malloc(a->allocator.opaque, a->elt_size * new_capacity);
         if (p == NULL) {
             return NULL;
         }
@@ -62,7 +63,7 @@ xqc_array_push_n(xqc_array_t *a, size_t n)
         a->capacity = new_capacity;
     }
 
-    void* p = (char*)a->elts + a->elt_size * a->size;
+    void *p = (char *)a->elts + a->elt_size * a->size;
     a->size += n;
 
     return p;

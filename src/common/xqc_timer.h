@@ -16,12 +16,11 @@
 /* timer callback function */
 typedef void (*xqc_timer_function)(unsigned long);
 
-typedef struct xqc_timer_s
-{
-    xqc_list_head_t list;
-    unsigned long expires;          /* expiry time */
-    unsigned long data;             /* data passed to the callback function */
-    xqc_timer_function function;    /* callback function */
+typedef struct xqc_timer_s {
+    xqc_list_head_t     list;
+    unsigned long       expires;    /* expiry time */
+    unsigned long       data;       /* data passed to the callback function */
+    xqc_timer_function  function;   /* callback function */
 } xqc_timer_t;
 
 
@@ -45,14 +44,13 @@ xqc_timer_init(xqc_timer_t *timer)
 #define XQC_VEC2_MASK ((XQC_VEC2_SIZE) - 1)
 
 /* timer manager, globally unique */
-typedef struct xqc_timer_manager_s
-{
-    uint64_t timestamp;                     /* last tick timestamp */
+typedef struct xqc_timer_manager_s {
+    uint64_t        timestamp;              /* last tick timestamp */   /* TODO: use typedef */
 
-    unsigned int index1;                    /* index of vec1 */
+    unsigned int    index1;                 /* index of vec1 */
     xqc_list_head_t vec1[XQC_VEC1_SIZE];    /* urgency timer */
 
-    unsigned int index2;                    /* index of vec2 */
+    unsigned int    index2;                 /* index of vec2 */
     xqc_list_head_t vec2[XQC_VEC2_SIZE];    /* loose timer */
 } xqc_timer_manager_t;
 
@@ -68,7 +66,7 @@ xqc_gettimeofday()
 
 
 static inline void
-xqc_timer_manager_init(xqc_timer_manager_t* manager)
+xqc_timer_manager_init(xqc_timer_manager_t *manager)
 {
     manager->timestamp = xqc_gettimeofday();
 
@@ -84,7 +82,7 @@ xqc_timer_manager_init(xqc_timer_manager_t* manager)
 }
 
 static inline int
-xqc_timer_manager_internal_add(xqc_timer_manager_t* manager, xqc_timer_t *timer)
+xqc_timer_manager_internal_add(xqc_timer_manager_t *manager, xqc_timer_t *timer)
 {
     xqc_list_head_t *vec = NULL;
 
@@ -110,7 +108,7 @@ xqc_timer_manager_internal_add(xqc_timer_manager_t* manager, xqc_timer_t *timer)
 
 
 static inline int
-xqc_timer_manager_add(xqc_timer_manager_t* manager, xqc_timer_t *timer, unsigned long timeout)
+xqc_timer_manager_add(xqc_timer_manager_t *manager, xqc_timer_t *timer, unsigned long timeout)
 {
     if (timer->function == NULL) {
         printf("timer function null\n");
@@ -128,7 +126,7 @@ xqc_timer_manager_add(xqc_timer_manager_t* manager, xqc_timer_t *timer, unsigned
 }
 
 static inline void
-xqc_timer_manager_cascade(xqc_timer_manager_t* manager)
+xqc_timer_manager_cascade(xqc_timer_manager_t *manager)
 {
     xqc_list_head_t *head, *curr, *next;
 
@@ -152,7 +150,7 @@ xqc_timer_manager_cascade(xqc_timer_manager_t* manager)
 
 
 static inline void
-xqc_timer_manager_tick(xqc_timer_manager_t* manager)
+xqc_timer_manager_tick(xqc_timer_manager_t *manager)
 {
     unsigned long now = xqc_gettimeofday();
     while (now >= manager->timestamp) {

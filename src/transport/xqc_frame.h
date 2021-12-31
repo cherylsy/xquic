@@ -90,77 +90,53 @@ typedef enum {
 #define XQC_NEED_REPAIR(types) ((types) & ~(XQC_FRAME_BIT_ACK| XQC_FRAME_BIT_PADDING | XQC_FRAME_BIT_PING | XQC_FRAME_BIT_CONNECTION_CLOSE))
 
 
-const char*
-xqc_frame_type_2_str (xqc_frame_type_bit_t type_bit);
+const char *xqc_frame_type_2_str(xqc_frame_type_bit_t type_bit);
 
-unsigned int
-xqc_stream_frame_header_size (xqc_stream_id_t stream_id, uint64_t offset, size_t length);
+unsigned int xqc_stream_frame_header_size(xqc_stream_id_t stream_id, uint64_t offset, size_t length);
 
-unsigned int
-xqc_crypto_frame_header_size (uint64_t offset, size_t length);
+unsigned int xqc_crypto_frame_header_size(uint64_t offset, size_t length);
 
-xqc_int_t
-xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *new_frame);
+xqc_int_t xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream_frame_t *new_frame);
 
-xqc_int_t
-xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_crypto_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_ack_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_ping_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_ping_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_new_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_conn_close_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_reset_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_stop_sending_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_stream_data_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_streams_blocked_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_max_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_max_stream_data_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_max_streams_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
-xqc_int_t
-xqc_process_path_status_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
+xqc_int_t xqc_process_path_status_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in);
 
 
 #endif /* _XQC_FRAME_H_INCLUDED_ */

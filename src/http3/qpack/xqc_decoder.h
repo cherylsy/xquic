@@ -13,16 +13,14 @@ typedef struct xqc_decoder_s xqc_decoder_t;
  * @brief create decoder
  * @return xqc_decoder_t* decoder handler
  */
-xqc_decoder_t *
-xqc_decoder_create(xqc_log_t *log, size_t max_dtable_cap);
+xqc_decoder_t *xqc_decoder_create(xqc_log_t *log, size_t max_dtable_cap);
 
 
 /**
  * @brief destroy decoder
  * @param dec decoder handler
  */
-void
-xqc_decoder_destroy(xqc_decoder_t *dec);
+void xqc_decoder_destroy(xqc_decoder_t *dec);
 
 
 /**
@@ -31,8 +29,7 @@ xqc_decoder_destroy(xqc_decoder_t *dec);
  * @param cap capacity
  * @return xqc_int_t XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_decoder_set_dtable_cap(xqc_decoder_t *dec, uint64_t cap);
+xqc_int_t xqc_decoder_set_dtable_cap(xqc_decoder_t *dec, uint64_t cap);
 
 
 /**
@@ -41,8 +38,7 @@ xqc_decoder_set_dtable_cap(xqc_decoder_t *dec, uint64_t cap);
  * @param idx index of entry
  * @return xqc_int_t XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_decoder_duplicate(xqc_decoder_t *dec, uint64_t idx);
+xqc_int_t xqc_decoder_duplicate(xqc_decoder_t *dec, uint64_t idx);
 
 
 /**
@@ -54,8 +50,7 @@ xqc_decoder_duplicate(xqc_decoder_t *dec, uint64_t idx);
  * @param vlen entry value len
  * @return XQC_OK for success, others for failure
  */
-xqc_int_t
-xqc_decoder_insert_literal(xqc_decoder_t *dec, unsigned char *name, size_t nlen,
+xqc_int_t xqc_decoder_insert_literal(xqc_decoder_t *dec, unsigned char *name, size_t nlen,
     unsigned char *value, size_t vlen);
 
 
@@ -68,15 +63,12 @@ xqc_decoder_insert_literal(xqc_decoder_t *dec, unsigned char *name, size_t nlen,
  * @param vlen entry value len
  * @return XQC_OK for success, others for failure 
  */
-xqc_int_t
-xqc_decoder_insert_name_ref(xqc_decoder_t *dec, xqc_flag_t t, uint64_t nidx, 
+xqc_int_t xqc_decoder_insert_name_ref(xqc_decoder_t *dec, xqc_flag_t t, uint64_t nidx, 
     unsigned char *value, size_t vlen);
 
-uint64_t
-xqc_decoder_get_insert_cnt(xqc_decoder_t *dec);
+uint64_t xqc_decoder_get_insert_cnt(xqc_decoder_t *dec);
 
-ssize_t
-xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *buf, size_t buf_len,
-                       xqc_http_header_t *hdr, xqc_bool_t *blocked);
+ssize_t xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx,
+    unsigned char *buf, size_t buf_len, xqc_http_header_t *hdr, xqc_bool_t *blocked);
 
 #endif

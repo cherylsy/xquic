@@ -154,7 +154,7 @@ typedef struct xqc_crypto_s {
 /**
  * @brief create crypto instance, initialize aead suites, cipher suites and digest suites
  */
-xqc_crypto_t * xqc_crypto_create(uint32_t cipher_id, xqc_log_t *log);
+xqc_crypto_t *xqc_crypto_create(uint32_t cipher_id, xqc_log_t *log);
 
 /**
  * @brief destroy crypto instance

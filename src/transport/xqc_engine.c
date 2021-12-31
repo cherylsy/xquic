@@ -443,7 +443,8 @@ xqc_engine_create(xqc_engine_type_t engine_type,
 
     /* create tls context */
     if (ssl_config != NULL) {
-        engine->tls_ctx = xqc_tls_ctx_create((xqc_tls_type_t)engine->eng_type, ssl_config, &xqc_conn_tls_cbs, engine->log);
+        engine->tls_ctx = xqc_tls_ctx_create((xqc_tls_type_t)engine->eng_type, ssl_config,
+                                             &xqc_conn_tls_cbs, engine->log);
         if (NULL == engine->tls_ctx) {
             xqc_log(engine->log, XQC_LOG_ERROR, "|create tls context error");
             goto fail;
@@ -471,7 +472,7 @@ xqc_conns_pq_pop_top_conn(xqc_pq_t *pq)
         return NULL;
     }
 
-    xqc_connection_t * conn = el->conn;
+    xqc_connection_t *conn = el->conn;
     xqc_conns_pq_pop(pq);
     return conn;
 }
@@ -725,7 +726,7 @@ end:
 
 
 void
-xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t * conn)
+xqc_engine_recv_batch(xqc_engine_t *engine, xqc_connection_t *conn)
 {
     xqc_engine_main_logic_internal(engine, conn);
 }
@@ -736,7 +737,7 @@ void xqc_engine_finish_recv (xqc_engine_t *engine){
 }
 
 
-void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t * conn){
+void xqc_engine_main_logic_internal(xqc_engine_t *engine, xqc_connection_t *conn){
     if (conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY) {
         return;
     }
@@ -836,7 +837,6 @@ xqc_engine_main_logic(xqc_engine_t *engine)
 
             if (XQC_UNLIKELY(conn->conn_state == XQC_CONN_STATE_CLOSED)) {
                 conn->conn_flag &= ~XQC_CONN_FLAG_TICKING;
-                //xqc_conn_destroy(conn);
                 if (!(conn->conn_flag & XQC_CONN_FLAG_CANNOT_DESTROY)) {
                     xqc_conn_destroy(conn);
 
@@ -902,13 +902,14 @@ xqc_engine_main_logic(xqc_engine_t *engine)
  * Pass received UDP packet payload into xquic engine.
  * @param recv_time   UDP packet recieved time in microsecond
  */
-int xqc_engine_packet_process(xqc_engine_t *engine,
+xqc_int_t
+xqc_engine_packet_process(xqc_engine_t *engine,
     const unsigned char *packet_in_buf, size_t packet_in_size,
     const struct sockaddr *local_addr, socklen_t local_addrlen,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen,
     xqc_usec_t recv_time, void *user_data)
 {
-    int ret = 0;
+    xqc_int_t ret;
     xqc_connection_t *conn = NULL;
     xqc_cid_t dcid, scid;   /* dcid: cid of peer; scid: cid of endpoint */
     xqc_cid_init_zero(&dcid);

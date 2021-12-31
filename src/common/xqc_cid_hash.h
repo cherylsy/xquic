@@ -31,15 +31,15 @@ typedef struct xqc_cid_hash_table_s {
 
 
 static inline int 
-xqc_cid_hash_init(xqc_cid_hash_table_t* hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
+xqc_cid_hash_init(xqc_cid_hash_table_t *hash_tab,  xqc_allocator_t allocator, size_t bucket_num)
 {
     hash_tab->allocator = allocator;
-    hash_tab->list = allocator.malloc(allocator.opaque, sizeof(xqc_cid_hash_node_t*) * bucket_num);
+    hash_tab->list = allocator.malloc(allocator.opaque, sizeof(xqc_cid_hash_node_t *) * bucket_num);
     if (hash_tab->list == NULL) {
         return XQC_ERROR;
     }
 
-    memset(hash_tab->list, 0, sizeof(xqc_cid_hash_node_t*) * bucket_num);
+    memset(hash_tab->list, 0, sizeof(xqc_cid_hash_node_t *) * bucket_num);
     hash_tab->count = bucket_num;
 
     return XQC_OK;
@@ -47,17 +47,18 @@ xqc_cid_hash_init(xqc_cid_hash_table_t* hash_tab,  xqc_allocator_t allocator, si
 
 
 static inline void 
-xqc_cid_hash_release(xqc_cid_hash_table_t* hash_tab)
+xqc_cid_hash_release(xqc_cid_hash_table_t *hash_tab)
 {
-    xqc_allocator_t* a = &hash_tab->allocator;
+    xqc_allocator_t *a = &hash_tab->allocator;
     for (size_t i = 0; i < hash_tab->count; ++i) {
-        xqc_cid_hash_node_t* node = hash_tab->list[i];
+        xqc_cid_hash_node_t *node = hash_tab->list[i];
         while (node) {
-            xqc_cid_hash_node_t* p = node;
+            xqc_cid_hash_node_t *p = node;
             node = node->next;
             a->free(a->opaque, p);
         }
     }
+
     a->free(a->opaque, hash_tab->list);
 }
 
@@ -68,26 +69,27 @@ xqc_cid_hash(const uint8_t *cid_buf, uint8_t cid_len)
     uint64_t hash = 0;
     while (cid_len) {
         if (cid_len >= 8) {
-            hash ^= *(const uint64_t*)cid_buf;
+            hash ^= *(const uint64_t *)cid_buf;
             cid_buf += 8;
             cid_len -= 8;
 
         } else if (cid_len >= 4) {
-            hash ^= *(const uint32_t*)cid_buf;
+            hash ^= *(const uint32_t *)cid_buf;
             cid_buf += 4;
             cid_len -= 4;
 
         } else if (cid_len >= 2) {
-            hash ^= *(const uint16_t*)cid_buf;
+            hash ^= *(const uint16_t *)cid_buf;
             cid_buf += 2;
             cid_len -= 2;
 
         } else {
-            hash ^= *(const uint8_t*)cid_buf;
+            hash ^= *(const uint8_t *)cid_buf;
             cid_buf += 1;
             cid_len -= 1;
         }
     }
+
     return hash;
 }
 
@@ -101,7 +103,8 @@ xqc_cid_hash_find(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_
 
     uint64_t hash = xqc_cid_hash(cid_buf, cid_len);
     uint64_t index = hash % hash_tab->count;
-    xqc_cid_hash_node_t* node = hash_tab->list[index];
+    xqc_cid_hash_node_t *node = hash_tab->list[index];
+
     while (node) {
         if (cid_len == node->element.cid_len
             && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len))
@@ -116,7 +119,7 @@ xqc_cid_hash_find(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_
 
 
 static inline int 
-xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t cid_len, void *value)
+xqc_cid_hash_add(xqc_cid_hash_table_t *hash_tab, const uint8_t *cid_buf, uint8_t cid_len, void *value)
 {
     if (cid_len > XQC_MAX_CID_LEN) {
         return XQC_ERROR;
@@ -126,7 +129,7 @@ xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t
     uint64_t index = hash % hash_tab->count;
 
     /* duplicate connection id */
-    xqc_cid_hash_node_t* node = hash_tab->list[index];
+    xqc_cid_hash_node_t *node = hash_tab->list[index];
     while (node) {
         if (cid_len == node->element.cid_len
             && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len))
@@ -154,16 +157,17 @@ xqc_cid_hash_add(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t
 
 
 static inline int 
-xqc_cid_hash_delete(xqc_cid_hash_table_t* hash_tab, const uint8_t *cid_buf, uint8_t cid_len)
+xqc_cid_hash_delete(xqc_cid_hash_table_t *hash_tab, const uint8_t *cid_buf, uint8_t cid_len)
 {
     if (cid_len > XQC_MAX_CID_LEN) {
         return XQC_ERROR;
     }
 
-    uint64_t hash = xqc_cid_hash(cid_buf, cid_len);
-    uint64_t index = hash % hash_tab->count;
-    xqc_cid_hash_node_t** pp = &hash_tab->list[index];
-    xqc_cid_hash_node_t* node = hash_tab->list[index];
+    uint64_t hash   = xqc_cid_hash(cid_buf, cid_len);
+    uint64_t index  = hash % hash_tab->count;
+    xqc_cid_hash_node_t **pp   = &hash_tab->list[index];
+    xqc_cid_hash_node_t  *node = hash_tab->list[index];
+
     while (node) {
         if (cid_len == node->element.cid_len
             && 0 == memcmp(node->element.cid_buf, cid_buf, cid_len))

@@ -34,13 +34,12 @@ const static uint64_t xqc_cube_factor =
 static void
 xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
 {
-    xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
-    uint64_t t;    // unit: ms
-    uint64_t offs; // offs = |t - K|
-    // delta = C*(t-K)^3
-    uint64_t delta, bic_target;
+    xqc_cubic_t    *cubic = (xqc_cubic_t *)(cong_ctl);
+    uint64_t        t;      /* unit: ms */
+    uint64_t        offs;   /* offs = |t - K| */
+    uint64_t        delta, bic_target;  /* delta = C*(t-K)^3 */
 
-    // First ACK after a loss event.
+    /* First ACK after a loss event. */
     if (cubic->epoch_start == 0) {
         cubic->epoch_start = now;
 
@@ -49,6 +48,7 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
             /* exceed origin point, use cwnd as the new point */
             cubic->bic_K = 0;
             cubic->bic_origin_point = cubic->cwnd;
+
         } else {
             /* K = cubic_root(W_max*(1-beta_cubic)/C) = cubic_root((W_max-cwnd)/C)
              * cube_factor = (1ull << XQC_CUBE_SCALE) / XQC_CUBIC_C / XQC_MSS
@@ -69,6 +69,7 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
     /* calculate |t - K| */
     if (t < cubic->bic_K) {
         offs = cubic->bic_K - t;
+
     } else {
         offs = t - cubic->bic_K;
     }
@@ -78,6 +79,7 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
 
     if (t < cubic->bic_K) {
         bic_target = cubic->bic_origin_point - delta;
+
     } else {
         bic_target = cubic->bic_origin_point + delta;
     }
@@ -96,13 +98,13 @@ xqc_cubic_update(void *cong_ctl, uint32_t acked_bytes, xqc_usec_t now)
 }
 
 size_t
-xqc_cubic_size ()
+xqc_cubic_size()
 {
     return sizeof(xqc_cubic_t);
 }
 
 static void
-xqc_cubic_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
+xqc_cubic_init(void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
     cubic->epoch_start = 0;
@@ -121,63 +123,65 @@ xqc_cubic_init (void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_para
 
 
 static void
-xqc_cubic_on_lost (void *cong_ctl, xqc_usec_t lost_sent_time)
+xqc_cubic_on_lost(void *cong_ctl, xqc_usec_t lost_sent_time)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
 
     cubic->epoch_start = 0;
 
-    // should we make room for others
+    /* should we make room for others */
     if (XQC_CUBIC_FAST_CONVERGENCE && cubic->cwnd < cubic->last_max_cwnd){
-        // (1.0f + XQC_CUBIC_BETA) / 2.0f convert to bitwise operations
+        /* (1.0f + XQC_CUBIC_BETA) / 2.0f convert to bitwise operations */
         cubic->last_max_cwnd = cubic->cwnd * (XQC_CUBIC_BETA_SCALE + XQC_CUBIC_BETA) / (2 * XQC_CUBIC_BETA_SCALE);
+
     } else {
         cubic->last_max_cwnd = cubic->cwnd;
     }
 
-    // Multiplicative Decrease
+    /* Multiplicative Decrease */
     cubic->cwnd = cubic->cwnd * XQC_CUBIC_BETA / XQC_CUBIC_BETA_SCALE;
     cubic->tcp_cwnd = cubic->cwnd;
-    // threshold is at least XQC_CUBIC_MIN_WIN
+    /* threshold is at least XQC_CUBIC_MIN_WIN */
     cubic->ssthresh = xqc_max(cubic->cwnd, XQC_CUBIC_MIN_WIN);
 }
 
 
 static void
-xqc_cubic_on_ack (void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
+xqc_cubic_on_ack(void *cong_ctl, xqc_packet_out_t *po, xqc_usec_t now)
 {
-    xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
+    xqc_cubic_t *cubic = (xqc_cubic_t *)(cong_ctl);
     xqc_usec_t  sent_time = po->po_sent_time;
     uint32_t    acked_bytes = po->po_used_size;
 
-    xqc_usec_t rtt = now - sent_time;
+    xqc_usec_t  rtt = now - sent_time;
 
     if (cubic->min_rtt == 0 || rtt < cubic->min_rtt) {
         cubic->min_rtt = rtt;
     }
 
     if (cubic->cwnd < cubic->ssthresh) {
-        // slow start
+        /* slow start */
         cubic->tcp_cwnd += acked_bytes;
         cubic->cwnd += acked_bytes;
+
     } else {
-        // congestion avoidance
+        /* congestion avoidance */
         cubic->tcp_cwnd += XQC_CUBIC_MSS * XQC_CUBIC_MSS / cubic->tcp_cwnd;
         xqc_cubic_update(cong_ctl, acked_bytes, now);
     }
 }
 
 uint64_t
-xqc_cubic_get_cwnd (void *cong_ctl)
+xqc_cubic_get_cwnd(void *cong_ctl)
 {
-    xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
+    xqc_cubic_t *cubic = (xqc_cubic_t *)(cong_ctl);
     return cubic->cwnd;
 }
 
 void
 xqc_cubic_reset_cwnd (void *cong_ctl)
 {
-    xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
+    xqc_cubic_t *cubic = (xqc_cubic_t *)(cong_ctl);
     cubic->epoch_start = 0;
     cubic->cwnd = XQC_CUBIC_MIN_WIN;
     cubic->tcp_cwnd = XQC_CUBIC_MIN_WIN;
@@ -187,7 +191,7 @@ xqc_cubic_reset_cwnd (void *cong_ctl)
 int32_t
 xqc_cubic_in_slow_start (void *cong_ctl)
 {
-    xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
+    xqc_cubic_t *cubic = (xqc_cubic_t *)(cong_ctl);
     return cubic->cwnd < cubic->ssthresh ? 1 : 0;
 }
 
@@ -202,13 +206,13 @@ xqc_cubic_in_recovery(void *cong_ctl) {
 }
 
 const xqc_cong_ctrl_callback_t xqc_cubic_cb = {
-        .xqc_cong_ctl_size              = xqc_cubic_size,
-        .xqc_cong_ctl_init              = xqc_cubic_init,
-        .xqc_cong_ctl_on_lost           = xqc_cubic_on_lost,
-        .xqc_cong_ctl_on_ack            = xqc_cubic_on_ack,
-        .xqc_cong_ctl_get_cwnd          = xqc_cubic_get_cwnd,
-        .xqc_cong_ctl_reset_cwnd        = xqc_cubic_reset_cwnd,
-        .xqc_cong_ctl_in_slow_start     = xqc_cubic_in_slow_start,
-        .xqc_cong_ctl_restart_from_idle = xqc_cubic_restart_from_idle,
-        .xqc_cong_ctl_in_recovery       = xqc_cubic_in_recovery,
+    .xqc_cong_ctl_size              = xqc_cubic_size,
+    .xqc_cong_ctl_init              = xqc_cubic_init,
+    .xqc_cong_ctl_on_lost           = xqc_cubic_on_lost,
+    .xqc_cong_ctl_on_ack            = xqc_cubic_on_ack,
+    .xqc_cong_ctl_get_cwnd          = xqc_cubic_get_cwnd,
+    .xqc_cong_ctl_reset_cwnd        = xqc_cubic_reset_cwnd,
+    .xqc_cong_ctl_in_slow_start     = xqc_cubic_in_slow_start,
+    .xqc_cong_ctl_restart_from_idle = xqc_cubic_restart_from_idle,
+    .xqc_cong_ctl_in_recovery       = xqc_cubic_in_recovery,
 };

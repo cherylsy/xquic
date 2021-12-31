@@ -9,10 +9,10 @@
 xqc_h3_request_t *
 xqc_h3_request_create(xqc_engine_t *engine, const xqc_cid_t *cid, void *user_data)
 {
-    xqc_stream_t *stream;
-    xqc_h3_stream_t *h3_stream;
-    xqc_h3_request_t *h3_request;
-    xqc_h3_conn_t *h3_conn;
+    xqc_stream_t       *stream;
+    xqc_h3_stream_t    *h3_stream;
+    xqc_h3_request_t   *h3_request;
+    xqc_h3_conn_t      *h3_conn;
 
     stream = xqc_stream_create(engine, cid, NULL);
     if (!stream) {
@@ -59,7 +59,7 @@ xqc_int_t
 xqc_h3_request_close(xqc_h3_request_t *h3_request)
 {
     xqc_connection_t *conn = h3_request->h3_stream->h3c->conn;
-    xqc_h3_stream_t *h3s = h3_request->h3_stream;
+    xqc_h3_stream_t  *h3s  = h3_request->h3_stream;
 
     xqc_int_t ret = xqc_h3_stream_close(h3_request->h3_stream);
     if (ret) {

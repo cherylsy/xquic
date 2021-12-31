@@ -119,7 +119,8 @@ xqc_qpack_notify_set_dtable_cap(xqc_qpack_t *qpk, uint64_t cap)
         xqc_log(qpk->log, XQC_LOG_ERROR, "|write sdtc error|ret:%d|", ret);
         goto fail;
     }
-    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT, XQC_INS_TYPE_ENC_SET_DTABLE_CAP, cap);
+    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_ENCODER_EVENT,
+                  XQC_INS_TYPE_ENC_SET_DTABLE_CAP, cap);
 
     ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_ENCODER, buf, qpk->user_data);
     if (cb_ret < 0) {
@@ -148,7 +149,8 @@ xqc_qpack_notify_insert_cnt_increment(xqc_qpack_t *qpk, uint64_t increment)
         xqc_log(qpk->log, XQC_LOG_ERROR, "|write ici error|ret:%ui|", ret);
         goto fail;
     }
-    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT, XQC_INS_TYPE_DEC_INSERT_CNT_INC, increment);
+    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT,
+                  XQC_INS_TYPE_DEC_INSERT_CNT_INC, increment);
 
     ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
     if (cb_ret < 0) {
@@ -176,7 +178,8 @@ xqc_qpack_notify_section_ack(xqc_qpack_t *qpk, uint64_t stream_id)
         xqc_log(qpk->log, XQC_LOG_ERROR, "|write sack error|ret:%ui|", ret);
         goto fail;
     }
-    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT, XQC_INS_TYPE_DEC_SECTION_ACK, stream_id);
+    xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT,
+                  XQC_INS_TYPE_DEC_SECTION_ACK, stream_id);
 
     ssize_t cb_ret = qpk->ins_cb.write_ins_cb(XQC_INS_TYPE_DECODER, buf, qpk->user_data);
     if (cb_ret < 0) {
@@ -280,11 +283,15 @@ xqc_qpack_process_encoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len
     uint64_t ori_krc = xqc_qpack_get_dec_insert_count(qpk);  /* original Known Received Count */
 
     while (processed < data_len) {
+        xqc_log(qpk->log, XQC_LOG_DEBUG, "|parse encoder instruction|type:%d|state:%d",
+                ctx->type, ctx->state);
+
         /* parse instruction bytes */
-        xqc_log(qpk->log, XQC_LOG_DEBUG, "|parse encoder instruction|type:%d|state:%d", ctx->type, ctx->state);
         read = xqc_ins_parse_encoder(data + processed, data_len - processed, ctx);
         if (read < 0) {
-            xqc_log(qpk->log, XQC_LOG_ERROR, "|parse encoder instruction error|ret:%d|type:%d|state:%d|data_len:%d|processed:%d|", read, ctx->type, ctx->state, data_len, processed);
+            xqc_log(qpk->log, XQC_LOG_ERROR, "|parse encoder instruction error|ret:%d|type:%d"
+                    "|state:%d|data_len:%d|processed:%d|", read, ctx->type,
+                    ctx->state, data_len, processed);
             return read;
         }
         processed += read;
@@ -309,7 +316,8 @@ xqc_qpack_process_encoder(xqc_qpack_t *qpk, unsigned char *data, size_t data_len
     /* get insertion into decoder's dtable, reply Insert Count Increment to peer
        notity here rather than xqc_qpack_on_encoder_ins to reduce ICI count */
     if (xqc_qpack_get_dec_insert_count(qpk) > ori_krc) {
-        ret = xqc_qpack_notify_insert_cnt_increment(qpk, (xqc_qpack_get_dec_insert_count(qpk) - ori_krc));
+        ret = xqc_qpack_notify_insert_cnt_increment(
+            qpk, (xqc_qpack_get_dec_insert_count(qpk) - ori_krc));
         if (ret < 0) {
             xqc_log(qpk->log, XQC_LOG_ERROR, "|write increment error|ret:%d|", ret);
             return ret;
@@ -449,8 +457,8 @@ xqc_qpack_enc_headers(xqc_qpack_t *qpk, uint64_t stream_id,
 
 
 ssize_t
-xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, unsigned char *data, size_t data_len,
-    xqc_http_headers_t *headers, xqc_bool_t fin, xqc_bool_t *blocked)
+xqc_qpack_dec_headers(xqc_qpack_t *qpk, xqc_rep_ctx_t *req_ctx, unsigned char *data,
+    size_t data_len, xqc_http_headers_t *headers, xqc_bool_t fin, xqc_bool_t *blocked)
 {
     ssize_t read = 0;
     unsigned char *pos = data;

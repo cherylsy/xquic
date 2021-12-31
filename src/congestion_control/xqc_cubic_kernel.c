@@ -16,29 +16,29 @@
 /* We implement hystart++ instead of hystart. */
 /* https://tools.ietf.org/id/draft-balasubramanian-tcpm-hystartplusplus-01.html */
 /* Number of delay samples for detecting the increase of delay */
-#define XQC_HSPP_MIN_SAMPLES 8
-#define XQC_HSPP_DELAY_MIN_US (4000U) /*4ms*/
-#define XQC_HSPP_DELAY_MAX_US (16000U) /*16ms*/
-#define XQC_HSPP_DELAY_THRESH(x) xqc_clamp(x, XQC_HSPP_DELAY_MIN_US, XQC_HSPP_DELAY_MAX_US)
-#define XQC_HSPP_LSS_DIVISOR_SHIFT (2) /*1>>2 = 1/4 = 0.25*/
-#define XQC_HSPP_LSS_STATE_INIT (0) /*LSS has not started yet*/
-#define XQC_HSPP_LSS_STATE_START (1) /*In LSS*/
-#define XQC_HSPP_LSS_STATE_END (2)
-#define XQC_INF_RTT (~0ULL)
-#define XQC_HSPP_MIN_SSTHRESH (16) /*16 pkts*/
+#define XQC_HSPP_MIN_SAMPLES        8
+#define XQC_HSPP_DELAY_MIN_US       (4000U)     /*4ms*/
+#define XQC_HSPP_DELAY_MAX_US       (16000U)    /*16ms*/
+#define XQC_HSPP_DELAY_THRESH(x)    xqc_clamp(x, XQC_HSPP_DELAY_MIN_US, XQC_HSPP_DELAY_MAX_US)
+#define XQC_HSPP_LSS_DIVISOR_SHIFT  (2)         /*1>>2 = 1/4 = 0.25*/
+#define XQC_HSPP_LSS_STATE_INIT     (0)         /*LSS has not started yet*/
+#define XQC_HSPP_LSS_STATE_START    (1)         /*In LSS*/
+#define XQC_HSPP_LSS_STATE_END      (2)
+#define XQC_INF_RTT                 (~0ULL)
+#define XQC_HSPP_MIN_SSTHRESH       (16)        /*16 pkts*/
 
-#define xqc_64_before(x, y) ((int64_t)(x - y) < 0)
-#define xqc_64_before_eq(x, y) ((int64_t)(x - y) <= 0)
-#define xqc_64_after(x, y) (!xqc_before_eq(x, y))
-#define xqc_64_after_eq(x, y) (!xqc_before(x, y))
+#define xqc_64_before(x, y)         ((int64_t)(x - y) < 0)
+#define xqc_64_before_eq(x, y)      ((int64_t)(x - y) <= 0)
+#define xqc_64_after(x, y)          (!xqc_before_eq(x, y))
+#define xqc_64_after_eq(x, y)       (!xqc_before(x, y))
 
-#define beta_base 717
-#define beta_lastmax_base 871
+#define beta_base                   717
+#define beta_lastmax_base           871
 #define beta_with_N_conns(b, N) \
         (((N - 1) * XQC_CUBIC_BETA_SCALE + b + N - 1) / (N))
 #define num_conns 2 /*to compete with two RENO conns*/
 static int fast_convergence = 1;
-static int beta = beta_with_N_conns(beta_base, num_conns); /*= 717/1024 (XQC_CUBIC_BETA_SCALE) */
+static int beta = beta_with_N_conns(beta_base, num_conns); /* = 717/1024 (XQC_CUBIC_BETA_SCALE) */
 static int beta_lastmax = beta_with_N_conns(beta_lastmax_base, num_conns);
 static int initial_ssthresh;
 static int bic_scale = 41;
@@ -48,13 +48,13 @@ static uint32_t cube_rtt_scale;
 static uint32_t beta_scale;
 static uint64_t cube_factor;
 
-#define XQC_CUBIC_MSS (1460)
-#define XQC_CUBIC_MAX_SSTHRESH (~0U)
-#define XQC_CUBIC_MIN_WIN (4 * XQC_CUBIC_MSS)
-#define XQC_CUBIC_MAX_INIT_WIN (100 * XQC_CUBIC_MSS)
-#define XQC_CUBIC_INIT_WIN (32 * XQC_CUBIC_MSS)
+#define XQC_CUBIC_MSS           (1460)
+#define XQC_CUBIC_MAX_SSTHRESH  (~0U)
+#define XQC_CUBIC_MIN_WIN       (4 * XQC_CUBIC_MSS)
+#define XQC_CUBIC_MAX_INIT_WIN  (100 * XQC_CUBIC_MSS)
+#define XQC_CUBIC_INIT_WIN      (32 * XQC_CUBIC_MSS)
 
-static inline int 
+static inline int
 xqc_fls(uint32_t x)
 {
     int r = 32;
@@ -106,18 +106,18 @@ xqc_fls64(uint64_t x)
  * NOTE: macro parameter @n is evaluated multiple times,
  * beware of side effects!
  */
-#define xqc_do_div(n, base) ({        \
-    uint32_t __base= (base);         \
-    uint32_t __rem;                   \
-    __rem= ((uint64_t)(n)) % __base; \
-    (n)= ((uint64_t)(n)) / __base;   \
-    __rem;                            \
+#define xqc_do_div(n, base) ({          \
+    uint32_t __base= (base);            \
+    uint32_t __rem;                     \
+    __rem= ((uint64_t)(n)) % __base;    \
+    (n)= ((uint64_t)(n)) / __base;      \
+    __rem;                              \
 })
 
 static inline uint64_t 
 xqc_div64_u64(uint64_t dividend, uint64_t divisor)
 {
-	return dividend / divisor;
+    return dividend / divisor;
 }
 
 /* calculate the cubic root of x using a table lookup followed by one
@@ -136,8 +136,7 @@ xqc_cubic_root(uint64_t a)
      *   v= cbrt(x << 18) - 1
      *   cbrt(x)= (v[x] + 10) >> 6
      */
-    static const uint8_t v[] = 
-    {
+    static const uint8_t v[] = {
         /* 0x00 */    0,   54,   54,   54,  118,  118,  118,  118,
         /* 0x08 */  123,  129,  134,  138,  143,  147,  151,  156,
         /* 0x10 */  157,  161,  164,  168,  170,  173,  176,  179,
@@ -147,36 +146,36 @@ xqc_cubic_root(uint64_t a)
         /* 0x30 */  231,  232,  234,  236,  237,  239,  240,  242,
         /* 0x38 */  244,  245,  246,  248,  250,  251,  252,  254,
     };
-    b= xqc_fls64(a);
-    if (b < 7)
-    {
+
+    b = xqc_fls64(a);
+    if (b < 7) {
         /* a in [0..63] */
         return ((uint32_t)v[(uint32_t)a] + 35) >> 6;
     }
-    b= ((b * 84) >> 8) - 1;
-    shift= (a >> (b * 3));
-    x= ((uint32_t)(((uint32_t)v[shift] + 10) << b)) >> 6;
+    b = ((b * 84) >> 8) - 1;
+    shift = (a >> (b * 3));
+    x = ((uint32_t)(((uint32_t)v[shift] + 10) << b)) >> 6;
     /*
      * Newton-Raphson iteration
      *                         2
      * x   = ( 2 * x  +  a / x  ) / 3
      *  k+1          k         k
      */
-    x= (2 * x + (uint32_t)xqc_div64_u64(a, (uint64_t)x * (uint64_t)(x - 1)));
-    x= ((x * 341) >> 10);
+    x = (2 * x + (uint32_t) xqc_div64_u64(a, (uint64_t) x * (uint64_t) (x - 1)));
+    x = ((x * 341) >> 10);
     return x;
 }
 
 static int
 xqc_cubic_in_recovery(void *cong) {
-    xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t*)(cong);
+    xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t *)(cong);
     return ca->recovery_start_time > 0;
 }
 
 static inline void 
 xqc_cubic_reset(void *cong)
 {
-    xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t*)(cong);
+    xqc_cubic_kernel_t *ca = (xqc_cubic_kernel_t *)(cong);
     ca->cnt= 0;
     ca->last_cwnd= 0;
     ca->last_time= 0;
