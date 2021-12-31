@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef _XQC_HASH_H_INCLUDED_
 #define _XQC_HASH_H_INCLUDED_
 
@@ -106,7 +110,7 @@ xqc_md5_update(xqc_md5_t *ctx, const void *data, size_t size)
         size &= 0x3f;
     }
 
-	memcpy(ctx->buffer, data, size);
+    memcpy(ctx->buffer, data, size);
 }
 
 static inline void

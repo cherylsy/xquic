@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include "xqc_discrete_vint_parser.h"
 
 void

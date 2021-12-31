@@ -1,7 +1,10 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include "src/transport/xqc_packet_in.h"
 #include "src/common/xqc_memory_pool.h"
 #include "src/transport/xqc_conn.h"
-
 
 
 void

@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
 
 #ifndef _XQUIC_TYPEDEF_H_INCLUDED_
 #define _XQUIC_TYPEDEF_H_INCLUDED_
@@ -99,8 +102,8 @@ typedef enum {
 
 #ifdef WIN32
 struct iovec {
-	void *   iov_base;	/* [XSI] Base address of I/O memory region */
-	size_t	 iov_len;	/* [XSI] Size of region iov_base points to */
+    void   *iov_base;   /* [XSI] Base address of I/O memory region */
+    size_t  iov_len;    /* [XSI] Size of region iov_base points to */
 };
 #endif
 

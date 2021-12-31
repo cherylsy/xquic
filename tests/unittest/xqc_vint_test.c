@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
 
 #include "xqc_vint_test.h"
 #include "src/common/utils/vint/xqc_variable_len_int.h"

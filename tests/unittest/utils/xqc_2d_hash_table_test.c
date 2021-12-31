@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include <CUnit/CUnit.h>
 #include "xqc_2d_hash_table_test.h"
 #include "src/common/utils/2d_hash/xqc_2d_hash_table.h"

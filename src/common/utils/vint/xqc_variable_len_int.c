@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include "xqc_variable_len_int.h"
 
 #define XQC_VINT_MASK ((1 << 6) - 1)

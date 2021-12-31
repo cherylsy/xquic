@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include <CUnit/CUnit.h>
 #include "xqc_ring_mem_test.h"
 #include "src/common/utils/ringmem/xqc_ring_mem.h"

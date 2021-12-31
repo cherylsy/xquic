@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include "src/tls/xqc_crypto.h"
 
 #include <openssl/ssl.h>

@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
 
 #include "src/http3/xqc_h3_request.h"
 #include "src/transport/xqc_stream.h"

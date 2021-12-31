@@ -96,7 +96,8 @@ xqc_h3_headers_initial(xqc_http_headers_t *headers)
 
 
 /**
- * from ngtcp2
+ * from nghttp3
+ * Copyright (c) 2018 nghttp3 contributors
  */
 xqc_hdr_type_t
 xqc_h3_hdr_type(unsigned char *name, size_t nlen)

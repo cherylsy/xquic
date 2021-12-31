@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef XQUIC_XQC_H3_HEADER_H
 #define XQUIC_XQC_H3_HEADER_H
 
@@ -55,7 +59,7 @@ void xqc_h3_headers_initial(xqc_http_headers_t *headers);
 
 
 /**
- * from ngtcp2
+ * translated from nghttp3
  */
 typedef enum {
     XQC_HDR__AUTHORITY = 0,

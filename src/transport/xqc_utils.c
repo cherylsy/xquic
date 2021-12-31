@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
 
 #include "src/common/xqc_common.h"
 #include "src/common/xqc_malloc.h"

@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef XQC_HQ_H
 #define XQC_HQ_H
 

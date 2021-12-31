@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef _NGX_H_PRIORITY_Q_INCLUDED_
 #define _NGX_H_PRIORITY_Q_INCLUDED_
 

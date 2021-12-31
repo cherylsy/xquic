@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef XQUIC_XQC_LOG_EVENT_CALLBACK_H
 #define XQUIC_XQC_LOG_EVENT_CALLBACK_H
 

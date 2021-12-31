@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include <CUnit/CUnit.h>
 #include "xqc_process_frame_test.h"
 #include "xqc_common_test.h"

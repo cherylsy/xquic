@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include "src/transport/xqc_pacing.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_packet.h"

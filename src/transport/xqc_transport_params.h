@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef XQC_TRANSPORT_PARAMS_H_
 #define XQC_TRANSPORT_PARAMS_H_
 

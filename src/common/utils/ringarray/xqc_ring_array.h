@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef _XQC_RING_ARRAY_H_
 #define _XQC_RING_ARRAY_H_
 

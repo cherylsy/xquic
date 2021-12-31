@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include "xqc_huffman.h"
 #include "xqc_huffman_code.h"
 #include <string.h>

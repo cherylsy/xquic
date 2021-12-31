@@ -1,3 +1,6 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
 
 #include <xquic/xquic.h>
 #include "src/congestion_control/xqc_new_reno.h"

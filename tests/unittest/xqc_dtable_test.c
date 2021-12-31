@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include <CUnit/CUnit.h>
 #include "xqc_dtable_test.h"
 #include "src/http3/qpack/dtable/xqc_dtable.h"

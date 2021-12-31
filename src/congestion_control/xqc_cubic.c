@@ -1,4 +1,6 @@
-/*
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ * 
  * CUBIC based on https://tools.ietf.org/html/rfc8312
  */
 

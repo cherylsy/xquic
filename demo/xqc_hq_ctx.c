@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include "xqc_hq_ctx.h"
 #include "xqc_hq.h"
 #include "xqc_hq_defs.h"

@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #ifndef _XQC_HUFFMAN_CODE_H_
 #define _XQC_HUFFMAN_CODE_H_
 

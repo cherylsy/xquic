@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include <CUnit/CUnit.h>
 
 #include <xquic/xquic.h>

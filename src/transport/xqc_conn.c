@@ -1,3 +1,7 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
+
 #include <xquic/xquic.h>
 #include <errno.h>
 #include "src/http3/xqc_h3_stream.h"

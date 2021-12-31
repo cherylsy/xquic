@@ -1,9 +1,11 @@
+/**
+ * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
+ */
 
 #ifndef _XQUIC_H_INCLUDED_
 #define _XQUIC_H_INCLUDED_
 
 /**
- * @file
  * Public API for using libxquic
  */
 #ifdef WIN32
