@@ -11,7 +11,8 @@ char XQC_TEST_ZERO_LEN_NEW_TOKEN_FRAME[] = {0x07, 0x00};
 char XQC_TEST_OVERAGE_STREAM_BLOCKED_FRAME[] = {0x16, 0xD0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01};
 
 
-void xqc_test_process_frame()
+void
+xqc_test_process_frame()
 {
     xqc_connection_t *conn = test_engine_connect();
     CU_ASSERT(conn != NULL);
@@ -36,7 +37,8 @@ void xqc_test_process_frame()
 }
 
 
-void xqc_test_parse_padding_frame()
+void
+xqc_test_parse_padding_frame()
 {
     xqc_connection_t *conn = test_engine_connect();
     CU_ASSERT(conn != NULL);
@@ -64,7 +66,8 @@ void xqc_test_parse_padding_frame()
 }
 
 
-void xqc_test_large_ack_frame()
+void
+xqc_test_large_ack_frame()
 {
     xqc_connection_t *conn = test_engine_connect();
     CU_ASSERT(conn != NULL);

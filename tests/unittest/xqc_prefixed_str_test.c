@@ -4,7 +4,8 @@
 #include "tests/unittest/xqc_common_test.h"
 #include "src/http3/qpack/xqc_prefixed_str.h"
 
-void test_prefixed_str_basic()
+void
+test_prefixed_str_basic()
 {
     size_t i, j;
     size_t len;
@@ -61,7 +62,8 @@ void test_prefixed_str_basic()
 }
 
 
-void test_prefixed_str_len()
+void
+test_prefixed_str_len()
 {
     size_t i, j;
     size_t len;
@@ -115,7 +117,8 @@ void test_prefixed_str_len()
 }
 
 
-void xqc_test_prefixed_str()
+void
+xqc_test_prefixed_str()
 {
     test_prefixed_str_basic();
     test_prefixed_str_len();

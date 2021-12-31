@@ -14,7 +14,8 @@ ssize_t xqc_h3_stream_write_data_to_buffer(xqc_h3_stream_t *h3s, unsigned char* 
 xqc_int_t xqc_decoder_copy_header(xqc_http_header_t *hdr, xqc_var_buf_t *name, xqc_var_buf_t *value);
 
 
-ssize_t xqc_test_frame_parse(const char *p, size_t sz, xqc_h3_frame_pctx_t *state)
+ssize_t
+xqc_test_frame_parse(const char *p, size_t sz, xqc_h3_frame_pctx_t *state)
 {
     ssize_t offset = 0;
     while (offset < sz) {
@@ -34,7 +35,8 @@ ssize_t xqc_test_frame_parse(const char *p, size_t sz, xqc_h3_frame_pctx_t *stat
     return XQC_ERROR;
 }
 
-void xqc_test_frame()
+void
+xqc_test_frame()
 {
     uint64_t push_id = 10;
     char data[] = {"sdfjldksjf ldsjflkejwrfmmsldfpodsjcdsl;ml;fdsl;fkdlk"};
@@ -147,7 +149,8 @@ void xqc_test_frame()
     xqc_var_buf_free(buf);
 }
 
-void xqc_test_ins()
+void
+xqc_test_ins()
 {
     xqc_int_t ret;
     ssize_t processed;
@@ -245,7 +248,8 @@ void xqc_test_ins()
     xqc_ins_decoder_ctx_free(dec_ctx);
 }
 
-void xqc_test_rep()
+void
+xqc_test_rep()
 {
     xqc_var_buf_t *buf = xqc_var_buf_create(XQC_VAR_BUF_INIT_SIZE);
     char name[] = {"test_name"};
@@ -396,7 +400,8 @@ void xqc_test_rep()
     xqc_rep_ctx_free(ctx);
 }
 
-void xqc_test_stream()
+void
+xqc_test_stream()
 {
     xqc_int_t ret;
 

@@ -17,7 +17,8 @@
 #include <xquic/xquic_typedef.h>
 #include <xquic/xqc_http3.h>
 
-int printf_null(const char *format, ...)
+int
+printf_null(const char *format, ...)
 {
     return 0;
 }
@@ -106,11 +107,11 @@ typedef struct xqc_user_path_s {
 
 
 typedef struct client_ctx_s {
-    xqc_engine_t    *engine;
-    struct event    *ev_engine;
+    xqc_engine_t   *engine;
+    struct event   *ev_engine;
     int             log_fd;
     int             keylog_fd;
-    struct event    *ev_delay;
+    struct event   *ev_delay;
 } client_ctx_t;
 
 client_ctx_t ctx;
@@ -172,7 +173,8 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_client_set_event_timer(xqc_msec_t wake_after, void *user_data)
+void
+xqc_client_set_event_timer(xqc_msec_t wake_after, void *user_data)
 {
     client_ctx_t *ctx = (client_ctx_t *) user_data;
     //printf("xqc_engine_wakeup_after %llu us, now %llu\n", wake_after, now());
@@ -184,7 +186,8 @@ void xqc_client_set_event_timer(xqc_msec_t wake_after, void *user_data)
 
 }
 
-void save_session_cb(const char * data, size_t data_len, void *user_data)
+void
+save_session_cb(const char * data, size_t data_len, void *user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("save_session_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -201,7 +204,8 @@ void save_session_cb(const char * data, size_t data_len, void *user_data)
 }
 
 
-void save_tp_cb(const char * data, size_t data_len, void * user_data)
+void
+save_tp_cb(const char * data, size_t data_len, void * user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("save_tp_cb use server domain as the key. h3[%d]\n", user_conn->h3);
@@ -217,7 +221,8 @@ void save_tp_cb(const char * data, size_t data_len, void * user_data)
     return;
 }
 
-void xqc_client_save_token(const unsigned char *token, unsigned token_len, void *user_data)
+void
+xqc_client_save_token(const unsigned char *token, unsigned token_len, void *user_data)
 {
     user_conn_t *user_conn = (user_conn_t*)user_data;
     printf("xqc_client_save_token use client ip as the key. h3[%d]\n", user_conn->h3);
@@ -240,7 +245,8 @@ void xqc_client_save_token(const unsigned char *token, unsigned token_len, void 
     close(fd);
 }
 
-int xqc_client_read_token(unsigned char *token, unsigned token_len)
+int
+xqc_client_read_token(unsigned char *token, unsigned token_len)
 {
     int fd = open("./xqc_token", O_RDONLY);
     if (fd < 0) {
@@ -254,7 +260,8 @@ int xqc_client_read_token(unsigned char *token, unsigned token_len)
     return n;
 }
 
-int read_file_data( char * data, size_t data_len, char *filename){
+int
+read_file_data( char * data, size_t data_len, char *filename){
     FILE * fp = fopen( filename, "rb");
 
     if(fp == NULL){
@@ -279,8 +286,7 @@ int read_file_data( char * data, size_t data_len, char *filename){
 
 int g_send_total = 0;
 ssize_t 
-xqc_client_write_socket(
-    const unsigned char *buf, size_t size,
+xqc_client_write_socket(const unsigned char *buf, size_t size,
     const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user)
 {
     user_conn_t *user_conn = (user_conn_t *) user;
@@ -358,8 +364,7 @@ xqc_client_send_stateless_reset(const unsigned char *buf, size_t size,
 #if defined(XQC_SUPPORT_SENDMMSG)
 ssize_t 
 xqc_client_write_mmsg(const struct iovec *msg_iov, unsigned int vlen,
-    const struct sockaddr *peer_addr,
-    socklen_t peer_addrlen, void *user)
+    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *user)
 {
     const int MAX_SEG = 128;
     user_conn_t *user_conn = (user_conn_t *) user;
@@ -452,6 +457,7 @@ xqc_convert_addr_text_to_sockaddr(int type,
         addr_v6->sin6_family = type;
         addr_v6->sin6_port = htons(port);
         *saddr_len = sizeof(struct sockaddr_in6);
+
     } else {
         *saddr = calloc(1, sizeof(struct sockaddr_in));
         memset(*saddr, 0, sizeof(struct sockaddr_in));
@@ -477,6 +483,7 @@ xqc_client_init_addr(user_conn_t *user_conn,
         user_conn->local_addr = calloc(1, sizeof(struct sockaddr_in6));
         memset(user_conn->local_addr, 0, sizeof(struct sockaddr_in6));
         user_conn->local_addrlen = sizeof(struct sockaddr_in6);
+
     } else {
         user_conn->local_addr = calloc(1, sizeof(struct sockaddr_in));
         memset(user_conn->local_addr, 0, sizeof(struct sockaddr_in));
@@ -615,7 +622,8 @@ xqc_client_ready_to_create_path(const xqc_cid_t *cid,
 }
 
 
-int xqc_client_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
+int
+xqc_client_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
@@ -626,7 +634,8 @@ int xqc_client_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, 
     return 0;
 }
 
-int xqc_client_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
+int
+xqc_client_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
@@ -640,7 +649,8 @@ int xqc_client_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, v
     return 0;
 }
 
-void xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *user_data)
+void
+xqc_client_conn_ping_acked_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *user_data)
 {
     DEBUG;
     if (ping_user_data) {
@@ -666,7 +676,8 @@ xqc_client_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retir
 
 }
 
-void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
+void
+xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
@@ -677,31 +688,33 @@ void xqc_client_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
     printf("====>SCID:%s\n", xqc_scid_str(&user_conn->cid));
 }
 
-int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *user_data)
+int
+xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
     user_conn_t *user_conn = (user_conn_t *) user_data;
     if (g_test_case == 18) { /* test h3 settings */
         xqc_h3_conn_settings_t settings = {
-                .max_field_section_size = 512,
-                .qpack_max_table_capacity = 4096,
-                .qpack_blocked_streams = 32,
+            .max_field_section_size = 512,
+            .qpack_max_table_capacity = 4096,
+            .qpack_blocked_streams = 32,
         };
         xqc_h3_conn_set_settings(conn, &settings);
     }
+
     if (g_test_case == 32) {
         xqc_h3_conn_settings_t settings = {
-                .max_field_section_size = 10000000,
-                .qpack_max_table_capacity = 4096,
-                .qpack_blocked_streams = 32,
+            .max_field_section_size = 10000000,
+            .qpack_max_table_capacity = 4096,
+            .qpack_blocked_streams = 32,
         };
         xqc_h3_conn_set_settings(conn, &settings);
     }
 
     if (g_test_case == 19) { /* test header size constraints */
         xqc_h3_conn_settings_t settings = {
-                .max_field_section_size = 100,
+            .max_field_section_size = 100,
         };
         xqc_h3_conn_set_settings(conn, &settings);
     }
@@ -710,7 +723,8 @@ int xqc_client_h3_conn_create_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, 
     return 0;
 }
 
-int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *user_data)
+int
+xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *user_data)
 {
     DEBUG;
 
@@ -725,7 +739,8 @@ int xqc_client_h3_conn_close_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, v
     return 0;
 }
 
-void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
+void
+xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
@@ -744,7 +759,8 @@ void xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_da
     printf("====>SCID:%s\n", xqc_scid_str(&user_conn->cid));
 }
 
-void xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *user_data)
+void
+xqc_client_h3_conn_ping_acked_notify(xqc_h3_conn_t *conn, const xqc_cid_t *cid, void *ping_user_data, void *user_data)
 {
     DEBUG;
     if (ping_user_data) {
@@ -770,7 +786,8 @@ xqc_client_h3_conn_update_cid_notify(xqc_h3_conn_t *conn, const xqc_cid_t *retir
 
 }
 
-int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
+int
+xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
 {
     ssize_t ret;
     user_stream_t *user_stream = (user_stream_t *) user_data;
@@ -812,16 +829,19 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     if (g_test_case == 4) { //test fin_only
         fin = 0;
     }
+
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_stream_send(stream, user_stream->send_body + user_stream->send_offset, user_stream->send_body_len - user_stream->send_offset, fin);
         if (ret < 0) {
             printf("xqc_stream_send error %zd\n", ret);
             return 0;
+
         } else {
             user_stream->send_offset += ret;
             printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
         }
     }
+
     if (g_test_case == 4) { //test fin_only
         if (user_stream->send_offset == user_stream->send_body_len) {
             fin = 1;
@@ -834,7 +854,8 @@ int xqc_client_stream_send(xqc_stream_t *stream, void *user_data)
     return 0;
 }
 
-int xqc_client_stream_write_notify(xqc_stream_t *stream, void *user_data)
+int
+xqc_client_stream_write_notify(xqc_stream_t *stream, void *user_data)
 {
     //DEBUG;
     int ret = 0;
@@ -843,7 +864,8 @@ int xqc_client_stream_write_notify(xqc_stream_t *stream, void *user_data)
     return ret;
 }
 
-int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
+int
+xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
 {
     //DEBUG;
     unsigned char fin = 0;
@@ -875,12 +897,13 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
         if (read == -XQC_EAGAIN) {
             break;
+
         } else if (read < 0) {
             printf("xqc_stream_recv error %zd\n", read);
             return 0;
         }
 
-        if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+        if (save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
             return -1;
         }
@@ -940,7 +963,8 @@ int xqc_client_stream_read_notify(xqc_stream_t *stream, void *user_data)
     return 0;
 }
 
-int xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
+int
+xqc_client_stream_close_notify(xqc_stream_t *stream, void *user_data)
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
@@ -985,7 +1009,8 @@ xqc_client_request_send_fin_only(int fd, short what, void *arg)
     }
 }
 
-int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
+int
+xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream)
 {
     if (user_stream->start_time == 0) {
         user_stream->start_time = now();
@@ -997,10 +1022,12 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         user_stream->send_body_max = MAX_BUF_SIZE;
         if (g_read_body) {
             user_stream->send_body = malloc(user_stream->send_body_max);
+
         } else {
             user_stream->send_body = malloc(g_send_body_size);
             memset(user_stream->send_body, 1, g_send_body_size);
         }
+
         if (user_stream->send_body == NULL) {
             printf("send_body malloc error\n");
             return -1;
@@ -1009,14 +1036,17 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
         /* specified size > specified file > default size */
         if (g_send_body_size_defined) {
             user_stream->send_body_len = g_send_body_size;
+
         } else if (g_read_body) {
             ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
             if (ret < 0) {
                 printf("read body error\n");
                 return -1;
+
             } else {
                 user_stream->send_body_len = ret;
             }
+
         } else {
             user_stream->send_body_len = g_send_body_size;
         }
@@ -1122,6 +1152,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             header_size++;
         }
     }
+
     while (header_size < g_header_num) {
         int m = 0, n = 0;
         m = rand();
@@ -1149,6 +1180,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
     if (user_stream->header_sent == 0) {
         if (g_test_case == 30 || g_test_case == 37 || g_test_case == 38) {
             ret = xqc_h3_request_send_headers(h3_request, &headers, 0);
+
         } else  {
             ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         }
@@ -1179,6 +1211,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             struct timeval finish = {1, 0};
             ctx.ev_delay = event_new(eb, -1, 0, xqc_client_request_send_fin_only, user_stream);
             event_add(ctx.ev_delay, &finish);
+
         } else if (g_test_case == 38) {
             header_only = 1;
             ret = xqc_h3_request_finish(h3_request);
@@ -1233,6 +1266,7 @@ int xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_st
             ret = xqc_h3_request_finish(h3_request);
             if (ret != XQC_OK) {
                 printf("send request finish error, ret: %zd\n", ret);
+
             } else {
                 printf("send request finish suc\n");
             }
@@ -1259,13 +1293,16 @@ int xqc_client_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
         xqc_h3_request_close(h3_request);
         return 0;
     }
+
     if (g_test_case == 2) { /* user close connection */
         xqc_h3_conn_close(ctx.engine, &user_stream->user_conn->cid);
         return 0;
     }
+
     if (g_test_case == 3) { /* close connection with error */
         return -1;
     }
+
     ret = xqc_client_request_send(h3_request, user_stream);
     return ret;
 }
@@ -1284,24 +1321,29 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
     if (g_test_case == 28) { /* Send header after reset stream */
         xqc_h3_request_close(h3_request);
         xqc_http_header_t header = {
-                .name = {
-                        .iov_base = "name",
-                        .iov_len = sizeof("name")
-                },
-                .value = {
-                        .iov_base = "value",
-                        .iov_len = sizeof("value")
-                },
+            .name = {
+                .iov_base = "name",
+                .iov_len = sizeof("name")
+            },
+            .value = {
+                .iov_base = "value",
+                .iov_len = sizeof("value")
+            },
         };
+
         xqc_http_headers_t headers = {
-                .headers = &header,
-                .count = 1,
+            .headers = &header,
+            .count = 1,
         };
         xqc_h3_request_send_headers(h3_request,&headers, 1);
         return 0;
     }
 
-    if (g_test_case == 12) { return -1;} /* stream read notify fail */
+    /* stream read notify fail */
+    if (g_test_case == 12) {
+        return -1;
+    }
+
     if ((flag & XQC_REQ_NOTIFY_READ_HEADER) || (flag & XQC_REQ_NOTIFY_READ_TRAILER)) {
         xqc_http_headers_t *headers;
         headers = xqc_h3_request_recv_headers(h3_request, &fin);
@@ -1309,6 +1351,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             printf("xqc_h3_request_recv_headers error\n");
             return -1;
         }
+
         for (int i = 0; i < headers->count; i++) {
             printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
         }
@@ -1320,7 +1363,7 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             user_stream->recv_fin = 1;
             return 0;
         }
-        
+
         /* continue to receive body */
     }
 
@@ -1353,16 +1396,20 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
             if (read == -XQC_EAGAIN) {
                 break;
+
             } else if (read < 0) {
                 printf("xqc_h3_request_recv_body error %zd\n", read);
                 return 0;
             }
 
-            if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+            if (save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
                 printf("fwrite error\n");
                 return -1;
             }
-            if(save) fflush(user_stream->recv_body_fp);
+
+            if (save) {
+                fflush(user_stream->recv_body_fp);
+            }
 
             /* write received body to memory */
             if (g_echo_check && user_stream->recv_body_len + read <= user_stream->send_body_len) {
@@ -1418,7 +1465,8 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
     return 0;
 }
 
-int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
+int
+xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t *)user_data;
@@ -1452,6 +1500,7 @@ int xqc_client_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
             printf("xqc_h3_request_create error\n");
             return 0;
         }
+
         xqc_client_request_send(user_stream->h3_request, user_stream);
         g_req_cnt++;
     }
@@ -1536,6 +1585,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
+
         if (recv_size < 0) {
             printf("recvfrom: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
@@ -1634,8 +1684,10 @@ xqc_client_socket_event_callback(int fd, short what, void *arg)
 
     if (what & EV_WRITE) {
         xqc_client_socket_write_handler(user_conn);
+
     } else if (what & EV_READ) {
         xqc_client_socket_read_handler(user_conn);
+
     } else {
         printf("event callback: what=%d\n", what);
         exit(1);
@@ -1744,6 +1796,7 @@ xqc_client_write_log(xqc_log_level_t lvl, const void *buf, size_t count, void *e
         printf("xqc_client_write_log fd err\n");
         return;
     }
+
     int log_len = snprintf(log_buf, XQC_MAX_LOG_LEN + 1, "%s\n", (char*)buf);
     if (log_len < 0) {
         printf("xqc_client_write_log err\n");
@@ -1757,7 +1810,8 @@ xqc_client_write_log(xqc_log_level_t lvl, const void *buf, size_t count, void *e
  * key log functions
  */
 
-int xqc_client_open_keylog_file(client_ctx_t *ctx)
+int
+xqc_client_open_keylog_file(client_ctx_t *ctx)
 {
     ctx->keylog_fd = open("./ckeys.log", (O_WRONLY | O_APPEND | O_CREAT), 0644);
     if (ctx->keylog_fd <= 0) {
@@ -1767,7 +1821,8 @@ int xqc_client_open_keylog_file(client_ctx_t *ctx)
     return 0;
 }
 
-int xqc_client_close_keylog_file(client_ctx_t *ctx)
+int
+xqc_client_close_keylog_file(client_ctx_t *ctx)
 {
     if (ctx->keylog_fd <= 0) {
         return -1;
@@ -1866,141 +1921,140 @@ int main(int argc, char *argv[]) {
     strcpy(g_log_path, "./clog");
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:q:o:")) != -1){
-        switch(ch)
-        {
-            case 'a': /* Server addr. */
-                printf("option addr :%s\n", optarg);
-                snprintf(server_addr, sizeof(server_addr), optarg);
-                break;
-            case 'p': /* Server port. */
-                printf("option port :%s\n", optarg);
-                server_port = atoi(optarg);
-                break;
-            case 'P': /* Number of Parallel requests per single connection. Default 1. */
-                printf("option req_paral :%s\n", optarg);
-                req_paral = atoi(optarg);
-                break;
-            case 'n': /* Total number of requests to send. Defaults 1. */
-                printf("option req_max :%s\n", optarg);
-                g_req_max = atoi(optarg);
-                break;
-            case 'c': /* Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2 bbr+ bbr2+ */
-                c_cong_ctl = optarg[0];
-                if (strncmp("bbr2", optarg, 4) == 0)
-                    c_cong_ctl = 'B';
-                if (strncmp("bbr2+", optarg, 5) == 0
-                    || strncmp("bbr+", optarg, 4) == 0)
-                    c_cong_plus = 1;
-                printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
-                break;
-            case 'C': /* Pacing on */
-                printf("option pacing :%s\n", "on");
-                pacing_on = 1;
-                break;
-            case 't': /* Connection timeout. Default 3 seconds. */
-                printf("option g_conn_timeout :%s\n", optarg);
-                g_conn_timeout = atoi(optarg);
-                break;
-            case 'T': /* Transport layer. No HTTP3. */
-                printf("option transport :%s\n", "on");
-                transport = 1;
-                break;
-            case '1': /* Force 1RTT. */
-                printf("option 1RTT :%s\n", "on");
-                use_1rtt = 1;
-                break;
-            case 's': /* Body size to send. */
-                printf("option send_body_size :%s\n", optarg);
-                g_send_body_size = atoi(optarg);
-                g_send_body_size_defined = 1;
-                if (g_send_body_size > MAX_BUF_SIZE) {
-                    printf("max send_body_size :%d\n", MAX_BUF_SIZE);
-                    exit(0);
-                }
-                break;
-            case 'w': /* Write received body to file. */
-                printf("option save body :%s\n", optarg);
-                snprintf(g_write_file, sizeof(g_write_file), optarg);
-                g_save_body = 1;
-                break;
-            case 'r': /* Read sending body from file. priority s > r */
-                printf("option read body :%s\n", optarg);
-                snprintf(g_read_file, sizeof(g_read_file), optarg);
-                g_read_body = 1;
-                break;
-            case 'l': /* Log level. e:error d:debug. */
-                printf("option log level :%s\n", optarg);
-                c_log_level = optarg[0];
-                break;
-            case 'E': /* Echo check on. Compare sent data with received data. */
-                printf("option echo check :%s\n", "on");
-                g_echo_check = 1;
-                break;
-            case 'd': /* Drop rate ‰. */
-                printf("option drop rate :%s\n", optarg);
-                g_drop_rate = atoi(optarg);
-                srand((unsigned)time(NULL));
-                break;
-            case 'u': /* Url. default https://test.xquic.com/path/resource */
-                printf("option url :%s\n", optarg);
-                snprintf(g_url, sizeof(g_url), optarg);
-                g_spec_url = 1;
-                sscanf(g_url,"%[^://]://%[^/]%s", g_scheme, g_host, g_url_path);
-                break;
-            case 'H': /* Header. eg. key:value */
-                printf("option header :%s\n", optarg);
-                snprintf(g_headers[g_header_cnt], sizeof(g_headers[g_header_cnt]), "%s", optarg);
-                g_header_cnt++;
-                break;
-            case 'h': /* Host & sni. eg. test.xquic.com */
-                printf("option host & sni :%s\n", optarg);
-                snprintf(g_host, sizeof(g_host), optarg);
-                break;
-            case 'G': /* GET on. Default is POST */
-                printf("option get :%s\n", "on");
-                g_is_get = 1;
-                break;
-            case 'x': /* Test case ID */
-                printf("option test case id: %s\n", optarg);
-                g_test_case = atoi(optarg);
-                break;
-            case '6': /* IPv6 */
-                printf("option IPv6 :%s\n", "on");
-                g_ipv6 = 1;
-                break;
-            case 'N': /* No encryption */
-                printf("option No crypt: %s\n", "yes");
-                g_no_crypt = 1;
-                break;
-            case 'M':
-                printf("option enable multi-path: %s\n", "yes");
-                g_enable_multipath = 1;
-                break;
-            case 'i':
-                printf("option multi-path interface: %s\n", optarg);
-                ++g_multi_interface_cnt;
-                memset(g_multi_interface[g_multi_interface_cnt], 0, XQC_DEMO_INTERFACE_MAX_LEN);
-                snprintf(g_multi_interface[g_multi_interface_cnt], 
-                         XQC_DEMO_INTERFACE_MAX_LEN, optarg);
-                break;
-            case 'V': /* Force cert verification. 0: don't allow self-signed cert. 1: allow self-signed cert. */
-                printf("option enable cert verify: %s\n", "yes");
-                g_verify_cert = 1;
-                g_verify_cert_allow_self_sign = atoi(optarg);
-                break;
-            case 'q': /* name-value pair num of request header, default and larger than 6. */
-                printf("option name-value pair num: %s\n", optarg);
-                g_header_num = atoi(optarg);
-                break;
-            case 'o':
-                printf("option log path :%s\n", optarg);
-                snprintf(g_log_path, sizeof(g_log_path), optarg);
-                break;
-            default:
-                printf("other option :%c\n", ch);
-                usage(argc, argv);
+    while ((ch = getopt(argc, argv, "a:p:P:n:c:Ct:T1s:w:r:l:Ed:u:H:h:Gx:6NMi:V:q:o:")) != -1) {
+        switch(ch) {
+        case 'a': /* Server addr. */
+            printf("option addr :%s\n", optarg);
+            snprintf(server_addr, sizeof(server_addr), optarg);
+            break;
+        case 'p': /* Server port. */
+            printf("option port :%s\n", optarg);
+            server_port = atoi(optarg);
+            break;
+        case 'P': /* Number of Parallel requests per single connection. Default 1. */
+            printf("option req_paral :%s\n", optarg);
+            req_paral = atoi(optarg);
+            break;
+        case 'n': /* Total number of requests to send. Defaults 1. */
+            printf("option req_max :%s\n", optarg);
+            g_req_max = atoi(optarg);
+            break;
+        case 'c': /* Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2 bbr+ bbr2+ */
+            c_cong_ctl = optarg[0];
+            if (strncmp("bbr2", optarg, 4) == 0)
+                c_cong_ctl = 'B';
+            if (strncmp("bbr2+", optarg, 5) == 0
+                || strncmp("bbr+", optarg, 4) == 0)
+                c_cong_plus = 1;
+            printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
+            break;
+        case 'C': /* Pacing on */
+            printf("option pacing :%s\n", "on");
+            pacing_on = 1;
+            break;
+        case 't': /* Connection timeout. Default 3 seconds. */
+            printf("option g_conn_timeout :%s\n", optarg);
+            g_conn_timeout = atoi(optarg);
+            break;
+        case 'T': /* Transport layer. No HTTP3. */
+            printf("option transport :%s\n", "on");
+            transport = 1;
+            break;
+        case '1': /* Force 1RTT. */
+            printf("option 1RTT :%s\n", "on");
+            use_1rtt = 1;
+            break;
+        case 's': /* Body size to send. */
+            printf("option send_body_size :%s\n", optarg);
+            g_send_body_size = atoi(optarg);
+            g_send_body_size_defined = 1;
+            if (g_send_body_size > MAX_BUF_SIZE) {
+                printf("max send_body_size :%d\n", MAX_BUF_SIZE);
                 exit(0);
+            }
+            break;
+        case 'w': /* Write received body to file. */
+            printf("option save body :%s\n", optarg);
+            snprintf(g_write_file, sizeof(g_write_file), optarg);
+            g_save_body = 1;
+            break;
+        case 'r': /* Read sending body from file. priority s > r */
+            printf("option read body :%s\n", optarg);
+            snprintf(g_read_file, sizeof(g_read_file), optarg);
+            g_read_body = 1;
+            break;
+        case 'l': /* Log level. e:error d:debug. */
+            printf("option log level :%s\n", optarg);
+            c_log_level = optarg[0];
+            break;
+        case 'E': /* Echo check on. Compare sent data with received data. */
+            printf("option echo check :%s\n", "on");
+            g_echo_check = 1;
+            break;
+        case 'd': /* Drop rate ‰. */
+            printf("option drop rate :%s\n", optarg);
+            g_drop_rate = atoi(optarg);
+            srand((unsigned)time(NULL));
+            break;
+        case 'u': /* Url. default https://test.xquic.com/path/resource */
+            printf("option url :%s\n", optarg);
+            snprintf(g_url, sizeof(g_url), optarg);
+            g_spec_url = 1;
+            sscanf(g_url,"%[^://]://%[^/]%s", g_scheme, g_host, g_url_path);
+            break;
+        case 'H': /* Header. eg. key:value */
+            printf("option header :%s\n", optarg);
+            snprintf(g_headers[g_header_cnt], sizeof(g_headers[g_header_cnt]), "%s", optarg);
+            g_header_cnt++;
+            break;
+        case 'h': /* Host & sni. eg. test.xquic.com */
+            printf("option host & sni :%s\n", optarg);
+            snprintf(g_host, sizeof(g_host), optarg);
+            break;
+        case 'G': /* GET on. Default is POST */
+            printf("option get :%s\n", "on");
+            g_is_get = 1;
+            break;
+        case 'x': /* Test case ID */
+            printf("option test case id: %s\n", optarg);
+            g_test_case = atoi(optarg);
+            break;
+        case '6': /* IPv6 */
+            printf("option IPv6 :%s\n", "on");
+            g_ipv6 = 1;
+            break;
+        case 'N': /* No encryption */
+            printf("option No crypt: %s\n", "yes");
+            g_no_crypt = 1;
+            break;
+        case 'M':
+            printf("option enable multi-path: %s\n", "yes");
+            g_enable_multipath = 1;
+            break;
+        case 'i':
+            printf("option multi-path interface: %s\n", optarg);
+            ++g_multi_interface_cnt;
+            memset(g_multi_interface[g_multi_interface_cnt], 0, XQC_DEMO_INTERFACE_MAX_LEN);
+            snprintf(g_multi_interface[g_multi_interface_cnt], 
+                        XQC_DEMO_INTERFACE_MAX_LEN, optarg);
+            break;
+        case 'V': /* Force cert verification. 0: don't allow self-signed cert. 1: allow self-signed cert. */
+            printf("option enable cert verify: %s\n", "yes");
+            g_verify_cert = 1;
+            g_verify_cert_allow_self_sign = atoi(optarg);
+            break;
+        case 'q': /* name-value pair num of request header, default and larger than 6. */
+            printf("option name-value pair num: %s\n", optarg);
+            g_header_num = atoi(optarg);
+            break;
+        case 'o':
+            printf("option log path :%s\n", optarg);
+            snprintf(g_log_path, sizeof(g_log_path), optarg);
+            break;
+        default:
+            printf("other option :%c\n", ch);
+            usage(argc, argv);
+            exit(0);
         }
 
     }
@@ -2025,8 +2079,8 @@ int main(int argc, char *argv[]) {
     xqc_engine_callback_t callback = {
         .set_event_timer = xqc_client_set_event_timer, /* call xqc_engine_main_logic when the timer expires */
         .log_callbacks = {
-                .xqc_log_write_err = xqc_client_write_log,
-                .xqc_log_write_stat = xqc_client_write_log,
+            .xqc_log_write_err = xqc_client_write_log,
+            .xqc_log_write_stat = xqc_client_write_log,
         },
         .keylog_cb = xqc_keylog_cb,
     };
@@ -2071,6 +2125,7 @@ int main(int argc, char *argv[]) {
 #endif
     else if (c_cong_ctl == 'C') {
         cong_ctrl = xqc_cubic_kernel_cb;
+
     } else {
         printf("unknown cong_ctrl, option is b, r, c, B, bbr+, bbr2+\n");
         return -1;
@@ -2078,13 +2133,13 @@ int main(int argc, char *argv[]) {
     printf("congestion control flags: %x\n", cong_flags);
 
     xqc_conn_settings_t conn_settings = {
-            .pacing_on  =   pacing_on,
-            .ping_on    =   0,
-            .cong_ctrl_callback = cong_ctrl,
-            .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
-            //.so_sndbuf  =   1024*1024,
-            .proto_version = XQC_VERSION_V1,
-            .spurious_loss_detect_on = 0,
+        .pacing_on  =   pacing_on,
+        .ping_on    =   0,
+        .cong_ctrl_callback = cong_ctrl,
+        .cc_params  =   {.customize_on = 1, .init_cwnd = 32, .cc_optimization_flags = cong_flags},
+        //.so_sndbuf  =   1024*1024,
+        .proto_version = XQC_VERSION_V1,
+        .spurious_loss_detect_on = 0,
     };
 
     xqc_config_t config;
@@ -2193,7 +2248,6 @@ int main(int argc, char *argv[]) {
         user_conn->token_len = token_len;
     }
 
-
     xqc_conn_ssl_config_t conn_ssl_config;
     memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
 
@@ -2234,6 +2288,7 @@ int main(int argc, char *argv[]) {
                           "127.0.0.1", g_no_crypt, &conn_ssl_config, user_conn->peer_addr, 
                           user_conn->peer_addrlen, XQC_ALPN_TRANSPORT, user_conn);
     }
+
     if (cid == NULL) {
         printf("xqc_connect error\n");
         xqc_engine_destroy(ctx.engine);
@@ -2242,7 +2297,6 @@ int main(int argc, char *argv[]) {
 
     /* copy cid to its own memory space to prevent crashes caused by internal cid being freed */
     memcpy(&user_conn->cid, cid, sizeof(*cid));
-
 
     for (int i = 0; i < req_paral; i++) {
         g_req_cnt++;
@@ -2254,11 +2308,13 @@ int main(int argc, char *argv[]) {
                 xqc_h3_request_create(ctx.engine, &tmp, user_stream);
                 continue;
             }
+
             user_stream->h3_request = xqc_h3_request_create(ctx.engine, cid, user_stream);
             if (user_stream->h3_request == NULL) {
                 printf("xqc_h3_request_create error\n");
                 continue;
             }
+
             xqc_client_request_send(user_stream->h3_request, user_stream);
 
         } else {
@@ -2267,6 +2323,7 @@ int main(int argc, char *argv[]) {
                 printf("xqc_stream_create error\n");
                 continue;
             }
+
             xqc_client_stream_send(user_stream->stream, user_stream);
         }
     }
@@ -2284,7 +2341,6 @@ int main(int argc, char *argv[]) {
     if (ctx.ev_delay) {
         event_free(ctx.ev_delay);
     }
-    
 
     xqc_engine_destroy(ctx.engine);
     xqc_client_close_keylog_file(&ctx);

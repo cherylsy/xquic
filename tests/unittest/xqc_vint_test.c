@@ -5,7 +5,8 @@
 #include <CUnit/CUnit.h>
 #include <stdio.h>
 
-void xqc_test_vint ()
+void
+xqc_test_vint()
 {
 
     uint64_t test[] = {63,16383,1073741823,4611686018427387903};

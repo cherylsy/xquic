@@ -17,7 +17,8 @@
 
 char test_encode_tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN];
 
-void xqc_test_encode_transport_params()
+void
+xqc_test_encode_transport_params()
 {
     xqc_int_t ret = XQC_OK;
     size_t nwrite = 0;
@@ -38,7 +39,8 @@ void xqc_test_encode_transport_params()
     xqc_engine_destroy(conn->engine);
 }
 
-void xqc_test_decode_transport_params()
+void
+xqc_test_decode_transport_params()
 {
     xqc_connection_t *conn = test_engine_connect();
     CU_ASSERT(conn != NULL);
@@ -55,7 +57,8 @@ void xqc_test_decode_transport_params()
     xqc_engine_destroy(conn->engine);
 }
 
-void xqc_test_encrypted_extensions()
+void
+xqc_test_encrypted_extensions()
 {
     xqc_engine_t *engine = test_create_engine_server();
     CU_ASSERT(engine != NULL);
@@ -119,7 +122,8 @@ void xqc_test_encrypted_extensions()
     xqc_engine_destroy(engine);
 }
 
-void xqc_test_transport_params()
+void
+xqc_test_transport_params()
 {
     xqc_test_encode_transport_params();
     xqc_test_decode_transport_params();

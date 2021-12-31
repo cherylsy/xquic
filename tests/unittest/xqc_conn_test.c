@@ -9,7 +9,8 @@
 #include "xqc_common_test.h"
 #include "src/transport/xqc_engine.h"
 
-void xqc_test_conn_create()
+void
+xqc_test_conn_create()
 {
     xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);

@@ -12,7 +12,8 @@
 #include <xquic/xquic.h>
 #include <xquic/xqc_http3.h>
 
-int printf_null(const char *format, ...)
+int
+printf_null(const char *format, ...)
 {
     return 0;
 }
@@ -108,7 +109,8 @@ static inline uint64_t now()
     return  ul;
 }
 
-void xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
+void
+xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
 {
     xqc_server_ctx_t *ctx = (xqc_server_ctx_t *) user_data;
 
@@ -119,38 +121,40 @@ void xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
 
 }
 
-int read_file_data( char * data, size_t data_len, char *filename){
+int
+read_file_data( char * data, size_t data_len, char *filename)
+{
     FILE * fp = fopen( filename, "rb");
 
-    if(fp == NULL){
+    if (fp == NULL) {
         return -1;
     }
-    fseek(fp, 0 , SEEK_END);
-    size_t total_len  = ftell(fp);
+    fseek(fp, 0, SEEK_END);
+    size_t total_len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    if(total_len > data_len){
+    if (total_len > data_len) {
         return -1;
     }
 
     size_t read_len = fread(data, 1, total_len, fp);
-    if (read_len != total_len){
-
+    if (read_len != total_len)
+    {
         return -1;
     }
 
     return read_len;
-
 }
 
-int xqc_server_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data) {
-
+int
+xqc_server_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
+{
     DEBUG;
-
     return 0;
 }
 
-int xqc_server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data) {
-
+int
+xqc_server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
+{
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
@@ -161,18 +165,17 @@ int xqc_server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, v
     return 0;
 }
 
-void xqc_server_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
+void
+xqc_server_conn_handshake_finished(xqc_connection_t *conn, void *user_data)
 {
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *) user_data;
-
 }
 
 void
 xqc_server_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *user_data)
 {
     DEBUG;
-
     user_conn_t *user_conn = (user_conn_t *) user_data;
 
     memcpy(&user_conn->cid, new_cid, sizeof(*new_cid));
@@ -183,7 +186,8 @@ xqc_server_conn_update_cid_notify(xqc_connection_t *conn, const xqc_cid_t *retir
 
 }
 
-int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
+int
+xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
 {
     ssize_t ret;
     user_stream_t *user_stream = (user_stream_t *) user_data;
@@ -196,19 +200,23 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
             user_stream->send_body = malloc(user_stream->recv_body_len);
             memcpy(user_stream->send_body, user_stream->recv_body, user_stream->recv_body_len);
             user_stream->send_body_len = user_stream->recv_body_len;
+
         } else {
             if (g_send_body_size_defined) {
                 user_stream->send_body = malloc(g_send_body_size);
                 user_stream->send_body_len = g_send_body_size;
+
             } else if (g_read_body) {
                 user_stream->send_body = malloc(user_stream->send_body_max);
                 ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
                 if (ret < 0) {
                     printf("read body error\n");
                     return -1;
+
                 } else {
                     user_stream->send_body_len = ret;
                 }
+
             } else {
                 user_stream->send_body = malloc(g_send_body_size);
                 user_stream->send_body_len = g_send_body_size;
@@ -221,11 +229,13 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
         if (ret < 0) {
             printf("xqc_stream_send error %zd\n", ret);
             return 0;
+
         } else {
             user_stream->send_offset += ret;
             printf("xqc_stream_send offset=%"PRIu64"\n", user_stream->send_offset);
         }
     }
+
     if (g_test_case == 12 /* test linger close */
         && user_stream->send_offset == user_stream->send_body_len)
     {
@@ -233,10 +243,12 @@ int xqc_server_stream_send(xqc_stream_t *stream, void *user_data)
         xqc_conn_close(ctx.engine, &user_conn->cid);
         printf("xqc_conn_close\n");
     }
+
     return 0;
 }
 
-int xqc_server_stream_create_notify(xqc_stream_t *stream, void *user_data)
+int
+xqc_server_stream_create_notify(xqc_stream_t *stream, void *user_data)
 {
     DEBUG;
     int ret = 0;
@@ -248,7 +260,8 @@ int xqc_server_stream_create_notify(xqc_stream_t *stream, void *user_data)
     return 0;
 }
 
-int xqc_server_stream_close_notify(xqc_stream_t *stream, void *user_data)
+int
+xqc_server_stream_close_notify(xqc_stream_t *stream, void *user_data)
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
@@ -259,15 +272,17 @@ int xqc_server_stream_close_notify(xqc_stream_t *stream, void *user_data)
     return 0;
 }
 
-int xqc_server_stream_write_notify(xqc_stream_t *stream, void *user_data) {
+int
+xqc_server_stream_write_notify(xqc_stream_t *stream, void *user_data)
+{
     //DEBUG;
-
     int ret = xqc_server_stream_send(stream, user_data);
-
     return ret;
 }
 
-int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
+int
+xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data)
+{
     //DEBUG;
     unsigned char fin = 0;
     user_stream_t *user_stream = (user_stream_t *) user_data;
@@ -298,6 +313,7 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
         read = xqc_stream_recv(stream, buff, buff_size, &fin);
         if (read == -XQC_EAGAIN) {
             break;
+
         } else if (read < 0) {
             printf("xqc_stream_recv error %zd\n", read);
             return 0;
@@ -305,11 +321,14 @@ int xqc_server_stream_read_notify(xqc_stream_t *stream, void *user_data) {
         read_sum += read;
 
         /* write received body to file */
-        if(save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
+        if (save && fwrite(buff, 1, read, user_stream->recv_body_fp) != read) {
             printf("fwrite error\n");
             return -1;
         }
-        if (save) fflush(user_stream->recv_body_fp);
+
+        if (save) {
+            fflush(user_stream->recv_body_fp);
+        }
 
         /* write received body to memory */
         if (g_echo) {
@@ -332,7 +351,6 @@ xqc_server_h3_conn_create_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, v
 
     DEBUG;
     /* user_conn_t *user_conn = (xqc_server_ctx_t*)conn_user_data; */
-
 
     user_conn_t *user_conn = calloc(1, sizeof(user_conn_t));
     xqc_h3_conn_set_user_data(h3_conn, user_conn);
@@ -393,45 +411,35 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
     int header_cnt = 6;
     xqc_http_header_t header[MAX_HEADER] = {
         {
-                .name   = {.iov_base = ":method", .iov_len = 7},
-                .value  = {.iov_base = "POST", .iov_len = 4},
-                .flags  = 0,
+            .name   = {.iov_base = ":method", .iov_len = 7},
+            .value  = {.iov_base = "POST", .iov_len = 4},
+            .flags  = 0,
         },
         {
-                .name   = {.iov_base = ":scheme", .iov_len = 7},
-                .value  = {.iov_base = g_scheme, .iov_len = strlen(g_scheme)},
-                .flags  = 0,
+            .name   = {.iov_base = ":scheme", .iov_len = 7},
+            .value  = {.iov_base = g_scheme, .iov_len = strlen(g_scheme)},
+            .flags  = 0,
         },
         {
-                .name   = {.iov_base = "host", .iov_len = 4},
-                .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
-                .flags  = 0,
+            .name   = {.iov_base = "host", .iov_len = 4},
+            .value  = {.iov_base = g_host, .iov_len = strlen(g_host)},
+            .flags  = 0,
         },
         {
-                .name   = {.iov_base = ":path", .iov_len = 5},
-                .value  = {.iov_base = g_path, .iov_len = strlen(g_path)},
-                .flags  = 0,
+            .name   = {.iov_base = ":path", .iov_len = 5},
+            .value  = {.iov_base = g_path, .iov_len = strlen(g_path)},
+            .flags  = 0,
         },
         {
-                .name   = {.iov_base = "content-type", .iov_len = 12},
-                .value  = {.iov_base = "text/plain", .iov_len = 10},
-                .flags  = 0,
+            .name   = {.iov_base = "content-type", .iov_len = 12},
+            .value  = {.iov_base = "text/plain", .iov_len = 10},
+            .flags  = 0,
         },
-        /*{
-                .name   = {.iov_base = "content-length", .iov_len = 14},
-                .value  = {.iov_base = "512", .iov_len = 3},
-                .flags  = 0,
-        },*/
         {
-                .name   = {.iov_base = ":status", .iov_len = 7},
-                .value  = {.iov_base = "200", .iov_len = 3},
-                .flags  = 0,
+            .name   = {.iov_base = ":status", .iov_len = 7},
+            .value  = {.iov_base = "200", .iov_len = 3},
+            .flags  = 0,
         },
-        /*{
-                .name   = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
-                .value  = {.iov_base = "1234567890123456789012345678901234567890", .iov_len = 40},
-                .flags  = 0,
-        },*/
     };
 
     if (g_test_case == 9) {
@@ -448,19 +456,21 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
     }
 
     xqc_http_headers_t headers = {
-            .headers = header,
-            .count  = header_cnt,
+        .headers = header,
+        .count  = header_cnt,
     };
 
     int header_only = 0;
     if (g_echo && user_stream->recv_body_len == 0) {
         header_only = 1;
     }
+
     if (user_stream->header_sent == 0) {
         ret = xqc_h3_request_send_headers(h3_request, &headers, header_only);
         if (ret < 0) {
             printf("xqc_h3_request_send_headers error %zd\n", ret);
             return ret;
+
         } else {
             printf("xqc_h3_request_send_headers success size=%zd\n", ret);
             user_stream->header_sent = 1;
@@ -479,19 +489,23 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
             user_stream->send_body = malloc(user_stream->recv_body_len);
             memcpy(user_stream->send_body, user_stream->recv_body, user_stream->recv_body_len);
             user_stream->send_body_len = user_stream->recv_body_len;
+
         } else {
             if (g_send_body_size_defined) {
                 user_stream->send_body = malloc(g_send_body_size);
                 user_stream->send_body_len = g_send_body_size;
+
             } else if (g_read_body) {
                 user_stream->send_body = malloc(user_stream->send_body_max);
                 ret = read_file_data(user_stream->send_body, user_stream->send_body_max, g_read_file);
                 if (ret < 0) {
                     printf("read body error\n");
                     return -1;
+
                 } else {
                     user_stream->send_body_len = ret;
                 }
+
             } else {
                 user_stream->send_body = malloc(g_send_body_size);
                 user_stream->send_body_len = g_send_body_size;
@@ -505,11 +519,13 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
         if (ret < 0) {
             printf("xqc_h3_request_send_body error %zd\n", ret);
             return 0;
+
         } else {
             user_stream->send_offset += ret;
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64"\n", ret, user_stream->send_offset);
         }
     }
+
     if (g_test_case == 12 /* test linger close */
         && user_stream->send_offset == user_stream->send_body_len)
     {
@@ -517,6 +533,7 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
         xqc_h3_conn_close(ctx.engine, &user_conn->cid);
         printf("xqc_h3_conn_close\n");
     }
+
     return 0;
 }
 
@@ -533,7 +550,8 @@ xqc_server_request_create_notify(xqc_h3_request_t *h3_request, void *strm_user_d
     return 0;
 }
 
-int xqc_server_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
+int
+xqc_server_request_close_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     DEBUG;
     user_stream_t *user_stream = (user_stream_t*)user_data;
@@ -544,7 +562,8 @@ int xqc_server_request_close_notify(xqc_h3_request_t *h3_request, void *user_dat
     return 0;
 }
 
-int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
+int
+xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_data)
 {
     //DEBUG;
     int ret = 0;
@@ -553,7 +572,8 @@ int xqc_server_request_write_notify(xqc_h3_request_t *h3_request, void *user_dat
     return ret;
 }
 
-int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *user_data)
+int
+xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_notify_flag_t flag, void *user_data)
 {
     //DEBUG;
     int ret;
@@ -567,6 +587,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             printf("xqc_h3_request_recv_headers error\n");
             return -1;
         }
+
         for (int i = 0; i < headers->count; i++) {
             printf("%s = %s\n",(char*)headers->headers[i].name.iov_base, (char*)headers->headers[i].value.iov_base);
         }
@@ -610,6 +631,7 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             read = xqc_h3_request_recv_body(h3_request, buff, buff_size, &fin);
             if (read == -XQC_EAGAIN) {
                 break;
+
             } else if (read < 0) {
                 printf("xqc_h3_request_recv_body error %zd\n", read);
                 return 0;
@@ -622,7 +644,10 @@ int xqc_server_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
                 printf("fwrite error\n");
                 return -1;
             }
-            if (save) fflush(user_stream->recv_body_fp);
+
+            if (save) {
+                fflush(user_stream->recv_body_fp);
+            }
 
             /* write received body to memory */
             if (g_echo) {
@@ -701,6 +726,7 @@ xqc_server_write_socket(const unsigned char *buf, size_t size,
             if (errno == EAGAIN) {
                 res = XQC_SOCKET_EAGAIN;
             }
+
         } else {
             snd_sum += res;
         }
@@ -797,6 +823,7 @@ xqc_server_socket_read_handler(xqc_server_ctx_t *ctx)
         if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
+
         if (recv_size < 0) {
             printf("!!!!!!!!!recvfrom: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
             break;
@@ -842,8 +869,10 @@ xqc_server_socket_event_callback(int fd, short what, void *arg)
 
     if (what & EV_WRITE) {
         xqc_server_socket_write_handler(ctx);
+
     } else if (what & EV_READ) {
         xqc_server_socket_read_handler(ctx);
+
     } else {
         printf("event callback: what=%d\n", what);
         exit(1);
@@ -904,6 +933,7 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
     }
+
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(int)) < 0) {
         printf("setsockopt failed, errno: %d\n", errno);
         goto err;
@@ -915,6 +945,7 @@ static int xqc_server_create_socket(const char *addr, unsigned int port)
         addr_v6->sin6_family = type;
         addr_v6->sin6_port = htons(port);
         addr_v6->sin6_addr = in6addr_any;
+
     } else {
         memset(saddr, 0, sizeof(struct sockaddr_in));
         struct sockaddr_in *addr_v4 = (struct sockaddr_in *)saddr;
@@ -1011,6 +1042,7 @@ xqc_server_write_log(xqc_log_level_t lvl, const void *buf, size_t count, void *e
         printf("xqc_server_write_log fd err\n");
         return;
     }
+
     int log_len = snprintf(log_buf, XQC_MAX_LOG_LEN + 1, "%s\n", (char*)buf);
     if (log_len < 0) {
         printf("xqc_server_write_log err\n");
@@ -1142,86 +1174,84 @@ int main(int argc, char *argv[]) {
     strcpy(g_log_path, "./slog");
 
     int ch = 0;
-    while((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6bS:o:")) != -1){
-        switch(ch)
-        {
-            case 'p': /* Server port. */
-                printf("option port :%s\n", optarg);
-                server_port = atoi(optarg);
-                break;
-            case 'e': /* Echo. Send received body. */
-                printf("option echo :%s\n", "on");
-                g_echo = 1;
-                break;
-            case 'c': /* Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2 bbr+ bbr2+ */
-                c_cong_ctl = optarg[0];
-                if (strncmp("bbr2", optarg, 4) == 0)
-                    c_cong_ctl = 'B';
-                if (strncmp("bbr2+", optarg, 5) == 0
-                    || strncmp("bbr+", optarg, 4) == 0)
-                    c_cong_plus = 1;
-                printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
-                break;
-            case 'C': /* Pacing on. */
-                printf("option pacing :%s\n", "on");
-                pacing_on = 1;
-                break;
-            case 's': /* Body size to send. */
-                printf("option send_body_size :%s\n", optarg);
-                g_send_body_size = atoi(optarg);
-                g_send_body_size_defined = 1;
-                if (g_send_body_size > MAX_BUF_SIZE) {
-                    printf("max send_body_size :%d\n", MAX_BUF_SIZE);
-                    exit(0);
-                }
-                break;
-            case 'w': /* Write received body to file. */
-                printf("option save body :%s\n", optarg);
-                snprintf(g_write_file, sizeof(g_write_file), optarg);
-                g_save_body = 1;
-                break;
-            case 'r': /* Read sending body from file. priority e > s > r */
-                printf("option read body :%s\n", optarg);
-                snprintf(g_read_file, sizeof(g_read_file), optarg);
-                g_read_body = 1;
-                break;
-            case 'l': /* Log level. e:error d:debug. */
-                printf("option log level :%s\n", optarg);
-                c_log_level = optarg[0];
-                break;
-            case 'u': /* Url. default https://test.xquic.com/path/resource */
-                printf("option url :%s\n", optarg);
-                snprintf(g_url, sizeof(g_url), optarg);
-                g_spec_url = 1;
-                sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
-                break;
-            case 'x': /* Test case ID */
-                printf("option test case id: %s\n", optarg);
-                g_test_case = atoi(optarg);
-                break;
-            case '6': /* IPv6 */
-                printf("option IPv6 :%s\n", "on");
-                g_ipv6 = 1;
-                break;
-            case 'b': /* batch */
-                printf("option send batch: on\n");
-                g_batch = 1;
-                break;
-            case 'S': /* set server sid */
-                printf("set server sid \n");
-                snprintf(g_sid, sizeof(g_sid), optarg);
-                g_sid_len = strlen(g_sid);
-                break;
-            case 'o':
-                printf("option log path :%s\n", optarg);
-                snprintf(g_log_path, sizeof(g_log_path), optarg);
-                break;
-            default:
-                printf("other option :%c\n", ch);
-                usage(argc, argv);
+    while ((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6bS:o:")) != -1) {
+        switch(ch) {
+        case 'p': /* Server port. */
+            printf("option port :%s\n", optarg);
+            server_port = atoi(optarg);
+            break;
+        case 'e': /* Echo. Send received body. */
+            printf("option echo :%s\n", "on");
+            g_echo = 1;
+            break;
+        case 'c': /* Congestion Control Algorithm. r:reno b:bbr c:cubic B:bbr2 bbr+ bbr2+ */
+            c_cong_ctl = optarg[0];
+            if (strncmp("bbr2", optarg, 4) == 0)
+                c_cong_ctl = 'B';
+            if (strncmp("bbr2+", optarg, 5) == 0
+                || strncmp("bbr+", optarg, 4) == 0)
+                c_cong_plus = 1;
+            printf("option cong_ctl : %c: %s: plus? %d\n", c_cong_ctl, optarg, c_cong_plus);
+            break;
+        case 'C': /* Pacing on. */
+            printf("option pacing :%s\n", "on");
+            pacing_on = 1;
+            break;
+        case 's': /* Body size to send. */
+            printf("option send_body_size :%s\n", optarg);
+            g_send_body_size = atoi(optarg);
+            g_send_body_size_defined = 1;
+            if (g_send_body_size > MAX_BUF_SIZE) {
+                printf("max send_body_size :%d\n", MAX_BUF_SIZE);
                 exit(0);
+            }
+            break;
+        case 'w': /* Write received body to file. */
+            printf("option save body :%s\n", optarg);
+            snprintf(g_write_file, sizeof(g_write_file), optarg);
+            g_save_body = 1;
+            break;
+        case 'r': /* Read sending body from file. priority e > s > r */
+            printf("option read body :%s\n", optarg);
+            snprintf(g_read_file, sizeof(g_read_file), optarg);
+            g_read_body = 1;
+            break;
+        case 'l': /* Log level. e:error d:debug. */
+            printf("option log level :%s\n", optarg);
+            c_log_level = optarg[0];
+            break;
+        case 'u': /* Url. default https://test.xquic.com/path/resource */
+            printf("option url :%s\n", optarg);
+            snprintf(g_url, sizeof(g_url), optarg);
+            g_spec_url = 1;
+            sscanf(g_url,"%[^://]://%[^/]%[^?]", g_scheme, g_host, g_path);
+            break;
+        case 'x': /* Test case ID */
+            printf("option test case id: %s\n", optarg);
+            g_test_case = atoi(optarg);
+            break;
+        case '6': /* IPv6 */
+            printf("option IPv6 :%s\n", "on");
+            g_ipv6 = 1;
+            break;
+        case 'b': /* batch */
+            printf("option send batch: on\n");
+            g_batch = 1;
+            break;
+        case 'S': /* set server sid */
+            printf("set server sid \n");
+            snprintf(g_sid, sizeof(g_sid), optarg);
+            g_sid_len = strlen(g_sid);
+            break;
+        case 'o':
+            printf("option log path :%s\n", optarg);
+            snprintf(g_log_path, sizeof(g_log_path), optarg);
+            break;
+        default:
+            printf("other option :%c\n", ch);
+            usage(argc, argv);
+            exit(0);
         }
-
     }
 
     memset(&ctx, 0, sizeof(ctx));
@@ -1241,10 +1271,11 @@ int main(int argc, char *argv[]) {
     char g_session_ticket_key[2048];
     int ticket_key_len  = read_file_data(g_session_ticket_key, sizeof(g_session_ticket_key), g_session_ticket_file);
 
-    if(ticket_key_len < 0){
+    if (ticket_key_len < 0) {
         engine_ssl_config.session_ticket_key_data = NULL;
         engine_ssl_config.session_ticket_key_len = 0;
-    }else{
+
+    } else {
         engine_ssl_config.session_ticket_key_data = g_session_ticket_key;
         engine_ssl_config.session_ticket_key_len = ticket_key_len;
     }
@@ -1296,6 +1327,7 @@ int main(int argc, char *argv[]) {
 #endif
     else if (c_cong_ctl == 'C') {
         cong_ctrl = xqc_cubic_kernel_cb;
+
     } else {
         printf("unknown cong_ctrl, option is b, r, c\n");
         return -1;
@@ -1351,7 +1383,7 @@ int main(int argc, char *argv[]) {
 
     ctx.engine = xqc_engine_create(XQC_ENGINE_SERVER, &config, &engine_ssl_config,
                                    &callback, &tcbs, &ctx);
-    if(ctx.engine == NULL){
+    if (ctx.engine == NULL) {
         printf("error create engine\n");
         return -1;
     }

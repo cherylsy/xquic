@@ -8,27 +8,27 @@
 #include "src/common/xqc_fifo.h"
 
 
-typedef struct person_s
-{
+typedef struct person_s {
     int age;
     char name[20];
     xqc_queue_t queue;
 } person_t;
 
-typedef struct xqc_item_s
-{
+typedef struct xqc_item_s {
     xqc_object_id_t object_id;
     xqc_list_head_t list;
     int data;
 } xqc_item_t;
 
-static inline void test_object_manager_cb(xqc_object_t *o)
+static inline void
+test_object_manager_cb(xqc_object_t *o)
 {
     /*xqc_item_t* item = (xqc_item_t*)o;
     printf("id:%u, data:%d\n", item->object_id, item->data);*/
 }
 
-int test_object_manager()
+int
+test_object_manager()
 {
     xqc_object_manager_t *manager = xqc_object_manager_create(sizeof(xqc_item_t), 4, xqc_default_allocator);
     if (manager == NULL) {
@@ -61,18 +61,19 @@ int test_object_manager()
     return 0;
 }
 
-static inline void rbtree_cb(xqc_rbtree_node_t* node)
+static inline void
+rbtree_cb(xqc_rbtree_node_t* node)
 {
     //printf("key=%lu\n", (unsigned long)node->key);
 }
 
-int test_rbtree()
+int
+test_rbtree()
 {
     xqc_rbtree_t rbtree;
     xqc_rbtree_init(&rbtree);
 
-    xqc_rbtree_node_t list[] =
-    {
+    xqc_rbtree_node_t list[] = {
         { 0, 0, 0, 5, xqc_rbtree_black },
         { 0, 0, 0, 1, xqc_rbtree_black },
         { 0, 0, 0, 4, xqc_rbtree_black },
@@ -111,7 +112,8 @@ int test_rbtree()
     return 0;
 }
 
-void xqc_test_common()
+void
+xqc_test_common()
 {
     /*test queue*/
     xqc_queue_t q;
@@ -130,9 +132,8 @@ void xqc_test_common()
     int a[4] = {1,2,4};
     int i = 0;
 
-    xqc_queue_t* pos;
-    xqc_queue_foreach(pos, &q)
-    {
+    xqc_queue_t *pos;
+    xqc_queue_foreach(pos, &q) {
         person_t* p = xqc_queue_data(pos, person_t, queue);
         CU_ASSERT(p->age == a[i]);
         ++i;
@@ -191,7 +192,7 @@ engine_ssl_config.groups = XQC_TLS_GROUPS;              \
 engine_ssl_config.session_ticket_key_len = 0;           \
 engine_ssl_config.session_ticket_key_data = NULL;
 
-static ssize_t 
+static ssize_t
 null_socket_write(const unsigned char *buf, size_t size,
     const struct sockaddr *peer_addr,
     socklen_t peer_addrlen, void *conn_user_data)
@@ -199,13 +200,13 @@ null_socket_write(const unsigned char *buf, size_t size,
     return size;
 }
 
-static void 
+static void
 null_set_event_timer(xqc_msec_t wake_after, void *engine_user_data)
 {
     return;
 }
 
-void 
+void
 xqc_write_log_default(xqc_log_level_t lvl, const void *buf, size_t count, void *user_data)
 {
     return;
@@ -215,7 +216,7 @@ const xqc_log_callbacks_t xqc_null_log_cb = {
     .xqc_log_write_err = xqc_write_log_default,
 };
 
-xqc_engine_t* 
+xqc_engine_t *
 test_create_engine()
 {
     def_engine_ssl_config;
@@ -259,7 +260,7 @@ test_create_engine()
     return engine;
 }
 
-xqc_engine_t*
+xqc_engine_t *
 test_create_engine_server()
 {
     def_engine_ssl_config;
@@ -303,7 +304,7 @@ test_create_engine_server()
     return engine;
 }
 
-const xqc_cid_t* 
+const xqc_cid_t *
 test_cid_connect(xqc_engine_t *engine)
 {
     xqc_conn_settings_t conn_settings;
@@ -317,7 +318,7 @@ test_cid_connect(xqc_engine_t *engine)
     return cid;
 }
 
-static xqc_connection_t* 
+static xqc_connection_t *
 test_connect(xqc_engine_t *engine)
 {
     const xqc_cid_t *cid = test_cid_connect(engine);
@@ -327,7 +328,7 @@ test_connect(xqc_engine_t *engine)
     return xqc_engine_conns_hash_find(engine, cid, 's');
 }
 
-xqc_connection_t* 
+xqc_connection_t *
 test_engine_connect()
 {
     xqc_engine_t *engine = test_create_engine();

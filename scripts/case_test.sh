@@ -5,7 +5,7 @@
 
 cd ../build
 
-# 另一个终端启动server
+# start test_server
 killall test_server 2> /dev/null
 ./test_server -l d -e > /dev/null &
 sleep 1
@@ -32,12 +32,6 @@ function case_print_result() {
     fi
 }
 
-
-
-#clear_log
-#echo -e "变长cid_len ...\c"
-#./test_client -s 1024000 -l d -t 1 -E -x 13|grep ">>>>>>>> pass"
-#grep_err_log
 
 
 clear_log
