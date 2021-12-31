@@ -304,7 +304,7 @@ xqc_hq_request_recv_req(xqc_hq_request_t *hqr, char *res_buf, size_t buf_sz, uin
     }
 
     if (hqr->resource_read_offset < strlen(hqr->resource_buf)) {
-        read = (ssize_t)strcpy(res_buf, hqr->resource_buf);
+        read = (ssize_t)strncpy(res_buf, hqr->resource_buf, buf_sz);
         hqr->resource_read_offset += read;
         *fin = hqr->fin;
     }

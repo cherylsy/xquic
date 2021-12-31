@@ -1109,7 +1109,7 @@ xqc_demo_svr_init_args(xqc_demo_svr_args_t *args)
     memset(args, 0, sizeof(xqc_demo_svr_args_t));
 
     /* net cfg */
-    strcpy(args->net_cfg.ip, DEFAULT_IP);
+    strncpy(args->net_cfg.ip, DEFAULT_IP, sizeof(args->net_cfg.ip));
     args->net_cfg.port = DEFAULT_PORT;
 
     /* quic cfg */
