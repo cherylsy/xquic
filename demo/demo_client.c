@@ -927,7 +927,7 @@ xqc_demo_cli_socket_read_handler(xqc_demo_cli_user_conn_t *user_conn)
     do {
         recv_size = recvfrom(user_conn->fd, packet_buf, sizeof(packet_buf), 0,
                             (struct sockaddr *)&addr, &addr_len);
-        if (recv_size < 0 && errno == EAGAIN && recv_size > XQC_PACKET_TMP_BUF_LEN) {
+        if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
 
