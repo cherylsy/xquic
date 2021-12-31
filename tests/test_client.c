@@ -1356,9 +1356,9 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             .count = 1,
         };
 
-        ssize_t sent = xqc_h3_request_send_headers(h3_request,&headers, 1);
+        ssize_t sent = xqc_h3_request_send_headers(h3_request, &headers, 1);
         if (sent < 0) {
-            return -1;
+            printf("send headers error\n");
         }
 
         return 0;
