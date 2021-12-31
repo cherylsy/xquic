@@ -322,7 +322,6 @@ xqc_client_write_socket(const unsigned char *buf, size_t size,
     if (g_test_case == 33) {
         /* makes version 0xff000001 */
         send_buf[1] = 0xff;
-        g_test_case == -1;
     }
 
     do {
@@ -496,12 +495,12 @@ xqc_client_init_addr(user_conn_t *user_conn,
                                       &user_conn->peer_addrlen);
 
     if (ip_type == AF_INET6) {
-        user_conn->local_addr = calloc(1, sizeof(struct sockaddr_in6));
+        user_conn->local_addr = (struct sockaddr *)calloc(1, sizeof(struct sockaddr_in6));
         memset(user_conn->local_addr, 0, sizeof(struct sockaddr_in6));
         user_conn->local_addrlen = sizeof(struct sockaddr_in6);
 
     } else {
-        user_conn->local_addr = calloc(1, sizeof(struct sockaddr_in));
+        user_conn->local_addr = (struct sockaddr *)calloc(1, sizeof(struct sockaddr_in));
         memset(user_conn->local_addr, 0, sizeof(struct sockaddr_in));
         user_conn->local_addrlen = sizeof(struct sockaddr_in);
     }
