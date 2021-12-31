@@ -17,7 +17,7 @@ xqc_test_wakeup_pq()
     CU_ASSERT(ret == 0);
 
     xqc_wakeup_pq_elem_t *elem;
-    xqc_connection_t conn[10];
+    xqc_connection_t *conn = (xqc_connection_t *)malloc(5 * sizeof(xqc_connection_t));
 
     elem = xqc_wakeup_pq_push(&pq, 3, &conn[0]);
     CU_ASSERT(elem != NULL);
@@ -42,6 +42,8 @@ xqc_test_wakeup_pq()
         //printf("key:%llu\n", elem->wakeup_time);
         xqc_wakeup_pq_pop(&pq);
     }
+
+    free(conn);
 
     xqc_wakeup_pq_destroy(&pq);
 }

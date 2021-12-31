@@ -13,7 +13,7 @@
 
 #include "tests/unittest/xqc_common_test.h"
 
-#define XQC_TEST_ENCODER_MAX_HEADERS 1024
+#define XQC_TEST_ENCODER_MAX_HEADERS 128
 
 typedef struct xqc_ins_buf_s {
     xqc_var_buf_t *enc_ins;

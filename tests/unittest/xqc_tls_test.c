@@ -397,8 +397,8 @@ xqc_test_tls_generic()
     xqc_int_t ret;
     int cnt;
 
-    uint8_t data_buf[XQC_TEST_MAX_CRYPTO_DATA_BUF] = {0};
-    size_t  data_len = 0;
+    uint8_t *data_buf = malloc(XQC_TEST_MAX_CRYPTO_DATA_BUF);
+    size_t   data_len = 0;
 
     /* 1-RTT */
 
@@ -560,6 +560,8 @@ xqc_test_tls_generic()
     xqc_engine_destroy(engine_cli);
     xqc_engine_destroy(engine_svr);
     xqc_engine_destroy(test_conn->engine);
+
+    free(data_buf);
 }
 
 void
@@ -569,7 +571,7 @@ xqc_test_tls_multiple_crypto_data()
     xqc_int_t ret;
     int cnt;
 
-    uint8_t data_buf[XQC_TEST_MAX_CRYPTO_DATA_BUF] = {0};
+    uint8_t *data_buf = malloc(XQC_TEST_MAX_CRYPTO_DATA_BUF);
     size_t  data_len = 0;
 
     /* create server engine and tls_ctx */
@@ -656,6 +658,8 @@ xqc_test_tls_multiple_crypto_data()
     xqc_tls_ctx_destroy(ctx_svr);
     xqc_engine_destroy(engine_cli);
     xqc_engine_destroy(engine_svr);
+
+    free(data_buf);
 }
 
 void
@@ -665,8 +669,8 @@ xqc_test_tls_process_truncated_crypto_handshake()
     xqc_int_t ret;
     int cnt;
 
-    uint8_t data_buf[XQC_TEST_MAX_CRYPTO_DATA_BUF] = {0};
-    size_t  data_len = 0;
+    uint8_t *data_buf = malloc(XQC_TEST_MAX_CRYPTO_DATA_BUF);
+    size_t   data_len = 0;
 
     /* 1-RTT */
 
@@ -845,6 +849,8 @@ xqc_test_tls_process_truncated_crypto_handshake()
     xqc_tls_ctx_destroy(ctx_svr);
     xqc_engine_destroy(engine_cli);
     xqc_engine_destroy(engine_svr);
+
+    free(data_buf);
 }
 
 
@@ -855,8 +861,8 @@ xqc_test_tls_failure()
     xqc_int_t ret;
     int cnt;
 
-    uint8_t data_buf[XQC_TEST_MAX_CRYPTO_DATA_BUF] = {0};
-    size_t  data_len = 0;
+    uint8_t *data_buf = malloc(XQC_TEST_MAX_CRYPTO_DATA_BUF);
+    size_t   data_len = 0;
 
     /* 1-RTT */
 
@@ -958,6 +964,7 @@ xqc_test_tls_failure()
     xqc_engine_destroy(engine_cli);
     xqc_engine_destroy(engine_svr);
 
+    free(data_buf);
 }
 
 void
