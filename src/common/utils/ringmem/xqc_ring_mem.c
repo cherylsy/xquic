@@ -104,6 +104,7 @@ xqc_ring_mem_resize(xqc_ring_mem_t *rmem, size_t cap)
             ret = xqc_ring_mem_copy(rmem, rmem->sidx, rmem->used,
                                     buf + soffset_new, mcap - soffset_new);
             if (ret != XQC_OK) {
+                xqc_free(buf);
                 return ret;
             }
 
