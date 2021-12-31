@@ -725,6 +725,9 @@ xqc_test_min_ref()
     CU_ASSERT(processed == efs_buf_client2->data_len);
 
 
+    xqc_qpack_destroy_req_ctx(rep_ctx1);
+    xqc_qpack_destroy_req_ctx(rep_ctx2);
+
     xqc_var_buf_free(efs_buf_client);
     xqc_var_buf_free(enc_ins_buf_client);
     xqc_var_buf_free(dec_ins_buf_client);

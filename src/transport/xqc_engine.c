@@ -1120,10 +1120,9 @@ xqc_engine_unregister_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_l
                     xqc_free(alpn_reg->alpn);
                 }
 
+                xqc_list_del(&alpn_reg->head);
                 xqc_free(alpn_reg);
             }
-
-            xqc_list_del(&alpn_reg->head);
 
             return xqc_tls_ctx_unregister_alpn(engine->tls_ctx, alpn, alpn_len);
         }

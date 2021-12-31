@@ -64,23 +64,31 @@ typedef enum h3_hdr_type {
 int
 xqc_demo_read_file_data(char * data, size_t data_len, char *filename)
 {
-    FILE * fp = fopen(filename, "rb");
+    int ret = 0;
+    FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
-        return -1;
+        ret = -1;
+        goto end;
     }
 
     fseek(fp, 0 , SEEK_END);
-    size_t total_len  = ftell(fp);
+    size_t total_len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     if (total_len > data_len) {
-        return -1;
+        ret = -1;
+        goto end;
     }
 
     size_t read_len = fread(data, 1, total_len, fp);
     if (read_len != total_len) {
-        return -1;
+        ret = -1;
+        goto end;
     }
 
+end:
+    if (fp) {
+        fclose(fp);
+    }
     return read_len;
 }
 

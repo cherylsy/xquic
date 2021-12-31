@@ -265,27 +265,34 @@ xqc_client_read_token(unsigned char *token, unsigned token_len)
 }
 
 int
-read_file_data( char * data, size_t data_len, char *filename){
-    FILE * fp = fopen( filename, "rb");
-
-    if(fp == NULL){
-        return -1;
+read_file_data( char * data, size_t data_len, char *filename)
+{
+    int ret = 0;
+    FILE *fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        ret = -1;
+        goto end;
     }
+
     fseek(fp, 0 , SEEK_END);
-    size_t total_len  = ftell(fp);
+    size_t total_len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    if(total_len > data_len){
-        return -1;
+    if (total_len > data_len) {
+        ret = -1;
+        goto end;
     }
 
     size_t read_len = fread(data, 1, total_len, fp);
-    if (read_len != total_len){
-
-        return -1;
+    if (read_len != total_len) {
+        ret = -1;
+        goto end;
     }
 
+end:
+    if (fp) {
+        fclose(fp);
+    }
     return read_len;
-
 }
 
 int g_send_total = 0;

@@ -128,25 +128,33 @@ xqc_server_set_event_timer(xqc_msec_t wake_after, void *user_data)
 int
 read_file_data( char * data, size_t data_len, char *filename)
 {
-    FILE * fp = fopen( filename, "rb");
-
+    int ret = 0;
+    FILE *fp = fopen(filename, "rb");
     if (fp == NULL) {
-        return -1;
+        ret = -1;
+        goto end;
     }
-    fseek(fp, 0, SEEK_END);
+
+    fseek(fp, 0 , SEEK_END);
     size_t total_len = ftell(fp);
     fseek(fp, 0, SEEK_SET);
     if (total_len > data_len) {
-        return -1;
+        ret = -1;
+        goto end;
     }
 
     size_t read_len = fread(data, 1, total_len, fp);
-    if (read_len != total_len)
-    {
-        return -1;
+    if (read_len != total_len) {
+        ret = -1;
+        goto end;
     }
 
+end:
+    if (fp) {
+        fclose(fp);
+    }
     return read_len;
+
 }
 
 int
@@ -516,6 +524,8 @@ xqc_server_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
             }
         }
     }
+
+    memset(user_stream->send_body, 0, user_stream->send_body_len);
 
     if (user_stream->send_offset < user_stream->send_body_len) {
         ret = xqc_h3_request_send_body(h3_request, user_stream->send_body + user_stream->send_offset,

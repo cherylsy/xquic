@@ -3033,6 +3033,8 @@ xqc_conn_tls_crypto_data_cb(xqc_encrypt_level_t level, const uint8_t *data,
     if (conn->crypto_data_total_len > XQC_CONN_MAX_CRYPTO_DATA_TOTAL_LEN) {
         xqc_log(conn->log, XQC_LOG_ERROR,
                 "|crypto_data_total_len exceed limit|total_len:%ui|", conn->crypto_data_total_len);
+
+        xqc_free(hs_buf);
         XQC_CONN_ERR(conn, TRA_CRYPTO_BUFFER_EXCEEDED);
         return -XQC_EFATAL;
     }

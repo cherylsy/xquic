@@ -175,7 +175,7 @@ xqc_test_ring_array_robust()
 {
     xqc_rarray_t *ra = xqc_rarray_create(0, sizeof(xqc_rarray_test_node_t));
     CU_ASSERT(ra != NULL && xqc_rarray_size(ra) == 0);
-
+    xqc_rarray_destroy(ra);
 }
 
 

@@ -199,7 +199,7 @@ xqc_test_huffman_basic()
             } else {
                 fin = 0;
             }
-            consumed = xqc_huffman_dec(&ctx, dbuf + nwrite, 4096, ebuf + j, (size_t) 1, fin, &processed);
+            consumed = xqc_huffman_dec(&ctx, dbuf + nwrite, 4096 - nwrite, ebuf + j, (size_t) 1, fin, &processed);
             CU_ASSERT(processed >= 0);
             CU_ASSERT(consumed == 1);
             nwrite += processed;
@@ -241,10 +241,11 @@ xqc_test_huffman_len()
         for (j = 0; j < end - ebuf; ++j) {
             if (j == end - ebuf - 1) {
                 fin = 1;
+
             } else {
                 fin = 0;
             }
-            consumed = xqc_huffman_dec(&ctx, dbuf + nwrite, 40000, ebuf + j, (size_t) 1, fin, &processed);
+            consumed = xqc_huffman_dec(&ctx, dbuf + nwrite, 40000 - nwrite, ebuf + j, (size_t) 1, fin, &processed);
             old_processed = old_xqc_http3_qpack_huffman_decode(&old_ctx, old_dbuf + nwrite, 40000, old_ebuf + j, (size_t) 1, fin);
             CU_ASSERT(processed == old_processed);
             CU_ASSERT(processed >= 0);
