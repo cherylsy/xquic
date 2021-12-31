@@ -1,3 +1,5 @@
+# Copyright (c) 2021, Alibaba Group Holding Limited
+
 #!/bin/bash
 
 #macOS
