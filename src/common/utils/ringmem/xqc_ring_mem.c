@@ -77,6 +77,8 @@ xqc_ring_mem_free(xqc_ring_mem_t *rmem)
 xqc_int_t
 xqc_ring_mem_resize(xqc_ring_mem_t *rmem, size_t cap)
 {
+    xqc_int_t ret;
+
     /* make sure the saved data shall not be lost */
     if (cap < rmem->used) {
         return -XQC_EPARAM;
@@ -99,7 +101,11 @@ xqc_ring_mem_resize(xqc_ring_mem_t *rmem, size_t cap)
         uint64_t eoffset_new = rmem->eidx & mask_new;
         if (soffset_new < eoffset_new) {
             /* bytes are continuous in new buffer */
-            xqc_ring_mem_copy(rmem, rmem->sidx, rmem->used, buf + soffset_new, mcap - soffset_new);
+            ret = xqc_ring_mem_copy(rmem, rmem->sidx, rmem->used,
+                                    buf + soffset_new, mcap - soffset_new);
+            if (ret != XQC_OK) {
+                return ret;
+            }
 
         } else {
             /* bytes are truncated in new buffer */

@@ -1850,6 +1850,7 @@ xqc_demo_cli_create_socket(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_net
 {
     int size;
     int fd = 0;
+    int ret;
     struct sockaddr *addr = (struct sockaddr*)&cfg->addr;
     fd = socket(addr->sa_family, SOCK_DGRAM, 0);
     if (fd < 0) {
@@ -1875,7 +1876,13 @@ xqc_demo_cli_create_socket(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_net
 
     user_conn->last_sock_op_time = xqc_demo_now();
     user_conn->local_addrlen = sizeof(struct sockaddr_in6);
-    getsockname(user_conn->fd, (struct sockaddr*)&user_conn->local_addr, &user_conn->local_addrlen);
+    ret = getsockname(user_conn->fd, (struct sockaddr*)&user_conn->local_addr,
+                      &user_conn->local_addrlen);
+    if (ret != 0) {
+        printf("getsockname error, errno: %d\n", errno);
+        goto err;
+    }
+    
 
     return fd;
 

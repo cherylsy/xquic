@@ -1355,7 +1355,12 @@ int xqc_client_request_read_notify(xqc_h3_request_t *h3_request, xqc_request_not
             .headers = &header,
             .count = 1,
         };
-        xqc_h3_request_send_headers(h3_request,&headers, 1);
+
+        ssize_t sent = xqc_h3_request_send_headers(h3_request,&headers, 1);
+        if (sent < 0) {
+            return -1;
+        }
+
         return 0;
     }
 
@@ -1623,7 +1628,11 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
         if (user_conn->get_local_addr == 0) {
             user_conn->get_local_addr = 1;
             socklen_t tmp = sizeof(struct sockaddr_in6);
-            getsockname(user_conn->fd, (struct sockaddr *) user_conn->local_addr, &tmp);
+            int ret = getsockname(user_conn->fd, (struct sockaddr *) user_conn->local_addr, &tmp);
+            if (ret < 0) {
+                printf("getsockname error, errno: %d\n", errno);
+                break;
+            }
             user_conn->local_addrlen = tmp;
         }
 

@@ -919,7 +919,11 @@ int xqc_server_accept(xqc_engine_t *engine, xqc_connection_t *conn, const xqc_ci
     }
 
     if (g_batch) {
-        connect(ctx.fd, &user_conn->peer_addr, user_conn->peer_addrlen);
+        int ret = connect(ctx.fd, &user_conn->peer_addr, user_conn->peer_addrlen);
+        if (ret != 0) {
+            printf("connect error, errno: %d\n", errno);
+            return ret;
+        }
     }
 
     return 0;
