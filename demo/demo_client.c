@@ -1502,7 +1502,7 @@ xqc_demo_cli_send_requests(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_cli
 
         /* open save file */
         xqc_demo_cli_open_file(user_stream, args->env_cfg.out_file_dir, reqs[i].path);
-        strcpy(user_stream->file_name, reqs[i].path);
+        strncpy(user_stream->file_name, reqs[i].path, RESOURCE_LEN - 1);
 
         /* send request */
         if (args->quic_cfg.alpn_type == ALPN_HQ) {

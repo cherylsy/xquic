@@ -1198,7 +1198,7 @@ int main(int argc, char *argv[]) {
     char c_log_level = 'd';
     int c_cong_plus = 0;
     int pacing_on = 0;
-    strcpy(g_log_path, "./slog");
+    strncpy(g_log_path, "./slog", sizeof(g_log_path));
 
     int ch = 0;
     while ((ch = getopt(argc, argv, "p:ec:Cs:w:r:l:u:x:6bS:o:")) != -1) {
