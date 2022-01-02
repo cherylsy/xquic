@@ -13,14 +13,14 @@ artifact_dir=$3
 
 create_dir_or_exit(){
     if [ x"$2" == x ] ; then
-        echo "$1不能为空"
+        echo "$1 MUST NOT be empty"
         exit 1
     fi
     if [ -d $2 ] ; then
-        echo "目录已存在"
+        echo "directory already exists"
     else 
         mkdir $2 
-        echo "创建$1目录($2) 成功" 
+        echo "create $1 directory($2) suc" 
     fi
 }
 
@@ -28,15 +28,15 @@ platform=$(echo $platform | tr A-Z a-z )
 
 if [ x"$platform" == xios ] ; then 
     if [ x"$IOS_CMAKE_TOOLCHAIN" == x ] ; then
-        echo "必须定义一个IOS_CMAKE_TOOLCHAIN:" 
+        echo "IOS_CMAKE_TOOLCHAIN MUST be defined"
         exit 0
     fi
     archs=${ios_archs[@]} 
     configures="-DXQC_OPENSSL_IS_BORINGSSL=on -DBORINGSSL_PREFIX=bs -DBORINGSSL_PREFIX_SYMBOLS=$cur_dir/bssl_symbols.txt  -DDEPLOYMENT_TARGET=10.0  -DCMAKE_BUILD_TYPE=Minsizerel -DXQC_ENABLE_TESTING=OFF -DXQC_BUILD_SAMPLE=OFF -DGCOV=OFF -DCMAKE_TOOLCHAIN_FILE=${IOS_CMAKE_TOOLCHAIN} -DENABLE_BITCODE=0 -DXQC_NO_SHARED=1" 
-elif [ x"$platform" == xandroid ] ; then 
-    if [ x"$ANDROID_NDK" == x ] ; then 
-        echo "必须定义ANDROID_NDK" 
-        exit 0     
+elif [ x"$platform" == xandroid ] ; then
+    if [ x"$ANDROID_NDK" == x ] ; then
+        echo "ANDROID_NDK MUST be defined"
+        exit 0
     fi    
     archs=${android_archs[@]}
     configures="-DCMAKE_BUILD_TYPE=Minsizerel
@@ -131,5 +131,3 @@ if [ x"$platform" == xios ] ; then
 fi
 
 
-
-    
