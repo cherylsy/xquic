@@ -5,6 +5,7 @@
 #include <CUnit/CUnit.h>
 
 #include "xqc_timer_test.h"
+#include <stdlib.h>
 
 static void
 xqc_timer_cb(unsigned long data)
