@@ -514,7 +514,7 @@ xqc_client_bind_to_interface(int fd,
 {
     struct ifreq ifr;
     memset(&ifr, 0x00, sizeof(ifr));
-    strncpy(ifr.ifr_name, interface_name, sizeof(ifr.ifr_name));
+    strncpy(ifr.ifr_name, interface_name, sizeof(ifr.ifr_name) - 1);
 
     printf("bind to nic: %s\n", interface_name);
 
