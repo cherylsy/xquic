@@ -2156,7 +2156,7 @@ int main(int argc, char *argv[]) {
 #endif
     }
 #endif
-    } else {
+    else {
         printf("unknown cong_ctrl, option is b, r, c, B, bbr+, bbr2+\n");
         return -1;
     }
