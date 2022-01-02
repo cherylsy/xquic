@@ -2156,9 +2156,6 @@ int main(int argc, char *argv[]) {
 #endif
     }
 #endif
-    else if (c_cong_ctl == 'C') {
-        cong_ctrl = xqc_cubic_kernel_cb;
-
     } else {
         printf("unknown cong_ctrl, option is b, r, c, B, bbr+, bbr2+\n");
         return -1;

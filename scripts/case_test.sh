@@ -765,30 +765,6 @@ else
     echo "$errlog"
 fi
 
-clear_log
-echo -e "Cubic (Kernel) with pacing ...\c"
-result=`./test_client -s 10240000 -l e -t 1 -E -c C -C|grep ">>>>>>>> pass"`
-errlog=`grep_err_log`
-echo "$result"
-if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
-    case_print_result "cubic_kernel_with_pacing" "pass"
-else
-    case_print_result "cubic_kernel_with_pacing" "fail"
-    echo "$errlog"
-fi
-
-clear_log
-echo -e "Cubic (Kernel) without pacing ...\c"
-result=`./test_client -s 10240000 -l e -t 1 -E -c C|grep ">>>>>>>> pass"`
-errlog=`grep_err_log`
-echo "$result"
-if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
-    case_print_result "cubic_kernel_without_pacing" "pass"
-else
-    case_print_result "cubic_kernel_without_pacing" "fail"
-    echo "$errlog"
-fi
-
 
 clear_log
 result=`./test_client -s 10240000 -l e -t 1 -E -x 26|grep ">>>>>>>> pass"`

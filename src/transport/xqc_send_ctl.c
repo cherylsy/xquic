@@ -4,7 +4,6 @@
 
 #include "src/congestion_control/xqc_bbr.h"
 #include "src/congestion_control/xqc_bbr2.h"
-#include "src/congestion_control/xqc_cubic_kernel.h"
 #include "src/congestion_control/xqc_cubic.h"
 #include "src/congestion_control/xqc_bbr_common.h"
 #include "src/transport/xqc_engine.h"
@@ -1505,29 +1504,6 @@ xqc_send_ctl_cc_on_ack(xqc_send_ctl_t *ctl, xqc_packet_out_t *acked_packet,
     //         now, acked_packet->po_sent_time, now - acked_packet->po_sent_time,
     //         acked_packet->po_used_size,
     //         c->cwnd/1200, c->ssthresh/1200);
-    // xqc_cubic_kernel_t *c = (xqc_cubic_kernel_t*)(ctl->ctl_cong);
-    // xqc_log(ctl->ctl_conn->log, XQC_LOG_WARN, "|cubic|time: %ui, sent_time: %ui, rtt: %ui|acked: %ud|"
-    //         "cwnd: %ud, ssthresh: %ud, delay_min: %ui, "
-    //         "tcp_cwnd: %ud, cnt: %ud, last_max_cwnd: %ud,"
-    //         "last_cwnd: %ud, last_time: %ui, orig_point: %ud,"
-    //         "K: %ud, epoch_start: %ui, ack_cnt: %ud, "
-    //         "cwnd_cnt: %ud, init_cwnd: %ud, recovery: %ui|cwnd_limited: %ud|"
-    //         "hystart++|"
-    //         "prev_delivered: %ui, next_deliverd: %ui, po_delivered: %ui, "
-    //         "curr_mrtt: %ui, last_mrtt: %ui, rtt_cnt: %ud, "
-    //         "in_lss: %ud, lss_bytes: %ud, total_delivered: %ui|pktnum: %ui, PNS: %ud|",
-    //         now, acked_packet->po_sent_time, now - acked_packet->po_sent_time,
-    //         acked_packet->po_used_size,
-    //         c->cwnd, c->ssthresh, c->delay_min,
-    //         c->tcp_cwnd, c->cnt, c->last_max_cwnd,
-    //         c->last_cwnd, c->last_time, c->bic_origin_point, c->bic_K,
-    //         c->epoch_start, c->ack_cnt, c->cwnd_cnt, c->init_cwnd,
-    //         c->recovery_start_time,
-    //         !is_app_limited,
-    //         c->prev_round_delivered, c->next_round_delivered, acked_packet->po_delivered,
-    //         c->current_round_mrtt, c->last_round_mrtt, c->rtt_sample_cnt,
-    //         c->in_lss, c->lss_accumulated_bytes, c->ctl_ctx->ctl_delivered,
-    //         acked_packet->po_pkt.pkt_num, acked_packet->po_pkt.pkt_pns);
 #endif
 }
 
