@@ -936,7 +936,7 @@ xqc_demo_svr_socket_read_handler(xqc_demo_svr_ctx_t *ctx, int fd)
     do {
         recv_size = recvfrom(fd, packet_buf, sizeof(packet_buf), 0,
                              (struct sockaddr *) &peer_addr, &peer_addrlen);
-        if (recv_size < 0 && errno == EAGAIN) {
+        if (recv_size < 0 || errno == EAGAIN) {
             break;
         }
 
@@ -1109,20 +1109,20 @@ xqc_demo_svr_init_args(xqc_demo_svr_args_t *args)
     memset(args, 0, sizeof(xqc_demo_svr_args_t));
 
     /* net cfg */
-    strncpy(args->net_cfg.ip, DEFAULT_IP, sizeof(args->net_cfg.ip));
+    strncpy(args->net_cfg.ip, DEFAULT_IP, sizeof(args->net_cfg.ip) - 1);
     args->net_cfg.port = DEFAULT_PORT;
 
     /* quic cfg */
     xqc_demo_svr_init_0rtt(args);
-    strcpy(args->quic_cfg.cipher_suit, XQC_TLS_CIPHERS);
-    strcpy(args->quic_cfg.groups, XQC_TLS_GROUPS);
+    strncpy(args->quic_cfg.cipher_suit, XQC_TLS_CIPHERS, CIPHER_SUIT_LEN - 1);
+    strncpy(args->quic_cfg.groups, XQC_TLS_GROUPS, TLS_GROUPS_LEN - 1);
 
     /* env cfg */
     args->env_cfg.log_level = XQC_LOG_DEBUG;
-    strcpy(args->env_cfg.log_path, LOG_PATH);
-    strcpy(args->env_cfg.source_file_dir, SOURCE_DIR);
-    strcpy(args->env_cfg.priv_key_path, PRIV_KEY_PATH);
-    strcpy(args->env_cfg.cert_pem_path, CERT_PEM_PATH);
+    strncpy(args->env_cfg.log_path, LOG_PATH, TLS_GROUPS_LEN - 1);
+    strncpy(args->env_cfg.source_file_dir, SOURCE_DIR, RESOURCE_LEN - 1);
+    strncpy(args->env_cfg.priv_key_path, PRIV_KEY_PATH, PATH_LEN - 1);
+    strncpy(args->env_cfg.cert_pem_path, CERT_PEM_PATH, PATH_LEN - 1);
 }
 
 void
@@ -1167,7 +1167,7 @@ xqc_demo_svr_parse_args(int argc, char *argv[], xqc_demo_svr_args_t *args)
         /* server resource dir */
         case 'D':
             printf("option read dir :%s\n", optarg);
-            strncpy(args->env_cfg.source_file_dir, optarg, RESOURCE_LEN);
+            strncpy(args->env_cfg.source_file_dir, optarg, RESOURCE_LEN - 1);
             break;
 
         /* log level */
@@ -1192,7 +1192,7 @@ xqc_demo_svr_parse_args(int argc, char *argv[], xqc_demo_svr_args_t *args)
         case 'k': // key out path
             printf("option key output file: %s\n", optarg);
             args->env_cfg.key_output_flag = 1;
-            strncpy(args->env_cfg.key_out_path, optarg, sizeof(args->env_cfg.key_out_path));
+            strncpy(args->env_cfg.key_out_path, optarg, sizeof(args->env_cfg.key_out_path) - 1);
             break;
 
         /* retry */
@@ -1473,7 +1473,7 @@ main(int argc, char *argv[])
     event_base_dispatch(eb);
 
     xqc_engine_destroy(ctx->engine);
-    xqc_demo_svr_free_ctx(ctx);
+    // xqc_demo_svr_free_ctx(ctx);
 
     return 0;
 }

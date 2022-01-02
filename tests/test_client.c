@@ -1230,6 +1230,11 @@ xqc_client_request_send(xqc_h3_request_t *h3_request, user_stream_t *user_stream
         } else if (g_test_case == 38) {
             header_only = 1;
             ret = xqc_h3_request_finish(h3_request);
+            if (ret < XQC_OK) {
+                printf("xqc_h3_request_finish fail, error %zd\n", ret);
+                return ret;
+            }
+            
         }
     }
 

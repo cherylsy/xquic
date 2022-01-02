@@ -216,7 +216,11 @@ xqc_test_huffman_len()
     size_t i, j;
     size_t len;
     int fin;
-    uint8_t raw[20000], ebuf[40000], dbuf[40000], old_ebuf[40000], old_dbuf[40000];
+    uint8_t *raw = malloc(20000);
+    uint8_t *ebuf = malloc(40000);
+    uint8_t *dbuf = malloc(40000);
+    uint8_t *old_ebuf = malloc(40000);
+    uint8_t *old_dbuf = malloc(40000);
     uint8_t *end, *old_end;
     xqc_huffman_dec_ctx ctx = {0}, old_ctx = {0};
     ssize_t nwrite = 0, processed, consumed, old_processed, old_consumed;
@@ -256,8 +260,13 @@ xqc_test_huffman_len()
         CU_ASSERT((len == (size_t) nwrite));
         CU_ASSERT(memcmp(raw, dbuf, len) == 0);
         CU_ASSERT(memcmp(raw, old_dbuf, len) == 0);
-
     }
+
+    free(raw);
+    free(ebuf);
+    free(dbuf);
+    free(old_ebuf);
+    free(old_dbuf);
 }
 
 

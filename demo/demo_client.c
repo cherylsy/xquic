@@ -1129,17 +1129,17 @@ xqc_demo_cli_init_args(xqc_demo_cli_client_args_t *args)
 
     /* net cfg */
     args->net_cfg.conn_timeout = 30;
-    strcpy(args->net_cfg.server_addr, "127.0.0.1");
+    strncpy(args->net_cfg.server_addr, "127.0.0.1", sizeof(args->net_cfg.server_addr));
     args->net_cfg.server_port = 8443;
 
     /* env cfg */
     args->env_cfg.log_level = XQC_LOG_DEBUG;
-    strcpy(args->env_cfg.log_path, LOG_PATH);
-    strcpy(args->env_cfg.out_file_dir, OUT_DIR);
+    strncpy(args->env_cfg.log_path, LOG_PATH, sizeof(args->env_cfg.log_path));
+    strncpy(args->env_cfg.out_file_dir, OUT_DIR, sizeof(args->env_cfg.out_file_dir));
 
     /* quic cfg */
     args->quic_cfg.alpn_type = ALPN_HQ;
-    strcpy(args->quic_cfg.alpn, "hq-interop");
+    strncpy(args->quic_cfg.alpn, "hq-interop", sizeof(args->quic_cfg.alpn));
 }
 
 void
@@ -1194,7 +1194,7 @@ xqc_demo_cli_parse_urls(char *urls, xqc_demo_cli_client_args_t *args)
     char *token = strtok(urls, separator);
     while (token != NULL) {
         if (token) {
-            strcpy(args->req_cfg.reqs[cnt].url, token);
+            strncpy(args->req_cfg.reqs[cnt].url, token, URL_LEN - 1);
             sscanf(token,"%[^://]://%[^/]%s", args->req_cfg.reqs[cnt].scheme,
                 args->req_cfg.reqs[cnt].auth, args->req_cfg.reqs[cnt].path);
         }
@@ -1337,7 +1337,7 @@ xqc_demo_cli_parse_args(int argc, char *argv[], xqc_demo_cli_client_args_t *args
         /* out file directory */
         case 'D':
             printf("option save body dir: %s\n", optarg);
-            strncpy(args->env_cfg.out_file_dir, optarg, sizeof(args->env_cfg.out_file_dir));
+            strncpy(args->env_cfg.out_file_dir, optarg, sizeof(args->env_cfg.out_file_dir) - 1);
             break;
 
         /* log level */
@@ -1350,14 +1350,14 @@ xqc_demo_cli_parse_args(int argc, char *argv[], xqc_demo_cli_client_args_t *args
         /* log directory */
         case 'L':
             printf("option log directory :%s\n", optarg);
-            strncpy(args->env_cfg.log_path, optarg, sizeof(args->env_cfg.log_path));
+            strncpy(args->env_cfg.log_path, optarg, sizeof(args->env_cfg.log_path) - 1);
             break;
 
         /* key out path */
         case 'k':
             printf("key output file: %s\n", optarg);
             args->env_cfg.key_output_flag = 1;
-            strncpy(args->env_cfg.key_out_path, optarg, sizeof(args->env_cfg.key_out_path));
+            strncpy(args->env_cfg.key_out_path, optarg, sizeof(args->env_cfg.key_out_path) - 1);
             break;
 
         /* client life time circle */
@@ -1800,7 +1800,7 @@ xqc_demo_cli_start(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_client_args
 void
 xqc_demo_cli_init_ctx(xqc_demo_cli_ctx_t *pctx, xqc_demo_cli_client_args_t *args)
 {
-    strcpy(pctx->log_path, args->env_cfg.log_path);
+    strncpy(pctx->log_path, args->env_cfg.log_path, sizeof(pctx->log_path) - 1);
     pctx->args = args;
     xqc_demo_cli_open_log_file(pctx);
     xqc_demo_cli_open_keylog_file(pctx);
