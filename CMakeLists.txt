@@ -22,16 +22,12 @@ if(NOT SSL_PATH)
     set(SSL_PATH "/usr/local/babassl")
 endif()
 
-message(STATUS "SSL_PATH = ${SSL_PATH}")
-
 # ssl include path
 if(NOT SSL_INC_PATH)
     set(SSL_INC_PATH
         ${SSL_PATH}/include
     )
 endif()
-
-message(STATUS "SSL_INC_PATH = ${SSL_INC_PATH}")
 
 # ssl lib denpendency
 if(NOT SSL_LIB_PATH)
@@ -40,9 +36,6 @@ if(NOT SSL_LIB_PATH)
         ${SSL_PATH}/lib/libcrypto.a
     )
 endif()
-message(STATUS "SSL_LIB_PATH = ${SSL_LIB_PATH}")
-
-
 
 # print tls traffic secret in keylog
 if(XQC_PRINT_SECRET)
