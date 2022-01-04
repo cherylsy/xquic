@@ -46,9 +46,6 @@ typedef void (*xqc_h3_handshake_finished_pt)(xqc_h3_conn_t *h3_conn, void *h3c_u
 typedef void (*xqc_h3_conn_ping_ack_notify_pt)(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid,
     void *ping_user_data, void *h3c_user_data);
 
-typedef void (*xqc_h3_conn_update_cid_notify_pt)(xqc_h3_conn_t *h3_conn, const 
-    xqc_cid_t *retire_cid, const xqc_cid_t *new_cid, void *h3c_user_data);
-
 /**
  * @brief http3 request callbacks
  */
