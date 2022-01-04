@@ -191,7 +191,7 @@ xqc_tls_init_client_ssl(xqc_tls_t *tls, xqc_tls_config_t *cfg)
         hostname = cfg->hostname;
     }
 
-    SSL_set_tlsext_host_name(ssl, cfg->hostname);
+    SSL_set_tlsext_host_name(ssl, hostname);
 
     /* set alpn in ClientHello. for client, xquic set alpn for every ssl instance. while server set
        the alpn select callback function while initializing tls context. */
