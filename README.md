@@ -81,6 +81,15 @@ sh ../scripts/xquic_test.sh
 
 - For using the API, see the [API docs](./docs/API.md).
 - For platform support details, see the [Platforms docs](./docs/Platforms.md).
+- For Chinese (zh-cn) translation of the IETF QUIC Protocol, see the Translation docs.
+    - 以下文档基于 draft-34，RFC正在翻译中
+    - [draft-ietf-quic-invariants-13-zh](./docs/translation/draft-ietf-quic-invariants-13-zh.md)
+    - [draft-ietf-quic-transport-34-zh](./docs/translation/draft-ietf-quic-transport-34-zh.md)
+    - [draft-ietf-quic-recovery-34-zh](./docs/translation/draft-ietf-quic-recovery-34-zh.md)
+    - [draft-ietf-quic-tls-34-zh](./docs/translation/draft-ietf-quic-tls-34-zh.md)
+    - [draft-ietf-quic-http-34-zh](./docs/translation/draft-ietf-quic-http-34-zh.md)
+    - [draft-ietf-quic-qpack-21-zh](./docs/translation/draft-ietf-quic-qpack-21-zh.md)
+
 - For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
 
 ## Contributing
