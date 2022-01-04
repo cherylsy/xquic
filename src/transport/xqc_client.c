@@ -101,7 +101,7 @@ xqc_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
 {
     xqc_connection_t *conn;
 
-    if (NULL == alpn) {
+    if (NULL == alpn || strlen(alpn) > XQC_MAX_ALPN_LEN) {
         return NULL;
     }
 

@@ -57,7 +57,6 @@ XQUIC_VERS_1.0 {
         xqc_conn_is_ready_to_send_early_data;
         xqc_h3_conn_send_ping;
         xqc_conn_send_ping;
-        xqc_http3_qpack_hash_find;
         xqc_engine_conns_hash_find;
         xqc_conn_create_path;
         xqc_dcid_str_by_scid;

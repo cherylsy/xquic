@@ -1082,7 +1082,7 @@ xqc_engine_register_alpn(xqc_engine_t *engine, const char *alpn, size_t alpn_len
     xqc_list_head_t *pos, *next;
     xqc_alpn_registration_t *alpn_reg;
 
-    if (NULL == alpn || 0 == alpn_len) {
+    if (NULL == alpn || 0 == alpn_len || alpn_len > XQC_MAX_ALPN_LEN) {
         return -XQC_EPARAM;
     }
 

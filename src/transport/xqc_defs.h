@@ -50,4 +50,7 @@ extern const unsigned char  xqc_proto_version_field[][XQC_PROTO_VERSION_LEN];
         ((ver) > XQC_IDRAFT_INIT_VER && (ver) < XQC_IDRAFT_VER_NEGOTIATION)
 
 
+/* max alpn length */
+#define XQC_MAX_ALPN_LEN                255
+
 #endif

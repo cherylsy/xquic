@@ -265,7 +265,7 @@ xqc_client_read_token(unsigned char *token, unsigned token_len)
 }
 
 int
-read_file_data( char * data, size_t data_len, char *filename)
+read_file_data(char *data, size_t data_len, char *filename)
 {
     int ret = 0;
     size_t total_len, read_len;
