@@ -436,5 +436,7 @@ xqc_int_t xqc_conn_encode_local_tp(xqc_connection_t *conn, uint8_t *dst, size_t 
 
 xqc_int_t xqc_conn_on_recv_retry(xqc_connection_t *conn);
 
+/* get idle timeout in milliseconds */
+xqc_msec_t xqc_conn_get_idle_timeout(xqc_connection_t *conn);
 
 #endif /* _XQC_CONN_H_INCLUDED_ */

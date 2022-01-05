@@ -35,6 +35,7 @@ xqc_conn_settings_t default_conn_settings = {
     .so_sndbuf               = 0,
     .linger                  = {.linger_on = 0, .linger_timeout = 0},
     .proto_version           = XQC_VERSION_V1,
+    .init_idle_time_out      = XQC_CONN_INITIAL_IDLE_TIMEOUT,
     .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
     .enable_multipath        = 0,
     .spurious_loss_detect_on = 0,
@@ -229,6 +230,11 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     {
         xc->conn_settings.proto_version = XQC_VERSION_V1;
         xc->version = XQC_VERSION_V1;
+    }
+
+    /* make sure a 0-value config will not result in immediate timeout */
+    if (xc->conn_settings.init_idle_time_out == 0) {
+        xc->conn_settings.init_idle_time_out = XQC_CONN_INITIAL_IDLE_TIMEOUT;
     }
 
     xqc_conn_init_trans_settings(xc);
@@ -2036,6 +2042,16 @@ xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in,
         return -XQC_ELIMIT;
     }
 
+    /* limit the buffered 0-RTT packet count before a valid client Initial packet is received */
+    if (conn->conn_type == XQC_CONN_TYPE_SERVER
+        && !(conn->conn_flag & XQC_CONN_FLAG_DCID_OK)
+        && encrypt_level == XQC_ENC_LEV_0RTT
+        && conn->undecrypt_count[encrypt_level] > XQC_UNDECRYPT_0RTT_MAX_BEFORE_INIT)
+    {
+        xqc_log(conn->log, XQC_LOG_WARN, "|0RTT reach buffer limit before DCID confirmed|");
+        return -XQC_ELIMIT;
+    }
+
     xqc_packet_in_t *new_packet = xqc_calloc(1, sizeof(xqc_packet_in_t));
     if (new_packet == NULL) {
         return -XQC_EMALLOC;
@@ -3171,3 +3187,16 @@ const xqc_tls_callbacks_t xqc_conn_tls_cbs = {
     .error_cb           = xqc_conn_tls_error_cb,
     .hsk_completed_cb   = xqc_conn_tls_handshake_completed_cb,
 };
+
+xqc_msec_t
+xqc_conn_get_idle_timeout(xqc_connection_t *conn)
+{
+    if (conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED) {
+        return conn->local_settings.max_idle_timeout == 0
+            ? XQC_CONN_DEFAULT_IDLE_TIMEOUT : conn->local_settings.max_idle_timeout;
+
+    } else {
+        return conn->conn_settings.init_idle_time_out == 0
+            ? XQC_CONN_INITIAL_IDLE_TIMEOUT : conn->conn_settings.init_idle_time_out;
+    }
+}

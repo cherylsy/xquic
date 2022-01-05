@@ -538,6 +538,23 @@ else
 fi
 grep_err_log
 
+
+clear_log
+echo -e "0RTT buffer limit before Initial ...\c"
+./test_client -l d -t 1 -x 39 -E >> clog
+limit_log=`grep "0RTT reach buffer limit before DCID confirmed" slog`
+clog_res=`grep ">>>>>>>> pass:1" clog`
+errlog=`grep_err_log`
+if [ -n "$limit_log" ] && [ -n "$clog_res" ] && [ -z "$errlog" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "0RTT_buffer_limit_before_Initial" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "0RTT_buffer_limit_before_Initial" "fail"
+fi
+grep_err_log
+
+
 clear_log
 rm -f test_session
 echo -e "NULL stream callback ...\c"

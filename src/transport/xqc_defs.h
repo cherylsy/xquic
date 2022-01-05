@@ -12,6 +12,9 @@
 
 /* default connection timeout(millisecond) */
 #define XQC_CONN_DEFAULT_IDLE_TIMEOUT   120000
+/* default connection initial timeout(millisecond) */
+#define XQC_CONN_INITIAL_IDLE_TIMEOUT   10000
+
 
 #define XQC_CONN_ADDR_VALIDATION_CID_ENTROPY 8
 

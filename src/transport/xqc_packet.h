@@ -9,11 +9,15 @@
 #include "src/common/xqc_list.h"
 #include "src/tls/xqc_tls_defs.h"
 
-#define XQC_MSS                     1460
-#define XQC_QUIC_MSS                1200
+#define XQC_MSS                             1460
+#define XQC_QUIC_MSS                        1200
 
-#define XQC_PACKET_0RTT_MAX_COUNT   30
-#define XQC_UNDECRYPT_PACKET_MAX    100
+/* max 0rtt packet count sent by client */
+#define XQC_PACKET_0RTT_MAX_COUNT           30
+/* max 0rtt packet count buffered by server before Initial packet received */
+#define XQC_UNDECRYPT_0RTT_MAX_BEFORE_INIT  10
+/* max buffered pacekt count */
+#define XQC_UNDECRYPT_PACKET_MAX            100
 
 typedef enum xqc_pkt_num_space {
     XQC_PNS_INIT      = 0,

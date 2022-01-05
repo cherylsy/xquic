@@ -758,7 +758,8 @@ typedef struct xqc_conn_settings_s {
     uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
     xqc_linger_t                linger;
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
-    uint32_t                    idle_time_out;      /* idle timeout interval */
+    xqc_msec_t                  init_idle_time_out; /* initial idle timeout interval, effective before handshake completion */
+    xqc_msec_t                  idle_time_out;      /* idle timeout interval, effective after handshake completion */
     uint64_t                    enable_multipath;   /* default: 0 */
     int32_t                     spurious_loss_detect_on;
 } xqc_conn_settings_t;

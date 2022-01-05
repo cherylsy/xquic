@@ -86,7 +86,7 @@ xqc_send_ctl_create(xqc_connection_t *conn)
     xqc_send_ctl_timer_init(send_ctl);
 
     xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_IDLE,
-                           now, send_ctl->ctl_conn->local_settings.max_idle_timeout * 1000);
+                           now, xqc_conn_get_idle_timeout(conn) * 1000);
 
     if (conn->conn_settings.ping_on && conn->conn_type == XQC_CONN_TYPE_CLIENT) {
         xqc_send_ctl_timer_set(send_ctl, XQC_TIMER_PING, now, XQC_PING_TIMEOUT * 1000);

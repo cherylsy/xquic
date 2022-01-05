@@ -1002,7 +1002,7 @@ process:
     }
 
     xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_IDLE,
-                           recv_time, conn->conn_send_ctl->ctl_conn->local_settings.max_idle_timeout * 1000);
+                           recv_time, xqc_conn_get_idle_timeout(conn) * 1000);
 
 after_process:
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
