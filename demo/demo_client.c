@@ -931,8 +931,15 @@ xqc_demo_cli_socket_read_handler(xqc_demo_cli_user_conn_t *user_conn)
             break;
         }
 
-        if (recv_size < 0 || recv_size > XQC_PACKET_TMP_BUF_LEN) {
+        if (recv_size <= 0) {
             break;
+        }
+
+        user_conn->local_addrlen = sizeof(struct sockaddr_in6);
+        xqc_int_t ret = getsockname(user_conn->fd, (struct sockaddr*)&user_conn->local_addr,
+                                    &user_conn->local_addrlen);
+        if (ret != 0) {
+            printf("getsockname error, errno: %d\n", errno);
         }
 
         recv_sum += recv_size;
@@ -1875,14 +1882,6 @@ xqc_demo_cli_create_socket(xqc_demo_cli_user_conn_t *user_conn, xqc_demo_cli_net
     }
 
     user_conn->last_sock_op_time = xqc_demo_now();
-    user_conn->local_addrlen = sizeof(struct sockaddr_in6);
-    ret = getsockname(user_conn->fd, (struct sockaddr*)&user_conn->local_addr,
-                      &user_conn->local_addrlen);
-    if (ret != 0) {
-        printf("getsockname error, errno: %d\n", errno);
-        goto err;
-    }
-    
 
     return fd;
 
