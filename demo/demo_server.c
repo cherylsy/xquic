@@ -936,11 +936,11 @@ xqc_demo_svr_socket_read_handler(xqc_demo_svr_ctx_t *ctx, int fd)
     do {
         recv_size = recvfrom(fd, packet_buf, sizeof(packet_buf), 0,
                              (struct sockaddr *) &peer_addr, &peer_addrlen);
-        if (recv_size < 0 || errno == EAGAIN) {
+        if (recv_size < 0 && errno == EAGAIN) {
             break;
         }
 
-        if (recv_size < 0 || recv_size > XQC_PACKET_TMP_BUF_LEN) {
+        if (recv_size < 0) {
             printf("!!!!!!!!!recvfrom: recvmsg = %zd err=%s\n", recv_size, strerror(errno));
             break;
         }

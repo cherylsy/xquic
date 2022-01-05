@@ -1588,7 +1588,7 @@ xqc_client_socket_read_handler(user_conn_t *user_conn)
             break;
         }
 
-        if (recv_size < 0 || recv_size > XQC_PACKET_TMP_BUF_LEN) {
+        if (recv_size < 0) {
             printf("recvfrom: recvmsg = %zd(%s)\n", recv_size, strerror(errno));
             break;
         }
