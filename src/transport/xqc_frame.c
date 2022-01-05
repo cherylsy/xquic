@@ -14,7 +14,6 @@
 #include "src/transport/xqc_frame_parser.h"
 #include "src/transport/xqc_send_ctl.h"
 #include "src/transport/xqc_stream.h"
-#include "src/transport/xqc_multipath.h"
 #include "src/transport/xqc_defs.h"
 #include "src/tls/xqc_tls.h"
 
@@ -245,9 +244,6 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             break;
         case 0x1e:
             ret = xqc_process_handshake_done_frame(conn, packet_in);
-            break;
-        case 0xbaba03:
-            ret = xqc_process_path_status_frame(conn, packet_in);
             break;
         default:
             xqc_log(conn->log, XQC_LOG_ERROR, "|unknown frame type|");
@@ -1116,55 +1112,5 @@ xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
     conn->conn_flag |= XQC_CONN_FLAG_HANDSHAKE_DONE_RECVD;
 
     return ret;
-}
-
-
-xqc_int_t
-xqc_process_path_status_frame(xqc_connection_t *conn, 
-    xqc_packet_in_t *packet_in)
-{
-    uint64_t path_id = 0;
-    uint64_t path_status = 0;
-    uint64_t path_status_seq = 0;
-    uint64_t path_prio = 0;
-
-    xqc_int_t ret = xqc_parse_path_status_frame(packet_in, &path_id, 
-                                                &path_status, &path_status_seq, &path_prio, conn);
-    if (ret != XQC_OK) {
-        xqc_log(conn->log, XQC_LOG_ERROR,
-                "|xqc_parse_path_status_frame error|");
-        return ret;
-    }
-
-    xqc_path_ctx_t *path = xqc_conn_find_path_by_path_id(conn, path_id);
-
-    /* try to create new path */
-    if (path == NULL) {
-
-        xqc_cid_t *dcid = xqc_get_cid_by_seq(&conn->dcid_set.cid_set, path_id);
-        if (dcid == NULL) {
-            xqc_log(conn->log, XQC_LOG_ERROR,
-                        "|can't find dcid with seq_number|%ui|", path_id);
-            return -XQC_ECONN_CID_NOT_FOUND;
-        }
-
-        xqc_cid_t *scid = &(packet_in->pi_pkt.pkt_dcid);
-
-        path = xqc_path_create(conn, scid, dcid);
-        if (path == NULL) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_path_create err|");
-            return XQC_OK;
-        }
-
-        ret = xqc_path_init(path, conn);
-        if (ret != XQC_OK) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_path_init err=%d|", ret);
-            return ret;
-        }
-    }
-
-    xqc_path_update_status(path, path_status_seq, path_status, path_prio);
-
-    return XQC_OK;
 }
 

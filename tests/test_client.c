@@ -147,7 +147,6 @@ char g_url[2048];
 char g_headers[MAX_HEADER][256];
 int g_header_cnt = 0;
 int g_ping_id = 1;
-int g_enable_multipath = 0;
 int g_verify_cert = 0;
 int g_verify_cert_allow_self_sign = 0;
 int g_header_num = 6;
@@ -614,35 +613,6 @@ xqc_client_user_conn_create(const char *server_addr, int server_port,
 }
 
 
-void 
-xqc_client_ready_to_create_path(const xqc_cid_t *cid, 
-    void *conn_user_data)
-{
-    uint64_t path_id = 0;
-    user_conn_t *user_conn = (user_conn_t *) conn_user_data;
-
-    if (!g_enable_multipath) {
-        return;
-    }
-
-    for (int i = 1; i <= g_multi_interface_cnt; i++) {
-        if (g_client_path[i].path_id != 0) {
-            continue;
-        }
-    
-        int ret = xqc_conn_create_path(ctx.engine, &(user_conn->cid), &path_id);
-
-        if (ret < 0) {
-            printf("not support mp, xqc_conn_create_path err = %d\n", ret);
-            return;
-        }
-
-        printf("create a new path: %" PRIu64 "\n", path_id);
-        g_client_path[i].path_id = path_id;
-    }
-}
-
-
 int
 xqc_client_conn_create_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void *user_data)
 {
@@ -771,10 +741,6 @@ xqc_client_h3_conn_handshake_finished(xqc_h3_conn_t *h3_conn, void *user_data)
 
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, &user_conn->cid);
     printf("0rtt_flag:%d\n", stats.early_data_flag);
-
-    if (g_enable_multipath) {
-        printf("transport_parameter:enable_multipath=%d\n", stats.enable_multipath);
-    }
 
     printf("====>DCID:%s\n", xqc_dcid_str_by_scid(ctx.engine, &user_conn->cid));
     printf("====>SCID:%s\n", xqc_scid_str(&user_conn->cid));
@@ -2066,17 +2032,6 @@ int main(int argc, char *argv[]) {
             printf("option No crypt: %s\n", "yes");
             g_no_crypt = 1;
             break;
-        case 'M':
-            printf("option enable multi-path: %s\n", "yes");
-            g_enable_multipath = 1;
-            break;
-        case 'i':
-            printf("option multi-path interface: %s\n", optarg);
-            ++g_multi_interface_cnt;
-            memset(g_multi_interface[g_multi_interface_cnt], 0, XQC_DEMO_INTERFACE_MAX_LEN);
-            snprintf(g_multi_interface[g_multi_interface_cnt], 
-                        XQC_DEMO_INTERFACE_MAX_LEN, optarg);
-            break;
         case 'V': /* Force cert verification. 0: don't allow self-signed cert. 1: allow self-signed cert. */
             printf("option enable cert verify: %s\n", "yes");
             g_verify_cert = 1;
@@ -2264,16 +2219,6 @@ int main(int argc, char *argv[]) {
     if (user_conn == NULL) {
         printf("xqc_client_user_conn_create error\n");
         return -1;
-    }
-
-    if (g_enable_multipath) {
-        conn_settings.enable_multipath = 1;
-        for (int i = 1; i <= g_multi_interface_cnt; ++i) {
-            if (xqc_client_create_path(&g_client_path[i], g_multi_interface[i], user_conn) != XQC_OK) {
-                printf("xqc_client_create_path %d error\n", i);
-                return 0;
-            }
-        }
     }
 
     unsigned char token[XQC_MAX_TOKEN_LEN];

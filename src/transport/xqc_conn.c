@@ -25,7 +25,6 @@
 #include "src/transport/xqc_packet_parser.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_wakeup_pq.h"
-#include "src/transport/xqc_multipath.h"
 #include "src/tls/xqc_tls.h"
 
 
@@ -37,7 +36,6 @@ xqc_conn_settings_t default_conn_settings = {
     .proto_version           = XQC_VERSION_V1,
     .init_idle_time_out      = XQC_CONN_INITIAL_IDLE_TIMEOUT,
     .idle_time_out           = XQC_CONN_DEFAULT_IDLE_TIMEOUT,
-    .enable_multipath        = 0,
     .spurious_loss_detect_on = 0,
 };
 
@@ -58,8 +56,6 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     if (xqc_check_proto_version_valid(settings->proto_version)) {
         default_conn_settings.proto_version = settings->proto_version;
     }
-
-    default_conn_settings.enable_multipath = settings->enable_multipath;
 }
 
 static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
@@ -185,8 +181,6 @@ xqc_conn_init_trans_settings(xqc_connection_t *conn)
     ls->active_connection_id_limit = XQC_CONN_ACTIVE_CID_LIMIT;
 
     ls->disable_active_migration = 1;
-
-    ls->enable_multipath = conn->conn_settings.enable_multipath;
 }
 
 
@@ -1769,7 +1763,6 @@ xqc_conn_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid)
     conn_stats.srtt = ctl->ctl_srtt;
     conn_stats.conn_err = (int)conn->conn_err;
     conn_stats.early_data_flag = XQC_0RTT_NONE;
-    conn_stats.enable_multipath = (conn->local_settings.enable_multipath && conn->remote_settings.enable_multipath);
     if (conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT) {
         if (conn->conn_flag & XQC_CONN_FLAG_0RTT_OK) {
             conn_stats.early_data_flag = XQC_0RTT_ACCEPT;
@@ -1781,7 +1774,6 @@ xqc_conn_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid)
 
     xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_APP_DATA], conn_stats.ack_info, sizeof(conn_stats.ack_info));
 
-    conn_stats.enable_multipath = (conn->local_settings.enable_multipath && conn->remote_settings.enable_multipath);
     conn_stats.spurious_loss_detect_on = conn->conn_settings.spurious_loss_detect_on;
 
     xqc_recv_record_print(conn, &conn->recv_record[XQC_PNS_APP_DATA],
@@ -2851,8 +2843,6 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
     settings->preferred_address = params->preferred_address;
     settings->active_connection_id_limit = params->active_connection_id_limit;
 
-    settings->enable_multipath = params->enable_multipath;
-
     return XQC_OK;
 }
 
@@ -2886,8 +2876,6 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params
     params->preferred_address = settings->preferred_address;
     params->active_connection_id_limit = settings->active_connection_id_limit;
     params->no_crypto = settings->no_crypto;
-    params->enable_multipath = settings->enable_multipath;
-
 
     /* set other transport parameters */
     if (conn->conn_type == XQC_CONN_TYPE_SERVER
@@ -3090,8 +3078,6 @@ xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
     dest->max_ack_delay = src->max_ack_delay;
     dest->preferred_address = src->preferred_address;
     dest->active_connection_id_limit = src->active_connection_id_limit;
-
-    dest->enable_multipath = src->enable_multipath;
 }
 
 
