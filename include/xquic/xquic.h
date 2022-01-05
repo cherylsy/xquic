@@ -760,7 +760,6 @@ typedef struct xqc_conn_settings_s {
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
     xqc_msec_t                  init_idle_time_out; /* initial idle timeout interval, effective before handshake completion */
     xqc_msec_t                  idle_time_out;      /* idle timeout interval, effective after handshake completion */
-    uint64_t                    enable_multipath;   /* default: 0 */
     int32_t                     spurious_loss_detect_on;
 } xqc_conn_settings_t;
 
@@ -779,7 +778,6 @@ typedef struct xqc_conn_stats_s {
     xqc_usec_t          srtt;
     xqc_0rtt_flag_t     early_data_flag;
     uint32_t            recv_count;
-    int                 enable_multipath;
     int                 spurious_loss_detect_on;
     int                 conn_err;
     char                ack_info[50];
@@ -1094,27 +1092,6 @@ xqc_int_t xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_conn_stats_t xqc_conn_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid);
-
-/**
- * create new path for client
- * @param cid scid for connection
- * @param new_path_id if new path is created successfully, return new_path_id in this param
- * @return XQC_OK (0) when success, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_conn_create_path(xqc_engine_t *engine,
-    const xqc_cid_t *cid, uint64_t *new_path_id);
-
-
-/**
- * Close a path
- * @param cid scid for connection
- * @param close_path_id path identifier for the closing path
- * @return XQC_OK (0) when success, <0 for error
- */
-XQC_EXPORT_PUBLIC_API
-xqc_int_t xqc_conn_close_path(xqc_engine_t *engine, const xqc_cid_t *cid, uint64_t closed_path_id);
-
 
 
 #ifdef __cplusplus

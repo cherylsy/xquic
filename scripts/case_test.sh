@@ -1017,35 +1017,6 @@ fi
 
 clear_log
 killall test_server 2> /dev/null
-echo -e "enable_multipath_negotiate ...\c"
-./test_server -l d -e -x 7 > /dev/null &
-sleep 1
-result=`./test_client -s 1024000 -l d -t 1 -M | grep "enable_multipath=1"`
-errlog=`grep_err_log`
-if [ -z "$errlog" ] && [ "$result" != "" ]; then
-    echo ">>>>>>>> pass:1"
-    case_print_result "enable_multipath_negotiate" "pass"
-else
-    echo ">>>>>>>> pass:0"
-    case_print_result "enable_multipath_negotiate" "fail"
-fi
-
-
-clear_log
-result=`sudo ./test_client -s 1024000 -l d -t 1 -M -i lo -E|grep ">>>>>>>> pass"`
-errlog=`grep_err_log`
-if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
-    case_print_result "send_1M_data_on_multiple_paths" "pass"
-else
-    case_print_result "send_1M_data_on_multiple_paths" "fail"
-    echo "$errlog"
-fi
-echo -e "send 1M data on multiple paths ...\c"
-echo "$result"
-
-
-clear_log
-killall test_server 2> /dev/null
 echo -e "load balancer cid generate ...\c"
 ./test_server -l d -e -S "server_id_0" > /dev/null &
 sleep 1

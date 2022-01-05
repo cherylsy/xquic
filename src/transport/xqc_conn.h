@@ -174,7 +174,6 @@ typedef struct {
     xqc_flag_t              disable_active_migration;
     uint64_t                active_connection_id_limit;
     uint64_t                no_crypto;
-    uint64_t                enable_multipath;
 } xqc_trans_settings_t;
 
 

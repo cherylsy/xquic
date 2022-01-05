@@ -14,7 +14,6 @@
 #include "src/transport/xqc_stream.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_engine.h"
-#include "src/transport/xqc_multipath.h"
 
 
 xqc_packet_out_t *
@@ -165,44 +164,6 @@ xqc_write_packet_header(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 }
 
 
-xqc_int_t
-xqc_write_packet_header_ex(xqc_connection_t *conn, 
-    xqc_path_ctx_t *path, xqc_packet_out_t *packet_out)
-{
-    if (packet_out->po_used_size > 0) {
-        return XQC_OK;
-    }
-
-    int ret = XQC_OK;
-
-    xqc_pkt_type_t pkt_type = packet_out->po_pkt.pkt_type;
-
-    if (pkt_type == XQC_PTYPE_SHORT_HEADER && packet_out->po_used_size == 0) {
-
-        /* only use path->cid in 1-RTT packets */
-        ret = xqc_gen_short_packet_header(packet_out,
-                                          path->path_dcid.cid_buf, path->path_dcid.cid_len,
-                                          XQC_PKTNO_BITS, packet_out->po_pkt.pkt_num);
-
-    } else if (pkt_type != XQC_PTYPE_SHORT_HEADER && packet_out->po_used_size == 0) {
-        ret = xqc_gen_long_packet_header(packet_out,
-                                         conn->dcid_set.current_dcid.cid_buf, conn->dcid_set.current_dcid.cid_len,
-                                         conn->scid_set.user_scid.cid_buf, conn->scid_set.user_scid.cid_len,
-                                         conn->conn_token, conn->conn_token_len,
-                                         conn->version, XQC_PKTNO_BITS);
-    }
-
-    if (ret < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|gen header error|");
-        return ret;
-    }
-    packet_out->po_used_size += ret;
-
-    return XQC_OK;
-}
-
-
-
 xqc_packet_out_t *
 xqc_write_new_packet(xqc_connection_t *conn, xqc_pkt_type_t pkt_type)
 {
@@ -233,42 +194,6 @@ error:
     xqc_maybe_recycle_packet_out(packet_out, conn);
     return NULL;
 }
-
-
-xqc_packet_out_t *
-xqc_write_new_packet_ex(xqc_connection_t *conn, 
-    xqc_path_ctx_t *path, xqc_pkt_type_t pkt_type)
-{
-    xqc_int_t ret = XQC_ERROR;
-    xqc_packet_out_t *packet_out;
-
-    if (pkt_type == XQC_PTYPE_NUM) {
-        pkt_type = xqc_state_to_pkt_type(conn);
-    }
-
-    packet_out = xqc_packet_out_get_and_insert_send(conn->conn_send_ctl, pkt_type);
-    if (packet_out == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_packet_out_get_and_insert_send error|");
-        return NULL;
-    }
-
-    packet_out->po_path_id = path->path_id;
-
-    if (packet_out->po_used_size == 0) {
-        ret = xqc_write_packet_header_ex(conn, path, packet_out);
-        if (ret != XQC_OK) {
-            xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_packet_header error|");
-            goto error;
-        }
-    }
-
-    return packet_out;
-
-error:
-    xqc_maybe_recycle_packet_out(packet_out, conn);
-    return NULL;
-}
-
 
 
 xqc_packet_out_t *
@@ -939,36 +864,5 @@ xqc_write_retire_conn_id_frame_to_packet(xqc_connection_t *conn, uint64_t seq_nu
     return XQC_OK;
 }
 
-
-xqc_int_t
-xqc_write_path_status_to_packet(xqc_connection_t *conn, 
-    xqc_path_ctx_t *path)
-{
-    ssize_t ret = 0;
-    xqc_packet_out_t *packet_out;
-
-    packet_out = xqc_write_new_packet_ex(conn, path, XQC_PTYPE_NUM);
-    if (packet_out == NULL) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
-        return -XQC_EWRITE_PKT;
-    }
-
-    ++path->path_status_seq_number;
-    ret = xqc_gen_path_status_frame(packet_out, path->path_id, path->path_status_seq_number, 
-                                    (uint64_t)path->path_status, path->path_prio);
-    if (ret < 0) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_gen_path_status_frame error|");
-        goto error;
-    }
-
-    packet_out->po_used_size += ret;
-
-    xqc_send_ctl_move_to_head(&packet_out->po_list, &conn->conn_send_ctl->ctl_send_packets);
-    return XQC_OK;
-
-error:
-    xqc_maybe_recycle_packet_out(packet_out, conn);
-    return ret;
-}
 
 

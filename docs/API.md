@@ -287,51 +287,6 @@ Certificate verify callback function, will be invoked on receiving peer's certif
 
 This callback function is optional.
 
-### MultiPath QUIC Callback Functions
-Multipath QUIC callback functions are related to QUIC connection, and belong to the Connection-Layer callback function category. These callback functions are expirmental, might be modified or removed in the future.
-
-#### xqc_conn_ready_to_create_path_notify_pt
-```
-typedef void (*xqc_conn_ready_to_create_path_notify_pt)(const xqc_cid_t *scid,
-    void *conn_user_data);
-```
-Path ready callback function for Multipath QUIC, will be triggered when a new connection id is received and endpoint get unsed cids, which is a precondition of multi-path.
-
-
-This callback function is mandatory is application choose multipath features, otherwise not adviced.
-
-
-#### xqc_path_created_notify_pt
-```
-typedef void (*xqc_path_created_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
-    void *conn_user_data);
-```
-Path creation callback function for Multipath QUIC, will be invoked on new path creation. Multi-Path is always initiated by client, clients can use _xqc_conn_create_path_ interface to create a new path, and server will create a new path when new path probed.
-
-This callback function is mandatory is application choose multipath features, otherwise not adviced.
-
-#### xqc_path_removed_notify_pt
-```
-typedef void (*xqc_path_removed_notify_pt)(const xqc_cid_t *scid, uint64_t path_id,
-    void *conn_user_data);
-```
-Path close callback function for Multipath QUIC, will be invoked on path close.
-
-This callback function is mandatory is application choose multipath features, otherwise not adviced.
-
-
-#### xqc_mp_socket_write_pt/xqc_mp_send_mmsg_pt
-```
-typedef ssize_t (*xqc_mp_socket_write_pt)(uint64_t path_id, const unsigned char *buf, size_t size,
-    const struct sockaddr *peer_addr, socklen_t peer_addrlen, void *conn_user_data);
-typedef ssize_t (*xqc_mp_send_mmsg_pt)(uint64_t path_id, const struct iovec *msg_iov,
-    unsigned int vlen, const struct sockaddr *peer_addr, socklen_t peer_addrlen,
-    void *conn_user_data);
-```
-Write data callback functions for Multipath QUIC, will be triggered when xquic will send data on specified path. 
-
-This callback function is mandatory is application choose multipath features, otherwise not adviced.
-
 ## Structures
 ### xqc_log_callbacks_t
 xqc_log_callbacks_t is the aggregation of xquic log callback functions.
@@ -645,21 +600,6 @@ Transfer scid to human-readable string.
 unsigned char *xqc_dcid_str(const xqc_cid_t *dcid);
 ```
 Transfer dcid to human-readable string.
-
-### Multipath-QUIC Interfaces
-#### xqc_conn_create_path
-```
-xqc_int_t xqc_conn_create_path(xqc_engine_t *engine,
-    const xqc_cid_t *cid, uint64_t *new_path_id);
-```
-Create new path for client
-
-
-#### xqc_conn_close_path
-```
-xqc_int_t xqc_conn_close_path(xqc_engine_t *engine, const xqc_cid_t *cid, uint64_t closed_path_id);
-```
-Close a path
 
 
 # HTTP/3 APIs
