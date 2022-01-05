@@ -101,35 +101,3 @@ If you have any questions, please feel free to open a new Discussion topic in ou
 ## License
 
 XQUIC is released under the Apache 2.0 License.
-
-## All-contributors
-
-Thanks goes to these wonderful people:
-
-- 刘彦梅（喵吉）
-- 赵武（赤杨）
-- 章玖海（以天）
-- 陈文韬（静笃）
-- 张渊博（辰帆）
-- 周瑞祺（凼凼）
-- 郑智隆（之有）
-- 李亮（觉问）
-- 施威（不达）
-- 杨馥榕（暁陽）
-- 左春伟（酱油）
-- 唐颖琦（陆花）
-- 胡军伟（苍茫）
-- 徐盟欣（象谦）
-- 杜叶飞（淮叶）
-- 吕格瑞（林曙）
-- 曾柯（毅丝）
-- 倪蕴哲
-- 罗凯（懿彬）
-
-
-
-
-
-
-
-
