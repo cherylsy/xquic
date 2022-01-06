@@ -1,5 +1,7 @@
 # Contributing to XQUIC
 
+> [简体中文文档 CONTRIBUTING-Zh-CN](./docs/docs-zh/CONTRIBUTING-zh.md)
+
 Thank you for investing your time in contributing to our project! All types of contributions are encouraged and valued. As a contributor, here are the guidelines we would like you to follow:
 
 - [Contributing to XQUIC](#contributing-to-xquic)

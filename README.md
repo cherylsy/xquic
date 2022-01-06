@@ -1,5 +1,7 @@
 # XQUIC
 
+> [简体中文文档 README-Zh-CN](./docs/docs-zh/README-zh.md)
+
 ## Introduction
 
 XQUIC Library released by Alibaba is …
