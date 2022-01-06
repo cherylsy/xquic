@@ -23,7 +23,7 @@ typedef struct xqc_pktno_range_node_s {
 } xqc_pktno_range_node_t;
 
 typedef struct xqc_recv_record_s {
-    xqc_list_head_t         list_head; //xqc_pktno_range_node_t
+    xqc_list_head_t         list_head;  /* xqc_pktno_range_node_t */
     xqc_usec_t              largest_pkt_recv_time;
     xqc_packet_number_t     rr_del_from;
 } xqc_recv_record_t;

@@ -1586,7 +1586,7 @@ xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *ctl, xqc_usec_t now, xqc_pkt
         /* assert(!PeerCompletedAddressValidation()) */
         if (xqc_conn_peer_complete_address_validation(c)) {
             xqc_log(c->log, XQC_LOG_WARN, "|exception|handshake not confirmed");
-            // return pto_timeout;
+            /* return pto_timeout; */
         }
 
         pto_timeout = xqc_monotonic_timestamp() + duration;

@@ -1011,7 +1011,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream, unsigned char *recv_buf, size_t r
 
         /* already read */
         if (stream_frame->data_offset + stream_frame->data_length < stream->stream_data_in.next_read_offset) {
-            //free frame
+            /* free frame */
             xqc_list_del_init(&stream_frame->sf_list);
             xqc_free(stream_frame->data);
             xqc_free(stream_frame);
@@ -1034,7 +1034,7 @@ ssize_t xqc_stream_recv (xqc_stream_t *stream, unsigned char *recv_buf, size_t r
             stream->stream_data_in.next_read_offset += frame_left;
             stream_frame->next_read_offset = stream_frame->data_length;
             read += frame_left;
-            //free frame
+            /* free frame */
             xqc_list_del_init(&stream_frame->sf_list);
             xqc_free(stream_frame->data);
             xqc_free(stream_frame);
@@ -1215,7 +1215,7 @@ do_buff:
 
     if (offset == 0 && !fin_only_done) {
         if (ret == -XQC_EAGAIN) {
-            return -XQC_EAGAIN; // -XQC_EAGAIN not means error
+            return -XQC_EAGAIN; /* -XQC_EAGAIN not means error */
         } else {
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             return ret;
