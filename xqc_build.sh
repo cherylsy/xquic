@@ -116,7 +116,7 @@ do
     rm -rf include
     rm -rf outputs
     rm -rf third_party
-    
+
     echo "compiling xquic on $i arch"
     cmake  $configures  $(generate_plat_spec $i ) -DLIBRARY_OUTPUT_PATH=`pwd`/outputs/ ..
     make -j 4

@@ -315,8 +315,8 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
     ssize_t sent = xqc_h3_stream_send_data(h3_request->h3_stream, data, data_size, fin);
     if (sent == -XQC_EAGAIN) {
         xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG,
-                "|xqc_h3_stream_send_data eagain|stream_id:%ui|data_size:%z|fin:%d|",
-                h3_request->h3_stream->stream_id, data_size, fin);
+                "|xqc_h3_stream_send_data eagain|stream_id:%ui|data_size:%uz|fin:%ud|",
+                h3_request->h3_stream->stream_id, data_size, (unsigned int)fin);
         return sent;
 
     } else if (sent < 0) {
@@ -331,10 +331,10 @@ xqc_h3_request_send_body(xqc_h3_request_t *h3_request, unsigned char *data, size
         h3_request->body_sent_final_size = h3_request->body_sent;
     }
 
-    xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|data_size:%z|sent:%z|"
-            "body_sent:%uz|body_sent_final_size:%uz|fin:%d|conn:%p|",
+    xqc_log(h3_request->h3_stream->h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|data_size:%uz|sent:%z|"
+            "body_sent:%uz|body_sent_final_size:%uz|fin:%ud|conn:%p|",
             h3_request->h3_stream->stream_id, data_size, sent, h3_request->body_sent, 
-            h3_request->body_sent_final_size, fin, h3_request->h3_stream->h3c->conn);
+            h3_request->body_sent_final_size, (unsigned int)fin, h3_request->h3_stream->h3c->conn);
 
     return sent;
 }
@@ -352,8 +352,8 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
     /* header */
     if (h3_request->read_flag & XQC_REQ_NOTIFY_READ_HEADER) {
         xqc_log(h3_request->h3_stream->log, XQC_LOG_DEBUG,
-                "|recv header|stream_id:%ui|fin:%d|conn:%p|",
-                h3_request->h3_stream->stream_id, *fin,
+                "|recv header|stream_id:%ui|fin:%ud|conn:%p|",
+                h3_request->h3_stream->stream_id, (unsigned int)*fin,
                 h3_request->h3_stream->h3c->conn);
 
         /* if there is body or trailer exists, recv fin together with body or trailer */
@@ -367,8 +367,8 @@ xqc_h3_request_recv_headers(xqc_h3_request_t *h3_request, uint8_t *fin)
     /* trailer section */
     if (h3_request->read_flag & XQC_REQ_NOTIFY_READ_TRAILER) {
         xqc_log(h3_request->h3_stream->log, XQC_LOG_DEBUG,
-                "|recv tailer header|stream_id:%ui|fin:%d|conn:%p|",
-                h3_request->h3_stream->stream_id, *fin,
+                "|recv tailer header|stream_id:%ui|fin:%ud|conn:%p|",
+                h3_request->h3_stream->stream_id, (unsigned int)*fin,
                 h3_request->h3_stream->h3c->conn);
 
         *fin = h3_request->fin_flag;

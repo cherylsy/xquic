@@ -929,7 +929,7 @@ xqc_conn_send_burst_packets(xqc_connection_t *conn, xqc_list_head_t *head, int c
         return ret;
 
     } else if (ret != burst_cnt) {
-        xqc_log(conn->log, XQC_LOG_ERROR, "|error send msg|sent:%ui||cnt:%ui|", ret, burst_cnt);
+        xqc_log(conn->log, XQC_LOG_ERROR, "|error send msg|sent:%ui||cnt:%d|", ret, burst_cnt);
     }
 
     xqc_on_packets_send_burst(conn, head, ret, now);
@@ -2029,7 +2029,7 @@ xqc_conn_buff_undecrypt_packet_in(xqc_packet_in_t *packet_in,
         || packet_in->buf_size > XQC_MSS)
     {
         xqc_log(conn->log, XQC_LOG_WARN,
-                "|delay|XQC_ELIMIT|undecrypt_count:%ud|encrypt_level:%d|buf_size:%ui|",
+                "|delay|XQC_ELIMIT|undecrypt_count:%ud|encrypt_level:%d|buf_size:%uz|",
                 conn->undecrypt_count[encrypt_level], encrypt_level, packet_in->buf_size);
         return -XQC_ELIMIT;
     }

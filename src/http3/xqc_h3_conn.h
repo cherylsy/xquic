@@ -20,7 +20,8 @@
         h3_conn->conn->conn_err = err;                              \
         h3_conn->conn->conn_flag |= XQC_CONN_FLAG_ERROR;            \
         xqc_log(h3_conn->conn->log, XQC_LOG_ERROR, "|conn:%p|err:0x%xi|ret:%i|%s|", \
-                h3_conn->conn, err, ret, xqc_conn_addr_str(h3_conn->conn));         \
+                h3_conn->conn, h3_conn->conn->conn_err, (int64_t)ret,   \
+                xqc_conn_addr_str(h3_conn->conn));                  \
     }                                                               \
 } while(0)                                                          \
 

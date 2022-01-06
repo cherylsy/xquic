@@ -559,7 +559,7 @@ xqc_encoder_insert(xqc_encoder_t *enc, xqc_hdr_enc_rule_t *info, xqc_var_buf_t *
 
     ret = xqc_encoder_write_insert_ins(enc, ins, info, base_idx);
     if (ret != XQC_OK) {
-        xqc_log(enc->log, XQC_LOG_ERROR, "|write insertion ins failed|ret:%ui|", ret);
+        xqc_log(enc->log, XQC_LOG_ERROR, "|write insertion ins failed|ret:%d|", ret);
         return ret;
     }
 

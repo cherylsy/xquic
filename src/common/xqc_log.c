@@ -179,7 +179,7 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
     if (log->log_timestamp) {
         /* time */
         char time[64];
-        xqc_log_time(time);
+        xqc_log_time(time, sizeof(time));
         p = xqc_sprintf(p, last, "[%s] ", time);
     }
 
@@ -219,7 +219,7 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
 }
 
 void
-xqc_log_time(char *buf)
+xqc_log_time(char *buf, size_t buf_len)
 {
     struct timeval tv;
     gettimeofday(&tv, NULL);
@@ -241,14 +241,14 @@ xqc_log_time(char *buf)
     tm.tm_year += 1900;
 
 #ifdef __APPLE__
-    sprintf(buf, "%4d/%02d/%02d %02d:%02d:%02d %06d",
-            tm.tm_year, tm.tm_mon,
-            tm.tm_mday, tm.tm_hour,
-            tm.tm_min, tm.tm_sec, tv.tv_usec);
+    snprintf(buf, buf_len, "%4d/%02d/%02d %02d:%02d:%02d %06d",
+             tm.tm_year, tm.tm_mon,
+             tm.tm_mday, tm.tm_hour,
+             tm.tm_min, tm.tm_sec, tv.tv_usec);
 #else
-    sprintf(buf, "%4d/%02d/%02d %02d:%02d:%02d %06ld",
-            tm.tm_year, tm.tm_mon,
-            tm.tm_mday, tm.tm_hour,
-            tm.tm_min, tm.tm_sec, tv.tv_usec);
+    snprintf(buf, buf_len, "%4d/%02d/%02d %02d:%02d:%02d %06ld",
+             tm.tm_year, tm.tm_mon,
+             tm.tm_mday, tm.tm_hour,
+             tm.tm_min, tm.tm_sec, tv.tv_usec);
 #endif
 }

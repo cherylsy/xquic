@@ -162,7 +162,7 @@ const char*
 xqc_log_type_str(xqc_log_type_t type);
 
 void
-xqc_log_time(char* buf);
+xqc_log_time(char* buf, size_t buf_len);
 
 void
 xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const char *fmt, ...);

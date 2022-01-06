@@ -230,7 +230,7 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
         conn->conn_flag |= XQC_CONN_FLAG_SHOULD_ACK_INIT << pns;
         xqc_send_ctl_timer_unset(conn->conn_send_ctl, XQC_TIMER_ACK_INIT + pns);
 
-        xqc_log(conn->log, XQC_LOG_DEBUG, "|yes|out_of_order:%d|ack_eliciting_pkt:%d|"
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|yes|out_of_order:%d|ack_eliciting_pkt:%ud|"
                 "pns:%d|flag:%s|", out_of_order, conn->ack_eliciting_pkt[pns],
                 pns, xqc_conn_flag_2_str(conn->conn_flag));
 
@@ -241,7 +241,7 @@ xqc_maybe_should_ack(xqc_connection_t *conn, xqc_pkt_num_space_t pns, int out_of
                                now, conn->local_settings.max_ack_delay*1000);
 
         xqc_log(conn->log, XQC_LOG_DEBUG,
-                "|set ack timer|ack_eliciting_pkt:%d|pns:%d|flag:%s|now:%ui|max_ack_delay:%ui|",
+                "|set ack timer|ack_eliciting_pkt:%ud|pns:%d|flag:%s|now:%ui|max_ack_delay:%ui|",
                 conn->ack_eliciting_pkt[pns], pns, xqc_conn_flag_2_str(conn->conn_flag),
                 now, conn->local_settings.max_ack_delay*1000);
     }

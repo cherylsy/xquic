@@ -59,7 +59,7 @@ xqc_decoder_index(xqc_decoder_t *dec, xqc_flag_t t, uint64_t idx, xqc_var_buf_t 
     xqc_log(dec->log, XQC_LOG_DEBUG, "|decode indexed|t:%d|idx:%ui|", t, idx);
 
     if (name_buf->data_len != 0 || value_buf->data_len != 0) {
-        xqc_log(dec->log, XQC_LOG_ERROR, "|nv not clear|name_len:%d|value_len:%d|",
+        xqc_log(dec->log, XQC_LOG_ERROR, "|nv not clear|name_len:%uz|value_len:%uz|",
                 name_buf->data_len, value_buf->data_len);
     }
     xqc_var_buf_clear(name_buf);
@@ -80,7 +80,7 @@ xqc_decoder_name_index(xqc_decoder_t *dec, xqc_flag_t t, uint64_t idx, xqc_var_b
     xqc_log(dec->log, XQC_LOG_DEBUG, "|decode name indexed|t:%d|idx:%ui|", t, idx);
 
     if (name_buf->data_len != 0) {
-        xqc_log(dec->log, XQC_LOG_ERROR, "|nv not clear|name_len:%d|", name_buf->data_len);
+        xqc_log(dec->log, XQC_LOG_ERROR, "|nv not clear|name_len:%uz|", name_buf->data_len);
     }
     xqc_var_buf_clear(name_buf);
 
@@ -175,8 +175,8 @@ xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *bu
         read = xqc_rep_decode_prefix(ctx, dec->max_ents,
                                      xqc_dtable_get_insert_cnt(dec->dtable), buf, buf_len);
         if (read < 0) {
-            xqc_log(dec->log, XQC_LOG_ERROR, "|decode prefix error|processed:%d|state:%d"
-                    "|max_ents:%ui|icnt:%ui|", read, ctx->state, dec->max_ents,
+            xqc_log(dec->log, XQC_LOG_ERROR, "|decode prefix error|processed:%z|state:%d"
+                    "|max_ents:%uz|icnt:%ui|", read, ctx->state, dec->max_ents,
                     xqc_dtable_get_insert_cnt(dec->dtable));
             return -XQC_QPACK_DECODER_ERROR;
         }
@@ -210,8 +210,8 @@ xqc_decoder_dec_header(xqc_decoder_t *dec, xqc_rep_ctx_t *ctx, unsigned char *bu
             }
             if (ctx->state == XQC_REP_DECODE_STATE_VALUE && ctx->value->huff_flag > 0) {
                 xqc_log(dec->log, XQC_LOG_ERROR, "|decode value error|pre_state:%d|end:%d|bit:%d|",
-                        ctx->value->huff_ctx.pre_state, ctx->value->huff_ctx.end,
-                        ctx->value->huff_ctx.bit);
+                        (unsigned int)ctx->value->huff_ctx.pre_state, (unsigned int)ctx->value->huff_ctx.end,
+                        (unsigned int)ctx->value->huff_ctx.bit);
             }
             return -XQC_QPACK_DECODER_ERROR;
         }
@@ -276,9 +276,9 @@ xqc_decoder_insert_literal(xqc_decoder_t *dec, unsigned char *name, size_t nlen,
         return -XQC_QPACK_DECODER_ERROR;
     }
 
-    xqc_log(dec->log, XQC_LOG_DEBUG, "|on insert literal|idx:%ui|ret:%d|nlen:%ui|name:%*s|vlen:%ui|"
-            "value:%*s|", idx, ret, nlen, xqc_min(nlen, 512), name, vlen, xqc_min(vlen, 512),
-            value);
+    xqc_log(dec->log, XQC_LOG_DEBUG, "|on insert literal|idx:%ui|ret:%d|nlen:%uz|name:%*s|vlen:%uz|"
+            "value:%*s|", idx, ret, nlen, (size_t) xqc_min(nlen, 512), name, vlen,
+            (size_t) xqc_min(vlen, 512), value);
     xqc_log_event(dec->log, QPACK_STATE_UPDATED, XQC_LOG_DECODER_EVENT, dec->dtable);
 
     return XQC_OK;

@@ -430,7 +430,7 @@ xqc_packet_parse_initial(xqc_connection_t *c, xqc_packet_in_t *packet_in)
     {
         if (XQC_BUFF_LEFT_SIZE(packet_in->buf, end) < XQC_PACKET_INITIAL_MIN_LENGTH) {
             xqc_log(c->log, XQC_LOG_ERROR, "|initial size too small|%z|",
-                    XQC_BUFF_LEFT_SIZE(packet_in->buf, end));
+                    (size_t)XQC_BUFF_LEFT_SIZE(packet_in->buf, end));
             XQC_CONN_ERR(c, TRA_PROTOCOL_VIOLATION);
             return -XQC_EILLPKT;
         }
@@ -880,20 +880,21 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
 
     /* at least one version is carried in the VN packet */
     if (XQC_BUFF_LEFT_SIZE(pos, end) < XQC_PACKET_VERSION_LENGTH) {
-        xqc_log(c->log, XQC_LOG_DEBUG, "|version negotiation size too small|%z|", XQC_BUFF_LEFT_SIZE(pos, end));
+        xqc_log(c->log, XQC_LOG_DEBUG, "|version negotiation size too small|%z|",
+                (size_t)XQC_BUFF_LEFT_SIZE(pos, end));
         return -XQC_EILLPKT;
     }
 
     /*check available states*/
     if (c->conn_state != XQC_CONN_STATE_CLIENT_INITIAL_SENT) {
         /* drop packet */
-        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|invalid state|%i|", (int)c->conn_state);
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|invalid state|%d|", c->conn_state);
         return -XQC_ESTATE;
     }
 
     /* check conn type, only client can receive a VN packet */
     if (c->conn_type != XQC_CONN_TYPE_CLIENT) {
-        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|invalid conn_type|%i|", (int)c->conn_type);
+        xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|invalid conn_type|%d|", c->conn_type);
         return -XQC_EPROTO;
     }
 
@@ -915,7 +916,7 @@ xqc_packet_parse_version_negotiation(xqc_connection_t *c, xqc_packet_in_t *packe
                 }
 
             } else {
-                xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|dup version|%i|", version);
+                xqc_log(c->log, XQC_LOG_WARN, "|packet_parse_version_negotiation|dup version|%ud|", version);
             }
         }
         pos += XQC_PACKET_VERSION_LENGTH;

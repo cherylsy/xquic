@@ -366,7 +366,7 @@ xqc_h3_conn_on_uni_stream_created(xqc_h3_conn_t *h3c, uint64_t stype)
         /* if control/encoder/decoder stream has been created, close connection */
         if (h3c->flags & cflag) {
             xqc_log(h3c->log, XQC_LOG_ERROR,
-                    "|h3 uni-stream has been created|type:%d|", stype);
+                    "|h3 uni-stream has been created|type:%ui|", stype);
 
             XQC_H3_CONN_ERR(h3c, H3_FRAME_ERROR, -XQC_H3_INVALID_STREAM);
             return -XQC_H3_INVALID_STREAM;
@@ -389,7 +389,7 @@ xqc_h3_conn_send_settings(xqc_h3_conn_t *h3c)
     xqc_h3_conn_settings_t *settings = &h3c->local_h3_conn_settings;
     xqc_int_t ret = xqc_h3_stream_send_setting(h3c->control_stream_out, settings, 0);
     if (ret != XQC_OK) {
-        xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_write_settings error|%z|", ret);
+        xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_write_settings error|%d|", ret);
         return ret;
     }
 

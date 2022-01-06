@@ -129,8 +129,8 @@ xqc_h3_stream_send_buffer(xqc_h3_stream_t *h3s)
                 }
 
             } else if (buf->data_len > 0) {
-                xqc_log(h3s->log, XQC_LOG_ERROR, "|send_buf is empty|buf->consumed_len:%d"
-                        "|buf->data_len:%d", buf->consumed_len, buf->data_len);
+                xqc_log(h3s->log, XQC_LOG_ERROR, "|send_buf is empty|buf->consumed_len:%uz"
+                        "|buf->data_len:%uz", buf->consumed_len, buf->data_len);
             }
 
         } else {
@@ -163,7 +163,7 @@ xqc_h3_stream_write_headers(xqc_h3_stream_t *h3s, xqc_http_headers_t *headers, u
     xqc_var_buf_t *data = xqc_var_buf_create(buf_size);
     if (data == NULL) {
         xqc_log(h3s->log, XQC_LOG_ERROR, "|malloc error|stream_id:%ui|fin:%d|",
-                h3s->stream_id, fin);
+                h3s->stream_id, (unsigned int)fin);
         return -XQC_EMALLOC;
     }
 
@@ -180,7 +180,7 @@ xqc_h3_stream_write_headers(xqc_h3_stream_t *h3s, xqc_http_headers_t *headers, u
     ret = xqc_h3_frm_write_headers(&h3s->send_buf, data, fin);
     if (ret != XQC_OK) {
         xqc_log(h3s->log, XQC_LOG_ERROR, "|write HEADERS frame error|stream_id:%ui|fin:%d|",
-                h3s->stream_id, fin);
+                h3s->stream_id, (unsigned int)fin);
         xqc_var_buf_free(data);
         return ret;
     }
@@ -189,13 +189,13 @@ xqc_h3_stream_write_headers(xqc_h3_stream_t *h3s, xqc_http_headers_t *headers, u
     /* send HEADERS frame */
     ret = xqc_h3_stream_send_buffer(h3s);
     if (ret == -XQC_EAGAIN) {
-        xqc_log(h3s->log, XQC_LOG_DEBUG, "|send HEADERS frame eagain|stream_id:%ui|fin:%d|",
-                h3s->stream_id, fin);
+        xqc_log(h3s->log, XQC_LOG_DEBUG, "|send HEADERS frame eagain|stream_id:%ui|fin:%ud|",
+                h3s->stream_id, (unsigned int)fin);
         return processed;
 
     } else if(ret < 0) {
-        xqc_log(h3s->log, XQC_LOG_ERROR, "|send HEADERS frame error|%d|stream_id:%ui|fin:%d|",
-                ret, h3s->stream_id, fin);
+        xqc_log(h3s->log, XQC_LOG_ERROR, "|send HEADERS frame error|%d|stream_id:%ui|fin:%ud|",
+                ret, h3s->stream_id, (unsigned int)fin);
         processed = ret;
     }
 
@@ -227,7 +227,7 @@ xqc_h3_stream_write_data_to_buffer(xqc_h3_stream_t *h3s, unsigned char* data, ui
         ret = xqc_h3_frm_write_data(&h3s->send_buf, data + write, size, flag);
         if (ret != XQC_OK) {
             xqc_log(h3s->log, XQC_LOG_ERROR, "|write DATA frame error|%d|stream_id:%ui|fin:%d|",
-                    ret, h3s->stream_id, fin);
+                    ret, h3s->stream_id, (unsigned int)fin);
             return ret;
         }
         write += size;
@@ -240,7 +240,7 @@ xqc_h3_stream_write_data_to_buffer(xqc_h3_stream_t *h3s, unsigned char* data, ui
 
         } else if (ret < 0) {
             xqc_log(h3s->log, XQC_LOG_ERROR, "|send DATA frame error|%d|stream_id:%ui|fin:%d|",
-                    ret, h3s->stream_id, fin);
+                    ret, h3s->stream_id, (unsigned int)fin);
             return ret;
         }
 
@@ -257,7 +257,7 @@ xqc_h3_stream_write_setting_to_buffer(xqc_h3_stream_t *h3s, xqc_h3_conn_settings
     xqc_int_t ret = xqc_h3_frm_write_settings(&h3s->send_buf, settings, fin);
     if (ret != XQC_OK) {
         xqc_log(h3s->log, XQC_LOG_ERROR, "|write SETTINGS frame error|%d|stream_id:%ui|fin:%d|",
-                ret, h3s->stream_id, fin);
+                ret, h3s->stream_id, (unsigned int)fin);
         return ret;
     }
     xqc_log_event(h3s->log, HTTP_FRAME_CREATED, h3s, XQC_H3_FRM_SETTINGS, settings);
@@ -265,7 +265,7 @@ xqc_h3_stream_write_setting_to_buffer(xqc_h3_stream_t *h3s, xqc_h3_conn_settings
     ret = xqc_h3_stream_send_buffer(h3s);
     if (ret < 0 && ret != -XQC_EAGAIN) {
         xqc_log(h3s->log, XQC_LOG_ERROR, "|send SETTINGS frame error|%d|stream_id:%ui|fin:%d|",
-                ret, h3s->stream_id, fin);
+                ret, h3s->stream_id, (unsigned int)fin);
         return ret;
     }
 
@@ -279,7 +279,7 @@ xqc_h3_stream_write_goaway_to_buffer(xqc_h3_stream_t *h3s, uint64_t push_id, uin
     xqc_int_t ret = xqc_h3_frm_write_goaway(&h3s->send_buf,push_id, fin);
     if (ret != XQC_OK) {
         xqc_log(h3s->log, XQC_LOG_ERROR, "|write GOAWAY frame error|%d|stream_id:%ui|fin:%d|",
-                ret, h3s->stream_id, fin);
+                ret, h3s->stream_id, (unsigned int)fin);
         return ret;
     }
     xqc_log_event(h3s->log, HTTP_FRAME_CREATED, h3s, XQC_H3_FRM_GOAWAY, push_id);
@@ -287,7 +287,7 @@ xqc_h3_stream_write_goaway_to_buffer(xqc_h3_stream_t *h3s, uint64_t push_id, uin
     ret = xqc_h3_stream_send_buffer(h3s);
     if (ret < 0 && ret != -XQC_EAGAIN) {
         xqc_log(h3s->log, XQC_LOG_ERROR, "|send GOAWAY frame error|%d|stream_id:%ui|fin:%d|",
-                ret, h3s->stream_id, fin);
+                ret, h3s->stream_id, (unsigned int)fin);
         return ret;
     }
 
@@ -328,8 +328,8 @@ xqc_h3_stream_send_headers(xqc_h3_stream_t *h3s, xqc_http_headers_t *headers, ui
     /* header_sent is the sum of plaintext header name value length */
     h3s->h3r->header_sent += headers->total_len;
 
-    xqc_log(h3c->log, XQC_LOG_DEBUG, "|write:%z|stream_id:%ui|fin:%d|conn:%p|flag:%s|", write,
-            h3s->stream_id, fin, h3c->conn, xqc_conn_flag_2_str(h3c->conn->conn_flag));
+    xqc_log(h3c->log, XQC_LOG_DEBUG, "|write:%z|stream_id:%ui|fin:%ud|conn:%p|flag:%s|", write,
+            h3s->stream_id, (unsigned int)fin, h3c->conn, xqc_conn_flag_2_str(h3c->conn->conn_flag));
 
     h3s->flags &= ~XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
 
@@ -355,8 +355,8 @@ xqc_h3_stream_send_data(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_s
         h3s->flags &= ~XQC_HTTP3_STREAM_NEED_WRITE_NOTIFY;
     }
 
-    xqc_log(h3s->log, XQC_LOG_DEBUG, "|stream_id:%ui|data_size:%uz|write:%z|fin:%d|conn:%p|",
-            h3s->stream_id, data_size, write, fin, h3s->h3c->conn);
+    xqc_log(h3s->log, XQC_LOG_DEBUG, "|stream_id:%ui|data_size:%uz|write:%z|fin:%ud|conn:%p|",
+            h3s->stream_id, data_size, write, (unsigned int)fin, h3s->h3c->conn);
 
     xqc_engine_main_logic_internal(h3s->h3c->conn->engine, h3s->h3c->conn);
 
@@ -692,7 +692,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
             return read;
         }
 
-        xqc_log(h3s->log, XQC_LOG_DEBUG, "|parse frame success|frame_type:%d|read:%d|",
+        xqc_log(h3s->log, XQC_LOG_DEBUG, "|parse frame success|frame_type:%d|read:%z|",
                 pctx->frame.type, read);
         processed += read;
 
@@ -861,7 +861,7 @@ ssize_t
 xqc_h3_stream_process_uni_payload(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_len)
 {
     ssize_t processed;
-    xqc_log(h3s->log, XQC_LOG_DEBUG, "|xqc_h3_stream_process_uni_payload|type:%d|sz:%ud|",
+    xqc_log(h3s->log, XQC_LOG_DEBUG, "|xqc_h3_stream_process_uni_payload|type:%d|sz:%uz|",
             h3s->type, data_len);
 
     switch (h3s->type) {
@@ -1000,8 +1000,8 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
         return XQC_OK;
     }
 
-    xqc_log(h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|data_size:%z|fin:%d",
-            h3s->stream_id, h3s->type, data_len, fin_flag);
+    xqc_log(h3c->log, XQC_LOG_DEBUG, "|stream_id:%ui|h3_stream_type:%d|data_size:%uz|fin:%ud",
+            h3s->stream_id, h3s->type, data_len, (unsigned int)fin_flag);
 
     if (xqc_stream_is_uni(h3s->stream_id)) {
         /* process uni stream bytes */
@@ -1125,7 +1125,7 @@ xqc_h3_stream_process_blocked_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, x
             return -XQC_H3_STREAM_RECV_ERROR;
         }
 
-        xqc_log(h3s->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%d|", rcvd, *fin);
+        xqc_log(h3s->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%ud|", rcvd, (unsigned int)*fin);
 
         buf->data_len += rcvd;
         buf->fin_flag = *fin;
@@ -1161,7 +1161,7 @@ xqc_h3_stream_process_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, xqc_bool_
             xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_stream_recv error|%z|", read);
             return -XQC_H3_STREAM_RECV_ERROR;
         }
-        xqc_log(h3c->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%d|", read, *fin);
+        xqc_log(h3c->log, XQC_LOG_DEBUG, "|xqc_stream_recv|read:%z|fin:%ud|", read, (unsigned int)*fin);
 
         if (*fin) {
             h3s->flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
@@ -1206,7 +1206,7 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s)
     xqc_list_buf_t  *list_buf = NULL;
 
     xqc_log(h3s->log, XQC_LOG_DEBUG,
-            "|decode blocked header success|stream_id:%d|", h3s->stream_id);
+            "|decode blocked header success|stream_id:%ui|", h3s->stream_id);
     xqc_log_event(h3s->log, QPACK_STREAM_STATE_UPDATED, h3s);
 
     xqc_list_for_each_safe(pos, next, &h3s->blocked_buf) {

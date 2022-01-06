@@ -152,7 +152,7 @@ xqc_qpack_notify_insert_cnt_increment(xqc_qpack_t *qpk, uint64_t increment)
 
     xqc_int_t ret = xqc_ins_write_icnt_increment(buf, increment);
     if (ret < 0) {
-        xqc_log(qpk->log, XQC_LOG_ERROR, "|write ici error|ret:%ui|", ret);
+        xqc_log(qpk->log, XQC_LOG_ERROR, "|write ici error|ret:%d|", ret);
         goto fail;
     }
     xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT,
@@ -182,7 +182,7 @@ xqc_qpack_notify_section_ack(xqc_qpack_t *qpk, uint64_t stream_id)
 
     xqc_int_t ret = xqc_ins_write_section_ack(buf, stream_id);
     if (ret < 0) {
-        xqc_log(qpk->log, XQC_LOG_ERROR, "|write sack error|ret:%ui|", ret);
+        xqc_log(qpk->log, XQC_LOG_ERROR, "|write sack error|ret:%d|", ret);
         goto fail;
     }
     xqc_log_event(qpk->log, QPACK_INSTRUCTION_CREATED, XQC_LOG_DECODER_EVENT,
@@ -213,13 +213,13 @@ xqc_qpack_set_dtable_cap(xqc_qpack_t *qpk, size_t cap)
     uint64_t min_cap = xqc_min(cap, qpk->max_cap);
     xqc_int_t ret = xqc_encoder_set_dtable_cap(qpk->enc, min_cap);
     if (ret != XQC_OK) {
-        xqc_log(qpk->log, XQC_LOG_WARN, "|set encoder dynamic table cap error|ret:%ui|", ret);
+        xqc_log(qpk->log, XQC_LOG_WARN, "|set encoder dynamic table cap error|ret:%d|", ret);
         return ret;
     }
 
     ret = xqc_qpack_notify_set_dtable_cap(qpk, min_cap);
     if (ret != XQC_OK) {
-        xqc_log(qpk->log, XQC_LOG_ERROR, "|notify sdtc error|%ui|", ret);
+        xqc_log(qpk->log, XQC_LOG_ERROR, "|notify sdtc error|%d|", ret);
         return ret;
     }
 
