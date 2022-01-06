@@ -27,7 +27,7 @@ function install_go() {
 }
 
 function build_babassl() {
-    #git clone https://github.com/BabaSSL/BabaSSL.git ../third_party/babassl
+    git clone https://github.com/BabaSSL/BabaSSL.git ../third_party/babassl
     cd ../third_party/babassl/
     ./config --prefix=/usr/local/babassl
     make -j
@@ -38,7 +38,7 @@ function build_babassl() {
 }
 
 function build_boringssl() {
-    #git clone https://github.com/google/boringssl.git ../third_party/boringssl
+    git clone https://github.com/google/boringssl.git ../third_party/boringssl
     mkdir -p ../third_party/boringssl/build
     cd ../third_party/boringssl//build
     cmake -DBUILD_SHARED_LIBS=0 -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" ..
