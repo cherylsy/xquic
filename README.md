@@ -1,4 +1,5 @@
 # XQUIC
+<img src="docs/images/xquic_logo.png" alt="xquic logo"/>
 
 > [简体中文文档 README-Zh-CN](./docs/docs-zh/README-zh.md)
 
