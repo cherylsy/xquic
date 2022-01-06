@@ -39,10 +39,10 @@ GitHub Discussions is an open forum for conversation among maintainers and the c
 
 If you run into an error or bug with the project, you can help us by submitting a GitHub Issue.
 Please try to create bug reports that are:
-- _Reproducible_. Include steps to reproduce the problem.
-- _Specific_. Include as much detail as possible: which version, what environment, etc.
-- _Unique_. Do not duplicate existing opened issues.
-- _Scoped to a Single Bug_. One bug per report.
+* _Reproducible_. Include steps to reproduce the problem.
+* _Specific_. Include as much detail as possible: which version, what environment, etc.
+* _Unique_. Do not duplicate existing opened issues.
+* _Scoped to a Single Bug_. One bug per report.
 
 ### Security Vulnerability
 
@@ -84,17 +84,19 @@ For each new feature, create a working branch from where to base the contributio
 ```bash
 git checkout -b {branch-name} main
 ```
+
 _Branch name_:
-- `dev/${feature_name}`: New feature
-- `fix/${function_or_module_name}`: Bug fix
-- `perf/${optimization_item}`: Performance optimization or other enhancement
-- `doc/${documentation_name}`: Documentation
+* `dev/${feature_name}`: New feature
+* `fix/${function_or_module_name}`: Bug fix
+* `perf/${optimization_item}`: Performance optimization or other enhancement
+* `doc/${documentation_name}`: Documentation
 
 #### Commit Messages
 
 Each commit message consists of a header, a body and a footer. The header has a special format that includes a type and a subject:
 
 _Template_:
+
 ```bash
 [<type>]: <subject>
 <BLANK LINE>
@@ -104,12 +106,13 @@ _Template_:
 ```
 
 _Type_:
-- `+`: Add a new feature / a new requirement
-- `-`: Remove deprecated code or functionality
-- `=`: Consistent with previous behaviour, generally representing code optimisation
-- `~`: Changed behaviour, sometimes fixing bugs can also change existing behaviour
+* `+`: Add a new feature / a new requirement
+* `-`: Remove deprecated code or functionality
+* `=`: Consistent with previous behaviour, generally representing code optimisation
+* `~`: Changed behaviour, sometimes fixing bugs can also change existing behaviour
 
 _Example_:
+
 ```bash
 [~]: Update CONTRIBUTING.md
 ```
@@ -141,7 +144,7 @@ This will open up a text editor where you can specify which commits to squash.
 
 Once you've validated that all continuous-integration checks have passed, go to the page for your fork on GitHub, select your development branch, and click the pull request button.
 
-If your PR is connected to an open issue, add a line in your PR's description that says `Fixes: #123`, where `#123` is the number of the issue you're fixing.
+If your PR is connected to an open issue, add a line in your PR's description that says `Fixes: #123` , where `#123` is the number of the issue you're fixing.
 
 #### Code Review
 
@@ -153,15 +156,15 @@ Before merging a PR, squash any fix review feedback, typo, merged, and rebased s
 
 We follow the [Nginx code style](http://nginx.org/en/docs/dev/development_guide.html#code_style), with the following points requiring special attention.
 
-- maximum text width is 80 characters
-- indentation is 4 spaces
-- no tabs, no trailing spaces
-- list elements on the same line are separated with spaces
-- Macro names start from xqc_ or XQC_ (or more specific) prefix. Macro names for constants are uppercase. Parameterized macros and macros for initializers are lowercase.
+* maximum text width is 80 characters
+* indentation is 4 spaces
+* no tabs, no trailing spaces
+* list elements on the same line are separated with spaces
+* Macro names start from xqc_ or XQC_ (or more specific) prefix. Macro names for constants are uppercase. Parameterized macros and macros for initializers are lowercase.
 
+* “//” comments are not used
+* multi-line comments are formatted like this:
 
-- “//” comments are not used
-- multi-line comments are formatted like this:
 ```C
 /*
  * The red-black tree code is based on the algorithm described in
@@ -171,24 +174,32 @@ We follow the [Nginx code style](http://nginx.org/en/docs/dev/development_guide.
 /* find the server configuration for the address:port */
 ```
 
-- All functions (even static ones) should have prototypes. Prototypes include argument names. Long prototypes are wrapped with a single indentation on continuation lines:
-- The function name in a definition starts with a new line. The function body opening and closing braces are on separate lines. The body of a function is indented. 
-- There is no space after the function name and opening parenthesis. Long function calls are wrapped such that continuation lines start from the position of the first function argument. If this is impossible, format the first continuation line such that it ends at position 79.
+* All functions (even static ones) should have prototypes. Prototypes include argument names. Long prototypes are wrapped with a single indentation on continuation lines:
+* The function name in a definition starts with a new line. The function body opening and closing braces are on separate lines. The body of a function is indented. 
+* There is no space after the function name and opening parenthesis. Long function calls are wrapped such that continuation lines start from the position of the first function argument. If this is impossible, format the first continuation line such that it ends at position 79.
 
-- Binary operators except “.” and “−>” should be separated from their operands by one space. Unary operators and subscripts are not separated from their operands by spaces:
-- If an expression does not fit into single line, it is wrapped. The preferred point to break a line is a binary operator. The continuation line is lined up with the start of expression.
+* Binary operators except “.” and “−>” should be separated from their operands by one space. Unary operators and subscripts are not separated from their operands by spaces:
+* If an expression does not fit into single line, it is wrapped. The preferred point to break a line is a binary operator. The continuation line is lined up with the start of expression.
 
-- The “if” keyword is separated from the condition by one space. Opening brace is located on the same line, or on a dedicated line if the condition takes several lines. Closing brace is located on a dedicated line, optionally followed by “else if / else”. Usually, there is an empty line before the “else if / else” part.Similar formatting rules are applied to “do” and “while” loops.
-- The “switch” keyword is separated from the condition by one space. Opening brace is located on the same line. Closing brace is located on a dedicated line. The “case” keywords are lined up with “switch”.
+* The “if” keyword is separated from the condition by one space. Opening brace is located on the same line, or on a dedicated line if the condition takes several lines. Closing brace is located on a dedicated line, optionally followed by “else if / else”. Usually, there is an empty line before the “else if / else” part. Similar formatting rules are applied to “do” and “while” loops.
+* The “switch” keyword is separated from the condition by one space. Opening brace is located on the same line. Closing brace is located on a dedicated line. The “case” keywords are lined up with “switch”.
 
 ## All-contributors
 
-In no particular order, thanks goes to these wonderful people, who contributed code to xquic, or provided great help for the survival of this project.
+XQUIC participants: Taobao Technology Department, Damo Academy XG Lab, and other teams from Alibaba Group who provided help in deployment of this project.
 
-- Taobao Technology Department, DAMO Academy XG Lab, and other Alibaba Group employees.
-- 左春伟（平兴）
-- 胡军伟（苍茫）
-- 李鼎（哲良）
-- 徐盟欣（象谦）
-- 曾柯（毅丝）
-- 罗凯（懿彬）
+In no particular order, thanks to these excellent individuals who contributed code to xquic or provided great help to the survival of this project.
+
+* 左春伟(平兴)
+* 胡军伟(苍茫)
+* 施威(不达)
+* 洪海(孤星)
+* 李鼎(哲良)
+* 杜叶飞(淮叶)
+* 朱宇(黎叔)
+* 罗凯(懿彬)
+* 曾柯(毅丝)
+* 徐盟欣(象谦)
+* Bai Shi(白石)
+
+This list will be continuously updated. Contributions are welcome!
