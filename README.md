@@ -13,14 +13,15 @@ XQUIC Library released by Alibaba is …
 ## Requirements
 
 To build XQUIC, you need 
-- CMake
-- BoringSSL or BabaSSL
+* CMake
+* BoringSSL or BabaSSL
 
 To run test cases, you need
-- libevent
-- CUnit
+* libevent
+* CUnit
 
 ## QuickStart Guide
+
 xquic supports both BabaSSL and Boringssl.
 
 ### Build with BabaSSL
@@ -73,15 +74,16 @@ make -j
 ```
 
 ### Run testcases
+
 ```bash
 sh ../scripts/xquic_test.sh
 ```
 
 ## Documentation
 
-- For using the API, see the [API docs](./docs/API.md).
-- For platform support details, see the [Platforms docs](./docs/Platforms.md).
-- For Chinese (zh-cn) translation of the IETF QUIC Protocol, see the Translation docs.
+* For using the API, see the [API docs](./docs/API.md).
+* For platform support details, see the [Platforms docs](./docs/Platforms.md).
+* For Chinese (zh-cn) translation of the IETF QUIC Protocol, see the Translation docs.
     - The following translation is based on draft-34 and RFC Translation is Working In Progress.
     - [draft-ietf-quic-invariants-13-zh](./docs/translation/draft-ietf-quic-invariants-13-zh.md)
     - [draft-ietf-quic-transport-34-zh](./docs/translation/draft-ietf-quic-transport-34-zh.md)
@@ -90,7 +92,7 @@ sh ../scripts/xquic_test.sh
     - [draft-ietf-quic-http-34-zh](./docs/translation/draft-ietf-quic-http-34-zh.md)
     - [draft-ietf-quic-qpack-21-zh](./docs/translation/draft-ietf-quic-qpack-21-zh.md)
 
-- For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
+* For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
 
 ## Contributing
 
