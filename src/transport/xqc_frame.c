@@ -128,7 +128,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
      *          |----------|
      *                |--------|
      */
-    //merge
+    /* merge */
     if (stream->stream_data_in.merged_offset_end >= new_frame->data_offset
         && stream->stream_data_in.merged_offset_end < new_frame->data_offset + new_frame->data_length)
     {

@@ -10,10 +10,10 @@
 
 #define XQC_CUBIC_FAST_CONVERGENCE  1
 #define XQC_CUBIC_MSS               1460
-#define XQC_CUBIC_BETA              718     // 718/1024=0.7
+#define XQC_CUBIC_BETA              718     /* 718/1024=0.7 */
 #define XQC_CUBIC_BETA_SCALE        1024
-#define XQC_CUBIC_C                 410     // 410/1024=0.4
-#define XQC_CUBE_SCALE              40u     // 2^40=1024 * 1024^3
+#define XQC_CUBIC_C                 410     /* 410/1024=0.4 */
+#define XQC_CUBE_SCALE              40u     /* 2^40=1024 * 1024^3 */
 #define XQC_CUBIC_TIME_SCALE        10u
 #define XQC_CUBIC_MAX_SSTHRESH      0xFFFFFFFF
 
@@ -22,7 +22,7 @@
 #define XQC_CUBIC_INIT_WIN          (32 * XQC_CUBIC_MSS)
 
 const static uint64_t xqc_cube_factor =
-        (1ull << XQC_CUBE_SCALE) / XQC_CUBIC_C / XQC_CUBIC_MSS;
+    (1ull << XQC_CUBE_SCALE) / XQC_CUBIC_C / XQC_CUBIC_MSS;
 
 /*
  * Compute congestion window to use.
@@ -108,7 +108,7 @@ xqc_cubic_size()
 static void
 xqc_cubic_init(void *cong_ctl, xqc_send_ctl_t *ctl_ctx, xqc_cc_params_t cc_params)
 {
-    xqc_cubic_t *cubic = (xqc_cubic_t*)(cong_ctl);
+    xqc_cubic_t *cubic = (xqc_cubic_t *)(cong_ctl);
     cubic->epoch_start = 0;
     cubic->cwnd = XQC_CUBIC_INIT_WIN;
     cubic->tcp_cwnd = XQC_CUBIC_INIT_WIN;
@@ -132,7 +132,7 @@ xqc_cubic_on_lost(void *cong_ctl, xqc_usec_t lost_sent_time)
     cubic->epoch_start = 0;
 
     /* should we make room for others */
-    if (XQC_CUBIC_FAST_CONVERGENCE && cubic->cwnd < cubic->last_max_cwnd){
+    if (XQC_CUBIC_FAST_CONVERGENCE && cubic->cwnd < cubic->last_max_cwnd) {
         /* (1.0f + XQC_CUBIC_BETA) / 2.0f convert to bitwise operations */
         cubic->last_max_cwnd = cubic->cwnd * (XQC_CUBIC_BETA_SCALE + XQC_CUBIC_BETA) / (2 * XQC_CUBIC_BETA_SCALE);
 
@@ -181,7 +181,7 @@ xqc_cubic_get_cwnd(void *cong_ctl)
 }
 
 void
-xqc_cubic_reset_cwnd (void *cong_ctl)
+xqc_cubic_reset_cwnd(void *cong_ctl)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t *)(cong_ctl);
     cubic->epoch_start = 0;
@@ -191,19 +191,21 @@ xqc_cubic_reset_cwnd (void *cong_ctl)
 }
 
 int32_t
-xqc_cubic_in_slow_start (void *cong_ctl)
+xqc_cubic_in_slow_start(void *cong_ctl)
 {
     xqc_cubic_t *cubic = (xqc_cubic_t *)(cong_ctl);
     return cubic->cwnd < cubic->ssthresh ? 1 : 0;
 }
 
 void
-xqc_cubic_restart_from_idle(void *cong_ctl, uint64_t arg) {
+xqc_cubic_restart_from_idle(void *cong_ctl, uint64_t arg)
+{
     return;
 }
 
 static int
-xqc_cubic_in_recovery(void *cong_ctl) {
+xqc_cubic_in_recovery(void *cong_ctl)
+{
     return 0;
 }
 

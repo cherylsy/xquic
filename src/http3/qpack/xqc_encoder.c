@@ -80,7 +80,7 @@ typedef struct xqc_hdr_enc_rule_s {
 
     /* never index flag. if never flag is set, it means that at least value
        is encoded as literal, and ref MUST NOT be XQC_NV_REF_NAME_AND_VALUE. */
-    xqc_flag_t          never;  // never_idx
+    xqc_flag_t          never;
 
     /* index mode */
     xqc_nv_ref_type_t   ref;

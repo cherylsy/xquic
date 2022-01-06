@@ -68,7 +68,7 @@ typedef struct user_stream_s {
     FILE               *recv_body_fp;
     int                 recv_fin;
     xqc_msec_t          start_time;
-    xqc_msec_t          first_frame_time; //first frame download time
+    xqc_msec_t          first_frame_time;   /* first frame download time */
     xqc_msec_t          last_read_time;
     int                 abnormal_count;
 } user_stream_t;

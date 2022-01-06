@@ -199,6 +199,7 @@ xqc_log_implement(xqc_log_t *log, xqc_log_type_t type, const char *func, const c
     #endif
 #else
 #define xqc_log(log, level, ...)
+#define xqc_log_event(log, type, ...)
 #endif
 
 #define xqc_conn_log(conn, level, fmt, ...) \

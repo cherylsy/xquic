@@ -126,11 +126,11 @@ xqc_recv_record_add(xqc_recv_record_t *recv_record, xqc_packet_number_t packet_n
         }
         new_node->pktno_range.low = new_node->pktno_range.high = packet_number;
         if (pos_find) {
-            //insert before pos
+            /* insert before pos */
             xqc_list_add_tail(&(new_node->list), pos);
 
         } else {
-            //insert tail of the list
+            /* insert tail of the list */
             xqc_list_add_tail(&(new_node->list), &recv_record->list_head);
         }
     }

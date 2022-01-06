@@ -82,7 +82,7 @@ xqc_gen_stream_frame(xqc_packet_out_t *packet_out,
             }
 
         } else {
-            //length_len = 0; reserve ACK, must have length.
+            /* length_len = 0; reserve ACK, must have length. */
             size = n_avail;
             length_bits = xqc_vint_get_2bit(size);
             length_len = xqc_vint_len(length_bits);

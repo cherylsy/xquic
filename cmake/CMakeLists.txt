@@ -11,6 +11,31 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(XQC_BINARY_TYPE SHARED)
 
+# SSL lib type, xquic support babassl and boringssl interfaces
+if(NOT SSL_TYPE)
+    set(SSL_TYPE "babassl")
+endif()
+
+# PATH of ssl
+if(NOT SSL_PATH)
+    set(SSL_PATH "/usr/local/babassl")
+endif()
+
+# ssl include path
+if(NOT SSL_INC_PATH)
+    set(SSL_INC_PATH
+        ${SSL_PATH}/include
+    )
+endif()
+
+# ssl lib denpendency
+if(NOT SSL_LIB_PATH)
+    set(SSL_LIB_PATH
+        ${SSL_PATH}/lib/libssl.a
+        ${SSL_PATH}/lib/libcrypto.a
+    )
+endif()
+
 set(COMMON_FLAGS            "-Wall -Wno-deprecated  -Wno-unused -Wno-unused-variable -Wno-pointer-sign -Wno-format-security ")
 
 set(COMMON_RELEASE_FLAGS    "-DNDEBUG")
@@ -42,42 +67,52 @@ if (XQC_ONLY_ERROR_LOG)
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_ONLY_ERROR_LOG")
 endif()
 
+
 if(ANDROID)
     set(DYMAMIC_LINK_OPTION 
         ${DYMAMIC_LINK_OPTION}
         -lm
         -llog)
+
     if(NOT ANDROID_TOOLCHAIN_ROOT)
         message(FATAL_ERROR  "You Must Define DANDROID_TOOLCHAIN_ROOT")
     endif()
+
 endif()
+
 
 include(CMakeOptions.txt)
 
 if (XQC_BUILD_OPENSSL)
-    if(XQC_OPENSSL_IS_BORINGSSL) 
-        add_subdirectory(third_party/boringssl)
-        include_directories(third_party/boringssl/include)
+    if(${SSL_TYPE} MATCHES "boringssl")
+        add_subdirectory(${SSL_PATH})
+        include_directories(${SSL_PATH}/include)
+
         if (BORINGSSL_PREFIX)
             add_definitions(-DBORINGSSL_PREFIX=${BORINGSSL_PREFIX})
             add_dependencies(xquic_global boringssl_prefix_symbols)
-            include_directories(${CMAKE_CURRENT_BINARY_DIR}/third_party/boringssl/symbol_prefix_include)
+            include_directories(${SSL_PATH}/symbol_prefix_include)
         endif()
+
     else()
-        set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
-        add_subdirectory(external/openssl-cmake)
+        #set(EXTRA_CONFIGURE_OPENSSL_PARAMS "${EXTRA_CONFIGURE_OPENSSL_PARAMS} ${DYNAMIC_COMPILE_FLAGS} ")
+        #add_subdirectory(external/openssl-cmake)
     endif()
+
     set(DYMAMIC_LINK_OPTION 
             ssl 
             crypto 
             ${DYMAMIC_LINK_OPTION}
         )
+
 elseif(XQC_EXISTS_OPENSSL)
-    if(not XQC_EXISTS_OPENSSL_INCLUDE_DIR or not XQC_EXISTS_OPENSSL_BINARY )
+    if(not XQC_EXISTS_OPENSSL_INCLUDE_DIR or not XQC_EXISTS_OPENSSL_BINARY)
         message(FATAL_ERROR  "You Must DEFINE XQC_EXISTS_OPENSSL_INCLUDE_DIR and XQC_EXISTS_OPENSSL_BINARY")
     endif()
+
     include_directories(XQC_EXISTS_OPENSSL_INCLUDE_DIR)
     set(DYMAMIC_LINK_OPTION "${XQC_EXISTS_OPENSSL_BINARY} ${DYMAMIC_LINK_OPTION}")
+
 else()
     message(FATAL_ERROR  "There Must Exists one tls impl")
 endif()
@@ -86,27 +121,23 @@ endif()
 configure_file (xqc_configure.h.in include/xquic/xqc_configure.h  @ONLY)
 
 include_directories(
-    include/ 
+    include/
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}/include
 )
 
+
+# http3/qpack source
 set(
-
     HTTP3_SOURCES
-
-    "src/common/utils/huffman/xqc_huffman_code.c"
-    "src/common/utils/huffman/xqc_huffman.c"
-    "src/common/utils/vint/xqc_discrete_vint_parser.c"
-    "src/common/utils/vint/xqc_variable_len_int.c"
-    "src/common/utils/ringarray/xqc_ring_array.c"
-    "src/common/utils/ringmem/xqc_ring_mem.c"
-    "src/common/utils/2d_hash/xqc_2d_hash_table.c"
     "src/http3/xqc_var_buf.c"
     "src/http3/xqc_h3_conn.c"
     "src/http3/xqc_h3_stream.c"
     "src/http3/xqc_h3_request.c"
     "src/http3/frame/xqc_h3_frame.c"
+    "src/http3/xqc_h3_header.c"
+    "src/http3/xqc_h3_ctx.c"
+    "src/http3/xqc_h3_defs.c"
     "src/http3/qpack/xqc_qpack.c"
     "src/http3/qpack/xqc_prefixed_int.c"
     "src/http3/qpack/xqc_prefixed_str.c"
@@ -116,13 +147,11 @@ set(
     "src/http3/qpack/xqc_ins.c"
     "src/http3/qpack/stable/xqc_stable.c"
     "src/http3/qpack/dtable/xqc_dtable.c"
-    "src/http3/xqc_h3_header.c"
 )
 
+# Transport source
 set(
-
     TRANSPORT_SOURCES
-
     "src/transport/xqc_engine.c"
     "src/transport/xqc_conn.c"
     "src/transport/xqc_client.c"
@@ -140,14 +169,11 @@ set(
     "src/transport/xqc_utils.c"
     "src/transport/xqc_defs.c"
     "src/transport/xqc_transport_params.c"
-
 )
 
-
+# TLS source
 set (
-
     TLS_SOURCE
-
     "src/tls/xqc_hkdf.c"
     "src/tls/xqc_null_crypto.c"
     "src/tls/xqc_crypto.c"
@@ -155,41 +181,48 @@ set (
     "src/tls/xqc_tls.c"
 )
 
-if(XQC_OPENSSL_IS_BORINGSSL)
-set (
-    TLS_SOURCE 
-    ${TLS_SOURCE}
-    "src/tls/boringssl/xqc_hkdf.c"
-    "src/tls/boringssl/xqc_crypto.c"
-    "src/tls/boringssl/xqc_ssl_if.c"
-)
-else()
-set(
-    TLS_SOURCE 
-    ${TLS_SOURCE}
-    "src/tls/babsssl/xqc_hkdf.c"
-    "src/tls/babsssl/xqc_crypto.c"
-    "src/tls/babsssl/xqc_ssl_if.c"
-)
+if(${SSL_TYPE} MATCHES "boringssl")
+    set(
+        TLS_SOURCE
+        ${TLS_SOURCE}
+        "src/tls/boringssl/xqc_hkdf.c"
+        "src/tls/boringssl/xqc_crypto.c"
+        "src/tls/boringssl/xqc_ssl_if.c"
+    )
+elseif(${SSL_TYPE} MATCHES "babassl")
+    set(
+        TLS_SOURCE
+        ${TLS_SOURCE}
+        "src/tls/babassl/xqc_hkdf.c"
+        "src/tls/babassl/xqc_crypto.c"
+        "src/tls/babassl/xqc_ssl_if.c"
+    )
 endif()
 
+# common source
 set(
     COMMON_SOURCES
-
     "src/common/xqc_random.c"
     "src/common/xqc_str.c"
     "src/common/xqc_log.c"
+    "src/common/xqc_log_event_callback.c"
     "src/common/xqc_time.c"
+    "src/common/utils/huffman/xqc_huffman_code.c"
+    "src/common/utils/huffman/xqc_huffman.c"
+    "src/common/utils/vint/xqc_discrete_vint_parser.c"
+    "src/common/utils/vint/xqc_variable_len_int.c"
+    "src/common/utils/ringarray/xqc_ring_array.c"
+    "src/common/utils/ringmem/xqc_ring_mem.c"
+    "src/common/utils/2d_hash/xqc_2d_hash_table.c"
 )
 
+# congestion control
 set(
     CONGESTION_CONTROL_SOURCES
-
     "src/congestion_control/xqc_cubic.c"
     "src/congestion_control/xqc_bbr.c"
     "src/congestion_control/xqc_window_filter.c"
     "src/congestion_control/xqc_sample.c"
-
 )
 
 if (XQC_DISABLE_RENO)
@@ -197,7 +230,6 @@ if (XQC_DISABLE_RENO)
 else()
     set(
         CONGESTION_CONTROL_SOURCES
-
         ${CONGESTION_CONTROL_SOURCES}
         "src/congestion_control/xqc_new_reno.c"
     )
@@ -207,7 +239,6 @@ if (XQC_ENABLE_BBR2)
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_ENABLE_BBR2")
     set(
         CONGESTION_CONTROL_SOURCES
-
         ${CONGESTION_CONTROL_SOURCES}
         "src/congestion_control/xqc_bbr2.c"
     )
@@ -230,11 +261,11 @@ add_library(
 add_dependencies(xquic xquic_global)
 
 if (NOT XQC_NO_SHARED)
-target_link_libraries(
-    xquic 
-    ${DYMAMIC_LINK_OPTION}
-    -pthread
-)
+    target_link_libraries(
+        xquic 
+        ${DYMAMIC_LINK_OPTION}
+        -pthread
+    )
 endif()
 
 if (XQC_ENABLE_TESTING)
@@ -251,13 +282,6 @@ if (XQC_BUILD_SAMPLE)
     include_directories(third_party/libevent/include  ${CMAKE_CURRENT_BINARY_DIR}/third_party/libevent/include )
     add_executable(test_client tests/test_client.c)
     add_executable(test_server tests/test_server.c)
-    add_executable(test_qpack_server tests/test_qpack_server.c)
-    add_executable(test_qpack_client tests/test_qpack_client.c)
-    add_executable(xquic_bench benchmark/xquic_bench.c)
-    target_link_libraries(test_client xquic event )
+    target_link_libraries(test_client xquic event)
     target_link_libraries(test_server xquic event)
-    target_link_libraries(test_qpack_server xquic event )
-    target_link_libraries(test_qpack_client xquic event)
-    target_link_libraries(xquic_bench xquic event)
 endif()
-
