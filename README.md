@@ -102,10 +102,20 @@ sh ../scripts/xquic_test.sh
 
 ## Contributing
 
-We would love for you to contribute to XQUIC and help make it even better than it is today! All types of contributions are encouraged and valued. See our [Contributing Guidelines](./CONTRIBUTING.md) for more information.
+We would love for you to contribute to XQUIC and help make it even better than it is today! All types of contributions are encouraged and valued. Thanks to [all contributors](https://github.com/alibaba/xquic/blob/main/CONTRIBUTING.md#all-contributors). See our [Contributing Guidelines](./CONTRIBUTING.md) for more information.
 
 If you have any questions, please feel free to open a new Discussion topic in our [discussion forums](https://github.com/alibaba/xquic/discussions).
 
 ## License
 
 XQUIC is released under the Apache 2.0 License.
+
+## Contact Us
+
+Feel free to contact us in the following ways:
+
+* e-mail: xquic@alibaba-inc.com
+* Dingtalk group: 34059705
+* slack channel: #xquic in quicdev group
+
+  <img src="docs/images/dingtalk_group.jpg" width=200 alt="dingtalk group"/>
