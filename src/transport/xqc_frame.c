@@ -59,6 +59,7 @@ xqc_frame_type_2_str(xqc_frame_type_bit_t type_bit)
                 break;
             }
             pos += wsize;
+        }
     }
     return g_frame_type_buf;
 }
