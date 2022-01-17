@@ -94,7 +94,7 @@ sh ../scripts/xquic_test.sh
     - [draft-ietf-quic-tls-34-zh](../../docs/translation/draft-ietf-quic-tls-34-zh.md)
     - [draft-ietf-quic-http-34-zh](../../docs/translation/draft-ietf-quic-http-34-zh.md)
     - [draft-ietf-quic-qpack-21-zh](../../docs/translation/draft-ietf-quic-qpack-21-zh.md)
-
+* 关于event_log模块的使用, 详见 [Event_log module docs](./docs/docs-zh/Event_log-zh.md)
 * 关于常见问题，参见 [FAQs](../../docs/FAQ.md).
 
 ## Contributing
