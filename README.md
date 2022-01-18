@@ -98,6 +98,7 @@ sh ../scripts/xquic_test.sh
     - [draft-ietf-quic-http-34-zh](./docs/translation/draft-ietf-quic-http-34-zh.md)
     - [draft-ietf-quic-qpack-21-zh](./docs/translation/draft-ietf-quic-qpack-21-zh.md)
 
+* For using event_log module, see the [Event_log module docs](./docs/docs-zh/Event_log-zh.md)
 * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).
 
 ## Contributing
