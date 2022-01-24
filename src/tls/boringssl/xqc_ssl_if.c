@@ -21,14 +21,14 @@ xqc_ssl_ctx_set_timeout(SSL_CTX *ctx, uint32_t timeout)
 void
 xqc_ssl_ctx_enable_max_early_data(SSL_CTX *ctx)
 {
-    /* for encapsulation, boringssl has no interface to enable max_early_data on SSL_CTX */
+    /* for encapsulation, BoringSSL has no interface to enable max_early_data on SSL_CTX */
 }
 
 
 xqc_int_t
 xqc_ssl_ctx_set_cipher_suites(SSL_CTX *ctx, const char *ciphers)
 {
-    /* boringssl have a built-in preference order and do not support setting TLS 1.3 cipher */
+    /* BoringSSL have a built-in preference order and do not support setting TLS 1.3 cipher */
     return XQC_OK;
 }
 
@@ -109,7 +109,7 @@ again:
     ERR_clear_error();
     ret = SSL_do_handshake(ssl);
     if (ret <= 0) {
-        switch(SSL_get_error(ssl, ret)) {
+        switch (SSL_get_error(ssl, ret)) {
         case SSL_ERROR_WANT_READ:
         case SSL_ERROR_WANT_WRITE:
             return XQC_SSL_HSK_RES_WAIT;

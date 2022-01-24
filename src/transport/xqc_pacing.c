@@ -11,7 +11,7 @@
 #define XQC_MAX_BURST_NUM (10 * XQC_QUIC_MSS)
 #define TRUE 1
 #define FALSE 0
-#define XQC_CLOCK_GRANULARITY_US 1000 /*1ms*/
+#define XQC_CLOCK_GRANULARITY_US 1000 /* 1ms */
 #define XQC_PACING_DELAY_US XQC_CLOCK_GRANULARITY_US
 
 void
@@ -50,8 +50,8 @@ xqc_pacing_rate_calc(xqc_pacing_t *pacing)
     /* bytes can be sent per second */
     pacing_rate = cwnd * 1000000 / srtt;
 
-    if (ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start &&
-        ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start(ctl->ctl_cong)) {
+    if (ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start 
+        && ctl->ctl_cong_callback->xqc_cong_ctl_in_slow_start(ctl->ctl_cong)) {
         pacing_rate *= 2;
 
     } else {

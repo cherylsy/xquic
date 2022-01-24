@@ -39,7 +39,7 @@ static inline xqc_int_t
 xqc_vec_assign(xqc_vec_t * vec, const uint8_t * data, size_t data_len)
 {
     vec->base = xqc_malloc(data_len);
-    if(vec->base == NULL){
+    if (vec->base == NULL) {
         return -XQC_EMALLOC;
     }
     memcpy(vec->base, data, data_len);
@@ -65,7 +65,7 @@ xqc_crypto_create(uint32_t cipher_id, xqc_log_t *log)
     xqc_vec_init(&crypto->keys.rx_ckm.key);
     xqc_vec_init(&crypto->keys.rx_ckm.iv);
 
-    switch(cipher_id) {
+    switch (cipher_id) {
     /* TLS_AES_128_GCM_SHA256 */
     case XQC_TLS13_AES_128_GCM_SHA256:
         xqc_aead_init_aes_gcm(&crypto->pp_aead, 128);
@@ -351,8 +351,10 @@ xqc_crypto_derive_packet_protection_iv(xqc_crypto_t *crypto, uint8_t *dest, size
 {
     static uint8_t LABEL[] = "quic iv";
 
-    /* The Length provided with "quic iv" is the minimum length of the AEAD nonce
-       or 8 bytes if that is larger */
+    /* 
+     * he Length provided with "quic iv" is the minimum length of the AEAD nonce
+     * or 8 bytes if that is larger 
+     */
     size_t ivlen = xqc_max(8, crypto->pp_aead.noncelen);
     if (ivlen > destcap) {
         return -XQC_TLS_DERIVE_KEY_ERROR;
@@ -438,7 +440,7 @@ xqc_crypto_derive_keys(xqc_crypto_t *crypto, const uint8_t *secret, size_t secre
         p_ckm = &crypto->keys.tx_ckm;
         p_hp = &crypto->keys.tx_hp;
         break;
-    
+
     default:
         xqc_log(crypto->log, XQC_LOG_ERROR, "|illegal crypto secret type|type:%d|", type);
         return -XQC_TLS_INVALID_ARGUMENT;

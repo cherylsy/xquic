@@ -119,7 +119,7 @@ test_rbtree()
 void
 xqc_test_common()
 {
-    /*test queue*/
+    /* test queue */
     xqc_queue_t q;
     xqc_queue_init(&q);
     person_t p1 = { 1, "a1", xqc_queue_initialize(p1.queue) };
@@ -143,7 +143,7 @@ xqc_test_common()
         ++i;
     }
 
-    /*test hash functions*/
+    /* test hash functions */
     xqc_md5_t ctx;
     xqc_md5_init(&ctx);
     unsigned char buf[] = "hello,world";
@@ -158,7 +158,7 @@ xqc_test_common()
 
     test_rbtree();
 
-    /*test fifo*/
+    /* test fifo */
     xqc_fifo_t fifo;
     memset(&fifo, 0, sizeof(fifo));
     xqc_fifo_init(&fifo, xqc_default_allocator, sizeof(int), 4);
@@ -316,7 +316,7 @@ test_cid_connect(xqc_engine_t *engine)
     conn_settings.proto_version = XQC_IDRAFT_VER_29;
     
     xqc_conn_ssl_config_t conn_ssl_config;
-    memset(&conn_ssl_config, 0 ,sizeof(conn_ssl_config));
+    memset(&conn_ssl_config, 0, sizeof(conn_ssl_config));
     const xqc_cid_t *cid = xqc_connect(engine, &conn_settings, NULL, 0, "", 0, &conn_ssl_config,
                                        NULL, 0, "transport", NULL);
     return cid;

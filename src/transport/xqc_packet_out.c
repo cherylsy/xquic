@@ -294,7 +294,7 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
                         xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_ack_to_one_packet try new packet|");
                         goto write_new;
 
-                    } else if (ret == XQC_OK){
+                    } else if (ret == XQC_OK) {
                         goto done;
 
                     } else {
@@ -349,8 +349,11 @@ xqc_write_ping_to_packet(xqc_connection_t *conn, void *po_user_data, xqc_bool_t 
     packet_out->po_user_data = po_user_data;
     packet_out->po_used_size += ret;
 
-    /* xquic supports inner PING and user PING, user PING shall be notified to upper level while 
-       inner PING shall not.  if XQC_POF_NOTIFY is not set, it's an inner PING, do no callback */
+    /*
+     * xquic supports inner PING and user PING, user PING shall be notified
+     * to upper level while inner PING shall not.  if XQC_POF_NOTIFY is not set,
+     * it's an inner PING, do no callback 
+     */
     if (notify) {
         packet_out->po_flag |= XQC_POF_NOTIFY;
     }
