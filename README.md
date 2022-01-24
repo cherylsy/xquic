@@ -1,7 +1,14 @@
 # XQUIC
 <img src="docs/images/xquic_logo.png" alt="xquic logo"/>
 
-> [简体中文文档 README-Zh-CN](./docs/docs-zh/README-zh.md)
+![GitHub](https://img.shields.io/github/license/alibaba/xquic)
+[![Build](https://github.com/alibaba/xquic/actions/workflows/build.yml/badge.svg)](https://github.com/alibaba/xquic/actions/workflows/build.yml)
+[![CodeQL](https://github.com/alibaba/xquic/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/alibaba/xquic/actions/workflows/codeql-analysis.yml)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/485e758edd98409bb7a51cbb803838c4)](https://www.codacy.com/gh/alibaba/xquic/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=alibaba/xquic&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://app.codacy.com/project/badge/Coverage/485e758edd98409bb7a51cbb803838c4)](https://www.codacy.com/gh/alibaba/xquic/dashboard?utm_source=github.com&utm_medium=referral&utm_content=alibaba/xquic&utm_campaign=Badge_Coverage)
+![Platforms](https://img.shields.io/badge/platform-Android%20%7C%20iOS%20%7C%20Linux%20%7C%20macOS-blue)
+
+> [简体中文文档 README-zh-CN](./docs/docs-zh/README-zh.md)
 
 ## Introduction
 
@@ -25,16 +32,16 @@ To run test cases, you need
 
 ## QuickStart Guide
 
-xquic supports both BabaSSL and Boringssl.
+XQUIC supports both BabaSSL and BoringSSL.
 
 ### Build with BabaSSL
 
 ```bash
-# get xquic source code
+# get XQUIC source code
 git clone git@github.com:alibaba/xquic.git
 cd xquic
 
-# get and build babassl
+# get and build BabaSSL
 git clone git@github.com:BabaSSL/BabaSSL.git ./third_party/babassl
 cd ./third_party/babassl/
 ./config --prefix=/usr/local/babassl
@@ -45,7 +52,7 @@ SSL_INC_PATH_STR="${PWD}/include"
 SSL_LIB_PATH_STR="${PWD}/libssl.a;${PWD}/libcrypto.a"
 cd -
 
-# build xquic with BabaSSL
+# build XQUIC with BabaSSL
 git submodule update --init --recursive
 mkdir -p build; cd build
 cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug -DXQC_ENABLE_TESTING=1 -DXQC_SUPPORT_SENDMMSG_BUILD=1 -DXQC_ENABLE_EVENT_LOG=1 -DXQC_ENABLE_BBR2=1 -DXQC_DISABLE_RENO=0 -DSSL_TYPE=${SSL_TYPE_STR} -DSSL_PATH=${SSL_PATH_STR} -DSSL_INC_PATH=${SSL_INC_PATH_STR} -DSSL_LIB_PATH=${SSL_LIB_PATH_STR} ..
@@ -55,11 +62,11 @@ make -j
 ### Build with BoringSSL
 
 ```bash
-# get xquic source code
+# get XQUIC source code
 git clone git@github.com:alibaba/xquic.git
 cd xquic
 
-# get and build boringssl
+# get and build BoringSSL
 git clone git@github.com:google/boringssl.git ./third_party/boringssl
 cd ./third_party/boringssl
 mkdir -p build && cd build
@@ -72,7 +79,7 @@ SSL_INC_PATH_STR="${PWD}/include"
 SSL_LIB_PATH_STR="${PWD}/build/ssl/libssl.a;${PWD}/build/crypto/libcrypto.a"
 cd ../..
 
-# build xquic with BoringSSL
+# build XQUIC with BoringSSL
 git submodule update --init --recursive
 mkdir -p build; cd build
 cmake -DGCOV=on -DCMAKE_BUILD_TYPE=Debug -DXQC_ENABLE_TESTING=1 -DXQC_SUPPORT_SENDMMSG_BUILD=1 -DXQC_ENABLE_EVENT_LOG=1 -DXQC_ENABLE_BBR2=1 -DXQC_DISABLE_RENO=0 -DSSL_TYPE=${SSL_TYPE_STR} -DSSL_PATH=${SSL_PATH_STR} -DSSL_INC_PATH=${SSL_INC_PATH_STR} -DSSL_LIB_PATH=${SSL_LIB_PATH_STR} ..
@@ -89,7 +96,7 @@ sh ../scripts/xquic_test.sh
 
 * For using the API, see the [API docs](./docs/API.md).
 * For platform support details, see the [Platforms docs](./docs/Platforms.md).
-* For Chinese (zh-cn) translation of the IETF QUIC Protocol, see the Translation docs.
+* For Chinese Simplified (zh-CN) translation of the IETF QUIC Protocol, see the Translation docs.
     - The following translation is based on draft-34 and RFC Translation is Working In Progress.
     - [draft-ietf-quic-invariants-13-zh](./docs/translation/draft-ietf-quic-invariants-13-zh.md)
     - [draft-ietf-quic-transport-34-zh](./docs/translation/draft-ietf-quic-transport-34-zh.md)

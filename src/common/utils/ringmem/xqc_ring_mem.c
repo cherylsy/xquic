@@ -1,7 +1,7 @@
 /**
  * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
  *
- * @brief xqc_ring_mem_t isa ring memory used to store bytes in a contious buf with fixed capacity.
+ * @brief xqc_ring_mem_t is a ring memory used to store bytes in a contious buf with fixed capacity.
  * every inserted memory block got an unique index (xqc_ring_mem_idx_t), which acts as the handler
  * of a memory block.
  * the index is monotone increasing. this class use two monotone increasing numbers, sidx and eidx,
@@ -11,8 +11,6 @@
 #include "xqc_ring_mem.h"
 
 
-/**
- */
 typedef struct xqc_ring_mem_s {
     /* original memory */
     uint8_t            *buf;
@@ -346,8 +344,11 @@ xqc_ring_mem_duplicate(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t ori_idx, size_t 
         }
 
     } else {
-        /* impossible 2 truncation happened in one ring mem, so if duplicated memory block is
-           truncated, the original memory block MUST be continuous */
+        /* 
+         * impossible 2 truncation happened in one ring mem, 
+         * so if duplicated memory block is truncated, 
+         * the original memory block MUST be continuous 
+         */
         size_t first_blk_size = rmem->capacity - soffset_dup;
         memmove(rmem->buf + soffset_dup, rmem->buf + soffset_ori, first_blk_size);
         memmove(rmem->buf, rmem->buf + soffset_ori + first_blk_size, len - first_blk_size);

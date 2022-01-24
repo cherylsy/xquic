@@ -8,8 +8,10 @@
 typedef struct xqc_decoder_s {
     xqc_dtable_t           *dtable;
 
-    /* max dtable capacity is the configured size of dynamic table, this value is used to decode 
-       the Required Insert Count in encoded filed sections */
+    /*
+     * max dtable capacity is the configured size of dynamic table, this value is used to decode 
+     * the Required Insert Count in encoded filed sections
+     */
     size_t                  max_ents;
 
     /* log handler */
@@ -32,7 +34,7 @@ xqc_decoder_create(xqc_log_t *log, size_t max_dtable_cap)
         return NULL;
     }
 
-    dec->max_ents = xqc_dtable_max_entry_cnt(max_dtable_cap);;
+    dec->max_ents = xqc_dtable_max_entry_cnt(max_dtable_cap);
     dec->log = log;
 
     return dec;
@@ -340,7 +342,7 @@ xqc_log_QPACK_HEADERS_DECODED_callback(xqc_log_t *log, const char *func, ...)
         xqc_log_implement(log, QPACK_HEADERS_DECODED, func,
                           "|prefix|ricnt:%ui|base:%ui|", ricnt, base);
 
-    } else if (type == XQC_LOG_HEADER_BLOCK){
+    } else if (type == XQC_LOG_HEADER_BLOCK) {
         xqc_rep_ctx_t *ctx = va_arg(args, xqc_rep_ctx_t*);
         xqc_http_header_t *hdr = va_arg(args, xqc_http_header_t*);
         switch (ctx->type) {

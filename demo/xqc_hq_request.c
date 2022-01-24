@@ -78,7 +78,7 @@ xqc_hq_request_create(xqc_engine_t *engine, xqc_hq_conn_t *hqc, const xqc_cid_t 
         return NULL;
     }
 
-    /* init app-level callbaks */
+    /* init app-level callbacks */
     if (xqc_hq_ctx_get_request_callbacks(&hqr->hqr_cbs) != XQC_OK) {
         PRINT_LOG("get app-level request callbacks error\n");
         goto fail;
@@ -114,7 +114,7 @@ xqc_hq_request_create_passive(xqc_stream_t *stream)
         return NULL;
     }
 
-    /* init app-level callbaks */
+    /* init app-level callbacks */
     if (xqc_hq_ctx_get_request_callbacks(&hqr->hqr_cbs) != XQC_OK) {
         PRINT_LOG("get app-level request callbacks error");
         xqc_hq_request_destroy(hqr);
@@ -342,7 +342,7 @@ xqc_hq_stream_create_notify(xqc_stream_t *stream, void *strm_user_data)
         return hqr->hqr_cbs->req_create_notify(hqr, hqr->user_data);
     }
 
-    return XQC_OK;    
+    return XQC_OK;
 }
 
 
@@ -356,7 +356,6 @@ xqc_hq_stream_write_notify(xqc_stream_t *stream, void *user_data)
     if (ret < 0) {
         return (int)ret;
     }
-    
 
     if (hqr->hqr_cbs->req_write_notify) {
         return hqr->hqr_cbs->req_write_notify(hqr, hqr->user_data);
