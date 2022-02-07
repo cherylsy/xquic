@@ -2,7 +2,6 @@
 
 #!/bin/bash
 
-
 function generate_cert() {
     if [[ ! -f "server.key" || ! -f "server.crt" ]]; then
         keyfile=server.key

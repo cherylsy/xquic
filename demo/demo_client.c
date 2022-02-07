@@ -24,8 +24,10 @@
 #include "xqc_hq.h"
 
 
-#define XQC_PACKET_TMP_BUF_LEN 1600
-#define MAX_BUF_SIZE (100*1024*1024)
+#define XQC_PACKET_TMP_BUF_LEN  1600
+#define MAX_BUF_SIZE            (100*1024*1024)
+#define XQC_INTEROP_TLS_GROUPS  "X25519:P-256:P-384:P-521"
+
 
 typedef enum xqc_demo_cli_alpn_type_s {
     ALPN_HQ,
@@ -141,6 +143,7 @@ typedef struct xqc_demo_cli_quic_config_s {
     char *cipher_suites;                 /* cipher suites */
 
     uint8_t use_0rtt;                   /* 0-rtt switch, default turned off */
+    uint64_t keyupdate_pkt_threshold;   /* packet limit of a single 1-rtt key, 0 for unlimited */
 
 } xqc_demo_cli_quic_config_t;
 
@@ -172,7 +175,7 @@ typedef struct xqc_demo_cli_env_config_s {
     int     key_output_flag;
     char    key_out_path[256];
 
-    /* life cycle */
+    /* life circle */
     int     life;
 } xqc_demo_cli_env_config_t;
 
@@ -1070,7 +1073,7 @@ xqc_demo_cli_init_engine_ssl_config(xqc_engine_ssl_config_t* cfg, xqc_demo_cli_c
         cfg->ciphers = XQC_TLS_CIPHERS;
     }
 
-    cfg->groups = XQC_TLS_GROUPS;
+    cfg->groups = XQC_INTEROP_TLS_GROUPS;
 }
 
 void
@@ -1114,21 +1117,6 @@ xqc_demo_cli_init_conneciton_settings(xqc_conn_settings_t* settings,
         break;
     }
 
-#if 0
-    xqc_conn_settings_t cs = {
-        .pacing_on  = args->net_cfg.pacing,
-        .ping_on    = 0,
-        .cong_ctrl_callback = cong_ctrl,
-        .cc_params  = {
-            .customize_on = 1,
-            .init_cwnd = 32,
-        },
-        .so_sndbuf  = 1024*1024,
-        .proto_version = XQC_VERSION_V1,
-        .spurious_loss_detect_on = 1,
-    };
-    *settings = cs;
-#endif
     memset(settings, 0, sizeof(xqc_conn_settings_t));
     settings->pacing_on = args->net_cfg.pacing;
     settings->cong_ctrl_callback = cong_ctrl;
@@ -1137,6 +1125,7 @@ xqc_demo_cli_init_conneciton_settings(xqc_conn_settings_t* settings,
     settings->so_sndbuf = 1024*1024;
     settings->proto_version = XQC_VERSION_V1;
     settings->spurious_loss_detect_on = 1;
+    settings->keyupdate_pkt_threshold = args->quic_cfg.keyupdate_pkt_threshold;
 }
 
 /* set client args to default values */
@@ -1158,6 +1147,7 @@ xqc_demo_cli_init_args(xqc_demo_cli_client_args_t *args)
     /* quic cfg */
     args->quic_cfg.alpn_type = ALPN_HQ;
     strncpy(args->quic_cfg.alpn, "hq-interop", sizeof(args->quic_cfg.alpn));
+    args->quic_cfg.keyupdate_pkt_threshold = UINT64_MAX;
 }
 
 void
@@ -1254,6 +1244,7 @@ xqc_demo_cli_usage(int argc, char *argv[])
         "   -U    Url. \n"
         "   -k    key out path\n"
         "   -K    Client's life circle time\n"
+        "   -u    key update packet threshold\n"
         , prog);
 }
 
@@ -1386,6 +1377,12 @@ xqc_demo_cli_parse_args(int argc, char *argv[], xqc_demo_cli_client_args_t *args
         case 'U': // request URL, address is parsed from the request
             printf("option url only:%s\n", optarg);
             xqc_demo_cli_parse_urls(optarg, args);
+            break;
+
+        /* key update packet threshold */
+        case 'u':
+            printf("key update packet threshold: %s\n", optarg);
+            args->quic_cfg.keyupdate_pkt_threshold = atoi(optarg);
             break;
 
         default:
