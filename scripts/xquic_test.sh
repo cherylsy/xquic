@@ -22,7 +22,7 @@ function install_cunit() {
 }
 
 function install_go() {
-    sudo yum -y install go
+    sudo yum -y install golang
 }
 
 function build_babassl() {
