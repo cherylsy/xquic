@@ -49,10 +49,10 @@ if(HAVE_CUNIT)
     target_link_libraries(run_tests
         xquic-static
         m
-        dl
-        pthread
         ${CUNIT_LIBRARIES}
         ${SSL_LIB_PATH}
+        dl
+        pthread
     )
 
     add_test(run_tests run_tests)
