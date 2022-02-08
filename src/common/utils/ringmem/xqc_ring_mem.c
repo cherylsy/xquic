@@ -345,9 +345,9 @@ xqc_ring_mem_duplicate(xqc_ring_mem_t *rmem, xqc_ring_mem_idx_t ori_idx, size_t 
 
     } else {
         /* 
-         * impossible 2 truncation happened in one ring mem, 
-         * so if duplicated memory block is truncated, 
-         * the original memory block MUST be continuous 
+         * it is impossible that 2 truncation exist in one ring mem. Hence, if
+         * the duplicated memory block is truncated, the original memory block
+         * will always be continuous.
          */
         size_t first_blk_size = rmem->capacity - soffset_dup;
         memmove(rmem->buf + soffset_dup, rmem->buf + soffset_ori, first_blk_size);

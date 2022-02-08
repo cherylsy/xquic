@@ -514,7 +514,9 @@ xqc_h3_conn_on_settings_entry_received(uint64_t identifier, uint64_t value, void
         break;
 
     default:
-        return XQC_ERROR;
+        xqc_log(h3c->log, XQC_LOG_INFO, "|ignore unknown setting|identifier%ui|value:%ui",
+                identifier, value);
+        break;
     }
 
     return XQC_OK;

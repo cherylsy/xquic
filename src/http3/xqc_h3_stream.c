@@ -536,8 +536,10 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
         processed += read;
 
         if (pctx->state != XQC_H3_FRM_STATE_END && data_len != processed) {
-            xqc_log(h3c->log, XQC_LOG_ERROR, "|parse frame state error|state:%d||data_len:%zu|"
-                    "processed:%zu|", pctx->state, data_len, processed);
+            xqc_log(h3c->log, XQC_LOG_ERROR, "|parse frame state error|state:%d"
+                    "|data_len:%uz|processed:%uz|type:%ui|len:%uz|consumed:%uz",
+                    pctx->state, data_len, processed, pctx->frame.type,
+                    pctx->frame.len, pctx->frame.consumed_len);
             xqc_h3_frm_reset_pctx(pctx);
             return -XQC_H3_DECODE_ERROR;
         }
@@ -587,10 +589,10 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 break;
 
             default:
-                xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_control error"
-                        "|error frame type:%z|", pctx->frame.type);
-                xqc_h3_frm_reset_pctx(pctx);
-                return -H3_FRAME_UNEXPECTED;
+                /* ignore unknown h3 frame */
+                xqc_log(h3c->log, XQC_LOG_INFO, "|IGNORE unknown frame|"
+                        "type:%ui|", pctx->frame.type);
+                break;
             }
 
             xqc_log_event(h3s->log, HTTP_FRAME_PARSED, h3s);
@@ -620,8 +622,8 @@ xqc_h3_stream_process_push(xqc_h3_stream_t *h3s, unsigned char *data, size_t dat
         processed += read;
 
         if (pctx->state != XQC_H3_FRM_STATE_END && data_len != processed) {
-            xqc_log(h3s->log, XQC_LOG_ERROR, "|parse frame state error|state:%d||data_len:%zu|"
-                    "processed:%zu|", pctx->state, data_len, processed);
+            xqc_log(h3s->log, XQC_LOG_ERROR, "|parse frame state error|state:%d||data_len:%uz|"
+                    "processed:%uz|", pctx->state, data_len, processed);
             xqc_h3_frm_reset_pctx(pctx);
             return -XQC_H3_DECODE_ERROR;
         }
@@ -754,6 +756,8 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                         return -XQC_H3_BLOCKED_STREAM_EXCEED;
                     }
 
+                    xqc_h3_request_blocked(h3s->h3r);
+
                     return processed;
 
                 } else {
@@ -765,6 +769,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                         if (h3s->blocked_stream) {
                             xqc_h3_conn_remove_blocked_stream(h3s->h3c, h3s->blocked_stream);
                             h3s->blocked_stream = NULL;
+                            xqc_h3_request_unblocked(h3s->h3r);
                         }
                     }
                 }
@@ -817,12 +822,16 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                         h3s->h3r->fin_flag = fin_flag;
                     }
 
-                    /* notify DATA whenever there is data */
+                    /*
+                     * when all bytes of DATA frame is read, notify to
+                     * application to make sure it is notified before Trailer
+                     */
                     ret = xqc_h3_request_on_recv_body(h3s->h3r);
                     if (ret != XQC_OK) {
                         xqc_log(h3s->log, XQC_LOG_ERROR, "|recv body error|%d|", ret);
                         return ret;
                     }
+                    xqc_log(h3s->log, XQC_LOG_DEBUG, "|notify body on DATA frame end");
                 }
                 break;
 
@@ -831,10 +840,14 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 break;
 
             default:
-                xqc_log(h3s->log, XQC_LOG_ERROR, "|process request error|error "
-                        "frame type:%z|", pctx->frame.type);
+                xqc_log(h3s->log, XQC_LOG_INFO, "|ignore unknown frame|"
+                        "frame type:%ux|", pctx->frame.type);
+                /* skip all bytes */
+                len = xqc_min(pctx->frame.len - pctx->frame.consumed_len, data_len - processed);
+                pctx->frame.consumed_len += len;
+                processed += len;
                 xqc_h3_frm_reset_pctx(pctx);
-                return -H3_FRAME_UNEXPECTED;
+                break;
             }
 
             if (fin) {
@@ -1138,6 +1151,11 @@ xqc_h3_stream_process_blocked_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, x
 
         if (*fin) {
             h3s->flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
+
+            if (h3s->type == XQC_H3_STREAM_TYPE_REQUEST) {
+                /* only request stream will be blocked */
+                xqc_h3_request_stream_fin(h3s->h3r);
+            }
         }
 
     } while (buf->buf_len == buf->data_len && !*fin);
@@ -1171,6 +1189,11 @@ xqc_h3_stream_process_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, xqc_bool_
 
         if (*fin) {
             h3s->flags |= XQC_HTTP3_STREAM_FLAG_READ_EOF;
+
+            if (h3s->type == XQC_H3_STREAM_TYPE_REQUEST) {
+                /* only request stream will be blocked */
+                xqc_h3_request_stream_fin(h3s->h3r);
+            }
         }
 
         /* process h3 stream data */
@@ -1188,7 +1211,7 @@ xqc_h3_stream_process_data(xqc_stream_t *stream, xqc_h3_stream_t *h3s, xqc_bool_
 
     } while (read == buff_size && !*fin);
 
-    if (*fin) {
+    if (*fin && h3s->type == XQC_H3_STREAM_TYPE_REQUEST) {
         h3s->h3r->fin_flag = *fin;
     }
 
@@ -1231,6 +1254,18 @@ xqc_h3_stream_process_blocked_stream(xqc_h3_stream_t *h3s)
 
         } else {
             return XQC_OK;
+        }
+    }
+
+    /* notify DATA to application ASAP */
+    if (h3s->type == XQC_H3_STREAM_TYPE_REQUEST
+        && !xqc_list_empty(&h3s->h3r->body_buf))
+    {
+        /* notify DATA whenever there is data */
+        xqc_int_t ret = xqc_h3_request_on_recv_body(h3s->h3r);
+        if (ret != XQC_OK) {
+            xqc_log(h3s->log, XQC_LOG_ERROR, "|recv body error|%d|", ret);
+            return ret;
         }
     }
 
@@ -1325,6 +1360,18 @@ xqc_h3_stream_read_notify(xqc_stream_t *stream, void *user_data)
         } else if (ret != XQC_OK) {
             xqc_log(h3c->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_data error|%d|", ret);
             return ret;
+        }
+
+        /* notify DATA to application ASAP */
+        if (h3s->type == XQC_H3_STREAM_TYPE_REQUEST
+            && !xqc_list_empty(&h3s->h3r->body_buf))
+        {
+            /* notify DATA whenever there is data */
+            ret = xqc_h3_request_on_recv_body(h3s->h3r);
+            if (ret != XQC_OK) {
+                xqc_log(h3s->log, XQC_LOG_ERROR, "|recv body error|%d|", ret);
+                return ret;
+            }
         }
     }
 

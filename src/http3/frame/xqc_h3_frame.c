@@ -208,7 +208,10 @@ xqc_h3_frm_parse(const unsigned char *p, size_t sz, xqc_h3_frame_pctx_t *pctx)
             break;
         }
         default: {
-            return -XQC_H3_INVALID_FRAME_TYPE;
+            /* skip unknown frame payload bytes */
+            pos += pctx->frame.len;
+            pctx->state = XQC_H3_FRM_STATE_END;
+            break;
         }
         }
 
