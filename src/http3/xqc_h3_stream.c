@@ -592,6 +592,7 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                 /* ignore unknown h3 frame */
                 xqc_log(h3c->log, XQC_LOG_INFO, "|IGNORE unknown frame|"
                         "type:%xL|", pctx->frame.type);
+                xqc_h3_frm_reset_pctx(pctx);
                 break;
             }
 
@@ -637,10 +638,10 @@ xqc_h3_stream_process_push(xqc_h3_stream_t *h3s, unsigned char *data, size_t dat
                 /* PUSH related is not implemented yet */
                 break;
             default:
-                xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_push error|error"
-                        " frame type:%z|", pctx->frame.type);
+                xqc_log(h3s->log, XQC_LOG_INFO, "|ignore unknown frame|"
+                        "frame type:%xL|", pctx->frame.type);
                 xqc_h3_frm_reset_pctx(pctx);
-                return -H3_FRAME_UNEXPECTED;
+                break;
             }
             xqc_log_event(h3s->log, HTTP_FRAME_PARSED, h3s);
             xqc_h3_frm_reset_pctx(pctx);
@@ -842,10 +843,6 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
             default:
                 xqc_log(h3s->log, XQC_LOG_INFO, "|ignore unknown frame|"
                         "frame type:%xL|", pctx->frame.type);
-                /* skip all bytes */
-                len = xqc_min(pctx->frame.len - pctx->frame.consumed_len, data_len - processed);
-                pctx->frame.consumed_len += len;
-                processed += len;
                 xqc_h3_frm_reset_pctx(pctx);
                 break;
             }
