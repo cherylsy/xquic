@@ -537,7 +537,7 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
         if (pctx->state != XQC_H3_FRM_STATE_END && data_len != processed) {
             xqc_log(h3c->log, XQC_LOG_ERROR, "|parse frame state error|state:%d"
-                    "|data_len:%uz|processed:%uz|type:%ui|len:%uz|consumed:%uz",
+                    "|data_len:%uz|processed:%uz|type:%xL|len:%uz|consumed:%uz",
                     pctx->state, data_len, processed, pctx->frame.type,
                     pctx->frame.len, pctx->frame.consumed_len);
             xqc_h3_frm_reset_pctx(pctx);
@@ -591,7 +591,7 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
             default:
                 /* ignore unknown h3 frame */
                 xqc_log(h3c->log, XQC_LOG_INFO, "|IGNORE unknown frame|"
-                        "type:%ui|", pctx->frame.type);
+                        "type:%xL|", pctx->frame.type);
                 break;
             }
 
@@ -694,7 +694,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
         /* parse frame, mainly the type, length field */
         ssize_t read = xqc_h3_frm_parse(data + processed, data_len - processed, pctx);
         if (read < 0) {
-            xqc_log(h3s->log, XQC_LOG_ERROR, "|parse frame error|ret:%z|state:%d|frame_type:%ux|",
+            xqc_log(h3s->log, XQC_LOG_ERROR, "|parse frame error|ret:%z|state:%d|frame_type:%xL|",
                     read, pctx->state, pctx->frame.type);
             xqc_h3_frm_reset_pctx(pctx);
             return read;
@@ -723,7 +723,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
                                              hdrs, fin, &blocked);
                 if (read < 0) {
                     xqc_log(h3s->log, XQC_LOG_ERROR, "|xqc_h3_stream_process_request error"
-                            "|error frame type:%z|", pctx->frame.type);
+                            "|error frame type:%xL|", pctx->frame.type);
                     xqc_h3_frm_reset_pctx(pctx);
                     return -XQC_QPACK_SAVE_HEADERS_ERROR;
                 }
