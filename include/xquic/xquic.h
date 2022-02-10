@@ -200,7 +200,7 @@ typedef xqc_save_string_pt xqc_save_session_pt;
  * transport parameters are use when initiating 0-RTT connections to avoid violating the server's
  * restraintion, it shall be remembered with the same storage requirements and strategy as token.
  * When initiating a new connection, transport parameters is part of xqc_conn_ssl_config_t parameter
-*/
+ */
 typedef xqc_save_string_pt xqc_save_trans_param_pt;
 
 /**
