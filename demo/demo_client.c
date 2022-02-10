@@ -140,7 +140,7 @@ typedef struct xqc_demo_cli_quic_config_s {
     int  token_len;                     /* token len */
     char token[XQC_MAX_TOKEN_LEN];      /* token buf */
 
-    char *cipher_suites;                 /* cipher suites */
+    char *cipher_suites;                /* cipher suites */
 
     uint8_t use_0rtt;                   /* 0-rtt switch, default turned off */
     uint64_t keyupdate_pkt_threshold;   /* packet limit of a single 1-rtt key, 0 for unlimited */
