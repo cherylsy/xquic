@@ -688,20 +688,20 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
     /* process request bytes */
     while (processed < data_len) {
-        xqc_log(h3s->log, XQC_LOG_DEBUG, "|parse frame|state:%d|data_len:%d|process:%d|",
+        xqc_log(h3s->log, XQC_LOG_DEBUG, "|parse frame|state:%d|data_len:%uz|process:%z|",
                 pctx->state, data_len, processed);
 
         /* parse frame, mainly the type, length field */
         ssize_t read = xqc_h3_frm_parse(data + processed, data_len - processed, pctx);
         if (read < 0) {
-            xqc_log(h3s->log, XQC_LOG_ERROR, "|parse frame error|ret:%d|state:%d|frame_type:%d|",
+            xqc_log(h3s->log, XQC_LOG_ERROR, "|parse frame error|ret:%z|state:%d|frame_type:%ux|",
                     read, pctx->state, pctx->frame.type);
             xqc_h3_frm_reset_pctx(pctx);
             return read;
         }
 
-        xqc_log(h3s->log, XQC_LOG_DEBUG, "|parse frame success|frame_type:%d|read:%z|",
-                pctx->frame.type, read);
+        xqc_log(h3s->log, XQC_LOG_DEBUG, "|parse frame success|frame_type:%xL|len:%ui|read:%z|",
+                pctx->frame.type, pctx->frame.len, read);
         processed += read;
 
         xqc_bool_t fin = pctx->state == XQC_H3_FRM_STATE_END ? XQC_TRUE : XQC_FALSE;
@@ -841,7 +841,7 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
             default:
                 xqc_log(h3s->log, XQC_LOG_INFO, "|ignore unknown frame|"
-                        "frame type:%ux|", pctx->frame.type);
+                        "frame type:%xL|", pctx->frame.type);
                 /* skip all bytes */
                 len = xqc_min(pctx->frame.len - pctx->frame.consumed_len, data_len - processed);
                 pctx->frame.consumed_len += len;
@@ -1056,7 +1056,6 @@ xqc_h3_stream_process_in(xqc_h3_stream_t *h3s, unsigned char *data, size_t data_
                 xqc_log(h3c->log, XQC_LOG_ERROR, "|h3_stream is not blocked|processed:%ui|"
                         "data_len:%ui", processed, data_len);
                 return XQC_ERROR;
-
             }
 
             /* if blocked, store data in blocked buffer */
