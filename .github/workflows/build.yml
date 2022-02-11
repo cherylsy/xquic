@@ -1,4 +1,4 @@
-name: Build and Test
+name: Build
 
 on:
   push:
@@ -21,6 +21,7 @@ jobs:
 
     - name: Linux Setup
       run: |
+        sudo apt-get update
         sudo apt-get install -y build-essential libevent-dev
 
     - name: Cunit Setup
@@ -69,22 +70,22 @@ jobs:
     
     - name: Check Test Result
       run: |
-        echo -e "\033[32m unit test: \033[0m"
+        echo "unit test:"
         cat xquic_test.log | grep "Test:"
         unit_passed=`cat xquic_test.log | grep "Test:" | grep "passed" | wc -l`
         unit_failed=`cat xquic_test.log | grep "Test:" | grep "FAILED" | wc -l`
-        echo -e "\033[32m unit test passed:$unit_passed failed:$unit_failed \033[0m"
+        echo -e "\033[32m unit test passed:$unit_passed failed:$unit_failed \033[0m\n"
 
-        echo -e "\033[32m \ncase test: \033[0m"
+        echo "case test:"
         cat xquic_test.log | grep "pass:"
         case_passed=`cat xquic_test.log | grep "pass:" | grep "pass:1" | wc -l`
         case_failed=`cat xquic_test.log | grep "pass:" | grep "pass:0" | wc -l`
-        echo -e "\033[32m case test passed:$case_passed failed:$case_failed \033[0m"
+        echo -e "\033[32m case test passed:$case_passed failed:$case_failed \033[0m\n"
 
         if [ $unit_failed -eq 0 ] && [ $case_failed -eq 0 ] ; then
-          echo -e "\033[32m \n=== All test case passed! === \033[0m"
+          echo "===== All test case passed! ======"
         else
-          echo -e "\033[32m \n=== Find test case failed! === \033[0m"
+          echo "====== Find test case failed! ======"
           exit 1
         fi
 
