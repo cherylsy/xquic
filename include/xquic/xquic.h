@@ -135,7 +135,7 @@ typedef struct xqc_log_callbacks_s {
  * due to busy or some reason else
  *
  * @param user_data the user_data parameter of xqc_engine_packet_process
- * @return negative for refuse conneciton. 0 for accept
+ * @return negative for refuse connection. 0 for accept
  */
 typedef int (*xqc_server_accept_pt)(xqc_engine_t *engine, xqc_connection_t *conn,
     const xqc_cid_t *cid, void *user_data);
@@ -198,7 +198,7 @@ typedef xqc_save_string_pt xqc_save_session_pt;
  * @brief transport parameters callback
  *
  * transport parameters are use when initiating 0-RTT connections to avoid violating the server's
- * restraintion, it shall be remembered with the same storage requirements and strategy as token.
+ * restriction, it shall be remembered with the same storage requirements and strategy as token.
  * When initiating a new connection, transport parameters is part of xqc_conn_ssl_config_t parameter
  */
 typedef xqc_save_string_pt xqc_save_trans_param_pt;
@@ -702,7 +702,7 @@ typedef struct xqc_engine_callback_s {
        function xqc_now, which relies on gettimeofday */
     xqc_timestamp_pt                realtime_ts;
 
-    /* get monotinic increasing timestamp callback function. if not set, xquic will get timestamp
+    /* get monotonic increasing timestamp callback function. if not set, xquic will get timestamp
        with inner function xqc_now, which relies on gettimeofday */
     xqc_timestamp_pt                monotonic_ts;
 

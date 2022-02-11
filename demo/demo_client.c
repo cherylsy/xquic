@@ -175,7 +175,7 @@ typedef struct xqc_demo_cli_env_config_s {
     int     key_output_flag;
     char    key_out_path[256];
 
-    /* life circle */
+    /* life cycle */
     int     life;
 } xqc_demo_cli_env_config_t;
 
