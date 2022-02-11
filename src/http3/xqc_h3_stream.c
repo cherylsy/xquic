@@ -590,9 +590,8 @@ xqc_h3_stream_process_control(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
             default:
                 /* ignore unknown h3 frame */
-                xqc_log(h3c->log, XQC_LOG_INFO, "|IGNORE unknown frame|"
+                xqc_log(h3c->log, XQC_LOG_INFO, "|ignore unknown frame|"
                         "type:%xL|", pctx->frame.type);
-                xqc_h3_frm_reset_pctx(pctx);
                 break;
             }
 
@@ -640,7 +639,6 @@ xqc_h3_stream_process_push(xqc_h3_stream_t *h3s, unsigned char *data, size_t dat
             default:
                 xqc_log(h3s->log, XQC_LOG_INFO, "|ignore unknown frame|"
                         "frame type:%xL|", pctx->frame.type);
-                xqc_h3_frm_reset_pctx(pctx);
                 break;
             }
             xqc_log_event(h3s->log, HTTP_FRAME_PARSED, h3s);
@@ -843,7 +841,6 @@ xqc_h3_stream_process_request(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
             default:
                 xqc_log(h3s->log, XQC_LOG_INFO, "|ignore unknown frame|"
                         "frame type:%xL|", pctx->frame.type);
-                xqc_h3_frm_reset_pctx(pctx);
                 break;
             }
 
