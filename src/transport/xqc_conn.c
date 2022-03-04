@@ -228,6 +228,8 @@ xqc_conn_init_key_update_ctx(xqc_connection_t *conn)
     ctx->first_sent_pktno  = 0;
     ctx->first_recv_pktno  = 0;
     ctx->enc_pkt_cnt       = 0;
+
+    ctx->initiate_time_guard   = 0;
 }
 
 xqc_connection_t *
@@ -2728,6 +2730,15 @@ xqc_conn_confirm_key_update(xqc_connection_t *conn)
     if (!xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_KEY_UPDATE)) {
         xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_KEY_UPDATE, now, 3 * pto);
     }
+
+    /*
+     * Endpoints need to allow for the possibility that a peer might not be able to decrypt
+     * packets that initiate a key update during the period when the peer retains old keys.
+     * Endpoints SHOULD wait three times the PTO before initiating a key update after receiving
+     * an acknowledgment that confirms that the previous key update was received.
+     * Failing to allow sufficient time could lead to packets being discarded.
+     */
+    ctx->initiate_time_guard = now + 3 * pto;
 
     return XQC_OK;
 }
