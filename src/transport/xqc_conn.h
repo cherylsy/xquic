@@ -278,7 +278,7 @@ struct xqc_connection_s {
 
     /* callback function and user_data to application-layer-protocol layer */
     xqc_app_proto_callbacks_t       app_proto_cbs;
-    void                           *app_proto_user_data;
+    void                           *proto_data;
 
     xqc_list_head_t                 undecrypt_packet_in[XQC_ENC_LEV_MAX];  /* buffer for reordered packets */
     uint32_t                        undecrypt_count[XQC_ENC_LEV_MAX];
