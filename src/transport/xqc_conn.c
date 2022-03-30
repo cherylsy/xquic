@@ -550,7 +550,7 @@ xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_
     /* do callback */
     if (conn->app_proto_cbs.conn_cbs.conn_create_notify) {
         if (conn->app_proto_cbs.conn_cbs.conn_create_notify(conn, &conn->scid_set.user_scid,
-            conn->app_proto_user_data))
+            conn->user_data, conn->proto_data))
         {
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
             return -TRA_INTERNAL_ERROR;
@@ -610,7 +610,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
         /* ALPN negotiated, notify close through application layer protocol callback function */
         if (xc->app_proto_cbs.conn_cbs.conn_close_notify) {
             xc->app_proto_cbs.conn_cbs.conn_close_notify(xc, &xc->scid_set.user_scid,
-                                                         xc->app_proto_user_data);
+                                                         xc->user_data,
+                                                         xc->proto_data);
 
         } else if (xc->transport_cbs.server_refuse) {
             /* ALPN context is not initialized, ClientHello has not been received */
@@ -675,7 +676,7 @@ xqc_conn_set_transport_user_data(xqc_connection_t *conn, void *user_data)
 void
 xqc_conn_set_alp_user_data(xqc_connection_t *conn, void *user_data)
 {
-    conn->app_proto_user_data = user_data;
+    conn->proto_data = user_data;
 }
 
 xqc_int_t
@@ -1125,6 +1126,7 @@ xqc_conn_enc_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out,
     packet_out->po_pkt.pkt_num = conn->conn_send_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
     xqc_write_packet_number(packet_out->po_ppktno, packet_out->po_pkt.pkt_num, XQC_PKTNO_BITS);
     xqc_long_packet_update_length(packet_out);
+    xqc_short_packet_update_key_phase(packet_out, conn->key_update_ctx.cur_out_key_phase);
 
     /* encrypt */
     xqc_int_t ret = xqc_packet_encrypt_buf(conn, packet_out, enc_pkt, enc_pkt_cap, enc_pkt_len);
@@ -2623,7 +2625,7 @@ xqc_conn_check_handshake_complete(xqc_connection_t *conn)
         xqc_conn_handshake_complete(conn);
 
         if (conn->app_proto_cbs.conn_cbs.conn_handshake_finished) {
-            conn->app_proto_cbs.conn_cbs.conn_handshake_finished(conn, conn->app_proto_user_data);
+            conn->app_proto_cbs.conn_cbs.conn_handshake_finished(conn, conn->user_data, conn->proto_data);
         }
     }
 
