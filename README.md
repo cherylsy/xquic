@@ -99,7 +99,7 @@ sh ../scripts/xquic_test.sh
 * For Chinese Simplified (zh-CN) translation of the IETF QUIC Protocol, see the Translation docs.
     - The following translation is based on draft-34 and RFC Translation is Working In Progress.
     - [draft-ietf-quic-invariants-13-zh](./docs/translation/draft-ietf-quic-invariants-13-zh.md)
-    - [draft-ietf-quic-transport-34-zh](./docs/translation/draft-ietf-quic-transport-34-zh.md)
+    - [RFC9000-transport-zh](./docs/translation/rfc9000-transport-zh.md)
     - [draft-ietf-quic-recovery-34-zh](./docs/translation/draft-ietf-quic-recovery-34-zh.md)
     - [draft-ietf-quic-tls-34-zh](./docs/translation/draft-ietf-quic-tls-34-zh.md)
     - [draft-ietf-quic-http-34-zh](./docs/translation/draft-ietf-quic-http-34-zh.md)
