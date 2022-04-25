@@ -1585,7 +1585,7 @@ xqc_conn_close(xqc_engine_t *engine, const xqc_cid_t *cid)
     if (conn->conn_settings.linger.linger_on && !xqc_send_ctl_out_q_empty(ctl)) {
         conn->conn_flag |= XQC_CONN_FLAG_LINGER_CLOSING;
         xqc_send_ctl_timer_set(ctl, XQC_TIMER_LINGER_CLOSE, now,
-                               (conn->conn_settings.linger.linger_timeout ? : 3 * pto));
+                               (conn->conn_settings.linger.linger_timeout ? conn->conn_settings.linger.linger_timeout : 3 * pto));
         goto end;
     }
 
