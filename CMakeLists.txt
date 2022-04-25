@@ -98,7 +98,7 @@ set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -g -O0 -std=gnu11 -Wall -DNDEBUG_PRINT
 
 if(NOT CMAKE_SYSTEM_NAME MATCHES "Windows")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror -Wno-unused -Wno-pointer-sign -Wno-format-security ")
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -Werror -Wno-unused -Wno-pointer-sign -Wno-format-security ")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Werror -Wno-unused -Wno-pointer-sign -Wno-format-security ")
 else()
     add_definitions(-DXQC_SYS_WINDOWS=1)
 endif()
