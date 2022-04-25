@@ -95,14 +95,10 @@ static inline void
 xqc_wakeup_pq_element_swap(xqc_wakeup_pq_t *pq, size_t i, size_t j)
 {
 
-#ifdef XQC_SYS_WINDOWS
-#if (defined __MINGW32__) || (defined __MINGW64__)
+#if !defined(XQC_SYS_WINDOWS) || defined(XQC_ON_MINGW)
     char buf[pq->element_size];
 #else
     char *buf = (char *)_alloca(pq->element_size);
-#endif
-#else
-    char buf[pq->element_size];
 #endif
 
     xqc_wakeup_pq_elem_t* p;
