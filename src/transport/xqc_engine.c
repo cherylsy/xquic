@@ -955,7 +955,7 @@ xqc_engine_packet_process(xqc_engine_t *engine,
             if (xqc_engine_schedule_reset(engine, peer_addr, peer_addrlen, recv_time) != XQC_OK) {
                 return -XQC_ECONN_NFOUND;
             }
-            xqc_log(engine->log, XQC_LOG_INFO, "|fail to find connection, send reset|size:%uz|scid:%s|",
+            xqc_log(engine->log, XQC_LOG_STATS, "|fail to find connection, send reset|size:%uz|scid:%s|",
                     packet_in_size, xqc_scid_str(&scid));
             ret = xqc_engine_send_reset(engine, &scid, peer_addr, peer_addrlen, user_data);
             if (ret) {
