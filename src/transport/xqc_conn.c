@@ -3304,3 +3304,12 @@ xqc_conn_get_idle_timeout(xqc_connection_t *conn)
             ? XQC_CONN_DEFAULT_IDLE_TIMEOUT : conn->local_settings.max_idle_timeout;
     }
 }
+
+
+void
+xqc_conn_closing(xqc_connection_t *conn)
+{
+    if (conn->transport_cbs.conn_closing) {
+        conn->transport_cbs.conn_closing(conn, &conn->scid_set.user_scid, conn->conn_err, conn->user_data);
+    }
+}
