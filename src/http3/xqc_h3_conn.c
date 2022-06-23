@@ -162,6 +162,11 @@ xqc_h3_conn_set_settings(xqc_h3_conn_t *h3_conn, const xqc_h3_conn_settings_t *h
         settings->qpack_blocked_streams = h3_conn_settings->qpack_blocked_streams;
     }
 
+#ifdef XQC_COMPAT_DUPLICATE
+    settings->qpack_compat_duplicate = h3_conn_settings->qpack_compat_duplicate;
+    xqc_qpack_set_compat_dup(h3_conn->qpack, settings->qpack_compat_duplicate);
+#endif
+
     xqc_log_event(h3_conn->log, HTTP_PARAMETERS_SET, h3_conn, XQC_LOG_LOCAL_EVENT);
 }
 

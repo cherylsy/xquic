@@ -738,22 +738,17 @@ xqc_dtable_prepare_dup(xqc_dtable_t *dt, size_t space)
 xqc_int_t
 xqc_dtable_duplicate(xqc_dtable_t *dt, uint64_t idx, uint64_t *new_idx)
 {
-    xqc_int_t       ret = XQC_OK;
-    xqc_var_buf_t  *name;
-    xqc_var_buf_t  *value;
+    xqc_int_t       ret     = XQC_OK;
+    xqc_var_buf_t   name    = {0};
+    xqc_var_buf_t   value   = {0};
+    unsigned char  *nbuf    = NULL;
+    unsigned char  *vbuf    = NULL;
 
     xqc_log(dt->log, XQC_LOG_DEBUG, "|dup|idx:%ui|min_ref:%ui|", idx, dt->min_ref);
 
-    name = xqc_var_buf_create(0);
-    value = xqc_var_buf_create(0);
-    if (NULL == name || NULL == value) {
-        xqc_log(dt->log, XQC_LOG_ERROR, "|malloc name-value buf fail|");
-        ret = -XQC_EMALLOC;
-        goto end;
-    }
 
     /* get name-value of entry */
-    ret = xqc_dtable_get_nv(dt, idx, name, value);
+    ret = xqc_dtable_get_nv(dt, idx, &name, &value);
     if (ret != XQC_OK) {
         xqc_log(dt->log, XQC_LOG_ERROR, "|can't get entry with idx|idx:%ui|first:%ui|end:%ui|",
                 idx, dt->first_idx, dt->insert_cnt);
@@ -762,25 +757,27 @@ xqc_dtable_duplicate(xqc_dtable_t *dt, uint64_t idx, uint64_t *new_idx)
     }
 
     /* check if there is enough space */
-    size_t space = xqc_dtable_entry_size(name->data_len, value->data_len);
+    size_t space = xqc_dtable_entry_size(name.data_len, value.data_len);
     if (xqc_dtable_prepare_dup(dt, space) != XQC_OK) {
         xqc_log(dt->log, XQC_LOG_DEBUG, "|prepare for duplicate failed|");
         ret = -XQC_ELIMIT;
         goto end;
     }
 
-    ret = xqc_dtable_add(dt, name->data, name->data_len, value->data, value->data_len, new_idx);
+    ret = xqc_dtable_add(dt, name.data, name.data_len, value.data, value.data_len, new_idx);
     if (ret != XQC_OK) {
         xqc_log(dt->log, XQC_LOG_ERROR, "|duplicate error|ret:%d|");
     }
 
 end:
-    if (name) {
-        xqc_var_buf_free(name);
+    nbuf = xqc_var_buf_take_over(&name);
+    if (nbuf) {
+        xqc_free(nbuf);
     }
 
-    if (value) {
-        xqc_var_buf_free(value);
+    vbuf = xqc_var_buf_take_over(&value);
+    if (vbuf) {
+        xqc_free(vbuf);
     }
 
     return ret;

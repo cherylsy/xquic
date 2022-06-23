@@ -624,34 +624,34 @@ xqc_is_same_addr(const struct sockaddr *sa1, const struct sockaddr *sa2)
 
     switch (sa1->sa_family) {
 
-        case AF_INET6:
-            sin61 = (struct sockaddr_in6 *) sa1;
-            sin62 = (struct sockaddr_in6 *) sa2;
+    case AF_INET6:
+        sin61 = (struct sockaddr_in6 *) sa1;
+        sin62 = (struct sockaddr_in6 *) sa2;
 
-            if (memcmp(&sin61->sin6_addr, &sin62->sin6_addr, 16) != 0) {
-                return XQC_FALSE;
-            }
+        if (memcmp(&sin61->sin6_addr, &sin62->sin6_addr, 16) != 0) {
+            return XQC_FALSE;
+        }
 
-            if (sin61->sin6_port != sin62->sin6_port) {
-                return XQC_FALSE;
-            }
+        if (sin61->sin6_port != sin62->sin6_port) {
+            return XQC_FALSE;
+        }
 
-            break;
+        break;
 
-        default: /* AF_INET */
+    default: /* AF_INET */
 
-            sin1 = (struct sockaddr_in *) sa1;
-            sin2 = (struct sockaddr_in *) sa2;
+        sin1 = (struct sockaddr_in *) sa1;
+        sin2 = (struct sockaddr_in *) sa2;
 
-            if (sin1->sin_addr.s_addr != sin2->sin_addr.s_addr) {
-                return XQC_FALSE;
-            }
+        if (sin1->sin_addr.s_addr != sin2->sin_addr.s_addr) {
+            return XQC_FALSE;
+        }
 
-            if (sin1->sin_port != sin2->sin_port) {
-                return XQC_FALSE;
-            }
+        if (sin1->sin_port != sin2->sin_port) {
+            return XQC_FALSE;
+        }
 
-            break;
+        break;
     }
 
     return XQC_TRUE;

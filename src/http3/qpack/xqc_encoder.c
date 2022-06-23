@@ -628,11 +628,10 @@ xqc_encoder_try_duplicate(xqc_encoder_t *enc, xqc_hdr_enc_rule_t *info, xqc_var_
 #ifdef XQC_COMPAT_DUPLICATE
         if (enc->compat_dup) {
             ret = xqc_dtable_duplicate_compat(enc->dtable, info->index, &dup_idx);
+
         } else {
 #endif
-
             ret = xqc_dtable_duplicate(enc->dtable, info->index, &dup_idx);
-
 #ifdef XQC_COMPAT_DUPLICATE
         }
 #endif
