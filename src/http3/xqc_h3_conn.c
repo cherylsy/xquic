@@ -90,6 +90,14 @@ xqc_h3_engine_set_max_field_section_size(xqc_engine_t *engine, size_t size)
     default_local_h3_conn_settings.max_field_section_size = size;
 }
 
+#ifdef XQC_COMPAT_DUPLICATE
+void
+xqc_h3_engine_set_qpack_compat_duplicate(xqc_engine_t *engine, xqc_bool_t cmpt)
+{
+    default_local_h3_conn_settings.qpack_compat_duplicate = cmpt;
+}
+#endif
+
 
 const xqc_cid_t *
 xqc_h3_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
