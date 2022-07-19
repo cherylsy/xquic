@@ -16,6 +16,9 @@ xqc_h3_conn_settings_t default_local_h3_conn_settings = {
     .max_field_section_size     = XQC_H3_MAX_FIELD_SECTION_SIZE,
     .qpack_blocked_streams      = XQC_QPACK_MAX_BLOCK_STREAM,
     .qpack_max_table_capacity   = XQC_QPACK_MAX_TABLE_CAPACITY,
+#ifdef XQC_COMPAT_DUPLICATE
+    .qpack_compat_duplicate     = XQC_FALSE,
+#endif
 };
 
 xqc_h3_conn_settings_t default_peer_h3_conn_settings = {
@@ -23,6 +26,9 @@ xqc_h3_conn_settings_t default_peer_h3_conn_settings = {
     .max_field_section_size     = XQC_H3_SETTINGS_UNSET,
     .qpack_blocked_streams      = XQC_H3_SETTINGS_UNSET,
     .qpack_max_table_capacity   = XQC_H3_SETTINGS_UNSET,
+#ifdef XQC_COMPAT_DUPLICATE
+    .qpack_compat_duplicate     = XQC_FALSE,
+#endif
 };
 
 
@@ -300,6 +306,15 @@ xqc_h3_conn_create(xqc_connection_t *conn, void *user_data)
     /* create qpack */
     h3c->qpack = xqc_qpack_create(h3c->local_h3_conn_settings.qpack_max_table_capacity, 
                                   h3c->log, &xqc_h3_qpack_ins_cb, h3c);
+    if (NULL == h3c->qpack) {
+        xqc_log(h3c->log, XQC_LOG_ERROR, "|create qpack failed");
+        goto fail;
+    }
+
+#ifdef XQC_COMPAT_DUPLICATE
+    xqc_qpack_set_compat_dup(h3c->qpack, h3c->local_h3_conn_settings.qpack_compat_duplicate);
+#endif
+
     h3c->qdec_stream = NULL;
     h3c->qenc_stream = NULL;
 

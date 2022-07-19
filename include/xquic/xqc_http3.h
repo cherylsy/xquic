@@ -145,6 +145,11 @@ typedef struct xqc_h3_conn_settings_s {
     /* MAX_BLOCKED_STREAMS */
     uint64_t qpack_blocked_streams;
 
+#ifdef XQC_COMPAT_DUPLICATE
+    /* compat with the original qpack encoder's duplicate strategy */
+    xqc_bool_t  qpack_compat_duplicate;
+#endif
+
 } xqc_h3_conn_settings_t;
 
 
