@@ -612,6 +612,51 @@ xqc_engine_send_reset(xqc_engine_t *engine, xqc_cid_t *dcid, const struct sockad
     return XQC_OK;
 }
 
+xqc_bool_t
+xqc_is_same_addr(const struct sockaddr *sa1, const struct sockaddr *sa2)
+{
+    struct sockaddr_in   *sin1, *sin2;
+    struct sockaddr_in6  *sin61, *sin62;
+
+    if (sa1->sa_family != sa2->sa_family) {
+        return XQC_FALSE;
+    }
+
+    switch (sa1->sa_family) {
+
+    case AF_INET6:
+        sin61 = (struct sockaddr_in6 *) sa1;
+        sin62 = (struct sockaddr_in6 *) sa2;
+
+        if (memcmp(&sin61->sin6_addr, &sin62->sin6_addr, 16) != 0) {
+            return XQC_FALSE;
+        }
+
+        if (sin61->sin6_port != sin62->sin6_port) {
+            return XQC_FALSE;
+        }
+
+        break;
+
+    default: /* AF_INET */
+
+        sin1 = (struct sockaddr_in *) sa1;
+        sin2 = (struct sockaddr_in *) sa2;
+
+        if (sin1->sin_addr.s_addr != sin2->sin_addr.s_addr) {
+            return XQC_FALSE;
+        }
+
+        if (sin1->sin_port != sin2->sin_port) {
+            return XQC_FALSE;
+        }
+
+        break;
+    }
+
+    return XQC_TRUE;
+}
+
 
 #define XQC_CHECK_UNDECRYPT_PACKETS() do {                      \
     if (XQC_UNLIKELY(xqc_conn_has_undecrypt_packets(conn))) {   \
@@ -995,6 +1040,38 @@ process:
         xqc_memcpy(conn->local_addr, local_addr, local_addrlen);
         conn->local_addrlen = local_addrlen;
         xqc_log_event(conn->log, CON_CONNECTION_STARTED, conn, XQC_LOG_LOCAL_EVENT);
+    }
+
+    /* NAT rebinding */
+    if (engine->eng_type == XQC_ENGINE_SERVER
+        && (peer_addr != NULL && peer_addrlen != 0)
+        && (conn->peer_addr != NULL && conn->peer_addrlen != 0)
+        && !xqc_is_same_addr(peer_addr, (struct sockaddr *)conn->peer_addr))
+    {
+        if (conn->rebinding_addrlen == 0
+            && !xqc_send_ctl_timer_is_set(conn->conn_send_ctl, XQC_TIMER_NAT_REBINDING))
+        {
+            /* set rebinding_addr & send PATH_CHALLENGE */
+            xqc_memcpy(conn->rebinding_addr, peer_addr, peer_addrlen);
+            conn->rebinding_addrlen = peer_addrlen;
+
+            ret = xqc_conn_server_send_path_challenge(conn);
+            if (ret == XQC_OK) {
+                conn->rebinding_count++;
+                xqc_send_ctl_timer_set(conn->conn_send_ctl, XQC_TIMER_NAT_REBINDING,
+                                       recv_time, 3 * xqc_send_ctl_calc_pto(conn->conn_send_ctl));
+
+            } else {
+                xqc_log(engine->log, XQC_LOG_ERROR, "|fail to send path challenge|conn:%p|ret:%d|", conn, ret);
+                conn->rebinding_addrlen = 0;
+            }
+
+        } else if (xqc_is_same_addr(peer_addr, (struct sockaddr *)conn->rebinding_addr)
+                   && !(conn->conn_flag & XQC_CONN_FLAG_VALIDATE_REBINDING))
+        {
+            /* PATH_RESPONSE recv from rebinding_addr */
+            conn->conn_flag |= XQC_CONN_FLAG_VALIDATE_REBINDING;
+        }
     }
 
     /* process packets */

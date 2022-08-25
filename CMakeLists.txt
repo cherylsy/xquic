@@ -42,6 +42,11 @@ if(XQC_PRINT_SECRET)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_PRINT_SECRET")
 endif()
 
+if(XQC_COMPAT_DUPLICATE)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_COMPAT_DUPLICATE")
+endif()
+
+
 # print only error log
 if(XQC_ONLY_ERROR_LOG)
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_ONLY_ERROR_LOG ")
@@ -131,6 +136,7 @@ set(
     "src/transport/xqc_utils.c"
     "src/transport/xqc_defs.c"
     "src/transport/xqc_transport_params.c"
+    "src/transport/xqc_quic_lb.c"
 )
 
 # TLS source
