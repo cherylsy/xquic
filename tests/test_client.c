@@ -2267,6 +2267,10 @@ int main(int argc, char *argv[]) {
         conn_settings.keyupdate_pkt_threshold = 30;
     }
 
+    if (g_test_case == 42) {
+        conn_settings.max_pkt_out_size = 1400;
+    }
+
     eb = event_base_new();
 
     ctx.ev_engine = event_new(eb, -1, 0, xqc_client_engine_callback, &ctx);
