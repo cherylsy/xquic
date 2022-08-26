@@ -997,7 +997,7 @@ xqc_packet_parse_retry(xqc_connection_t *c, xqc_packet_in_t *packet_in)
         xqc_log(c->log, XQC_LOG_ERROR, "|retry token length exceed XQC_MAX_TOKEN_LEN|%d|", retry_token_len);
         return -XQC_EILLPKT;
     }
-    
+
     memcpy(c->conn_token, pos, retry_token_len);
     c->conn_token_len = retry_token_len;
 
