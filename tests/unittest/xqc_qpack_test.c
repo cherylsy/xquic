@@ -137,7 +137,7 @@ xqc_qpack_test_basic()
     xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
-    xqc_qpack_t *qpk_client = xqc_qpack_create(16384, engine->log, &ins_cb, &ins_buf_client);
+    xqc_qpack_t *qpk_client = xqc_qpack_create(16384, 16384, engine->log, &ins_cb, &ins_buf_client);
     CU_ASSERT(qpk_client != NULL);
 
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_client, 16 * 1024);
@@ -152,7 +152,7 @@ xqc_qpack_test_basic()
 
 
     /* decoder side */
-    xqc_qpack_t *qpk_server = xqc_qpack_create(16384, engine->log, &ins_cb, &ins_buf_server);
+    xqc_qpack_t *qpk_server = xqc_qpack_create(16384, 16384, engine->log, &ins_cb, &ins_buf_server);
 
     CU_ASSERT(qpk_server != NULL);
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_server, 16 * 1024);
@@ -200,8 +200,13 @@ xqc_qpack_test_basic()
     /* decode stream 1, shall not be blocked */
     xqc_bool_t blocked2 = XQC_FALSE;
     void *req_ctx2 = xqc_qpack_create_req_ctx(1);
-    read = xqc_qpack_dec_headers(qpk_server, req_ctx2, efs_buf_server->data + efs_buf_server->consumed_len, efs_buf_server->data_len - efs_buf_server->consumed_len, &hdrs_out2, 1, &blocked);
-    CU_ASSERT(read == efs_buf_server->data_len && blocked2 == XQC_FALSE);
+    while (efs_buf_server->consumed_len < efs_buf_server->data_len) {
+        read = xqc_qpack_dec_headers(qpk_server, req_ctx2, efs_buf_server->data + efs_buf_server->consumed_len, 1, &hdrs_out2, 1, &blocked);
+
+        CU_ASSERT(read == 1);
+        efs_buf_server->consumed_len += read;
+    }
+    CU_ASSERT(efs_buf_server->data_len == efs_buf_server->data_len && blocked2 == XQC_FALSE);
     efs_buf_server->consumed_len += read;
     xqc_qpack_destroy_req_ctx(req_ctx2);
 
@@ -308,8 +313,7 @@ xqc_qpack_test_duplicate()
     /* encoder side */
     xqc_engine_t *engine = test_create_engine();
 
-    // xqc_qpack_t *qpk_client = xqc_qpack_create(&ins_cb, &buf_client, engine->log, 512);
-    xqc_qpack_t *qpk_client = xqc_qpack_create(512, engine->log, &ins_cb, &buf_client);
+    xqc_qpack_t *qpk_client = xqc_qpack_create(512, 512, engine->log, &ins_cb, &buf_client);
 
     CU_ASSERT(qpk_client != NULL);
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_client, 512);
@@ -324,8 +328,7 @@ xqc_qpack_test_duplicate()
 
 
     /* decoder side */
-    // xqc_qpack_t *qpk_server = xqc_qpack_create(&ins_cb, &buf_server, engine->log, 512);
-    xqc_qpack_t *qpk_server = xqc_qpack_create(512, engine->log, &ins_cb, &buf_server);
+    xqc_qpack_t *qpk_server = xqc_qpack_create(512, 512, engine->log, &ins_cb, &buf_server);
 
     CU_ASSERT(qpk_server != NULL);
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_server, 512);
@@ -487,8 +490,7 @@ xqc_qpack_test_robust()
     /* encoder side */
     xqc_engine_t *engine = test_create_engine();
 
-    // xqc_qpack_t *qpk_client = xqc_qpack_create(&ins_cb, &buf_client, engine->log, 512);
-    xqc_qpack_t *qpk_client = xqc_qpack_create(16*1024, engine->log, &ins_cb, &buf_client);
+    xqc_qpack_t *qpk_client = xqc_qpack_create(16*1024, 16*1024, engine->log, &ins_cb, &buf_client);
 
     CU_ASSERT(qpk_client != NULL);
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_client, 16*1024);
@@ -503,8 +505,7 @@ xqc_qpack_test_robust()
 
 
     /* decoder side */
-    // xqc_qpack_t *qpk_server = xqc_qpack_create(&ins_cb, &buf_server, engine->log, 512);
-    xqc_qpack_t *qpk_server = xqc_qpack_create(16*1024, engine->log, &ins_cb, &buf_server);
+    xqc_qpack_t *qpk_server = xqc_qpack_create(16*1024, 16*1024, engine->log, &ins_cb, &buf_server);
 
     CU_ASSERT(qpk_server != NULL);
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_server, 16*1024);
@@ -663,7 +664,7 @@ xqc_test_min_ref()
     xqc_engine_t *engine = test_create_engine();
     CU_ASSERT(engine != NULL);
 
-    xqc_qpack_t *qpk_client = xqc_qpack_create(16384, engine->log, &ins_cb, &ins_buf_client);
+    xqc_qpack_t *qpk_client = xqc_qpack_create(16384, 16384, engine->log, &ins_cb, &ins_buf_client);
     CU_ASSERT(qpk_client != NULL);
 
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_client, 256);
@@ -678,7 +679,7 @@ xqc_test_min_ref()
 
 
     /* decoder side */
-    xqc_qpack_t *qpk_server = xqc_qpack_create(16384, engine->log, &ins_cb, &ins_buf_server);
+    xqc_qpack_t *qpk_server = xqc_qpack_create(16384, 16384, engine->log, &ins_cb, &ins_buf_server);
     CU_ASSERT(qpk_server != NULL);
 
     ret = xqc_qpack_set_enc_max_dtable_cap(qpk_server, 256);
