@@ -9,6 +9,7 @@
 #include "xqc_crypto.h"
 #include "src/common/xqc_common.h"
 #include <openssl/rand.h>
+#include <openssl/hmac.h>
 
 
 typedef enum xqc_tls_flag_e {
