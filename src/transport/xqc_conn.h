@@ -20,6 +20,7 @@
 #include "src/transport/xqc_timer.h"
 #include "src/transport/xqc_multipath.h"
 #include "src/tls/xqc_tls.h"
+#include "src/common/xqc_list.h"
 
 
 #define XQC_TOKEN_EXPIRE_DELTA (7 * 24 * 60 * 60)           /* expire in N seconds */
@@ -125,6 +126,8 @@ typedef enum {
     XQC_CONN_FLAG_VALIDATE_REBINDING_SHIFT,
     XQC_CONN_FLAG_CONN_CLOSING_NOTIFY_SHIFT,
     XQC_CONN_FLAG_CONN_CLOSING_NOTIFIED_SHIFT,
+    XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT_SHIFT,
+    XQC_CONN_FLAG_LOCAL_TP_UPDATED_SHIFT,
     XQC_CONN_FLAG_SHIFT_NUM,
 } xqc_conn_flag_shift_t;
 
@@ -165,6 +168,8 @@ typedef enum {
     XQC_CONN_FLAG_VALIDATE_REBINDING    = 1ULL << XQC_CONN_FLAG_VALIDATE_REBINDING_SHIFT,
     XQC_CONN_FLAG_CLOSING_NOTIFY        = 1ULL << XQC_CONN_FLAG_CONN_CLOSING_NOTIFY_SHIFT,
     XQC_CONN_FLAG_CLOSING_NOTIFIED      = 1ULL << XQC_CONN_FLAG_CONN_CLOSING_NOTIFIED_SHIFT,
+    XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT   = 1ULL << XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT_SHIFT,
+    XQC_CONN_FLAG_LOCAL_TP_UPDATED      = 1ULL << XQC_CONN_FLAG_LOCAL_TP_UPDATED_SHIFT,
 
 } xqc_conn_flag_t;
 
@@ -187,6 +192,7 @@ typedef struct {
     uint64_t                active_connection_id_limit;
     uint64_t                no_crypto;
     uint64_t                enable_multipath;
+    uint16_t                max_datagram_frame_size;
 } xqc_trans_settings_t;
 
 
@@ -299,6 +305,8 @@ struct xqc_connection_s {
     xqc_app_proto_callbacks_t       app_proto_cbs;
     void                           *proto_data;
 
+    void                           *dgram_data;
+
     xqc_list_head_t                 undecrypt_packet_in[XQC_ENC_LEV_MAX];  /* buffer for reordered packets */
     uint32_t                        undecrypt_count[XQC_ENC_LEV_MAX];
 
@@ -360,6 +368,11 @@ struct xqc_connection_s {
     /* for data callback mode, instead of write_socket/write_mmsg */
     xqc_conn_pkt_filter_callback_pt pkt_filter_cb;
     void                           *pkt_filter_cb_user_data;
+
+    /* for datagram */
+    uint64_t                        next_dgram_id;
+    xqc_list_head_t                 dgram_0rtt_buffer_list;
+    uint16_t                        dgram_mss;
 
     /* history path */
     xqc_conn_path_history_t        *history_path;
@@ -533,6 +546,22 @@ void xqc_conn_closing_notify(xqc_connection_t *conn);
 void xqc_conn_record_histroy_path(xqc_connection_t *conn, xqc_path_ctx_t *path);
 
 xqc_int_t xqc_conn_send_path_challenge(xqc_connection_t *conn, xqc_path_ctx_t *path);
+
+int xqc_conn_buff_0rtt_datagram(xqc_connection_t *conn, void *data, size_t data_len, uint64_t dgram_id);
+
+void xqc_conn_destroy_0rtt_datagram_buffer_list(xqc_connection_t *conn);
+void xqc_conn_resend_0rtt_datagram(xqc_connection_t *conn);
+
+xqc_gp_timer_id_t xqc_conn_register_gp_timer(xqc_connection_t *conn, char *timer_name, xqc_gp_timer_timeout_pt cb, void *user_data);
+
+void xqc_conn_unregister_gp_timer(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id);
+
+xqc_int_t xqc_conn_gp_timer_set(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id, xqc_usec_t expire_time);
+
+xqc_int_t xqc_conn_gp_timer_unset(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id);
+
+xqc_int_t xqc_conn_gp_timer_get_info(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id, xqc_bool_t *is_set, xqc_usec_t *expire_time);
+
 
 void xqc_conn_schedule_packets_to_paths(xqc_connection_t *conn);
 

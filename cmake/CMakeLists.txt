@@ -161,6 +161,7 @@ set(
     "src/transport/xqc_packet_parser.c"
     "src/transport/xqc_frame_parser.c"
     "src/transport/xqc_stream.c"
+    "src/transport/xqc_datagram.c"
     "src/transport/xqc_packet_out.c"
     "src/transport/xqc_packet_in.c"
     "src/transport/xqc_send_ctl.c"

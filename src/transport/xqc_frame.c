@@ -45,6 +45,7 @@ static const char * const frame_type_2_str[XQC_FRAME_NUM] = {
     [XQC_FRAME_ACK_MP]               = "ACK_MP",
     [XQC_FRAME_PATH_ABANDON]         = "PATH_ABANDON",
     [XQC_FRAME_PATH_STATUS]          = "PATH_STATUS",
+    [XQC_FRAME_DATAGRAM]             = "DATAGRAM",
     [XQC_FRAME_Extension]            = "Extension",
 };
 
@@ -263,6 +264,9 @@ xqc_process_frames(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
             break;
         case 0x1e:
             ret = xqc_process_handshake_done_frame(conn, packet_in);
+            break;
+        case 0x30 ... 0x31:
+            ret = xqc_process_datagram_frame(conn, packet_in);
             break;
         case 0xbaba00 ... 0xbaba01:
             ret = xqc_process_ack_mp_frame(conn, packet_in);
@@ -1196,6 +1200,48 @@ xqc_process_new_token_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
     return XQC_OK;
 }
 
+xqc_int_t
+xqc_process_datagram_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
+{
+    /* does not support datagram */
+    if (conn->local_settings.max_datagram_frame_size == 0) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|the endpoint does not support datagram but receives a DATAGRAM frame|");
+        XQC_CONN_ERR(conn, TRA_PROTOCOL_VIOLATION);
+        return -XQC_EPROTO;
+    }
+
+    unsigned char *data_buffer = NULL;
+    size_t data_len = 0;
+
+    xqc_int_t ret = xqc_parse_datagram_frame(packet_in, conn, &data_buffer, &data_len);
+    if (ret == -XQC_EPROTO) {
+        xqc_log(conn->log, XQC_LOG_ERROR,
+                "|the endpoint receives a DATAGRAM frame larger than max_datagram_frame_size|"
+                "max_datagram_frame_size:%ud|frame_size:%ud|",
+                conn->local_settings.max_datagram_frame_size,
+                data_len + XQC_DATAGRAM_HEADER_BYTES);
+        XQC_CONN_ERR(conn, TRA_PROTOCOL_VIOLATION);
+        return ret;
+    }
+    if (ret != XQC_OK) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_parse_datagram_frame error|");
+        return ret;
+    }
+
+    /* @TODO: datagram read callback */
+    if (data_len > 0) {
+        if (conn->app_proto_cbs.dgram_cbs.datagram_read_notify
+            && (conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST))
+        {
+            conn->app_proto_cbs.dgram_cbs.datagram_read_notify(conn, conn->dgram_data, data_buffer, data_len);
+        }
+    }
+
+    return ret;
+}
+
+
 
 xqc_int_t
 xqc_process_handshake_done_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
@@ -1480,10 +1526,6 @@ xqc_process_path_status_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
     if (path_status_seq_num > path->app_path_status_recv_seq_num) {
         path->app_path_status_recv_seq_num = path_status_seq_num;
         xqc_set_application_path_status(path, path_status, now);
-
-        xqc_log(conn->log, XQC_LOG_DEBUG,
-                "|path:%ui|path_id_type:%ui|path_id_content:%ui|app_path_status:%d|seq_num:%ui|tra_path_status:%d|",
-                path->path_id, path_id_type, path_id_content, path->app_path_status, path_status_seq_num, path->tra_path_status);
     }
 
     return XQC_OK;

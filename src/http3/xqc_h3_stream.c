@@ -357,6 +357,7 @@ xqc_h3_stream_send_data_frame(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
     xqc_int_t ret;
     uint8_t fin_only = fin && !data_size;
     uint8_t fin_only_sent = 0;
+    uint8_t fin_flag_for_quic_stream = 0;
     unsigned char *pos;
 
     /* Send buffered HEADERS frame if any */
@@ -383,6 +384,17 @@ xqc_h3_stream_send_data_frame(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
             h3s->data_frame.header_len = pos - h3s->data_frame.header_buf;
             h3s->data_frame.header_sent = 0;
+            fin_flag_for_quic_stream = fin;
+
+        } else {
+            /* there is already a old dataframe */
+            if ((data_size - data_sent) <= (h3s->data_frame.data_len - h3s->data_frame.data_sent)) {
+                fin_flag_for_quic_stream = fin;
+
+            } else {
+                /* !!! this is important, otherwise an infinite-loop will happen. */
+                fin_flag_for_quic_stream = 0;
+            }
         }
 
         /* Send frame header */
@@ -406,7 +418,7 @@ xqc_h3_stream_send_data_frame(xqc_h3_stream_t *h3s, unsigned char *data, size_t 
 
         /* Send frame data */
         sent = xqc_stream_send(h3s->stream, data + data_sent,
-                xqc_min(data_size - data_sent, h3s->data_frame.data_len - h3s->data_frame.data_sent), fin);
+                xqc_min(data_size - data_sent, h3s->data_frame.data_len - h3s->data_frame.data_sent), fin_flag_for_quic_stream);
         if (sent == -XQC_EAGAIN) {
             break;
         } else if (sent < 0) {

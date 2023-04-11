@@ -138,5 +138,9 @@ typedef struct xqc_http_priority_s {
     uint8_t                 reinject;
 } xqc_h3_priority_t;
 
+typedef struct xqc_conn_public_local_trans_settings_s {
+    uint16_t max_datagram_frame_size;
+} xqc_conn_public_local_trans_settings_t;
+
 
 #endif /*_XQUIC_TYPEDEF_H_INCLUDED_*/

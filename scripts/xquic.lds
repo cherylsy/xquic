@@ -82,7 +82,12 @@ XQUIC_VERS_1.0 {
         xqc_path_get_peer_addr;
         xqc_path_get_local_addr;
         xqc_xlink_reinj_ctl_cb;
+        xqc_datagram_get_mss;
+        xqc_datagram_send;
+        xqc_datagram_send_multiple;
+        xqc_datagram_set_user_data;
         xqc_path_get_stats;
+        xqc_conn_should_clear_0rtt_ticket;
     local:
         *;
 };

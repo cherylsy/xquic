@@ -1183,6 +1183,7 @@ xqc_stream_send(xqc_stream_t *stream, unsigned char *send_data, size_t send_data
         }
 
         if (!xqc_send_queue_can_write(conn->conn_send_queue)) {
+            conn->conn_send_queue->sndq_full = XQC_TRUE;
             xqc_log(conn->log, XQC_LOG_DEBUG, "|too many packets used|sndq_packets_used:%ud|", conn->conn_send_queue->sndq_packets_used);
             ret = -XQC_EAGAIN;
             goto do_buff;

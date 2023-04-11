@@ -23,6 +23,7 @@ typedef enum {
     TRA_INVALID_TOKEN               =  0xB,
     TRA_APPLICATION_ERROR           =  0xC,
     TRA_CRYPTO_BUFFER_EXCEEDED      =  0xD,
+    TRA_0RTT_TRANS_PARAMS_ERROR     =  0xE,   /* MUST delete the current saved 0RTT transport parameters */
     TRA_HS_CERTIFICATE_VERIFY_FAIL  =  0x1FE, /* for handshake certificate verify error */
     TRA_CRYPTO_ERROR                =  0x1FF, /* 0x1XX */
 } xqc_trans_err_code_t;
@@ -121,6 +122,9 @@ typedef enum {
 
     XQC_EENCRYPT_LB_CID                 = 670,      /* load balance connection ID encryption error */
     XQC_EENCRYPT_AES_128_ECB            = 671,      /* aes_128_ecb algorithm error */
+    
+    XQC_EDGRAM_NOT_SUPPORTED            = 680,      /* Datagram - not supported */
+    XQC_EDGRAM_TOO_LARGE                = 681,      /* Datagram - payload size too large */
     
     XQC_E_MAX,
 } xqc_transport_error_t;

@@ -12,7 +12,17 @@
 #include "src/transport/xqc_recv_record.h"
 
 #define XQC_PATH_CHALLENGE_DATA_LEN  8
+#define XQC_DATAGRAM_LENGTH_FIELD_BYTES 2
+#define XQC_DATAGRAM_HEADER_BYTES (XQC_DATAGRAM_LENGTH_FIELD_BYTES + 1)
 
+/**
+ * generate datagram frame
+ */
+xqc_int_t xqc_gen_datagram_frame(xqc_packet_out_t *packet_out, 
+    const unsigned char *payload, size_t size);
+
+xqc_int_t xqc_parse_datagram_frame(xqc_packet_in_t *packet_in, xqc_connection_t *conn,
+    unsigned char **buffer, size_t *size);
 
 /**
  * generate stream frame

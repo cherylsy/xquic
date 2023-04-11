@@ -68,6 +68,8 @@ typedef enum xqc_proto_version_s {
 
 #define XQC_INITIAL_PATH_ID             0
 
+#define XQC_DGRAM_RETX_ASKED_BY_APP     1
+
 
 /**
  * @brief get timestamp callback function. this might be useful on different platforms
@@ -230,6 +232,7 @@ typedef xqc_save_string_pt xqc_save_session_pt;
  * When initiating a new connection, transport parameters is part of xqc_conn_ssl_config_t parameter
  */
 typedef xqc_save_string_pt xqc_save_trans_param_pt;
+
 
 /**
  * @brief handshake finished callback function
@@ -403,7 +406,7 @@ typedef enum {
     XQC_PATH_DEGRADE,
     XQC_PATH_RECOVERY,
 } xqc_path_status_change_type_t;
-
+ 
 /**
  * @brief multi-path quality callback function
  *
@@ -465,7 +468,59 @@ typedef ssize_t (*xqc_send_mmsg_ex_pt)(uint64_t path_id,
  * client, or the parameter of xqc_stream_set_user_data set by server
  * @return 0 for success, -1 for failure
  */
-typedef int (*xqc_stream_notify_pt)(xqc_stream_t *stream, void *strm_user_data);
+typedef xqc_int_t (*xqc_stream_notify_pt)(xqc_stream_t *stream,
+    void *strm_user_data);
+
+/**
+ * @brief the callback API to notify application that there is a datagram to be read
+ *
+ * @param conn the connection handle
+ * @param user_data the dgram_data set by xqc_datagram_set_user_data
+ * @param data the data delivered by this callback
+ * @param data_len the length of the delivered data
+ */
+typedef void (*xqc_datagram_read_notify_pt)(xqc_connection_t *conn,
+    void *user_data, void *data, size_t data_len);
+
+/**
+ * @brief the callback API to notify application that datagrams can be sent
+ *
+ * @param conn the connection handle
+ * @param user_data the dgram_data set by xqc_datagram_set_user_data
+ */
+typedef void (*xqc_datagram_write_notify_pt)(xqc_connection_t *conn,
+    void *user_data);
+
+/**
+ * @brief the callback API to notify application that a datagram is declared lost.
+ * However, the datagram could also be acknowledged later, as the underlying
+ * loss detection is not fully accurate. Applications should handle this type of
+ * spurious loss. The return value indicates how this lost datagram is 
+ * handled by the QUIC stack. NOTE, if the QUIC stack replicates the datagram 
+ * (e.g. reinjection or retransmission), this callback can be triggered 
+ * multiple times for a dgram_id. 
+ * 
+ * @param conn the connection handle
+ * @param user_data the dgram_data set by xqc_datagram_set_user_data
+ * @param dgram_id the id of the lost datagram
+ * @return 0: the stack will not retransmit the packet; 
+ *         XQC_DGRAM_RETX_ASKED_BY_APP (1): the stack will retransmit the packet;
+ *         others are ignored by the QUIC stack.
+ */
+typedef xqc_int_t (*xqc_datagram_lost_notify_pt)(xqc_connection_t *conn,
+    uint64_t dgram_id, void *user_data);
+
+/**
+ * @brief the callback API to notify application that a datagram is acked. Note,
+ *        for every unique dgram_id, this callback will be only called once.
+ * 
+ * @param conn the connection handle
+ * @param user_data the dgram_data set by xqc_datagram_set_user_data
+ * @param dgram_id the id of the acked datagram
+ */
+typedef void (*xqc_datagram_acked_notify_pt)(xqc_connection_t *conn,
+    uint64_t dgram_id, void *user_data);
+
 
 
 /**
@@ -613,7 +668,7 @@ typedef struct xqc_conn_callbacks_s {
      *
      * return 0 for success, -1 for failure, e.g. malloc error, on which xquic will close connection
      */
-    xqc_conn_notify_pt              conn_create_notify;
+    xqc_conn_notify_pt                  conn_create_notify;
 
     /**
      * connection close notify. REQUIRED for both client and server
@@ -621,17 +676,17 @@ typedef struct xqc_conn_callbacks_s {
      * this function will be invoked after QUIC connection is closed. user can free application
      * level context created in conn_create_notify callback function
      */
-    xqc_conn_notify_pt              conn_close_notify;
+    xqc_conn_notify_pt                  conn_close_notify;
 
     /**
      * handshake complete callback. OPTIONAL for client and server
      */
-    xqc_handshake_finished_pt       conn_handshake_finished;
+    xqc_handshake_finished_pt           conn_handshake_finished;
 
     /**
      * active PING acked callback. OPTIONAL for both client and server
      */
-    xqc_conn_ping_ack_notify_pt     conn_ping_acked;
+    xqc_conn_ping_ack_notify_pt         conn_ping_acked;
 
 } xqc_conn_callbacks_t;
 
@@ -673,6 +728,40 @@ typedef struct xqc_stream_callbacks_s {
 
 } xqc_stream_callbacks_t;
 
+/* QUIC layer datagram callback functions */
+typedef struct xqc_datagram_callbacks_s {
+    /**
+     * datagram read callback function. REQUIRED for both client and server if they want to use datagram
+     *
+     * this will be triggered when a QUIC datagram is received. application layer could read
+     * data from the arguments of this callback.
+     */
+    xqc_datagram_read_notify_pt        datagram_read_notify;
+
+    /**
+     * datagram write callback function. REQUIRED for both client and server if they want to use datagram
+     *
+     * when sending data with xqc_datagram_send or xqc_datagram_send_multiple, xquic might be blocked or send part of the data. if
+     * this callback function is triggered, applications can continue to send the rest data.
+     */
+    xqc_datagram_write_notify_pt       datagram_write_notify;
+
+    /**
+     * datagram acked callback function. OPTIONAL for server and client.
+     *
+     * this will be triggered when a QUIC packet containing a DATAGRAM frame is acked. 
+     */
+    xqc_datagram_acked_notify_pt       datagram_acked_notify;
+
+    /**
+     * datagram lost callback function. OPTIONAL for server and client.
+     *
+     * this will be triggered when a QUIC packet containing a DATAGRAM frame is lost. 
+     */
+    xqc_datagram_lost_notify_pt       datagram_lost_notify;
+
+} xqc_datagram_callbacks_t;
+
 
 /**
  * @brief connection and stream callbacks for QUIC level, Application-Layer-Protocol shall implement
@@ -685,6 +774,9 @@ typedef struct xqc_app_proto_callbacks_s {
 
     /* QUIC stream callback functions */
     xqc_stream_callbacks_t      stream_cbs;
+
+    /* QUIC datagram callback functions */
+    xqc_datagram_callbacks_t    dgram_cbs;
 
 } xqc_app_proto_callbacks_t;
 
@@ -971,7 +1063,11 @@ typedef struct xqc_conn_settings_s {
     xqc_cong_ctrl_callback_t    cong_ctrl_callback; /* default: xqc_cubic_cb */
     xqc_cc_params_t             cc_params;
     uint32_t                    so_sndbuf;          /* socket option SO_SNDBUF, 0 for unlimited */
-    uint64_t                    sndq_packets_used_max;  /* default: XQC_SNDQ_PACKETS_USED_MAX */
+    uint64_t                    sndq_packets_used_max;  /* 
+                                                         * default: XQC_SNDQ_PACKETS_USED_MAX. 
+                                                         * It should be set to buffer 2xBDP packets at least for performance consideration. 
+                                                         * The default value is 16000 pkts. 
+                                                         */
     xqc_linger_t                linger;
     xqc_proto_version_t         proto_version;      /* QUIC protocol version */
     xqc_msec_t                  init_idle_time_out; /* initial idle timeout interval, effective before handshake completion */
@@ -981,6 +1077,15 @@ typedef struct xqc_conn_settings_s {
     uint64_t                    keyupdate_pkt_threshold;    /* packet limit of a single 1-rtt key, 0 for unlimited */
     size_t                      max_pkt_out_size;
 
+    /*
+    * datgram option
+    * 0: no support for datagram mode (default)
+    * >0: the max size of datagrams that the local end is willing to receive
+    * 65535: the local end is willing to receive a datagram with any length as 
+    *        long as it fits in a QUIC packet
+    */
+    uint16_t                    max_datagram_frame_size;
+    
     /* 
      * multipath option:
      * https://datatracker.ietf.org/doc/html/draft-ietf-quic-multipath-02#section-3
@@ -1055,6 +1160,7 @@ typedef struct xqc_conn_stats_s {
     uint32_t            lost_count;
     uint32_t            tlp_count;
     uint32_t            spurious_loss_count;
+    uint32_t            lost_dgram_count; /*how many datagram frames (pkts) are lost*/
     xqc_usec_t          srtt;
     xqc_0rtt_flag_t     early_data_flag;
     uint32_t            recv_count;
@@ -1084,7 +1190,6 @@ typedef struct xqc_conn_stats_s {
 
 typedef struct xqc_path_stats_s {
     uint8_t             get_stats_success;
-
     xqc_usec_t          last_tra_path_status_changed_time;
     uint32_t            send_count_since_last_tra_path_status_changed;
     uint32_t            pto_count_since_last_tra_path_status_changed;
@@ -1325,6 +1430,21 @@ void xqc_conn_unset_pkt_filter_callback(xqc_connection_t *conn);
 
 
 /**
+ * @brief get public local transport settings.
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_conn_public_local_trans_settings_t 
+xqc_conn_get_public_local_trans_settings(xqc_connection_t *conn);
+
+/**
+ * @brief set public local transport settings
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_conn_set_public_local_trans_settings(xqc_connection_t *conn, 
+    xqc_conn_public_local_trans_settings_t *settings);
+
+
+/**
  * Create new stream in quic connection.
  * @param user_data  user_data for this stream
  */
@@ -1387,6 +1507,61 @@ XQC_EXPORT_PUBLIC_API
 ssize_t xqc_stream_send(xqc_stream_t *stream, unsigned char *send_data, size_t send_data_size,
     uint8_t fin);
 
+
+/**
+ * Server should set datagram user_data when datagram callbacks
+ * @dgram_data: the user_data of all datagram callbacks
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_datagram_set_user_data(xqc_connection_t *conn, void *dgram_data);
+
+/**
+ * @brief the API to get the max length of the data that can be sent 
+ *        via a single call of xqc_datagram_send; NOTE, if the DCID length could
+ *        be changed during the lifetime of the connection, applications is 
+ *        suggested to call xqc_datagram_get_mss every time before 
+ *        send datagram data or when getting -XQC_EDGRAM_TOO_LARGE error 
+ *        from sending datagram data. In MPQUIC cases, the DCID of all paths 
+ *        MUST be the same. Otherwise, there might be unexpected errors.
+ * 
+ * @param conn the connection handle 
+ * @return 0 = the peer does not support datagram, >0 = the max length
+ */
+XQC_EXPORT_PUBLIC_API
+size_t xqc_datagram_get_mss(xqc_connection_t *conn);
+
+/*
+ * @brief the API to send a datagram over the QUIC connection
+ * 
+ * @param conn the connection handle 
+ * @param data the data to be sent
+ * @param data_len the length of the data
+ * @param *dgram_id the pointer to return the id the datagram
+ * @return <0 = error (-XQC_EAGAIN, -XQC_CLOSING, -XQC_EDGRAM_NOT_SUPPORTED, -XQC_EDGRAM_TOO_LARGE, ...), 
+ *         0 success
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_datagram_send(xqc_connection_t *conn, void *data, 
+	size_t data_len, uint64_t *dgram_id);
+
+/*
+ * @brief the API to send a datagram over the QUIC connection
+ * 
+ * @param conn the connection handle 
+ * @param iov multiple data buffers need to be sent 
+ * @param *dgram_id the pointer to return the list of dgram_id 
+ * @param iov_size the size of iov list 
+ * @param *sent_cnt the number of successfully sent datagrams
+ * @param *sent_bytes the total bytes of successfully sent datagrams
+ * @return <0 = error (-XQC_EAGAIN, -XQC_CLOSING, -XQC_EDGRAM_NOT_SUPPORTED, -XQC_EDGRAM_TOO_LARGE, ...), 
+ *         0 success
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_int_t xqc_datagram_send_multiple(xqc_connection_t *conn, 
+    struct iovec *iov, uint64_t *dgram_id_list, size_t iov_size, 
+    size_t *sent_cnt, size_t *sent_bytes);
+
+
 /**
  * Get dcid and scid before process packet
  */
@@ -1424,6 +1599,12 @@ uint8_t xqc_engine_config_get_cid_len(xqc_engine_t *engine);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid);
+
+/**
+ * User should call xqc_conn_continue_send when write event ready
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_conn_continue_send_by_conn(xqc_connection_t *conn);
 
 /**
  * User can get xqc_conn_stats_t by cid
@@ -1519,6 +1700,15 @@ xqc_path_stats_t xqc_path_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid,
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_lb_cid_encryption(uint8_t *cid_buf, size_t enc_len, uint8_t *out_buf, size_t out_buf_len, uint8_t *lb_cid_key, size_t lb_cid_key_len, xqc_engine_t *engine);
+
+
+/**
+ * @brief client calls this API to check if it should delete 0rtt ticket according to
+ * the errorcode of xqc_conn in conn_close_notify
+ * @return XQC_TRUE = yes;
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_bool_t xqc_conn_should_clear_0rtt_ticket(xqc_int_t conn_err);
 
 #ifdef __cplusplus
 }

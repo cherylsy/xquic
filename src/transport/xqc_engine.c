@@ -21,6 +21,7 @@
 #include "src/transport/xqc_wakeup_pq.h"
 #include "src/transport/xqc_utils.h"
 #include "src/transport/xqc_timer.h"
+#include "src/transport/xqc_datagram.h"
 #include "src/http3/xqc_h3_conn.h"
 #include "src/tls/xqc_tls.h"
 
@@ -692,7 +693,21 @@ xqc_engine_process_conn(xqc_connection_t *conn, xqc_usec_t now)
     if (conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT) {
         xqc_process_read_streams(conn);
         if (xqc_send_queue_can_write(conn->conn_send_queue)) {
-            xqc_process_write_streams(conn);
+            if (conn->conn_send_queue->sndq_full) {
+                if (xqc_send_queue_release_enough_space(conn->conn_send_queue)) {
+                    conn->conn_send_queue->sndq_full = XQC_FALSE;
+                    xqc_process_write_streams(conn);
+                    xqc_datagram_notify_write(conn);
+                }
+
+            } else {
+                xqc_process_write_streams(conn);
+                if (conn->conn_flag & XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT) {
+                    xqc_datagram_notify_write(conn);
+                    conn->conn_flag &= ~XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT;
+                }
+            }
+            
         } else {
             xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_send_queue_can_write false|");
         }

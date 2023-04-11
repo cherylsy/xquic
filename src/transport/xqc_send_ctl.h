@@ -129,6 +129,7 @@ typedef struct xqc_send_ctl_s {
     unsigned                    ctl_lost_count;
     unsigned                    ctl_tlp_count;
     unsigned                    ctl_spurious_loss_count;
+    unsigned                    ctl_lost_dgram_cnt;
     unsigned                    ctl_send_count_at_last_tra_path_status_changed_time;
 
     unsigned                    ctl_recv_count;
@@ -172,6 +173,8 @@ xqc_send_ctl_calc_pto(xqc_send_ctl_t *send_ctl)
     return send_ctl->ctl_srtt + xqc_max(4 * send_ctl->ctl_rttvar, XQC_kGranularity * 1000)
         + send_ctl->ctl_conn->local_settings.max_ack_delay * 1000;
 }
+
+int xqc_send_ctl_may_remove_unacked_dgram(xqc_connection_t *conn, xqc_packet_out_t *po);
 
 int xqc_send_ctl_indirectly_ack_po(xqc_connection_t *conn, xqc_packet_out_t *po);
 

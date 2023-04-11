@@ -28,6 +28,7 @@
 #include "src/transport/xqc_multipath.h"
 #include "src/transport/xqc_reinjection.h"
 #include "src/tls/xqc_tls.h"
+#include "src/transport/xqc_datagram.h"
 
 
 xqc_conn_settings_t default_conn_settings = {
@@ -44,6 +45,7 @@ xqc_conn_settings_t default_conn_settings = {
     .anti_amplification_limit   = XQC_DEFAULT_ANTI_AMPLIFICATION_LIMIT,
     .keyupdate_pkt_threshold    = 0,
     .max_pkt_out_size           = XQC_PACKET_OUT_SIZE,
+    .max_datagram_frame_size    = 0,
     .mp_enable_reinjection      = 0,
 
     .reinj_flexible_deadline_srtt_factor = 2.0,
@@ -84,6 +86,7 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     }
 
     default_conn_settings.keyupdate_pkt_threshold = settings->keyupdate_pkt_threshold;
+    default_conn_settings.max_datagram_frame_size = settings->max_datagram_frame_size;
 
     if (settings->max_pkt_out_size > default_conn_settings.max_pkt_out_size) {
         default_conn_settings.max_pkt_out_size = settings->max_pkt_out_size;
@@ -152,7 +155,8 @@ static const char * const xqc_conn_flag_to_str[XQC_CONN_FLAG_SHIFT_NUM] = {
     [XQC_CONN_FLAG_RECV_NEW_PATH_SHIFT]         = "RECV_NEW_PATH",
     [XQC_CONN_FLAG_VALIDATE_REBINDING_SHIFT]    = "VALIDATE_REBINDING",
     [XQC_CONN_FLAG_CONN_CLOSING_NOTIFY_SHIFT]   = "CLOSING_NOTIFY",
-    [XQC_CONN_FLAG_CONN_CLOSING_NOTIFIED_SHIFT] = "CLOSING_NOTIFIED"
+    [XQC_CONN_FLAG_CONN_CLOSING_NOTIFIED_SHIFT] = "CLOSING_NOTIFIED",
+    [XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT_SHIFT]   = "DGRAM_WAIT_FOR_1RTT",
 };
 
 unsigned char g_conn_flag_buf[1024];
@@ -240,7 +244,7 @@ xqc_conn_init_trans_settings(xqc_connection_t *conn)
     ls->max_data = ls->max_streams_bidi * ls->max_stream_data_bidi_local
         + ls->max_streams_uni * ls->max_stream_data_uni;
 
-    ls->max_idle_timeout = default_conn_settings.idle_time_out;
+    ls->max_idle_timeout = conn->conn_settings.idle_time_out;
 
     ls->max_udp_payload_size = XQC_CONN_MAX_UDP_PAYLOAD_SIZE;
 
@@ -248,6 +252,7 @@ xqc_conn_init_trans_settings(xqc_connection_t *conn)
 
     ls->enable_multipath = conn->conn_settings.enable_multipath;
 
+    ls->max_datagram_frame_size = conn->conn_settings.max_datagram_frame_size;
     ls->disable_active_migration = ls->enable_multipath ? 0 : 1;
 }
 
@@ -334,6 +339,10 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     /* make sure a 0-value config will not result in immediate timeout */
     if (xc->conn_settings.init_idle_time_out == 0) {
         xc->conn_settings.init_idle_time_out = XQC_CONN_INITIAL_IDLE_TIMEOUT;
+    }
+
+    if (xc->conn_settings.idle_time_out == 0) {
+        xc->conn_settings.idle_time_out = XQC_CONN_DEFAULT_IDLE_TIMEOUT;
     }
 
     if (xc->conn_settings.anti_amplification_limit < XQC_DEFAULT_ANTI_AMPLIFICATION_LIMIT) {
@@ -483,6 +492,10 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xc->pkt_filter_cb = NULL;
+
+    /* for datagram */
+    xc->next_dgram_id = 0;
+    xqc_init_list_head(&xc->dgram_0rtt_buffer_list);
 
     xqc_log(xc->log, XQC_LOG_DEBUG, "|success|scid:%s|dcid:%s|conn:%p|",
             xqc_scid_str(&xc->scid_set.user_scid), xqc_dcid_str(&xc->dcid_set.current_dcid), xc);
@@ -666,18 +679,45 @@ xqc_conn_server_on_alpn(xqc_connection_t *conn, const unsigned char *alpn, size_
         return ret;
     }
 
+    uint8_t tp_buf[XQC_MAX_TRANSPORT_PARAM_BUF_LEN] = {0};
+    size_t tp_len = 0;
+
     /* do callback */
     if (conn->app_proto_cbs.conn_cbs.conn_create_notify) {
         if (conn->app_proto_cbs.conn_cbs.conn_create_notify(conn, &conn->scid_set.user_scid,
             conn->user_data, conn->proto_data))
         {
-            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
-            return -TRA_INTERNAL_ERROR;
+            goto err;
         }
         conn->conn_flag |= XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
 
+    if (conn->conn_flag & XQC_CONN_FLAG_LOCAL_TP_UPDATED) {
+        ret = xqc_conn_encode_local_tp(conn, tp_buf, 
+                                    XQC_MAX_TRANSPORT_PARAM_BUF_LEN, &tp_len);
+        if (ret != XQC_OK) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|server encode tp error|ret:%d|", ret);
+            goto err;
+        }
+
+        ret = xqc_tls_update_tp(conn->tls, tp_buf, tp_len);
+
+        if (ret != XQC_OK) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|server tls update tp error|ret:%d|", ret);
+            goto err;
+        }
+
+        conn->conn_flag &= ~XQC_CONN_FLAG_LOCAL_TP_UPDATED;
+        xqc_log(conn->log, XQC_LOG_INFO, 
+                "|update tp|max_datagram_frame_size:%ud|", 
+                conn->local_settings.max_datagram_frame_size);
+    }
+
     return XQC_OK;
+
+err:
+    XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+    return -TRA_INTERNAL_ERROR;
 }
 
 
@@ -748,6 +788,8 @@ xqc_conn_destroy(xqc_connection_t *xc)
         xqc_destroy_stream(stream);
     }
 
+    xqc_conn_destroy_0rtt_datagram_buffer_list(xc);
+
     /* notify destruction */
     if (xc->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST) {
         /* ALPN negotiated, notify close through application layer protocol callback function */
@@ -769,6 +811,9 @@ xqc_conn_destroy(xqc_connection_t *xc)
 
         xc->conn_flag &= ~XQC_CONN_FLAG_UPPER_CONN_EXIST;
     }
+
+    /* destroy gp_timer list */
+    xqc_timer_destroy_gp_timer_list(&xc->conn_timer_manager);
 
     xqc_send_queue_destroy(xc->conn_send_queue);
 
@@ -1103,7 +1148,8 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
     /* long header to short header, directly write old buffer */
     unsigned int ori_po_used_size = packet_out->po_used_size;
     unsigned char *ori_payload = packet_out->po_payload;
-    unsigned int ori_payload_len = ori_po_used_size - (packet_out->po_payload - packet_out->po_buf);
+    unsigned int ori_hdr_len = packet_out->po_payload - packet_out->po_buf;
+    unsigned int ori_payload_len = ori_po_used_size - ori_hdr_len;
 
     /* convert pkt info */
     packet_out->po_pkt.pkt_pns = XQC_PNS_APP_DATA;
@@ -1116,10 +1162,28 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
                                           conn->key_update_ctx.cur_out_key_phase);
     packet_out->po_used_size = ret;
 
+    if (ori_hdr_len < ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|fatal|long_header_is_shorter_than_short_header|");
+        XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+        return;
+    }
+
+    unsigned int hdr_offset_diff = (ori_hdr_len - ret);
+
     /* copy frame directly */
     memmove(packet_out->po_buf + ret, ori_payload, ori_payload_len);
     packet_out->po_payload = packet_out->po_buf + ret;
     packet_out->po_used_size += ori_payload_len;
+
+    if (packet_out->po_ack_offset > 0) {
+        if (packet_out->po_ack_offset < hdr_offset_diff) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|fatal|wrong_ack_frame_offset|");
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return;
+        }
+        packet_out->po_ack_offset -= hdr_offset_diff;
+    }
+
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|0RTT to 1RTT|conn:%p|type:%d|pkt_num:%ui|pns:%d|frame:%s|", 
             conn, packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num, packet_out->po_pkt.pkt_pns, 
@@ -1306,6 +1370,11 @@ xqc_path_send_packets(xqc_connection_t *conn, xqc_path_ctx_t *path,
             xqc_pacing_on_packet_sent(&send_ctl->ctl_pacing, packet_out->po_used_size);
         }
 
+        if (packet_out->po_frame_types & XQC_FRAME_BIT_DATAGRAM) {
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|dgram_id:%ui|", packet_out->po_dgram_id);
+        }
+
+
         /* move send list to unacked list */
         xqc_path_send_buffer_remove(path, packet_out);
         if (XQC_IS_ACK_ELICITING(packet_out->po_frame_types)) {
@@ -1427,7 +1496,7 @@ xqc_send(xqc_connection_t *conn, xqc_path_ctx_t *path, unsigned char *data, unsi
 
     if (conn->pkt_filter_cb) {
         sent = conn->pkt_filter_cb(data, len, (struct sockaddr *)conn->peer_addr,
-                             conn->peer_addrlen, conn->pkt_filter_cb_user_data);
+                                   conn->peer_addrlen, conn->pkt_filter_cb_user_data);
         if (sent < 0) {
             xqc_log(conn->log, XQC_LOG_ERROR,  "|pkt_filter_cb error|conn:%p|"
                     "size:%ud|sent:%z|", conn, len, sent);
@@ -2170,6 +2239,31 @@ xqc_conn_send_version_negotiation(xqc_connection_t *c)
     return XQC_OK;
 }
 
+void 
+xqc_conn_continue_send_by_conn(xqc_connection_t *conn)
+{
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|", conn);
+    if (!conn) {
+        xqc_log(conn->engine->log, XQC_LOG_ERROR, "|can not find connection|conn:%p|", conn);
+        return ;
+    }
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|conn:%p|", conn);
+
+    xqc_conn_schedule_packets_to_paths(conn);
+
+    if (xqc_engine_is_sendmmsg_on(conn->engine)) {
+        xqc_conn_transmit_pto_probe_packets_batch(conn);
+        xqc_conn_retransmit_lost_packets_batch(conn);
+        xqc_conn_send_packets_batch(conn);
+
+    } else {
+        xqc_conn_transmit_pto_probe_packets(conn);
+        xqc_conn_retransmit_lost_packets(conn);
+        xqc_conn_send_packets(conn);
+    }
+
+    xqc_engine_main_logic_internal(conn->engine);
+}
 
 int
 xqc_conn_continue_send(xqc_engine_t *engine, const xqc_cid_t *cid)
@@ -2294,6 +2388,7 @@ xqc_conn_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid)
         conn_stats.tlp_count            += send_ctl->ctl_tlp_count;
         conn_stats.spurious_loss_count  += send_ctl->ctl_spurious_loss_count;
         conn_stats.recv_count           += send_ctl->ctl_recv_count;
+        conn_stats.lost_dgram_count     += send_ctl->ctl_lost_dgram_cnt;
     }
 
     /* 路径信息 */
@@ -2403,6 +2498,47 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
     memcpy(token, &expire, sizeof(expire));
 }
 
+void 
+xqc_conn_resend_0rtt_datagram(xqc_connection_t *conn)
+{   
+    xqc_list_head_t *pos, *next;
+    xqc_datagram_0rtt_buffer_t *dgram_buffer;
+    struct iovec iov[XQC_MAX_SEND_MSG_ONCE];
+    uint64_t dgram_id_list[XQC_MAX_SEND_MSG_ONCE];
+    size_t iov_size, sent, sent_bytes;
+    int ret;
+
+    iov_size = 0;
+
+    xqc_list_for_each_safe(pos, next, &conn->dgram_0rtt_buffer_list) {
+        dgram_buffer = xqc_list_entry(pos, xqc_datagram_0rtt_buffer_t, list);
+        iov[iov_size].iov_base = dgram_buffer->iov.iov_base;
+        iov[iov_size].iov_len = dgram_buffer->iov.iov_len;
+        dgram_id_list[iov_size] = dgram_buffer->dgram_id;
+        iov_size++;
+        if (iov_size >= XQC_MAX_SEND_MSG_ONCE) {
+            ret = xqc_datagram_send_multiple_internal(conn, iov, dgram_id_list, XQC_MAX_SEND_MSG_ONCE, &sent, &sent_bytes, XQC_TRUE);
+            if (ret < 0) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|unable_to_resend_0rtt_pkts_in_1rtt_way|");
+                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+                iov_size = 0;
+                break;
+            }
+            iov_size -= XQC_MAX_SEND_MSG_ONCE;
+        }
+    }
+
+    if (iov_size > 0) {
+        ret = xqc_datagram_send_multiple_internal(conn, iov, dgram_id_list, iov_size, &sent, &sent_bytes, XQC_TRUE);
+        if (ret < 0) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|unbale_to_resend_0rtt_pkts_in_1rtt_way|");
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+        }
+    }
+    
+    xqc_conn_destroy_0rtt_datagram_buffer_list(conn);
+}
+
 xqc_int_t
 xqc_conn_early_data_reject(xqc_connection_t *conn)
 {
@@ -2424,6 +2560,8 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
 
     xqc_send_queue_drop_0rtt_packets(conn);
 
+    xqc_conn_resend_0rtt_datagram(conn);
+
     xqc_list_for_each_safe(pos, next, &conn->conn_all_streams) {
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
         if (stream->stream_flag & XQC_STREAM_FLAG_HAS_0RTT) {
@@ -2440,6 +2578,7 @@ xqc_conn_early_data_reject(xqc_connection_t *conn)
             xqc_stream_write_buffed_data_to_packets(stream);
         }
     }
+
     return XQC_OK;
 }
 
@@ -2460,6 +2599,9 @@ xqc_conn_early_data_accept(xqc_connection_t *conn)
         stream = xqc_list_entry(pos, xqc_stream_t, all_stream_list);
         xqc_destroy_write_buff_list(&stream->stream_write_buff_list.write_buff_list);
     }
+
+    xqc_conn_destroy_0rtt_datagram_buffer_list(conn);
+
     return XQC_OK;
 }
 
@@ -2685,8 +2827,18 @@ xqc_conn_next_wakeup_time(xqc_connection_t *conn)
         }
     }
 
-    xqc_path_ctx_t *path;
     xqc_list_head_t *pos, *next;
+    xqc_gp_timer_t *gp_timer;
+    /* gp timer */
+    xqc_list_for_each_safe(pos, next, &conn->conn_timer_manager.gp_timer_list) {
+        gp_timer = xqc_list_entry(pos, xqc_gp_timer_t, list);
+        if (gp_timer->timer_is_set) {
+            min_time = xqc_min(min_time, gp_timer->expire_time);
+        }
+    } 
+
+    xqc_path_ctx_t *path;
+    
     xqc_list_for_each_safe(pos, next, &conn->conn_paths_list) {
         path = xqc_list_entry(pos, xqc_path_ctx_t, path_list);
         if (path->path_state != XQC_PATH_STATE_ACTIVE) {
@@ -2885,8 +3037,10 @@ xqc_conn_confirm_cid(xqc_connection_t *c, xqc_packet_t *pkt)
         if (XQC_OK != xqc_cid_is_equal(&c->dcid_set.current_dcid, &pkt->pkt_scid)) {
             xqc_log(c->log, XQC_LOG_INFO, "|dcid change|ori:%s|new:%s|", 
                     xqc_dcid_str(&c->dcid_set.current_dcid), xqc_scid_str(&pkt->pkt_scid));
+            // TODO: DCID changes
             xqc_cid_copy(&c->dcid_set.current_dcid, &pkt->pkt_scid);
             xqc_cid_copy(&c->conn_initial_path->path_dcid, &pkt->pkt_scid);
+            xqc_datagram_record_mss(c);
         }
 
         if (xqc_insert_conns_hash(c->engine->conns_hash_dcid, c, &c->dcid_set.current_dcid)) {
@@ -3059,7 +3213,7 @@ xqc_conn_on_pkt_processed(xqc_connection_t *c, xqc_packet_in_t *pi, xqc_usec_t n
 
     /* record packet */
     xqc_conn_record_single(c, pi);
-    if (pi->pi_frame_types & (~(XQC_FRAME_BIT_STREAM|XQC_FRAME_BIT_PADDING))) {
+    if (pi->pi_frame_types & (~(XQC_FRAME_BIT_STREAM|XQC_FRAME_BIT_DATAGRAM|XQC_FRAME_BIT_PADDING))) {
         c->conn_flag |= XQC_CONN_FLAG_NEED_RUN;
     }
 
@@ -3155,9 +3309,11 @@ xqc_int_t
 xqc_conn_check_tx_key(xqc_connection_t *conn)
 {
     /* if tx key is ready, conn can send 1RTT packets */
-    if (xqc_tls_is_key_ready(conn->tls, XQC_ENC_LEV_1RTT, XQC_KEY_TYPE_TX_WRITE)) {
+    if (!(conn->conn_flag & XQC_CONN_FLAG_CAN_SEND_1RTT)
+        && xqc_tls_is_key_ready(conn->tls, XQC_ENC_LEV_1RTT, XQC_KEY_TYPE_TX_WRITE)) {
         xqc_log(conn->log, XQC_LOG_INFO, "|keys are ready, can send 1rtt now|");
         conn->conn_flag |= XQC_CONN_FLAG_CAN_SEND_1RTT;
+        xqc_datagram_record_mss(conn);
     }
 
     return XQC_OK;
@@ -3166,19 +3322,19 @@ xqc_conn_check_tx_key(xqc_connection_t *conn)
 xqc_int_t
 xqc_conn_check_handshake_complete(xqc_connection_t *conn)
 {
+    /* check tx keys after handshake complete */
+    xqc_conn_check_tx_key(conn);
+
     if (!(conn->conn_flag & XQC_CONN_FLAG_HANDSHAKE_COMPLETED)
         && conn->conn_state == XQC_CONN_STATE_ESTABED)
     {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|HANDSHAKE_COMPLETED|conn:%p|", conn);
         xqc_conn_handshake_complete(conn);
-
         if (conn->app_proto_cbs.conn_cbs.conn_handshake_finished) {
             conn->app_proto_cbs.conn_cbs.conn_handshake_finished(conn, conn->user_data, conn->proto_data);
         }
     }
-
-    /* check tx keys after handshake complete */
-    xqc_conn_check_tx_key(conn);
+    
     return XQC_OK;
 }
 
@@ -3352,8 +3508,9 @@ xqc_conn_update_user_scid(xqc_connection_t *conn, xqc_scid_set_t *scid_set)
                 conn->transport_cbs.conn_update_cid_notify(conn, &scid_set->user_scid, &scid->cid,
                                                            xqc_conn_get_user_data(conn));
             }
-
+            // TODO: SCID changes
             xqc_cid_copy(&scid_set->user_scid, &scid->cid);
+            xqc_datagram_record_mss(conn);
             return XQC_OK;
         }
     }
@@ -3502,7 +3659,9 @@ xqc_conn_on_recv_retry(xqc_connection_t *conn, xqc_cid_t *retry_scid)
     conn->conn_flag |= XQC_CONN_FLAG_RETRY_RECVD;
 
     /* change the DCID it uses for sending packets in response to Retry packet. */
+    // TODO: DCID changes
     xqc_cid_copy(&conn->dcid_set.current_dcid, retry_scid);
+    xqc_datagram_record_mss(conn);
 
     /* reset initial keys */
     ret = xqc_tls_reset_initial(conn->tls, conn->version, retry_scid);
@@ -3590,6 +3749,8 @@ xqc_conn_set_remote_transport_params(xqc_connection_t *conn,
     settings->active_connection_id_limit = params->active_connection_id_limit;
 
     settings->enable_multipath = params->enable_multipath;
+    settings->max_datagram_frame_size = params->max_datagram_frame_size;
+
     return XQC_OK;
 }
 
@@ -3624,6 +3785,7 @@ xqc_conn_get_local_transport_params(xqc_connection_t *conn, xqc_transport_params
     params->active_connection_id_limit = settings->active_connection_id_limit;
     params->no_crypto = settings->no_crypto;
     params->enable_multipath = settings->enable_multipath;
+    params->max_datagram_frame_size = settings->max_datagram_frame_size;
 
     /* set other transport parameters */
     if (conn->conn_type == XQC_CONN_TYPE_SERVER
@@ -3712,6 +3874,14 @@ xqc_conn_tls_transport_params_cb(const uint8_t *tp, size_t len, void *user_data)
         return;
     }
 
+    /* check datagram parameter */
+    if (params.max_datagram_frame_size < conn->remote_settings.max_datagram_frame_size) {
+        /* 0RTT: remote_settings.max_datagram_frame_size = X */
+        /* 1RTT: remote_settings.max_datagram_frame_size = 0 */
+        XQC_CONN_ERR(conn, TRA_0RTT_TRANS_PARAMS_ERROR);
+        return;
+    }
+
     /* set remote transport param */
     ret = xqc_conn_set_remote_transport_params(conn, &params, tp_type);
     if (ret != XQC_OK) {
@@ -3720,6 +3890,9 @@ xqc_conn_tls_transport_params_cb(const uint8_t *tp, size_t len, void *user_data)
         XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
         return;
     }
+
+    xqc_log(conn->log, XQC_LOG_DEBUG, "|1RTT_transport_params|max_datagram_frame_size:%ud|",
+            conn->remote_settings.max_datagram_frame_size);
 
     /* save no crypto flag */
     if (params.no_crypto == 1) {
@@ -3842,6 +4015,7 @@ xqc_settings_copy_from_transport_params(xqc_trans_settings_t *dest,
     dest->active_connection_id_limit = src->active_connection_id_limit;
 
     dest->enable_multipath = src->enable_multipath;
+    dest->max_datagram_frame_size = src->max_datagram_frame_size;
 }
 
 void
@@ -4192,7 +4366,18 @@ xqc_conn_record_histroy_path(xqc_connection_t *conn, xqc_path_ctx_t *path)
 xqc_int_t
 xqc_conn_send_path_challenge(xqc_connection_t *conn, xqc_path_ctx_t *path)
 {
-    xqc_int_t ret = XQC_OK;
+    xqc_int_t           ret = XQC_OK;
+    xqc_packet_out_t   *packet_out;
+    xqc_usec_t          now;
+    ssize_t             sent;
+    xqc_pn_ctl_t       *pn_ctl;
+
+
+    /* send data */
+    if (NULL == conn->transport_cbs.write_socket_ex) {
+        xqc_log(conn->log, XQC_LOG_WARN, "|write_socket_ex not registered while sending PATH_CHALLENGE");
+        return XQC_ERROR;
+    }
 
     /* generate random data for path challenge, store it to validate path_response */
     ret = xqc_generate_path_challenge_data(conn, path);
@@ -4203,7 +4388,7 @@ xqc_conn_send_path_challenge(xqc_connection_t *conn, xqc_path_ctx_t *path)
 
     /* write path challenge frame & send immediately */
 
-    xqc_packet_out_t *packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
+    packet_out = xqc_write_new_packet(conn, XQC_PTYPE_SHORT_HEADER);
     if (packet_out == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_write_new_packet error|");
         return -XQC_EWRITE_PKT;
@@ -4226,11 +4411,10 @@ xqc_conn_send_path_challenge(xqc_connection_t *conn, xqc_path_ctx_t *path)
     }
 
     /* record the send time of packet */
-    xqc_usec_t now = xqc_monotonic_timestamp();
+    now = xqc_monotonic_timestamp();
     packet_out->po_sent_time = now;
 
-    /* send data */
-    ssize_t sent = conn->transport_cbs.write_socket_ex(path->path_id, conn->enc_pkt, conn->enc_pkt_len,
+    sent = conn->transport_cbs.write_socket_ex(path->path_id, conn->enc_pkt, conn->enc_pkt_len,
                                                        (struct sockaddr *)path->rebinding_addr,
                                                        path->rebinding_addrlen,
                                                        xqc_conn_get_user_data(conn));
@@ -4254,7 +4438,7 @@ xqc_conn_send_path_challenge(xqc_connection_t *conn, xqc_path_ctx_t *path)
         xqc_log_event(conn->log, TRA_PACKET_SENT, packet_out);
     }
 
-    xqc_pn_ctl_t *pn_ctl = xqc_get_pn_ctl(conn, path);
+    pn_ctl = xqc_get_pn_ctl(conn, path);
     pn_ctl->ctl_packet_number[packet_out->po_pkt.pkt_pns]++;
 
 end:
@@ -4317,4 +4501,97 @@ xqc_conn_unset_pkt_filter_callback(xqc_connection_t *conn)
         xqc_log(conn->log, XQC_LOG_INFO, "|conn unset pkt filter callback, will"
                 "use write_socket again");
     }
+}
+
+int 
+xqc_conn_buff_0rtt_datagram(xqc_connection_t *conn, void *data, size_t data_len, uint64_t dgram_id)
+{
+    xqc_datagram_0rtt_buffer_t *buffer = xqc_datagram_create_0rtt_buffer(data, data_len, dgram_id);
+    if (buffer == NULL) {
+        return -XQC_EMALLOC;
+    }
+    xqc_list_add_tail(&buffer->list, &conn->dgram_0rtt_buffer_list);
+    return XQC_OK;
+}
+
+void 
+xqc_conn_destroy_0rtt_datagram_buffer_list(xqc_connection_t *conn)
+{
+    xqc_list_head_t *pos, *next;
+    xqc_datagram_0rtt_buffer_t *buffer;
+    xqc_list_for_each_safe(pos, next, &conn->dgram_0rtt_buffer_list) {
+        buffer = xqc_list_entry(pos, xqc_datagram_0rtt_buffer_t, list);
+        xqc_list_del_init(pos);
+        xqc_datagram_destroy_0rtt_buffer(buffer);
+    }
+}
+
+xqc_gp_timer_id_t 
+xqc_conn_register_gp_timer(xqc_connection_t *conn, char *timer_name, xqc_gp_timer_timeout_pt cb, void *user_data)
+{
+    return xqc_timer_register_gp_timer(&conn->conn_timer_manager, timer_name, cb, user_data);
+}
+
+void 
+xqc_conn_unregister_gp_timer(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id)
+{
+    xqc_timer_unregister_gp_timer(&conn->conn_timer_manager, gp_timer_id);
+}
+
+xqc_int_t 
+xqc_conn_gp_timer_set(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id, 
+    xqc_usec_t expire_time)
+{
+    return xqc_timer_gp_timer_set(&conn->conn_timer_manager, gp_timer_id, expire_time);
+}
+
+xqc_int_t 
+xqc_conn_gp_timer_unset(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id)
+{
+    return xqc_timer_gp_timer_unset(&conn->conn_timer_manager, gp_timer_id);
+}
+
+xqc_int_t 
+xqc_conn_gp_timer_get_info(xqc_connection_t *conn, xqc_gp_timer_id_t gp_timer_id, 
+    xqc_bool_t *is_set, xqc_usec_t *expire_time)
+{
+    return xqc_timer_gp_timer_get_info(&conn->conn_timer_manager, gp_timer_id, is_set, expire_time);
+}
+
+xqc_bool_t 
+xqc_conn_should_clear_0rtt_ticket(xqc_int_t conn_err)
+{
+    if (conn_err == TRA_0RTT_TRANS_PARAMS_ERROR) {
+        return XQC_TRUE;
+    }
+    return XQC_FALSE;
+}
+
+/**
+ * @brief get public local transport settings.
+ */
+xqc_conn_public_local_trans_settings_t 
+xqc_conn_get_public_local_trans_settings(xqc_connection_t *conn)
+{
+    xqc_conn_public_local_trans_settings_t settings;
+    settings.max_datagram_frame_size = conn->local_settings.max_datagram_frame_size;
+    return settings;
+}
+
+/**
+ * @brief set public local transport settings
+ */
+void 
+xqc_conn_set_public_local_trans_settings(xqc_connection_t *conn, 
+    xqc_conn_public_local_trans_settings_t *settings)
+{
+    if (conn == NULL || settings == NULL) {
+        return;
+    }
+
+    if (settings->max_datagram_frame_size != conn->local_settings.max_datagram_frame_size) {
+        conn->local_settings.max_datagram_frame_size = settings->max_datagram_frame_size;
+        conn->conn_settings.max_datagram_frame_size = settings->max_datagram_frame_size;
+        conn->conn_flag |= XQC_CONN_FLAG_LOCAL_TP_UPDATED;
+    } 
 }

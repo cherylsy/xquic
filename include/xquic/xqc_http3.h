@@ -139,13 +139,16 @@ typedef struct xqc_request_stats_s {
 
     /**
      * @brief 请求级别MP状态
-     * 0: 该请求所在连接未成功建立起双路 (validated_path_count <= 1)
-     * 1: 该请求是通过2条路径传输(发包or收包 任意方向，包括重注入数据) (validated_path_count > 1 && aggregate_cnt > 1)
-     * 2: 该请求所在连接有成功建立起双路，但请求在单条路径上传输 (validated_path_count > 1 && aggregate_cnt <= 1)
+     * 0: 该请求所在连接当前仅有一条可用路径
+     * 1: 该请求所在连接当前有多条可用路径，该请求同时在 Available 和 Standby 路径传输
+     * 2: 该请求所在连接当前有多条可用路径，但该请求仅在  Standby  路径传输
+     * 3: 该请求所在连接当前有多条可用路径，但该请求仅在 Available 路径传输
      */
     int         mp_state;
     float       mp_default_path_send_weight;
     float       mp_default_path_recv_weight;
+    float       mp_standby_path_send_weight;
+    float       mp_standby_path_recv_weight;
 
     char        stream_info[XQC_STREAM_INFO_LEN];
 } xqc_request_stats_t;
