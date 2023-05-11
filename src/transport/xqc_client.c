@@ -119,6 +119,7 @@ xqc_connect(xqc_engine_t *engine, const xqc_conn_settings_t *conn_settings,
         return &conn->scid_set.user_scid;
     }
 
+    xqc_log(engine->log, XQC_LOG_ERROR, "|xqc_client_connect error|");
     return NULL;
 }
 

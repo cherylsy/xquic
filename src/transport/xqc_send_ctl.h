@@ -12,6 +12,7 @@
 #include "src/transport/xqc_send_queue.h"
 #include "src/transport/xqc_timer.h"
 #include "src/transport/xqc_multipath.h"
+#include <math.h>
 
 #define XQC_kPacketThreshold                3
 #define XQC_kTimeThresholdShift             3
@@ -28,6 +29,7 @@
 
 /* 2^n */
 #define xqc_send_ctl_pow(n)                 (1 << n)
+#define xqc_send_ctl_pow_x(x, n)            (fabs(x - 2) < 1e-7) ? xqc_send_ctl_pow(n) : pow(x, n)
 
 
 #define XQC_DEFAULT_RECORD_INTERVAL         (100000)    /* 100ms record interval */

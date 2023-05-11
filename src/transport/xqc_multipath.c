@@ -231,6 +231,9 @@ xqc_path_move_unack_packets_from_conn(xqc_path_ctx_t *path, xqc_connection_t *co
                 if (po->po_frame_types & XQC_FRAME_BIT_DATAGRAM) {
                     path->path_send_ctl->ctl_lost_dgram_cnt++;
                     repair_dgram = xqc_datagram_notify_loss(conn, po);
+                    if (conn->conn_settings.datagram_force_retrans_on) {
+                        repair_dgram = XQC_DGRAM_RETX_ASKED_BY_APP;
+                    }
                 }
                 
                 if (XQC_NEED_REPAIR(po->po_frame_types) 

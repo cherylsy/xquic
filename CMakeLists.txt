@@ -148,6 +148,8 @@ set(
     "src/http3/qpack/xqc_ins.c"
     "src/http3/qpack/stable/xqc_stable.c"
     "src/http3/qpack/dtable/xqc_dtable.c"
+    "src/http3/xqc_h3_ext_dgram.c"
+    "src/http3/xqc_h3_ext_bytestream.c"
 )
 
 # Transport source
@@ -234,6 +236,8 @@ set(
     CONGESTION_CONTROL_SOURCES
     "src/congestion_control/xqc_cubic.c"
     "src/congestion_control/xqc_bbr.c"
+    "src/congestion_control/xqc_unlimited_cc.c"
+    "src/congestion_control/xqc_copa.c"
     "src/congestion_control/xqc_window_filter.c"
     "src/congestion_control/xqc_sample.c"
 )
@@ -260,7 +264,7 @@ endif()
 
 # xquic source
 set (
-    XQC_SOURCE 
+    XQC_SOURCE
     ${HTTP3_SOURCES}
     ${TRANSPORT_SOURCES}
     ${TLS_SOURCE}

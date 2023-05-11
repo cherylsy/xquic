@@ -296,7 +296,7 @@ xqc_demo_svr_close_keylog_file(xqc_demo_svr_ctx_t *ctx)
 }
 
 void
-xqc_demo_svr_keylog_cb(const char *line, void *eng_user_data)
+xqc_demo_svr_keylog_cb(const xqc_cid_t *scid, const char *line, void *eng_user_data)
 {
     xqc_demo_svr_ctx_t *ctx = (xqc_demo_svr_ctx_t*)eng_user_data;
     if (ctx->keylog_fd <= 0) {

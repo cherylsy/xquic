@@ -77,7 +77,7 @@ xqc_datagram_record_mss(xqc_connection_t *conn)
     headroom = quic_header_size + XQC_DATAGRAM_HEADER_BYTES;
     if (conn->conn_settings.max_pkt_out_size >= headroom) {
         mtu_limit = conn->conn_settings.max_pkt_out_size - headroom;
-        
+
     } else {
         mtu_limit = 0;
     }
@@ -114,7 +114,7 @@ xqc_datagram_get_mss(xqc_connection_t *conn)
  *         0 success
  */
 xqc_int_t xqc_datagram_send(xqc_connection_t *conn, void *data, 
-	size_t data_len, uint64_t *dgram_id)
+	size_t data_len, uint64_t *dgram_id, xqc_data_qos_level_t qos_level)
 {
     if (conn == NULL) {
         return -XQC_EPARAM;
@@ -206,10 +206,58 @@ xqc_int_t xqc_datagram_send(xqc_connection_t *conn, void *data,
         *dgram_id = dg_id;
     }
 
+    if (qos_level <= XQC_DATA_QOS_HIGH) {
+        int red;
+        for (red = 0; red < conn->conn_settings.datagram_redundancy; red++) {
+            if (!xqc_send_queue_can_write(conn->conn_send_queue)) {
+                conn->conn_send_queue->sndq_full = XQC_TRUE;
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|red_dgram|too many packets used|ctl_packets_used:%ud|", conn->conn_send_queue->sndq_packets_used);
+                break;
+            }
+
+            if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count >= XQC_PACKET_0RTT_MAX_COUNT) {
+                conn->conn_flag |= XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT;
+                xqc_log(conn->log, XQC_LOG_DEBUG, "|red_dgram|too many 0rtt packets|zero_rtt_count:%ud|", conn->zero_rtt_count);
+                break;
+            }
+
+            ret = xqc_write_datagram_frame_to_packet(conn, pkt_type, data, data_len, &dg_id, XQC_FALSE);
+
+            if (ret < 0) {
+                xqc_log(conn->log, XQC_LOG_ERROR, "|red_dgram|write_datagram_frame_to_packet_error|");
+                XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+                return ret;
+            }
+
+            /* 0RTT failure requires fallback to 1RTT, save the original send data */
+            if (pkt_type == XQC_PTYPE_0RTT) {
+                /* buffer 0RTT packet */
+                ret = xqc_conn_buff_0rtt_datagram(conn, data, data_len, dg_id);
+                if (ret < 0) {
+                    xqc_log(conn->log, XQC_LOG_ERROR, "|red_dgram|unable_to_buffer_0rtt_datagram_data_error|");
+                    XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+                    return ret;
+                }
+            }
+        }
+    }
+
     if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
         if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
             conn->conn_flag |= XQC_CONN_FLAG_TICKING;
         }
+    }
+
+    if (conn->conn_settings.datagram_redundant_probe
+        && conn->dgram_probe_timer >= 0
+        && qos_level <= XQC_DATA_QOS_NORMAL
+        && conn->last_dgram
+        && data_len <= conn->last_dgram->buf_len)
+    {
+        xqc_var_buf_clear(conn->last_dgram);
+        xqc_var_buf_save_data(conn->last_dgram, data, data_len);
+        xqc_conn_gp_timer_set(conn, conn->dgram_probe_timer, xqc_monotonic_timestamp() + conn->conn_settings.datagram_redundant_probe);
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|start_dgram_probe_timer|data_len:%z|", data_len);
     }
 
     /* call main logic to send packets out */
@@ -233,15 +281,16 @@ xqc_int_t xqc_datagram_send(xqc_connection_t *conn, void *data,
 xqc_int_t 
 xqc_datagram_send_multiple(xqc_connection_t *conn, 
     struct iovec *iov, uint64_t *dgram_id_list, size_t iov_size, 
-    size_t *sent_cnt, size_t *sent_bytes)
+    size_t *sent_cnt, size_t *sent_bytes, xqc_data_qos_level_t qos_level)
 {
-    return xqc_datagram_send_multiple_internal(conn, iov, dgram_id_list, iov_size, sent_cnt, sent_bytes, XQC_FALSE);
+    return xqc_datagram_send_multiple_internal(conn, iov, dgram_id_list, iov_size, sent_cnt, sent_bytes, qos_level, XQC_FALSE, XQC_FALSE);
 }
 
 xqc_int_t 
 xqc_datagram_send_multiple_internal(xqc_connection_t *conn, 
     struct iovec *iov, uint64_t *dgram_id_list, size_t iov_size, 
-    size_t *sent_cnt, size_t *sent_bytes, xqc_bool_t use_supplied_dgram_id)
+    size_t *sent_cnt, size_t *sent_bytes, xqc_data_qos_level_t qos_level, 
+    xqc_bool_t use_supplied_dgram_id, xqc_bool_t disable_redundancy)
 {
     if (sent_cnt) {
         *sent_cnt = 0;
@@ -365,11 +414,71 @@ xqc_datagram_send_multiple_internal(xqc_connection_t *conn,
         *sent_bytes += data_len;
     }
 
+    /* send redundant datagram packets */
+    if (disable_redundancy == XQC_FALSE 
+        && (*sent_cnt > 0)
+        && (qos_level <= XQC_DATA_QOS_HIGH)) 
+    {
+        int red;
+        for (red = 0; red < conn->conn_settings.datagram_redundancy; red++) {
+            for (i = 0; i < iov_size; i++) {
+                data = iov[i].iov_base;
+                data_len = iov[i].iov_len;
+
+                if (!xqc_send_queue_can_write(conn->conn_send_queue)) {
+                    conn->conn_send_queue->sndq_full = XQC_TRUE;
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|red_dgram|too many packets used|ctl_packets_used:%ud|", conn->conn_send_queue->sndq_packets_used);
+                    break;
+                }
+
+                if (pkt_type == XQC_PTYPE_0RTT && conn->zero_rtt_count >= XQC_PACKET_0RTT_MAX_COUNT) {
+                    conn->conn_flag |= XQC_CONN_FLAG_DGRAM_WAIT_FOR_1RTT;
+                    xqc_log(conn->log, XQC_LOG_DEBUG, "|red_dgram|too many 0rtt packets|zero_rtt_count:%ud|", conn->zero_rtt_count);
+                    break;
+                }
+
+                ret = xqc_write_datagram_frame_to_packet(conn, pkt_type, data, data_len, &dgram_id, XQC_FALSE);
+
+                if (ret < 0) {
+                    xqc_log(conn->log, XQC_LOG_ERROR, "|red_dgram|write_datagram_frame_to_packet_error|");
+                    XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+                    return ret;
+                }
+
+                /* 0RTT failure requires fallback to 1RTT, save the original send data */
+                if (pkt_type == XQC_PTYPE_0RTT) {
+                    /* buffer 0RTT packet */
+                    ret = xqc_conn_buff_0rtt_datagram(conn, data, data_len, dgram_id);
+                    if (ret < 0) {
+                        xqc_log(conn->log, XQC_LOG_ERROR, "|red_dgram|unable_to_buffer_0rtt_datagram_data_error|");
+                        XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+                        return ret;
+                    }
+                }
+            }
+        }
+    }
+
     if (*sent_cnt > 0) {
         if (!(conn->conn_flag & XQC_CONN_FLAG_TICKING)) {
             if (0 == xqc_conns_pq_push(conn->engine->conns_active_pq, conn, conn->last_ticked_time)) {
                 conn->conn_flag |= XQC_CONN_FLAG_TICKING;
             }
+        }
+
+        data = iov[*sent_cnt - 1].iov_base;
+        data_len = iov[*sent_cnt - 1].iov_len;
+
+        if (conn->conn_settings.datagram_redundant_probe
+            && conn->dgram_probe_timer >= 0
+            && qos_level <= XQC_DATA_QOS_NORMAL
+            && conn->last_dgram
+            && data_len <= conn->last_dgram->buf_len)
+        {
+            xqc_var_buf_clear(conn->last_dgram);
+            xqc_var_buf_save_data(conn->last_dgram, data, data_len);
+            xqc_conn_gp_timer_set(conn, conn->dgram_probe_timer, xqc_monotonic_timestamp() + conn->conn_settings.datagram_redundant_probe);
+            xqc_log(conn->log, XQC_LOG_DEBUG, "|start_dgram_probe_timer|data_len:%z|", data_len);
         }
 
         /* call main logic to send packets out */
@@ -384,11 +493,29 @@ xqc_datagram_set_user_data(xqc_connection_t *conn, void *dgram_data)
     conn->dgram_data = dgram_data;
 }
 
+void* 
+xqc_datagram_get_user_data(xqc_connection_t *conn)
+{
+    return conn->dgram_data;
+}
+
+void 
+xqc_datagram_notify_write(xqc_connection_t *conn)
+{
+    if (conn->remote_settings.max_datagram_frame_size > 0
+        && (conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST))
+    {
+        if (conn->app_proto_cbs.dgram_cbs.datagram_write_notify) {
+            conn->app_proto_cbs.dgram_cbs.datagram_write_notify(conn, conn->dgram_data);
+        }
+    }
+}
+
 xqc_int_t 
 xqc_datagram_notify_loss(xqc_connection_t *conn, xqc_packet_out_t *po)
 {
     if (conn->app_proto_cbs.dgram_cbs.datagram_lost_notify
-       && (conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) 
+        && (conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST))
     {
         return conn->app_proto_cbs.dgram_cbs.datagram_lost_notify(conn, po->po_dgram_id, conn->dgram_data);
     }
@@ -407,22 +534,10 @@ xqc_datagram_notify_ack(xqc_connection_t *conn, xqc_packet_out_t *po)
         return;
     }
     if (conn->app_proto_cbs.dgram_cbs.datagram_acked_notify
-        && (conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) 
+        && (conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST))
     {
         xqc_log(conn->log, XQC_LOG_DEBUG, 
                 "|notify datagram acked to app|dgram_id:%ui|", po->po_dgram_id);
         conn->app_proto_cbs.dgram_cbs.datagram_acked_notify(conn, po->po_dgram_id, conn->dgram_data);
-    }
-}
-
-void 
-xqc_datagram_notify_write(xqc_connection_t *conn)
-{
-    if (conn->remote_settings.max_datagram_frame_size > 0) {
-        if (conn->app_proto_cbs.dgram_cbs.datagram_write_notify
-            && (conn->conn_flag & XQC_CONN_FLAG_UPPER_CONN_EXIST)) 
-        {
-            conn->app_proto_cbs.dgram_cbs.datagram_write_notify(conn, conn->dgram_data);
-        }
     }
 }

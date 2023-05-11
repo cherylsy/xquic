@@ -24,6 +24,7 @@
 #include "src/transport/xqc_datagram.h"
 #include "src/http3/xqc_h3_conn.h"
 #include "src/tls/xqc_tls.h"
+#include "src/transport/xqc_datagram.h"
 
 
 extern const xqc_qpack_ins_cb_t xqc_h3_qpack_ins_cb;
@@ -45,6 +46,7 @@ xqc_config_t default_client_config = {
     .reset_token_key           = {0},
     .reset_token_keylen        = 0,
     .sendmmsg_on               = 0,
+    .enable_h3_ext             = 0,
 };
 
 
@@ -65,6 +67,7 @@ xqc_config_t default_server_config = {
     .reset_token_key           = {0},
     .reset_token_keylen        = 0,
     .sendmmsg_on               = 0,
+    .enable_h3_ext             = 0,
 };
 
 
@@ -126,6 +129,7 @@ xqc_set_config(xqc_config_t *dst, const xqc_config_t *src)
     dst->cfg_log_timestamp = src->cfg_log_timestamp;
     dst->cfg_log_level_name = src->cfg_log_level_name;
     dst->sendmmsg_on = src->sendmmsg_on;
+    dst->enable_h3_ext = src->enable_h3_ext;
 
     return XQC_OK;
 }
@@ -800,7 +804,7 @@ xqc_engine_main_logic(xqc_engine_t *engine)
     }
     engine->eng_flag |= XQC_ENG_FLAG_RUNNING;
 
-    xqc_log(engine->log, XQC_LOG_DEBUG, "|");
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|BEGIN|");
 
     xqc_usec_t now = xqc_monotonic_timestamp();
     xqc_connection_t *conn;
@@ -941,6 +945,8 @@ xqc_engine_main_logic(xqc_engine_t *engine)
     }
 
     engine->eng_flag &= ~XQC_ENG_FLAG_RUNNING;
+
+    xqc_log(engine->log, XQC_LOG_DEBUG, "|END|");
     return;
 }
 
