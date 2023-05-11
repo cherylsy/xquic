@@ -22,6 +22,8 @@
 #include "src/tls/xqc_tls.h"
 #include "src/common/xqc_list.h"
 
+#define XQC_MAX_DATAGRAM_REDUNDANCY 2
+#define XQC_MIN_DATAGRAM_REDUNDANT_PROBE_INTERVAL 30000 /* 30ms min probing interval */
 
 #define XQC_TOKEN_EXPIRE_DELTA (7 * 24 * 60 * 60)           /* expire in N seconds */
 #define XQC_TOKEN_UPDATE_DELTA (XQC_TOKEN_EXPIRE_DELTA / 2) /* early update */
@@ -374,6 +376,8 @@ struct xqc_connection_s {
     xqc_list_head_t                 dgram_0rtt_buffer_list;
     uint16_t                        dgram_mss;
 
+    xqc_gp_timer_id_t               dgram_probe_timer;
+    xqc_var_buf_t                  *last_dgram;
     /* history path */
     xqc_conn_path_history_t        *history_path;
 };

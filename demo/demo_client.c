@@ -469,7 +469,7 @@ xqc_demo_cli_close_keylog_file(xqc_demo_cli_ctx_t *ctx)
 }
 
 void
-xqc_demo_cli_keylog_cb(const char *line, void *engine_user_data)
+xqc_demo_cli_keylog_cb(const xqc_cid_t *scid, const char *line, void *engine_user_data)
 {
     xqc_demo_cli_ctx_t *ctx = (xqc_demo_cli_ctx_t*)engine_user_data;
     if (ctx->keylog_fd <= 0) {

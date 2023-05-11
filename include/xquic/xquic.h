@@ -101,6 +101,14 @@ typedef ssize_t (*xqc_cid_generate_pt)(const xqc_cid_t *ori_cid, uint8_t *cid_bu
     size_t cid_buflen, void *engine_user_data);
 
 /**
+ * @brief engine secret log callback. will only be effective when build with XQC_PRINT_SECRET
+ *
+ * this callback will be invoked everytime when TLS layer generates a secret, and will be triggered
+ * multiple times during handshake. keylog could be used in wireshark to parse QUIC packets
+ */
+typedef void (*xqc_eng_keylog_pt)(const xqc_cid_t *scid, const char *line, void *engine_user_data);
+
+/**
  * @brief tls secret log callback. will only be effective when build with XQC_PRINT_SECRET
  *
  * this callback will be invoked everytime when TLS layer generates a secret, and will be triggered
@@ -478,9 +486,10 @@ typedef xqc_int_t (*xqc_stream_notify_pt)(xqc_stream_t *stream,
  * @param user_data the dgram_data set by xqc_datagram_set_user_data
  * @param data the data delivered by this callback
  * @param data_len the length of the delivered data
+ * @param dgram_recv_ts the unix timestamp when the datagram is received from socket
  */
 typedef void (*xqc_datagram_read_notify_pt)(xqc_connection_t *conn,
-    void *user_data, void *data, size_t data_len);
+    void *user_data, const void *data, size_t data_len, uint64_t unix_ts);
 
 /**
  * @brief the callback API to notify application that datagrams can be sent
@@ -780,13 +789,31 @@ typedef struct xqc_app_proto_callbacks_s {
 
 } xqc_app_proto_callbacks_t;
 
+typedef enum {
+    XQC_DATA_QOS_HIGHEST = 1,
+    XQC_DATA_QOS_HIGH	 = 2,
+    XQC_DATA_QOS_MEDIUM  = 3,
+    XQC_DATA_QOS_NORMAL  = 4,
+    XQC_DATA_QOS_LOW     = 5,
+    XQC_DATA_QOS_LOWEST  = 6,
+} xqc_data_qos_level_t;
 
 typedef struct xqc_cc_params_s {
     uint32_t    customize_on;
     uint32_t    init_cwnd;
+    uint32_t    min_cwnd;
     uint32_t    expect_bw;
     uint32_t    max_expect_bw;
     uint32_t    cc_optimization_flags;
+    /* 0 < delta <= delta_max, default 0.05, ->0 = more throughput-oriented */
+    double      copa_delta_base; 
+    /* 0 < delta_max <= 1.0, default 0.5 */
+    double      copa_delta_max;
+    /* 
+     * 1.0 <= delta_ai_unit, default 1.0, greater values mean more aggressive
+     * when Copa competes with loss-based CCAs.
+     */
+    double      copa_delta_ai_unit;
 } xqc_cc_params_t;
 
 typedef struct xqc_scheduler_params_u {
@@ -857,6 +884,8 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr2_cb;
 #endif
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;
+XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_unlimited_cc_cb;
+XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_copa_cb;
 
 typedef enum xqc_scheduler_path_event_e {
     XQC_SCHED_EVENT_PATH_NOT_FULL = 0,
@@ -970,6 +999,12 @@ typedef struct xqc_config_s {
      * engine. if write_mmsg is NULL and sendmmsg_on is non-zero, xqc_engine_create will fail
      */
     int             sendmmsg_on;
+
+    /**
+     * @brief enable h3 ext (default: 0)
+     * 
+     */
+    uint8_t         enable_h3_ext;
 } xqc_config_t;
 
 
@@ -987,7 +1022,7 @@ typedef struct xqc_engine_callback_s {
     xqc_cid_generate_pt             cid_generate_cb;
 
     /* tls secret callback, OPTIONAL */
-    xqc_keylog_pt                   keylog_cb;
+    xqc_eng_keylog_pt               keylog_cb;
 
     /* get realtime timestamp callback function. if not set, xquic will get timestamp with inner
        function xqc_now, which relies on gettimeofday */
@@ -1126,6 +1161,20 @@ typedef struct xqc_conn_settings_s {
     uint64_t                    path_unreachable_pto_count;
 
     xqc_msec_t                  standby_path_probe_timeout;
+
+    /* params for performance tuning */
+    /* max ack delay: ms */
+    uint32_t                    max_ack_delay;
+    /* generate an ACK if received ack-eliciting pkts >= ack_frequency */
+    uint32_t                    ack_frequency; 
+    uint64_t                    loss_detection_pkt_thresh;
+    double                      pto_backoff_factor;
+
+    /* datagram redundancy */
+    uint8_t                     datagram_redundancy;
+    uint8_t                     datagram_force_retrans_on;
+    uint64_t                    datagram_redundant_probe;
+
 } xqc_conn_settings_t;
 
 
@@ -1310,6 +1359,15 @@ void xqc_engine_set_log_level(xqc_engine_t *engine, xqc_log_level_t log_level);
 
 
 /**
+ * @brief enable/disable the log module of xquic
+ *
+ * @param enable XQC_TRUE for enable, XQC_FALSE for disable
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_log_enable(xqc_bool_t enable);
+
+
+/**
  * user should call after a number of packet processed in xqc_engine_packet_process
  * call after recv a batch packets, may destroy connection when error
  */
@@ -1367,6 +1425,14 @@ xqc_int_t xqc_conn_close_with_error(xqc_connection_t *conn, uint64_t err_code);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_conn_get_errno(xqc_connection_t *conn);
+
+
+/**
+ * @brief get latest rtt sample of the initial path
+ * 
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_usec_t xqc_conn_get_lastest_rtt(xqc_engine_t *engine, const xqc_cid_t *cid);
 
 
 /**
@@ -1443,6 +1509,20 @@ XQC_EXPORT_PUBLIC_API
 void xqc_conn_set_public_local_trans_settings(xqc_connection_t *conn, 
     xqc_conn_public_local_trans_settings_t *settings);
 
+/**
+ * @brief get public remote transport settings.
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_conn_public_remote_trans_settings_t 
+xqc_conn_get_public_remote_trans_settings(xqc_connection_t *conn);
+
+/**
+ * @brief set public remote transport settings
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_conn_set_public_remote_trans_settings(xqc_connection_t *conn, 
+    xqc_conn_public_remote_trans_settings_t *settings);
+
 
 /**
  * Create new stream in quic connection.
@@ -1507,14 +1587,6 @@ XQC_EXPORT_PUBLIC_API
 ssize_t xqc_stream_send(xqc_stream_t *stream, unsigned char *send_data, size_t send_data_size,
     uint8_t fin);
 
-
-/**
- * Server should set datagram user_data when datagram callbacks
- * @dgram_data: the user_data of all datagram callbacks
- */
-XQC_EXPORT_PUBLIC_API
-void xqc_datagram_set_user_data(xqc_connection_t *conn, void *dgram_data);
-
 /**
  * @brief the API to get the max length of the data that can be sent 
  *        via a single call of xqc_datagram_send; NOTE, if the DCID length could
@@ -1530,21 +1602,35 @@ void xqc_datagram_set_user_data(xqc_connection_t *conn, void *dgram_data);
 XQC_EXPORT_PUBLIC_API
 size_t xqc_datagram_get_mss(xqc_connection_t *conn);
 
-/*
+/**
+ * Server should set datagram user_data when datagram callbacks
+ * @dgram_data: the user_data of all datagram callbacks
+ */
+XQC_EXPORT_PUBLIC_API
+void xqc_datagram_set_user_data(xqc_connection_t *conn, void *dgram_data);
+
+/**
+ * @dgram_data: the user_data of all datagram callbacks
+ */
+XQC_EXPORT_PUBLIC_API
+void* xqc_datagram_get_user_data(xqc_connection_t *conn);
+
+/**
  * @brief the API to send a datagram over the QUIC connection
  * 
  * @param conn the connection handle 
  * @param data the data to be sent
  * @param data_len the length of the data
  * @param *dgram_id the pointer to return the id the datagram
+ * @param qos level (must be the values defined in xqc_data_qos_level_t)
  * @return <0 = error (-XQC_EAGAIN, -XQC_CLOSING, -XQC_EDGRAM_NOT_SUPPORTED, -XQC_EDGRAM_TOO_LARGE, ...), 
  *         0 success
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_datagram_send(xqc_connection_t *conn, void *data, 
-	size_t data_len, uint64_t *dgram_id);
+	size_t data_len, uint64_t *dgram_id, xqc_data_qos_level_t qos_level);
 
-/*
+/**
  * @brief the API to send a datagram over the QUIC connection
  * 
  * @param conn the connection handle 
@@ -1553,13 +1639,14 @@ xqc_int_t xqc_datagram_send(xqc_connection_t *conn, void *data,
  * @param iov_size the size of iov list 
  * @param *sent_cnt the number of successfully sent datagrams
  * @param *sent_bytes the total bytes of successfully sent datagrams
+ * @param qos level (must be the values defined in xqc_data_qos_level_t)
  * @return <0 = error (-XQC_EAGAIN, -XQC_CLOSING, -XQC_EDGRAM_NOT_SUPPORTED, -XQC_EDGRAM_TOO_LARGE, ...), 
  *         0 success
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_datagram_send_multiple(xqc_connection_t *conn, 
     struct iovec *iov, uint64_t *dgram_id_list, size_t iov_size, 
-    size_t *sent_cnt, size_t *sent_bytes);
+    size_t *sent_cnt, size_t *sent_bytes, xqc_data_qos_level_t qos_level);
 
 
 /**
@@ -1701,7 +1788,6 @@ xqc_path_stats_t xqc_path_get_stats(xqc_engine_t *engine, const xqc_cid_t *cid,
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_lb_cid_encryption(uint8_t *cid_buf, size_t enc_len, uint8_t *out_buf, size_t out_buf_len, uint8_t *lb_cid_key, size_t lb_cid_key_len, xqc_engine_t *engine);
 
-
 /**
  * @brief client calls this API to check if it should delete 0rtt ticket according to
  * the errorcode of xqc_conn in conn_close_notify
@@ -1709,6 +1795,16 @@ xqc_int_t xqc_lb_cid_encryption(uint8_t *cid_buf, size_t enc_len, uint8_t *out_b
  */
 XQC_EXPORT_PUBLIC_API
 xqc_bool_t xqc_conn_should_clear_0rtt_ticket(xqc_int_t conn_err);
+
+/**
+ * @brief Users call this function to get a template of conn settings, which serves
+ *        as the starting point for users who want to refine conn settings according 
+ *        to their needs
+ * @param settings_type there are different types of templates in XQUIC
+ * @return conn settings
+ */
+XQC_EXPORT_PUBLIC_API
+xqc_conn_settings_t xqc_conn_get_conn_settings_template(xqc_conn_settings_type_t settings_type);
 
 #ifdef __cplusplus
 }

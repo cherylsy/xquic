@@ -220,7 +220,12 @@ typedef enum {
     XQC_H3_BLOCKED_STREAM_EXCEED        = 825,  /* blocked_stream exceed limit */
     XQC_H3_STREAM_RECV_ERROR            = 826,  /* call xqc_stream_recv error */
     XQC_H3_INVALID_PRIORITY             = 827,  /* invalid http priority params or values */
-
+    XQC_H3_INVALID_BIDI_STREAM_TYPE     = 828,  /* invalid bidi stream type */
+    XQC_H3_ECREATE_BYTESTREAM           = 829,  /* fail to create a bytestream */
+    XQC_H3_EPROC_BYTESTREAM             = 830,  /* fail to process bytestream */
+    XQC_H3_BYTESTREAM_FIN_SENT          = 831,  /* try to send data on a bytestream that already sent FIN */
+    XQC_H3_BYTESTREAM_MSG_BUF_EXIST     = 832,  /* try to create a msg buf while it already exists */
+    
     XQC_H3_ERR_MAX,
 } xqc_h3_error_t;
 

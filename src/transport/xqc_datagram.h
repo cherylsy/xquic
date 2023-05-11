@@ -17,12 +17,13 @@ typedef struct xqc_datagram_0rtt_buffer_s {
     uint64_t dgram_id;
 } xqc_datagram_0rtt_buffer_t;
 
-
 xqc_datagram_0rtt_buffer_t* xqc_datagram_create_0rtt_buffer(void *data, size_t data_len, uint64_t dgram_id);
 
 void xqc_datagram_destroy_0rtt_buffer(xqc_datagram_0rtt_buffer_t* buffer);
 
 void xqc_datagram_record_mss(xqc_connection_t *conn);
+
+void xqc_datagram_notify_write(xqc_connection_t *conn);
 
 xqc_int_t xqc_datagram_notify_loss(xqc_connection_t *conn, xqc_packet_out_t *po);
 
@@ -30,8 +31,7 @@ void xqc_datagram_notify_ack(xqc_connection_t *conn, xqc_packet_out_t *po);
 
 xqc_int_t xqc_datagram_send_multiple_internal(xqc_connection_t *conn, 
     struct iovec *iov, uint64_t *dgram_id_list, size_t iov_size, 
-    size_t *sent_cnt, size_t *sent_bytes, xqc_bool_t use_supplied_dgram_id);
-
-void xqc_datagram_notify_write(xqc_connection_t *conn);
+    size_t *sent_cnt, size_t *sent_bytes, xqc_data_qos_level_t qos_level, 
+    xqc_bool_t use_supplied_dgram_id, xqc_bool_t disable_redundancy);
 
 #endif

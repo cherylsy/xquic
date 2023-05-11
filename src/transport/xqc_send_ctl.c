@@ -100,8 +100,9 @@ xqc_send_ctl_create(xqc_path_ctx_t *path)
     send_ctl->ctl_minrtt = XQC_MAX_UINT32_VALUE;
     send_ctl->ctl_srtt = XQC_kInitialRtt * 1000;
     send_ctl->ctl_rttvar = XQC_kInitialRtt * 1000 / 2;
+    send_ctl->ctl_latest_rtt = 0;
     send_ctl->ctl_max_bytes_in_flight = 0;
-    send_ctl->ctl_reordering_packet_threshold = XQC_kPacketThreshold;
+    send_ctl->ctl_reordering_packet_threshold = conn->conn_settings.loss_detection_pkt_thresh;
     send_ctl->ctl_reordering_time_threshold_shift = XQC_kTimeThresholdShift;
 
     for (size_t i = 0; i < XQC_PNS_N; i++) {
@@ -431,7 +432,7 @@ xqc_send_packet_cwnd_allows(xqc_send_ctl_t *send_ctl,
         /* packet with high priority first */
         if (!xqc_send_ctl_can_send(send_ctl, packet_out, schedule_bytes)) {
             xqc_log(conn->log, XQC_LOG_DEBUG, 
-                    "|blocked by congestion control|");
+                    "|blocked by congestion control|po_sz:%ud|", packet_out->po_used_size);
             return XQC_FALSE;
         }
     }
@@ -1277,6 +1278,9 @@ xqc_send_ctl_detect_lost(xqc_send_ctl_t *send_ctl, xqc_send_queue_t *send_queue,
                 if (po->po_frame_types & XQC_FRAME_BIT_DATAGRAM) {
                     send_ctl->ctl_lost_dgram_cnt++;
                     repair_dgram = xqc_datagram_notify_loss(conn, po);
+                    if (conn->conn_settings.datagram_force_retrans_on) {
+                        repair_dgram = XQC_DGRAM_RETX_ASKED_BY_APP;
+                    }
                 }
 
                 if (XQC_NEED_REPAIR(po->po_frame_types) 
@@ -1538,10 +1542,16 @@ xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *send_ctl, xqc_usec_t now, xq
     xqc_usec_t pto_timeout = XQC_MAX_UINT64_VALUE;
     xqc_connection_t *c = send_ctl->ctl_conn;
     xqc_int_t pto_cnt = send_ctl->ctl_pto_count;
+    double  backoff = xqc_send_ctl_pow_x(c->conn_settings.pto_backoff_factor, send_ctl->ctl_pto_count);
 
     /* get pto duration */
     xqc_usec_t duration = (send_ctl->ctl_srtt
-        + xqc_max(4 * send_ctl->ctl_rttvar, XQC_kGranularity * 1000)) * xqc_send_ctl_pow(pto_cnt);
+        + xqc_max(4 * send_ctl->ctl_rttvar, XQC_kGranularity * 1000)) * backoff;
+    
+    xqc_log(c->log, XQC_LOG_DEBUG, 
+            "|srtt:%ud|rtt_var:%ud|pto_duration:%ud|backoff_factor:%.2f|backoff:%.2f|pto_cnt:%d|max_ack_delay:%d|",
+            send_ctl->ctl_srtt, send_ctl->ctl_rttvar, duration, 
+            c->conn_settings.pto_backoff_factor, backoff, pto_cnt, c->remote_settings.max_ack_delay);
 
     /* Arm PTO from now when there are no inflight packets */
     if (send_ctl->ctl_bytes_in_flight == 0) {
@@ -1575,7 +1585,7 @@ xqc_send_ctl_get_pto_time_and_space(xqc_send_ctl_t *send_ctl, xqc_usec_t now, xq
                         break;
                     }
 
-                    duration += c->remote_settings.max_ack_delay * 1000 * xqc_send_ctl_pow(send_ctl->ctl_pto_count);
+                    duration += c->remote_settings.max_ack_delay * 1000 * backoff;
                 }
 
                 t = send_ctl->ctl_time_of_last_sent_ack_eliciting_packet[pns] + duration;
@@ -1765,6 +1775,10 @@ xqc_send_ctl_get_lost_sent_pn(xqc_send_ctl_t *send_ctl, xqc_pkt_num_space_t pns)
             lost_pn = largest_acked - threshold;
         }
     }
+
+    xqc_log(send_ctl->ctl_conn->log, XQC_LOG_DEBUG, 
+            "|largest_acked:%ui|lost_pn:%ui|thresh:%ui|",
+            largest_acked, lost_pn, threshold);
 
     return lost_pn;
 }

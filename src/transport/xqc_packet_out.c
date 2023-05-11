@@ -392,7 +392,9 @@ xqc_write_ack_to_packets(xqc_connection_t *conn)
 path_buffer:
         xqc_list_for_each_safe(pos, next, &conn->conn_initial_path->path_schedule_buf[XQC_SEND_TYPE_NORMAL]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_pkt.pkt_type == pkt_type) {
+            if (packet_out->po_pkt.pkt_type == pkt_type
+                && !(packet_out->po_frame_types & XQC_FRAME_BIT_ACK)) 
+            {
                 ret = xqc_write_ack_to_one_packet(conn, packet_out, pns);
                 if (ret == -XQC_ENOBUF) {
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_ack_to_one_packet try conn buffer|");
@@ -411,7 +413,10 @@ path_buffer:
 conn_buffer:
         xqc_list_for_each_safe(pos, next, &conn->conn_send_queue->sndq_send_packets) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_pkt.pkt_type == pkt_type && !packet_out->po_is_path_specified) {
+            if (packet_out->po_pkt.pkt_type == pkt_type 
+                && !packet_out->po_is_path_specified
+                && !(packet_out->po_frame_types & XQC_FRAME_BIT_ACK)) 
+            {
                 ret = xqc_write_ack_to_one_packet(conn, packet_out, pns);
                 if (ret == -XQC_ENOBUF) {
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_ack_to_one_packet try new packet|");
@@ -1142,7 +1147,8 @@ xqc_write_ack_mp_to_packets(xqc_connection_t *conn)
 path_buffer:
         xqc_list_for_each_safe(pos, next, &path->path_schedule_buf[XQC_SEND_TYPE_NORMAL]) {
             packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
-            if (packet_out->po_pkt.pkt_type == pkt_type) {
+            if (packet_out->po_pkt.pkt_type == pkt_type
+                && !(packet_out->po_frame_types & XQC_FRAME_BIT_ACK_MP)) {
                 ret = xqc_write_ack_mp_to_one_packet(conn, path, packet_out, pns);
                 if (ret == -XQC_ENOBUF) {
                     xqc_log(conn->log, XQC_LOG_DEBUG, "|xqc_write_ack_to_one_packet try new packet|");
