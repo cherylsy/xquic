@@ -159,8 +159,8 @@ typedef struct xqc_request_stats_s {
  */
 typedef struct xqc_h3_ext_bytestream_stats_s {
     size_t      bytes_sent;
-    size_t 	 	bytes_rcvd;
-    int    		stream_err;
+    size_t      bytes_rcvd;
+    int         stream_err;
     const char *stream_close_msg;
     xqc_usec_t  create_time;
     xqc_usec_t  fin_rcvd_time;
@@ -205,13 +205,13 @@ typedef struct xqc_h3_conn_settings_s {
  * @param data_recv_time time spent for receiving data
  */
 typedef int (*xqc_h3_ext_bytestream_read_notify_pt)(xqc_h3_ext_bytestream_t *h3_ext_bs, 
-	const void *data, size_t data_len, uint8_t fin, void *bs_user_data, uint64_t data_recv_time);
+    const void *data, size_t data_len, uint8_t fin, void *bs_user_data, uint64_t data_recv_time);
 
 /**
  * @brief callbacks for extended h3 bytestream
  */
 typedef int (*xqc_h3_ext_bytestream_notify_pt)(xqc_h3_ext_bytestream_t *h3_ext_bs, 
-	void *bs_user_data);
+    void *bs_user_data);
 
 
 /**
@@ -250,7 +250,7 @@ typedef void (*xqc_h3_ext_datagram_write_notify_pt)(xqc_h3_conn_t *conn,
  *         others, ignored by the QUIC stack.
  */
 typedef int (*xqc_h3_ext_datagram_lost_notify_pt)(xqc_h3_conn_t *conn, 
-	uint64_t dgram_id, void *user_data);
+    uint64_t dgram_id, void *user_data);
 
 /**
  * @brief the callback API to notify the application that a datagram is acked
@@ -260,7 +260,7 @@ typedef int (*xqc_h3_ext_datagram_lost_notify_pt)(xqc_h3_conn_t *conn,
  * @param dgram_id the id of the acked datagram
  */
 typedef void (*xqc_h3_ext_datagram_acked_notify_pt)(xqc_h3_conn_t *conn,
-	uint64_t dgram_id, void *user_data);
+    uint64_t dgram_id, void *user_data);
 
 
 typedef struct xqc_h3_ext_dgram_callbacks_s {
@@ -276,7 +276,7 @@ typedef struct xqc_h3_ext_dgram_callbacks_s {
 
     /* the return value is ignored by XQUIC stack */
     xqc_h3_ext_datagram_lost_notify_pt  dgram_lost_notify;
-    
+
 } xqc_h3_ext_dgram_callbacks_t;
 
 /**
@@ -330,7 +330,7 @@ typedef struct xqc_h3_ext_bytestream_callbacks_s {
 
     /* negative return values will cause the connection to be closed */
     xqc_h3_ext_bytestream_notify_pt       bs_write_notify;
-    
+
 } xqc_h3_ext_bytestream_callbacks_t;
 
 
@@ -701,7 +701,7 @@ xqc_int_t xqc_h3_request_set_priority(xqc_h3_request_t *h3r,
  */
 XQC_EXPORT_PUBLIC_API
 xqc_h3_ext_bytestream_t *xqc_h3_ext_bytestream_create(xqc_engine_t *engine, 
-	const xqc_cid_t *cid, void *user_data);
+    const xqc_cid_t *cid, void *user_data);
 
 /**
  * @brief close bytestream, send QUIC RESET_STREAM frame to peer. h3_ext_bytestream_close_notify will 
@@ -731,7 +731,7 @@ ssize_t xqc_h3_ext_bytestream_finish(xqc_h3_ext_bytestream_t *h3_ext_bs);
  */
 XQC_EXPORT_PUBLIC_API
 void xqc_h3_ext_bytestream_set_user_data(xqc_h3_ext_bytestream_t *h3_ext_bs, 
-	void *user_data);
+    void *user_data);
 
 
 /**
@@ -752,7 +752,7 @@ void* xqc_h3_ext_bytestream_get_user_data(xqc_h3_ext_bytestream_t *h3_ext_bs);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_h3_ext_bytestream_stats_t xqc_h3_ext_bytestream_get_stats(
-	xqc_h3_ext_bytestream_t *h3_ext_bs);
+    xqc_h3_ext_bytestream_t *h3_ext_bs);
 
 /**
  * @brief send data
@@ -766,7 +766,7 @@ xqc_h3_ext_bytestream_stats_t xqc_h3_ext_bytestream_get_stats(
  */
 XQC_EXPORT_PUBLIC_API
 ssize_t xqc_h3_ext_bytestream_send(xqc_h3_ext_bytestream_t *h3_ext_bs, 
-	unsigned char *data, size_t data_size, uint8_t fin, 
+    unsigned char *data, size_t data_size, uint8_t fin, 
     xqc_data_qos_level_t qos_level);
 
 /**
@@ -786,7 +786,7 @@ xqc_stream_id_t xqc_h3_ext_bytestream_id(xqc_h3_ext_bytestream_t *h3_ext_bs);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_h3_conn_t *xqc_h3_ext_bytestream_get_h3_conn(
-	xqc_h3_ext_bytestream_t *h3_ext_bs);
+    xqc_h3_ext_bytestream_t *h3_ext_bs);
 
 /**
  * @brief the API to get the max length of the data that can be sent 
@@ -825,7 +825,7 @@ void* xqc_h3_ext_datagram_get_user_data(xqc_h3_conn_t *conn);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_h3_ext_datagram_send(xqc_h3_conn_t *conn, void *data, 
-	size_t data_len, uint64_t *dgram_id, 
+    size_t data_len, uint64_t *dgram_id, 
     xqc_data_qos_level_t qos_level);
 
 /**

@@ -414,7 +414,7 @@ typedef enum {
     XQC_PATH_DEGRADE,
     XQC_PATH_RECOVERY,
 } xqc_path_status_change_type_t;
- 
+
 /**
  * @brief multi-path quality callback function
  *
@@ -1628,7 +1628,7 @@ void* xqc_datagram_get_user_data(xqc_connection_t *conn);
  */
 XQC_EXPORT_PUBLIC_API
 xqc_int_t xqc_datagram_send(xqc_connection_t *conn, void *data, 
-	size_t data_len, uint64_t *dgram_id, xqc_data_qos_level_t qos_level);
+    size_t data_len, uint64_t *dgram_id, xqc_data_qos_level_t qos_level);
 
 /**
  * @brief the API to send a datagram over the QUIC connection

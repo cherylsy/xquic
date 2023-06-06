@@ -122,10 +122,10 @@ typedef enum {
 
     XQC_EENCRYPT_LB_CID                 = 670,      /* load balance connection ID encryption error */
     XQC_EENCRYPT_AES_128_ECB            = 671,      /* aes_128_ecb algorithm error */
-    
+
     XQC_EDGRAM_NOT_SUPPORTED            = 680,      /* Datagram - not supported */
     XQC_EDGRAM_TOO_LARGE                = 681,      /* Datagram - payload size too large */
-    
+
     XQC_E_MAX,
 } xqc_transport_error_t;
 
@@ -225,7 +225,7 @@ typedef enum {
     XQC_H3_EPROC_BYTESTREAM             = 830,  /* fail to process bytestream */
     XQC_H3_BYTESTREAM_FIN_SENT          = 831,  /* try to send data on a bytestream that already sent FIN */
     XQC_H3_BYTESTREAM_MSG_BUF_EXIST     = 832,  /* try to create a msg buf while it already exists */
-    
+
     XQC_H3_ERR_MAX,
 } xqc_h3_error_t;
 

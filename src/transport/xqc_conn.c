@@ -142,7 +142,7 @@ xqc_server_set_conn_settings(const xqc_conn_settings_t *settings)
     if (settings->pto_backoff_factor > 0) {
         default_conn_settings.pto_backoff_factor = settings->pto_backoff_factor;
     }
-    
+
     if (settings->loss_detection_pkt_thresh > 0) {
         default_conn_settings.loss_detection_pkt_thresh = settings->loss_detection_pkt_thresh;
     }
@@ -505,8 +505,6 @@ xqc_conn_create(xqc_engine_t *engine, xqc_cid_t *dcid, xqc_cid_t *scid,
     }
 
     xqc_conn_init_timer_manager(xc);
-
-    
 
     if (xc->conn_settings.datagram_redundant_probe) {
         xc->last_dgram = xqc_var_buf_create_with_limit(xqc_conn_get_mss(xc), xqc_conn_get_mss(xc));
@@ -1266,27 +1264,27 @@ xqc_convert_pkt_0rtt_2_1rtt(xqc_connection_t *conn, xqc_packet_out_t *packet_out
                                           conn->key_update_ctx.cur_out_key_phase);
     packet_out->po_used_size = ret;
 
-	if (ori_hdr_len < ret) {
-	    xqc_log(conn->log, XQC_LOG_ERROR, "|fatal|long_header_is_shorter_than_short_header|");
-	    XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
-	    return;
-	}
-	 
-	unsigned int hdr_offset_diff = (ori_hdr_len - ret);
+    if (ori_hdr_len < ret) {
+        xqc_log(conn->log, XQC_LOG_ERROR, "|fatal|long_header_is_shorter_than_short_header|");
+        XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+        return;
+    }
+
+    unsigned int hdr_offset_diff = (ori_hdr_len - ret);
 
     /* copy frame directly */
     memmove(packet_out->po_buf + ret, ori_payload, ori_payload_len);
     packet_out->po_payload = packet_out->po_buf + ret;
     packet_out->po_used_size += ori_payload_len;
-	 
-	if (packet_out->po_ack_offset > 0) {
-	    if (packet_out->po_ack_offset < hdr_offset_diff) {
-	        xqc_log(conn->log, XQC_LOG_ERROR, "|fatal|wrong_ack_frame_offset|");
-	        XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
-	        return;
-	    }
-	    packet_out->po_ack_offset -= hdr_offset_diff;
-	}
+
+    if (packet_out->po_ack_offset > 0) {
+        if (packet_out->po_ack_offset < hdr_offset_diff) {
+            xqc_log(conn->log, XQC_LOG_ERROR, "|fatal|wrong_ack_frame_offset|");
+            XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
+            return;
+        }
+        packet_out->po_ack_offset -= hdr_offset_diff;
+    }
 
     xqc_log(conn->log, XQC_LOG_DEBUG, "|0RTT to 1RTT|conn:%p|type:%d|pkt_num:%ui|pns:%d|frame:%s|", 
             conn, packet_out->po_pkt.pkt_type, packet_out->po_pkt.pkt_num, packet_out->po_pkt.pkt_pns, 
@@ -2529,7 +2527,7 @@ xqc_conn_get_lastest_rtt(xqc_engine_t *engine, const xqc_cid_t *cid)
                 xqc_scid_str(cid));
         return 0;
     }
-    
+
     return path->path_send_ctl->ctl_latest_rtt;
 }
 
@@ -2634,7 +2632,7 @@ xqc_conn_gen_token(xqc_connection_t *conn, unsigned char *token, unsigned *token
 
 void 
 xqc_conn_resend_0rtt_datagram(xqc_connection_t *conn)
-{   
+{
     xqc_list_head_t *pos, *next;
     xqc_datagram_0rtt_buffer_t *dgram_buffer;
     struct iovec iov[XQC_MAX_SEND_MSG_ONCE];
@@ -2669,7 +2667,7 @@ xqc_conn_resend_0rtt_datagram(xqc_connection_t *conn)
             XQC_CONN_ERR(conn, TRA_INTERNAL_ERROR);
         }
     }
-    
+
     xqc_conn_destroy_0rtt_datagram_buffer_list(conn);
 }
 
