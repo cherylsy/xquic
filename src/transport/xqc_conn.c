@@ -2168,6 +2168,16 @@ xqc_conn_get_errno(xqc_connection_t *conn)
     return conn->conn_err;
 }
 
+void *
+xqc_conn_get_ssl(xqc_connection_t *conn)
+{
+    if (conn->tls) {
+        return xqc_tls_get_ssl(conn->tls);
+    }
+
+    return NULL;
+}
+
 /* cleanup connection and wait for draining */
 void
 xqc_conn_shutdown(xqc_connection_t *conn)
