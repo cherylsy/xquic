@@ -85,7 +85,9 @@ XQUIC_VERS_1.0 {
         xqc_lb_cid_encryption;
         xqc_path_get_peer_addr;
         xqc_path_get_local_addr;
-        xqc_xlink_reinj_ctl_cb;
+        xqc_default_reinj_ctl_cb;
+        xqc_deadline_reinj_ctl_cb;
+        xqc_dgram_reinj_ctl_cb;
         xqc_datagram_get_mss;
         xqc_datagram_send;
         xqc_datagram_send_multiple;
