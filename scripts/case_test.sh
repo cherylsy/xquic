@@ -3964,5 +3964,79 @@ grep_err_log
 
 
 killall test_server
+stdbuf -oL ./test_server -l d -e -M > /dev/null &
+sleep 1
+
+rm -rf tp_localhost test_session xqc_token
+clear_log
+echo -e "transport MP ping ...\c"
+sudo ./test_client -s 1024 -l d -E -T 1 -e 1 --epoch_timeout 2000000 -t 3 --mp_ping 1 -M -i lo -i lo >> clog
+ret_ping_id=`grep "====>ping_id:" clog`
+ret_no_ping_id=`grep "====>no ping_id" clog`
+path0_ping=`grep -E "xqc_send_packet_with_pn.*path:0.*PING" clog`
+path1_ping=`grep -E "xqc_send_packet_with_pn.*path:1.*PING" clog`
+if [ -n "$ret_ping_id" ] && [ -n "$ret_no_ping_id" ] && [ -n "$path0_ping" ] && [ -n "$path1_ping" ] ; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "transport_MP_ping" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "transport_MP_ping" "fail"
+fi
+
+
+rm -rf tp_localhost test_session xqc_token
+clear_log
+echo -e "h3 MP ping ...\c"
+sudo ./test_client -s 1024 -l d -E -e 1 --epoch_timeout 2000000 -t 3 --mp_ping 1 -M -i lo -i lo >> clog
+ret_ping_id=`grep "====>ping_id:" clog`
+ret_no_ping_id=`grep "====>no ping_id" clog`
+path0_ping=`grep -E "xqc_send_packet_with_pn.*path:0.*PING" clog`
+path1_ping=`grep -E "xqc_send_packet_with_pn.*path:1.*PING" clog`
+if [ -n "$ret_ping_id" ] && [ -n "$ret_no_ping_id" ] && [ -n "$path0_ping" ] && [ -n "$path1_ping" ] ; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "h3_MP_ping" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "h3_MP_ping" "fail"
+fi
+
+
+rm -rf tp_localhost test_session xqc_token
+clear_log
+echo -e "freeze path0 ...\c"
+sudo ./test_client -s 1024000 -l d -E -e 4 -T 2 --epoch_timeout 2000000 -t 4 -M -i lo -i lo -x 107 > stdlog
+stream_info3=`grep "stream_info:" stdlog | head -n 3 | tail -n 1 | grep -v "#0" | grep "#1"`
+stream_info5=`grep "stream_info:" stdlog | tail -n 1 | grep -E "#0.*#1"`
+clog_res1=`grep -E "path:0.*app_path_status:2->3" clog`
+clog_res2=`grep -E "path:0.*app_path_status:3->1" clog`
+slog_res1=`grep -E "path:0.*app_path_status:2->3" slog`
+slog_res2=`grep -E "path:0.*app_path_status:3->1" slog`
+if [ -n "$stream_info3" ] && [ -n "$stream_info5" ] && [ -n "$clog_res1" ] && [ -n "$clog_res2" ] && [ -n "$slog_res1" ] && [ -n "$slog_res2" ] ; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "freeze_path0" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "freeze_path0" "fail"
+fi
+
+rm -rf tp_localhost test_session xqc_token
+clear_log
+echo -e "freeze path1 ...\c"
+sudo ./test_client -s 1024000 -l d -E -e 4 -T 2 --epoch_timeout 2000000 -t 4 -M -i lo -i lo -x 108 > stdlog
+stream_info3=`grep "stream_info:" stdlog | head -n 3 | tail -n 1 | grep -v "#1" | grep "#0"`
+stream_info5=`grep "stream_info:" stdlog | tail -n 1 | grep -E "#0.*#1"`
+clog_res1=`grep -E "path:1.*app_path_status:2->3" clog`
+clog_res2=`grep -E "path:1.*app_path_status:3->1" clog`
+slog_res1=`grep -E "path:1.*app_path_status:2->3" slog`
+slog_res2=`grep -E "path:1.*app_path_status:3->1" slog`
+if [ -n "$stream_info3" ] && [ -n "$stream_info5" ] && [ -n "$clog_res1" ] && [ -n "$clog_res2" ] && [ -n "$slog_res1" ] && [ -n "$slog_res2" ] ; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "freeze_path1" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "freeze_path1" "fail"
+fi
+
+killall test_server
 
 cd -
