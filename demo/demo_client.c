@@ -794,6 +794,11 @@ xqc_demo_cli_path_removed(const xqc_cid_t *scid, uint64_t path_id,
         {
             user_conn->paths[i].is_active = 0;
             user_conn->active_path_cnt--;
+            /* remove event handle */
+            event_del(user_conn->paths[i].ev_socket);
+            event_del(user_conn->paths[i].ev_timeout);
+            /* close socket */
+            close(user_conn->paths[i].fd);
             printf("No.%d path removed id = %"PRIu64"\n", i, path_id);   
         }
     }
@@ -1382,7 +1387,9 @@ xqc_demo_cli_init_conneciton_settings(xqc_conn_settings_t* settings,
         sched = xqc_minrtt_scheduler_cb;
 
     } else {
+#ifdef XQC_MPQUIC_INTEROP
         sched = xqc_interop_scheduler_cb;
+#endif
     }
 
     memset(settings, 0, sizeof(xqc_conn_settings_t));

@@ -757,7 +757,7 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         return ret;
     }
 
-    if (seq_num >= conn->scid_set.largest_scid_seq_num) {
+    if (seq_num > conn->scid_set.largest_scid_seq_num) {
         /* 
          * Receipt of a RETIRE_CONNECTION_ID frame containing a sequence number
          * greater than any previously sent to the peer MUST be treated as a
@@ -802,7 +802,7 @@ xqc_process_retire_conn_id_frame(xqc_connection_t *conn, xqc_packet_in_t *packet
         xqc_log(conn->log, XQC_LOG_DEBUG, "|switch scid to %ui|", conn->scid_set.user_scid.cid_seq_num);
     }
 
-    /* TODO: 如果对应 “Avtive” Path 则需要替换 CID */
+    /* TODO: 如果对应 “Active” Path 则需要替换 CID */
     xqc_path_ctx_t *path = xqc_conn_find_path_by_scid(conn, &inner_cid->cid);
     if (path != NULL) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|path:%ui|state:%d|", path->path_id, path->path_state);
@@ -1513,10 +1513,16 @@ xqc_process_path_status_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in
         return XQC_OK; /* ignore */
     }
 
-    xqc_usec_t now = xqc_monotonic_timestamp();
     if (path_status_seq_num > path->app_path_status_recv_seq_num) {
         path->app_path_status_recv_seq_num = path_status_seq_num;
-        xqc_set_application_path_status(path, path_status, now);
+        path->next_app_path_state = path_status;
+        
+        if (path->path_state < XQC_PATH_STATE_ACTIVE) {
+            path->path_flag |= XQC_PATH_FLAG_RECV_STATUS;
+
+        } else {
+            xqc_set_application_path_status(path, path->next_app_path_state, XQC_FALSE);
+        }
     }
 
     return XQC_OK;

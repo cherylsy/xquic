@@ -51,6 +51,7 @@ typedef struct xqc_bbr_info_interface_s     xqc_bbr_info_interface_t;
 typedef struct xqc_path_ctx_s               xqc_path_ctx_t;
 typedef struct xqc_timer_manager_s          xqc_timer_manager_t;
 typedef struct xqc_h3_ext_bytestream_s      xqc_h3_ext_bytestream_t;
+typedef struct xqc_ping_record_s            xqc_ping_record_t;
 
 typedef uint64_t        xqc_msec_t; /* store millisecond values */
 typedef uint64_t        xqc_usec_t; /* store microsecond values */

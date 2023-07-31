@@ -1385,7 +1385,9 @@ xqc_demo_svr_init_conn_settings(xqc_demo_svr_args_t *args)
         sched = xqc_minrtt_scheduler_cb;
 
     } else {
+#ifdef XQC_MPQUIC_INTEROP
         sched = xqc_interop_scheduler_cb;
+#endif
     }
 
     /* init connection settings */

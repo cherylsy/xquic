@@ -41,6 +41,11 @@ xqc_minrtt_scheduler_get_path(void *scheduler,
             continue;
         }
 
+        /* skip the frozen path */
+        if (path->app_path_status == XQC_APP_PATH_STATUS_FROZEN) {
+            continue;
+        }
+
         if (reinject && (packet_out->po_path_id == path->path_id)) {
             continue;
         }

@@ -70,25 +70,6 @@ xqc_associate_packet_with_reinjection(xqc_packet_out_t *reinj_origin,
     }
 }
 
-void
-xqc_disassociate_packet_with_reinjection(xqc_packet_out_t *reinj_origin,
-    xqc_packet_out_t *reinj_replica)
-{
-    if (reinj_origin) {
-        reinj_origin->po_flag &= ~XQC_POF_REINJECTED_ORIGIN;
-        reinj_origin->po_path_flag &= ~XQC_PATH_SPECIFIED_BY_REINJ;
-    }
-
-    if (reinj_replica) {
-        reinj_replica->po_flag &= ~XQC_POF_REINJECTED_REPLICA;
-        reinj_origin->po_path_flag &= ~XQC_PATH_SPECIFIED_BY_REINJ;
-        if (reinj_replica->po_origin) {
-            reinj_replica->po_origin->po_origin_ref_cnt--;
-            reinj_replica->po_origin = NULL;
-        }
-    }
-}
-
 
 static void
 xqc_packet_out_replicate(xqc_packet_out_t *dst, xqc_packet_out_t *src)

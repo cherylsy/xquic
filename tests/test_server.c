@@ -675,8 +675,8 @@ xqc_server_conn_close_notify(xqc_connection_t *conn, const xqc_cid_t *cid, void 
     DEBUG;
     user_conn_t *user_conn = (user_conn_t *)user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
-    printf("send_count:%u, lost_count:%u, lost_dgram_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s\n",
-           stats.send_count, stats.lost_count, stats.lost_dgram_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info);
+    printf("send_count:%u, lost_count:%u, lost_dgram_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s, alpn:%s\n",
+           stats.send_count, stats.lost_count, stats.lost_dgram_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info, stats.alpn);
 
     printf("[dgram]|recv_dgram_bytes:%zu|sent_dgram_bytes:%zu|lost_dgram_bytes:%zu|lost_cnt:%zu|\n", 
            user_conn->dgram_blk->data_recv, user_conn->dgram_blk->data_sent,
@@ -941,8 +941,8 @@ xqc_server_h3_conn_close_notify(xqc_h3_conn_t *h3_conn, const xqc_cid_t *cid, vo
     DEBUG;
     user_conn_t *user_conn = (user_conn_t*)conn_user_data;
     xqc_conn_stats_t stats = xqc_conn_get_stats(ctx.engine, cid);
-    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s, conn_info:%s\n",
-           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info, stats.conn_info);
+    printf("send_count:%u, lost_count:%u, tlp_count:%u, recv_count:%u, srtt:%"PRIu64" early_data_flag:%d, conn_err:%d, ack_info:%s, conn_info:%s, alpn:%s\n",
+           stats.send_count, stats.lost_count, stats.tlp_count, stats.recv_count, stats.srtt, stats.early_data_flag, stats.conn_err, stats.ack_info, stats.conn_info, stats.alpn);
 
     printf("[h3-dgram]|recv_dgram_bytes:%zu|sent_dgram_bytes:%zu|lost_dgram_bytes:%zu|lost_cnt:%zu|\n", 
            user_conn->dgram_blk->data_recv, user_conn->dgram_blk->data_sent,

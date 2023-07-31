@@ -42,6 +42,11 @@ xqc_rap_scheduler_get_path(void *scheduler,
             continue;
         }
 
+        /* skip the frozen path */
+        if (path->app_path_status == XQC_APP_PATH_STATUS_FROZEN) {
+            continue;
+        }
+
         if (!xqc_scheduler_check_path_can_send(path, packet_out, check_cwnd)) {
             continue;
         }
