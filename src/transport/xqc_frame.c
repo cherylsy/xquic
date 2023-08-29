@@ -95,6 +95,7 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
     unsigned char inserted = 0;
     xqc_list_head_t *pos;
     xqc_stream_frame_t *frame;
+
     xqc_list_for_each_reverse(pos, &stream->stream_data_in.frames_tailq) {
         frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
 
@@ -149,10 +150,9 @@ xqc_insert_stream_frame(xqc_connection_t *conn, xqc_stream_t *stream, xqc_stream
         pos = new_frame->sf_list.next;
         xqc_list_for_each_from(pos, &stream->stream_data_in.frames_tailq) {
             frame = xqc_list_entry(pos, xqc_stream_frame_t, sf_list);
-            if (stream->stream_data_in.merged_offset_end >= frame->data_offset
-                && stream->stream_data_in.merged_offset_end < frame->data_offset + frame->data_length)
-            {
-                stream->stream_data_in.merged_offset_end = frame->data_offset + frame->data_length;
+            if (stream->stream_data_in.merged_offset_end >= frame->data_offset) {
+                stream->stream_data_in.merged_offset_end = xqc_max(frame->data_offset + frame->data_length, 
+                                                                   stream->stream_data_in.merged_offset_end);
                 xqc_log(conn->log, XQC_LOG_DEBUG, "|merge right|merged_offset_end:%ui|offset:%ui|len:%ud|",
                         stream->stream_data_in.merged_offset_end, frame->data_offset, frame->data_length);
             } else {
@@ -325,12 +325,13 @@ xqc_process_padding_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 xqc_int_t
 xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
 {
-    xqc_int_t ret = 0;
+    xqc_int_t            ret;
+    xqc_stream_id_t      stream_id;
+    xqc_stream_type_t    stream_type;
+    xqc_stream_t        *stream = NULL;
+    xqc_stream_frame_t  *stream_frame;
 
-    xqc_stream_id_t stream_id;
-    xqc_stream_type_t stream_type;
-    xqc_stream_t *stream = NULL;
-    xqc_stream_frame_t *stream_frame = xqc_calloc(1, sizeof(xqc_stream_frame_t));
+    stream_frame = xqc_calloc(1, sizeof(xqc_stream_frame_t));
     if (stream_frame == NULL) {
         xqc_log(conn->log, XQC_LOG_ERROR, "|xqc_calloc error|");
         return -XQC_EMALLOC;
@@ -411,6 +412,21 @@ xqc_process_stream_frame(xqc_connection_t *conn, xqc_packet_in_t *packet_in)
         XQC_CONN_ERR(conn, TRA_FINAL_SIZE_ERROR);
         ret = -XQC_EPROTO;
         goto error;
+    }
+
+    /* if stream is discarded, drop all data */
+    if (stream->stream_flag & XQC_STREAM_FLAG_DISCARDED) {
+        xqc_log(conn->log, XQC_LOG_DEBUG, "|stream[%ui] data discarded|"
+                "offset:%ui|len:%ui", stream->stream_id,
+                stream_frame->data_offset,
+                stream_frame->data_length);
+
+        /* if all data is discarded, try to close the stream */
+        if (stream_frame->fin) {
+            xqc_stream_close_discarded_stream(stream);
+        }
+
+        goto free;
     }
 
     ret = xqc_insert_stream_frame(conn, stream, stream_frame);

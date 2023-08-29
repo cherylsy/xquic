@@ -401,6 +401,10 @@ struct xqc_connection_s {
 
     /* pending ping notification */
     xqc_list_head_t                 ping_notification_list;
+
+    /* cc blocking stats */
+    uint32_t                        sched_cc_blocked;
+    uint32_t                        send_cc_blocked;
 };
 
 const char *xqc_conn_flag_2_str(xqc_conn_flag_t conn_flag);

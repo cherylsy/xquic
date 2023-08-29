@@ -2,8 +2,6 @@
  * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
  */
 
-#ifdef XQC_MPQUIC_INTEROP
-
 #ifndef _XQC_SCHEDULER_INTEROP_H_INCLUDED_
 #define _XQC_SCHEDULER_INTEROP_H_INCLUDED_
 
@@ -11,7 +9,5 @@
 #include <xquic/xquic.h>
 
 extern const xqc_scheduler_callback_t xqc_interop_scheduler_cb;
-
-#endif
 
 #endif
