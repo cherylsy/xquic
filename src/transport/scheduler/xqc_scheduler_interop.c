@@ -2,6 +2,7 @@
  * @copyright Copyright (c) 2022, Alibaba Group Holding Limited
  */
 
+#ifdef XQC_MPQUIC_INTEROP
 
 #include "src/transport/scheduler/xqc_scheduler_interop.h"
 #include "src/transport/scheduler/xqc_scheduler_common.h"
@@ -97,3 +98,5 @@ const xqc_scheduler_callback_t xqc_interop_scheduler_cb = {
     .xqc_scheduler_init             = xqc_interop_scheduler_init,
     .xqc_scheduler_get_path         = xqc_interop_scheduler_get_path,
 };
+
+#endif
