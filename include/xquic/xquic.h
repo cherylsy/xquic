@@ -15,6 +15,8 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #endif
+
+#include "xqc_configure.h"
 #include "xquic_typedef.h"
 
 #ifdef __cplusplus
@@ -911,7 +913,7 @@ typedef struct xqc_congestion_control_callback_s {
     xqc_bbr_info_interface_t *xqc_cong_ctl_info_cb;
 } xqc_cong_ctrl_callback_t;
 
-#ifndef XQC_DISABLE_RENO
+#ifdef XQC_ENABLE_RENO
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_reno_cb;
 #endif
 #ifdef XQC_ENABLE_BBR2
@@ -919,8 +921,12 @@ XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr2_cb;
 #endif
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_bbr_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_cubic_cb;
+#ifdef XQC_ENABLE_UNLIMITED
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_unlimited_cc_cb;
+#endif
+#ifdef XQC_ENABLE_COPA
 XQC_EXPORT_PUBLIC_API extern const xqc_cong_ctrl_callback_t xqc_copa_cb;
+#endif
 
 typedef enum xqc_scheduler_path_event_e {
     XQC_SCHED_EVENT_PATH_NOT_FULL = 0,
@@ -939,7 +945,7 @@ typedef struct xqc_scheduler_callback_s {
 
     xqc_path_ctx_t * (*xqc_scheduler_get_path)(void *scheduler,
         xqc_connection_t *conn, xqc_packet_out_t *packet_out,
-        int check_cwnd, int reinject);
+        int check_cwnd, int reinject, xqc_bool_t *cc_blocked);
 
     void (*xqc_scheduler_handle_path_event)(void *scheduler, 
         xqc_path_ctx_t *path, xqc_scheduler_path_event_t event, void *event_arg);
@@ -952,7 +958,7 @@ typedef struct xqc_scheduler_callback_s {
 XQC_EXPORT_PUBLIC_API extern const xqc_scheduler_callback_t xqc_minrtt_scheduler_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_scheduler_callback_t xqc_backup_scheduler_cb;
 XQC_EXPORT_PUBLIC_API extern const xqc_scheduler_callback_t xqc_rap_scheduler_cb;
-#ifdef XQC_MPQUIC_INTEROP
+#ifdef XQC_ENABLE_MP_INTEROP
 XQC_EXPORT_PUBLIC_API extern const xqc_scheduler_callback_t xqc_interop_scheduler_cb;
 #endif
 
@@ -1306,7 +1312,7 @@ typedef struct xqc_conn_stats_s {
     xqc_path_metrics_t  paths_info[XQC_MAX_PATHS_COUNT];
     char                conn_info[XQC_CONN_INFO_LEN];
 
-    char                alpn[20];
+    char                alpn[XQC_MAX_ALPN_BUF_LEN];
 } xqc_conn_stats_t;
 
 typedef struct xqc_path_stats_s {

@@ -53,8 +53,31 @@ fi
 rm -f test_session tp_localhost xqc_token
 
 killall test_server 2> /dev/null
+./test_server -l d -e -x 17 > /dev/null &
+
+clear_log
+echo -e "server-inited stream ...\c"
+./test_client -l d -E -t 3 >> stdlog
+client_refuse=`grep "ignore server initiated bidi-streams at client" clog`
+client_discard=`grep "data discarded" clog`
+client_check=`grep "xqc_h3_stream_close_notify" clog | grep "|stream_id:1|"`
+client_std_res=`grep ">>>>>>>> pass" stdlog`
+clog_res=`grep "xqc_destroy_stream" clog | grep "close_msg:finished" | grep "stream_id:1"`
+if [ -n "$client_refuse" ] && [ -n "$client_discard" ] && [ -n "$client_std_res" ] && [ -n "$clog_res" ] && [ -z "$client_check" ]; then
+    echo ">>>>>>>> pass:1"
+    case_print_result "server_inited_stream" "pass"
+else
+    echo ">>>>>>>> pass:0"
+    case_print_result "server_inited_stream" "fail"
+fi
+
+
+
+killall test_server 2> /dev/null
 ./test_server -l d -e -x 99 > /dev/null &
 sleep 1
+
+rm -f test_session tp_localhost xqc_token
 
 clear_log
 echo -e "stream send pure fin ...\c"
@@ -75,7 +98,7 @@ rm -f test_session
 clear_log
 echo -e "h3 stream send pure fin ...\c"
 ./test_client -s 1024 -l d -t 1 -E -x 99 >> clog
-errlog=`grep_err_log`
+errlog=`grep_err_log | grep -v "send data after fin sent"`
 clog_res=`cat clog | grep "|send_state:3|recv_state:3|stream_id:0|stream_type:0|send_bytes:0|read_bytes:0|recv_bytes:0|stream_len:0|"`
 slog_res=`cat slog | grep "|send_state:3|recv_state:3|stream_id:0|stream_type:0|send_bytes:0|read_bytes:0|recv_bytes:0|stream_len:0|"`
 if [ -z "$errlog" ] && [ -n "$clog_res" ] && [ -n "$slog_res" ] ; then
@@ -84,6 +107,7 @@ if [ -z "$errlog" ] && [ -n "$clog_res" ] && [ -n "$slog_res" ] ; then
 else
     echo ">>>>>>>> pass:0"
     case_print_result "h3_stream_send_pure_fin" "fail"
+    exit
 fi
 
 rm -f test_session
@@ -254,6 +278,43 @@ else
     case_print_result "fin_only" "fail"
     echo "$errlog"
 fi
+
+clear_log
+echo -e "send data after fin ...\c"
+result=`./test_client -s 5120 -l d -t 1 -E -x 50 |grep ">>>>>>>> pass"`
+errlog=`grep_err_log | grep -v "send data after fin sent"`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "send_data_after_fin" "pass"
+else
+    case_print_result "send_data_after_fin" "fail"
+    echo "$errlog"
+fi
+
+clear_log
+echo -e "send header after fin ...\c"
+result=`./test_client -s 5120 -l d -t 1 -E -x 51 |grep ">>>>>>>> pass"`
+errlog=`grep_err_log | grep -v "send data after fin sent"`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "send_header_after_fin" "pass"
+else
+    case_print_result "send_header_after_fin" "fail"
+    echo "$errlog"
+fi
+
+clear_log
+echo -e "send fin after fin ...\c"
+result=`./test_client -s 5120 -l d -t 1 -E -x 52 |grep ">>>>>>>> pass"`
+errlog=`grep_err_log | grep -v "send data after fin sent"`
+echo "$result"
+if [ -z "$errlog" ] && [ "$result" == ">>>>>>>> pass:1" ]; then
+    case_print_result "send_fin_after_fin" "pass"
+else
+    case_print_result "send_fin_after_fin" "fail"
+    echo "$errlog"
+fi
+
 
 clear_log
 echo -e "header header data ...\c"
@@ -3373,7 +3434,7 @@ cli_res3=`grep "\[h3-dgram\]|recv_dgram_bytes:102400|sent_dgram_bytes:102400|los
 cli_res4=`grep "\[bytestream\]|bytes_sent:102400|bytes_rcvd:102400|recv_fin:1|" stdlog`
 cli_res5=`grep "\[bytestream\]|same_content:yes|" stdlog | wc -l`
 cli_res6=`grep "send pure fin" clog`
-errlog=`grep_err_log`
+errlog=`grep_err_log | grep -v "send data after fin sent"`
 if [ "$cli_res1" == "1" ] && [ -n "$cli_res2" ] && [ -n "$cli_res3" ] && [ -n "$cli_res4" ] && [ "$cli_res5" == "1" ] && [ -n "$cli_res6" ] && [ -z "$errlog" ]; then
     echo ">>>>>>>> pass:1"
     case_print_result "h3_ext_finish_bytestream_during_transmission" "pass"

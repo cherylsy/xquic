@@ -149,6 +149,9 @@ typedef struct xqc_http_priority_s {
 #define XQC_DEFINED_ALPN_H3_29   "h3-29"
 #define XQC_DEFINED_ALPN_H3_EXT  "h3-ext"
 
+/* max alpn buffer length */
+#define XQC_MAX_ALPN_BUF_LEN    256
+
 typedef enum xqc_conn_settings_type_e {
     XQC_CONN_SETTINGS_DEFAULT,
     XQC_CONN_SETTINGS_LOW_DELAY,

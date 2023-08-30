@@ -1301,6 +1301,7 @@ xqc_conn_schedule_packets(xqc_connection_t *conn,  xqc_list_head_t *head,
     xqc_list_head_t *pos, *next;
     xqc_path_ctx_t *path;
     xqc_packet_out_t *packet_out;
+    xqc_bool_t cc_blocked;
 
     xqc_list_for_each_safe(pos, next, head) {
         packet_out = xqc_list_entry(pos, xqc_packet_out_t, po_list);
@@ -1324,8 +1325,12 @@ xqc_conn_schedule_packets(xqc_connection_t *conn,  xqc_list_head_t *head,
             path = conn->scheduler_callback->
                    xqc_scheduler_get_path(conn->scheduler, 
                                           conn, packet_out, 
-                                          packets_are_limited_by_cc, 0);
+                                          packets_are_limited_by_cc, 
+                                          0, &cc_blocked);
             if (path == NULL) {
+                if (cc_blocked) {
+                    conn->sched_cc_blocked++;
+                }
                 break;
             }
         }
@@ -1475,6 +1480,7 @@ xqc_path_send_burst_packets(xqc_connection_t *conn, xqc_path_ctx_t *path,
             if (congest
                 && !xqc_send_packet_check_cc(send_ctl, packet_out, total_bytes_to_send))
             {
+                send_ctl->ctl_conn->send_cc_blocked++;
                 break;
             }
 
@@ -1602,6 +1608,7 @@ xqc_path_send_packets(xqc_connection_t *conn, xqc_path_ctx_t *path,
         if (congest
             && !xqc_send_packet_check_cc(send_ctl, packet_out, 0))
         {
+            send_ctl->ctl_conn->send_cc_blocked++;
             break;
         }
 
@@ -2579,7 +2586,7 @@ xqc_conn_info_print(xqc_connection_t *conn, xqc_conn_stats_t *conn_stats)
 
     /* conn info */
     ret = snprintf(buff, buff_size, "%u,%u,%u,%u,%u,%u,%u,"
-                   "%u,%u,",
+                   "%u,%u,%u,%u,",
                    mp_settings,
                    conn->create_path_count,
                    conn->validated_path_count,
@@ -2588,7 +2595,9 @@ xqc_conn_info_print(xqc_connection_t *conn, xqc_conn_stats_t *conn_stats)
                    conn->dgram_stats.hp_dgram,
                    conn->dgram_stats.hp_red_dgram,
                    conn->dgram_stats.hp_red_dgram_mp,
-                   conn->dgram_stats.timer_red_dgram);
+                   conn->dgram_stats.timer_red_dgram,
+                   conn->sched_cc_blocked,
+                   conn->send_cc_blocked);
 
     curr_size += ret;
 
@@ -2654,10 +2663,9 @@ xqc_conn_get_stats_internal(xqc_connection_t *conn, xqc_conn_stats_t *conn_stats
         xqc_tls_get_selected_alpn(conn->tls, &out_alpn, &out_alpn_len);
     }
 
-    xqc_memset(conn_stats->alpn, 0, 20);
+    xqc_memset(conn_stats->alpn, 0, XQC_MAX_ALPN_BUF_LEN);
     if (out_alpn) {
-        strncpy(conn_stats->alpn, out_alpn, xqc_min(out_alpn_len, 20));
-        conn_stats->alpn[19] = '\0';
+        strncpy(conn_stats->alpn, out_alpn, xqc_min(out_alpn_len, XQC_MAX_ALPN_BUF_LEN));
 
     } else {
         conn_stats->alpn[0] = '-';

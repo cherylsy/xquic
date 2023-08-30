@@ -97,7 +97,7 @@ xqc_packet_out_replicate(xqc_packet_out_t *dst, xqc_packet_out_t *src)
 static xqc_int_t
 xqc_conn_try_reinject_packet(xqc_connection_t *conn, xqc_packet_out_t *packet_out)
 {
-    xqc_path_ctx_t *path = conn->scheduler_callback->xqc_scheduler_get_path(conn->scheduler, conn, packet_out, 1, 1);
+    xqc_path_ctx_t *path = conn->scheduler_callback->xqc_scheduler_get_path(conn->scheduler, conn, packet_out, 1, 1, NULL);
     if (path == NULL) {
         xqc_log(conn->log, XQC_LOG_DEBUG, "|MP|REINJ|fail to schedule a path|reinject|");
         return -XQC_EMP_SCHEDULE_PATH;

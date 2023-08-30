@@ -1199,7 +1199,7 @@ xqc_client_write_socket_ex(uint64_t path_id,
 
         res = sendto(fd, send_buf, send_buf_size, 0, peer_addr, peer_addrlen);
         if (res < 0) {
-            printf("xqc_client_write_socket_ex path:%lu err %zd %s %zu\n", path_id, res, strerror(errno), send_buf_size);
+            printf("xqc_client_write_socket_ex path:%"PRIu64" err %zd %s %zu\n", path_id, res, strerror(errno), send_buf_size);
             if (errno == EAGAIN) {
                 res = XQC_SOCKET_EAGAIN;
             } else {
@@ -1348,6 +1348,7 @@ xqc_client_bind_to_interface(int fd,
     memset(&ifr, 0x00, sizeof(ifr));
     strncpy(ifr.ifr_name, interface_name, sizeof(ifr.ifr_name) - 1);
 
+#if !defined(__APPLE__)
 // #if (XQC_TEST_MP)
     printf("fd: %d. bind to nic: %s\n", fd, interface_name);
     if (setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, (char *)&ifr, sizeof(ifr)) < 0) {
@@ -1355,6 +1356,7 @@ xqc_client_bind_to_interface(int fd,
         return XQC_ERROR;
     }
 // #endif
+#endif
 
     return XQC_OK;
 }
@@ -1389,8 +1391,10 @@ xqc_client_create_socket(int type,
         goto err;
     }
 
+#if !defined(__APPLE__)
     int val = IP_PMTUDISC_DO;
     setsockopt(fd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val));
+#endif
 
     g_last_sock_op_time = now();
 
@@ -2692,6 +2696,22 @@ next:
             printf("xqc_h3_request_send_body sent:%zd, offset=%"PRIu64", fin=1\n", ret, user_stream->send_offset);
         }
     }
+
+    if (g_test_case == 50) {
+        ret = xqc_h3_request_send_body(h3_request, user_stream->send_body, 10, 0);
+        printf("xqc_h3_request_send_body sent:%zd\n", ret);
+    }
+
+    if (g_test_case == 51) {
+        ret = xqc_h3_request_send_headers(h3_request, &headers, 1);
+        printf("xqc_h3_request_send_headers sent:%zd\n", ret);
+    }
+
+    if (g_test_case == 52) {
+        ret = xqc_h3_request_finish(h3_request);
+    }
+
+
     return 0;
 }
 
@@ -4311,7 +4331,7 @@ int main(int argc, char *argv[]) {
         }
 #endif
     }
-#ifndef XQC_DISABLE_RENO
+#ifdef XQC_ENABLE_RENO
     else if (c_cong_ctl == 'r') {
         cong_ctrl = xqc_reno_cb;
     }
@@ -4331,13 +4351,19 @@ int main(int argc, char *argv[]) {
 #endif
     }
 #endif
+#ifdef XQC_ENABLE_UNLIMITED
     else if (c_cong_ctl == 'u') {
         cong_ctrl = xqc_unlimited_cc_cb;
 
-    } else if (c_cong_ctl == 'P') {
+    }
+#endif
+#ifdef XQC_ENABLE_COPA
+    else if (c_cong_ctl == 'P') {
         cong_ctrl = xqc_copa_cb;
 
-    } else {
+    } 
+#endif
+    else {
         printf("unknown cong_ctrl, option is b, r, c, B, bbr+, bbr2+, u\n");
         return -1;
     }
