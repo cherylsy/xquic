@@ -7,7 +7,12 @@ set (xquic_VERSION_MAJOR 0)
 set (xquic_VERSION_MINOR 1)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# build type
+option (XQC_ENABLE_BBR2 "enable bbr2" ON)
+option (XQC_ENABLE_COPA "enable copa" ON)
+option (XQC_ENABLE_RENO "enable reno" ON)
+option (XQC_ENABLE_UNLIMITED "enable unlimited cc" ON)
+option (XQC_ENABLE_MP_INTEROP "enable MPQUIC interop" ON)
+
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -78,12 +83,6 @@ if(XQC_COMPAT_GENERATE_SR_PKT)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_COMPAT_GENERATE_SR_PKT")
 endif()
 
-if(XQC_NO_MPINTEROP)
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DNXQC_MPQUIC_INTEROP")
-else()
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DXQC_MPQUIC_INTEROP")
-endif()
-
 # print only error log
 if(XQC_ONLY_ERROR_LOG)
     set(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} -DXQC_ONLY_ERROR_LOG ")
@@ -125,8 +124,8 @@ endif()
 
 # configure file
 configure_file (
-    xqc_configure.h.in
-    xqc_configure.h
+    "${CMAKE_CURRENT_SOURCE_DIR}/xqc_configure.h.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/xquic/xqc_configure.h"
 )
 
 include_directories(
@@ -135,8 +134,6 @@ include_directories(
     "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_BINARY_DIR}/include"
 )
-
-
 
 # http3/qpack source
 set(
