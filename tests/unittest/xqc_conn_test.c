@@ -18,6 +18,7 @@
 #include "src/transport/xqc_engine.h"
 #include "src/transport/xqc_transport_params.h"
 #include "src/transport/xqc_cid.h"
+#include "src/transport/xqc_packet_out.h"
 
 extern void xqc_conn_tls_error_cb(xqc_int_t tls_err, void *user_data);
 
@@ -634,6 +635,18 @@ xqc_test_0rtt_params_each_reduced(void)
 
         xqc_engine_destroy(conn->engine);
     }
+}
+
+
+void
+xqc_test_0rtt_params_error_wire_code(void)
+{
+    CU_ASSERT_EQUAL(xqc_conn_close_wire_error_code(TRA_0RTT_TRANS_PARAMS_ERROR),
+                    TRA_TRANSPORT_PARAMETER_ERROR);
+    CU_ASSERT_EQUAL(xqc_conn_close_wire_error_code(TRA_KEY_UPDATE_ERROR),
+                    TRA_KEY_UPDATE_ERROR);
+    CU_ASSERT_EQUAL(xqc_conn_close_wire_error_code(H3_FRAME_ERROR),
+                    H3_FRAME_ERROR);
 }
 
 
