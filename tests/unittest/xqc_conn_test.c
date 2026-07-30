@@ -403,6 +403,8 @@ xqc_0rtt_test_make_conn(xqc_cid_t *out_server_scid)
 
     /* mark the connection as having 0-RTT */
     conn->conn_flag |= XQC_CONN_FLAG_HAS_0RTT;
+    xqc_conn_early_data_accept(conn);
+
     /* clear any prior errors */
     conn->conn_err = 0;
     conn->conn_flag &= ~XQC_CONN_FLAG_ERROR;

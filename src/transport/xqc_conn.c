@@ -6134,7 +6134,8 @@ xqc_conn_tls_transport_params_cb(const uint8_t *tp, size_t len, void *user_data)
      */
     if (conn->conn_type == XQC_CONN_TYPE_CLIENT
         && (conn->conn_flag & XQC_CONN_FLAG_HAS_0RTT)
-        && xqc_tls_is_early_data_accepted(conn->tls) == XQC_TLS_EARLY_DATA_ACCEPT)
+        && ((conn->conn_flag & XQC_CONN_FLAG_0RTT_OK)
+            || xqc_tls_is_early_data_accepted(conn->tls) == XQC_TLS_EARLY_DATA_ACCEPT))
     {
         xqc_trans_settings_t *remembered = &conn->remote_settings;
 
